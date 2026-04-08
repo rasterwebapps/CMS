@@ -136,7 +136,7 @@ The **College Management System (CMS)** streamlines and centralizes all institut
 | # | Module | Description | Lab Integration |
 |---|--------|-------------|-----------------|
 | 1 | **Dashboard** | Overview of key metrics, notifications, quick links | ✅ Lab utilization widget, equipment alerts |
-| 2 | **User Management** | Role-based access (Admin, Faculty, Student, Lab In-Charge, Technician) | ✅ Lab-specific roles |
+| 2 | **User Management** | Role-based access (Admin, Faculty, Student, Lab In-Charge, Technician, Parent) | ✅ Lab-specific roles |
 | 3 | **Institution Profile** | College details, branding, campus management | ✅ Lab count, lab types per campus |
 | 4 | **Academic Year Management** | Define academic years, semesters, terms | ✅ Lab sessions mapped per semester |
 | 5 | **Department Management** | Create and manage departments | ✅ Department-wise lab assignment |
@@ -619,7 +619,7 @@ Lab Management **cannot function in isolation**. It touches students, faculty, f
 
 | # | Area | Tasks | Key Deliverables |
 |---|------|-------|-----------------|
-| 1.1 | **Identity Infrastructure** | Deploy Keycloak via Docker; Configure LDAP/AD federation; Define roles (ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT, ROLE_LAB_INCHARGE, ROLE_TECHNICIAN) | Working SSO login for all user types |
+| 1.1 | **Identity Infrastructure** | Deploy Keycloak via Docker; Configure LDAP/AD federation; Define roles (ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT, ROLE_LAB_INCHARGE, ROLE_TECHNICIAN, ROLE_PARENT) | Working SSO login for all user types |
 | 1.2 | **Backend Core Setup** | Initialize Spring Boot 3.x (Java 21) with Virtual Threads; Implement Spring Security + OAuth2 Resource Server for JWT validation from Keycloak; Set up Global Exception Handler & Jakarta Bean Validation | Secured API skeleton with health endpoints |
 | 1.3 | **Frontend Shell** | Initialize Angular 21 (Standalone Components, Signals); Implement Keycloak Auth Guard; Default landing page — Master Dashboard (Material 3) with "Lab Utilization" widget | Authenticated SPA shell with role-based navigation |
 
