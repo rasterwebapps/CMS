@@ -1,0 +1,38 @@
+# 📚 CMS Documentation
+
+Welcome to the College Management System documentation. This directory contains all technical references, guidelines, and skill templates for the project.
+
+---
+
+## 📋 Table of Contents
+
+| Document | Description |
+|----------|-------------|
+| [TECHNICAL_STANDARDS.md](TECHNICAL_STANDARDS.md) | Technical standards & architecture guide — frontend, backend, UI/UX, security, database, testing |
+| [skills/](skills/) | Copilot skill templates for code generation (Angular, Spring Boot, Flyway, Keycloak) |
+| [manual-test-cases/](manual-test-cases/) | Manual test case templates and completed test documentation |
+
+---
+
+## 🛠️ Skills Reference
+
+Skill files provide structured templates and patterns used by GitHub Copilot for consistent code generation:
+
+| Skill | Description |
+|-------|-------------|
+| [angular-component.md](skills/angular-component.md) | Angular standalone component patterns (signals, Material 3, templates, tests) |
+| [angular-service.md](skills/angular-service.md) | Angular HTTP service & state management patterns |
+| [spring-controller.md](skills/spring-controller.md) | Spring Boot REST controller patterns (DTOs, security, pagination, tests) |
+| [spring-service.md](skills/spring-service.md) | Spring Boot service layer patterns (transactions, repositories, entities, tests) |
+| [flyway-migration.md](skills/flyway-migration.md) | Flyway database migration patterns (PostgreSQL, naming, indexes, constraints) |
+| [keycloak-auth.md](skills/keycloak-auth.md) | Keycloak OAuth2/OIDC integration for both Angular frontend and Spring Boot backend |
+
+---
+
+## 🧪 Manual Test Cases
+
+Every completed task must include manual test cases. See [manual-test-cases/README.md](manual-test-cases/README.md) for the template and guidelines.
+
+---
+
+> For the full project overview, modules, and roadmap, see the root [README.md](../README.md).
