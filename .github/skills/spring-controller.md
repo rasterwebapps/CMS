@@ -150,6 +150,7 @@ Available roles in the CMS system:
 | `ROLE_STUDENT` | Student access |
 | `ROLE_LAB_INCHARGE` | Lab management |
 | `ROLE_TECHNICIAN` | Technical support |
+| `ROLE_PARENT` | Parent/guardian read-only access |
 
 ### Security Annotations
 

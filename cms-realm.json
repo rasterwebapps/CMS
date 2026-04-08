@@ -22,6 +22,10 @@
       {
         "name": "ROLE_TECHNICIAN",
         "description": "Technician for lab maintenance"
+      },
+      {
+        "name": "ROLE_PARENT",
+        "description": "Parent/guardian with read-only access to their ward's progress"
       }
     ]
   },
@@ -107,6 +111,22 @@
         }
       ],
       "realmRoles": ["ROLE_LAB_INCHARGE"]
+    },
+    {
+      "username": "parent1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Parent",
+      "lastName": "User",
+      "email": "parent1@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "parent123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_PARENT"]
     }
   ],
   "components": {

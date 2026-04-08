@@ -25,6 +25,7 @@ You are an expert at configuring and integrating Keycloak authentication for the
 | `ROLE_STUDENT` | Student access |
 | `ROLE_LAB_INCHARGE` | Lab management |
 | `ROLE_TECHNICIAN` | Technical support |
+| `ROLE_PARENT` | Parent/guardian read-only access |
 
 ## Backend Integration (Spring Security)
 
@@ -201,6 +202,7 @@ export class AuthService {
   readonly isStudent = computed(() => this._roles().includes('ROLE_STUDENT'));
   readonly isLabIncharge = computed(() => this._roles().includes('ROLE_LAB_INCHARGE'));
   readonly isTechnician = computed(() => this._roles().includes('ROLE_TECHNICIAN'));
+  readonly isParent = computed(() => this._roles().includes('ROLE_PARENT'));
 
   constructor() {
     this.keycloak = new Keycloak({
@@ -441,6 +443,7 @@ To add a new role to Keycloak:
       { "name": "ROLE_STUDENT" },
       { "name": "ROLE_LAB_INCHARGE" },
       { "name": "ROLE_TECHNICIAN" },
+      { "name": "ROLE_PARENT" },
       { "name": "ROLE_NEW_ROLE" }
     ]
   }

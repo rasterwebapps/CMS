@@ -173,6 +173,7 @@ CollegeManagementSystem/
 - `ROLE_STUDENT` - Student-specific access
 - `ROLE_LAB_INCHARGE` - Lab management access
 - `ROLE_TECHNICIAN` - Technical support access
+- `ROLE_PARENT` - Parent/guardian read-only access to ward's progress
 
 ### Frontend Authentication
 - Keycloak JS handles authentication flow
