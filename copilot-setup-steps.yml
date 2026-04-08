@@ -1,0 +1,38 @@
+# Copilot Cloud Agent Environment Setup
+# This file configures the environment for GitHub Copilot coding agent
+
+name: "Copilot Setup"
+
+# Specify the runner environment
+runs-on: ubuntu-latest
+
+steps:
+  # Java 21 for Spring Boot backend
+  - name: Set up Java 21
+    uses: actions/setup-java@v4
+    with:
+      distribution: 'temurin'
+      java-version: '21'
+
+  # Node.js 20+ for Angular frontend
+  - name: Set up Node.js 20
+    uses: actions/setup-node@v4
+    with:
+      node-version: '20'
+
+  # Install frontend dependencies
+  - name: Install frontend dependencies
+    run: |
+      cd frontend
+      npm ci
+
+  # Make Gradle wrapper executable
+  - name: Make Gradle wrapper executable
+    run: |
+      chmod +x backend/gradlew
+
+  # Download Gradle dependencies
+  - name: Download backend dependencies
+    run: |
+      cd backend
+      ./gradlew dependencies --no-daemon
