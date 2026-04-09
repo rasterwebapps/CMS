@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.cms.CmsApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-04-09T08:32:53" hostname="runnervm727z3" time="0.667">
+  <properties/>
+  <testcase name="contextLoads()" classname="com.cms.CmsApplicationTests" time="0.667"/>
+  <system-out><![CDATA[08:32:48.560 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.cms.CmsApplicationTests]: CmsApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+08:32:48.746 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.cms.CmsApplication for test class com.cms.CmsApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.5)
+
+2026-04-09T08:32:49.571Z  INFO 5514 --- [cms-backend] [    Test worker] com.cms.CmsApplicationTests              : Starting CmsApplicationTests using Java 21.0.10 with PID 5514 (started by runner in /home/runner/work/CMS/CMS/backend)
+2026-04-09T08:32:49.574Z  INFO 5514 --- [cms-backend] [    Test worker] com.cms.CmsApplicationTests              : The following 1 profile is active: "test"
+2026-04-09T08:32:50.572Z  INFO 5514 --- [cms-backend] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-09T08:32:50.619Z  INFO 5514 --- [cms-backend] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 33 ms. Found 0 JPA repository interfaces.
+2026-04-09T08:32:51.099Z  INFO 5514 --- [cms-backend] [    Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-09T08:32:51.166Z  INFO 5514 --- [cms-backend] [    Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.13.Final
+2026-04-09T08:32:51.205Z  INFO 5514 --- [cms-backend] [    Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-09T08:32:51.534Z  INFO 5514 --- [cms-backend] [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-09T08:32:51.569Z  INFO 5514 --- [cms-backend] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-09T08:32:51.937Z  INFO 5514 --- [cms-backend] [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:cmsdb-test user=SA
+2026-04-09T08:32:51.940Z  INFO 5514 --- [cms-backend] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-09T08:32:52.049Z  INFO 5514 --- [cms-backend] [    Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-09T08:32:52.570Z  INFO 5514 --- [cms-backend] [    Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-09T08:32:52.577Z  INFO 5514 --- [cms-backend] [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-09T08:32:52.836Z  WARN 5514 --- [cms-backend] [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-09T08:32:53.606Z  INFO 5514 --- [cms-backend] [    Test worker] com.cms.CmsApplicationTests              : Started CmsApplicationTests in 4.599 seconds (process running for 6.411)
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/runner/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.15.11/a38b16385e867f59a641330f0362ebe742788ed8/byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

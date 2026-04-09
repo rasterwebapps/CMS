@@ -1,0 +1,14 @@
+spring:
+  profiles:
+    default: local
+
+  application:
+    name: cms-backend
+
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  servlet:
+    context-path: /api/v1
