@@ -38,10 +38,18 @@ export class App {
 
   protected readonly title = signal('College Management System');
   protected readonly sidenavOpened = signal(true);
-  protected readonly darkTheme = signal(false);
+  protected readonly darkTheme = signal(
+    typeof localStorage !== 'undefined' && localStorage.getItem('cms-theme') === 'dark'
+  );
 
   protected readonly username = this.authService.username;
   protected readonly authenticated = this.authService.authenticated;
+
+  constructor() {
+    if (this.darkTheme()) {
+      document.documentElement.classList.add('dark-theme');
+    }
+  }
 
   private readonly allNavItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
@@ -64,9 +72,11 @@ export class App {
     if (this.darkTheme()) {
       htmlElement.classList.add('dark-theme');
       htmlElement.classList.remove('light-theme');
+      localStorage.setItem('cms-theme', 'dark');
     } else {
       htmlElement.classList.add('light-theme');
       htmlElement.classList.remove('dark-theme');
+      localStorage.setItem('cms-theme', 'light');
     }
   }
 
