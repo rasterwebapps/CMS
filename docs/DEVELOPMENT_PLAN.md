@@ -85,7 +85,7 @@ The repository currently contains **documentation only**:
 
 - [ ] **0.2.1** Initialize Angular 21 project with Angular CLI
   - Standalone components (no NgModules)
-  - SCSS styling
+  - SCSS + Tailwind CSS styling
   - SSR disabled initially (enable later)
 - [ ] **0.2.2** Install Angular Material 21 with Material 3 theme
   - Configure `mat.theme()` with azure palette
@@ -104,7 +104,7 @@ The repository currently contains **documentation only**:
 - [ ] **0.3.1** Create `infrastructure/keycloak/` directory with realm import config
 - [ ] **0.3.2** Create `docker-compose.yml` with services:
   - Keycloak 26.0 (with realm auto-import)
-  - PostgreSQL 16 (for prod profile)
+  - PostgreSQL 17 (for prod profile)
 - [ ] **0.3.3** Verify `docker compose up -d keycloak` starts Keycloak with `cms` realm
 - [ ] **0.3.4** Verify Keycloak admin console is accessible and realm roles exist:
   - `ROLE_ADMIN`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`

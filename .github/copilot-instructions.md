@@ -12,7 +12,7 @@ The College Management System is a full-stack web application for managing colle
 - **Framework**: Angular 21 with standalone components
 - **UI Library**: Angular Material 21 with Material Design 3
 - **Language**: TypeScript 5.9 with strict mode enabled
-- **Styling**: SCSS
+- **Styling**: SCSS + Tailwind CSS
 - **Build Tool**: Angular CLI with `@angular/build`
 - **Testing**: Vitest for unit tests
 - **Code Formatting**: Prettier (single quotes, 100 char width)
@@ -22,7 +22,7 @@ The College Management System is a full-stack web application for managing colle
 - **Framework**: Spring Boot 3.4.5
 - **Language**: Java 21 with virtual threads enabled
 - **Build Tool**: Gradle (Kotlin DSL)
-- **Database**: H2 (in-memory) for local development, PostgreSQL 16 for production/other environments
+- **Database**: H2 (in-memory) for local development, PostgreSQL 17 for production/other environments
 - **Database Migrations**: Flyway (enabled for PostgreSQL profiles, disabled for local/H2)
 - **ORM**: Spring Data JPA with Hibernate
 - **Security**: Spring Security with OAuth2 Resource Server (JWT)
@@ -32,7 +32,7 @@ The College Management System is a full-stack web application for managing colle
 
 ### Infrastructure
 - **Authentication**: Keycloak 26.0 (realm: `cms`)
-- **Database (Production)**: PostgreSQL 16
+- **Database (Production)**: PostgreSQL 17
 - **Database (Local Development)**: H2 in-memory
 - **Container Orchestration**: Docker Compose
 
@@ -155,7 +155,7 @@ CollegeManagementSystem/
 
 4. **Templates**: Use separate `.html` template files (not inline templates)
 
-5. **Styling**: Use SCSS with component-scoped styles
+5. **Styling**: Use SCSS + Tailwind CSS with component-scoped styles
 
 6. **Forms**: Use reactive forms with validators
    ```typescript
@@ -244,7 +244,7 @@ The backend supports multiple Spring profiles for database configuration:
 | Profile | Database | Flyway | Use Case |
 |---------|----------|--------|----------|
 | `local` (default) | H2 in-memory | Disabled | Local development — no external dependencies needed |
-| `prod` / others | PostgreSQL 16 | Enabled | Production, staging, CI — requires Docker Compose or external PostgreSQL |
+| `prod` / others | PostgreSQL 17 | Enabled | Production, staging, CI — requires Docker Compose or external PostgreSQL |
 
 - **Local development**: Run `./gradlew bootRun` — uses H2 in-memory database with `ddl-auto: create-drop`. The H2 console is available at `http://localhost:8080/h2-console`.
 - **Production/other environments**: Set `SPRING_PROFILES_ACTIVE=prod` (or omit the `local` profile) — uses PostgreSQL with Flyway migrations.

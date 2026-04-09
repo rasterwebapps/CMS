@@ -387,7 +387,7 @@ public ResponseEntity<FeePaymentResponse> createPayment(
 | Validation            | Jakarta Bean Validation                        |
 | Error Handling        | Global `@ControllerAdvice` exception handler   |
 | DB (Local Dev)        | H2 in-memory (profile: `local`)               |
-| DB (Production)       | PostgreSQL 16 with Flyway migrations           |
+| DB (Production)       | PostgreSQL 17 with Flyway migrations           |
 | Backend Code Coverage | JaCoCo — 95% minimum enforced                 |
 | Frontend Testing      | Not required                                   |
 | Manual Test Cases     | Required for every completed task              |
@@ -403,7 +403,7 @@ The backend uses **Spring Profiles** to switch between databases depending on th
 | Profile | Database | Flyway | DDL Strategy | Use Case |
 |---------|----------|--------|--------------|----------|
 | `local` (default) | H2 in-memory | Disabled | `create-drop` | Local development — no external dependencies |
-| `prod` / others | PostgreSQL 16 | Enabled | `validate` | Production, staging, CI environments |
+| `prod` / others | PostgreSQL 17 | Enabled | `validate` | Production, staging, CI environments |
 
 ### 5.2 Local Development (H2)
 
@@ -417,7 +417,7 @@ The backend uses **Spring Profiles** to switch between databases depending on th
 
 - Set `SPRING_PROFILES_ACTIVE=prod` (or any non-`local` profile) to use PostgreSQL.
 - Flyway migrations are **enabled** — all schema changes must go through versioned SQL migration files.
-- Requires a running PostgreSQL 16 instance (via Docker Compose or external).
+- Requires a running PostgreSQL 17 instance (via Docker Compose or external).
 - Hibernate `ddl-auto` is set to `validate` — it only validates the schema, never modifies it.
 
 ### 5.4 Test Profile

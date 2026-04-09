@@ -66,6 +66,7 @@ Please read the full [Technical Standards](docs/TECHNICAL_STANDARDS.md) before c
 - Use **Angular Signals** for state management
 - Use **new control flow** syntax (`@if`, `@for`, `@switch`)
 - Follow **folder-by-feature** structure
+- Use **SCSS + Tailwind CSS** for styling
 - Use **Angular Material 21** (Material 3) components
 
 ### Database

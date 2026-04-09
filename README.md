@@ -682,10 +682,11 @@ Lab Management **cannot function in isolation**. It touches students, faculty, f
 | **Frontend** | Angular 21 (Standalone Components, Signals) |
 | **UI Design System** | Angular Material 21 / Material 3 (M3) |
 | **State Management** | Angular Signals + Signals (for async streams) |
-| **Theming** | Tailwind CSS Variables via `mat.theme()` Sass mixins (Light & Dark mode) |
+| **Styling** | SCSS + Tailwind CSS |
+| **Theming** | CSS Variables via `mat.theme()` Sass mixins (Light & Dark mode) |
 | **Backend** | Java 21 + Spring Boot 3.x (Virtual Threads / Project Loom) |
 | **Identity & Auth** | Keycloak (OAuth 2.0 / OpenID Connect), Stateless JWT with Spring Security |
-| **Database** | PostgreSQL (DECIMAL/NUMERIC for monetary values) |
+| **Database** | PostgreSQL 17 (DECIMAL/NUMERIC for monetary values) |
 | **Validation** | Jakarta Bean Validation |
 | **Error Handling** | Global `@ControllerAdvice` exception handler |
 | **Data Integrity** | BigDecimal for all currency calculations |
