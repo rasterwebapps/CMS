@@ -13,6 +13,7 @@
 - [5. Database Profiles](#5-database-profiles)
 - [6. Testing & Code Coverage](#6-testing--code-coverage)
 - [7. Manual Test Cases](#7-manual-test-cases)
+- [8. AI-Assisted Development Quality Guidelines](#8-ai-assisted-development-quality-guidelines)
 
 ---
 
@@ -518,6 +519,101 @@ Each test case must include:
 
 **Status:** NOT TESTED
 ```
+
+---
+
+## 8. AI-Assisted Development Quality Guidelines
+
+This project uses **GitHub Copilot** with custom skill templates (`.github/skills/`) and project-level instructions (`.github/copilot-instructions.md`) for AI-assisted code generation. The following guidelines ensure AI-generated code meets the quality, correctness, and consistency standards of the CMS project.
+
+### 8.1 Hallucination Prevention
+
+**Hallucination** occurs when an AI confidently generates incorrect, fabricated, or nonsensical code — for example, inventing a library that doesn't exist or calling an API method with the wrong signature.
+
+To prevent hallucinations in the CMS codebase:
+
+- **Verify all imports exist** — Do not accept generated `import` statements without confirming the package/module is declared in `build.gradle.kts` (backend) or `package.json` (frontend).
+- **Check API signatures** — Validate that generated method calls match actual Spring Boot, Angular, or Angular Material API signatures for the versions used in this project (Spring Boot 3.4, Angular 21, Material 21).
+- **Use only declared dependencies** — Never introduce libraries not already in the project's dependency files without explicit approval. If a new dependency is needed, add it properly via `npm install` or by editing `build.gradle.kts`.
+- **Reference existing patterns** — Before generating a new service, controller, or component, review an existing implementation in the codebase for the correct pattern (e.g., look at existing controllers in `com.cms.controller` before creating a new one).
+- **Verify Keycloak role names** — Only use the six defined roles: `ROLE_ADMIN`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`. Do not invent new roles without updating `cms-realm.json`.
+
+### 8.2 Grounding
+
+**Grounding** means anchoring AI-generated code in real, verifiable project context to reduce errors and ensure correctness.
+
+All AI-generated code must be grounded in:
+
+| Source | Purpose |
+|--------|---------|
+| `.github/copilot-instructions.md` | Project conventions, build commands, architecture |
+| `.github/skills/*.md` | Code generation templates for each layer |
+| `docs/TECHNICAL_STANDARDS.md` | Architecture and design standards |
+| Existing source code | Established patterns and naming conventions |
+| `build.gradle.kts` / `package.json` | Actual dependency versions |
+
+Grounding practices:
+- Always check the **actual project structure** before generating file paths (e.g., `com.cms.service`, not `com.cms.services`).
+- Verify **database column names** against existing Flyway migrations or JPA entities before generating queries.
+- Confirm **environment configuration** keys match `application.yml` / `application-local.yml` before referencing properties.
+- Use the **skill templates** in `.github/skills/` as the canonical patterns for new code — they define the project's conventions for components, services, controllers, migrations, and authentication.
+
+### 8.3 Deterministic Output
+
+**Deterministic output** means generating the same consistent code patterns every time for the same type of task. This ensures codebase uniformity.
+
+Standards for deterministic code generation:
+
+- **DTOs**: Always use Java `record` types in `com.cms.dto` — never use classes with getters/setters for DTOs.
+- **Dependency Injection**: Use constructor injection in backend code; use `inject()` function in frontend code — never use `@Autowired` or constructor injection in Angular.
+- **Signals over BehaviorSubject**: Always use Angular Signals (`signal()`, `computed()`) for reactive state — never use `BehaviorSubject` for component state.
+- **Template syntax**: Always use `@if`/`@for`/`@switch` control flow — never use `*ngIf`/`*ngFor`/`ngSwitch` structural directives.
+- **REST paths**: Always use `/api/v1/{resource}` prefix with kebab-case — no exceptions.
+- **Test annotations**: Use `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories — follow the patterns in the skill templates exactly.
+
+### 8.4 Latency & Throughput Awareness
+
+**Latency** is the time delay between a request and response. **Throughput** is the number of requests a system can handle per second. AI-generated code must be performance-aware.
+
+- **Use Virtual Threads** — All backend request handling uses virtual threads (configured in `application.yml`). Do not add thread pool configurations or reactive (WebFlux) patterns.
+- **Use pagination** — All list endpoints must return `Page<T>` using Spring Data's `Pageable` parameter. Never return unbounded `List<T>` from API endpoints.
+- **Lazy-load frontend routes** — Use `loadComponent` for route definitions. Never eagerly import feature components in `app.routes.ts`.
+- **Use `FetchType.LAZY`** — All JPA `@ManyToOne` and `@OneToMany` associations must use lazy fetching to prevent N+1 query issues.
+- **Minimize bundle size** — Import specific Angular Material components (e.g., `MatButtonModule`), not entire module groups.
+
+### 8.5 Streaming & Incremental Delivery
+
+**Streaming** means delivering data incrementally rather than waiting for a complete response. Apply incremental delivery patterns where appropriate:
+
+- **Paginated API responses** — Use Spring Data `Page`/`Slice` for large datasets instead of loading all records at once.
+- **Progressive UI loading** — Show loading spinners (`<mat-spinner>`) during data fetch. Use `@if (loading())` patterns from the Angular component skill template.
+- **Optimistic UI updates** — For create/update operations, update the local signal state immediately (as shown in the Angular service skill template) rather than waiting for a full page reload.
+
+### 8.6 Stop Sequences & Scope Boundaries
+
+**Stop sequences** define where AI generation should stop. In the context of CMS development, these are the boundaries that code generation should respect:
+
+- **Single responsibility** — Generate one component, service, or controller per file. Do not generate entire feature modules in a single output.
+- **Layer boundaries** — Controllers should not contain business logic; services should not contain HTTP/response logic; repositories should only define queries.
+- **Test scope** — Each test class tests exactly one class. Controller tests mock services; service tests mock repositories. Do not create integration tests that span multiple layers unless explicitly requested.
+- **Migration scope** — Each Flyway migration handles one logical change (create table, add column, add index). Do not combine unrelated schema changes in a single migration file.
+- **Security scope** — Security annotations (`@PreAuthorize`) belong on controller methods. Do not add security checks inside service methods — services trust that the caller is authorized.
+
+### 8.7 AI Output Quality Checklist
+
+Before accepting AI-generated code, verify:
+
+| # | Check | Description |
+|---|-------|-------------|
+| 1 | **Compiles** | Code compiles without errors (`./gradlew compileJava` or `npx ng build`) |
+| 2 | **Tests pass** | All existing tests pass (`./gradlew check`) |
+| 3 | **Coverage maintained** | JaCoCo coverage remains ≥ 95% |
+| 4 | **No phantom imports** | All imported classes/modules exist in the project's dependencies |
+| 5 | **Follows skill template** | Generated code matches the patterns in `.github/skills/` |
+| 6 | **Correct roles** | Security annotations use only defined Keycloak roles |
+| 7 | **Consistent naming** | Follows the naming conventions in Section 4.1 |
+| 8 | **Manual test cases** | New features include test cases in `docs/manual-test-cases/` |
+| 9 | **No hardcoded values** | Environment-specific values use configuration, not hardcoded strings |
 
 ---
 

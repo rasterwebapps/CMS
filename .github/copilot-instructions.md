@@ -341,3 +341,26 @@ The backend supports multiple Spring profiles for database configuration:
 9. **Handle errors gracefully** with appropriate error responses
 10. **Follow existing patterns** in the codebase when adding new features
 11. **Use the `local` profile** for development (H2) and `prod` for production (PostgreSQL)
+
+## AI Code Generation Quality
+
+When generating code for this project, adhere to these quality rules to prevent hallucinations and ensure grounded, deterministic output:
+
+### Grounding Rules
+- **Only use dependencies declared in** `build.gradle.kts` (backend) or `package.json` (frontend). Do not invent or assume libraries.
+- **Follow the skill templates** in `.github/skills/` — they define the canonical code patterns for this project.
+- **Verify import paths** match the actual project package structure: `com.cms.controller`, `com.cms.service`, `com.cms.repository`, `com.cms.model`, `com.cms.dto`, `com.cms.exception`, `com.cms.config`.
+- **Reference existing implementations** before generating new code — check how similar features are already built.
+
+### Hallucination Prevention
+- Do not generate calls to APIs, methods, or classes that do not exist in the project's dependency versions (Spring Boot 3.4.5, Angular 21, Material 21).
+- Only use the six defined Keycloak roles: `ROLE_ADMIN`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`.
+- Do not fabricate configuration properties — verify against `application.yml` and `application-local.yml`.
+
+### Deterministic Patterns
+- DTOs: Always Java records. Services: `@Transactional(readOnly = true)` at class level. Controllers: constructor injection with `/api/v1` prefix.
+- Angular components: standalone with `inject()`, signals for state, `@if`/`@for` control flow, separate `.html` templates.
+- Tests: `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories.
+
+### Quality Verification
+After generating code, always validate: (1) it compiles, (2) all tests pass, (3) coverage remains ≥ 95%, (4) all imports resolve, (5) it matches skill template patterns. See `docs/TECHNICAL_STANDARDS.md` Section 8 for the full AI output quality checklist.
