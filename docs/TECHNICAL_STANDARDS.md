@@ -565,7 +565,7 @@ Grounding practices:
 Standards for deterministic code generation:
 
 - **DTOs**: Always use Java `record` types in `com.cms.dto` — never use classes with getters/setters for DTOs.
-- **Dependency Injection**: Use constructor injection in backend code; use `inject()` function in frontend code — never use `@Autowired` or constructor injection in Angular.
+- **Dependency Injection**: Use constructor injection in backend code; prefer the `inject()` function in frontend standalone components — do not use field-level `@Autowired` in backend code.
 - **Signals over BehaviorSubject**: Always use Angular Signals (`signal()`, `computed()`) for reactive state — never use `BehaviorSubject` for component state.
 - **Template syntax**: Always use `@if`/`@for`/`@switch` control flow — never use `*ngIf`/`*ngFor`/`ngSwitch` structural directives.
 - **REST paths**: Always use `/api/v1/{resource}` prefix with kebab-case — no exceptions.
@@ -587,7 +587,7 @@ Standards for deterministic code generation:
 
 - **Paginated API responses** — Use Spring Data `Page`/`Slice` for large datasets instead of loading all records at once.
 - **Progressive UI loading** — Show loading spinners (`<mat-spinner>`) during data fetch. Use `@if (loading())` patterns from the Angular component skill template.
-- **Optimistic UI updates** — For create/update operations, update the local signal state immediately (as shown in the Angular service skill template) rather than waiting for a full page reload.
+- **Optimistic UI updates** — For create/update operations, update the local signal state immediately (as shown in the Angular service skill template) rather than waiting for a full page reload. Include error handling in `catchError` to revert the optimistic change if the API request fails.
 
 ### 8.6 Stop Sequences & Scope Boundaries
 
