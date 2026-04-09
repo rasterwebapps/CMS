@@ -8,6 +8,9 @@ Welcome to the College Management System documentation. This directory contains 
 
 | Document | Description |
 |----------|-------------|
+| [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) | Master development plan — all phases and milestones |
+| [RELEASE_1_MILESTONES.md](RELEASE_1_MILESTONES.md) | Release 1 milestone tracker — Phases 0–5 (scaffolding, auth, academic, logistics, finance, assessment) |
+| [RELEASE_2_MILESTONES.md](RELEASE_2_MILESTONES.md) | Release 2 milestone tracker — Phase 6 (library, hostel, transport, LMS, placement, etc.) |
 | [TECHNICAL_STANDARDS.md](TECHNICAL_STANDARDS.md) | Technical standards & architecture guide — frontend, backend, UI/UX, security, database, testing |
 | [skills/](skills/) | Copilot skill templates for code generation (Angular, Spring Boot, Flyway, Keycloak) |
 | [manual-test-cases/](manual-test-cases/) | Manual test case templates and completed test documentation |
