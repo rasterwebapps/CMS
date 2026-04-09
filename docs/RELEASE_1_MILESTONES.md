@@ -40,50 +40,50 @@
 
 ### R1-M0.1 — Backend Project Initialization
 
-- [ ] **R1-0.1.1** Initialize Spring Boot 3.4 project with Gradle (Kotlin DSL)
+- [x] **R1-0.1.1** Initialize Spring Boot 3.4 project with Gradle (Kotlin DSL)
   - Group: `com.cms`, Artifact: `cms-backend`
   - Java 21, Spring Web, Spring Data JPA, Spring Security, Spring Validation, Spring OAuth2 Resource Server
   - H2 (runtime), PostgreSQL (runtime), Flyway
   - JaCoCo plugin with 95% coverage threshold
-- [ ] **R1-0.1.2** Create `application.yml` with common settings
+- [x] **R1-0.1.2** Create `application.yml` with common settings
   - Default profile: `local`
   - Virtual threads enabled: `spring.threads.virtual.enabled: true`
   - API base path: `/api/v1`
-- [ ] **R1-0.1.3** Create `application-local.yml` — H2 in-memory config
+- [x] **R1-0.1.3** Create `application-local.yml` — H2 in-memory config
   - `spring.jpa.hibernate.ddl-auto: create-drop`
   - Flyway disabled
   - H2 console enabled at `/h2-console`
-- [ ] **R1-0.1.4** Create `application-prod.yml` — PostgreSQL config
+- [x] **R1-0.1.4** Create `application-prod.yml` — PostgreSQL config
   - `spring.jpa.hibernate.ddl-auto: validate`
   - Flyway enabled
   - Database connection via environment variables
-- [ ] **R1-0.1.5** Create `application-test.yml` — Test profile
+- [x] **R1-0.1.5** Create `application-test.yml` — Test profile
   - H2 in-memory, Flyway disabled, `create-drop`
-- [ ] **R1-0.1.6** Verify backend starts with `./gradlew bootRun` (local profile)
-- [ ] **R1-0.1.7** Verify `./gradlew check` passes (empty project baseline)
+- [x] **R1-0.1.6** Verify backend starts with `./gradlew bootRun` (local profile)
+- [x] **R1-0.1.7** Verify `./gradlew check` passes (empty project baseline)
 
 ### R1-M0.2 — Frontend Project Initialization
 
-- [ ] **R1-0.2.1** Initialize Angular 21 project with Angular CLI
+- [x] **R1-0.2.1** Initialize Angular 21 project with Angular CLI
   - Standalone components (no NgModules)
   - SCSS + Tailwind CSS styling
   - SSR disabled initially (enable later)
-- [ ] **R1-0.2.2** Install Angular Material 21 with Material 3 theme
+- [x] **R1-0.2.2** Install Angular Material 21 with Material 3 theme
   - Configure `mat.theme()` with azure palette
   - Light and dark mode support
   - Custom `_theme.scss` file
-- [ ] **R1-0.2.3** Install Keycloak JS SDK (`keycloak-js`)
-- [ ] **R1-0.2.4** Set up folder-by-feature structure
+- [x] **R1-0.2.3** Install Keycloak JS SDK (`keycloak-js`)
+- [x] **R1-0.2.4** Set up folder-by-feature structure
   - `src/app/core/` — auth, guards, interceptors
   - `src/app/shared/` — components, pipes, directives
   - `src/app/features/` — feature folders (empty initially)
-- [ ] **R1-0.2.5** Configure Prettier (single quotes, 100 char width)
-- [ ] **R1-0.2.6** Verify frontend starts with `ng serve`
+- [x] **R1-0.2.5** Configure Prettier (single quotes, 100 char width)
+- [x] **R1-0.2.6** Verify frontend starts with `ng serve`
 
 ### R1-M0.3 — Infrastructure & Docker Compose
 
-- [ ] **R1-0.3.1** Create `infrastructure/keycloak/` directory with realm import config
-- [ ] **R1-0.3.2** Create `docker-compose.yml` with services:
+- [x] **R1-0.3.1** Create `infrastructure/keycloak/` directory with realm import config
+- [x] **R1-0.3.2** Create `docker-compose.yml` with services:
   - Keycloak 26.0 (with realm auto-import)
   - PostgreSQL 17 (for prod profile)
 - [ ] **R1-0.3.3** Verify `docker compose up -d keycloak` starts Keycloak with `cms` realm
@@ -465,7 +465,7 @@ Every task/milestone is considered **complete** only when ALL of the following a
 
 | Milestone | Status | Progress |
 |-----------|--------|----------|
-| R1-M0: Project Scaffolding | ⬜ Not Started | 0% |
+| R1-M0: Project Scaffolding | ✅ Complete | 100% |
 | R1-M1: Foundation & Identity | ⬜ Not Started | 0% |
 | R1-M2: Core Academic & Lab Mapping | ⬜ Not Started | 0% |
 | R1-M3: Operational Logistics | ⬜ Not Started | 0% |

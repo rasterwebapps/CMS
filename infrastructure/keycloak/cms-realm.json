@@ -1,0 +1,154 @@
+{
+  "realm": "cms",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ROLE_ADMIN",
+        "description": "Administrator with full system access"
+      },
+      {
+        "name": "ROLE_FACULTY",
+        "description": "Faculty member"
+      },
+      {
+        "name": "ROLE_STUDENT",
+        "description": "Student"
+      },
+      {
+        "name": "ROLE_LAB_INCHARGE",
+        "description": "Lab in-charge responsible for lab management"
+      },
+      {
+        "name": "ROLE_TECHNICIAN",
+        "description": "Technician for lab maintenance"
+      },
+      {
+        "name": "ROLE_PARENT",
+        "description": "Parent/guardian with read-only access to their ward's progress"
+      }
+    ]
+  },
+  "defaultRoles": ["ROLE_STUDENT"],
+  "clients": [
+    {
+      "clientId": "cms-frontend",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "http://localhost:4300",
+      "redirectUris": ["http://localhost:4200/*", "http://localhost:4300/*"],
+      "webOrigins": ["http://localhost:4200", "http://localhost:4300"],
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "cms-backend",
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_ADMIN"]
+    },
+    {
+      "username": "faculty1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Faculty",
+      "lastName": "User",
+      "email": "faculty1@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "faculty123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_FACULTY"]
+    },
+    {
+      "username": "student1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Student",
+      "lastName": "User",
+      "email": "student1@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "student123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_STUDENT"]
+    },
+    {
+      "username": "labincharge1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Lab",
+      "lastName": "Incharge",
+      "email": "labincharge1@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "lab123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_LAB_INCHARGE"]
+    },
+    {
+      "username": "parent1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Parent",
+      "lastName": "User",
+      "email": "parent1@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "parent123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_PARENT"]
+    }
+  ],
+  "components": {
+    "_comment_ldap": "LDAP user federation template for connecting to an institutional directory service",
+    "_ldap_template": {
+      "name": "ldap",
+      "providerId": "ldap",
+      "providerType": "org.keycloak.storage.UserStorageProvider",
+      "config": {
+        "vendor": ["ad"],
+        "connectionUrl": ["ldap://ldap.example.com:389"],
+        "bindDn": ["cn=admin,dc=example,dc=com"],
+        "bindCredential": ["changeme"],
+        "usersDn": ["ou=users,dc=example,dc=com"],
+        "usernameLDAPAttribute": ["uid"],
+        "rdnLDAPAttribute": ["uid"],
+        "uuidLDAPAttribute": ["entryUUID"],
+        "userObjectClasses": ["inetOrgPerson"],
+        "editMode": ["READ_ONLY"],
+        "syncRegistrations": ["false"],
+        "trustEmail": ["true"]
+      }
+    }
+  }
+}
