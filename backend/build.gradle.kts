@@ -67,6 +67,9 @@ tasks.jacocoTestCoverageVerification {
             }
         }
     }
+    // Exclude the main application class from coverage as it only contains
+    // the Spring Boot entry point (public static void main) which cannot be
+    // meaningfully unit tested.
     classDirectories.setFrom(
         files(classDirectories.files.map {
             fileTree(it) {
