@@ -137,6 +137,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'labs',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab/lab-list/lab-list.component').then((m) => m.LabListComponent),
+  },
+  {
+    path: 'labs/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab/lab-form/lab-form.component').then((m) => m.LabFormComponent),
+  },
+  {
+    path: 'labs/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab/lab-detail/lab-detail.component').then((m) => m.LabDetailComponent),
+  },
+  {
+    path: 'labs/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab/lab-form/lab-form.component').then((m) => m.LabFormComponent),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
