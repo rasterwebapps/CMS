@@ -12,7 +12,7 @@ import com.cms.model.Department;
 import com.cms.repository.DepartmentRepository;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
@@ -21,6 +21,7 @@ public class DepartmentService {
         this.departmentRepository = departmentRepository;
     }
 
+    @Transactional
     public DepartmentResponse create(DepartmentRequest request) {
         Department department = new Department(
             request.name(),
@@ -32,20 +33,19 @@ public class DepartmentService {
         return toResponse(saved);
     }
 
-    @Transactional(readOnly = true)
     public List<DepartmentResponse> findAll() {
         return departmentRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
     }
 
-    @Transactional(readOnly = true)
     public DepartmentResponse findById(Long id) {
         Department department = departmentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
         return toResponse(department);
     }
 
+    @Transactional
     public DepartmentResponse update(Long id, DepartmentRequest request) {
         Department department = departmentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
@@ -59,6 +59,7 @@ public class DepartmentService {
         return toResponse(updated);
     }
 
+    @Transactional
     public void delete(Long id) {
         if (!departmentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Department not found with id: " + id);
