@@ -1,17 +1,27 @@
 package com.cms;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-    "spring.security.oauth2.resourceserver.jwt.issuer-uri=",
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration"
-})
+@Import(CmsApplicationTests.TestConfig.class)
 class CmsApplicationTests {
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        JwtDecoder jwtDecoder() {
+            return mock(JwtDecoder.class);
+        }
+    }
 
     @Test
     void contextLoads() {

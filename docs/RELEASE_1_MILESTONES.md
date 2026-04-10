@@ -98,44 +98,44 @@
 
 ### R1-M1.1 — Backend Security Configuration
 
-- [ ] **R1-1.1.1** Create `SecurityConfig` class
+- [x] **R1-1.1.1** Create `SecurityConfig` class
   - OAuth2 Resource Server with JWT validation (Keycloak issuer)
   - CORS configuration (whitelist frontend origin)
   - CSRF disabled for stateless API
   - Public endpoints: `/api/v1/health`, `/h2-console/**`
   - All other endpoints require authentication
-- [ ] **R1-1.1.2** Create JWT role converter for Keycloak realm roles
+- [x] **R1-1.1.2** Create JWT role converter for Keycloak realm roles
   - Map `realm_access.roles` from JWT to Spring Security authorities
-- [ ] **R1-1.1.3** Create `GlobalExceptionHandler` (`@RestControllerAdvice`)
+- [x] **R1-1.1.3** Create `GlobalExceptionHandler` (`@RestControllerAdvice`)
   - `ResourceNotFoundException` → 404
   - `MethodArgumentNotValidException` → 400
   - `AccessDeniedException` → 403
   - Generic `Exception` → 500
   - Standard error response record: `ErrorResponse(int status, String message, Instant timestamp)`
-- [ ] **R1-1.1.4** Create health check endpoint (`GET /api/v1/health`)
-- [ ] **R1-1.1.5** Write unit tests for SecurityConfig and GlobalExceptionHandler
-- [ ] **R1-1.1.6** Create manual test cases: `docs/manual-test-cases/security-config.md`
+- [x] **R1-1.1.4** Create health check endpoint (`GET /api/v1/health`)
+- [x] **R1-1.1.5** Write unit tests for SecurityConfig and GlobalExceptionHandler
+- [x] **R1-1.1.6** Create manual test cases: `docs/manual-test-cases/security-config.md`
 
 ### R1-M1.2 — Frontend Authentication
 
-- [ ] **R1-1.2.1** Create `AuthService` — initialize Keycloak, login/logout, token management
-- [ ] **R1-1.2.2** Create `AuthGuard` — protect routes, redirect unauthenticated users
-- [ ] **R1-1.2.3** Create `AuthInterceptor` — attach Bearer token to all API requests
-- [ ] **R1-1.2.4** Create `RoleGuard` — restrict routes by user role
-- [ ] **R1-1.2.5** Configure `app.config.ts` with providers (router, HTTP client, hydration)
-- [ ] **R1-1.2.6** Create manual test cases: `docs/manual-test-cases/authentication.md`
+- [x] **R1-1.2.1** Create `AuthService` — initialize Keycloak, login/logout, token management
+- [x] **R1-1.2.2** Create `AuthGuard` — protect routes, redirect unauthenticated users
+- [x] **R1-1.2.3** Create `AuthInterceptor` — attach Bearer token to all API requests
+- [x] **R1-1.2.4** Create `RoleGuard` — restrict routes by user role
+- [x] **R1-1.2.5** Configure `app.config.ts` with providers (router, HTTP client, hydration)
+- [x] **R1-1.2.6** Create manual test cases: `docs/manual-test-cases/authentication.md`
 
 ### R1-M1.3 — Application Shell & Navigation
 
-- [ ] **R1-1.3.1** Create `AppComponent` with Material sidenav layout
+- [x] **R1-1.3.1** Create `AppComponent` with Material sidenav layout
   - Top toolbar with app title, user menu, theme toggle
   - Side navigation with role-based menu items
-- [ ] **R1-1.3.2** Create `DashboardComponent` (landing page)
+- [x] **R1-1.3.2** Create `DashboardComponent` (landing page)
   - Placeholder dashboard cards for key metrics
   - "Lab Utilization" widget placeholder
-- [ ] **R1-1.3.3** Configure `app.routes.ts` with lazy-loaded feature routes
-- [ ] **R1-1.3.4** Implement light/dark theme toggle
-- [ ] **R1-1.3.5** Create manual test cases: `docs/manual-test-cases/app-shell.md`
+- [x] **R1-1.3.3** Configure `app.routes.ts` with lazy-loaded feature routes
+- [x] **R1-1.3.4** Implement light/dark theme toggle
+- [x] **R1-1.3.5** Create manual test cases: `docs/manual-test-cases/app-shell.md`
 
 ---
 
@@ -504,7 +504,7 @@ Every task/milestone is considered **complete** only when ALL of the following a
 | Milestone | Status | Progress |
 |-----------|--------|----------|
 | R1-M0: Project Scaffolding | ✅ Complete | 100% |
-| R1-M1: Foundation & Identity | ⬜ Not Started | 0% |
+| R1-M1: Foundation & Identity | ✅ Complete | 100% |
 | R1-M2: Core Academic & Lab Mapping | ⬜ Not Started | 0% |
 | R1-M3: Operational Logistics | ⬜ Not Started | 0% |
 | R1-M4: Finance & Asset Management | ⬜ Not Started | 0% |
