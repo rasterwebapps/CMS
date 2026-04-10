@@ -1,0 +1,97 @@
+<div class="department-list-container">
+  <div class="header">
+    <h2 class="page-title">Departments</h2>
+    <button mat-flat-button color="primary" routerLink="/departments/new">
+      <mat-icon>add</mat-icon>
+      Add Department
+    </button>
+  </div>
+
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="table-controls">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input
+            matInput
+            [value]="searchValue()"
+            (input)="applyFilter($event)"
+            placeholder="Search departments..."
+          />
+          @if (searchValue()) {
+            <button matSuffix mat-icon-button (click)="clearFilter()">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
+        </mat-form-field>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="48"></mat-spinner>
+        </div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="department-table">
+            <ng-container matColumnDef="code">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+              <td mat-cell *matCellDef="let department">{{ department.code }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let department">{{ department.name }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="hodName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Head of Department</th>
+              <td mat-cell *matCellDef="let department">{{ department.hodName || '—' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let department">
+                <button
+                  mat-icon-button
+                  matTooltip="Edit"
+                  (click)="editDepartment(department)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Delete"
+                  color="warn"
+                  (click)="deleteDepartment(department)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+                @if (searchValue()) {
+                  No departments found matching "{{ searchValue() }}"
+                } @else {
+                  No departments available
+                }
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons
+        ></mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

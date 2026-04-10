@@ -1,0 +1,76 @@
+<div class="department-form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/departments" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="department-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" placeholder="Enter department name" />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" placeholder="Enter department code" />
+            <mat-hint>Short code for the department (e.g., CS, EE, ME)</mat-hint>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <mat-error>{{ getErrorMessage('code') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              formControlName="description"
+              placeholder="Enter department description"
+              rows="4"
+            ></textarea>
+            @if (form.get('description')?.invalid && form.get('description')?.touched) {
+              <mat-error>{{ getErrorMessage('description') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Head of Department</mat-label>
+            <input matInput formControlName="hodName" placeholder="Enter HOD name" />
+            @if (form.get('hodName')?.invalid && form.get('hodName')?.touched) {
+              <mat-error>{{ getErrorMessage('hodName') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/departments">
+              Cancel
+            </button>
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
