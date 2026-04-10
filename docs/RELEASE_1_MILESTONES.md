@@ -260,11 +260,39 @@
 ### R1-M3.1 — Student Management (Module 2)
 
 **Backend:**
-- [ ] **R1-3.1.1** Create `Student` entity (`id`, `rollNumber`, `firstName`, `lastName`, `email`, `phone`, `program`, `semester`, `admissionDate`, `labBatch`, `status`)
-- [ ] **R1-3.1.2** Create `Admission` entity for admission workflow
+- [ ] **R1-3.1.1** Create `Student` entity with expanded fields:
+  - Core: `id`, `rollNumber`, `firstName`, `lastName`, `email`, `phone`, `program`, `semester`, `admissionDate`, `labBatch`, `status`
+  - Personal: `dateOfBirth` (LocalDate), `gender` (Enum: MALE/FEMALE/OTHER), `aadharNumber` (String, encrypted at rest)
+  - Demographics: `nationality`, `religion`, `communityCategory` (Enum: SC/ST/BC/MBC/DNC/OC/OTHERS), `caste`, `bloodGroup` (Enum: A_POSITIVE/A_NEGATIVE/B_POSITIVE/B_NEGATIVE/O_POSITIVE/O_NEGATIVE/AB_POSITIVE/AB_NEGATIVE)
+  - Family: `fatherName`, `motherName`, `parentMobile`
+  - Embedded `Address`: `postalAddress`, `street`, `city`, `district`, `state`, `pincode`
+- [ ] **R1-3.1.2** Create `Admission` entity with full field spec:
+  - `id`, `student` (FK → Student), `academicYearFrom` (Integer), `academicYearTo` (Integer), `applicationDate` (LocalDate)
+  - `status` (Enum: DRAFT/SUBMITTED/UNDER_REVIEW/DOCUMENTS_PENDING/APPROVED/REJECTED)
+  - `declarationPlace`, `declarationDate` (LocalDate), `parentConsentGiven` (Boolean), `applicantConsentGiven` (Boolean)
+- [ ] **R1-3.1.2a** Create `AcademicQualification` entity:
+  - `id`, `admission` (FK → Admission), `qualificationType` (Enum: SSLC/HSC/DIPLOMA/DEGREE/OTHER)
+  - `schoolName`, `majorSubject`, `totalMarks` (Integer), `percentage` (BigDecimal), `monthAndYearOfPassing` (String), `universityOrBoard`
+  - One admission → many qualifications
+- [ ] **R1-3.1.2b** Create `AdmissionDocument` entity:
+  - `id`, `admission` (FK → Admission), `documentType` (Enum: TENTH_MARKSHEET/ELEVENTH_MARKSHEET/TWELFTH_MARKSHEET/TRANSFER_CERTIFICATE/COMMUNITY_CERTIFICATE/INCOME_CERTIFICATE/NATIVITY_CERTIFICATE/MIGRATION_CERTIFICATE/FIRST_GRADUATE_CERTIFICATE/PASSPORT_PHOTO/SIGNED_AFFIDAVIT/UNDERTAKING_DOCUMENT/AADHAR_CARD/MEDICAL_FITNESS/ELIGIBILITY_CERTIFICATE)
+  - `fileName`, `storageKey`, `uploadedAt` (LocalDateTime)
+  - `originalSubmitted` (Boolean), `verifiedBy` (String, nullable), `verifiedAt` (LocalDateTime, nullable)
+  - `verificationStatus` (Enum: NOT_UPLOADED/UPLOADED/VERIFIED/REJECTED)
+- [ ] **R1-3.1.2c** Create all enums in `com.cms.model.enums`:
+  - `Gender`: MALE, FEMALE, OTHER
+  - `CommunityCategory`: SC, ST, BC, MBC, DNC, OC, OTHERS
+  - `BloodGroup`: A_POSITIVE, A_NEGATIVE, B_POSITIVE, B_NEGATIVE, O_POSITIVE, O_NEGATIVE, AB_POSITIVE, AB_NEGATIVE
+  - `QualificationType`: SSLC, HSC, DIPLOMA, DEGREE, OTHER
+  - `AdmissionStatus`: DRAFT, SUBMITTED, UNDER_REVIEW, DOCUMENTS_PENDING, APPROVED, REJECTED
+  - `DocumentType`: TENTH_MARKSHEET, ELEVENTH_MARKSHEET, TWELFTH_MARKSHEET, TRANSFER_CERTIFICATE, COMMUNITY_CERTIFICATE, INCOME_CERTIFICATE, NATIVITY_CERTIFICATE, MIGRATION_CERTIFICATE, FIRST_GRADUATE_CERTIFICATE, PASSPORT_PHOTO, SIGNED_AFFIDAVIT, UNDERTAKING_DOCUMENT, AADHAR_CARD, MEDICAL_FITNESS, ELIGIBILITY_CERTIFICATE
+  - `DocumentVerificationStatus`: NOT_UPLOADED, UPLOADED, VERIFIED, REJECTED
 - [ ] **R1-3.1.3** Create repositories, services, controllers
   - CRUD endpoints under `/api/v1/students`
   - Admission workflow: `/api/v1/admissions`
+  - Academic qualifications: `/api/v1/admissions/{id}/qualifications`
+  - Document upload/verification: `/api/v1/admissions/{id}/documents`
+  - Document checklist status: `GET /api/v1/admissions/{id}/documents/checklist`
   - Lab batch assignment during enrollment
 - [ ] **R1-3.1.4** Create DTOs and Flyway migrations
 - [ ] **R1-3.1.5** Write unit + controller tests (95% coverage)
@@ -272,6 +300,16 @@
 
 **Frontend:**
 - [ ] **R1-3.1.7** Create `features/student/` with list, form, detail, and admission components
+  - Multi-step admission form matching the physical admission application form:
+    - Step 1: Personal Information (name, DOB, gender, Aadhar, nationality, religion, community, caste, blood group)
+    - Step 2: Parent/Guardian Details (father's name, mother's name, parent mobile)
+    - Step 3: Address (postal address, street, city, district, state, pincode)
+    - Step 4: Academic Qualifications (dynamic table for SSLC, HSC, and additional rows)
+    - Step 5: Document Upload (checklist with upload slots for all 15 document types, showing verification status)
+    - Step 6: Declaration & Consent (checkboxes for parent and applicant consent, place, date)
+    - Step 7: Review & Submit
+  - Document upload component with drag-and-drop and progress indicators
+  - Admin document verification component (mark originals received, verify/reject each document)
 - [ ] **R1-3.1.8** Create student directory with search and filters
 - [ ] **R1-3.1.9** Create student routes (lazy-loaded)
 
