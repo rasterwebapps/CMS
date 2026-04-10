@@ -81,6 +81,62 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'academic-years',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-year-list/academic-year-list.component').then(
+        (m) => m.AcademicYearListComponent
+      ),
+  },
+  {
+    path: 'academic-years/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-year-form/academic-year-form.component').then(
+        (m) => m.AcademicYearFormComponent
+      ),
+  },
+  {
+    path: 'academic-years/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-year-form/academic-year-form.component').then(
+        (m) => m.AcademicYearFormComponent
+      ),
+  },
+  {
+    path: 'semesters',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/semester-list/semester-list.component').then(
+        (m) => m.SemesterListComponent
+      ),
+  },
+  {
+    path: 'semesters/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/semester-form/semester-form.component').then(
+        (m) => m.SemesterFormComponent
+      ),
+  },
+  {
+    path: 'semesters/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/semester-form/semester-form.component').then(
+        (m) => m.SemesterFormComponent
+      ),
+  },
+  {
+    path: 'academic-calendar',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-calendar/academic-calendar.component').then(
+        (m) => m.AcademicCalendarComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',

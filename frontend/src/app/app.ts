@@ -46,6 +46,8 @@ export class App {
     { label: 'Departments', icon: 'business', route: '/departments' },
     { label: 'Programs', icon: 'school', route: '/programs' },
     { label: 'Courses', icon: 'menu_book', route: '/courses' },
+    { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years' },
+    { label: 'Semesters', icon: 'date_range', route: '/semesters' },
   ];
 
   protected readonly filteredNavItems = computed(() => {

@@ -1,0 +1,64 @@
+.academic-year-form-container {
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.back-button {
+  margin-left: -8px;
+}
+
+.page-title {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+.form-card {
+  max-width: 600px;
+}
+
+.academic-year-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.date-fields {
+  display: flex;
+  gap: 16px;
+}
+
+.date-field {
+  flex: 1;
+}
+
+.toggle-field {
+  margin: 8px 0 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.button-spinner {
+  display: inline-block;
+}

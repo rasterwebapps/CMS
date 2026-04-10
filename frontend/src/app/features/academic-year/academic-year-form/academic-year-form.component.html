@@ -1,0 +1,72 @@
+<div class="academic-year-form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/academic-years" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="academic-year-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" placeholder="e.g., 2024-2025" />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="date-fields">
+            <mat-form-field appearance="outline" class="date-field">
+              <mat-label>Start Date</mat-label>
+              <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+              <mat-datepicker #startPicker></mat-datepicker>
+              @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
+                <mat-error>{{ getErrorMessage('startDate') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="date-field">
+              <mat-label>End Date</mat-label>
+              <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+              <mat-datepicker #endPicker></mat-datepicker>
+              @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
+                <mat-error>{{ getErrorMessage('endDate') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="toggle-field">
+            <mat-slide-toggle formControlName="isCurrent">Set as Current Academic Year</mat-slide-toggle>
+          </div>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/academic-years">
+              Cancel
+            </button>
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
