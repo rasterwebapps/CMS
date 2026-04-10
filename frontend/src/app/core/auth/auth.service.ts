@@ -95,11 +95,14 @@ export class AuthService {
 
     const tokenParsed = this.keycloak.tokenParsed;
     if (tokenParsed) {
-      this._username.set(
-        (tokenParsed as Record<string, unknown>)['preferred_username'] as string ?? ''
-      );
+      this._username.set(this.extractPreferredUsername(tokenParsed));
       const realmAccess = tokenParsed.realm_access;
       this._roles.set(realmAccess?.roles ?? []);
     }
+  }
+
+  private extractPreferredUsername(tokenParsed: Record<string, unknown>): string {
+    const username = tokenParsed['preferred_username'];
+    return typeof username === 'string' ? username : '';
   }
 }

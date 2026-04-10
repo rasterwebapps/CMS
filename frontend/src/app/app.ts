@@ -1,4 +1,4 @@
-import { Component, inject, signal, PLATFORM_ID } from '@angular/core';
+import { Component, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -41,18 +41,18 @@ export class App {
   protected readonly darkTheme = signal(false);
   protected readonly sidenavOpened = signal(true);
 
-  protected readonly navItems: NavItem[] = [
+  private readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
   ];
 
-  protected filteredNavItems(): NavItem[] {
+  protected readonly filteredNavItems = computed(() => {
     return this.navItems.filter((item) => {
       if (!item.roles || item.roles.length === 0) {
         return true;
       }
       return item.roles.some((role) => this.authService.hasRole(role));
     });
-  }
+  });
 
   protected toggleTheme(): void {
     this.darkTheme.update((v) => !v);
