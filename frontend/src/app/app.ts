@@ -44,6 +44,8 @@ export class App {
   private readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
     { label: 'Departments', icon: 'business', route: '/departments' },
+    { label: 'Programs', icon: 'school', route: '/programs' },
+    { label: 'Courses', icon: 'menu_book', route: '/courses' },
   ];
 
   protected readonly filteredNavItems = computed(() => {
