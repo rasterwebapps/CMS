@@ -10,6 +10,6 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  authService.login();
+  void authService.login();
   return false;
 };

@@ -1,0 +1,41 @@
+<div class="dashboard-container">
+  <h2 class="dashboard-title">Dashboard</h2>
+
+  <div class="metrics-grid">
+    @for (card of cards; track card.title) {
+      <mat-card class="metric-card" appearance="outlined">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="metric-icon">{{ card.icon }}</mat-icon>
+          <mat-card-title>{{ card.value }}</mat-card-title>
+          <mat-card-subtitle>{{ card.title }}</mat-card-subtitle>
+        </mat-card-header>
+      </mat-card>
+    }
+  </div>
+
+  <div class="widgets-grid">
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Lab Utilization</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="widget-placeholder">
+          <mat-icon>bar_chart</mat-icon>
+          <p>Lab utilization data will appear here</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Recent Activity</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="widget-placeholder">
+          <mat-icon>timeline</mat-icon>
+          <p>Recent activity will appear here</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

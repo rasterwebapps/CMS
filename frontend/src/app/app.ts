@@ -1,10 +1,11 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, inject, signal, computed, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/auth/auth.service';
@@ -24,9 +25,9 @@ interface NavItem {
     RouterLinkActive,
     MatSidenavModule,
     MatToolbarModule,
+    MatListModule,
     MatIconModule,
     MatButtonModule,
-    MatListModule,
     MatMenuModule,
     MatTooltipModule,
   ],
@@ -34,53 +35,44 @@ interface NavItem {
   styleUrl: './app.scss',
 })
 export class App {
-  private readonly authService = inject(AuthService);
+  protected readonly authService = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
 
-  protected readonly title = signal('College Management System');
+  protected readonly darkTheme = signal(false);
   protected readonly sidenavOpened = signal(true);
-  protected readonly darkTheme = signal(
-    typeof localStorage !== 'undefined' && localStorage.getItem('cms-theme') === 'dark'
-  );
 
-  protected readonly username = this.authService.username;
-  protected readonly authenticated = this.authService.authenticated;
-
-  constructor() {
-    if (this.darkTheme()) {
-      document.documentElement.classList.add('dark-theme');
-    }
-  }
-
-  private readonly allNavItems: NavItem[] = [
+  private readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
   ];
 
-  protected readonly navItems = computed(() => {
-    return this.allNavItems.filter((item) => {
-      if (!item.roles) return true;
-      return this.authService.hasAnyRole(...item.roles);
+  protected readonly filteredNavItems = computed(() => {
+    return this.navItems.filter((item) => {
+      if (!item.roles || item.roles.length === 0) {
+        return true;
+      }
+      return item.roles.some((role) => this.authService.hasRole(role));
     });
   });
 
-  toggleSidenav(): void {
-    this.sidenavOpened.update((opened) => !opened);
-  }
-
-  toggleTheme(): void {
-    this.darkTheme.update((dark) => !dark);
-    const htmlElement = document.documentElement;
-    if (this.darkTheme()) {
-      htmlElement.classList.add('dark-theme');
-      htmlElement.classList.remove('light-theme');
-      localStorage.setItem('cms-theme', 'dark');
-    } else {
-      htmlElement.classList.add('light-theme');
-      htmlElement.classList.remove('dark-theme');
-      localStorage.setItem('cms-theme', 'light');
+  protected toggleTheme(): void {
+    this.darkTheme.update((v) => !v);
+    if (isPlatformBrowser(this.platformId)) {
+      const html = document.documentElement;
+      if (this.darkTheme()) {
+        html.classList.add('dark-theme');
+        html.classList.remove('light-theme');
+      } else {
+        html.classList.add('light-theme');
+        html.classList.remove('dark-theme');
+      }
     }
   }
 
-  logout(): void {
-    this.authService.logout();
+  protected toggleSidenav(): void {
+    this.sidenavOpened.update((v) => !v);
+  }
+
+  protected async logout(): Promise<void> {
+    await this.authService.logout();
   }
 }

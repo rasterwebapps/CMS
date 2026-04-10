@@ -1,11 +1,11 @@
 <mat-sidenav-container class="app-container">
-  <mat-sidenav [opened]="sidenavOpened()" mode="side" class="app-sidenav">
+  <mat-sidenav #sidenav mode="side" [opened]="sidenavOpened()" class="app-sidenav">
     <div class="sidenav-header">
-      <mat-icon class="sidenav-logo">school</mat-icon>
-      <span class="sidenav-title">CMS</span>
+      <mat-icon class="app-logo">school</mat-icon>
+      <span class="app-name">CMS</span>
     </div>
     <mat-nav-list>
-      @for (item of navItems(); track item.route) {
+      @for (item of filteredNavItems(); track item.route) {
         <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           <span matListItemTitle>{{ item.label }}</span>
@@ -16,21 +16,23 @@
 
   <mat-sidenav-content>
     <mat-toolbar color="primary" class="app-toolbar">
-      <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle menu">
+      <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation">
         <mat-icon>menu</mat-icon>
       </button>
-      <span class="toolbar-title">{{ title() }}</span>
+      <span class="toolbar-title">College Management System</span>
       <span class="toolbar-spacer"></span>
+
       <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'">
         <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>
-      <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="User menu">
+
+      <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account">
         <mat-icon>account_circle</mat-icon>
       </button>
       <mat-menu #userMenu="matMenu">
-        <div class="user-info" mat-menu-item disabled>
+        <div class="user-menu-header" mat-menu-item disabled>
           <mat-icon>person</mat-icon>
-          <span>{{ username() }}</span>
+          <span>{{ authService.username() }}</span>
         </div>
         <button mat-menu-item (click)="logout()">
           <mat-icon>logout</mat-icon>
@@ -44,3 +46,4 @@
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>
+

@@ -1,79 +1,91 @@
 package com.cms.config;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 class JwtRoleConverterTest {
 
     private final JwtRoleConverter converter = new JwtRoleConverter();
 
     @Test
-    void convert_withRealmRoles_returnsAuthorities() {
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .claim("realm_access", Map.of("roles", List.of("ROLE_ADMIN", "ROLE_FACULTY")))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(300))
-                .build();
+    void shouldExtractRealmRolesFromJwt() {
+        Jwt jwt = buildJwt(Map.of(
+            "realm_access", Map.of("roles", List.of("ROLE_ADMIN", "ROLE_FACULTY"))
+        ));
 
-        Collection<GrantedAuthority> authorities = converter.convert(jwt);
+        JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
 
-        assertNotNull(authorities);
-        assertEquals(2, authorities.size());
-        assertTrue(authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
-        assertTrue(authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_FACULTY")));
+        assertThat(token).isNotNull();
+        List<String> authorities = token.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .toList();
+        assertThat(authorities).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_FACULTY");
     }
 
     @Test
-    void convert_withNoRealmAccess_returnsEmptyList() {
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .claim("sub", "user1")
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(300))
-                .build();
+    void shouldReturnEmptyAuthoritiesWhenNoRealmAccess() {
+        Jwt jwt = buildJwt(Map.of());
 
-        Collection<GrantedAuthority> authorities = converter.convert(jwt);
+        JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
 
-        assertNotNull(authorities);
-        assertTrue(authorities.isEmpty());
+        assertThat(token).isNotNull();
+        assertThat(token.getAuthorities()).isEmpty();
     }
 
     @Test
-    void convert_withEmptyRoles_returnsEmptyList() {
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .claim("realm_access", Map.of("other_key", "value"))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(300))
-                .build();
+    void shouldReturnEmptyAuthoritiesWhenRolesNotAList() {
+        Jwt jwt = buildJwt(Map.of(
+            "realm_access", Map.of("roles", "not-a-list")
+        ));
 
-        Collection<GrantedAuthority> authorities = converter.convert(jwt);
+        JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
 
-        assertNotNull(authorities);
-        assertTrue(authorities.isEmpty());
+        assertThat(token).isNotNull();
+        assertThat(token.getAuthorities()).isEmpty();
     }
 
     @Test
-    void convert_withSingleRole_returnsSingleAuthority() {
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .claim("realm_access", Map.of("roles", List.of("ROLE_STUDENT")))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(300))
-                .build();
+    void shouldUsePreferredUsernameAsName() {
+        Jwt jwt = buildJwt(Map.of(
+            "preferred_username", "admin",
+            "realm_access", Map.of("roles", List.of("ROLE_ADMIN"))
+        ));
 
-        Collection<GrantedAuthority> authorities = converter.convert(jwt);
+        JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
 
-        assertEquals(1, authorities.size());
-        assertEquals("ROLE_STUDENT", authorities.iterator().next().getAuthority());
+        assertThat(token).isNotNull();
+        assertThat(token.getName()).isEqualTo("admin");
+    }
+
+    @Test
+    void shouldHandleEmptyRolesList() {
+        Jwt jwt = buildJwt(Map.of(
+            "realm_access", Map.of("roles", List.of())
+        ));
+
+        JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
+
+        assertThat(token).isNotNull();
+        assertThat(token.getAuthorities()).isEmpty();
+    }
+
+    private Jwt buildJwt(Map<String, Object> claims) {
+        Jwt.Builder builder = Jwt.withTokenValue("mock-token")
+            .header("alg", "RS256")
+            .claim("sub", "test-user")
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(300));
+
+        claims.forEach(builder::claim);
+
+        return builder.build();
     }
 }

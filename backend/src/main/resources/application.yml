@@ -12,3 +12,7 @@ spring:
 server:
   servlet:
     context-path: /api/v1
+
+# CORS allowed origins — override per profile or environment variable
+cors:
+  allowed-origins: http://localhost:4200,http://localhost:4300

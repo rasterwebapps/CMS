@@ -1,145 +1,97 @@
-# Application Shell — Manual Test Cases
+# Manual Test Cases — Application Shell (R1-M1.3)
 
-## TC-SHELL-001: Sidenav layout displays correctly
+## Prerequisites
 
-**Preconditions:**
-- User is logged in to the application
-
-**Steps:**
-1. Verify the application displays a Material sidenav layout
-2. Verify the left side navigation panel is visible with navigation items
-3. Verify the top toolbar displays the app title "College Management System"
-4. Verify the toolbar has a menu toggle button, theme toggle, and user menu
-
-**Expected Result:**
-- Application shell renders with sidenav, toolbar, and main content area
-
-**Status:** NOT TESTED
+- Frontend running (`ng serve`) at `http://localhost:4200`
+- Keycloak running at `http://localhost:8180` with `cms` realm configured
+- User logged in (e.g., `admin` / `admin123`)
 
 ---
 
-## TC-SHELL-002: Sidenav toggle
+## TC-SHELL-001: Sidenav Layout Displayed After Login
 
-**Preconditions:**
-- User is logged in
-
-**Steps:**
-1. Click the hamburger menu icon in the toolbar
-2. Verify the sidenav collapses/hides
-3. Click the menu icon again
-4. Verify the sidenav expands/shows
-
-**Expected Result:**
-- Sidenav toggles open and closed when the menu button is clicked
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Log in as any user                               |
+| **Expected**| Application displays: left sidebar with navigation items, top toolbar with app title, menu toggle, theme toggle, and user menu |
 
 ---
 
-## TC-SHELL-003: Navigation to Dashboard
+## TC-SHELL-002: Sidenav Toggle
 
-**Preconditions:**
-- User is logged in
-
-**Steps:**
-1. Click "Dashboard" in the sidenav navigation
-2. Verify the URL changes to `/dashboard`
-3. Verify the dashboard component is displayed with placeholder cards
-4. Verify the "Dashboard" nav item is highlighted as active
-
-**Expected Result:**
-- Dashboard route loads correctly with placeholder metric cards
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Click the hamburger menu icon (☰) in the toolbar |
+| **Expected**| Side navigation panel collapses/expands          |
 
 ---
 
-## TC-SHELL-004: Dashboard placeholder cards
+## TC-SHELL-003: Dashboard Landing Page
 
-**Preconditions:**
-- User is logged in and on the dashboard page
-
-**Steps:**
-1. Verify the dashboard displays a welcome message with the user's name
-2. Verify four placeholder cards are displayed: Students, Faculty, Departments, Lab Utilization
-3. Verify each card has an icon, title, subtitle, and placeholder value "—"
-
-**Expected Result:**
-- Dashboard displays all placeholder metric cards correctly
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Navigate to `/` or `/dashboard`                  |
+| **Expected**| Dashboard loads with: 4 metric cards (Total Students, Total Faculty, Departments, Active Courses) showing placeholder "—" values, Lab Utilization placeholder widget, Recent Activity placeholder widget |
 
 ---
 
-## TC-SHELL-005: Light/dark theme toggle
+## TC-SHELL-004: Dark Theme Toggle
 
-**Preconditions:**
-- User is logged in
-
-**Steps:**
-1. Note the current theme (light or dark)
-2. Click the theme toggle button (sun/moon icon) in the toolbar
-3. Verify the theme switches (e.g., light → dark)
-4. Verify Material components update their colors (toolbar, cards, sidenav)
-5. Click the theme toggle button again
-6. Verify the theme switches back
-
-**Expected Result:**
-- Theme toggle switches between light and dark mode, updating all Material component colors
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Click the theme toggle button (sun/moon icon) in the toolbar |
+| **Expected**| Application switches to dark theme: dark background, light text, Material components update accordingly; icon changes from `dark_mode` to `light_mode` |
 
 ---
 
-## TC-SHELL-006: User menu displays username and logout option
+## TC-SHELL-005: Light Theme Toggle
 
-**Preconditions:**
-- User is logged in as `admin`
-
-**Steps:**
-1. Click the account icon in the toolbar
-2. Verify a dropdown menu appears
-3. Verify the menu shows the username "admin"
-4. Verify the menu has a "Logout" option
-
-**Expected Result:**
-- User menu displays the current user's name and a logout button
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | While in dark theme, click the theme toggle button again |
+| **Expected**| Application switches back to light theme          |
 
 ---
 
-## TC-SHELL-007: Default route redirects to dashboard
+## TC-SHELL-006: User Menu — Username Display
 
-**Preconditions:**
-- User is logged in
-
-**Steps:**
-1. Navigate to `http://localhost:4200/`
-2. Verify automatic redirect to `http://localhost:4200/dashboard`
-3. Navigate to `http://localhost:4200/non-existent-page`
-4. Verify redirect to `http://localhost:4200/dashboard`
-
-**Expected Result:**
-- Root path and unknown paths redirect to the dashboard
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Click the user icon (account_circle) in the toolbar |
+| **Expected**| Dropdown menu shows the logged-in username (e.g., "admin") and a Logout option |
 
 ---
 
-## TC-SHELL-008: Responsive layout
+## TC-SHELL-007: User Menu — Logout
 
-**Preconditions:**
-- User is logged in
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Open user menu and click "Logout"                |
+| **Expected**| User is logged out and redirected to Keycloak login page |
 
-**Steps:**
-1. Resize the browser window to a narrow width (< 768px)
-2. Verify the sidenav can be toggled to save screen space
-3. Verify the dashboard cards reflow to a single column layout
-4. Resize back to a wide width
-5. Verify the layout returns to multi-column
+---
 
-**Expected Result:**
-- Layout adapts responsively to different screen sizes
+## TC-SHELL-008: Navigation — Dashboard Link Active State
 
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Navigate to `/dashboard`                         |
+| **Expected**| The "Dashboard" link in the sidenav has an active/highlighted appearance |
+
+---
+
+## TC-SHELL-009: Wildcard Route Redirect
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Navigate to a non-existent route (e.g., `/nonexistent`) |
+| **Expected**| User is redirected to `/dashboard`               |
+
+---
+
+## TC-SHELL-010: Responsive Layout
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Resize browser window to mobile width (< 768px)  |
+| **Expected**| Layout adjusts; sidenav can be toggled, content area fills available width |

@@ -1,108 +1,79 @@
-# Security Configuration — Manual Test Cases
+# Manual Test Cases — Security Configuration (R1-M1.1)
 
-## TC-SEC-001: Health endpoint is publicly accessible
+## Prerequisites
 
-**Preconditions:**
-- Backend application is running (`./gradlew bootRun`)
-- Keycloak is running on port 8180
-
-**Steps:**
-1. Send a GET request to `http://localhost:8080/api/v1/health` without any authentication headers
-2. Verify the response status is 200 OK
-3. Verify the response body contains `"status": "UP"` and a `"timestamp"` field
-
-**Expected Result:**
-- Health endpoint returns 200 OK with status "UP" and a valid timestamp
-
-**Status:** NOT TESTED
+- Backend running (`./gradlew bootRun` with `local` profile)
+- Keycloak running at `http://localhost:8180` with `cms` realm configured
+- Test users available (admin, faculty1, student1, labincharge1, parent1)
 
 ---
 
-## TC-SEC-002: Protected endpoints require authentication
+## TC-SEC-001: Health Endpoint Accessible Without Authentication
 
-**Preconditions:**
-- Backend application is running
-- Keycloak is running on port 8180
-
-**Steps:**
-1. Send a GET request to `http://localhost:8080/api/v1/departments` without any authentication headers
-2. Verify the response status is 401 Unauthorized
-
-**Expected Result:**
-- Unauthenticated requests to protected endpoints return 401 Unauthorized
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Send `GET http://localhost:8080/api/v1/health` without any authorization header |
+| **Expected**| HTTP 200 with body `{"status": "UP"}`            |
 
 ---
 
-## TC-SEC-003: CORS allows frontend origin
+## TC-SEC-002: Protected Endpoint Returns 401 Without Token
 
-**Preconditions:**
-- Backend application is running
-- Keycloak is running on port 8180
-
-**Steps:**
-1. Send an OPTIONS preflight request to `http://localhost:8080/api/v1/health` with `Origin: http://localhost:4200`
-2. Verify the response includes `Access-Control-Allow-Origin: http://localhost:4200`
-3. Send an OPTIONS request with `Origin: http://evil.com`
-4. Verify the CORS headers are not present or the request is rejected
-
-**Expected Result:**
-- CORS allows requests from `http://localhost:4200` and `http://localhost:4300` only
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Send `GET http://localhost:8080/api/v1/departments` without any authorization header |
+| **Expected**| HTTP 401 Unauthorized                            |
 
 ---
 
-## TC-SEC-004: JWT role extraction from Keycloak tokens
+## TC-SEC-003: Protected Endpoint Accessible With Valid JWT
 
-**Preconditions:**
-- Backend and Keycloak are running
-- A valid Keycloak access token is available for user `admin` (ROLE_ADMIN)
-
-**Steps:**
-1. Obtain an access token from Keycloak for the `admin` user
-2. Send a GET request to a protected endpoint with `Authorization: Bearer <token>`
-3. Verify the request is authenticated and the user has ROLE_ADMIN authority
-
-**Expected Result:**
-- Keycloak realm roles are correctly extracted from the JWT and mapped to Spring Security authorities
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Obtain a token from Keycloak for `admin` user, then send `GET http://localhost:8080/api/v1/health` with `Authorization: Bearer <token>` |
+| **Expected**| HTTP 200 with body `{"status": "UP"}`            |
 
 ---
 
-## TC-SEC-005: GlobalExceptionHandler returns standardized error responses
+## TC-SEC-004: CORS Headers Present for Allowed Origin
 
-**Preconditions:**
-- Backend application is running
-
-**Steps:**
-1. Send a request that triggers a ResourceNotFoundException (e.g., GET non-existent resource)
-2. Verify the response is 404 with body: `{"status": 404, "message": "...", "timestamp": "..."}`
-3. Send a request with invalid validation data
-4. Verify the response is 400 with field-level error messages
-5. Send a request without authentication to a protected endpoint
-6. Verify the response is 401
-
-**Expected Result:**
-- All errors return a consistent `ErrorResponse` format with `status`, `message`, and `timestamp`
-
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Send `OPTIONS http://localhost:8080/api/v1/health` with `Origin: http://localhost:4200` |
+| **Expected**| Response includes `Access-Control-Allow-Origin: http://localhost:4200` |
 
 ---
 
-## TC-SEC-006: H2 Console accessible in local profile
+## TC-SEC-005: CORS Rejects Disallowed Origin
 
-**Preconditions:**
-- Backend is running with `local` profile (default)
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Send `OPTIONS http://localhost:8080/api/v1/health` with `Origin: http://evil.com` |
+| **Expected**| No `Access-Control-Allow-Origin` header in response |
 
-**Steps:**
-1. Navigate to `http://localhost:8080/api/v1/h2-console` in a browser
-2. Verify the H2 Console login page is displayed
-3. Connect using JDBC URL: `jdbc:h2:mem:cmsdb`, username: `sa`, no password
+---
 
-**Expected Result:**
-- H2 Console is accessible without authentication in the local profile
+## TC-SEC-006: JWT Role Mapping — Admin Role
 
-**Status:** NOT TESTED
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Obtain token for `admin` user and decode the JWT; verify `realm_access.roles` includes `ROLE_ADMIN` |
+| **Expected**| Token contains `ROLE_ADMIN` in realm roles       |
+
+---
+
+## TC-SEC-007: Error Response Format — 404
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Send `GET http://localhost:8080/api/v1/nonexistent` with a valid JWT |
+| **Expected**| Response body matches format: `{"status": 404, "message": "...", "timestamp": "..."}` |
+
+---
+
+## TC-SEC-008: H2 Console Accessible Without Authentication (Local Profile Only)
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | Navigate to `http://localhost:8080/api/v1/h2-console/` in browser |
+| **Expected**| H2 Console login page loads without requiring JWT |
