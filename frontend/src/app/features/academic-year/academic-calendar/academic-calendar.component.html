@@ -1,0 +1,120 @@
+<div class="academic-calendar-container">
+  <div class="header">
+    <h2 class="page-title">Academic Calendar</h2>
+    <div class="header-actions">
+      <button mat-stroked-button routerLink="/academic-years">
+        <mat-icon>calendar_month</mat-icon>
+        Manage Academic Years
+      </button>
+      <button mat-stroked-button routerLink="/semesters">
+        <mat-icon>date_range</mat-icon>
+        Manage Semesters
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else if (hasError()) {
+    <mat-card appearance="outlined" class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">calendar_today</mat-icon>
+          <h3>No Current Academic Year</h3>
+          <p>There is no current academic year set. Please create an academic year and mark it as current.</p>
+          <button mat-flat-button color="primary" routerLink="/academic-years/new">
+            Create Academic Year
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card appearance="outlined" class="current-year-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="year-icon">school</mat-icon>
+        <mat-card-title>{{ currentAcademicYear()?.name }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ currentAcademicYear()?.startDate | date: 'mediumDate' }} —
+          {{ currentAcademicYear()?.endDate | date: 'mediumDate' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-chip class="current-chip" highlighted>Current Academic Year</mat-chip>
+      </mat-card-content>
+    </mat-card>
+
+    <h3 class="section-title">Semesters</h3>
+
+    @if (semesters().length === 0) {
+      <mat-card appearance="outlined" class="empty-card">
+        <mat-card-content>
+          <div class="empty-content">
+            <mat-icon class="empty-icon">event_note</mat-icon>
+            <p>No semesters found for this academic year.</p>
+            <button mat-flat-button color="primary" routerLink="/semesters/new">
+              Add Semester
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <div class="semester-timeline">
+        @for (semester of semesters(); track semester.id; let i = $index) {
+          <div class="timeline-item" [class.current]="getSemesterStatus(semester) === 'current'">
+            <div class="timeline-marker">
+              <div class="marker-dot" [class]="getSemesterStatus(semester)">
+                @if (getSemesterStatus(semester) === 'completed') {
+                  <mat-icon>check</mat-icon>
+                } @else if (getSemesterStatus(semester) === 'current') {
+                  <mat-icon>play_arrow</mat-icon>
+                } @else {
+                  <mat-icon>schedule</mat-icon>
+                }
+              </div>
+              @if (i < semesters().length - 1) {
+                <div class="marker-line"></div>
+              }
+            </div>
+            <mat-card appearance="outlined" class="semester-card" [class]="getSemesterStatus(semester)">
+              <mat-card-header>
+                <mat-card-title>{{ semester.name }}</mat-card-title>
+                <mat-card-subtitle>Semester {{ semester.semesterNumber }}</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="semester-dates">
+                  <div class="date-item">
+                    <mat-icon>event</mat-icon>
+                    <span>
+                      <strong>Start:</strong> {{ semester.startDate | date: 'mediumDate' }}
+                    </span>
+                  </div>
+                  <div class="date-item">
+                    <mat-icon>event</mat-icon>
+                    <span>
+                      <strong>End:</strong> {{ semester.endDate | date: 'mediumDate' }}
+                    </span>
+                  </div>
+                </div>
+                <mat-chip class="status-chip" [class]="getSemesterStatus(semester)">
+                  @switch (getSemesterStatus(semester)) {
+                    @case ('completed') {
+                      Completed
+                    }
+                    @case ('current') {
+                      In Progress
+                    }
+                    @case ('upcoming') {
+                      Upcoming
+                    }
+                  }
+                </mat-chip>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

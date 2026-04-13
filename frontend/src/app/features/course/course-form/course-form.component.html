@@ -1,0 +1,122 @@
+<div class="course-form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/courses" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="course-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" placeholder="Enter course name" />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" placeholder="Enter course code" />
+            <mat-hint>Short code for the course (e.g., CS101, MATH201)</mat-hint>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <mat-error>{{ getErrorMessage('code') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Program</mat-label>
+            <mat-select formControlName="programId">
+              @for (program of programs(); track program.id) {
+                <mat-option [value]="program.id">{{ program.name }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+              <mat-error>{{ getErrorMessage('programId') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Semester</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="semester"
+              placeholder="Enter semester (1-8)"
+              min="1"
+              max="8"
+            />
+            @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+              <mat-error>{{ getErrorMessage('semester') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="credits-row">
+            <mat-form-field appearance="outline" class="credit-field">
+              <mat-label>Total Credits</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="credits"
+                placeholder="Total"
+                min="1"
+                max="12"
+              />
+              @if (form.get('credits')?.invalid && form.get('credits')?.touched) {
+                <mat-error>{{ getErrorMessage('credits') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="credit-field">
+              <mat-label>Theory Credits</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="theoryCredits"
+                placeholder="Theory"
+                min="0"
+                max="12"
+              />
+              @if (form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched) {
+                <mat-error>{{ getErrorMessage('theoryCredits') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="credit-field">
+              <mat-label>Lab Credits</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="labCredits"
+                placeholder="Lab"
+                min="0"
+                max="12"
+              />
+              @if (form.get('labCredits')?.invalid && form.get('labCredits')?.touched) {
+                <mat-error>{{ getErrorMessage('labCredits') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/courses">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

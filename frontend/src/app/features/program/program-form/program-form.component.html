@@ -1,0 +1,87 @@
+<div class="program-form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/programs" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="program-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" placeholder="Enter program name" />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" placeholder="Enter program code" />
+            <mat-hint>Short code for the program (e.g., BSCS, MSEE)</mat-hint>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <mat-error>{{ getErrorMessage('code') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Degree Type</mat-label>
+            <mat-select formControlName="degreeType">
+              @for (type of degreeTypes; track type.value) {
+                <mat-option [value]="type.value">{{ type.label }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('degreeType')?.invalid && form.get('degreeType')?.touched) {
+              <mat-error>{{ getErrorMessage('degreeType') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Duration (Years)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="durationYears"
+              placeholder="Enter duration in years"
+              min="1"
+              max="10"
+            />
+            @if (form.get('durationYears')?.invalid && form.get('durationYears')?.touched) {
+              <mat-error>{{ getErrorMessage('durationYears') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Department</mat-label>
+            <mat-select formControlName="departmentId">
+              @for (dept of departments(); track dept.id) {
+                <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
+              <mat-error>{{ getErrorMessage('departmentId') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/programs">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

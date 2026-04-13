@@ -1,0 +1,114 @@
+<div class="academic-year-list-container">
+  <div class="header">
+    <h2 class="page-title">Academic Years</h2>
+    <button mat-flat-button color="primary" routerLink="/academic-years/new">
+      <mat-icon>add</mat-icon>
+      Add Academic Year
+    </button>
+  </div>
+
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="table-controls">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input
+            matInput
+            [value]="searchValue()"
+            (input)="applyFilter($event)"
+            placeholder="Search academic years..."
+          />
+          @if (searchValue()) {
+            <button matSuffix mat-icon-button (click)="clearFilter()">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
+        </mat-form-field>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="48"></mat-spinner>
+        </div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="academic-year-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let academicYear">{{ academicYear.name }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="startDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Start Date</th>
+              <td mat-cell *matCellDef="let academicYear">
+                {{ academicYear.startDate | date: 'mediumDate' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="endDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>End Date</th>
+              <td mat-cell *matCellDef="let academicYear">
+                {{ academicYear.endDate | date: 'mediumDate' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="isCurrent">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let academicYear">
+                @if (academicYear.isCurrent) {
+                  <mat-chip class="current-chip" highlighted>Current</mat-chip>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let academicYear">
+                <button
+                  mat-icon-button
+                  matTooltip="Edit"
+                  (click)="editAcademicYear(academicYear)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Delete"
+                  color="warn"
+                  (click)="deleteAcademicYear(academicYear)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedColumns"
+              [class.current-row]="row.isCurrent"
+            ></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+                @if (searchValue()) {
+                  No academic years found matching "{{ searchValue() }}"
+                } @else {
+                  No academic years available
+                }
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons
+        ></mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
