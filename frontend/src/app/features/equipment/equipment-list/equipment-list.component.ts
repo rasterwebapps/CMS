@@ -15,14 +15,13 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EquipmentService } from '../equipment.service';
 import { Equipment } from '../equipment.model';
-import { DecimalPipe } from '@angular/common';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-equipment-list',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
   ],

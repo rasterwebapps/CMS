@@ -193,6 +193,206 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'students',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/student/student-list/student-list.component').then(
+        (m) => m.StudentListComponent
+      ),
+  },
+  {
+    path: 'students/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/student/student-form/student-form.component').then(
+        (m) => m.StudentFormComponent
+      ),
+  },
+  {
+    path: 'students/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/student/student-detail/student-detail.component').then(
+        (m) => m.StudentDetailComponent
+      ),
+  },
+  {
+    path: 'students/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/student/student-form/student-form.component').then(
+        (m) => m.StudentFormComponent
+      ),
+  },
+  {
+    path: 'attendance',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/attendance/attendance-list/attendance-list.component').then(
+        (m) => m.AttendanceListComponent
+      ),
+  },
+  {
+    path: 'attendance/mark',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/attendance/attendance-mark/attendance-mark.component').then(
+        (m) => m.AttendanceMarkComponent
+      ),
+  },
+  {
+    path: 'fee-structures',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-structure-list/fee-structure-list.component').then(
+        (m) => m.FeeStructureListComponent
+      ),
+  },
+  {
+    path: 'fee-structures/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-structure-form/fee-structure-form.component').then(
+        (m) => m.FeeStructureFormComponent
+      ),
+  },
+  {
+    path: 'fee-structures/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-structure-form/fee-structure-form.component').then(
+        (m) => m.FeeStructureFormComponent
+      ),
+  },
+  {
+    path: 'fee-payments',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-payment-list/fee-payment-list.component').then(
+        (m) => m.FeePaymentListComponent
+      ),
+  },
+  {
+    path: 'fee-payments/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-payment-form/fee-payment-form.component').then(
+        (m) => m.FeePaymentFormComponent
+      ),
+  },
+  {
+    path: 'equipment',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/equipment/equipment-list/equipment-list.component').then(
+        (m) => m.EquipmentListComponent
+      ),
+  },
+  {
+    path: 'equipment/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/equipment/equipment-form/equipment-form.component').then(
+        (m) => m.EquipmentFormComponent
+      ),
+  },
+  {
+    path: 'equipment/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/equipment/equipment-form/equipment-form.component').then(
+        (m) => m.EquipmentFormComponent
+      ),
+  },
+  {
+    path: 'inventory',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/inventory/inventory-list/inventory-list.component').then(
+        (m) => m.InventoryListComponent
+      ),
+  },
+  {
+    path: 'inventory/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/inventory/inventory-form/inventory-form.component').then(
+        (m) => m.InventoryFormComponent
+      ),
+  },
+  {
+    path: 'inventory/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/inventory/inventory-form/inventory-form.component').then(
+        (m) => m.InventoryFormComponent
+      ),
+  },
+  {
+    path: 'maintenance',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/maintenance/maintenance-list/maintenance-list.component').then(
+        (m) => m.MaintenanceListComponent
+      ),
+  },
+  {
+    path: 'maintenance/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/maintenance/maintenance-form/maintenance-form.component').then(
+        (m) => m.MaintenanceFormComponent
+      ),
+  },
+  {
+    path: 'maintenance/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/maintenance/maintenance-form/maintenance-form.component').then(
+        (m) => m.MaintenanceFormComponent
+      ),
+  },
+  {
+    path: 'examinations',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/examination/examination-list/examination-list.component').then(
+        (m) => m.ExaminationListComponent
+      ),
+  },
+  {
+    path: 'examinations/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/examination/examination-form/examination-form.component').then(
+        (m) => m.ExaminationFormComponent
+      ),
+  },
+  {
+    path: 'examinations/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/examination/examination-form/examination-form.component').then(
+        (m) => m.ExaminationFormComponent
+      ),
+  },
+  {
+    path: 'exam-results',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/examination/exam-result-list/exam-result-list.component').then(
+        (m) => m.ExamResultListComponent
+      ),
+  },
+  {
+    path: 'reports',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/reports/reports-dashboard/reports-dashboard.component').then(
+        (m) => m.ReportsDashboardComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
