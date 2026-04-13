@@ -14,22 +14,22 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
-import { FeeStructure } from '../finance.model';
+import { FeePayment } from '../finance.model';
 import { DecimalPipe } from '@angular/common';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-fee-structure-list',
+  selector: 'app-fee-payment-list',
   standalone: true,
   imports: [
     DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
   ],
-  templateUrl: './fee-structure-list.component.html',
-  styleUrl: './fee-structure-list.component.scss',
+  templateUrl: './fee-payment-list.component.html',
+  styleUrl: './fee-payment-list.component.scss',
 })
-export class FeeStructureListComponent implements OnInit {
+export class FeePaymentListComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
@@ -38,8 +38,8 @@ export class FeeStructureListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['name', 'programName', 'semester', 'amount', 'dueDate', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<FeeStructure>([]);
+  protected readonly displayedColumns = ['studentName', 'feeStructureName', 'amountPaid', 'paymentDate', 'paymentMethod', 'status', 'actions'];
+  protected readonly dataSource = new MatTableDataSource<FeePayment>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
 
@@ -54,17 +54,15 @@ export class FeeStructureListComponent implements OnInit {
 
   protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
 
-  protected edit(item: FeeStructure): void { void this.router.navigate(['/fee-structures', item.id, 'edit']); }
-
-  protected delete(item: FeeStructure): void {
+  protected delete(item: FeePayment): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Fee Structure', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+      data: { title: 'Delete Fee Payment', message: `Delete payment for "${item.studentName}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 
-  private doDelete(item: FeeStructure): void {
+  private doDelete(item: FeePayment): void {
     this.loading.set(true);
-    this.financeService.deleteFeeStructure(item.id).subscribe({
+    this.financeService.deletePayment(item.id).subscribe({
       next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
       error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
     });
@@ -72,7 +70,7 @@ export class FeeStructureListComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.financeService.getFeeStructures().subscribe({
+    this.financeService.getPayments().subscribe({
       next: (data) => {
         this.dataSource.data = data;
         this.dataSource.paginator = this.paginator;
