@@ -1,0 +1,241 @@
+<div class="student-form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/students" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="student-form">
+
+          <h3 class="section-title">Basic Information</h3>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Roll Number</mat-label>
+              <input matInput formControlName="rollNumber" placeholder="e.g. CS2024001" />
+              @if (form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched) {
+                <mat-error>{{ getErrorMessage('rollNumber') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Admission Date</mat-label>
+              <input matInput formControlName="admissionDate" type="date" />
+              @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                <mat-error>{{ getErrorMessage('admissionDate') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="First name" />
+              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                <mat-error>{{ getErrorMessage('firstName') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="Last name" />
+              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                <mat-error>{{ getErrorMessage('lastName') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" type="email" placeholder="student@example.com" />
+              @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                <mat-error>{{ getErrorMessage('email') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Phone</mat-label>
+              <input matInput formControlName="phone" placeholder="+91 9876543210" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Program</mat-label>
+              <mat-select formControlName="programId">
+                @for (program of programs(); track program.id) {
+                  <mat-option [value]="program.id">{{ program.name }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+                <mat-error>{{ getErrorMessage('programId') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Semester</mat-label>
+              <input matInput formControlName="semester" type="number" min="1" max="12" />
+              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+                <mat-error>{{ getErrorMessage('semester') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Lab Batch</mat-label>
+              <input matInput formControlName="labBatch" placeholder="e.g. Batch A" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="status">
+                @for (s of statusOptions; track s) {
+                  <mat-option [value]="s">{{ s }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-divider class="section-divider"></mat-divider>
+          <h3 class="section-title">Personal Details</h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Date of Birth</mat-label>
+              <input matInput formControlName="dateOfBirth" type="date" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Gender</mat-label>
+              <mat-select formControlName="gender">
+                @for (g of genderOptions; track g) {
+                  <mat-option [value]="g">{{ g }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Nationality</mat-label>
+              <input matInput formControlName="nationality" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Religion</mat-label>
+              <input matInput formControlName="religion" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Community Category</mat-label>
+              <mat-select formControlName="communityCategory">
+                @for (c of communityOptions; track c) {
+                  <mat-option [value]="c">{{ c }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Caste</mat-label>
+              <input matInput formControlName="caste" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Blood Group</mat-label>
+              <mat-select formControlName="bloodGroup">
+                @for (bg of bloodGroupOptions; track bg) {
+                  <mat-option [value]="bg">{{ bg }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-divider class="section-divider"></mat-divider>
+          <h3 class="section-title">Family Details</h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Father's Name</mat-label>
+              <input matInput formControlName="fatherName" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Mother's Name</mat-label>
+              <input matInput formControlName="motherName" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Parent Mobile</mat-label>
+              <input matInput formControlName="parentMobile" />
+            </mat-form-field>
+          </div>
+
+          <mat-divider class="section-divider"></mat-divider>
+          <h3 class="section-title">Address</h3>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Postal Address</mat-label>
+            <textarea matInput formControlName="postalAddress" rows="2"></textarea>
+          </mat-form-field>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Street</mat-label>
+              <input matInput formControlName="street" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>City</mat-label>
+              <input matInput formControlName="city" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>District</mat-label>
+              <input matInput formControlName="district" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>State</mat-label>
+              <input matInput formControlName="state" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Pincode</mat-label>
+              <input matInput formControlName="pincode" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/students">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
