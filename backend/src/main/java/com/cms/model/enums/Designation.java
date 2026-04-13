@@ -1,0 +1,14 @@
+package com.cms.model.enums;
+
+public enum Designation {
+    PROFESSOR,
+    ASSOCIATE_PROFESSOR,
+    ASSISTANT_PROFESSOR,
+    LECTURER,
+    SENIOR_LECTURER,
+    LAB_INSTRUCTOR,
+    TEACHING_ASSISTANT,
+    GUEST_FACULTY,
+    VISITING_FACULTY,
+    HOD
+}
