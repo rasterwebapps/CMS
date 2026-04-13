@@ -98,6 +98,21 @@ class FeePaymentControllerTest {
     }
 
     @Test
+    void shouldFindByDateRange() throws Exception {
+        FeePaymentResponse response = createResponse(1L, new BigDecimal("25000.00"), PaymentStatus.PARTIAL);
+
+        when(feePaymentService.findByDateRange(any(), any())).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/fee-payments")
+                .param("startDate", LocalDate.now().minusDays(7).toString())
+                .param("endDate", LocalDate.now().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(feePaymentService).findByDateRange(any(), any());
+    }
+
+    @Test
     void shouldFindById() throws Exception {
         FeePaymentResponse response = createResponse(1L, new BigDecimal("25000.00"), PaymentStatus.PARTIAL);
 

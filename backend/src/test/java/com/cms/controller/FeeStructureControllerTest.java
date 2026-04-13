@@ -92,6 +92,21 @@ class FeeStructureControllerTest {
     }
 
     @Test
+    void shouldFindByProgramIdAndAcademicYearId() throws Exception {
+        FeeStructureResponse response = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureService.findByProgramIdAndAcademicYearId(1L, 1L)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/fee-structures")
+                .param("programId", "1")
+                .param("academicYearId", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(feeStructureService).findByProgramIdAndAcademicYearId(1L, 1L);
+    }
+
+    @Test
     void shouldFindById() throws Exception {
         FeeStructureResponse response = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
 

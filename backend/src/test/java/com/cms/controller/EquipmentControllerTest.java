@@ -109,6 +109,19 @@ class EquipmentControllerTest {
     }
 
     @Test
+    void shouldFindByCategory() throws Exception {
+        EquipmentResponse response = createResponse(1L, "Dell Computer", EquipmentCategory.COMPUTER, EquipmentStatus.AVAILABLE);
+
+        when(equipmentService.findByCategory(EquipmentCategory.COMPUTER)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/equipment").param("category", "COMPUTER"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(equipmentService).findByCategory(EquipmentCategory.COMPUTER);
+    }
+
+    @Test
     void shouldFindById() throws Exception {
         EquipmentResponse response = createResponse(1L, "Dell Computer", EquipmentCategory.COMPUTER, EquipmentStatus.AVAILABLE);
 

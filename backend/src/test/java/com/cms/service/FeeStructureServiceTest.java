@@ -209,6 +209,52 @@ class FeeStructureServiceTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenNotFoundOnUpdate() {
+        FeeStructureRequest updateRequest = new FeeStructureRequest(
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+        );
+
+        when(feeStructureRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feeStructureService.update(999L, updateRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Fee structure not found with id: 999");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenProgramNotFoundOnUpdate() {
+        FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        FeeStructureRequest updateRequest = new FeeStructureRequest(
+            999L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+        );
+
+        when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feeStructureService.update(1L, updateRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Program not found with id: 999");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAcademicYearNotFoundOnUpdate() {
+        FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        FeeStructureRequest updateRequest = new FeeStructureRequest(
+            1L, 999L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+        );
+
+        when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feeStructureService.update(1L, updateRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Academic year not found with id: 999");
+    }
+
+    @Test
     void shouldDeleteFeeStructure() {
         when(feeStructureRepository.existsById(1L)).thenReturn(true);
 

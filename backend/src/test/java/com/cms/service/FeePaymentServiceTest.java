@@ -219,6 +219,20 @@ class FeePaymentServiceTest {
     }
 
     @Test
+    void shouldGetStudentFeeStatusWithNoPaidAmount() {
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(1L, 1L))
+            .thenReturn(List.of(testFeeStructure));
+        when(feePaymentRepository.sumAmountPaidByStudentIdAndFeeStructureId(1L, 1L))
+            .thenReturn(null); // No payments
+
+        StudentFeeStatusResponse status = feePaymentService.getStudentFeeStatus(1L, 1L);
+
+        assertThat(status.totalPaid()).isEqualTo(BigDecimal.ZERO);
+        assertThat(status.feeItems().get(0).status()).isEqualTo("PENDING");
+    }
+
+    @Test
     void shouldGetStudentFeeStatus() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(1L, 1L))
