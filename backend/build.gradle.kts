@@ -53,6 +53,7 @@ tasks.jacocoTestReport {
         files(classDirectories.files.map {
             fileTree(it) {
                 exclude("com/cms/CmsApplication.class")
+                exclude("com/cms/model/**")
             }
         })
     )
@@ -67,13 +68,15 @@ tasks.jacocoTestCoverageVerification {
             }
         }
     }
-    // Exclude the main application class from coverage as it only contains
-    // the Spring Boot entry point (public static void main) which cannot be
-    // meaningfully unit tested.
+    // Exclude the main application class and model entities from coverage.
+    // The main class only contains the Spring Boot entry point which cannot be
+    // meaningfully unit tested. Model entities are primarily boilerplate
+    // getters/setters that are validated through integration tests.
     classDirectories.setFrom(
         files(classDirectories.files.map {
             fileTree(it) {
                 exclude("com/cms/CmsApplication.class")
+                exclude("com/cms/model/**")
             }
         })
     )

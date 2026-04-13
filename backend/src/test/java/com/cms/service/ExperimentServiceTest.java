@@ -139,6 +139,37 @@ class ExperimentServiceTest {
     }
 
     @Test
+    void shouldFindActiveExperimentsByCourseId() {
+        Experiment exp = createExperiment(1L, testCourse, 1, "Test");
+
+        when(courseRepository.existsById(1L)).thenReturn(true);
+        when(experimentRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(List.of(exp));
+
+        List<ExperimentResponse> responses = experimentService.findActiveByCourseId(1L);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).isActive()).isTrue();
+    }
+
+    @Test
+    void shouldThrowExceptionWhenFindByCourseIdWithNonExistentCourse() {
+        when(courseRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> experimentService.findByCourseId(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenFindActiveByCourseIdWithNonExistentCourse() {
+        when(courseRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> experimentService.findActiveByCourseId(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
     void shouldUpdateExperiment() {
         Experiment existingExperiment = createExperiment(1L, testCourse, 1, "Old Name");
 

@@ -137,6 +137,36 @@ class SyllabusServiceTest {
     }
 
     @Test
+    void shouldFindActiveSyllabusByCourseId() {
+        Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
+
+        when(syllabusRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(Optional.of(syllabus));
+
+        SyllabusResponse response = syllabusService.findActiveByCourseId(1L);
+
+        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.isActive()).isTrue();
+    }
+
+    @Test
+    void shouldThrowExceptionWhenNoActiveSyllabusFound() {
+        when(syllabusRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> syllabusService.findActiveByCourseId(1L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("No active syllabus found for course id: 1");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenFindByCourseIdWithNonExistentCourse() {
+        when(courseRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> syllabusService.findByCourseId(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
     void shouldUpdateSyllabus() {
         Syllabus existingSyllabus = createSyllabus(1L, testCourse, 1, true);
 
