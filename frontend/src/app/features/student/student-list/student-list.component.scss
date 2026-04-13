@@ -1,0 +1,74 @@
+.student-list-container {
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.table-controls {
+  margin-bottom: 16px;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 400px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.student-table {
+  width: 100%;
+}
+
+.no-data-cell {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-active {
+  background-color: #e6f4ea;
+  color: #1e7e34;
+}
+
+.status-inactive {
+  background-color: #fce8e8;
+  color: #c0392b;
+}
+
+.status-graduated {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+}
+
+.status-dropped {
+  background-color: #fef3e0;
+  color: #e65c00;
+}

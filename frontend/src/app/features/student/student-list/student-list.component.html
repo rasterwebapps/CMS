@@ -1,0 +1,115 @@
+<div class="student-list-container">
+  <div class="header">
+    <h2 class="page-title">Students</h2>
+    <button mat-flat-button color="primary" routerLink="/students/new">
+      <mat-icon>add</mat-icon>
+      Add Student
+    </button>
+  </div>
+
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="table-controls">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input
+            matInput
+            [value]="searchValue()"
+            (input)="applyFilter($event)"
+            placeholder="Search students..."
+          />
+          @if (searchValue()) {
+            <button matSuffix mat-icon-button (click)="clearFilter()">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
+        </mat-form-field>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="48"></mat-spinner>
+        </div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="student-table">
+            <ng-container matColumnDef="rollNumber">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll No.</th>
+              <td mat-cell *matCellDef="let student">{{ student.rollNumber }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="fullName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let student">{{ student.fullName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="programName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+              <td mat-cell *matCellDef="let student">{{ student.programName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="semester">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
+              <td mat-cell *matCellDef="let student">{{ student.semester }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="labBatch">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Lab Batch</th>
+              <td mat-cell *matCellDef="let student">{{ student.labBatch || '—' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let student">
+                <span class="status-badge" [ngClass]="getStatusClass(student.status)">
+                  {{ student.status }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let student">
+                <button mat-icon-button matTooltip="View" (click)="viewStudent(student)">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Edit" (click)="editStudent(student)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Delete"
+                  color="warn"
+                  (click)="deleteStudent(student)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
+                @if (searchValue()) {
+                  No students found matching "{{ searchValue() }}"
+                } @else {
+                  No students available
+                }
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons
+        ></mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

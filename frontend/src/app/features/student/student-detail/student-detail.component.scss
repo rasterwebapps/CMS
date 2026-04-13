@@ -1,0 +1,62 @@
+.student-detail-container {
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.back-button {
+  margin-left: -8px;
+}
+
+.page-title {
+  margin: 0;
+  flex: 1;
+  font: var(--mat-sys-headline-medium);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+.section-title {
+  margin: 8px 0 16px;
+  font: var(--mat-sys-title-medium);
+  color: var(--mat-sys-primary);
+}
+
+.section-divider {
+  margin: 24px 0 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--mat-sys-on-surface);
+}
