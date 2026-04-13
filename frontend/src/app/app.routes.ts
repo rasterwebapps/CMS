@@ -161,6 +161,38 @@ export const routes: Routes = [
       import('./features/lab/lab-form/lab-form.component').then((m) => m.LabFormComponent),
   },
   {
+    path: 'faculty',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/faculty/faculty-list/faculty-list.component').then(
+        (m) => m.FacultyListComponent
+      ),
+  },
+  {
+    path: 'faculty/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/faculty/faculty-form/faculty-form.component').then(
+        (m) => m.FacultyFormComponent
+      ),
+  },
+  {
+    path: 'faculty/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/faculty/faculty-detail/faculty-detail.component').then(
+        (m) => m.FacultyDetailComponent
+      ),
+  },
+  {
+    path: 'faculty/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/faculty/faculty-form/faculty-form.component').then(
+        (m) => m.FacultyFormComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
