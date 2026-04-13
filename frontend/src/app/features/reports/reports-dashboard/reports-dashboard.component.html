@@ -1,0 +1,48 @@
+<div class="dashboard-container">
+  <h2 class="page-title">Reports Dashboard</h2>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <h3 class="section-title">Lab Utilization</h3>
+    <div class="cards-grid">
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">science</mat-icon>
+          <div class="kpi-value">{{ labReport()?.totalLabs ?? '—' }}</div>
+          <div class="kpi-label">Total Labs</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">event</mat-icon>
+          <div class="kpi-value">{{ labReport()?.totalSchedules ?? '—' }}</div>
+          <div class="kpi-label">Total Schedules</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">analytics</mat-icon>
+          <div class="kpi-value">{{ labReport()?.averageSchedulesPerLab ?? '—' }}</div>
+          <div class="kpi-label">Avg Schedules / Lab</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <h3 class="section-title">Attendance Analytics</h3>
+    <div class="cards-grid">
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">groups</mat-icon>
+          <div class="kpi-value">{{ attendanceReport()?.totalStudents ?? '—' }}</div>
+          <div class="kpi-label">Total Students</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">fact_check</mat-icon>
+          <div class="kpi-value">{{ attendanceReport()?.totalAttendanceRecords ?? '—' }}</div>
+          <div class="kpi-label">Total Records</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

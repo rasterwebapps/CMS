@@ -1,0 +1,9 @@
+.dashboard-container { padding: 24px; }
+.page-title { margin: 0 0 24px; font: var(--mat-sys-headline-medium); }
+.loading-container { display: flex; justify-content: center; padding: 48px; }
+.section-title { margin: 24px 0 16px; font: var(--mat-sys-title-large); }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.kpi-card { text-align: center; }
+.kpi-icon { font-size: 36px; height: 36px; width: 36px; color: var(--mat-sys-primary); margin-bottom: 8px; }
+.kpi-value { font: var(--mat-sys-display-small); margin: 8px 0; }
+.kpi-label { font: var(--mat-sys-body-medium); color: var(--mat-sys-on-surface-variant); }
