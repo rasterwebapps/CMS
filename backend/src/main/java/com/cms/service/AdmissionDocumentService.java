@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class AdmissionDocumentService {
             .orElseThrow(() -> new ResourceNotFoundException("Admission document not found with id: " + docId));
         document.setVerificationStatus(status);
         document.setVerifiedBy(verifiedBy);
-        document.setVerifiedAt(LocalDateTime.now());
+        document.setVerifiedAt(LocalDateTime.now(ZoneOffset.UTC));
         AdmissionDocument updated = admissionDocumentRepository.save(document);
         return toResponse(updated);
     }
