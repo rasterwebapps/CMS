@@ -1,0 +1,62 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/examinations"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Course</mat-label>
+            <mat-select formControlName="courseId">
+              @for (c of courses(); track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }
+            </mat-select>
+            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) { <mat-error>Required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Exam Type</mat-label>
+            <mat-select formControlName="examType">
+              <mat-option value="THEORY">Theory</mat-option>
+              <mat-option value="PRACTICAL">Practical</mat-option>
+              <mat-option value="VIVA">Viva</mat-option>
+            </mat-select>
+            @if (form.get('examType')?.invalid && form.get('examType')?.touched) { <mat-error>Required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Date</mat-label>
+            <input matInput type="date" formControlName="date" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Duration (mins)</mat-label>
+            <input matInput type="number" formControlName="duration" min="1" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Max Marks</mat-label>
+            <input matInput type="number" formControlName="maxMarks" min="0" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Semester</mat-label>
+            <mat-select formControlName="semesterId">
+              <mat-option [value]="null">None</mat-option>
+              @for (s of semesters(); track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/examinations">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

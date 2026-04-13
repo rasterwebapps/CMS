@@ -1,0 +1,68 @@
+<div class="list-container">
+  <div class="header">
+    <h2 class="page-title">Examinations</h2>
+    <button mat-flat-button color="primary" routerLink="/examinations/new">
+      <mat-icon>add</mat-icon> Add Examination
+    </button>
+  </div>
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="table-controls">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input matInput [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search..." />
+          @if (searchValue()) {
+            <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
+        </mat-form-field>
+      </div>
+      @if (loading()) {
+        <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="data-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+            </ng-container>
+            <ng-container matColumnDef="courseName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
+              <td mat-cell *matCellDef="let row">{{ row.courseName }}</td>
+            </ng-container>
+            <ng-container matColumnDef="examType">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+              <td mat-cell *matCellDef="let row">{{ row.examType }}</td>
+            </ng-container>
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+              <td mat-cell *matCellDef="let row">{{ row.date || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="duration">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration (mins)</th>
+              <td mat-cell *matCellDef="let row">{{ row.duration }}</td>
+            </ng-container>
+            <ng-container matColumnDef="maxMarks">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Max Marks</th>
+              <td mat-cell *matCellDef="let row">{{ row.maxMarks }}</td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row">
+                <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
+            </tr>
+          </table>
+        </div>
+        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

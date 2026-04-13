@@ -1,0 +1,64 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/maintenance"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Equipment</mat-label>
+            <mat-select formControlName="equipmentId">
+              @for (e of equipment(); track e.id) { <mat-option [value]="e.id">{{ e.name }}</mat-option> }
+            </mat-select>
+            @if (form.get('equipmentId')?.invalid && form.get('equipmentId')?.touched) { <mat-error>Required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Requested By</mat-label>
+            <input matInput formControlName="requestedBy" />
+            @if (form.get('requestedBy')?.invalid && form.get('requestedBy')?.touched) { <mat-error>Requested By is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="4"></textarea>
+            @if (form.get('description')?.invalid && form.get('description')?.touched) { <mat-error>Description is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Priority</mat-label>
+            <mat-select formControlName="priority">
+              @for (p of priorities; track p) { <mat-option [value]="p">{{ p }}</mat-option> }
+            </mat-select>
+            @if (form.get('priority')?.invalid && form.get('priority')?.touched) { <mat-error>Required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              @for (s of statuses; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Assigned Technician</mat-label>
+            <input matInput formControlName="assignedTechnician" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Repair Cost</mat-label>
+            <input matInput type="number" formControlName="repairCost" min="0" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Completed Date</mat-label>
+            <input matInput type="date" formControlName="completedDate" />
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/maintenance">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

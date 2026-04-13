@@ -48,7 +48,18 @@ export class App {
     { label: 'Courses', icon: 'menu_book', route: '/courses' },
     { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years' },
     { label: 'Semesters', icon: 'date_range', route: '/semesters' },
+    { label: 'Faculty', icon: 'groups', route: '/faculty' },
+    { label: 'Students', icon: 'person', route: '/students' },
+    { label: 'Attendance', icon: 'fact_check', route: '/attendance' },
     { label: 'Labs', icon: 'science', route: '/labs' },
+    { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures' },
+    { label: 'Fee Payments', icon: 'payments', route: '/fee-payments' },
+    { label: 'Equipment', icon: 'devices', route: '/equipment' },
+    { label: 'Inventory', icon: 'inventory_2', route: '/inventory' },
+    { label: 'Maintenance', icon: 'build', route: '/maintenance' },
+    { label: 'Examinations', icon: 'quiz', route: '/examinations' },
+    { label: 'Exam Results', icon: 'grade', route: '/exam-results' },
+    { label: 'Reports', icon: 'assessment', route: '/reports' },
   ];
 
   protected readonly filteredNavItems = computed(() => {

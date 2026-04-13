@@ -13,24 +13,23 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { FinanceService } from '../finance.service';
-import { FeeStructure } from '../finance.model';
-import { DecimalPipe } from '@angular/common';
+import { MaintenanceService } from '../maintenance.service';
+import { MaintenanceRequest } from '../maintenance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-fee-structure-list',
+  selector: 'app-maintenance-list',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
   ],
-  templateUrl: './fee-structure-list.component.html',
-  styleUrl: './fee-structure-list.component.scss',
+  templateUrl: './maintenance-list.component.html',
+  styleUrl: './maintenance-list.component.scss',
 })
-export class FeeStructureListComponent implements OnInit {
-  private readonly financeService = inject(FinanceService);
+export class MaintenanceListComponent implements OnInit {
+  private readonly maintenanceService = inject(MaintenanceService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -38,8 +37,8 @@ export class FeeStructureListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['name', 'programName', 'semester', 'amount', 'dueDate', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<FeeStructure>([]);
+  protected readonly displayedColumns = ['equipmentName', 'requestedBy', 'priority', 'status', 'assignedTechnician', 'createdAt', 'actions'];
+  protected readonly dataSource = new MatTableDataSource<MaintenanceRequest>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
 
@@ -54,17 +53,17 @@ export class FeeStructureListComponent implements OnInit {
 
   protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
 
-  protected edit(item: FeeStructure): void { void this.router.navigate(['/fee-structures', item.id, 'edit']); }
+  protected edit(item: MaintenanceRequest): void { void this.router.navigate(['/maintenance', item.id, 'edit']); }
 
-  protected delete(item: FeeStructure): void {
+  protected delete(item: MaintenanceRequest): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Fee Structure', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+      data: { title: 'Delete Maintenance Request', message: `Delete maintenance request for "${item.equipmentName}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 
-  private doDelete(item: FeeStructure): void {
+  private doDelete(item: MaintenanceRequest): void {
     this.loading.set(true);
-    this.financeService.deleteFeeStructure(item.id).subscribe({
+    this.maintenanceService.delete(item.id).subscribe({
       next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
       error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
     });
@@ -72,7 +71,7 @@ export class FeeStructureListComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.financeService.getFeeStructures().subscribe({
+    this.maintenanceService.getAll().subscribe({
       next: (data) => {
         this.dataSource.data = data;
         this.dataSource.paginator = this.paginator;
