@@ -11,4 +11,3 @@ CREATE TABLE system_configurations (
 );
 
 CREATE INDEX idx_system_configurations_category ON system_configurations(category);
-CREATE INDEX idx_system_configurations_config_key ON system_configurations(config_key);
