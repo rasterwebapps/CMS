@@ -1,0 +1,39 @@
+.detail-container { padding: 24px; }
+.header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.page-title { margin: 0; font: var(--mat-sys-headline-medium); }
+.loading-container { display: flex; justify-content: center; padding: 48px; }
+
+.student-info { margin-bottom: 24px; }
+.student-info h3 { margin: 0 0 4px; font: var(--mat-sys-title-large); }
+.student-info p { margin: 0; color: var(--mat-sys-on-surface-variant); }
+
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.summary-card { text-align: center; }
+.summary-label { font-size: 14px; color: var(--mat-sys-on-surface-variant); margin-bottom: 4px; }
+.summary-value { font-size: 24px; font-weight: 500; }
+.summary-value.penalty { color: var(--mat-sys-error); }
+
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-header h3 { margin: 0; font: var(--mat-sys-title-large); }
+.section-title { margin: 24px 0 16px; font: var(--mat-sys-title-large); }
+
+.semester-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.semester-card mat-card-content { padding-top: 8px; }
+.semester-detail { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+.semester-status { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.status-paid { background-color: #e8f5e9; color: #2e7d32; }
+.status-partial { background-color: #fff3e0; color: #e65100; }
+.status-overdue { background-color: #fbe9e7; color: #c62828; }
+.status-pending { background-color: #e3f2fd; color: #1565c0; }
+
+.table-container { overflow-x: auto; }
+.data-table { width: 100%; }
+.no-data-cell { text-align: center; padding: 48px 16px; color: var(--mat-sys-on-surface-variant); }

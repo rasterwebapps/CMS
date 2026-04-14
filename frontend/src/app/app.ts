@@ -60,6 +60,8 @@ export class App {
     { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules' },
     { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures' },
     { label: 'Fee Payments', icon: 'payments', route: '/fee-payments' },
+    { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees' },
+    { label: 'Fee Finalization', icon: 'lock', route: '/student-fees/finalize', roles: ['ROLE_ADMIN'] },
     { label: 'Equipment', icon: 'devices', route: '/equipment' },
     { label: 'Inventory', icon: 'inventory_2', route: '/inventory' },
     { label: 'Maintenance', icon: 'build', route: '/maintenance' },

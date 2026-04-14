@@ -561,6 +561,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'student-fees',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-explorer/fee-explorer.component').then(
+        (m) => m.FeeExplorerComponent
+      ),
+  },
+  {
+    path: 'student-fees/finalize',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-finalization/fee-finalization.component').then(
+        (m) => m.FeeFinalizationComponent
+      ),
+  },
+  {
+    path: 'student-fees/:studentId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/student-fee-detail/student-fee-detail.component').then(
+        (m) => m.StudentFeeDetailComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
