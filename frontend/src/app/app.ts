@@ -53,6 +53,8 @@ export class App {
     { label: 'Semesters', icon: 'date_range', route: '/semesters' },
     { label: 'Faculty', icon: 'groups', route: '/faculty' },
     { label: 'Students', icon: 'person', route: '/students' },
+    { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
+    { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN'] },
     { label: 'Attendance', icon: 'fact_check', route: '/attendance' },
     { label: 'Labs', icon: 'science', route: '/labs' },
     { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules' },

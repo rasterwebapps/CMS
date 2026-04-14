@@ -513,6 +513,54 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'agents',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/agent/agent-list/agent-list.component').then(
+        (m) => m.AgentListComponent
+      ),
+  },
+  {
+    path: 'agents/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/agent/agent-form/agent-form.component').then(
+        (m) => m.AgentFormComponent
+      ),
+  },
+  {
+    path: 'agents/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/agent/agent-form/agent-form.component').then(
+        (m) => m.AgentFormComponent
+      ),
+  },
+  {
+    path: 'enquiries',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/enquiry-list/enquiry-list.component').then(
+        (m) => m.EnquiryListComponent
+      ),
+  },
+  {
+    path: 'enquiries/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/enquiry-form/enquiry-form.component').then(
+        (m) => m.EnquiryFormComponent
+      ),
+  },
+  {
+    path: 'enquiries/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/enquiry-form/enquiry-form.component').then(
+        (m) => m.EnquiryFormComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
