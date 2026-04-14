@@ -28,10 +28,11 @@
 1. Send a POST request to `/api/v1/enquiries` with body:
    ```json
    {
-     "studentName": "Jane Doe",
+     "name": "Jane Doe",
      "phone": "9876543210",
      "email": "jane@example.com",
-     "interestedProgramId": 1,
+     "programId": 1,
+     "enquiryDate": "2024-06-15",
      "source": "WALK_IN",
      "status": "NEW",
      "remarks": "Interested in B.Sc Nursing"
