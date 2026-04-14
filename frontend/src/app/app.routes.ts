@@ -489,6 +489,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'settings',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/settings/system-configuration-list/system-configuration-list.component').then(
+        (m) => m.SystemConfigurationListComponent
+      ),
+  },
+  {
+    path: 'settings/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/settings/system-configuration-form/system-configuration-form.component').then(
+        (m) => m.SystemConfigurationFormComponent
+      ),
+  },
+  {
+    path: 'settings/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/settings/system-configuration-form/system-configuration-form.component').then(
+        (m) => m.SystemConfigurationFormComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',

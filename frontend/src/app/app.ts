@@ -64,6 +64,7 @@ export class App {
     { label: 'Examinations', icon: 'quiz', route: '/examinations' },
     { label: 'Exam Results', icon: 'grade', route: '/exam-results' },
     { label: 'Reports', icon: 'assessment', route: '/reports' },
+    { label: 'Settings', icon: 'settings', route: '/settings', roles: ['ROLE_ADMIN'] },
   ];
 
   protected readonly filteredNavItems = computed(() => {
