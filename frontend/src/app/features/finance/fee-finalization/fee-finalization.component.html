@@ -1,0 +1,83 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="page-title">Finalize Student Fee</h2>
+  </div>
+
+  <mat-card appearance="outlined" class="form-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Student ID</mat-label>
+          <input matInput type="number" formControlName="studentId" />
+          @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
+            <mat-error>Valid Student ID is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Total Fee (₹)</mat-label>
+          <input matInput type="number" formControlName="totalFee" min="0" />
+          @if (form.get('totalFee')?.invalid && form.get('totalFee')?.touched) {
+            <mat-error>Total fee is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Discount Amount (₹)</mat-label>
+          <input matInput type="number" formControlName="discountAmount" min="0" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Discount Reason</mat-label>
+          <input matInput formControlName="discountReason" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Agent Commission (₹)</mat-label>
+          <input matInput type="number" formControlName="agentCommission" min="0" />
+        </mat-form-field>
+
+        <div class="net-fee-preview">
+          <strong>Net Fee: ₹{{ netFee | number }}</strong>
+        </div>
+
+        <div class="year-fees-section">
+          <div class="year-fees-header">
+            <h3>Year-wise Fee Breakdown</h3>
+            <button mat-stroked-button type="button" (click)="addYear()">
+              <mat-icon>add</mat-icon> Add Year
+            </button>
+          </div>
+
+          @for (year of yearFees.controls; track $index; let i = $index) {
+            <div class="year-row" [formGroupName]="i" formArrayName="yearFees">
+              <mat-form-field appearance="outline" class="year-field">
+                <mat-label>Year</mat-label>
+                <input matInput type="number" formControlName="yearNumber" min="1" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="year-field">
+                <mat-label>Amount (₹)</mat-label>
+                <input matInput type="number" formControlName="amount" min="0" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="year-field">
+                <mat-label>Due Date</mat-label>
+                <input matInput type="date" formControlName="dueDate" />
+              </mat-form-field>
+              <button mat-icon-button type="button" color="warn" (click)="removeYear(i)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button mat-stroked-button type="button" routerLink="/student-fees">Cancel</button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+            @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Finalize }
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
