@@ -385,6 +385,102 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'syllabi',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/syllabus-list/syllabus-list.component').then(
+        (m) => m.SyllabusListComponent
+      ),
+  },
+  {
+    path: 'syllabi/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/syllabus-form/syllabus-form.component').then(
+        (m) => m.SyllabusFormComponent
+      ),
+  },
+  {
+    path: 'syllabi/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/syllabus-form/syllabus-form.component').then(
+        (m) => m.SyllabusFormComponent
+      ),
+  },
+  {
+    path: 'experiments',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/experiment-list/experiment-list.component').then(
+        (m) => m.ExperimentListComponent
+      ),
+  },
+  {
+    path: 'experiments/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/experiment-form/experiment-form.component').then(
+        (m) => m.ExperimentFormComponent
+      ),
+  },
+  {
+    path: 'experiments/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/experiment-form/experiment-form.component').then(
+        (m) => m.ExperimentFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-mappings',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/co-po-mapping/co-po-mapping.component').then(
+        (m) => m.CoPoMappingComponent
+      ),
+  },
+  {
+    path: 'curriculum-mappings/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/co-po-mapping-form/co-po-mapping-form.component').then(
+        (m) => m.CoPoMappingFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-mappings/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/co-po-mapping-form/co-po-mapping-form.component').then(
+        (m) => m.CoPoMappingFormComponent
+      ),
+  },
+  {
+    path: 'lab-schedules',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-list/lab-schedule-list.component').then(
+        (m) => m.LabScheduleListComponent
+      ),
+  },
+  {
+    path: 'lab-schedules/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
+        (m) => m.LabScheduleFormComponent
+      ),
+  },
+  {
+    path: 'lab-schedules/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
+        (m) => m.LabScheduleFormComponent
+      ),
+  },
+  {
     path: 'reports',
     canActivate: [authGuard],
     loadComponent: () =>

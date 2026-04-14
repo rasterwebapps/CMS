@@ -1,0 +1,77 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/syllabi"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Course</mat-label>
+            <mat-select formControlName="courseId">
+              @for (course of courses(); track course.id) {
+                <mat-option [value]="course.id">{{ course.name }} ({{ course.code }})</mat-option>
+              }
+            </mat-select>
+            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Version</mat-label>
+            <input matInput type="number" formControlName="version" min="1" />
+            @if (form.get('version')?.invalid && form.get('version')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Theory Hours</mat-label>
+            <input matInput type="number" formControlName="theoryHours" min="0" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Lab Hours</mat-label>
+            <input matInput type="number" formControlName="labHours" min="0" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Tutorial Hours</mat-label>
+            <input matInput type="number" formControlName="tutorialHours" min="0" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Objectives</mat-label>
+            <textarea matInput formControlName="objectives" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Content</mat-label>
+            <textarea matInput formControlName="content" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Text Books</mat-label>
+            <textarea matInput formControlName="textBooks" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Reference Books</mat-label>
+            <textarea matInput formControlName="referenceBooks" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Course Outcomes</mat-label>
+            <textarea matInput formControlName="courseOutcomes" rows="3"></textarea>
+          </mat-form-field>
+          <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/syllabi">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

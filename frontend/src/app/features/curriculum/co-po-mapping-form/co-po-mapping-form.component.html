@@ -1,0 +1,80 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/curriculum-mappings">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Experiment</mat-label>
+            <mat-select formControlName="experimentId">
+              @for (exp of experiments(); track exp.id) {
+                <mat-option [value]="exp.id"
+                  >{{ exp.name }} (#{{ exp.experimentNumber }})</mat-option
+                >
+              }
+            </mat-select>
+            @if (form.get('experimentId')?.invalid && form.get('experimentId')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Outcome Type</mat-label>
+            <mat-select formControlName="outcomeType">
+              @for (type of outcomeTypes; track type) {
+                <mat-option [value]="type">{{ type }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('outcomeType')?.invalid && form.get('outcomeType')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Outcome Code</mat-label>
+            <input matInput formControlName="outcomeCode" />
+            @if (form.get('outcomeCode')?.invalid && form.get('outcomeCode')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Outcome Description</mat-label>
+            <textarea matInput formControlName="outcomeDescription" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Mapping Level</mat-label>
+            <mat-select formControlName="mappingLevel">
+              @for (level of mappingLevels; track level) {
+                <mat-option [value]="level">{{ level }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('mappingLevel')?.invalid && form.get('mappingLevel')?.touched) {
+              <mat-error>Required</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Justification</mat-label>
+            <textarea matInput formControlName="justification" rows="3"></textarea>
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/curriculum-mappings">
+              Cancel
+            </button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update' : 'Create' }}
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
