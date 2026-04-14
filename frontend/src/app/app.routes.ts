@@ -457,6 +457,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'lab-schedules',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-list/lab-schedule-list.component').then(
+        (m) => m.LabScheduleListComponent
+      ),
+  },
+  {
+    path: 'lab-schedules/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
+        (m) => m.LabScheduleFormComponent
+      ),
+  },
+  {
+    path: 'lab-schedules/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
+        (m) => m.LabScheduleFormComponent
+      ),
+  },
+  {
     path: 'reports',
     canActivate: [authGuard],
     loadComponent: () =>
