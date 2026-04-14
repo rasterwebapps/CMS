@@ -18,8 +18,8 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click "Syllabus" in the sidebar navigation       |
-| **Expected**| Syllabus list page loads with columns: Title, Course, Version, Status, Actions |
+| **Action**  | Click "Syllabi" in the sidebar navigation        |
+| **Expected**| Syllabus list page loads with columns: Course Name, Course Code, Version, Theory Hours, Lab Hours, Active, Actions |
 
 ---
 
@@ -66,7 +66,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Experiments" in the sidebar navigation    |
-| **Expected**| Experiment list page loads with columns: Title, Syllabus, Order, Actions |
+| **Expected**| Experiment list page loads with columns: Exp #, Name, Course Name, Course Code, Duration (min), Active, Actions |
 
 ---
 

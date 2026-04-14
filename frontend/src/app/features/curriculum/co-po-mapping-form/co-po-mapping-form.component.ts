@@ -73,19 +73,16 @@ export class CoPoMappingFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Curriculum Mapping');
       this.loading.set(true);
-      this.curriculumService.getAllMappings().subscribe({
-        next: (data) => {
-          const item = data.find((m) => m.id === this.itemId);
-          if (item) {
-            this.form.patchValue({
-              experimentId: item.experimentId,
-              outcomeType: item.outcomeType,
-              outcomeCode: item.outcomeCode,
-              outcomeDescription: item.outcomeDescription || '',
-              mappingLevel: item.mappingLevel,
-              justification: item.justification || '',
-            });
-          }
+      this.curriculumService.getMappingById(this.itemId).subscribe({
+        next: (item) => {
+          this.form.patchValue({
+            experimentId: item.experimentId,
+            outcomeType: item.outcomeType,
+            outcomeCode: item.outcomeCode,
+            outcomeDescription: item.outcomeDescription || '',
+            mappingLevel: item.mappingLevel,
+            justification: item.justification || '',
+          });
           this.loading.set(false);
         },
         error: () => {

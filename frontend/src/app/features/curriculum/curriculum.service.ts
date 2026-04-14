@@ -71,6 +71,10 @@ export class CurriculumService {
     return this.http.get<LabCurriculumMapping[]>(this.mappingsUrl);
   }
 
+  getMappingById(id: number): Observable<LabCurriculumMapping> {
+    return this.http.get<LabCurriculumMapping>(`${this.mappingsUrl}/${id}`);
+  }
+
   getMappingsByExperimentId(experimentId: number): Observable<LabCurriculumMapping[]> {
     return this.http.get<LabCurriculumMapping[]>(
       `${this.mappingsUrl}?experimentId=${experimentId}`,

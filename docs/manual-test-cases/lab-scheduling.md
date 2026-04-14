@@ -94,29 +94,29 @@
 
 ---
 
-## Lab Slots
+## Lab Slots (API Only)
 
-### TC-SLOT-001: Navigate to Lab Slot List
+### TC-SLOT-001: List Lab Slots via API
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click "Lab Slots" in the sidebar navigation      |
-| **Expected**| Lab slot list page loads with columns: Slot Name, Start Time, End Time, Actions |
+| **Action**  | Send `GET /api/v1/lab-slots` with a valid Bearer token |
+| **Expected**| HTTP 200 with array of lab slot objects (id, name, startTime, endTime, slotOrder, isActive) |
 
 ---
 
-### TC-SLOT-002: Add Lab Slot — Successful Create
+### TC-SLOT-002: Create Lab Slot via API
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click "Add Lab Slot"; fill in Slot Name, Start Time, End Time; click Create |
-| **Expected**| Snackbar shows "Created"; redirected to lab slot list; new entry visible |
+| **Action**  | Send `POST /api/v1/lab-slots` with body: `{"name":"Slot 1","startTime":"09:00:00","endTime":"12:00:00","slotOrder":1}` |
+| **Expected**| HTTP 201 with created lab slot response           |
 
 ---
 
-### TC-SLOT-003: Edit/Delete Lab Slot
+### TC-SLOT-003: Update/Delete Lab Slot via API
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click the edit icon to modify a lab slot, or click the delete icon to remove it |
-| **Expected**| Edit: form loads pre-populated; Delete: confirmation dialog shown, confirming removes the item |
+| **Action**  | Send `PUT /api/v1/lab-slots/{id}` to update, or `DELETE /api/v1/lab-slots/{id}` to remove |
+| **Expected**| Update: HTTP 200 with updated slot; Delete: HTTP 204 No Content |
