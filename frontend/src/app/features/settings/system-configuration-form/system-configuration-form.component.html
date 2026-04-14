@@ -1,0 +1,49 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button routerLink="/settings"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="page-title">{{ pageTitle() }}</h2>
+  </div>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <mat-card appearance="outlined" class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Config Key</mat-label>
+            <input matInput formControlName="configKey" />
+            @if (form.get('configKey')?.invalid && form.get('configKey')?.touched) { <mat-error>Config key is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Config Value</mat-label>
+            <input matInput formControlName="configValue" />
+            @if (form.get('configValue')?.invalid && form.get('configValue')?.touched) { <mat-error>Config value is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Data Type</mat-label>
+            <mat-select formControlName="dataType">
+              @for (dt of dataTypes; track dt) { <mat-option [value]="dt">{{ dt }}</mat-option> }
+            </mat-select>
+            @if (form.get('dataType')?.invalid && form.get('dataType')?.touched) { <mat-error>Data type is required</mat-error> }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Category</mat-label>
+            <input matInput formControlName="category" />
+            @if (form.get('category')?.invalid && form.get('category')?.touched) { <mat-error>Category is required</mat-error> }
+          </mat-form-field>
+          <mat-slide-toggle formControlName="isEditable">Editable</mat-slide-toggle>
+          <div class="form-actions">
+            <button mat-stroked-button type="button" routerLink="/settings">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

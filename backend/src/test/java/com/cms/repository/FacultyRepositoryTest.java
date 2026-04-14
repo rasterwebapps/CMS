@@ -10,8 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.cms.config.JpaConfig;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
 import com.cms.model.enums.Designation;
@@ -19,6 +21,7 @@ import com.cms.model.enums.FacultyStatus;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@Import(JpaConfig.class)
 class FacultyRepositoryTest {
 
     @Autowired

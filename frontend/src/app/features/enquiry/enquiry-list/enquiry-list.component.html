@@ -1,0 +1,84 @@
+<div class="list-container">
+  <div class="header">
+    <h2 class="page-title">Enquiries</h2>
+    <button mat-flat-button color="primary" routerLink="/enquiries/new">
+      <mat-icon>add</mat-icon> Add Enquiry
+    </button>
+  </div>
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="table-controls">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input matInput [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search..." />
+          @if (searchValue()) {
+            <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Status</mat-label>
+          <mat-select [value]="statusFilter()" (selectionChange)="onStatusFilterChange($event.value)">
+            <mat-option value="">All</mat-option>
+            @for (s of statuses; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      @if (loading()) {
+        <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="data-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+            </ng-container>
+            <ng-container matColumnDef="phone">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
+              <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="programName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+              <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="enquiryDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Enquiry Date</th>
+              <td mat-cell *matCellDef="let row">{{ row.enquiryDate }}</td>
+            </ng-container>
+            <ng-container matColumnDef="source">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
+              <td mat-cell *matCellDef="let row">{{ row.source }}</td>
+            </ng-container>
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let row">
+                <mat-chip [highlighted]="getStatusColor(row.status) === 'primary'">{{ row.status }}</mat-chip>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="agentName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Agent</th>
+              <td mat-cell *matCellDef="let row">{{ row.agentName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row">
+                <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
+                @if (canConvert(row)) {
+                  <button mat-icon-button matTooltip="Convert to Student" (click)="convert(row)"><mat-icon>school</mat-icon></button>
+                }
+                <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
+            </tr>
+          </table>
+        </div>
+        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
