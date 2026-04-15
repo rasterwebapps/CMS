@@ -29,9 +29,19 @@ public record EnquiryRequest(
 
     Long agentId,
 
+    Long referralTypeId,
+
     String assignedTo,
 
     String remarks,
 
-    BigDecimal feeDiscussedAmount
+    BigDecimal feeDiscussedAmount,
+
+    BigDecimal feeGuidelineTotal,
+
+    BigDecimal referralAdditionalAmount,
+
+    BigDecimal finalCalculatedFee,
+
+    String yearWiseFees
 ) {}

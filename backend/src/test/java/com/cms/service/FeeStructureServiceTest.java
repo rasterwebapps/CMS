@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,7 @@ import com.cms.model.Program;
 import com.cms.model.enums.FeeType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +40,8 @@ class FeeStructureServiceTest {
     private ProgramRepository programRepository;
     @Mock
     private AcademicYearRepository academicYearRepository;
+    @Mock
+    private FeeStructureYearAmountRepository yearAmountRepository;
 
     private FeeStructureService feeStructureService;
 
@@ -46,7 +50,7 @@ class FeeStructureServiceTest {
 
     @BeforeEach
     void setUp() {
-        feeStructureService = new FeeStructureService(feeStructureRepository, programRepository, academicYearRepository);
+        feeStructureService = new FeeStructureService(feeStructureRepository, programRepository, academicYearRepository, yearAmountRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -60,7 +64,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldCreateFeeStructure() {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Annual tuition fee", true, true
+            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Annual tuition fee", true, true, null
         );
 
         FeeStructure saved = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
@@ -79,7 +83,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowExceptionWhenProgramNotFound() {
         FeeStructureRequest request = new FeeStructureRequest(
-            999L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), null, true, true
+            999L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
         );
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -92,7 +96,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowExceptionWhenAcademicYearNotFoundOnCreate() {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 999L, FeeType.TUITION, new BigDecimal("50000.00"), null, true, true
+            1L, 999L, FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
         );
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
@@ -119,6 +123,7 @@ class FeeStructureServiceTest {
         when(programRepository.existsById(1L)).thenReturn(true);
         when(academicYearRepository.existsById(1L)).thenReturn(true);
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         List<FeeStructureResponse> responses = feeStructureService.findByProgramIdAndAcademicYearId(1L, 1L);
 
@@ -149,6 +154,7 @@ class FeeStructureServiceTest {
         FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         when(feeStructureRepository.findAll()).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         List<FeeStructureResponse> responses = feeStructureService.findAll();
 
@@ -160,6 +166,7 @@ class FeeStructureServiceTest {
         FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         FeeStructureResponse response = feeStructureService.findById(1L);
 
@@ -181,6 +188,7 @@ class FeeStructureServiceTest {
 
         when(programRepository.existsById(1L)).thenReturn(true);
         when(feeStructureRepository.findByProgramId(1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         List<FeeStructureResponse> responses = feeStructureService.findByProgramId(1L);
 
@@ -192,7 +200,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
         );
 
         FeeStructure updated = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("10000.00"));
@@ -211,7 +219,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowExceptionWhenNotFoundOnUpdate() {
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
         );
 
         when(feeStructureRepository.findById(999L)).thenReturn(Optional.empty());
@@ -226,7 +234,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            999L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+            999L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
         );
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -242,7 +250,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 999L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+            1L, 999L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
         );
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -260,6 +268,7 @@ class FeeStructureServiceTest {
 
         feeStructureService.delete(1L);
 
+        verify(yearAmountRepository).deleteByFeeStructureId(1L);
         verify(feeStructureRepository).deleteById(1L);
     }
 
