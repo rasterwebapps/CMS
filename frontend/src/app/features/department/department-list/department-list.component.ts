@@ -1,14 +1,8 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -22,15 +16,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
   standalone: true,
   imports: [
     RouterLink,
-    FormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
