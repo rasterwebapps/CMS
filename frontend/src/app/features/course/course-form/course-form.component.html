@@ -1,65 +1,83 @@
-<div class="course-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/courses" class="back-button">
+<div class="course-form-page">
+  <!-- Page Header -->
+  <div class="form-page-header">
+    <button class="back-btn" routerLink="/courses">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div class="form-page-header__text">
+      <nav class="breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep">/</span>
+        <a routerLink="/courses" class="breadcrumb__link">Courses</a>
+        <span class="breadcrumb__sep">/</span>
+        <span class="breadcrumb__current">{{ isEditMode() ? 'Edit' : 'New' }}</span>
+      </nav>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+    </div>
   </div>
 
   @if (loading()) {
     <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
+      <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="course-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter course name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <mat-error>{{ getErrorMessage('name') }}</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Code</mat-label>
-            <input matInput formControlName="code" placeholder="Enter course code" />
-            <mat-hint>Short code for the course (e.g., CS101, MATH201)</mat-hint>
-            @if (form.get('code')?.invalid && form.get('code')?.touched) {
-              <mat-error>{{ getErrorMessage('code') }}</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Program</mat-label>
-            <mat-select formControlName="programId">
-              @for (program of programs(); track program.id) {
-                <mat-option [value]="program.id">{{ program.name }}</mat-option>
+    <div class="form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="course-form">
+        <div class="form-section">
+          <h3 class="form-section__title">Basic Information</h3>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Course Name</mat-label>
+              <input matInput formControlName="name" placeholder="Enter course name" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <mat-error>{{ getErrorMessage('name') }}</mat-error>
               }
-            </mat-select>
-            @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-              <mat-error>{{ getErrorMessage('programId') }}</mat-error>
-            }
-          </mat-form-field>
+            </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Semester</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="semester"
-              placeholder="Enter semester (1-8)"
-              min="1"
-              max="8"
-            />
-            @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-              <mat-error>{{ getErrorMessage('semester') }}</mat-error>
-            }
-          </mat-form-field>
+            <div class="form-row-2">
+              <mat-form-field appearance="outline">
+                <mat-label>Course Code</mat-label>
+                <input matInput formControlName="code" placeholder="e.g. CS101" />
+                <mat-hint>Short identifier</mat-hint>
+                @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                  <mat-error>{{ getErrorMessage('code') }}</mat-error>
+                }
+              </mat-form-field>
 
-          <div class="credits-row">
-            <mat-form-field appearance="outline" class="credit-field">
+              <mat-form-field appearance="outline">
+                <mat-label>Semester</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="semester"
+                  placeholder="1-8"
+                  min="1"
+                  max="8"
+                />
+                @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+                  <mat-error>{{ getErrorMessage('semester') }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Program</mat-label>
+              <mat-select formControlName="programId">
+                @for (program of programs(); track program.id) {
+                  <mat-option [value]="program.id">{{ program.name }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+                <mat-error>{{ getErrorMessage('programId') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section__title">Credit Distribution</h3>
+          <div class="credits-grid">
+            <mat-form-field appearance="outline">
               <mat-label>Total Credits</mat-label>
               <input
                 matInput
@@ -74,7 +92,7 @@
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="credit-field">
+            <mat-form-field appearance="outline">
               <mat-label>Theory Credits</mat-label>
               <input
                 matInput
@@ -89,7 +107,7 @@
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="credit-field">
+            <mat-form-field appearance="outline">
               <mat-label>Lab Credits</mat-label>
               <input
                 matInput
@@ -104,19 +122,19 @@
               }
             </mat-form-field>
           </div>
+        </div>
 
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/courses">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        <div class="form-actions">
+          <button class="btn-secondary" type="button" routerLink="/courses">Cancel</button>
+          <button class="btn-primary" type="submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Course' : 'Create Course' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
   }
 </div>

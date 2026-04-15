@@ -6,7 +6,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CourseService } from '../course.service';
@@ -25,7 +24,6 @@ import { Program } from '../../program/program.model';
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
   ],

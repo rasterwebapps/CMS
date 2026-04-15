@@ -4,13 +4,14 @@
 
 .app-sidenav {
   width: 260px;
+  border-right: 1px solid var(--cms-border-light);
 
   .sidenav-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--cms-border-light);
 
     .app-logo-img {
       width: 32px;
@@ -22,11 +23,52 @@
       font-size: 32px;
       width: 32px;
       height: 32px;
-      color: var(--mat-sys-primary);
+      color: var(--cms-primary);
     }
 
     .app-name {
-      font: var(--mat-sys-title-large);
+      font-size: 1.125rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--cms-text-primary);
+    }
+  }
+
+  mat-nav-list {
+    padding: 8px 12px;
+
+    a[mat-list-item] {
+      border-radius: var(--cms-radius-sm) !important;
+      margin-bottom: 2px;
+      transition: var(--cms-transition);
+      height: 42px !important;
+
+      mat-icon[matListItemIcon] {
+        color: var(--cms-text-muted);
+        transition: var(--cms-transition);
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      span[matListItemTitle] {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--cms-text-secondary);
+        transition: var(--cms-transition);
+      }
+
+      &:hover {
+        background-color: var(--cms-bg-hover) !important;
+
+        mat-icon[matListItemIcon] {
+          color: var(--cms-text-secondary);
+        }
+
+        span[matListItemTitle] {
+          color: var(--cms-text-primary);
+        }
+      }
     }
   }
 
@@ -82,19 +124,31 @@
 }
 
 .active-link {
-  background-color: var(--mat-sys-secondary-container) !important;
-  color: var(--mat-sys-on-secondary-container) !important;
+  background-color: var(--cms-primary-light) !important;
+  border-left: 3px solid var(--cms-primary) !important;
+
+  mat-icon[matListItemIcon] {
+    color: var(--cms-primary) !important;
+  }
+
+  span[matListItemTitle] {
+    color: var(--cms-primary) !important;
+    font-weight: 600 !important;
+  }
 }
 
 .app-toolbar {
   position: sticky;
   top: 0;
   z-index: 1;
+  box-shadow: var(--cms-shadow-sm);
 }
 
 .toolbar-title {
   margin-left: 8px;
-  font: var(--mat-sys-title-medium);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .toolbar-spacer {
@@ -107,4 +161,5 @@
 
 .app-content {
   min-height: calc(100vh - 64px);
+  background-color: var(--cms-bg-shell);
 }
