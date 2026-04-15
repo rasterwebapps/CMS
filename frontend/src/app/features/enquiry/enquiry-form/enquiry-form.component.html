@@ -56,6 +56,13 @@
                 </mat-form-field>
               }
             </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Referral Type</mat-label>
+              <mat-select formControlName="referralTypeId" (selectionChange)="onReferralTypeChange($event.value)">
+                <mat-option [value]="null">— None —</mat-option>
+                @for (rt of referralTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
             @if (isAgentReferral()) {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Agent</mat-label>
@@ -110,6 +117,20 @@
                     <div class="fee-year-amount">{{ amount | currency:'INR':'symbol':'1.0-0' }}</div>
                   </div>
                 }
+              </div>
+            }
+
+            @if (referralAdditionalAmount() > 0) {
+              <div class="fee-total referral-amount">
+                <span class="fee-total-label">Referral Additional Amount</span>
+                <span class="fee-total-value">{{ referralAdditionalAmount() | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
+            }
+
+            @if (finalCalculatedFee() > 0) {
+              <div class="fee-total final-fee">
+                <span class="fee-total-label">Final Calculated Fee</span>
+                <span class="fee-total-value">{{ finalCalculatedFee() | currency:'INR':'symbol':'1.0-0' }}</span>
               </div>
             }
 

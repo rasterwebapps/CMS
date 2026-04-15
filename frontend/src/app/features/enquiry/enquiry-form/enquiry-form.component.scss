@@ -90,3 +90,18 @@
   font: var(--mat-sys-body-medium);
   padding: 16px 0;
 }
+
+.referral-amount {
+  background: var(--mat-sys-tertiary-container);
+  .fee-total-label, .fee-total-value {
+    color: var(--mat-sys-on-tertiary-container);
+  }
+}
+
+.final-fee {
+  background: var(--mat-sys-secondary-container);
+  margin-top: 12px;
+  .fee-total-label, .fee-total-value {
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
