@@ -1,0 +1,10 @@
+.list-container { padding: 24px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.page-title { margin: 0; font: var(--mat-sys-headline-medium); }
+.table-controls { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-field { width: 100%; max-width: 400px; }
+.filter-field { width: 200px; }
+.loading-container { display: flex; justify-content: center; align-items: center; padding: 48px; }
+.table-container { overflow-x: auto; }
+.data-table { width: 100%; }
+.no-data-cell { text-align: center; padding: 48px 16px; color: var(--mat-sys-on-surface-variant); }

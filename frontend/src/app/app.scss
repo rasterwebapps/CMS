@@ -12,6 +12,12 @@
     padding: 16px;
     border-bottom: 1px solid var(--mat-sys-outline-variant);
 
+    .app-logo-img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
     .app-logo {
       font-size: 32px;
       width: 32px;

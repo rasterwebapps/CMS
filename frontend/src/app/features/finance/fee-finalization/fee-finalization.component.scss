@@ -1,0 +1,22 @@
+.form-container { padding: 24px; }
+.header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.page-title { margin: 0; font: var(--mat-sys-headline-medium); }
+.loading-container { display: flex; justify-content: center; padding: 48px; }
+.form-card { max-width: 700px; }
+.form { display: flex; flex-direction: column; gap: 8px; }
+.full-width { width: 100%; }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+
+.net-fee-preview {
+  padding: 12px 16px;
+  background-color: var(--mat-sys-surface-variant, #e8e8e8);
+  border-radius: 8px;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.year-fees-section { margin-top: 8px; }
+.year-fees-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.year-fees-header h3 { margin: 0; font: var(--mat-sys-title-medium); }
+.year-row { display: flex; gap: 12px; align-items: flex-start; }
+.year-field { flex: 1; }

@@ -1,8 +1,9 @@
 <mat-sidenav-container class="app-container">
   <mat-sidenav #sidenav mode="side" [opened]="sidenavOpened()" class="app-sidenav">
     <div class="sidenav-header">
-      <mat-icon class="app-logo">school</mat-icon>
-      <span class="app-name">CMS</span>
+      <img src="assets/images/logo-icon.png" alt="SKS College" class="app-logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'" />
+      <mat-icon class="app-logo" style="display:none">school</mat-icon>
+      <span class="app-name">SKS CMS</span>
     </div>
     <mat-nav-list>
       @for (item of filteredNavItems(); track item.route) {
