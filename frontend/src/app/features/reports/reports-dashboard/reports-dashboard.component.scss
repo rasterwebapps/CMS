@@ -1,36 +1,23 @@
-.dashboard-container { padding: 24px 32px;  }
-
-.page-title {
-  margin: 0 0 24px;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--cms-text-primary);
-  letter-spacing: -0.03em;
-}
-
-.loading-container { display: flex; justify-content: center; padding: 64px; }
+// Reports Dashboard — Premium KPI and breakdown cards
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 28px 0 16px;
+  gap: 10px;
+  margin: 32px 0 16px;
   font-size: 1.125rem;
   font-weight: 700;
   color: var(--cms-text-primary);
   letter-spacing: -0.02em;
 
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 20px;
-    border-radius: 2px;
-    background: linear-gradient(180deg, #6366f1, #a78bfa);
+  svg {
+    color: var(--cms-primary);
+    flex-shrink: 0;
   }
 }
 
-.cards-grid {
+// ── KPI Cards ────────────────────────────────────
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
@@ -38,74 +25,95 @@
 
 .kpi-card {
   text-align: center;
-  border-radius: var(--cms-radius-lg) !important;
-  padding: 8px 0;
+  padding: 28px 20px 24px;
+  background: var(--cms-bg-card);
+  border-radius: var(--cms-radius-lg);
+  border: 1px solid var(--cms-border-default);
+  box-shadow: var(--cms-shadow-sm);
   transition: var(--cms-transition);
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--cms-shadow-lg);
   }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  &__label {
+    font-size: 0.8125rem;
+    color: var(--cms-text-muted);
+    font-weight: 500;
+  }
+
+  &--blue .kpi-card__value { color: var(--cms-info); }
+  &--violet .kpi-card__value { color: #7c3aed; }
+  &--cyan .kpi-card__value { color: #0891b2; }
+  &--emerald .kpi-card__value { color: var(--cms-success); }
 }
 
-.kpi-icon {
-  font-size: 36px;
-  height: 36px;
-  width: 36px;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.kpi-value {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--cms-text-primary);
-  margin: 4px 0;
-}
-
-.kpi-label {
-  font-size: 0.8125rem;
-  color: var(--cms-text-muted);
-  font-weight: 500;
-}
-
+// ── Breakdown Cards ──────────────────────────────
 .breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
   margin: 16px 0 24px;
 }
 
-.status-list { padding: 8px 0; }
+.breakdown-card {
+  background: var(--cms-bg-card);
+  border-radius: var(--cms-radius-lg);
+  border: 1px solid var(--cms-border-default);
+  box-shadow: var(--cms-shadow-sm);
+  padding: 20px 24px;
 
-.status-row {
+  &__title {
+    margin: 0 0 16px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__empty {
+    text-align: center;
+    color: var(--cms-text-muted);
+    font-size: 0.8125rem;
+    padding: 24px 0;
+    margin: 0;
+  }
+}
+
+.breakdown-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--cms-border-light);
-  &:last-child { border-bottom: none; }
-}
 
-.status-label {
-  font-size: 0.8125rem;
-  color: var(--cms-text-secondary);
-  font-weight: 500;
-}
+  &:last-child {
+    border-bottom: none;
+  }
 
-.status-value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--cms-text-primary);
-}
+  &__label {
+    font-size: 0.8125rem;
+    color: var(--cms-text-secondary);
+    font-weight: 500;
+  }
 
-.empty-hint {
-  text-align: center;
-  color: var(--cms-text-muted);
-  font-size: 0.8125rem;
-  padding: 24px 0;
+  &__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
 }
