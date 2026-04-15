@@ -31,6 +31,7 @@ import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +45,8 @@ class EnquiryServiceTest {
     private AgentRepository agentRepository;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private ReferralTypeRepository referralTypeRepository;
 
     private EnquiryService enquiryService;
 
@@ -52,7 +55,7 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -66,12 +69,13 @@ class EnquiryServiceTest {
     void shouldCreateEnquiry() {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW,
-            1L, "Admin", "Interested in CS", new BigDecimal("50000.00")
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
+            1L, null, "Admin", "Interested in CS", new BigDecimal("50000.00"),
+            null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
         saved.setAgent(testAgent);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
@@ -83,7 +87,7 @@ class EnquiryServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Ravi Kumar");
         assertThat(response.source()).isEqualTo(EnquirySource.WALK_IN);
-        assertThat(response.status()).isEqualTo(EnquiryStatus.NEW);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.ENQUIRED);
         verify(enquiryRepository).save(any(Enquiry.class));
     }
 
@@ -92,11 +96,12 @@ class EnquiryServiceTest {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null,
             LocalDate.of(2024, 6, 15), EnquirySource.PHONE, null,
+            null, null, null, null, null,
             null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            null, LocalDate.of(2024, 6, 15), EnquirySource.PHONE, EnquiryStatus.NEW);
+            null, LocalDate.of(2024, 6, 15), EnquirySource.PHONE, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
 
@@ -111,7 +116,8 @@ class EnquiryServiceTest {
     void shouldThrowWhenProgramNotFoundOnCreate() {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 999L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
+            null, null, null, null, null,
             null, null, null, null
         );
 
@@ -126,8 +132,9 @@ class EnquiryServiceTest {
     void shouldThrowWhenAgentNotFoundOnCreate() {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.NEW,
-            999L, null, null, null
+            LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.ENQUIRED,
+            999L, null, null, null, null,
+            null, null, null, null
         );
 
         when(agentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -140,7 +147,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindAllEnquiries() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findAll()).thenReturn(List.of(enquiry));
 
@@ -153,7 +160,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindById() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
@@ -178,20 +185,20 @@ class EnquiryServiceTest {
     @Test
     void shouldFindByStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
-        when(enquiryRepository.findByStatus(EnquiryStatus.NEW)).thenReturn(List.of(enquiry));
+        when(enquiryRepository.findByStatus(EnquiryStatus.ENQUIRED)).thenReturn(List.of(enquiry));
 
-        List<EnquiryResponse> responses = enquiryService.findByStatus(EnquiryStatus.NEW);
+        List<EnquiryResponse> responses = enquiryService.findByStatus(EnquiryStatus.ENQUIRED);
 
         assertThat(responses).hasSize(1);
-        verify(enquiryRepository).findByStatus(EnquiryStatus.NEW);
+        verify(enquiryRepository).findByStatus(EnquiryStatus.ENQUIRED);
     }
 
     @Test
     void shouldFindBySource() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findBySource(EnquirySource.WALK_IN)).thenReturn(List.of(enquiry));
 
@@ -204,7 +211,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindByAgentId() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.ENQUIRED);
         enquiry.setAgent(testAgent);
 
         when(enquiryRepository.findByAgentId(1L)).thenReturn(List.of(enquiry));
@@ -218,16 +225,17 @@ class EnquiryServiceTest {
     @Test
     void shouldUpdateEnquiry() {
         Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         EnquiryRequest updateRequest = new EnquiryRequest(
             "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890", 1L,
-            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.CONTACTED,
-            null, "Staff", "Called back", new BigDecimal("45000.00")
+            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED,
+            null, null, "Staff", "Called back", new BigDecimal("45000.00"),
+            null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890",
-            testProgram, LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.CONTACTED);
+            testProgram, LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
@@ -236,14 +244,15 @@ class EnquiryServiceTest {
         EnquiryResponse response = enquiryService.update(1L, updateRequest);
 
         assertThat(response.name()).isEqualTo("Ravi Kumar Updated");
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONTACTED);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.INTERESTED);
     }
 
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
+            null, null, null, null, null,
             null, null, null, null
         );
 
@@ -281,7 +290,7 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudentWhenFeeDiscussed() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.FEE_DISCUSSED);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.FEES_FINALIZED);
 
         Student student = new Student();
         student.setId(10L);
@@ -302,13 +311,13 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenConvertingWithInvalidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Enquiry must be in INTERESTED or FEE_DISCUSSED status to convert");
+            .hasMessageContaining("Enquiry must be in an eligible status to convert");
     }
 
     @Test
@@ -358,7 +367,7 @@ class EnquiryServiceTest {
         LocalDate from = LocalDate.of(2024, 6, 1);
         LocalDate to = LocalDate.of(2024, 6, 30);
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findByEnquiryDateBetween(from, to)).thenReturn(List.of(enquiry));
 
@@ -373,31 +382,31 @@ class EnquiryServiceTest {
         LocalDate from = LocalDate.of(2024, 6, 1);
         LocalDate to = LocalDate.of(2024, 6, 30);
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
-        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.NEW))
+        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.ENQUIRED))
             .thenReturn(List.of(enquiry));
 
-        List<EnquiryResponse> responses = enquiryService.findByDateRangeAndStatus(from, to, EnquiryStatus.NEW);
+        List<EnquiryResponse> responses = enquiryService.findByDateRangeAndStatus(from, to, EnquiryStatus.ENQUIRED);
 
         assertThat(responses).hasSize(1);
-        verify(enquiryRepository).findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.NEW);
+        verify(enquiryRepository).findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.ENQUIRED);
     }
 
     @Test
     void shouldUpdateStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONTACTED);
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
-        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.CONTACTED);
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED);
 
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONTACTED);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.INTERESTED);
         verify(enquiryRepository).save(any(Enquiry.class));
     }
 
@@ -405,7 +414,7 @@ class EnquiryServiceTest {
     void shouldThrowWhenUpdatingStatusOfNonExistent() {
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.CONTACTED))
+        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.INTERESTED))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
 
