@@ -15,24 +15,24 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     List<Attendance> findByStudentId(Long studentId);
 
-    List<Attendance> findByCourseId(Long courseId);
+    List<Attendance> findBySubjectId(Long subjectId);
 
-    List<Attendance> findByStudentIdAndCourseId(Long studentId, Long courseId);
+    List<Attendance> findByStudentIdAndSubjectId(Long studentId, Long subjectId);
 
     List<Attendance> findByStudentIdAndDateBetween(Long studentId, LocalDate startDate, LocalDate endDate);
 
-    List<Attendance> findByCourseIdAndDate(Long courseId, LocalDate date);
+    List<Attendance> findBySubjectIdAndDate(Long subjectId, LocalDate date);
 
-    List<Attendance> findByCourseIdAndDateAndType(Long courseId, LocalDate date, AttendanceType type);
+    List<Attendance> findBySubjectIdAndDateAndType(Long subjectId, LocalDate date, AttendanceType type);
 
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.course.id = :courseId")
-    long countByStudentIdAndCourseId(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.subject.id = :subjectId")
+    long countByStudentIdAndSubjectId(@Param("studentId") Long studentId, @Param("subjectId") Long subjectId);
 
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.course.id = :courseId " +
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.subject.id = :subjectId " +
            "AND a.status = :status")
-    long countByStudentIdAndCourseIdAndStatus(@Param("studentId") Long studentId,
-                                               @Param("courseId") Long courseId,
+    long countByStudentIdAndSubjectIdAndStatus(@Param("studentId") Long studentId,
+                                               @Param("subjectId") Long subjectId,
                                                @Param("status") AttendanceStatus status);
 
-    boolean existsByStudentIdAndCourseIdAndDateAndType(Long studentId, Long courseId, LocalDate date, AttendanceType type);
+    boolean existsByStudentIdAndSubjectIdAndDateAndType(Long studentId, Long subjectId, LocalDate date, AttendanceType type);
 }

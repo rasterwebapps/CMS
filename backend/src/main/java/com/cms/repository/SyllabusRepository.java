@@ -9,13 +9,13 @@ import com.cms.model.Syllabus;
 
 public interface SyllabusRepository extends JpaRepository<Syllabus, Long> {
 
-    List<Syllabus> findByCourseId(Long courseId);
+    List<Syllabus> findBySubjectId(Long subjectId);
 
-    Optional<Syllabus> findByCourseIdAndIsActiveTrue(Long courseId);
+    Optional<Syllabus> findBySubjectIdAndIsActiveTrue(Long subjectId);
 
-    Optional<Syllabus> findByCourseIdAndVersion(Long courseId, Integer version);
+    Optional<Syllabus> findBySubjectIdAndVersion(Long subjectId, Integer version);
 
-    boolean existsByCourseIdAndVersion(Long courseId, Integer version);
+    boolean existsBySubjectIdAndVersion(Long subjectId, Integer version);
 
     List<Syllabus> findByIsActiveTrue();
 }
