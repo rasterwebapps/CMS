@@ -1,5 +1,5 @@
 .attendance-mark-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -15,7 +15,7 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
 }
 
 .form-card {
@@ -52,7 +52,7 @@
 }
 
 .student-list {
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: 1px solid var(--cms-border-default);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 24px;
@@ -63,14 +63,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--cms-border-light);
 
   &:last-child {
     border-bottom: none;
   }
 
   &:nth-child(even) {
-    background: var(--mat-sys-surface-variant);
+    background: var(--cms-bg-muted);
   }
 }
 
@@ -82,7 +82,7 @@
 
 .student-roll {
   font-size: 12px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--cms-text-muted);
 }
 
 .student-name {
@@ -98,7 +98,7 @@
 .no-students {
   text-align: center;
   padding: 32px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--cms-text-muted);
 }
 
 .form-actions {

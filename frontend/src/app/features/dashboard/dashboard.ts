@@ -42,17 +42,17 @@ export class DashboardComponent implements OnInit {
   protected readonly cards = signal<
     { title: string; value: string; icon: string; color: string }[]
   >([
-    { title: 'Total Students', value: '—', icon: 'school', color: 'primary' },
-    { title: 'Total Faculty', value: '—', icon: 'person', color: 'accent' },
-    { title: 'Departments', value: '—', icon: 'business', color: 'warn' },
-    { title: 'Active Courses', value: '—', icon: 'menu_book', color: 'primary' },
-    { title: 'Programs', value: '—', icon: 'auto_stories', color: 'accent' },
-    { title: 'Labs', value: '—', icon: 'science', color: 'warn' },
-    { title: 'Equipment', value: '—', icon: 'precision_manufacturing', color: 'primary' },
-    { title: 'Examinations', value: '—', icon: 'quiz', color: 'accent' },
-    { title: 'Fee Payments', value: '—', icon: 'payments', color: 'warn' },
-    { title: 'Maintenance', value: '—', icon: 'build', color: 'primary' },
-    { title: 'Attendance Records', value: '—', icon: 'fact_check', color: 'accent' },
+    { title: 'Total Students', value: '—', icon: 'school', color: 'indigo' },
+    { title: 'Total Faculty', value: '—', icon: 'groups', color: 'emerald' },
+    { title: 'Departments', value: '—', icon: 'business', color: 'amber' },
+    { title: 'Active Courses', value: '—', icon: 'menu_book', color: 'rose' },
+    { title: 'Programs', value: '—', icon: 'auto_stories', color: 'blue' },
+    { title: 'Labs', value: '—', icon: 'science', color: 'violet' },
+    { title: 'Equipment', value: '—', icon: 'precision_manufacturing', color: 'cyan' },
+    { title: 'Examinations', value: '—', icon: 'quiz', color: 'orange' },
+    { title: 'Fee Payments', value: '—', icon: 'payments', color: 'teal' },
+    { title: 'Maintenance', value: '—', icon: 'build', color: 'pink' },
+    { title: 'Attendance', value: '—', icon: 'fact_check', color: 'sky' },
   ]);
 
   ngOnInit(): void {
@@ -62,17 +62,17 @@ export class DashboardComponent implements OnInit {
         next: (data) => {
           this.summary.set(data);
           this.cards.set([
-            { title: 'Total Students', value: String(data.totalStudents), icon: 'school', color: 'primary' },
-            { title: 'Total Faculty', value: String(data.totalFaculty), icon: 'person', color: 'accent' },
-            { title: 'Departments', value: String(data.totalDepartments), icon: 'business', color: 'warn' },
-            { title: 'Active Courses', value: String(data.totalCourses), icon: 'menu_book', color: 'primary' },
-            { title: 'Programs', value: String(data.totalPrograms), icon: 'auto_stories', color: 'accent' },
-            { title: 'Labs', value: String(data.totalLabs), icon: 'science', color: 'warn' },
-            { title: 'Equipment', value: String(data.totalEquipment), icon: 'precision_manufacturing', color: 'primary' },
-            { title: 'Examinations', value: String(data.totalExaminations), icon: 'quiz', color: 'accent' },
-            { title: 'Fee Payments', value: String(data.totalFeePayments), icon: 'payments', color: 'warn' },
-            { title: 'Maintenance', value: String(data.totalMaintenanceRequests), icon: 'build', color: 'primary' },
-            { title: 'Attendance Records', value: String(data.totalAttendanceRecords), icon: 'fact_check', color: 'accent' },
+            { title: 'Total Students', value: String(data.totalStudents), icon: 'school', color: 'indigo' },
+            { title: 'Total Faculty', value: String(data.totalFaculty), icon: 'groups', color: 'emerald' },
+            { title: 'Departments', value: String(data.totalDepartments), icon: 'business', color: 'amber' },
+            { title: 'Active Courses', value: String(data.totalCourses), icon: 'menu_book', color: 'rose' },
+            { title: 'Programs', value: String(data.totalPrograms), icon: 'auto_stories', color: 'blue' },
+            { title: 'Labs', value: String(data.totalLabs), icon: 'science', color: 'violet' },
+            { title: 'Equipment', value: String(data.totalEquipment), icon: 'precision_manufacturing', color: 'cyan' },
+            { title: 'Examinations', value: String(data.totalExaminations), icon: 'quiz', color: 'orange' },
+            { title: 'Fee Payments', value: String(data.totalFeePayments), icon: 'payments', color: 'teal' },
+            { title: 'Maintenance', value: String(data.totalMaintenanceRequests), icon: 'build', color: 'pink' },
+            { title: 'Attendance', value: String(data.totalAttendanceRecords), icon: 'fact_check', color: 'sky' },
           ]);
           this.loading.set(false);
         },

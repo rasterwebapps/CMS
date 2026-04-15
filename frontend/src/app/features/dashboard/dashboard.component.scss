@@ -1,42 +1,55 @@
 .dashboard-container {
-  max-width: 1200px;
+  
   margin: 0 auto;
+  padding: 24px 32px;
 }
 
 .dashboard-title {
-  font-size: 28px;
-  font-weight: 400;
+  font-size: 1.75rem;
+  font-weight: 800;
   margin-bottom: 4px;
-  color: var(--mat-sys-on-surface);
+  color: var(--cms-text-primary);
+  letter-spacing: -0.03em;
 }
 
 .dashboard-subtitle {
-  font-size: 16px;
-  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9375rem;
+  color: var(--cms-text-muted);
   margin-bottom: 32px;
 }
 
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 
 .dashboard-card {
   cursor: default;
+  border-radius: var(--cms-radius-lg) !important;
+  transition: var(--cms-transition);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cms-shadow-lg);
+  }
 }
 
 .card-icon {
   font-size: 40px;
   width: 40px;
   height: 40px;
-  color: var(--mat-sys-primary);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .card-value {
-  font-size: 36px;
-  font-weight: 500;
+  font-size: 2.25rem;
+  font-weight: 800;
   text-align: center;
   padding: 16px 0;
-  color: var(--mat-sys-on-surface);
+  color: var(--cms-text-primary);
+  letter-spacing: -0.03em;
 }

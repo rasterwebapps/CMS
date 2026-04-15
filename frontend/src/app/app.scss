@@ -1,50 +1,82 @@
 .app-container {
   height: 100%;
+
+  // When sidenav is collapsed, override the content margin
+  &.sidenav-collapsed {
+    .mat-sidenav-content {
+      margin-left: 68px !important;
+    }
+  }
+
+  .mat-sidenav-content {
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
+// ──────────────────────────────────────────────────
+// Dark Sidenav — Expanded & Collapsed (Icon Rail)
+// ──────────────────────────────────────────────────
 .app-sidenav {
-  width: 260px;
-  border-right: none !important;
+  width: var(--cms-sidenav-width);
+  background: var(--cms-sidenav-bg) !important;
+  border-right: 1px solid var(--cms-sidenav-border) !important;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  // ─── Collapsed Icon Rail ───
+  &.collapsed {
+    width: 68px !important;
+
+    .sidenav-header {
+      justify-content: center;
+      padding: 16px 0;
+    }
+
+    .sidenav-nav {
+      padding: 8px 0;
+    }
+  }
 
   .sidenav-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--cms-border-light);
+    padding: 20px 20px 18px;
+    border-bottom: 1px solid var(--cms-sidenav-border);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%);
 
     .app-logo-img {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
-    }
-
-    .app-logo {
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
-      color: var(--cms-primary);
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      flex-shrink: 0;
     }
 
     .app-name {
-      font-size: 1.125rem;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      color: var(--cms-text-primary);
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      white-space: nowrap;
     }
   }
 
   mat-nav-list {
-    padding: 8px 12px;
+    padding: 6px 10px;
 
     a[mat-list-item] {
       border-radius: var(--cms-radius-sm) !important;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
       transition: var(--cms-transition);
-      height: 42px !important;
+      height: 40px !important;
 
       mat-icon[matListItemIcon] {
-        color: var(--cms-text-muted);
+        color: var(--cms-sidenav-group-text);
         transition: var(--cms-transition);
         font-size: 20px;
         width: 20px;
@@ -54,19 +86,19 @@
       span[matListItemTitle] {
         font-size: 0.8125rem;
         font-weight: 500;
-        color: var(--cms-text-secondary);
+        color: var(--cms-sidenav-text);
         transition: var(--cms-transition);
       }
 
       &:hover {
-        background-color: var(--cms-bg-hover) !important;
+        background-color: var(--cms-sidenav-hover) !important;
 
         mat-icon[matListItemIcon] {
-          color: var(--cms-text-secondary);
+          color: var(--cms-sidenav-text);
         }
 
         span[matListItemTitle] {
-          color: var(--cms-text-primary);
+          color: var(--cms-sidenav-text-bright);
         }
       }
     }
@@ -75,10 +107,66 @@
   .sidenav-nav {
     overflow-y: auto;
     overflow-x: hidden;
-    height: calc(100% - 65px);
+    height: calc(100% - 73px);
+    padding: 8px 0;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
   }
 }
 
+// ──────────────────────────────────────────────────
+// Collapsed Sidebar — Icon Buttons
+// ──────────────────────────────────────────────────
+.collapsed-group {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.collapsed-nav-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: var(--cms-radius-sm) !important;
+  color: var(--cms-sidenav-group-text) !important;
+  transition: var(--cms-transition) !important;
+
+  &:hover {
+    background: var(--cms-sidenav-hover) !important;
+    color: var(--cms-sidenav-text-bright) !important;
+  }
+}
+
+.collapsed-active {
+  background: var(--cms-sidenav-active-bg) !important;
+  color: var(--cms-sidenav-active-text) !important;
+}
+
+// Flyout menu from collapsed sidebar
+.collapsed-nav-menu {
+  .collapsed-menu-title {
+    padding: 8px 16px 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cms-text-muted);
+  }
+
+  .active-menu-item {
+    background: var(--cms-bg-hover);
+    color: var(--cms-primary);
+  }
+}
+
+// ──────────────────────────────────────────────────
+// Navigation Groups — Expansion Panels
+// ──────────────────────────────────────────────────
 .nav-group {
   box-shadow: none !important;
   border-radius: 0 !important;
@@ -89,29 +177,54 @@
   }
 
   mat-expansion-panel-header {
-    padding: 0 16px;
-    height: 48px !important;
-    font: var(--mat-sys-label-large);
+    padding: 0 14px;
+    height: 44px !important;
 
     .nav-group-icon {
-      margin-right: 12px;
-      color: var(--mat-sys-on-surface-variant);
+      margin-right: 10px;
+      color: var(--cms-sidenav-group-text);
       font-size: 20px;
       width: 20px;
       height: 20px;
+      transition: var(--cms-transition);
     }
 
     mat-panel-title {
       display: flex;
       align-items: center;
-      color: var(--mat-sys-on-surface);
-      font: var(--mat-sys-label-large);
+      color: var(--cms-sidenav-text) !important;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    &::ng-deep .mat-expansion-indicator::after {
+      color: var(--cms-sidenav-group-text) !important;
+    }
+
+    &:hover {
+      background: var(--cms-sidenav-hover) !important;
+
+      .nav-group-icon {
+        color: var(--cms-sidenav-text);
+      }
+    }
+  }
+
+  &.mat-expanded {
+    mat-expansion-panel-header {
+      .nav-group-icon {
+        color: var(--cms-sidenav-active-text);
+      }
+      mat-panel-title {
+        color: var(--cms-sidenav-text-bright) !important;
+      }
     }
   }
 
   mat-nav-list {
     padding-top: 0;
-    padding-bottom: 0;
+    padding-bottom: 4px;
 
     a[mat-list-item] {
       padding-left: 32px;
@@ -120,35 +233,83 @@
 }
 
 .top-level-item {
-  font: var(--mat-sys-label-large);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
+// ──────────────────────────────────────────────────
+// Active Link — Glowing accent
+// ──────────────────────────────────────────────────
 .active-link {
-  background-color: var(--cms-bg-muted) !important;
+  background: var(--cms-sidenav-active-bg) !important;
   border-radius: var(--cms-radius-sm) !important;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, #818cf8, #6366f1);
+    border-radius: 0 3px 3px 0;
+  }
 
   mat-icon[matListItemIcon] {
-    color: var(--cms-primary) !important;
+    color: var(--cms-sidenav-active-text) !important;
   }
 
   span[matListItemTitle] {
-    color: var(--cms-text-primary) !important;
+    color: var(--cms-sidenav-text-bright) !important;
     font-weight: 600 !important;
   }
 }
 
+// ──────────────────────────────────────────────────
+// Toolbar
+// ──────────────────────────────────────────────────
 .app-toolbar {
   position: sticky;
   top: 0;
   z-index: 1;
-  box-shadow: var(--cms-shadow-sm);
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  color: var(--cms-text-primary) !important;
+  height: 56px;
+
+  button {
+    color: var(--cms-text-secondary);
+    transition: var(--cms-transition);
+
+    &:hover {
+      color: var(--cms-primary);
+      background: var(--cms-bg-hover);
+    }
+  }
 }
 
 .toolbar-title {
-  margin-left: 8px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  margin-left: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cms-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  }
 }
 
 .toolbar-spacer {
@@ -159,7 +320,55 @@
   opacity: 0.7;
 }
 
+.toolbar-action-btn {
+  border-radius: var(--cms-radius-sm) !important;
+}
+
+.toolbar-avatar-btn {
+  margin-left: 4px;
+}
+
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+
+  mat-icon {
+    color: #ffffff;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.app-logo-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  flex-shrink: 0;
+
+  .app-logo {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: #ffffff;
+  }
+}
+
+// ──────────────────────────────────────────────────
+// Main Content Area — Full Width
+// ──────────────────────────────────────────────────
 .app-content {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 56px);
   background-color: var(--cms-bg-shell);
 }

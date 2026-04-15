@@ -1,21 +1,21 @@
-.detail-container { padding: 24px; }
+.detail-container { padding: 24px 32px; }
 .header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
-.page-title { margin: 0; font: var(--mat-sys-headline-medium); }
+.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
 .loading-container { display: flex; justify-content: center; padding: 48px; }
 
 .student-info { margin-bottom: 24px; }
-.student-info h3 { margin: 0 0 4px; font: var(--mat-sys-title-large); }
-.student-info p { margin: 0; color: var(--mat-sys-on-surface-variant); }
+.student-info h3 { margin: 0 0 4px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+.student-info p { margin: 0; color: var(--cms-text-muted); }
 
 .summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .summary-card { text-align: center; }
-.summary-label { font-size: 14px; color: var(--mat-sys-on-surface-variant); margin-bottom: 4px; }
+.summary-label { font-size: 14px; color: var(--cms-text-muted); margin-bottom: 4px; }
 .summary-value { font-size: 24px; font-weight: 500; }
-.summary-value.penalty { color: var(--mat-sys-error); }
+.summary-value.penalty { color: var(--cms-danger); }
 
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-header h3 { margin: 0; font: var(--mat-sys-title-large); }
-.section-title { margin: 24px 0 16px; font: var(--mat-sys-title-large); }
+.section-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+.section-title { margin: 24px 0 16px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
 
 .semester-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .semester-card mat-card-content { padding-top: 8px; }
@@ -36,4 +36,4 @@
 
 .table-container { overflow-x: auto; }
 .data-table { width: 100%; }
-.no-data-cell { text-align: center; padding: 48px 16px; color: var(--mat-sys-on-surface-variant); }
+.no-data-cell { text-align: center; padding: 48px 16px; color: var(--cms-text-muted); }

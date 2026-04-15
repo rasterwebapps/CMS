@@ -1,5 +1,5 @@
 .student-form-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -15,7 +15,7 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
 }
 
 .loading-container {
@@ -37,8 +37,8 @@
 
 .section-title {
   margin: 8px 0 4px;
-  font: var(--mat-sys-title-medium);
-  color: var(--mat-sys-primary);
+  font-size: 1rem; font-weight: 700;
+  color: var(--cms-primary);
 }
 
 .section-divider {

@@ -1,5 +1,5 @@
 .department-form-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -11,22 +11,33 @@
 
 .back-button {
   margin-left: -8px;
+  color: var(--cms-text-secondary);
+  transition: var(--cms-transition);
+
+  &:hover {
+    color: var(--cms-primary);
+    background: var(--cms-bg-hover);
+  }
 }
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 48px;
+  padding: 64px;
 }
 
 .form-card {
-  max-width: 600px;
+  max-width: 640px;
+  border-radius: var(--cms-radius-lg) !important;
+  padding: 8px;
 }
 
 .department-form {
@@ -44,6 +55,8 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cms-border-light);
 }
 
 .button-spinner {

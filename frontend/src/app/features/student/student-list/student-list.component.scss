@@ -1,5 +1,5 @@
 .student-list-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -11,7 +11,9 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .table-controls {
@@ -27,7 +29,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 48px;
+  padding: 64px;
 }
 
 .table-container {
@@ -40,35 +42,50 @@
 
 .no-data-cell {
   text-align: center;
-  padding: 48px 16px;
-  color: var(--mat-sys-on-surface-variant);
+  padding: 64px 16px;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
 }
 
 .status-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: var(--cms-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: capitalize;
+  letter-spacing: 0.01em;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
 }
 
 .status-active {
-  background-color: #e6f4ea;
-  color: #1e7e34;
+  background-color: var(--cms-badge-green-bg);
+  color: var(--cms-badge-green-text);
+  &::before { background: var(--cms-badge-green-text); }
 }
 
 .status-inactive {
-  background-color: #fce8e8;
-  color: #c0392b;
+  background-color: var(--cms-badge-red-bg);
+  color: var(--cms-badge-red-text);
+  &::before { background: var(--cms-badge-red-text); }
 }
 
 .status-graduated {
-  background-color: #e8f0fe;
-  color: #1a73e8;
+  background-color: var(--cms-badge-blue-bg);
+  color: var(--cms-badge-blue-text);
+  &::before { background: var(--cms-badge-blue-text); }
 }
 
 .status-dropped {
-  background-color: #fef3e0;
-  color: #e65c00;
+  background-color: var(--cms-badge-amber-bg);
+  color: var(--cms-badge-amber-text);
+  &::before { background: var(--cms-badge-amber-text); }
 }

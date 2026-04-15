@@ -1,35 +1,61 @@
 <div class="dashboard-container">
-  <h2 class="dashboard-title">Dashboard</h2>
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <div class="welcome-content">
+      <div class="welcome-text">
+        <h2 class="welcome-title">Welcome back! 👋</h2>
+        <p class="welcome-subtitle">Here's what's happening at SKS College of Nursing today.</p>
+      </div>
+      <div class="welcome-decoration">
+        <div class="deco-circle deco-1"></div>
+        <div class="deco-circle deco-2"></div>
+        <div class="deco-circle deco-3"></div>
+      </div>
+    </div>
+  </div>
 
   @if (loading()) {
     <div class="loading-container">
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
+    <!-- Metric Cards Grid -->
     <div class="metrics-grid">
       @for (card of cards(); track card.title) {
-        <mat-card class="metric-card" appearance="outlined">
-          <mat-card-header>
-            <mat-icon mat-card-avatar class="metric-icon">{{ card.icon }}</mat-icon>
-            <mat-card-title>{{ card.value }}</mat-card-title>
-            <mat-card-subtitle>{{ card.title }}</mat-card-subtitle>
-          </mat-card-header>
-        </mat-card>
+        <div class="metric-card" [attr.data-color]="card.color">
+          <div class="metric-icon-wrap">
+            <mat-icon>{{ card.icon }}</mat-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-value">{{ card.value }}</span>
+            <span class="metric-label">{{ card.title }}</span>
+          </div>
+        </div>
       }
     </div>
 
     @if (summary(); as s) {
+      <h3 class="section-title">
+        <mat-icon class="section-icon">insights</mat-icon>
+        Breakdown Analytics
+      </h3>
       <div class="breakdown-grid">
         <!-- Equipment Status Breakdown -->
-        <mat-card appearance="outlined">
-          <mat-card-header>
-            <mat-card-title>Equipment by Status</mat-card-title>
-          </mat-card-header>
+        <mat-card appearance="outlined" class="breakdown-card">
+          <div class="breakdown-header">
+            <div class="breakdown-icon-wrap breakdown-blue">
+              <mat-icon>precision_manufacturing</mat-icon>
+            </div>
+            <h4 class="breakdown-title">Equipment by Status</h4>
+          </div>
           <mat-card-content>
             <div class="status-list">
               @for (entry of s.equipmentByStatus | keyvalue; track entry.key) {
                 <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <div class="status-label-wrap">
+                    <span class="status-dot status-dot-blue"></span>
+                    <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  </div>
                   <span class="status-value">{{ entry.value }}</span>
                 </div>
               }
@@ -41,15 +67,21 @@
         </mat-card>
 
         <!-- Maintenance Status Breakdown -->
-        <mat-card appearance="outlined">
-          <mat-card-header>
-            <mat-card-title>Maintenance by Status</mat-card-title>
-          </mat-card-header>
+        <mat-card appearance="outlined" class="breakdown-card">
+          <div class="breakdown-header">
+            <div class="breakdown-icon-wrap breakdown-amber">
+              <mat-icon>build</mat-icon>
+            </div>
+            <h4 class="breakdown-title">Maintenance by Status</h4>
+          </div>
           <mat-card-content>
             <div class="status-list">
               @for (entry of s.maintenanceByStatus | keyvalue; track entry.key) {
                 <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <div class="status-label-wrap">
+                    <span class="status-dot status-dot-amber"></span>
+                    <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  </div>
                   <span class="status-value">{{ entry.value }}</span>
                 </div>
               }
@@ -61,15 +93,21 @@
         </mat-card>
 
         <!-- Student Status Breakdown -->
-        <mat-card appearance="outlined">
-          <mat-card-header>
-            <mat-card-title>Students by Status</mat-card-title>
-          </mat-card-header>
+        <mat-card appearance="outlined" class="breakdown-card">
+          <div class="breakdown-header">
+            <div class="breakdown-icon-wrap breakdown-emerald">
+              <mat-icon>school</mat-icon>
+            </div>
+            <h4 class="breakdown-title">Students by Status</h4>
+          </div>
           <mat-card-content>
             <div class="status-list">
               @for (entry of s.studentsByStatus | keyvalue; track entry.key) {
                 <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <div class="status-label-wrap">
+                    <span class="status-dot status-dot-emerald"></span>
+                    <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  </div>
                   <span class="status-value">{{ entry.value }}</span>
                 </div>
               }
@@ -81,15 +119,21 @@
         </mat-card>
 
         <!-- Attendance Status Breakdown -->
-        <mat-card appearance="outlined">
-          <mat-card-header>
-            <mat-card-title>Attendance by Status</mat-card-title>
-          </mat-card-header>
+        <mat-card appearance="outlined" class="breakdown-card">
+          <div class="breakdown-header">
+            <div class="breakdown-icon-wrap breakdown-violet">
+              <mat-icon>fact_check</mat-icon>
+            </div>
+            <h4 class="breakdown-title">Attendance by Status</h4>
+          </div>
           <mat-card-content>
             <div class="status-list">
               @for (entry of s.attendanceByStatus | keyvalue; track entry.key) {
                 <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <div class="status-label-wrap">
+                    <span class="status-dot status-dot-violet"></span>
+                    <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  </div>
                   <span class="status-value">{{ entry.value }}</span>
                 </div>
               }

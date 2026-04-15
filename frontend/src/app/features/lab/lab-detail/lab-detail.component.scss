@@ -1,5 +1,5 @@
 .lab-detail-container {
-  padding: 24px;
+  padding: 24px 32px;
 
   .loading-spinner {
     display: flex;
@@ -17,6 +17,9 @@
     h1 {
       flex: 1;
       margin: 0;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
     }
   }
 
@@ -31,6 +34,8 @@
   }
 
   .info-card {
+    border-radius: var(--cms-radius-lg) !important;
+
     mat-card-content {
       padding-top: 16px;
     }
@@ -44,21 +49,28 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
+        padding: 4px 0;
 
         .label {
-          font-size: 12px;
-          color: var(--mat-sys-on-surface-variant);
+          font-size: 0.6875rem;
+          color: var(--cms-text-muted);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
         }
 
         .value {
-          font-size: 14px;
+          font-size: 0.875rem;
           font-weight: 500;
+          color: var(--cms-text-primary);
         }
       }
     }
   }
 
   .assignments-card {
+    border-radius: var(--cms-radius-lg) !important;
+
     mat-card-header {
       display: flex;
       justify-content: space-between;
@@ -74,9 +86,10 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 16px;
       padding: 16px;
-      background: var(--mat-sys-surface-variant);
-      border-radius: 8px;
+      background: var(--cms-bg-muted);
+      border-radius: var(--cms-radius-md);
       margin-bottom: 16px;
+      border: 1px solid var(--cms-border-light);
 
       .form-actions {
         grid-column: 1 / -1;
@@ -92,8 +105,9 @@
 
     .no-assignments {
       text-align: center;
-      color: var(--mat-sys-on-surface-variant);
-      padding: 24px;
+      color: var(--cms-text-muted);
+      padding: 24px 32px;
+      font-size: 0.875rem;
     }
   }
 }

@@ -1,5 +1,5 @@
 .academic-calendar-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -13,7 +13,7 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
 }
 
 .header-actions {
@@ -48,7 +48,7 @@
   font-size: 48px;
   width: 48px;
   height: 48px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--cms-text-muted);
   margin-bottom: 16px;
 }
 
@@ -57,8 +57,8 @@
 }
 
 .year-icon {
-  background-color: var(--mat-sys-primary);
-  color: var(--mat-sys-on-primary);
+  background-color: var(--cms-primary);
+  color: var(--cms-text-on-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,13 +68,13 @@
 }
 
 .current-chip {
-  --mdc-chip-elevated-container-color: var(--mat-sys-primary);
-  --mdc-chip-label-text-color: var(--mat-sys-on-primary);
+  --mdc-chip-elevated-container-color: var(--cms-primary);
+  --mdc-chip-label-text-color: var(--cms-text-on-gradient);
   margin-top: 8px;
 }
 
 .section-title {
-  font: var(--mat-sys-title-large);
+  font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em;
   margin: 0 0 16px;
 }
 
@@ -103,22 +103,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--mat-sys-surface-variant);
-  color: var(--mat-sys-on-surface-variant);
+  background-color: var(--cms-bg-muted);
+  color: var(--cms-text-muted);
 
   &.completed {
-    background-color: var(--mat-sys-tertiary-container);
-    color: var(--mat-sys-on-tertiary-container);
+    background-color: var(--cms-badge-cyan-bg);
+    color: var(--cms-badge-cyan-text);
   }
 
   &.current {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    background-color: var(--cms-primary);
+    color: var(--cms-text-on-gradient);
   }
 
   &.upcoming {
-    background-color: var(--mat-sys-surface-variant);
-    color: var(--mat-sys-on-surface-variant);
+    background-color: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
   }
 
   mat-icon {
@@ -132,7 +132,7 @@
   width: 2px;
   flex: 1;
   min-height: 24px;
-  background-color: var(--mat-sys-outline-variant);
+  background-color: var(--cms-border-default);
 }
 
 .semester-card {
@@ -141,7 +141,7 @@
   max-width: 500px;
 
   &.current {
-    border-color: var(--mat-sys-primary);
+    border-color: var(--cms-primary);
     border-width: 2px;
   }
 }
@@ -157,7 +157,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--cms-text-muted);
 
   mat-icon {
     font-size: 18px;
@@ -168,17 +168,17 @@
 
 .status-chip {
   &.completed {
-    --mdc-chip-elevated-container-color: var(--mat-sys-tertiary-container);
-    --mdc-chip-label-text-color: var(--mat-sys-on-tertiary-container);
+    --mdc-chip-elevated-container-color: var(--cms-badge-cyan-bg);
+    --mdc-chip-label-text-color: var(--cms-badge-cyan-text);
   }
 
   &.current {
-    --mdc-chip-elevated-container-color: var(--mat-sys-primary);
-    --mdc-chip-label-text-color: var(--mat-sys-on-primary);
+    --mdc-chip-elevated-container-color: var(--cms-primary);
+    --mdc-chip-label-text-color: var(--cms-text-on-gradient);
   }
 
   &.upcoming {
-    --mdc-chip-elevated-container-color: var(--mat-sys-surface-variant);
-    --mdc-chip-label-text-color: var(--mat-sys-on-surface-variant);
+    --mdc-chip-elevated-container-color: var(--cms-bg-muted);
+    --mdc-chip-label-text-color: var(--cms-text-muted);
   }
 }

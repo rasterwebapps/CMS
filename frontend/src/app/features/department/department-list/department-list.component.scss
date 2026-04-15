@@ -1,5 +1,5 @@
 .department-list-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -11,7 +11,9 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .table-controls {
@@ -27,7 +29,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 48px;
+  padding: 64px;
 }
 
 .table-container {
@@ -40,6 +42,7 @@
 
 .no-data-cell {
   text-align: center;
-  padding: 48px 16px;
-  color: var(--mat-sys-on-surface-variant);
+  padding: 64px 16px;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
 }

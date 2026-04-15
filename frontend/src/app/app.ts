@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDivider } from '@angular/material/divider';
 import { AuthService } from './core/auth/auth.service';
 
 interface NavItem {
@@ -44,6 +45,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatMenuModule,
     MatTooltipModule,
     MatExpansionModule,
+    MatDivider,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -53,10 +55,11 @@ export class App {
   private readonly platformId = inject(PLATFORM_ID);
 
   protected readonly darkTheme = signal(false);
-  protected readonly sidenavOpened = signal(true);
+  protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
   protected readonly isNavGroup = isNavGroup;
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
+  private static readonly COLLAPSED_KEY = 'cms_sidenav_collapsed';
 
   private readonly navEntries: NavEntry[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
@@ -212,7 +215,28 @@ export class App {
   }
 
   protected toggleSidenav(): void {
-    this.sidenavOpened.update((v) => !v);
+    this.sidenavCollapsed.update((v) => !v);
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        localStorage.setItem(App.COLLAPSED_KEY, JSON.stringify(this.sidenavCollapsed()));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }
+
+  private loadCollapsedState(): boolean {
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        const stored = localStorage.getItem(App.COLLAPSED_KEY);
+        if (stored) {
+          return JSON.parse(stored) as boolean;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    return false;
   }
 
   protected async logout(): Promise<void> {

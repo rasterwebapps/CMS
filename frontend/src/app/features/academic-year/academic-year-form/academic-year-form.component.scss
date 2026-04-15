@@ -1,5 +1,5 @@
 .academic-year-form-container {
-  padding: 24px;
+  padding: 24px 32px;
 }
 
 .header {
@@ -15,7 +15,7 @@
 
 .page-title {
   margin: 0;
-  font: var(--mat-sys-headline-medium);
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
 }
 
 .loading-container {
