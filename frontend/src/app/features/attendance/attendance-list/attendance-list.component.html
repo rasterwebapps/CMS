@@ -1,100 +1,116 @@
-<div class="attendance-list-container">
-  <div class="header">
-    <h2 class="page-title">Attendance</h2>
-    <button mat-flat-button color="primary" routerLink="/attendance/mark">
-      <mat-icon>add</mat-icon>
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Attendance</span>
+      </nav>
+      <h1 class="page-title">Attendance</h1>
+      <p class="page-subtitle">Track student attendance records by course and date</p>
+    </div>
+    <button class="btn-primary" routerLink="/attendance/mark" aria-label="Mark attendance">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Mark Attendance
     </button>
   </div>
 
-  <mat-card appearance="outlined">
-    <mat-card-content>
-      <div class="table-controls">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search</mat-label>
-          <input
-            matInput
-            [value]="searchValue()"
-            (input)="applyFilter($event)"
-            placeholder="Search attendance..."
-          />
-          @if (searchValue()) {
-            <button matSuffix mat-icon-button (click)="clearFilter()">
-              <mat-icon>close</mat-icon>
-            </button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
-          }
-        </mat-form-field>
+  <div class="command-bar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search attendance..."
+        type="text"
+        aria-label="Search attendance"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading attendance"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="cell-date">{{ record.date }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="studentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="cell-name">{{ record.studentName }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="courseName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
+            <td mat-cell *matCellDef="let record">{{ record.courseName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="cms-badge" [class.cms-badge--blue]="record.type === 'LECTURE'" [class.cms-badge--cyan]="record.type === 'LAB'" [class.cms-badge--gray]="record.type !== 'LECTURE' && record.type !== 'LAB'">{{ record.type }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let record">
+              <span class="status-badge" [class.status-active]="record.status === 'PRESENT'" [class.status-inactive]="record.status === 'ABSENT'" [class.status-warning]="record.status === 'LATE'">{{ record.status }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let record">
+              <div class="row-actions">
+                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteAttendance(record)" aria-label="Delete attendance record">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state__content">
+                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                @if (searchValue()) {
+                  <p class="empty-state__text">No records found matching "{{ searchValue() }}"</p>
+                } @else {
+                  <p class="empty-state__text">No attendance records available</p>
+                }
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
-      @if (loading()) {
-        <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-        </div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="attendance-table">
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
-              <td mat-cell *matCellDef="let record">{{ record.date }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="studentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
-              <td mat-cell *matCellDef="let record">{{ record.studentName }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="courseName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-              <td mat-cell *matCellDef="let record">{{ record.courseName }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
-              <td mat-cell *matCellDef="let record">{{ record.type }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let record">{{ record.status }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let record">
-                <button
-                  mat-icon-button
-                  matTooltip="Delete"
-                  color="warn"
-                  (click)="deleteAttendance(record)"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                @if (searchValue()) {
-                  No records found matching "{{ searchValue() }}"
-                } @else {
-                  No attendance records available
-                }
-              </td>
-            </tr>
-          </table>
-        </div>
-
+      <div class="pagination-wrapper">
         <mat-paginator
           [pageSizeOptions]="[5, 10, 25, 50]"
           [pageSize]="10"
           showFirstLastButtons
         ></mat-paginator>
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+    }
+  </div>
 </div>
