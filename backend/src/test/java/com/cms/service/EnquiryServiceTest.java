@@ -431,4 +431,239 @@ class EnquiryServiceTest {
         enquiry.setUpdatedAt(now);
         return enquiry;
     }
+
+    @Test
+    void shouldFinalizeFees() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
+
+        assertThat(response.enquiryId()).isEqualTo(1L);
+        assertThat(response.finalizedTotalFee()).isEqualTo(new BigDecimal("100000.00"));
+        assertThat(response.finalizedDiscountAmount()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.finalizedNetFee()).isEqualTo(new BigDecimal("95000.00"));
+        assertThat(response.finalizedBy()).isEqualTo("admin");
+        assertThat(response.status()).isEqualTo("FEES_FINALIZED");
+    }
+
+    @Test
+    void shouldFinalizeFeesFromEnquiredStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("50000.00"), null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
+
+        assertThat(response.finalizedNetFee()).isEqualTo(new BigDecimal("50000.00"));
+        assertThat(response.finalizedDiscountAmount()).isEqualTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void shouldThrowWhenFinalizingFeesWithWrongStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("50000.00"), null, null, null
+        );
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Enquiry must be in ENQUIRED or INTERESTED status");
+    }
+
+    @Test
+    void shouldThrowWhenFinalizingFeesForNonExistent() {
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("50000.00"), null, null, null
+        );
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(999L, request, "admin"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Enquiry not found with id: 999");
+    }
+
+    @Test
+    void shouldCreateEnquiryWithReferralType() {
+        com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
+            "Staff", "STAFF", new BigDecimal("5000.00"), "Staff referral", true
+        );
+        referralType.setId(1L);
+        referralType.setCreatedAt(Instant.now());
+        referralType.setUpdatedAt(Instant.now());
+
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
+            null, 1L, null, null, null, null, null, null, null
+        );
+
+        Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            null, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        saved.setReferralType(referralType);
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(referralType));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        EnquiryResponse response = enquiryService.create(request);
+
+        assertThat(response.referralTypeId()).isEqualTo(1L);
+        assertThat(response.referralTypeName()).isEqualTo("Staff");
+        assertThat(response.referralGuidelineValue()).isEqualTo(new BigDecimal("5000.00"));
+    }
+
+    @Test
+    void shouldThrowWhenReferralTypeNotFound() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
+            null, 999L, null, null, null, null, null, null, null
+        );
+
+        when(referralTypeRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enquiryService.create(request))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Referral type not found with id: 999");
+    }
+
+    @Test
+    void shouldConvertFromDocumentsSubmittedStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        Student student = new Student();
+        student.setId(10L);
+
+        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+        converted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
+
+        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+    }
+
+    @Test
+    void shouldConvertFromFeesPaidStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.FEES_PAID);
+
+        Student student = new Student();
+        student.setId(10L);
+
+        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+        converted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
+
+        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+    }
+
+    @Test
+    void shouldConvertFromPartiallyPaidStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.PARTIALLY_PAID);
+
+        Student student = new Student();
+        student.setId(10L);
+
+        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+        converted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
+
+        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+    }
+
+    @Test
+    void shouldCreateEnquiryWithFeeGuidelineData() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
+            null, null, null, null, null,
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"),
+            new BigDecimal("105000.00"), "[50000,55000]"
+        );
+
+        Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            null, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        saved.setFeeGuidelineTotal(new BigDecimal("100000.00"));
+        saved.setReferralAdditionalAmount(new BigDecimal("5000.00"));
+        saved.setFinalCalculatedFee(new BigDecimal("105000.00"));
+        saved.setYearWiseFees("[50000,55000]");
+
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        EnquiryResponse response = enquiryService.create(request);
+
+        assertThat(response.feeGuidelineTotal()).isEqualTo(new BigDecimal("100000.00"));
+        assertThat(response.referralAdditionalAmount()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.finalCalculatedFee()).isEqualTo(new BigDecimal("105000.00"));
+        assertThat(response.yearWiseFees()).isEqualTo("[50000,55000]");
+    }
+
+    @Test
+    void shouldUpdateEnquiryWithReferralType() {
+        Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+
+        com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
+            "Staff", "STAFF", BigDecimal.ZERO, "Staff referral", true
+        );
+        referralType.setId(1L);
+        referralType.setCreatedAt(Instant.now());
+        referralType.setUpdatedAt(Instant.now());
+
+        EnquiryRequest updateRequest = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
+            null, 1L, null, null, null, null, null, null, null
+        );
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        updated.setReferralType(referralType);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(referralType));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.update(1L, updateRequest);
+
+        assertThat(response.referralTypeId()).isEqualTo(1L);
+    }
 }
