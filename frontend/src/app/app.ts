@@ -61,7 +61,7 @@ export class App {
   private readonly navEntries: NavEntry[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
     {
-      label: 'Masters / Preferences',
+      label: 'Preferences',
       icon: 'tune',
       items: [
         { label: 'Departments', icon: 'business', route: '/departments' },
