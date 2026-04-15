@@ -37,8 +37,8 @@ public class Attendance {
     private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @Column(nullable = false)
     private LocalDate date;
@@ -68,10 +68,10 @@ public class Attendance {
     public Attendance() {
     }
 
-    public Attendance(Student student, Course course, LocalDate date,
+    public Attendance(Student student, Subject subject, LocalDate date,
                       AttendanceStatus status, AttendanceType type) {
         this.student = student;
-        this.course = course;
+        this.subject = subject;
         this.date = date;
         this.status = status;
         this.type = type;
@@ -93,12 +93,12 @@ public class Attendance {
         this.student = student;
     }
 
-    public Course getCourse() {
-        return course;
+    public Subject getSubject() {
+        return subject;
     }
 
-    public void setCourse(Course course) {
-        this.course = course;
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 
     public LocalDate getDate() {

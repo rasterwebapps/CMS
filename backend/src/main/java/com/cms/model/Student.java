@@ -53,6 +53,14 @@ public class Student {
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "specialization_department_id")
+    private Department specializationDepartment;
+
     @Column(nullable = false)
     private Integer semester;
 
@@ -186,6 +194,22 @@ public class Student {
 
     public void setProgram(Program program) {
         this.program = program;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    public Department getSpecializationDepartment() {
+        return specializationDepartment;
+    }
+
+    public void setSpecializationDepartment(Department specializationDepartment) {
+        this.specializationDepartment = specializationDepartment;
     }
 
     public Integer getSemester() {

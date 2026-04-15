@@ -27,8 +27,8 @@ public class Syllabus {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @Column(nullable = false)
     private Integer version;
@@ -71,10 +71,10 @@ public class Syllabus {
     public Syllabus() {
     }
 
-    public Syllabus(Course course, Integer version, Integer theoryHours, Integer labHours,
+    public Syllabus(Subject subject, Integer version, Integer theoryHours, Integer labHours,
                     Integer tutorialHours, String objectives, String content,
                     String textBooks, String referenceBooks, String courseOutcomes, Boolean isActive) {
-        this.course = course;
+        this.subject = subject;
         this.version = version;
         this.theoryHours = theoryHours;
         this.labHours = labHours;
@@ -95,12 +95,12 @@ public class Syllabus {
         this.id = id;
     }
 
-    public Course getCourse() {
-        return course;
+    public Subject getSubject() {
+        return subject;
     }
 
-    public void setCourse(Course course) {
-        this.course = course;
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 
     public Integer getVersion() {
