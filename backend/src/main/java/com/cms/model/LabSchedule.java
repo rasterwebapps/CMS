@@ -35,8 +35,8 @@ public class LabSchedule {
     private Lab lab;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id", nullable = false)
@@ -71,10 +71,10 @@ public class LabSchedule {
     public LabSchedule() {
     }
 
-    public LabSchedule(Lab lab, Course course, Faculty faculty, LabSlot labSlot,
+    public LabSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot,
                        String batchName, DayOfWeek dayOfWeek, Semester semester, Boolean isActive) {
         this.lab = lab;
-        this.course = course;
+        this.subject = subject;
         this.faculty = faculty;
         this.labSlot = labSlot;
         this.batchName = batchName;
@@ -99,12 +99,12 @@ public class LabSchedule {
         this.lab = lab;
     }
 
-    public Course getCourse() {
-        return course;
+    public Subject getSubject() {
+        return subject;
     }
 
-    public void setCourse(Course course) {
-        this.course = course;
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 
     public Faculty getFaculty() {

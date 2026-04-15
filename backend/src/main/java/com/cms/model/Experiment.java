@@ -27,8 +27,8 @@ public class Experiment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @Column(name = "experiment_number", nullable = false)
     private Integer experimentNumber;
@@ -71,10 +71,10 @@ public class Experiment {
     public Experiment() {
     }
 
-    public Experiment(Course course, Integer experimentNumber, String name, String description,
+    public Experiment(Subject subject, Integer experimentNumber, String name, String description,
                       String aim, String apparatus, String procedure, String expectedOutcome,
                       String learningOutcomes, Integer estimatedDurationMinutes, Boolean isActive) {
-        this.course = course;
+        this.subject = subject;
         this.experimentNumber = experimentNumber;
         this.name = name;
         this.description = description;
@@ -95,12 +95,12 @@ public class Experiment {
         this.id = id;
     }
 
-    public Course getCourse() {
-        return course;
+    public Subject getSubject() {
+        return subject;
     }
 
-    public void setCourse(Course course) {
-        this.course = course;
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 
     public Integer getExperimentNumber() {
