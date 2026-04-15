@@ -12,7 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FinanceService } from '../finance.service';
 import { FeeStructureRequest } from '../finance.model';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../environments';
 
 @Component({
   selector: 'app-fee-structure-form',

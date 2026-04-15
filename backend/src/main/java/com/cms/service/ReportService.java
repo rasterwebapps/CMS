@@ -1,5 +1,8 @@
 package com.cms.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +14,7 @@ import com.cms.dto.StudentPerformanceReportResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Student;
 import com.cms.repository.AttendanceRepository;
+import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.LabContinuousEvaluationRepository;
 import com.cms.repository.LabRepository;
@@ -27,26 +31,40 @@ public class ReportService {
     private final AttendanceRepository attendanceRepository;
     private final ExamResultRepository examResultRepository;
     private final LabContinuousEvaluationRepository labContinuousEvaluationRepository;
+    private final EquipmentRepository equipmentRepository;
 
     public ReportService(LabRepository labRepository,
                           LabScheduleRepository labScheduleRepository,
                           StudentRepository studentRepository,
                           AttendanceRepository attendanceRepository,
                           ExamResultRepository examResultRepository,
-                          LabContinuousEvaluationRepository labContinuousEvaluationRepository) {
+                          LabContinuousEvaluationRepository labContinuousEvaluationRepository,
+                          EquipmentRepository equipmentRepository) {
         this.labRepository = labRepository;
         this.labScheduleRepository = labScheduleRepository;
         this.studentRepository = studentRepository;
         this.attendanceRepository = attendanceRepository;
         this.examResultRepository = examResultRepository;
         this.labContinuousEvaluationRepository = labContinuousEvaluationRepository;
+        this.equipmentRepository = equipmentRepository;
     }
 
     public LabUtilizationReportResponse getLabUtilizationReport() {
         long totalLabs = labRepository.count();
         long totalSchedules = labScheduleRepository.count();
         double avg = totalLabs > 0 ? (double) totalSchedules / totalLabs : 0.0;
-        return new LabUtilizationReportResponse(totalLabs, totalSchedules, avg);
+        long totalEquipment = equipmentRepository.count();
+
+        Map<String, Long> equipmentByStatus = new LinkedHashMap<>();
+        equipmentRepository.findAll().forEach(eq ->
+            equipmentByStatus.merge(eq.getStatus().name(), 1L, Long::sum));
+
+        Map<String, Long> labsByStatus = new LinkedHashMap<>();
+        labRepository.findAll().forEach(lab ->
+            labsByStatus.merge(lab.getStatus().name(), 1L, Long::sum));
+
+        return new LabUtilizationReportResponse(totalLabs, totalSchedules, avg,
+            totalEquipment, equipmentByStatus, labsByStatus);
     }
 
     public StudentPerformanceReportResponse getStudentPerformanceReport(Long studentId) {
@@ -91,6 +109,15 @@ public class ReportService {
     public AttendanceAnalyticsReportResponse getAttendanceAnalyticsReport() {
         long totalStudents = studentRepository.count();
         long totalAttendanceRecords = attendanceRepository.count();
-        return new AttendanceAnalyticsReportResponse(totalStudents, totalAttendanceRecords);
+
+        Map<String, Long> attendanceByStatus = new LinkedHashMap<>();
+        Map<String, Long> attendanceByType = new LinkedHashMap<>();
+        attendanceRepository.findAll().forEach(a -> {
+            attendanceByStatus.merge(a.getStatus().name(), 1L, Long::sum);
+            attendanceByType.merge(a.getType().name(), 1L, Long::sum);
+        });
+
+        return new AttendanceAnalyticsReportResponse(totalStudents, totalAttendanceRecords,
+            attendanceByStatus, attendanceByType);
     }
 }

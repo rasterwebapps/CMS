@@ -1,41 +1,105 @@
 <div class="dashboard-container">
   <h2 class="dashboard-title">Dashboard</h2>
 
-  <div class="metrics-grid">
-    @for (card of cards; track card.title) {
-      <mat-card class="metric-card" appearance="outlined">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="metric-icon">{{ card.icon }}</mat-icon>
-          <mat-card-title>{{ card.value }}</mat-card-title>
-          <mat-card-subtitle>{{ card.title }}</mat-card-subtitle>
-        </mat-card-header>
-      </mat-card>
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="metrics-grid">
+      @for (card of cards(); track card.title) {
+        <mat-card class="metric-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="metric-icon">{{ card.icon }}</mat-icon>
+            <mat-card-title>{{ card.value }}</mat-card-title>
+            <mat-card-subtitle>{{ card.title }}</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+      }
+    </div>
+
+    @if (summary(); as s) {
+      <div class="breakdown-grid">
+        <!-- Equipment Status Breakdown -->
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Equipment by Status</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of s.equipmentByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No equipment data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Maintenance Status Breakdown -->
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Maintenance by Status</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of s.maintenanceByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No maintenance data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Student Status Breakdown -->
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Students by Status</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of s.studentsByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No student data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Attendance Status Breakdown -->
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Attendance by Status</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of s.attendanceByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No attendance data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
     }
-  </div>
-
-  <div class="widgets-grid">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>Lab Utilization</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="widget-placeholder">
-          <mat-icon>bar_chart</mat-icon>
-          <p>Lab utilization data will appear here</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>Recent Activity</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="widget-placeholder">
-          <mat-icon>timeline</mat-icon>
-          <p>Recent activity will appear here</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+  }
 </div>

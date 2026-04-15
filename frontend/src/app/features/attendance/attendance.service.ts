@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments';
 import { Attendance, AttendanceRequest, AttendanceReport, BulkAttendanceRequest } from './attendance.model';
 
 @Injectable({

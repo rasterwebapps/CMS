@@ -32,6 +32,7 @@ import com.cms.model.enums.ExamResultStatus;
 import com.cms.model.enums.ExamType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AttendanceRepository;
+import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.LabContinuousEvaluationRepository;
 import com.cms.repository.LabRepository;
@@ -59,24 +60,32 @@ class ReportServiceTest {
     @Mock
     private LabContinuousEvaluationRepository labContinuousEvaluationRepository;
 
+    @Mock
+    private EquipmentRepository equipmentRepository;
+
     private ReportService reportService;
 
     @BeforeEach
     void setUp() {
         reportService = new ReportService(labRepository, labScheduleRepository, studentRepository,
-            attendanceRepository, examResultRepository, labContinuousEvaluationRepository);
+            attendanceRepository, examResultRepository, labContinuousEvaluationRepository,
+            equipmentRepository);
     }
 
     @Test
     void shouldGetLabUtilizationReport() {
         when(labRepository.count()).thenReturn(5L);
         when(labScheduleRepository.count()).thenReturn(20L);
+        when(equipmentRepository.count()).thenReturn(10L);
+        when(equipmentRepository.findAll()).thenReturn(List.of());
+        when(labRepository.findAll()).thenReturn(List.of());
 
         LabUtilizationReportResponse response = reportService.getLabUtilizationReport();
 
         assertThat(response.totalLabs()).isEqualTo(5L);
         assertThat(response.totalSchedules()).isEqualTo(20L);
         assertThat(response.averageSchedulesPerLab()).isEqualTo(4.0);
+        assertThat(response.totalEquipment()).isEqualTo(10L);
         verify(labRepository).count();
         verify(labScheduleRepository).count();
     }
@@ -85,6 +94,9 @@ class ReportServiceTest {
     void shouldGetLabUtilizationReportWhenNoLabs() {
         when(labRepository.count()).thenReturn(0L);
         when(labScheduleRepository.count()).thenReturn(0L);
+        when(equipmentRepository.count()).thenReturn(0L);
+        when(equipmentRepository.findAll()).thenReturn(List.of());
+        when(labRepository.findAll()).thenReturn(List.of());
 
         LabUtilizationReportResponse response = reportService.getLabUtilizationReport();
 
@@ -140,6 +152,7 @@ class ReportServiceTest {
     void shouldGetAttendanceAnalyticsReport() {
         when(studentRepository.count()).thenReturn(100L);
         when(attendanceRepository.count()).thenReturn(3500L);
+        when(attendanceRepository.findAll()).thenReturn(List.of());
 
         AttendanceAnalyticsReportResponse response = reportService.getAttendanceAnalyticsReport();
 

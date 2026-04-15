@@ -128,27 +128,5 @@
       ],
       "realmRoles": ["ROLE_PARENT"]
     }
-  ],
-  "components": {
-    "_comment_ldap": "LDAP user federation template for connecting to an institutional directory service",
-    "_ldap_template": {
-      "name": "ldap",
-      "providerId": "ldap",
-      "providerType": "org.keycloak.storage.UserStorageProvider",
-      "config": {
-        "vendor": ["ad"],
-        "connectionUrl": ["ldap://ldap.example.com:389"],
-        "bindDn": ["cn=admin,dc=example,dc=com"],
-        "bindCredential": ["changeme"],
-        "usersDn": ["ou=users,dc=example,dc=com"],
-        "usernameLDAPAttribute": ["uid"],
-        "rdnLDAPAttribute": ["uid"],
-        "uuidLDAPAttribute": ["entryUUID"],
-        "userObjectClasses": ["inetOrgPerson"],
-        "editMode": ["READ_ONLY"],
-        "syncRegistrations": ["false"],
-        "trustEmail": ["true"]
-      }
-    }
-  }
+  ]
 }

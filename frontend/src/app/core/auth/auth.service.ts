@@ -32,7 +32,7 @@ export class AuthService {
     }
 
     this.keycloak = new Keycloak({
-      url: 'http://localhost:8180',
+      url: 'http://localhost:8280',
       realm: 'cms',
       clientId: 'cms-frontend',
     });

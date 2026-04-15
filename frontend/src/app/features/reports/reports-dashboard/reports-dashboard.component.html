@@ -1,8 +1,9 @@
 <div class="dashboard-container">
-  <h2 class="page-title">Reports Dashboard</h2>
+  <h2 class="page-title">Reports &amp; Analytics</h2>
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
+    <!-- Lab Utilization Section -->
     <h3 class="section-title">Lab Utilization</h3>
     <div class="cards-grid">
       <mat-card appearance="outlined" class="kpi-card">
@@ -26,7 +27,54 @@
           <div class="kpi-label">Avg Schedules / Lab</div>
         </mat-card-content>
       </mat-card>
+      <mat-card appearance="outlined" class="kpi-card">
+        <mat-card-content>
+          <mat-icon class="kpi-icon">precision_manufacturing</mat-icon>
+          <div class="kpi-value">{{ labReport()?.totalEquipment ?? '—' }}</div>
+          <div class="kpi-label">Total Equipment</div>
+        </mat-card-content>
+      </mat-card>
     </div>
+
+    <!-- Equipment & Lab Status Breakdowns -->
+    @if (labReport(); as lr) {
+      <div class="breakdown-grid">
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Equipment by Status</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of lr.equipmentByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No equipment data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Labs by Status</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of lr.labsByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No lab data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
+
+    <!-- Attendance Analytics Section -->
     <h3 class="section-title">Attendance Analytics</h3>
     <div class="cards-grid">
       <mat-card appearance="outlined" class="kpi-card">
@@ -44,5 +92,43 @@
         </mat-card-content>
       </mat-card>
     </div>
+
+    <!-- Attendance Breakdowns -->
+    @if (attendanceReport(); as ar) {
+      <div class="breakdown-grid">
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Attendance by Status</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of ar.attendanceByStatus | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No attendance data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Attendance by Type</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <div class="status-list">
+              @for (entry of ar.attendanceByType | keyvalue; track entry.key) {
+                <div class="status-row">
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                  <span class="status-value">{{ entry.value }}</span>
+                </div>
+              }
+              @empty {
+                <p class="empty-hint">No type data</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
   }
 </div>

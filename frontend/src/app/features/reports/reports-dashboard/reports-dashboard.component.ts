@@ -3,6 +3,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { KeyValuePipe } from '@angular/common';
 import { ReportsService } from '../reports.service';
 import { LabUtilizationReport, AttendanceAnalyticsReport } from '../reports.model';
 
@@ -10,7 +11,7 @@ import { LabUtilizationReport, AttendanceAnalyticsReport } from '../reports.mode
   selector: 'app-reports-dashboard',
   standalone: true,
   imports: [
-    MatCardModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatCardModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, KeyValuePipe,
   ],
   templateUrl: './reports-dashboard.component.html',
   styleUrl: './reports-dashboard.component.scss',
@@ -37,5 +38,9 @@ export class ReportsDashboardComponent implements OnInit {
       next: (data) => { this.attendanceReport.set(data); checkDone(); },
       error: () => { this.snackBar.open('Failed to load attendance analytics', 'Close', { duration: 3000 }); checkDone(); },
     });
+  }
+
+  protected formatStatus(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
