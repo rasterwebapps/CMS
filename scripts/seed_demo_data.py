@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Populate the CMS backend with at least 10 records for each primary screen.
+"""Populate the CMS backend with realistic data for SKS College of Nursing, Salem.
 
 This script authenticates against Keycloak using the imported local admin user and
 creates data through the secured `/api/v1` endpoints in a dependency-safe order.
 
-All data uses realistic, meaningful names that reflect a real Indian engineering
-college scenario — departments, programs, courses, faculty, students, labs,
-equipment, etc. are named after actual academic domains.
+All data reflects an actual Indian Nursing College scenario — departments map to
+nursing specializations, programs cover B.Sc. Nursing / M.Sc. Nursing / GNM,
+courses follow the Indian Nursing Council (INC) syllabus, and labs represent
+real nursing simulation and skills labs.
 """
 
 from __future__ import annotations
@@ -30,146 +31,187 @@ USERNAME = os.environ.get('CMS_USERNAME', 'admin')
 PASSWORD = os.environ.get('CMS_PASSWORD', 'admin123')
 
 # ---------------------------------------------------------------------------
-# Meaningful reference data
+# SKS College of Nursing, Salem — Reference Data
 # ---------------------------------------------------------------------------
 
 DEPARTMENTS = [
-    {'name': 'Computer Science and Engineering', 'code': 'CSE', 'description': 'Department of Computer Science and Engineering — covers software, algorithms, AI, and systems.', 'hodName': 'Dr. Raghavan Subramanian'},
-    {'name': 'Electronics and Communication Engineering', 'code': 'ECE', 'description': 'Department of Electronics and Communication Engineering — VLSI, embedded systems, signal processing.', 'hodName': 'Dr. Meena Krishnamurthy'},
-    {'name': 'Mechanical Engineering', 'code': 'MECH', 'description': 'Department of Mechanical Engineering — thermodynamics, manufacturing, robotics.', 'hodName': 'Dr. Arjun Venkatesh'},
-    {'name': 'Civil Engineering', 'code': 'CIVIL', 'description': 'Department of Civil Engineering — structural analysis, geotechnical, transportation.', 'hodName': 'Dr. Kavitha Rangan'},
-    {'name': 'Electrical and Electronics Engineering', 'code': 'EEE', 'description': 'Department of Electrical and Electronics Engineering — power systems, control, drives.', 'hodName': 'Dr. Senthil Kumar'},
-    {'name': 'Information Technology', 'code': 'IT', 'description': 'Department of Information Technology — networks, databases, cybersecurity.', 'hodName': 'Dr. Priya Natarajan'},
-    {'name': 'Biomedical Engineering', 'code': 'BME', 'description': 'Department of Biomedical Engineering — medical devices, biomechanics, bioinformatics.', 'hodName': 'Dr. Lakshmi Sundaram'},
-    {'name': 'Chemical Engineering', 'code': 'CHE', 'description': 'Department of Chemical Engineering — process design, reaction engineering, polymers.', 'hodName': 'Dr. Ganesh Iyer'},
-    {'name': 'Mathematics', 'code': 'MATH', 'description': 'Department of Mathematics — applied math, statistics, operations research.', 'hodName': 'Dr. Revathi Balasubramanian'},
-    {'name': 'Physics', 'code': 'PHY', 'description': 'Department of Physics — optics, quantum mechanics, material science.', 'hodName': 'Dr. Mohan Ramachandran'},
+    {'name': 'Medical-Surgical Nursing', 'code': 'MSN', 'description': 'Department of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.', 'hodName': 'Dr. S. Tamilarasi'},
+    {'name': 'Community Health Nursing', 'code': 'CHN', 'description': 'Department of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.', 'hodName': 'Dr. K. Vasanthi'},
+    {'name': 'Child Health (Paediatric) Nursing', 'code': 'CHD', 'description': 'Department of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.', 'hodName': 'Dr. R. Meenakshi'},
+    {'name': 'Obstetrics & Gynaecological Nursing', 'code': 'OBG', 'description': 'Department of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.', 'hodName': 'Dr. P. Selvarani'},
+    {'name': 'Mental Health (Psychiatric) Nursing', 'code': 'MHN', 'description': 'Department of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.', 'hodName': 'Dr. M. Kavitha'},
+    {'name': 'Nursing Foundation', 'code': 'NFD', 'description': 'Department of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.', 'hodName': 'Mrs. L. Jayalakshmi'},
+    {'name': 'Nursing Education & Administration', 'code': 'NEA', 'description': 'Department of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.', 'hodName': 'Dr. A. Padmavathi'},
 ]
 
 PROGRAMS = [
     # (name, code, degreeType, durationYears, departmentIndex)
-    ('B.Tech Computer Science and Engineering', 'BTCSE', 'BACHELOR', 4, 0),
-    ('B.Tech Electronics and Communication', 'BTECE', 'BACHELOR', 4, 1),
-    ('B.Tech Mechanical Engineering', 'BTMECH', 'BACHELOR', 4, 2),
-    ('B.Tech Civil Engineering', 'BTCIVIL', 'BACHELOR', 4, 3),
-    ('B.Tech Electrical and Electronics', 'BTEEE', 'BACHELOR', 4, 4),
-    ('M.Tech Data Science', 'MTDS', 'MASTER', 2, 0),
-    ('M.Tech VLSI Design', 'MTVLSI', 'MASTER', 2, 1),
-    ('M.Tech Structural Engineering', 'MTSE', 'MASTER', 2, 3),
-    ('B.Tech Information Technology', 'BTIT', 'BACHELOR', 4, 5),
-    ('B.Tech Biomedical Engineering', 'BTBME', 'BACHELOR', 4, 6),
+    ('B.Sc. Nursing', 'BSCN', 'BACHELOR', 4, 5),
+    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'MASTER', 2, 0),
+    ('M.Sc. Nursing — Community Health', 'MSCCHN', 'MASTER', 2, 1),
+    ('M.Sc. Nursing — Child Health', 'MSCCHD', 'MASTER', 2, 2),
+    ('M.Sc. Nursing — OBG', 'MSCOBG', 'MASTER', 2, 3),
+    ('General Nursing and Midwifery (GNM)', 'GNM', 'DIPLOMA', 3, 5),
 ]
 
 COURSES = [
     # (name, code, credits, theoryCredits, labCredits, programIndex, semester)
-    ('Data Structures and Algorithms', 'CS201', 4, 3, 1, 0, 3),
-    ('Object Oriented Programming', 'CS202', 4, 3, 1, 0, 3),
-    ('Database Management Systems', 'CS301', 4, 3, 1, 0, 5),
-    ('Digital Signal Processing', 'EC301', 4, 3, 1, 1, 5),
-    ('Microprocessors and Microcontrollers', 'EC302', 4, 3, 1, 1, 5),
-    ('Thermodynamics', 'ME201', 3, 3, 0, 2, 3),
-    ('Fluid Mechanics', 'ME301', 4, 3, 1, 2, 5),
-    ('Structural Analysis', 'CE301', 4, 3, 1, 3, 5),
-    ('Power Systems Engineering', 'EE401', 4, 3, 1, 4, 7),
-    ('Machine Learning', 'CS601', 4, 3, 1, 5, 1),
+    # B.Sc. Nursing — Year 1
+    ('Anatomy', 'BSN101', 4, 3, 1, 0, 1),
+    ('Physiology', 'BSN102', 4, 3, 1, 0, 1),
+    ('Nursing Foundation', 'BSN103', 6, 3, 3, 0, 1),
+    ('Biochemistry', 'BSN104', 3, 2, 1, 0, 2),
+    ('Nutrition & Dietetics', 'BSN105', 3, 2, 1, 0, 2),
+    ('Microbiology', 'BSN106', 4, 3, 1, 0, 2),
+    # B.Sc. Nursing — Year 2
+    ('Medical-Surgical Nursing I', 'BSN201', 6, 3, 3, 0, 3),
+    ('Pharmacology', 'BSN202', 4, 3, 1, 0, 3),
+    ('Pathology & Genetics', 'BSN203', 3, 2, 1, 0, 3),
+    ('Community Health Nursing I', 'BSN204', 5, 2, 3, 0, 4),
+    # B.Sc. Nursing — Year 3
+    ('Medical-Surgical Nursing II', 'BSN301', 6, 3, 3, 0, 5),
+    ('Child Health Nursing', 'BSN302', 5, 2, 3, 0, 5),
+    ('Mental Health Nursing', 'BSN303', 5, 2, 3, 0, 6),
+    ('OBG Nursing', 'BSN304', 5, 2, 3, 0, 6),
+    # B.Sc. Nursing — Year 4
+    ('Community Health Nursing II', 'BSN401', 5, 2, 3, 0, 7),
+    ('Nursing Research & Statistics', 'BSN402', 3, 3, 0, 0, 7),
+    ('Nursing Education', 'BSN403', 3, 2, 1, 0, 8),
+    ('Nursing Administration', 'BSN404', 3, 2, 1, 0, 8),
+    # M.Sc. Nursing — Medical-Surgical
+    ('Advanced Medical-Surgical Nursing', 'MSN501', 6, 3, 3, 1, 1),
+    ('Nursing Research Methodology', 'MSN502', 4, 4, 0, 1, 1),
+    ('Clinical Speciality — Critical Care', 'MSN503', 6, 2, 4, 1, 2),
+    # GNM — Year 1
+    ('Fundamentals of Nursing', 'GNM101', 5, 2, 3, 5, 1),
+    ('Anatomy & Physiology', 'GNM102', 4, 3, 1, 5, 1),
+    ('First Aid & Health Education', 'GNM103', 3, 2, 1, 5, 2),
 ]
 
 FACULTY_MEMBERS = [
     # (employeeCode, firstName, lastName, email, phone, deptIdx, designation, specialization, labExpertise)
-    ('FAC001', 'Ramesh', 'Babu', 'ramesh.babu@college.edu', '9840012345', 0, 'PROFESSOR', 'Artificial Intelligence and Machine Learning', 'Deep Learning Frameworks'),
-    ('FAC002', 'Anitha', 'Selvaraj', 'anitha.selvaraj@college.edu', '9840023456', 0, 'ASSOCIATE_PROFESSOR', 'Database Systems', 'SQL and NoSQL Lab Administration'),
-    ('FAC003', 'Vijay', 'Kumar', 'vijay.kumar@college.edu', '9840034567', 1, 'PROFESSOR', 'VLSI Design', 'Cadence and Xilinx Tools'),
-    ('FAC004', 'Deepa', 'Lakshmi', 'deepa.lakshmi@college.edu', '9840045678', 1, 'ASSISTANT_PROFESSOR', 'Embedded Systems', 'Microcontroller Programming Lab'),
-    ('FAC005', 'Suresh', 'Pandian', 'suresh.pandian@college.edu', '9840056789', 2, 'PROFESSOR', 'Thermodynamics and Heat Transfer', 'Thermal Engineering Lab'),
-    ('FAC006', 'Karthik', 'Narayanan', 'karthik.narayanan@college.edu', '9840067890', 3, 'ASSOCIATE_PROFESSOR', 'Structural Engineering', 'Concrete Testing Lab'),
-    ('FAC007', 'Lavanya', 'Mohan', 'lavanya.mohan@college.edu', '9840078901', 4, 'ASSISTANT_PROFESSOR', 'Power Electronics', 'Power Systems Simulation Lab'),
-    ('FAC008', 'Bharathi', 'Kannan', 'bharathi.kannan@college.edu', '9840089012', 5, 'LECTURER', 'Network Security', 'Cybersecurity Lab'),
-    ('FAC009', 'Saravanan', 'Ravi', 'saravanan.ravi@college.edu', '9840090123', 6, 'ASSOCIATE_PROFESSOR', 'Medical Imaging', 'Biomedical Instrumentation Lab'),
-    ('FAC010', 'Nirmala', 'Devi', 'nirmala.devi@college.edu', '9840001234', 7, 'SENIOR_LECTURER', 'Process Control', 'Chemical Process Simulation Lab'),
+    ('NUR001', 'Tamilarasi', 'S', 'tamilarasi.s@sksnursing.edu.in', '9443012345', 0, 'PROFESSOR', 'Critical Care Nursing', 'Advanced Cardiac Life Support Training'),
+    ('NUR002', 'Vasanthi', 'K', 'vasanthi.k@sksnursing.edu.in', '9443023456', 1, 'PROFESSOR', 'Public Health & Epidemiology', 'Community Health Field Training'),
+    ('NUR003', 'Meenakshi', 'R', 'meenakshi.r@sksnursing.edu.in', '9443034567', 2, 'ASSOCIATE_PROFESSOR', 'Neonatal Intensive Care', 'Paediatric Simulation Lab'),
+    ('NUR004', 'Selvarani', 'P', 'selvarani.p@sksnursing.edu.in', '9443045678', 3, 'PROFESSOR', 'Midwifery & Reproductive Health', 'Obstetric Simulation Training'),
+    ('NUR005', 'Kavitha', 'M', 'kavitha.m@sksnursing.edu.in', '9443056789', 4, 'ASSOCIATE_PROFESSOR', 'Psychiatric Rehabilitation', 'Therapeutic Communication Lab'),
+    ('NUR006', 'Jayalakshmi', 'L', 'jayalakshmi.l@sksnursing.edu.in', '9443067890', 5, 'SENIOR_LECTURER', 'Fundamental Nursing Procedures', 'Nursing Foundation Skills Lab'),
+    ('NUR007', 'Padmavathi', 'A', 'padmavathi.a@sksnursing.edu.in', '9443078901', 6, 'PROFESSOR', 'Nursing Education & Management', 'Teaching Methodology Workshop'),
+    ('NUR008', 'Revathi', 'G', 'revathi.g@sksnursing.edu.in', '9443089012', 0, 'ASSISTANT_PROFESSOR', 'Perioperative Nursing', 'Surgical Skills Lab'),
+    ('NUR009', 'Sangeetha', 'D', 'sangeetha.d@sksnursing.edu.in', '9443090123', 1, 'LECTURER', 'School Health & Nutrition', 'Community Health Centre'),
+    ('NUR010', 'Priya', 'N', 'priya.n@sksnursing.edu.in', '9443001234', 3, 'ASSISTANT_PROFESSOR', 'Antenatal & Postnatal Care', 'Labour Room Simulation'),
+    ('NUR011', 'Deepa', 'V', 'deepa.v@sksnursing.edu.in', '9443012346', 2, 'LECTURER', 'Child Growth & Development', 'Paediatric Ward Practice'),
+    ('NUR012', 'Lakshmi', 'B', 'lakshmi.b@sksnursing.edu.in', '9443023457', 4, 'LECTURER', 'Substance Abuse Counselling', 'De-addiction & Rehabilitation'),
 ]
 
 STUDENTS = [
     # (rollNumber, firstName, lastName, email, phone, programIdx, semester, gender, dob, fatherName, motherName, parentMobile, city, district)
-    ('21CSE001', 'Arun', 'Prasad', 'arun.prasad@student.college.edu', '8870012345', 0, 3, 'MALE', '2003-05-14', 'Prasad Venkataraman', 'Lakshmi Prasad', '9443012345', 'Chennai', 'Chennai'),
-    ('21CSE002', 'Divya', 'Rajan', 'divya.rajan@student.college.edu', '8870023456', 0, 3, 'FEMALE', '2003-08-22', 'Rajan Gopalan', 'Saroja Rajan', '9443023456', 'Coimbatore', 'Coimbatore'),
-    ('21ECE001', 'Karthik', 'Sundaram', 'karthik.sundaram@student.college.edu', '8870034567', 1, 5, 'MALE', '2002-11-03', 'Sundaram Pillai', 'Meenakshi Sundaram', '9443034567', 'Madurai', 'Madurai'),
-    ('21ECE002', 'Preethi', 'Murugan', 'preethi.murugan@student.college.edu', '8870045678', 1, 5, 'FEMALE', '2003-01-17', 'Murugan Shanmugam', 'Revathi Murugan', '9443045678', 'Trichy', 'Tiruchirappalli'),
-    ('21MECH001', 'Venkatesh', 'Rao', 'venkatesh.rao@student.college.edu', '8870056789', 2, 3, 'MALE', '2003-03-28', 'Rao Srinivasan', 'Padma Rao', '9443056789', 'Salem', 'Salem'),
-    ('21CIVIL001', 'Swetha', 'Balaji', 'swetha.balaji@student.college.edu', '8870067890', 3, 5, 'FEMALE', '2002-09-12', 'Balaji Naidu', 'Kamala Balaji', '9443067890', 'Tirunelveli', 'Tirunelveli'),
-    ('21EEE001', 'Manoj', 'Krishnan', 'manoj.krishnan@student.college.edu', '8870078901', 4, 7, 'MALE', '2001-12-05', 'Krishnan Iyer', 'Saraswathi Krishnan', '9443078901', 'Vellore', 'Vellore'),
-    ('22DS001', 'Sneha', 'Sharma', 'sneha.sharma@student.college.edu', '8870089012', 5, 1, 'FEMALE', '2000-06-20', 'Sharma Raghavan', 'Gayathri Sharma', '9443089012', 'Erode', 'Erode'),
-    ('21IT001', 'Prakash', 'Nair', 'prakash.nair@student.college.edu', '8870090123', 8, 3, 'MALE', '2003-04-09', 'Nair Gopinath', 'Janaki Nair', '9443090123', 'Thanjavur', 'Thanjavur'),
-    ('21BME001', 'Harini', 'Ganesh', 'harini.ganesh@student.college.edu', '8870001234', 9, 3, 'FEMALE', '2003-07-25', 'Ganesh Subramaniam', 'Parvathi Ganesh', '9443001234', 'Kanchipuram', 'Kanchipuram'),
+    ('24BSN001', 'Anitha', 'Kumari', 'anitha.k@sksnursing.edu.in', '8870012345', 0, 1, 'FEMALE', '2005-03-14', 'Kumar Shanmugam', 'Revathi Kumar', '9443112345', 'Salem', 'Salem'),
+    ('24BSN002', 'Priya', 'Devi', 'priya.d@sksnursing.edu.in', '8870023456', 0, 1, 'FEMALE', '2005-07-22', 'Devendran P', 'Lakshmi Devi', '9443123456', 'Salem', 'Salem'),
+    ('23BSN001', 'Kavitha', 'Rajendran', 'kavitha.r@sksnursing.edu.in', '8870034567', 0, 3, 'FEMALE', '2004-11-03', 'Rajendran Murugan', 'Selvi Rajendran', '9443134567', 'Namakkal', 'Namakkal'),
+    ('23BSN002', 'Divya', 'Lakshmi', 'divya.l@sksnursing.edu.in', '8870045678', 0, 3, 'FEMALE', '2004-01-17', 'Lakshmi Narayanan S', 'Meenakshi L', '9443145678', 'Erode', 'Erode'),
+    ('22BSN001', 'Sangeetha', 'Murugan', 'sangeetha.m@sksnursing.edu.in', '8870056789', 0, 5, 'FEMALE', '2003-05-28', 'Murugan Govindan', 'Padma Murugan', '9443156789', 'Dharmapuri', 'Dharmapuri'),
+    ('22BSN002', 'Meena', 'Sundaram', 'meena.s@sksnursing.edu.in', '8870067890', 0, 5, 'FEMALE', '2003-09-12', 'Sundaram Pillai', 'Kamala Sundaram', '9443167890', 'Attur', 'Salem'),
+    ('21BSN001', 'Ramya', 'Ganesh', 'ramya.g@sksnursing.edu.in', '8870078901', 0, 7, 'FEMALE', '2002-12-05', 'Ganesh Rajan', 'Saroja Ganesh', '9443178901', 'Mettur', 'Salem'),
+    ('21BSN002', 'Swetha', 'Balan', 'swetha.b@sksnursing.edu.in', '8870089012', 0, 7, 'FEMALE', '2002-06-20', 'Balan Naidu', 'Vijaya Balan', '9443189012', 'Yercaud', 'Salem'),
+    ('25MSN001', 'Deepa', 'Selvam', 'deepa.s@sksnursing.edu.in', '8870090123', 1, 1, 'FEMALE', '2000-04-09', 'Selvam Arumugam', 'Janaki Selvam', '9443190123', 'Salem', 'Salem'),
+    ('25MSN002', 'Saranya', 'Ravi', 'saranya.r@sksnursing.edu.in', '8870001234', 2, 1, 'FEMALE', '2000-08-25', 'Ravi Chandran', 'Parvathi Ravi', '9443101234', 'Namakkal', 'Namakkal'),
+    ('24GNM001', 'Gowri', 'Krishnan', 'gowri.k@sksnursing.edu.in', '8870011345', 5, 1, 'FEMALE', '2005-02-18', 'Krishnan Iyer', 'Saraswathi K', '9443201234', 'Salem', 'Salem'),
+    ('24GNM002', 'Nithya', 'Suresh', 'nithya.s@sksnursing.edu.in', '8870021456', 5, 1, 'FEMALE', '2005-10-30', 'Suresh Pandian', 'Thenmozhi S', '9443212345', 'Omalur', 'Salem'),
 ]
 
 LABS = [
     # (name, labType, deptIdx, building, roomNumber, capacity, status)
-    ('Advanced Programming Lab', 'COMPUTER', 0, 'Main Block', 'MB-101', 60, 'ACTIVE'),
-    ('Database Systems Lab', 'COMPUTER', 0, 'Main Block', 'MB-102', 40, 'ACTIVE'),
-    ('VLSI Design Lab', 'ELECTRONICS', 1, 'ECE Block', 'EC-201', 30, 'ACTIVE'),
-    ('Embedded Systems Lab', 'ELECTRONICS', 1, 'ECE Block', 'EC-202', 30, 'ACTIVE'),
-    ('Thermal Engineering Lab', 'MECHANICAL', 2, 'Workshop Block', 'WS-101', 25, 'ACTIVE'),
-    ('Concrete Testing Lab', 'OTHER', 3, 'Civil Block', 'CB-101', 20, 'ACTIVE'),
-    ('Power Systems Lab', 'ELECTRONICS', 4, 'EEE Block', 'EE-201', 30, 'ACTIVE'),
-    ('Network Security Lab', 'COMPUTER', 5, 'IT Block', 'IT-301', 40, 'ACTIVE'),
-    ('Biomedical Instrumentation Lab', 'ELECTRONICS', 6, 'BME Block', 'BM-101', 25, 'UNDER_MAINTENANCE'),
-    ('General Physics Lab', 'PHYSICS', 9, 'Science Block', 'SB-101', 50, 'ACTIVE'),
+    ('Nursing Foundation Lab', 'OTHER', 5, 'Main Block', 'MB-G01', 40, 'ACTIVE'),
+    ('Anatomy & Physiology Lab', 'BIOLOGY', 5, 'Main Block', 'MB-G02', 30, 'ACTIVE'),
+    ('Community Health Nursing Lab', 'OTHER', 1, 'Main Block', 'MB-101', 30, 'ACTIVE'),
+    ('Nutrition & Dietetics Lab', 'CHEMISTRY', 5, 'Main Block', 'MB-102', 25, 'ACTIVE'),
+    ('Medical-Surgical Nursing Lab', 'OTHER', 0, 'Skills Block', 'SB-101', 35, 'ACTIVE'),
+    ('Paediatric Nursing Lab', 'OTHER', 2, 'Skills Block', 'SB-102', 25, 'ACTIVE'),
+    ('OBG Nursing Simulation Lab', 'OTHER', 3, 'Skills Block', 'SB-201', 25, 'ACTIVE'),
+    ('Mental Health Nursing Lab', 'OTHER', 4, 'Skills Block', 'SB-202', 20, 'ACTIVE'),
+    ('Computer Lab', 'COMPUTER', 6, 'Admin Block', 'AB-301', 40, 'ACTIVE'),
+    ('Microbiology Lab', 'BIOLOGY', 5, 'Main Block', 'MB-103', 30, 'ACTIVE'),
 ]
 
 EQUIPMENT_LIST = [
     # (name, assetCode, serialNumber, category, labIdx, manufacturer, model, status, purchasePrice, specifications)
-    ('Dell OptiPlex 7090 Desktop', 'AST-CSE-001', 'SN-DELL-7090-001', 'COMPUTER', 0, 'Dell Technologies', 'OptiPlex 7090', 'AVAILABLE', '85000.00', 'Intel i7-11700, 16GB RAM, 512GB SSD, Ubuntu 22.04'),
-    ('HP ProDesk 400 G7', 'AST-CSE-002', 'SN-HP-400G7-001', 'COMPUTER', 1, 'HP Inc.', 'ProDesk 400 G7', 'IN_USE', '72000.00', 'Intel i5-10500, 8GB RAM, 256GB SSD, Windows 11'),
-    ('Xilinx Artix-7 FPGA Board', 'AST-ECE-001', 'SN-XIL-A7-001', 'ELECTRONIC', 2, 'Xilinx (AMD)', 'Artix-7 XC7A35T', 'AVAILABLE', '45000.00', 'Artix-7 FPGA, 33K logic cells, 1.8V operation'),
-    ('Arduino Mega 2560 Kit', 'AST-ECE-002', 'SN-ARD-2560-001', 'ELECTRONIC', 3, 'Arduino', 'Mega 2560 Rev3', 'AVAILABLE', '3500.00', 'ATmega2560, 54 digital I/O, 16 analog inputs'),
-    ('Thermal Conductivity Apparatus', 'AST-MECH-001', 'SN-TCA-001', 'MECHANICAL', 4, 'Saraswathi Scientific', 'TCA-200', 'AVAILABLE', '125000.00', "Lee's disc method, digital temperature display, 0-200C range"),
-    ('Universal Testing Machine', 'AST-CIVIL-001', 'SN-UTM-001', 'MECHANICAL', 5, 'Aimil Ltd.', 'UTM-1000kN', 'IN_USE', '650000.00', '1000 kN capacity, digital load indicator, 0.5% accuracy'),
-    ('Cisco Catalyst 2960 Switch', 'AST-IT-001', 'SN-CISCO-2960-001', 'NETWORKING', 7, 'Cisco Systems', 'Catalyst 2960-24TT', 'AVAILABLE', '38000.00', '24 FastEthernet ports, 2 GbE uplinks, Layer 2 managed'),
-    ('Tektronix Digital Oscilloscope', 'AST-EEE-001', 'SN-TEK-TBS1072-001', 'ELECTRONIC', 6, 'Tektronix', 'TBS 1072C', 'AVAILABLE', '55000.00', '70 MHz bandwidth, 2 channels, 1 GS/s sample rate'),
-    ('Biomedical Signal Amplifier', 'AST-BME-001', 'SN-BSA-001', 'ELECTRONIC', 8, 'AD Instruments', 'PowerLab 4/26', 'UNDER_MAINTENANCE', '320000.00', '4 input channels, 16-bit resolution, LabChart software'),
-    ('Spectrometer', 'AST-PHY-001', 'SN-SPEC-001', 'ELECTRONIC', 9, 'Horiba Scientific', 'iHR320', 'AVAILABLE', '185000.00', '320mm focal length, 0.06nm resolution, CCD detector'),
+    # Valid categories: COMPUTER, PERIPHERAL, NETWORKING, ELECTRONIC, MECHANICAL, FURNITURE, CONSUMABLE, SOFTWARE
+    ('Adult Patient Simulator (Full Body Mannequin)', 'AST-NF-001', 'SN-SIM-001', 'ELECTRONIC', 0, 'Laerdal Medical', 'Nursing Anne', 'AVAILABLE', '350000.00', 'Life-size female mannequin with IV arm, wound care modules, catheterisation capability'),
+    ('Hospital Bed — Fowler Type', 'AST-NF-002', 'SN-BED-001', 'FURNITURE', 0, 'Shree Hospital Equipment', 'SHE-3F200', 'AVAILABLE', '45000.00', 'Manual 3-crank Fowler bed with side rails, mattress, and IV pole'),
+    ('BP Apparatus (Mercury Sphygmomanometer)', 'AST-MSN-001', 'SN-BP-001', 'ELECTRONIC', 4, 'Diamond', 'DMAM-01', 'AVAILABLE', '3500.00', 'Mercury column type with adult cuff, stethoscope compatible'),
+    ('Multi-Parameter Patient Monitor', 'AST-MSN-002', 'SN-MON-001', 'ELECTRONIC', 4, 'BPL Medical Technologies', 'Ultima Prima', 'AVAILABLE', '180000.00', 'ECG, SpO2, NIBP, Temperature, Respiration — 12.1 inch colour display'),
+    ('Infant Resuscitation Mannequin', 'AST-PED-001', 'SN-INF-001', 'ELECTRONIC', 5, 'Laerdal Medical', 'Resusci Baby QCPR', 'AVAILABLE', '125000.00', 'Realistic infant airway, chest compression feedback, umbilical access'),
+    ('Obstetric Birthing Simulator', 'AST-OBG-001', 'SN-OBS-001', 'ELECTRONIC', 6, 'Gaumard Scientific', 'NOELLE S550', 'AVAILABLE', '450000.00', 'Full birthing simulation with maternal and fetal monitoring, multiple delivery scenarios'),
+    ('Anatomical Skeleton Model', 'AST-ANA-001', 'SN-SKL-001', 'FURNITURE', 1, 'Heine Scientific', 'HS-170cm', 'AVAILABLE', '28000.00', '170cm life-size human skeleton on wheeled stand with numbered bones'),
+    ('Autoclave (Vertical)', 'AST-MIC-001', 'SN-AUT-001', 'MECHANICAL', 9, 'Equitron Medica', 'EQU-7454A', 'AVAILABLE', '85000.00', '40 litre vertical autoclave, 121C at 15 psi, digital timer'),
+    ('Desktop Computer (Student Workstation)', 'AST-COM-001', 'SN-PC-001', 'COMPUTER', 8, 'Dell Technologies', 'OptiPlex 3000', 'AVAILABLE', '52000.00', 'Intel i5-12500, 8GB RAM, 256GB SSD, Windows 11, 21.5 inch monitor'),
+    ('Stethoscope Set (Training)', 'AST-NF-003', 'SN-STH-001', 'PERIPHERAL', 0, 'Littmann (3M)', 'Classic III', 'AVAILABLE', '7500.00', 'Dual-head adult/paediatric stethoscope for auscultation practice'),
 ]
 
 INVENTORY_ITEMS = [
     # (name, itemCode, labIdx, quantity, minimumQuantity, unit, description)
-    ('Cat6 Ethernet Cables (3m)', 'INV-NET-001', 0, 100, 20, 'pcs', 'Shielded Cat6 patch cables for lab workstations'),
-    ('USB Flash Drives 32GB', 'INV-USB-001', 1, 50, 10, 'pcs', 'SanDisk Ultra 32GB USB 3.0 drives for student use'),
-    ('Breadboards (830 tie-points)', 'INV-ECE-001', 3, 60, 15, 'pcs', 'Solderless breadboards for embedded systems experiments'),
-    ('Resistor Assortment Kit', 'INV-ECE-002', 2, 40, 10, 'kits', '1/4W carbon film resistors, 10 Ohm to 1M Ohm, 600 pcs per kit'),
-    ('Lubricating Oil (1L)', 'INV-MECH-001', 4, 30, 5, 'bottles', 'SAE 40 grade lubricating oil for machine maintenance'),
-    ('Cement Bags (OPC 53)', 'INV-CIVIL-001', 5, 25, 5, 'bags', 'Ordinary Portland Cement 53 grade, 50 kg per bag'),
-    ('Copper Wire 1.5 sq mm', 'INV-EEE-001', 6, 80, 20, 'meters', 'Single core PVC insulated copper wire for wiring experiments'),
-    ('Whiteboard Markers', 'INV-GEN-001', 7, 200, 50, 'pcs', 'Camlin Kokuyo markers, assorted colours for lab sessions'),
-    ('Disposable Gloves (M)', 'INV-BME-001', 8, 500, 100, 'pairs', 'Latex examination gloves, medium size, powder-free'),
-    ('Glass Prisms (60 deg)', 'INV-PHY-001', 9, 20, 5, 'pcs', 'Equilateral glass prisms for optics experiments, 25mm face'),
+    ('Disposable Gloves (Medium)', 'INV-NUR-001', 0, 500, 100, 'pairs', 'Non-sterile latex examination gloves, powder-free, for nursing procedures'),
+    ('Syringes 5ml (Disposable)', 'INV-NUR-002', 4, 300, 50, 'pcs', 'Luer-lock disposable syringes for injection practice on mannequins'),
+    ('Cotton Rolls (500g)', 'INV-NUR-003', 0, 50, 10, 'rolls', 'Absorbent cotton for wound dressing demonstrations'),
+    ('IV Cannula 20G', 'INV-NUR-004', 4, 200, 40, 'pcs', 'Sterile IV cannulae for IV insertion training on simulation arms'),
+    ('Foley Catheter 16Fr', 'INV-NUR-005', 0, 100, 20, 'pcs', 'Silicone Foley catheters for catheterisation training'),
+    ('Bandage Rolls (6 inch)', 'INV-NUR-006', 4, 150, 30, 'rolls', 'Roller bandages for wound dressing and splinting practice'),
+    ('Specimen Containers (Sterile)', 'INV-NUR-007', 9, 200, 50, 'pcs', 'Sterile urine and sputum specimen containers for lab collection training'),
+    ('Betadine Solution (500ml)', 'INV-NUR-008', 4, 30, 5, 'bottles', 'Povidone-iodine antiseptic solution for wound care demonstrations'),
+    ('Pregnancy Detection Kits', 'INV-NUR-009', 6, 50, 10, 'kits', 'HCG urine test kits for OBG lab demonstrations'),
+    ('Glass Slides & Cover Slips', 'INV-NUR-010', 9, 500, 100, 'pcs', 'Microscopy slides for microbiology lab — Gram staining, AFB staining'),
 ]
 
 MAINTENANCE_ENTRIES = [
     # (equipmentIdx, title, description, maintenanceType, priority, status)
-    (0, 'Annual Dust Cleaning — Desktop Batch 1', 'Scheduled annual internal cleaning of all CSE lab desktops to prevent overheating.', 'PREVENTIVE', 'LOW', 'SCHEDULED'),
-    (1, 'Hard Disk Replacement — HP ProDesk #12', 'Student reported boot failure on workstation 12; diagnostics confirm bad sectors.', 'CORRECTIVE', 'HIGH', 'IN_PROGRESS'),
-    (2, 'FPGA Board JTAG Port Repair', 'JTAG programming interface intermittent; needs connector re-soldering.', 'CORRECTIVE', 'MEDIUM', 'REQUESTED'),
-    (3, 'Arduino Kit Sensor Calibration', 'Re-calibrate temperature and humidity sensors across 30 Arduino kits.', 'ROUTINE', 'LOW', 'COMPLETED'),
-    (4, 'Thermal Apparatus Heater Coil Replacement', 'Heater coil burned out during high-temperature experiment; emergency replacement needed.', 'EMERGENCY', 'CRITICAL', 'IN_PROGRESS'),
-    (5, 'UTM Load Cell Calibration', 'Annual calibration of the 1000 kN load cell per BIS standards.', 'PREVENTIVE', 'HIGH', 'SCHEDULED'),
-    (6, 'Cisco Switch Firmware Upgrade', 'Upgrade firmware to latest stable IOS to patch known vulnerability.', 'PREVENTIVE', 'MEDIUM', 'REQUESTED'),
-    (7, 'Oscilloscope Probe Replacement', 'Probes for channels 1 and 2 have degraded tips; replace with P2220 probes.', 'CORRECTIVE', 'LOW', 'COMPLETED'),
-    (8, 'Biomedical Amplifier Power Supply Repair', 'Internal power supply producing voltage ripple beyond 1% threshold.', 'CORRECTIVE', 'HIGH', 'IN_PROGRESS'),
-    (9, 'Spectrometer CCD Detector Servicing', 'CCD detector showing increased dark current; needs factory reconditioning.', 'CORRECTIVE', 'CRITICAL', 'REQUESTED'),
+    (0, 'Nursing Anne Mannequin — Annual Service', 'Annual inspection and maintenance of all joints, IV arm, and wound modules.', 'PREVENTIVE', 'MEDIUM', 'SCHEDULED'),
+    (3, 'Patient Monitor Calibration', 'Scheduled calibration of ECG, SpO2, and NIBP sensors per biomedical standards.', 'PREVENTIVE', 'HIGH', 'IN_PROGRESS'),
+    (5, 'Birthing Simulator Repair — Fetal Sensor', 'Fetal heart rate sensor showing intermittent readings during simulation.', 'CORRECTIVE', 'HIGH', 'REQUESTED'),
+    (7, 'Autoclave Pressure Valve Replacement', 'Safety pressure release valve showing signs of wear; needs replacement.', 'CORRECTIVE', 'CRITICAL', 'IN_PROGRESS'),
+    (4, 'Infant Mannequin Chest Mechanism', 'Chest compression feedback mechanism needs recalibration.', 'CORRECTIVE', 'MEDIUM', 'REQUESTED'),
+    (1, 'Hospital Bed Crank Mechanism Lubrication', 'Routine lubrication of all Fowler bed crank mechanisms in Foundation Lab.', 'ROUTINE', 'LOW', 'COMPLETED'),
+    (8, 'Computer Lab — Annual Windows Update', 'Deploy latest Windows updates and nursing software patches across 40 workstations.', 'PREVENTIVE', 'LOW', 'SCHEDULED'),
+    (6, 'Skeleton Model Repair — Missing Hand Bones', 'Carpal bones on left hand have come loose; reattachment needed.', 'CORRECTIVE', 'LOW', 'COMPLETED'),
+    (2, 'BP Apparatus Mercury Column Check', 'Verify mercury column accuracy and replace cuffs showing wear across 15 units.', 'ROUTINE', 'MEDIUM', 'IN_PROGRESS'),
+    (9, 'Stethoscope Earpiece Replacement', 'Replace worn earpieces and diaphragms on 20 training stethoscopes.', 'ROUTINE', 'LOW', 'REQUESTED'),
 ]
 
 EXAMINATION_DATA = [
     # (name, courseIdx, examType, daysFromToday, duration, maxMarks)
-    ('Data Structures — Mid Semester Theory', 0, 'THEORY', 15, 90, 50),
-    ('OOP — End Semester Theory', 1, 'THEORY', 30, 180, 100),
-    ('DBMS — Practical Examination', 2, 'PRACTICAL', 20, 120, 50),
-    ('Digital Signal Processing — Mid Semester', 3, 'THEORY', 15, 90, 50),
-    ('Microprocessors — Lab Viva', 4, 'VIVA', 10, 30, 25),
-    ('Thermodynamics — End Semester Theory', 5, 'THEORY', 35, 180, 100),
-    ('Fluid Mechanics — Lab Practical', 6, 'PRACTICAL', 25, 120, 50),
-    ('Structural Analysis — Mid Semester', 7, 'THEORY', 18, 90, 50),
-    ('Power Systems — End Semester Theory', 8, 'THEORY', 40, 180, 100),
-    ('Machine Learning — Project Viva', 9, 'VIVA', 22, 60, 50),
+    ('Anatomy — Internal Assessment I', 0, 'THEORY', 15, 90, 50),
+    ('Physiology — Internal Assessment I', 1, 'THEORY', 17, 90, 50),
+    ('Nursing Foundation — Practical Exam', 2, 'PRACTICAL', 20, 180, 100),
+    ('Medical-Surgical Nursing I — Mid Semester', 6, 'THEORY', 25, 120, 75),
+    ('Pharmacology — Theory Exam', 7, 'THEORY', 30, 120, 75),
+    ('Community Health Nursing I — Viva', 9, 'VIVA', 10, 30, 25),
+    ('Child Health Nursing — Practical', 11, 'PRACTICAL', 22, 180, 100),
+    ('OBG Nursing — Practical', 13, 'PRACTICAL', 28, 180, 100),
+    ('Mental Health Nursing — Theory', 12, 'THEORY', 35, 120, 75),
+    ('Nursing Research — End Semester', 15, 'THEORY', 40, 120, 75),
+]
+
+AGENTS = [
+    # (name, phone, email, city, region, isActive)
+    ('Tamil Nadu Nursing Education Trust', '9443301234', 'tnnet@email.com', 'Chennai', 'Tamil Nadu North', True),
+    ('Salem District Health Foundation', '9443312345', 'sdhf@email.com', 'Salem', 'Salem Region', True),
+    ('Southern Nursing Academy', '9443323456', 'sna@email.com', 'Madurai', 'Tamil Nadu South', True),
+    ('Kongu Region Educational Services', '9443334567', 'kres@email.com', 'Erode', 'Kongu Region', True),
+    ('Healthcare Career Consultants', '9443345678', 'hcc@email.com', 'Coimbatore', 'Western TN', True),
+]
+
+ENQUIRIES = [
+    # (name, email, phone, programIdx, source, status, agentIdx, remarks, feeDiscussedAmount)
+    ('Lakshmi Priya R', 'lakshmi.r@gmail.com', '9876501234', 0, 'WALK_IN', 'NEW', None, 'Interested in B.Sc. Nursing, completed HSC with Biology group', None),
+    ('Sathya Devi M', 'sathya.m@gmail.com', '9876512345', 0, 'PHONE', 'CONTACTED', None, 'Called to enquire about B.Sc. admission for 2025-26 batch', None),
+    ('Kavitha S', 'kavitha.s@yahoo.com', '9876523456', 0, 'AGENT_REFERRAL', 'FEE_DISCUSSED', 0, 'Referred by TNNET, discussed fee structure and hostel', '185000.00'),
+    ('Ranjitha K', 'ranjitha.k@gmail.com', '9876534567', 5, 'WALK_IN', 'INTERESTED', None, 'Wants GNM, has completed 10+2, very keen', '120000.00'),
+    ('Nithya V', 'nithya.v@gmail.com', '9876545678', 1, 'ONLINE', 'NEW', None, 'M.Sc. Medical-Surgical Nursing enquiry, has 5 years experience', None),
+    ('Geetha Ram S', 'geetha.rs@gmail.com', '9876556789', 0, 'AGENT_REFERRAL', 'CONTACTED', 1, 'Referred by Salem Health Foundation, awaiting marks sheet', None),
+    ('Harini B', 'harini.b@gmail.com', '9876567890', 0, 'WALK_IN', 'FEE_DISCUSSED', None, 'Visited campus with parents, toured labs and hostel', '185000.00'),
+    ('Swetha P', 'swetha.p@gmail.com', '9876578901', 2, 'PHONE', 'NEW', None, 'Enquiring about M.Sc. Community Health Nursing seats for 2025-26', None),
+    ('Malar K', 'malar.k@gmail.com', '9876589012', 5, 'AGENT_REFERRAL', 'INTERESTED', 2, 'GNM candidate from Madurai, Southern Nursing Academy referral', '115000.00'),
+    ('Jayanthi R', 'jayanthi.r@gmail.com', '9876590123', 0, 'WALK_IN', 'NOT_INTERESTED', None, 'Visited but decided to pursue MBBS instead', None),
 ]
 
 
@@ -191,6 +233,8 @@ class BatchIds:
     examinations: list[int]
     exam_results: list[int]
     attendance: list[int]
+    agents: list[int]
+    enquiries: list[int]
 
 
 class SeedError(RuntimeError):
@@ -264,9 +308,8 @@ def create_many(token: str, path: str, payloads: list[dict[str, Any]]) -> list[d
 # ---------------------------------------------------------------------------
 COMMUNITY_CATEGORIES = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS']
 BLOOD_GROUPS = ['A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE', 'AB_POSITIVE', 'AB_NEGATIVE']
-FEE_TYPES = ['TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE', 'MISCELLANEOUS', 'LATE_FEE']
+FEE_TYPES = ['TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'HOSTEL_FEE', 'MISCELLANEOUS']
 PAYMENT_MODES = ['CASH', 'CARD', 'UPI', 'NET_BANKING', 'CHEQUE', 'DEMAND_DRAFT', 'SCHOLARSHIP']
-PAYMENT_STATUSES = ['PENDING', 'PARTIAL', 'PAID', 'OVERDUE', 'WAIVED', 'REFUNDED']
 ATTENDANCE_STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED']
 ATTENDANCE_TYPES = ['THEORY', 'LAB']
 EXAM_RESULT_STATUSES = ['PENDING', 'PUBLISHED', 'WITHHELD']
@@ -277,30 +320,27 @@ def main() -> int:
     seed_tag = datetime.now().strftime('DEMO%Y%m%d%H%M%S')
     today = date.today()
 
-    # -----------------------------------------------------------------------
-    # 1. Departments
-    # -----------------------------------------------------------------------
-    departments = create_many(token, '/departments', DEPARTMENTS)
-    print(f'  Created {len(departments)} departments')
+    print('🏥 Seeding SKS College of Nursing, Salem — Demo Data')
+    print('=' * 60)
 
-    # -----------------------------------------------------------------------
-    # 2. Academic Years (real calendar years)
-    # -----------------------------------------------------------------------
+    # 1. Departments
+    departments = create_many(token, '/departments', DEPARTMENTS)
+    print(f'  ✅ Created {len(departments)} departments (nursing specializations)')
+
+    # 2. Academic Years
     academic_year_payloads = [
         {
-            'name': f'{2020 + i}-{2021 + i}',
-            'startDate': date(2020 + i, 6, 1),
-            'endDate': date(2021 + i, 5, 31),
-            'isCurrent': (2020 + i == today.year) or (i == 6),
+            'name': f'{2021 + i}-{2022 + i}',
+            'startDate': date(2021 + i, 6, 1),
+            'endDate': date(2022 + i, 5, 31),
+            'isCurrent': (2021 + i == today.year) or (i == 4),
         }
-        for i in range(1, 11)
+        for i in range(6)
     ]
     academic_years = create_many(token, '/academic-years', academic_year_payloads)
-    print(f'  Created {len(academic_years)} academic years')
+    print(f'  ✅ Created {len(academic_years)} academic years')
 
-    # -----------------------------------------------------------------------
-    # 3. Programs (linked to departments)
-    # -----------------------------------------------------------------------
+    # 3. Programs
     program_payloads = [
         {
             'name': p[0],
@@ -312,37 +352,28 @@ def main() -> int:
         for p in PROGRAMS
     ]
     programs = create_many(token, '/programs', program_payloads)
-    print(f'  Created {len(programs)} programs')
+    print(f'  ✅ Created {len(programs)} programs (B.Sc., M.Sc., GNM)')
 
-    # -----------------------------------------------------------------------
-    # 4. Semesters (meaningful names tied to academic years)
-    # -----------------------------------------------------------------------
+    # 4. Semesters
     semester_names = [
-        'Odd Semester 2021-22', 'Even Semester 2021-22',
-        'Odd Semester 2022-23', 'Even Semester 2022-23',
-        'Odd Semester 2023-24', 'Even Semester 2023-24',
         'Odd Semester 2024-25', 'Even Semester 2024-25',
         'Odd Semester 2025-26', 'Even Semester 2025-26',
+        'Odd Semester 2026-27', 'Even Semester 2026-27',
     ]
     semester_payloads = [
         {
             'name': semester_names[i],
-            'academicYearId': academic_years[i // 2]['id'],
-            'startDate': date(2021 + i // 2, 6 if i % 2 == 0 else 12, 1),
-            'endDate': date(2021 + i // 2, 11, 30) if i % 2 == 0
-                       else date(2022 + i // 2, 5, 31),
+            'academicYearId': academic_years[3 + i // 2]['id'],
+            'startDate': date(2024 + i // 2, 6 if i % 2 == 0 else 12, 1),
+            'endDate': date(2024 + i // 2, 11, 30) if i % 2 == 0 else date(2025 + i // 2, 5, 31),
             'semesterNumber': (i % 8) + 1,
         }
-        for i in range(10)
+        for i in range(6)
     ]
     semesters = create_many(token, '/semesters', semester_payloads)
-    print(f'  Created {len(semesters)} semesters')
+    print(f'  ✅ Created {len(semesters)} semesters')
 
-    # -----------------------------------------------------------------------
     # 5. Faculty
-    # -----------------------------------------------------------------------
-    _fac_keys = ['employeeCode', 'firstName', 'lastName', 'email', 'phone',
-                 'deptIdx', 'designation', 'specialization', 'labExpertise']
     faculty_payloads = [
         {
             'employeeCode': fm[0],
@@ -360,11 +391,9 @@ def main() -> int:
         for idx, fm in enumerate(FACULTY_MEMBERS)
     ]
     faculty = create_many(token, '/faculty', faculty_payloads)
-    print(f'  Created {len(faculty)} faculty members')
+    print(f'  ✅ Created {len(faculty)} faculty members')
 
-    # -----------------------------------------------------------------------
-    # 6. Courses (linked to programs)
-    # -----------------------------------------------------------------------
+    # 6. Courses
     course_payloads = [
         {
             'name': c[0],
@@ -378,11 +407,9 @@ def main() -> int:
         for c in COURSES
     ]
     courses = create_many(token, '/courses', course_payloads)
-    print(f'  Created {len(courses)} courses')
+    print(f'  ✅ Created {len(courses)} courses (INC syllabus)')
 
-    # -----------------------------------------------------------------------
     # 7. Students
-    # -----------------------------------------------------------------------
     student_payloads = []
     for idx, s in enumerate(STUDENTS):
         student_payloads.append({
@@ -394,11 +421,11 @@ def main() -> int:
             'programId': programs[s[5]]['id'],
             'semester': s[6],
             'admissionDate': today - timedelta(days=365 * 2 + idx * 30),
-            'labBatch': f'BATCH-{chr(65 + idx % 4)}',
+            'labBatch': f'BATCH-{chr(65 + idx % 3)}',
             'status': 'ACTIVE',
             'dateOfBirth': s[8],
             'gender': s[7],
-            'aadharNumber': f'{234500000000 + idx:012d}',
+            'aadharNumber': f'{567800000000 + idx:012d}',
             'nationality': 'Indian',
             'religion': 'Hindu',
             'communityCategory': cycle(COMMUNITY_CATEGORIES, idx),
@@ -413,15 +440,13 @@ def main() -> int:
                 'city': s[12],
                 'district': s[13],
                 'state': 'Tamil Nadu',
-                'pincode': f'6{30000 + idx * 11:05d}',
+                'pincode': f'6{36000 + idx * 11:05d}',
             },
         })
     students = create_many(token, '/students', student_payloads)
-    print(f'  Created {len(students)} students')
+    print(f'  ✅ Created {len(students)} students')
 
-    # -----------------------------------------------------------------------
     # 8. Labs
-    # -----------------------------------------------------------------------
     lab_payloads = [
         {
             'name': lab[0],
@@ -435,54 +460,57 @@ def main() -> int:
         for lab in LABS
     ]
     labs = create_many(token, '/labs', lab_payloads)
-    print(f'  Created {len(labs)} labs')
+    print(f'  ✅ Created {len(labs)} labs (nursing simulation & skills labs)')
 
-    # -----------------------------------------------------------------------
-    # 9. Fee Structures (realistic amounts for Indian engineering college)
-    # -----------------------------------------------------------------------
+    # 9. Fee Structures
     fee_descriptions = [
-        'Tuition fee for B.Tech CSE — AY 2025-26',
-        'Lab fee for B.Tech ECE — AY 2025-26',
-        'Library fee for B.Tech MECH — AY 2025-26',
-        'Examination fee for B.Tech CIVIL — AY 2025-26',
-        'Hostel fee for B.Tech EEE — AY 2025-26',
-        'Transport fee for M.Tech Data Science — AY 2025-26',
-        'Miscellaneous fee for M.Tech VLSI — AY 2025-26',
-        'Late payment penalty — M.Tech Structural — AY 2025-26',
-        'Tuition fee for B.Tech IT — AY 2025-26',
-        'Lab fee for B.Tech BME — AY 2025-26',
+        'Tuition fee for B.Sc. Nursing — AY 2025-26',
+        'Lab & Clinical Training fee — B.Sc. Nursing',
+        'Library fee — B.Sc. Nursing',
+        'Examination fee — B.Sc. Nursing',
+        'Hostel fee — B.Sc. Nursing',
+        'Tuition fee for M.Sc. Nursing — AY 2025-26',
+        'Lab & Clinical fee — M.Sc. Nursing',
+        'Tuition fee for GNM — AY 2025-26',
+        'Lab & Clinical fee — GNM',
+        'Miscellaneous fee — All Programs',
     ]
     fee_amounts = [
-        '75000.00', '12000.00', '5000.00', '3500.00', '45000.00',
-        '85000.00', '15000.00', '2000.00', '70000.00', '14000.00',
+        '125000.00', '25000.00', '5000.00', '5000.00', '55000.00',
+        '175000.00', '35000.00', '85000.00', '18000.00', '3500.00',
     ]
+    fee_program_mapping = [0, 0, 0, 0, 0, 1, 1, 5, 5, 0]
     fee_structure_payloads = [
         {
-            'programId': programs[i]['id'],
-            'academicYearId': academic_years[min(i, len(academic_years) - 1)]['id'],
+            'programId': programs[fee_program_mapping[i]]['id'],
+            'academicYearId': academic_years[min(4, len(academic_years) - 1)]['id'],
             'feeType': cycle(FEE_TYPES, i),
             'amount': Decimal(fee_amounts[i]),
             'description': fee_descriptions[i],
-            'isMandatory': i < 5,
+            'isMandatory': i < 6,
             'isActive': True,
         }
         for i in range(10)
     ]
     fee_structures = create_many(token, '/fee-structures', fee_structure_payloads)
-    print(f'  Created {len(fee_structures)} fee structures')
+    print(f'  ✅ Created {len(fee_structures)} fee structures')
 
-    # -----------------------------------------------------------------------
     # 10. Fee Payments
-    # -----------------------------------------------------------------------
     payment_remarks = [
-        'Tuition fee paid in full', 'Lab fee — partial payment', 'Library fee — paid via UPI',
-        'Exam fee — cheque clearance', 'Hostel fee — demand draft', 'Transport fee — scholarship applied',
-        'Miscellaneous — cash payment', 'Late fee — net banking', 'Tuition fee — card payment',
-        'Lab fee — UPI payment',
+        'Tuition fee paid in full — B.Sc. Y1',
+        'Lab fee — partial payment pending',
+        'Library fee — paid via UPI',
+        'Exam fee — demand draft',
+        'Hostel fee — scholarship deducted',
+        'Tuition fee — M.Sc. MSN paid',
+        'Full year fees — parents paid',
+        'Tuition fee — GNM Y1',
+        'Lab fee — GNM paid by UPI',
+        'First installment — B.Sc. Y3',
     ]
     fee_payment_payloads = [
         {
-            'studentId': students[i]['id'],
+            'studentId': students[i % len(students)]['id'],
             'feeStructureId': fee_structures[i]['id'],
             'amountPaid': Decimal(fee_amounts[i]) if i % 3 != 1 else Decimal(fee_amounts[i]) / Decimal('2'),
             'paymentDate': today - timedelta(days=(10 - i) * 5),
@@ -494,11 +522,9 @@ def main() -> int:
         for i in range(10)
     ]
     fee_payments = create_many(token, '/fee-payments', fee_payment_payloads)
-    print(f'  Created {len(fee_payments)} fee payments')
+    print(f'  ✅ Created {len(fee_payments)} fee payments')
 
-    # -----------------------------------------------------------------------
     # 11. Equipment
-    # -----------------------------------------------------------------------
     equipment_payloads = [
         {
             'name': eq[0],
@@ -512,17 +538,15 @@ def main() -> int:
             'purchaseDate': today - timedelta(days=365 * 2 + idx * 30),
             'purchasePrice': Decimal(eq[8]),
             'warrantyExpiry': today + timedelta(days=365 + idx * 60),
-            'location': f'Rack {idx + 1}, {LABS[eq[4]][0]}',
+            'location': f'{LABS[eq[4]][0]}',
             'specifications': eq[9],
         }
         for idx, eq in enumerate(EQUIPMENT_LIST)
     ]
     equipment = create_many(token, '/equipment', equipment_payloads)
-    print(f'  Created {len(equipment)} equipment items')
+    print(f'  ✅ Created {len(equipment)} equipment items')
 
-    # -----------------------------------------------------------------------
     # 12. Inventory
-    # -----------------------------------------------------------------------
     inventory_payloads = [
         {
             'name': inv[0],
@@ -537,11 +561,9 @@ def main() -> int:
         for idx, inv in enumerate(INVENTORY_ITEMS)
     ]
     inventory = create_many(token, '/inventory', inventory_payloads)
-    print(f'  Created {len(inventory)} inventory items')
+    print(f'  ✅ Created {len(inventory)} inventory items (nursing supplies)')
 
-    # -----------------------------------------------------------------------
-    # 13. Maintenance Requests
-    # -----------------------------------------------------------------------
+    # 13. Maintenance
     maintenance_payloads = [
         {
             'equipmentId': equipment[m[0]]['id'],
@@ -562,11 +584,9 @@ def main() -> int:
         for idx, m in enumerate(MAINTENANCE_ENTRIES)
     ]
     maintenance = create_many(token, '/maintenance', maintenance_payloads)
-    print(f'  Created {len(maintenance)} maintenance requests')
+    print(f'  ✅ Created {len(maintenance)} maintenance requests')
 
-    # -----------------------------------------------------------------------
     # 14. Examinations
-    # -----------------------------------------------------------------------
     examination_payloads = [
         {
             'name': ex[0],
@@ -580,11 +600,9 @@ def main() -> int:
         for idx, ex in enumerate(EXAMINATION_DATA)
     ]
     examinations = create_many(token, '/examinations', examination_payloads)
-    print(f'  Created {len(examinations)} examinations')
+    print(f'  ✅ Created {len(examinations)} examinations')
 
-    # -----------------------------------------------------------------------
     # 15. Exam Results
-    # -----------------------------------------------------------------------
     grade_map = {range(90, 101): 'O', range(80, 90): 'A+', range(70, 80): 'A',
                  range(60, 70): 'B+', range(50, 60): 'B', range(0, 50): 'F'}
 
@@ -595,11 +613,11 @@ def main() -> int:
                 return g
         return 'B'
 
-    exam_marks = [42, 85, 38, 40, 22, 78, 42, 38, 88, 45]
+    exam_marks = [42, 40, 85, 58, 62, 22, 78, 90, 55, 65]
     exam_result_payloads = [
         {
             'examinationId': examinations[i]['id'],
-            'studentId': students[i]['id'],
+            'studentId': students[i % len(students)]['id'],
             'marksObtained': Decimal(exam_marks[i]),
             'grade': compute_grade(exam_marks[i], EXAMINATION_DATA[i][5]),
             'status': cycle(EXAM_RESULT_STATUSES, i),
@@ -607,22 +625,20 @@ def main() -> int:
         for i in range(10)
     ]
     exam_results = create_many(token, '/exam-results', exam_result_payloads)
-    print(f'  Created {len(exam_results)} exam results')
+    print(f'  ✅ Created {len(exam_results)} exam results')
 
-    # -----------------------------------------------------------------------
     # 16. Attendance
-    # -----------------------------------------------------------------------
     attendance_remarks = [
-        'Attended all sessions', 'Absent — medical leave submitted',
-        'Arrived 10 minutes late', 'Excused — participated in inter-college competition',
-        'Attended all sessions', 'Absent — no intimation',
-        'Arrived 5 minutes late — traffic', 'Excused — college event duty',
-        'Attended all sessions', 'Absent — family emergency',
+        'Attended Anatomy lecture', 'Absent — clinical posting at SKS Hospital',
+        'Arrived 10 min late — bus delay', 'Excused — community health field visit',
+        'Attended all sessions', 'Absent — medical leave',
+        'Attended lab session', 'Excused — INC workshop',
+        'Attended all sessions', 'Absent — family function',
     ]
     attendance_payloads = [
         {
-            'studentId': students[i]['id'],
-            'courseId': courses[i]['id'],
+            'studentId': students[i % len(students)]['id'],
+            'courseId': courses[i % len(courses)]['id'],
             'date': today - timedelta(days=i + 1),
             'status': cycle(ATTENDANCE_STATUSES, i),
             'type': cycle(ATTENDANCE_TYPES, i),
@@ -631,7 +647,41 @@ def main() -> int:
         for i in range(10)
     ]
     attendance = create_many(token, '/attendance', attendance_payloads)
-    print(f'  Created {len(attendance)} attendance records')
+    print(f'  ✅ Created {len(attendance)} attendance records')
+
+    # 17. Agents
+    agent_payloads = [
+        {
+            'name': a[0],
+            'phone': a[1],
+            'email': a[2],
+            'city': a[3],
+            'region': a[4],
+            'isActive': a[5],
+        }
+        for a in AGENTS
+    ]
+    agents = create_many(token, '/agents', agent_payloads)
+    print(f'  ✅ Created {len(agents)} agents')
+
+    # 18. Enquiries
+    enquiry_payloads = [
+        {
+            'name': e[0],
+            'email': e[1],
+            'phone': e[2],
+            'programId': programs[e[3]]['id'],
+            'enquiryDate': today - timedelta(days=30 - idx * 3),
+            'source': e[4],
+            'status': e[5],
+            'agentId': agents[e[6]]['id'] if e[6] is not None else None,
+            'remarks': e[7],
+            'feeDiscussedAmount': Decimal(e[8]) if e[8] is not None else None,
+        }
+        for idx, e in enumerate(ENQUIRIES)
+    ]
+    enquiries = create_many(token, '/enquiries', enquiry_payloads)
+    print(f'  ✅ Created {len(enquiries)} enquiries')
 
     # -----------------------------------------------------------------------
     # Summary
@@ -653,35 +703,14 @@ def main() -> int:
         examinations=[item['id'] for item in examinations],
         exam_results=[item['id'] for item in exam_results],
         attendance=[item['id'] for item in attendance],
+        agents=[item['id'] for item in agents],
+        enquiries=[item['id'] for item in enquiries],
     )
 
-    verification = {
-        'Departments': len(api_request('GET', '/departments', token)),
-        'Programs': len(api_request('GET', '/programs', token)),
-        'Courses': len(api_request('GET', '/courses', token)),
-        'Academic Years': len(api_request('GET', '/academic-years', token)),
-        'Semesters': len(api_request('GET', '/semesters', token)),
-        'Faculty': len(api_request('GET', '/faculty', token)),
-        'Students': len(api_request('GET', '/students', token)),
-        'Attendance': sum(len(api_request('GET', f'/attendance?courseId={course_id}', token)) for course_id in ids.courses),
-        'Labs': len(api_request('GET', '/labs', token)),
-        'Fee Structures': len(api_request('GET', '/fee-structures', token)),
-        'Fee Payments': len(api_request('GET', '/fee-payments', token)),
-        'Equipment': len(api_request('GET', '/equipment', token)),
-        'Inventory': len(api_request('GET', '/inventory', token)),
-        'Maintenance': len(api_request('GET', '/maintenance', token)),
-        'Examinations': len(api_request('GET', '/examinations', token)),
-        'Exam Results': sum(
-            len(api_request('GET', f'/exam-results/examination/{exam_id}', token)) for exam_id in ids.examinations
-        ),
-    }
-
-    print(f'\nSeed batch: {seed_tag}')
-    print('Created record IDs:')
-    print(json.dumps(ids.__dict__, indent=2))
-    print('\nVerified totals by screen order:')
-    for screen, total in verification.items():
-        print(f'  {screen}: {total}')
+    print(f'\n{"=" * 60}')
+    print(f'🎉 Seed complete — batch: {seed_tag}')
+    print(f'   SKS College of Nursing, Salem — Demo Data Loaded')
+    print(f'{"=" * 60}')
 
     return 0
 
