@@ -4,7 +4,7 @@
 
 .app-sidenav {
   width: 260px;
-  border-right: 1px solid var(--cms-border-light);
+  border-right: none !important;
 
   .sidenav-header {
     display: flex;
@@ -124,15 +124,15 @@
 }
 
 .active-link {
-  background-color: var(--cms-primary-light) !important;
-  border-left: 3px solid var(--cms-primary) !important;
+  background-color: var(--cms-bg-muted) !important;
+  border-radius: var(--cms-radius-sm) !important;
 
   mat-icon[matListItemIcon] {
     color: var(--cms-primary) !important;
   }
 
   span[matListItemTitle] {
-    color: var(--cms-primary) !important;
+    color: var(--cms-text-primary) !important;
     font-weight: 600 !important;
   }
 }

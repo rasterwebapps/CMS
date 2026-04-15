@@ -5,42 +5,42 @@
 // Design Tokens
 // ──────────────────────────────────────────────────
 :root {
-  // Surface & background
-  --cms-bg-shell: #f8fafc; // slate-50
+  // Surface & background – Zinc monochrome base
+  --cms-bg-shell: #fafafa; // zinc-50
   --cms-bg-card: #ffffff;
-  --cms-bg-hover: #f1f5f9; // slate-100
-  --cms-bg-muted: #f1f5f9;
+  --cms-bg-hover: rgba(244, 244, 245, 0.8); // zinc-100/80
+  --cms-bg-muted: #f4f4f5; // zinc-100
 
-  // Text hierarchy
-  --cms-text-primary: #0f172a; // slate-900
-  --cms-text-secondary: #475569; // slate-500
-  --cms-text-muted: #94a3b8; // slate-400
-  --cms-text-table-header: #64748b; // slate-500
+  // Text hierarchy – deep, rich tones
+  --cms-text-primary: #18181b; // zinc-900
+  --cms-text-secondary: #52525b; // zinc-600
+  --cms-text-muted: #a1a1aa; // zinc-400
+  --cms-text-table-header: #71717a; // zinc-500
 
-  // Accent / brand
+  // Accent / brand – deep indigo
   --cms-primary: #4f46e5; // indigo-600
   --cms-primary-hover: #4338ca; // indigo-700
   --cms-primary-light: #eef2ff; // indigo-50
   --cms-primary-ring: rgba(79, 70, 229, 0.25);
 
-  // Borders & dividers
-  --cms-border-default: #e2e8f0; // slate-200
-  --cms-border-light: #f1f5f9; // slate-100
+  // Borders & dividers – whisper-thin zinc
+  --cms-border-default: #e4e4e7; // zinc-200
+  --cms-border-light: #f4f4f5; // zinc-100
 
-  // Badges / pills
-  --cms-badge-blue-bg: #eff6ff; // blue-50
-  --cms-badge-blue-text: #1d4ed8; // blue-700
-  --cms-badge-gray-bg: #f1f5f9; // slate-100
-  --cms-badge-gray-text: #475569; // slate-600
+  // Badges / pills – refined, muted palettes
+  --cms-badge-blue-bg: #eef2ff; // indigo-50
+  --cms-badge-blue-text: #4338ca; // indigo-700
+  --cms-badge-gray-bg: #f4f4f5; // zinc-100
+  --cms-badge-gray-text: #3f3f46; // zinc-700
   --cms-badge-green-bg: #f0fdf4; // green-50
   --cms-badge-green-text: #15803d; // green-700
   --cms-badge-amber-bg: #fffbeb; // amber-50
   --cms-badge-amber-text: #b45309; // amber-700
 
-  // Elevation
-  --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --cms-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  // Elevation – soft, diffused shadows
+  --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --cms-shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 1px 3px -1px rgb(0 0 0 / 0.04);
+  --cms-shadow-lg: 0 8px 24px -6px rgb(0 0 0 / 0.1), 0 2px 8px -4px rgb(0 0 0 / 0.04);
 
   // Radius
   --cms-radius-sm: 8px;
@@ -49,7 +49,7 @@
   --cms-radius-full: 9999px;
 
   // Transition
-  --cms-transition: all 0.2s ease-in-out;
+  --cms-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html {
@@ -83,23 +83,27 @@ html {
       )
     );
 
-    --cms-bg-shell: #0f172a;
-    --cms-bg-card: #1e293b;
-    --cms-bg-hover: #334155;
-    --cms-bg-muted: #1e293b;
-    --cms-text-primary: #f8fafc;
-    --cms-text-secondary: #94a3b8;
-    --cms-text-muted: #64748b;
-    --cms-text-table-header: #94a3b8;
-    --cms-border-default: #334155;
-    --cms-border-light: #1e293b;
-    --cms-badge-blue-bg: rgba(59, 130, 246, 0.15);
-    --cms-badge-gray-bg: rgba(100, 116, 139, 0.2);
-    --cms-badge-green-bg: rgba(34, 197, 94, 0.15);
-    --cms-badge-amber-bg: rgba(245, 158, 11, 0.15);
-    --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-    --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-    --cms-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+    --cms-bg-shell: #09090b; // zinc-950
+    --cms-bg-card: #18181b; // zinc-900
+    --cms-bg-hover: rgba(39, 39, 42, 0.8); // zinc-800/80
+    --cms-bg-muted: #27272a; // zinc-800
+    --cms-text-primary: #fafafa; // zinc-50
+    --cms-text-secondary: #a1a1aa; // zinc-400
+    --cms-text-muted: #71717a; // zinc-500
+    --cms-text-table-header: #a1a1aa;
+    --cms-border-default: #27272a; // zinc-800
+    --cms-border-light: #1c1c1f;
+    --cms-badge-blue-bg: rgba(79, 70, 229, 0.12);
+    --cms-badge-blue-text: #a5b4fc; // indigo-300
+    --cms-badge-gray-bg: rgba(161, 161, 170, 0.12);
+    --cms-badge-gray-text: #d4d4d8; // zinc-300
+    --cms-badge-green-bg: rgba(34, 197, 94, 0.12);
+    --cms-badge-green-text: #86efac; // green-300
+    --cms-badge-amber-bg: rgba(245, 158, 11, 0.12);
+    --cms-badge-amber-text: #fcd34d; // amber-300
+    --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --cms-shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.4);
+    --cms-shadow-lg: 0 8px 24px -6px rgb(0 0 0 / 0.5);
   }
 }
 
@@ -116,30 +120,34 @@ html.dark-theme {
     )
   );
 
-  --cms-bg-shell: #0f172a;
-  --cms-bg-card: #1e293b;
-  --cms-bg-hover: #334155;
-  --cms-bg-muted: #1e293b;
-  --cms-text-primary: #f8fafc;
-  --cms-text-secondary: #94a3b8;
-  --cms-text-muted: #64748b;
-  --cms-text-table-header: #94a3b8;
-  --cms-border-default: #334155;
-  --cms-border-light: #1e293b;
-  --cms-badge-blue-bg: rgba(59, 130, 246, 0.15);
-  --cms-badge-gray-bg: rgba(100, 116, 139, 0.2);
-  --cms-badge-green-bg: rgba(34, 197, 94, 0.15);
-  --cms-badge-amber-bg: rgba(245, 158, 11, 0.15);
-  --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-  --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-  --cms-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+  --cms-bg-shell: #09090b;
+  --cms-bg-card: #18181b;
+  --cms-bg-hover: rgba(39, 39, 42, 0.8);
+  --cms-bg-muted: #27272a;
+  --cms-text-primary: #fafafa;
+  --cms-text-secondary: #a1a1aa;
+  --cms-text-muted: #71717a;
+  --cms-text-table-header: #a1a1aa;
+  --cms-border-default: #27272a;
+  --cms-border-light: #1c1c1f;
+  --cms-badge-blue-bg: rgba(79, 70, 229, 0.12);
+  --cms-badge-blue-text: #a5b4fc;
+  --cms-badge-gray-bg: rgba(161, 161, 170, 0.12);
+  --cms-badge-gray-text: #d4d4d8;
+  --cms-badge-green-bg: rgba(34, 197, 94, 0.12);
+  --cms-badge-green-text: #86efac;
+  --cms-badge-amber-bg: rgba(245, 158, 11, 0.12);
+  --cms-badge-amber-text: #fcd34d;
+  --cms-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --cms-shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  --cms-shadow-lg: 0 8px 24px -6px rgb(0 0 0 / 0.5);
 }
 
 body {
   color-scheme: light dark;
   background-color: var(--cms-bg-shell);
   color: var(--cms-text-primary);
-  font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 0.875rem;
   line-height: 1.5;
   margin: 0;
