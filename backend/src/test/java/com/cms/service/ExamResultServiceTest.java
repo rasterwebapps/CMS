@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.ExamResultRequest;
 import com.cms.dto.ExamResultResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.ExamResult;
 import com.cms.model.Examination;
 import com.cms.model.Semester;
@@ -209,10 +209,10 @@ class ExamResultServiceTest {
         verify(examResultRepository, never()).deleteById(any());
     }
 
-    private Course createCourse() {
-        Course course = new Course("Physics", "PHY101", 4, 3, 1, null, 1);
-        course.setId(1L);
-        return course;
+    private Subject createSubject() {
+        Subject subject = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
+        subject.setId(1L);
+        return subject;
     }
 
     private Semester createSemester() {
@@ -223,7 +223,7 @@ class ExamResultServiceTest {
     }
 
     private Examination createExamination() {
-        Examination exam = new Examination("Midterm", createCourse(), ExamType.THEORY,
+        Examination exam = new Examination("Midterm", createSubject(), ExamType.THEORY,
             LocalDate.of(2024, 6, 1), 120, 100, createSemester());
         exam.setId(1L);
         exam.setCreatedAt(Instant.now());

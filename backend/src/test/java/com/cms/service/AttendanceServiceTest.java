@@ -26,14 +26,16 @@ import com.cms.dto.BulkAttendanceRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Attendance;
 import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Department;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
+import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,17 +46,17 @@ class AttendanceServiceTest {
     @Mock
     private StudentRepository studentRepository;
     @Mock
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
 
     private AttendanceService attendanceService;
 
     private Student testStudent;
-    private Course testCourse;
+    private Subject testCourse;
     private Program testProgram;
 
     @BeforeEach
     void setUp() {
-        attendanceService = new AttendanceService(attendanceRepository, studentRepository, courseRepository);
+        attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository);
 
         Department department = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
         department.setId(1L);
@@ -69,8 +71,12 @@ class AttendanceServiceTest {
         );
         testStudent.setId(1L);
 
-        testCourse = new Course("Data Structures", "CS201", 3, 2, 1, testProgram, 3);
+        testCourse = new Subject("Data Structures", "CS201", 3, 2, 1, null, null, 3);
         testCourse.setId(1L);
+        // Set course→program chain needed by getLowAttendanceAlerts
+        Course courseObj = new Course("B.Tech CS", "BTCS", DegreeType.BACHELOR, 4, testProgram);
+        courseObj.setId(1L);
+        testCourse.setCourse(courseObj);
     }
 
     @Test
@@ -83,7 +89,7 @@ class AttendanceServiceTest {
             LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(attendanceRepository.save(any(Attendance.class))).thenReturn(savedAttendance);
 
         AttendanceResponse response = attendanceService.markAttendance(request);
@@ -112,11 +118,11 @@ class AttendanceServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> attendanceService.markAttendance(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
@@ -132,7 +138,7 @@ class AttendanceServiceTest {
         Attendance savedAttendance = createAttendance(1L, testStudent, testCourse,
             LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(attendanceRepository.save(any(Attendance.class))).thenReturn(savedAttendance);
 
@@ -170,13 +176,13 @@ class AttendanceServiceTest {
         Attendance attendance = createAttendance(1L, testStudent, testCourse,
             LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
 
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(attendanceRepository.findByCourseId(1L)).thenReturn(List.of(attendance));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(attendanceRepository.findBySubjectId(1L)).thenReturn(List.of(attendance));
 
-        List<AttendanceResponse> responses = attendanceService.findByCourseId(1L);
+        List<AttendanceResponse> responses = attendanceService.findBySubjectId(1L);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).courseId()).isEqualTo(1L);
+        assertThat(responses.get(0).subjectId()).isEqualTo(1L);
     }
 
     @Test
@@ -185,10 +191,10 @@ class AttendanceServiceTest {
             LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
 
         when(studentRepository.existsById(1L)).thenReturn(true);
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(attendanceRepository.findByStudentIdAndCourseId(1L, 1L)).thenReturn(List.of(attendance));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(attendanceRepository.findByStudentIdAndSubjectId(1L, 1L)).thenReturn(List.of(attendance));
 
-        List<AttendanceResponse> responses = attendanceService.findByStudentIdAndCourseId(1L, 1L);
+        List<AttendanceResponse> responses = attendanceService.findByStudentIdAndSubjectId(1L, 1L);
 
         assertThat(responses).hasSize(1);
     }
@@ -197,7 +203,7 @@ class AttendanceServiceTest {
     void shouldThrowExceptionWhenStudentNotFoundForFindByStudentIdAndCourseId() {
         when(studentRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> attendanceService.findByStudentIdAndCourseId(999L, 1L))
+        assertThatThrownBy(() -> attendanceService.findByStudentIdAndSubjectId(999L, 1L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Student not found with id: 999");
     }
@@ -205,29 +211,29 @@ class AttendanceServiceTest {
     @Test
     void shouldThrowExceptionWhenCourseNotFoundForFindByStudentIdAndCourseId() {
         when(studentRepository.existsById(1L)).thenReturn(true);
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> attendanceService.findByStudentIdAndCourseId(1L, 999L))
+        assertThatThrownBy(() -> attendanceService.findByStudentIdAndSubjectId(1L, 999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
     void shouldThrowExceptionWhenCourseNotFoundForFindByCourseId() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> attendanceService.findByCourseId(999L))
+        assertThatThrownBy(() -> attendanceService.findBySubjectId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
     void shouldThrowExceptionWhenCourseNotFoundForFindByCourseIdAndDate() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> attendanceService.findByCourseIdAndDate(999L, LocalDate.now()))
+        assertThatThrownBy(() -> attendanceService.findBySubjectIdAndDate(999L, LocalDate.now()))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
@@ -235,10 +241,10 @@ class AttendanceServiceTest {
         Attendance attendance = createAttendance(1L, testStudent, testCourse,
             LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
 
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(attendanceRepository.findByCourseIdAndDate(1L, LocalDate.now())).thenReturn(List.of(attendance));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(attendanceRepository.findBySubjectIdAndDate(1L, LocalDate.now())).thenReturn(List.of(attendance));
 
-        List<AttendanceResponse> responses = attendanceService.findByCourseIdAndDate(1L, LocalDate.now());
+        List<AttendanceResponse> responses = attendanceService.findBySubjectIdAndDate(1L, LocalDate.now());
 
         assertThat(responses).hasSize(1);
     }
@@ -246,9 +252,9 @@ class AttendanceServiceTest {
     @Test
     void shouldGetAttendanceReport() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndCourseId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndCourseIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
             .thenReturn(8L);
 
         AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
@@ -262,9 +268,9 @@ class AttendanceServiceTest {
     @Test
     void shouldReportLowAttendance() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndCourseId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndCourseIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
             .thenReturn(6L);
 
         AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
@@ -276,9 +282,9 @@ class AttendanceServiceTest {
     @Test
     void shouldReportZeroAttendanceWhenNoClasses() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndCourseId(1L, 1L)).thenReturn(0L);
-        when(attendanceRepository.countByStudentIdAndCourseIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(0L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
             .thenReturn(0L);
 
         AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
@@ -289,11 +295,11 @@ class AttendanceServiceTest {
 
     @Test
     void shouldGetLowAttendanceAlerts() {
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(studentRepository.findByProgramId(1L)).thenReturn(List.of(testStudent));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(attendanceRepository.countByStudentIdAndCourseId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndCourseIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
+        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
             .thenReturn(6L);
 
         List<AttendanceReportResponse> alerts = attendanceService.getLowAttendanceAlerts(1L);
@@ -304,11 +310,11 @@ class AttendanceServiceTest {
 
     @Test
     void shouldThrowExceptionWhenCourseNotFoundForLowAttendanceAlerts() {
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> attendanceService.getLowAttendanceAlerts(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
@@ -326,7 +332,7 @@ class AttendanceServiceTest {
 
         when(attendanceRepository.findById(1L)).thenReturn(Optional.of(existingAttendance));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(attendanceRepository.save(any(Attendance.class))).thenReturn(updatedAttendance);
 
         AttendanceResponse response = attendanceService.update(1L, updateRequest);
@@ -354,9 +360,9 @@ class AttendanceServiceTest {
         verify(attendanceRepository, never()).deleteById(any());
     }
 
-    private Attendance createAttendance(Long id, Student student, Course course,
+    private Attendance createAttendance(Long id, Student student, Subject subject,
                                          LocalDate date, AttendanceStatus status, AttendanceType type) {
-        Attendance attendance = new Attendance(student, course, date, status, type);
+        Attendance attendance = new Attendance(student, subject, date, status, type);
         attendance.setId(id);
         Instant now = Instant.now();
         attendance.setCreatedAt(now);

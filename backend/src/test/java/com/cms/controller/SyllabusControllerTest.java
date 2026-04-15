@@ -66,7 +66,7 @@ class SyllabusControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.courseId").value(1))
+            .andExpect(jsonPath("$.subjectId").value(1))
             .andExpect(jsonPath("$.version").value(1));
 
         verify(syllabusService).create(any(SyllabusRequest.class));
@@ -116,14 +116,14 @@ class SyllabusControllerTest {
             true, now, now
         );
 
-        when(syllabusService.findByCourseId(1L)).thenReturn(List.of(response));
+        when(syllabusService.findBySubjectId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/syllabi").param("courseId", "1"))
+        mockMvc.perform(get("/syllabi").param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].courseId").value(1));
+            .andExpect(jsonPath("$[0].subjectId").value(1));
 
-        verify(syllabusService).findByCourseId(1L);
+        verify(syllabusService).findBySubjectId(1L);
     }
 
     @Test
@@ -141,7 +141,7 @@ class SyllabusControllerTest {
         mockMvc.perform(get("/syllabi/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.courseName").value("Data Structures"));
+            .andExpect(jsonPath("$.subjectName").value("Data Structures"));
 
         verify(syllabusService).findById(1L);
     }

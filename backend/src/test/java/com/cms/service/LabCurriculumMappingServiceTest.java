@@ -21,7 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.LabCurriculumMappingRequest;
 import com.cms.dto.LabCurriculumMappingResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Experiment;
 import com.cms.model.LabCurriculumMapping;
 import com.cms.model.Program;
@@ -42,12 +42,12 @@ class LabCurriculumMappingServiceTest {
     private LabCurriculumMappingService mappingService;
 
     private Experiment testExperiment;
-    private Course testCourse;
+    private Subject testCourse;
 
     @BeforeEach
     void setUp() {
         mappingService = new LabCurriculumMappingService(mappingRepository, experimentRepository);
-        testCourse = createCourse(1L, "Data Structures Lab", "CS201L");
+        testCourse = createSubject(1L, "Data Structures Lab", "CS201L");
         testExperiment = createExperiment(1L, testCourse, 1, "Stack Implementation");
     }
 
@@ -195,19 +195,19 @@ class LabCurriculumMappingServiceTest {
         verify(mappingRepository, never()).deleteById(any());
     }
 
-    private Course createCourse(Long id, String name, String code) {
+    private Subject createSubject(Long id, String name, String code) {
         Program program = new Program();
         program.setId(1L);
         program.setName("Computer Science");
 
-        Course course = new Course(name, code, 3, 2, 1, program, 1);
+        Subject course = new Subject(name, code, 3, 2, 1, null, null, 1);
         course.setId(id);
         return course;
     }
 
-    private Experiment createExperiment(Long id, Course course, Integer expNum, String name) {
+    private Experiment createExperiment(Long id, Subject subject, Integer expNum, String name) {
         Experiment experiment = new Experiment(
-            course, expNum, name, "Description", "Aim", "Apparatus",
+            subject, expNum, name, "Description", "Aim", "Apparatus",
             "Procedure", "Expected Outcome", "Learning Outcomes", 120, true
         );
         experiment.setId(id);

@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
@@ -31,7 +31,7 @@ class DashboardServiceTest {
     @Mock private StudentRepository studentRepository;
     @Mock private FacultyRepository facultyRepository;
     @Mock private DepartmentRepository departmentRepository;
-    @Mock private CourseRepository courseRepository;
+    @Mock private SubjectRepository subjectRepository;
     @Mock private ProgramRepository programRepository;
     @Mock private LabRepository labRepository;
     @Mock private EquipmentRepository equipmentRepository;
@@ -46,7 +46,7 @@ class DashboardServiceTest {
     void setUp() {
         dashboardService = new DashboardService(
             studentRepository, facultyRepository, departmentRepository,
-            courseRepository, programRepository, labRepository,
+            subjectRepository, programRepository, labRepository,
             equipmentRepository, examinationRepository, feePaymentRepository,
             maintenanceRequestRepository, attendanceRepository
         );
@@ -57,7 +57,7 @@ class DashboardServiceTest {
         when(studentRepository.count()).thenReturn(10L);
         when(facultyRepository.count()).thenReturn(10L);
         when(departmentRepository.count()).thenReturn(10L);
-        when(courseRepository.count()).thenReturn(10L);
+        when(subjectRepository.count()).thenReturn(10L);
         when(programRepository.count()).thenReturn(10L);
         when(labRepository.count()).thenReturn(10L);
         when(equipmentRepository.count()).thenReturn(10L);
@@ -75,7 +75,7 @@ class DashboardServiceTest {
         assertThat(response.totalStudents()).isEqualTo(10L);
         assertThat(response.totalFaculty()).isEqualTo(10L);
         assertThat(response.totalDepartments()).isEqualTo(10L);
-        assertThat(response.totalCourses()).isEqualTo(10L);
+        assertThat(response.totalSubjects()).isEqualTo(10L);
         assertThat(response.totalPrograms()).isEqualTo(10L);
         assertThat(response.totalLabs()).isEqualTo(10L);
         assertThat(response.totalEquipment()).isEqualTo(10L);
@@ -97,7 +97,7 @@ class DashboardServiceTest {
         when(studentRepository.count()).thenReturn(0L);
         when(facultyRepository.count()).thenReturn(0L);
         when(departmentRepository.count()).thenReturn(0L);
-        when(courseRepository.count()).thenReturn(0L);
+        when(subjectRepository.count()).thenReturn(0L);
         when(programRepository.count()).thenReturn(0L);
         when(labRepository.count()).thenReturn(0L);
         when(equipmentRepository.count()).thenReturn(0L);

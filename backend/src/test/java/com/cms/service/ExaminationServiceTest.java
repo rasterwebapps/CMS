@@ -22,11 +22,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.ExaminationRequest;
 import com.cms.dto.ExaminationResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Examination;
 import com.cms.model.Semester;
 import com.cms.model.enums.ExamType;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.SemesterRepository;
 
@@ -37,7 +37,7 @@ class ExaminationServiceTest {
     private ExaminationRepository examinationRepository;
 
     @Mock
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
 
     @Mock
     private SemesterRepository semesterRepository;
@@ -46,19 +46,19 @@ class ExaminationServiceTest {
 
     @BeforeEach
     void setUp() {
-        examinationService = new ExaminationService(examinationRepository, courseRepository, semesterRepository);
+        examinationService = new ExaminationService(examinationRepository, subjectRepository, semesterRepository);
     }
 
     @Test
     void shouldCreateExamination() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
         ExaminationRequest request = new ExaminationRequest(
             "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, 1L
         );
-        Examination saved = createExamination(course, semester);
+        Examination saved = createExamination(subject, semester);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(subject));
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(semester));
         when(examinationRepository.save(any(Examination.class))).thenReturn(saved);
 
@@ -67,7 +67,7 @@ class ExaminationServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Midterm");
         assertThat(response.examType()).isEqualTo(ExamType.THEORY);
-        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.subjectId()).isEqualTo(1L);
         assertThat(response.semesterId()).isEqualTo(1L);
 
         ArgumentCaptor<Examination> captor = ArgumentCaptor.forClass(Examination.class);
@@ -77,13 +77,13 @@ class ExaminationServiceTest {
 
     @Test
     void shouldCreateExaminationWithNullSemester() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         ExaminationRequest request = new ExaminationRequest(
             "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, null
         );
-        Examination saved = createExaminationNoSemester(course);
+        Examination saved = createExaminationNoSemester(subject);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(subject));
         when(examinationRepository.save(any(Examination.class))).thenReturn(saved);
 
         ExaminationResponse response = examinationService.create(request);
@@ -100,21 +100,21 @@ class ExaminationServiceTest {
             "Midterm", 999L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, null
         );
 
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> examinationService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
 
         verify(examinationRepository, never()).save(any());
     }
 
     @Test
     void shouldFindAllExaminations() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
-        Examination exam1 = createExamination(course, semester);
-        Examination exam2 = createExamination(course, semester);
+        Examination exam1 = createExamination(subject, semester);
+        Examination exam2 = createExamination(subject, semester);
         exam2.setId(2L);
         exam2.setName("Final");
 
@@ -140,9 +140,9 @@ class ExaminationServiceTest {
 
     @Test
     void shouldFindById() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
-        Examination exam = createExamination(course, semester);
+        Examination exam = createExamination(subject, semester);
 
         when(examinationRepository.findById(1L)).thenReturn(Optional.of(exam));
 
@@ -164,24 +164,24 @@ class ExaminationServiceTest {
 
     @Test
     void shouldFindByCourseId() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
-        Examination exam = createExamination(course, semester);
+        Examination exam = createExamination(subject, semester);
 
-        when(examinationRepository.findByCourseId(1L)).thenReturn(List.of(exam));
+        when(examinationRepository.findBySubjectId(1L)).thenReturn(List.of(exam));
 
-        List<ExaminationResponse> responses = examinationService.findByCourseId(1L);
+        List<ExaminationResponse> responses = examinationService.findBySubjectId(1L);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).courseId()).isEqualTo(1L);
-        verify(examinationRepository).findByCourseId(1L);
+        assertThat(responses.get(0).subjectId()).isEqualTo(1L);
+        verify(examinationRepository).findBySubjectId(1L);
     }
 
     @Test
     void shouldFindBySemesterId() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
-        Examination exam = createExamination(course, semester);
+        Examination exam = createExamination(subject, semester);
 
         when(examinationRepository.findBySemesterId(1L)).thenReturn(List.of(exam));
 
@@ -194,18 +194,18 @@ class ExaminationServiceTest {
 
     @Test
     void shouldUpdateExamination() {
-        Course course = createCourse();
+        Subject subject = createSubject();
         Semester semester = createSemester();
-        Examination existing = createExamination(course, semester);
+        Examination existing = createExamination(subject, semester);
         ExaminationRequest request = new ExaminationRequest(
             "Final Exam", 1L, ExamType.PRACTICAL, LocalDate.of(2024, 7, 1), 90, 50, 1L
         );
-        Examination updated = createExamination(course, semester);
+        Examination updated = createExamination(subject, semester);
         updated.setName("Final Exam");
         updated.setExamType(ExamType.PRACTICAL);
 
         when(examinationRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(subject));
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(semester));
         when(examinationRepository.save(any(Examination.class))).thenReturn(updated);
 
@@ -253,10 +253,10 @@ class ExaminationServiceTest {
         verify(examinationRepository, never()).deleteById(any());
     }
 
-    private Course createCourse() {
-        Course course = new Course("Physics", "PHY101", 4, 3, 1, null, 1);
-        course.setId(1L);
-        return course;
+    private Subject createSubject() {
+        Subject subject = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
+        subject.setId(1L);
+        return subject;
     }
 
     private Semester createSemester() {
@@ -266,8 +266,8 @@ class ExaminationServiceTest {
         return semester;
     }
 
-    private Examination createExamination(Course course, Semester semester) {
-        Examination exam = new Examination("Midterm", course, ExamType.THEORY,
+    private Examination createExamination(Subject subject, Semester semester) {
+        Examination exam = new Examination("Midterm", subject, ExamType.THEORY,
             LocalDate.of(2024, 6, 1), 120, 100, semester);
         exam.setId(1L);
         exam.setCreatedAt(Instant.now());
@@ -275,8 +275,8 @@ class ExaminationServiceTest {
         return exam;
     }
 
-    private Examination createExaminationNoSemester(Course course) {
-        Examination exam = new Examination("Midterm", course, ExamType.THEORY,
+    private Examination createExaminationNoSemester(Subject subject) {
+        Examination exam = new Examination("Midterm", subject, ExamType.THEORY,
             LocalDate.of(2024, 6, 1), 120, 100, null);
         exam.setId(1L);
         exam.setCreatedAt(Instant.now());

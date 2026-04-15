@@ -38,29 +38,30 @@ class StudentServiceTest {
     @Mock
     private ProgramRepository programRepository;
 
+    @Mock
+    private com.cms.repository.CourseRepository courseRepository;
+
+    @Mock
+    private com.cms.repository.DepartmentRepository departmentRepository;
+
     private StudentService studentService;
 
     private Program testProgram;
 
     @BeforeEach
     void setUp() {
-        studentService = new StudentService(studentRepository, programRepository);
-        
-        Department department = new Department();
-        department.setId(1L);
-        department.setName("Computer Science");
-        
+        studentService = new StudentService(studentRepository, programRepository, courseRepository, departmentRepository);
+
         testProgram = new Program();
         testProgram.setId(1L);
         testProgram.setName("B.Tech Computer Science");
-        testProgram.setDepartment(department);
     }
 
     @Test
     void shouldCreateStudent() {
         StudentRequest request = new StudentRequest(
             "CS2024001", "John", "Doe", "john@college.edu", "1234567890",
-            1L, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
+            1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             LocalDate.of(2005, 5, 15), null, null,
             "Indian", null, null, null, null,
             "Father Name", "Mother Name", "9876543210",
@@ -88,7 +89,7 @@ class StudentServiceTest {
     void shouldThrowExceptionWhenCreatingStudentWithNonExistentProgram() {
         StudentRequest request = new StudentRequest(
             "CS2024001", "John", "Doe", "john@college.edu", "1234567890",
-            999L, 1, LocalDate.of(2024, 6, 1), null, null,
+            999L, null, null, 1, LocalDate.of(2024, 6, 1), null, null,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );
@@ -180,7 +181,7 @@ class StudentServiceTest {
 
         StudentRequest updateRequest = new StudentRequest(
             "CS2024001", "Johnny", "Doe", "johnny@college.edu", "9999999999",
-            1L, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
+            1L, null, null, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );

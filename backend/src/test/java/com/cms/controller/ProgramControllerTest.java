@@ -28,7 +28,7 @@ import com.cms.dto.DepartmentResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.DegreeType;
+import com.cms.model.enums.ProgramLevel;
 import com.cms.service.ProgramService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -48,11 +48,10 @@ class ProgramControllerTest {
     @Test
     void shouldCreateProgram() throws Exception {
         ProgramRequest request = new ProgramRequest(
-            "Bachelor of Computer Science",
-            "BCS",
-            DegreeType.BACHELOR,
-            4,
-            1L
+            "UG Program",
+            "UG",
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         Instant now = Instant.now();
@@ -61,11 +60,10 @@ class ProgramControllerTest {
         );
         ProgramResponse response = new ProgramResponse(
             1L,
-            "Bachelor of Computer Science",
-            "BCS",
-            DegreeType.BACHELOR,
-            4,
-            deptResponse,
+            "UG Program",
+            "UG",
+            ProgramLevel.UNDERGRADUATE,
+            List.of(deptResponse),
             now,
             now
         );
@@ -77,11 +75,10 @@ class ProgramControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.name").value("Bachelor of Computer Science"))
-            .andExpect(jsonPath("$.code").value("BCS"))
-            .andExpect(jsonPath("$.degreeType").value("BACHELOR"))
-            .andExpect(jsonPath("$.durationYears").value(4))
-            .andExpect(jsonPath("$.department.id").value(1));
+            .andExpect(jsonPath("$.name").value("UG Program"))
+            .andExpect(jsonPath("$.code").value("UG"))
+            .andExpect(jsonPath("$.programLevel").value("UNDERGRADUATE"))
+            .andExpect(jsonPath("$.departments.length()").value(1));
 
         verify(programService).create(any(ProgramRequest.class));
     }
@@ -90,10 +87,9 @@ class ProgramControllerTest {
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
         ProgramRequest request = new ProgramRequest(
             "",
-            "BCS",
-            DegreeType.BACHELOR,
-            4,
-            1L
+            "UG",
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         mockMvc.perform(post("/programs")
@@ -105,11 +101,10 @@ class ProgramControllerTest {
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
         ProgramRequest request = new ProgramRequest(
-            "Bachelor of CS",
+            "UG Program",
             "",
-            DegreeType.BACHELOR,
-            4,
-            1L
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         mockMvc.perform(post("/programs")
@@ -119,85 +114,18 @@ class ProgramControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenDegreeTypeIsNull() throws Exception {
+    void shouldReturnBadRequestWhenProgramLevelIsNull() throws Exception {
         String jsonRequest = """
             {
-                "name": "Bachelor of CS",
-                "code": "BCS",
-                "durationYears": 4,
-                "departmentId": 1
+                "name": "UG Program",
+                "code": "UG",
+                "departmentIds": [1]
             }
             """;
 
         mockMvc.perform(post("/programs")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDurationYearsIsNull() throws Exception {
-        String jsonRequest = """
-            {
-                "name": "Bachelor of CS",
-                "code": "BCS",
-                "degreeType": "BACHELOR",
-                "departmentId": 1
-            }
-            """;
-
-        mockMvc.perform(post("/programs")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDepartmentIdIsNull() throws Exception {
-        String jsonRequest = """
-            {
-                "name": "Bachelor of CS",
-                "code": "BCS",
-                "degreeType": "BACHELOR",
-                "durationYears": 4
-            }
-            """;
-
-        mockMvc.perform(post("/programs")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDurationYearsTooLow() throws Exception {
-        ProgramRequest request = new ProgramRequest(
-            "Bachelor of CS",
-            "BCS",
-            DegreeType.BACHELOR,
-            0,
-            1L
-        );
-
-        mockMvc.perform(post("/programs")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDurationYearsTooHigh() throws Exception {
-        ProgramRequest request = new ProgramRequest(
-            "Bachelor of CS",
-            "BCS",
-            DegreeType.BACHELOR,
-            11,
-            1L
-        );
-
-        mockMvc.perform(post("/programs")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
     }
 
@@ -208,10 +136,10 @@ class ProgramControllerTest {
             1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
         );
         ProgramResponse prog1 = new ProgramResponse(
-            1L, "Bachelor of CS", "BCS", DegreeType.BACHELOR, 4, deptResponse, now, now
+            1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, List.of(deptResponse), now, now
         );
         ProgramResponse prog2 = new ProgramResponse(
-            2L, "Master of CS", "MCS", DegreeType.MASTER, 2, deptResponse, now, now
+            2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, List.of(deptResponse), now, now
         );
 
         when(programService.findAll()).thenReturn(List.of(prog1, prog2));
@@ -248,9 +176,8 @@ class ProgramControllerTest {
             1L,
             "Bachelor of Computer Science",
             "BCS",
-            DegreeType.BACHELOR,
-            4,
-            deptResponse,
+            ProgramLevel.UNDERGRADUATE,
+            List.of(deptResponse),
             now,
             now
         );
@@ -278,48 +205,12 @@ class ProgramControllerTest {
     }
 
     @Test
-    void shouldFindProgramsByDepartmentId() throws Exception {
-        Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
-        );
-        ProgramResponse prog1 = new ProgramResponse(
-            1L, "Bachelor of CS", "BCS", DegreeType.BACHELOR, 4, deptResponse, now, now
-        );
-        ProgramResponse prog2 = new ProgramResponse(
-            2L, "Master of CS", "MCS", DegreeType.MASTER, 2, deptResponse, now, now
-        );
-
-        when(programService.findByDepartmentId(1L)).thenReturn(List.of(prog1, prog2));
-
-        mockMvc.perform(get("/programs/department/1"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].id").value(1))
-            .andExpect(jsonPath("$[1].id").value(2));
-
-        verify(programService).findByDepartmentId(1L);
-    }
-
-    @Test
-    void shouldReturnNotFoundWhenFindingProgramsByNonExistentDepartment() throws Exception {
-        when(programService.findByDepartmentId(999L))
-            .thenThrow(new ResourceNotFoundException("Department not found with id: 999"));
-
-        mockMvc.perform(get("/programs/department/999"))
-            .andExpect(status().isNotFound());
-
-        verify(programService).findByDepartmentId(999L);
-    }
-
-    @Test
     void shouldUpdateProgram() throws Exception {
         ProgramRequest request = new ProgramRequest(
             "Bachelor of Computer Science Updated",
             "BCSU",
-            DegreeType.BACHELOR,
-            5,
-            1L
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         Instant now = Instant.now();
@@ -330,9 +221,8 @@ class ProgramControllerTest {
             1L,
             "Bachelor of Computer Science Updated",
             "BCSU",
-            DegreeType.BACHELOR,
-            5,
-            deptResponse,
+            ProgramLevel.UNDERGRADUATE,
+            List.of(deptResponse),
             now,
             now
         );
@@ -355,9 +245,8 @@ class ProgramControllerTest {
         ProgramRequest request = new ProgramRequest(
             "Name",
             "CODE",
-            DegreeType.BACHELOR,
-            4,
-            1L
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         when(programService.update(eq(999L), any(ProgramRequest.class)))
@@ -376,9 +265,8 @@ class ProgramControllerTest {
         ProgramRequest request = new ProgramRequest(
             "",
             "",
-            DegreeType.BACHELOR,
-            4,
-            1L
+            ProgramLevel.UNDERGRADUATE,
+            List.of(1L)
         );
 
         mockMvc.perform(put("/programs/1")

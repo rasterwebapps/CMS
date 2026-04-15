@@ -38,7 +38,7 @@ class StudentRepositoryTest {
         Department department = new Department("Computer Science", "CS", "CS Department", "Dr. Smith");
         entityManager.persist(department);
 
-        testProgram = new Program("B.Tech Computer Science", "BTCS", com.cms.model.enums.DegreeType.BACHELOR, 4, department);
+        testProgram = new Program("B.Tech Computer Science", "BTCS", com.cms.model.enums.ProgramLevel.UNDERGRADUATE);
         entityManager.persist(testProgram);
 
         entityManager.flush();

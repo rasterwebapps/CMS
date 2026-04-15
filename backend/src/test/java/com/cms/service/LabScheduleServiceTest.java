@@ -23,7 +23,7 @@ import com.cms.dto.LabScheduleRequest;
 import com.cms.dto.LabScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
@@ -35,7 +35,7 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabScheduleRepository;
@@ -50,7 +50,7 @@ class LabScheduleServiceTest {
     @Mock
     private LabRepository labRepository;
     @Mock
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
     @Mock
     private FacultyRepository facultyRepository;
     @Mock
@@ -61,7 +61,7 @@ class LabScheduleServiceTest {
     private LabScheduleService labScheduleService;
 
     private Lab testLab;
-    private Course testCourse;
+    private Subject testCourse;
     private Faculty testFaculty;
     private LabSlot testLabSlot;
     private Semester testSemester;
@@ -71,7 +71,7 @@ class LabScheduleServiceTest {
     @BeforeEach
     void setUp() {
         labScheduleService = new LabScheduleService(
-            labScheduleRepository, labRepository, courseRepository,
+            labScheduleRepository, labRepository, subjectRepository,
             facultyRepository, labSlotRepository, semesterRepository
         );
 
@@ -86,7 +86,7 @@ class LabScheduleServiceTest {
             "L001", 30, LabStatus.ACTIVE);
         testLab.setId(1L);
 
-        testCourse = new Course("Data Structures Lab", "CS201L", 3, 0, 3, testProgram, 3);
+        testCourse = new Subject("Data Structures Lab", "CS201L", 3, 0, 3, null, null, 3);
         testCourse.setId(1L);
 
         testFaculty = new Faculty("EMP001", "John", "Doe", "john@college.edu", "1234567890",
@@ -111,7 +111,7 @@ class LabScheduleServiceTest {
             testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(testSemester));
@@ -144,7 +144,7 @@ class LabScheduleServiceTest {
         );
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labScheduleService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -158,7 +158,7 @@ class LabScheduleServiceTest {
         );
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labScheduleService.create(request))
@@ -173,7 +173,7 @@ class LabScheduleServiceTest {
         );
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -189,7 +189,7 @@ class LabScheduleServiceTest {
         );
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
         when(semesterRepository.findById(999L)).thenReturn(Optional.empty());
@@ -406,7 +406,7 @@ class LabScheduleServiceTest {
 
         when(labScheduleRepository.findById(1L)).thenReturn(Optional.of(existingSchedule));
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(testSemester));
@@ -438,7 +438,7 @@ class LabScheduleServiceTest {
         verify(labScheduleRepository, never()).deleteById(any());
     }
 
-    private LabSchedule createLabSchedule(Long id, Lab lab, Course course, Faculty faculty,
+    private LabSchedule createLabSchedule(Long id, Lab lab, Subject course, Faculty faculty,
                                            LabSlot labSlot, String batchName, DayOfWeek dayOfWeek,
                                            Semester semester, Boolean isActive) {
         LabSchedule schedule = new LabSchedule(lab, course, faculty, labSlot, batchName, dayOfWeek, semester, isActive);
