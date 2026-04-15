@@ -11,7 +11,6 @@ import com.cms.dto.DepartmentResponse;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
-import com.cms.model.Department;
 import com.cms.model.Program;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.ProgramRepository;
@@ -36,11 +35,9 @@ public class CourseService {
         Course course = new Course(
             request.name(),
             request.code(),
-            request.credits(),
-            request.theoryCredits(),
-            request.labCredits(),
-            program,
-            request.semester()
+            request.degreeType(),
+            request.durationYears(),
+            program
         );
         Course saved = courseRepository.save(course);
         return toResponse(saved);
@@ -77,11 +74,9 @@ public class CourseService {
 
         course.setName(request.name());
         course.setCode(request.code());
-        course.setCredits(request.credits());
-        course.setTheoryCredits(request.theoryCredits());
-        course.setLabCredits(request.labCredits());
+        course.setDegreeType(request.degreeType());
+        course.setDurationYears(request.durationYears());
         course.setProgram(program);
-        course.setSemester(request.semester());
 
         Course updated = courseRepository.save(course);
         return toResponse(updated);
@@ -97,25 +92,25 @@ public class CourseService {
 
     private CourseResponse toResponse(Course course) {
         Program program = course.getProgram();
-        Department department = program.getDepartment();
 
-        DepartmentResponse departmentResponse = new DepartmentResponse(
-            department.getId(),
-            department.getName(),
-            department.getCode(),
-            department.getDescription(),
-            department.getHodName(),
-            department.getCreatedAt(),
-            department.getUpdatedAt()
-        );
+        List<DepartmentResponse> departmentResponses = program.getDepartments().stream()
+            .map(dept -> new DepartmentResponse(
+                dept.getId(),
+                dept.getName(),
+                dept.getCode(),
+                dept.getDescription(),
+                dept.getHodName(),
+                dept.getCreatedAt(),
+                dept.getUpdatedAt()
+            ))
+            .toList();
 
         ProgramResponse programResponse = new ProgramResponse(
             program.getId(),
             program.getName(),
             program.getCode(),
-            program.getDegreeType(),
-            program.getDurationYears(),
-            departmentResponse,
+            program.getProgramLevel(),
+            departmentResponses,
             program.getCreatedAt(),
             program.getUpdatedAt()
         );
@@ -124,11 +119,9 @@ public class CourseService {
             course.getId(),
             course.getName(),
             course.getCode(),
-            course.getCredits(),
-            course.getTheoryCredits(),
-            course.getLabCredits(),
+            course.getDegreeType(),
+            course.getDurationYears(),
             programResponse,
-            course.getSemester(),
             course.getCreatedAt(),
             course.getUpdatedAt()
         );

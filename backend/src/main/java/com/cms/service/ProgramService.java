@@ -1,6 +1,8 @@
 package com.cms.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,16 +30,20 @@ public class ProgramService {
 
     @Transactional
     public ProgramResponse create(ProgramRequest request) {
-        Department department = departmentRepository.findById(request.departmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
-
         Program program = new Program(
             request.name(),
             request.code(),
-            request.degreeType(),
-            request.durationYears(),
-            department
+            request.programLevel()
         );
+
+        if (request.departmentIds() != null && !request.departmentIds().isEmpty()) {
+            Set<Department> departments = new HashSet<>(departmentRepository.findAllById(request.departmentIds()));
+            if (departments.size() != request.departmentIds().size()) {
+                throw new ResourceNotFoundException("One or more departments not found");
+            }
+            program.setDepartments(departments);
+        }
+
         Program saved = programRepository.save(program);
         return toResponse(saved);
     }
@@ -54,28 +60,24 @@ public class ProgramService {
         return toResponse(program);
     }
 
-    public List<ProgramResponse> findByDepartmentId(Long departmentId) {
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new ResourceNotFoundException("Department not found with id: " + departmentId);
-        }
-        return programRepository.findByDepartmentId(departmentId).stream()
-            .map(this::toResponse)
-            .toList();
-    }
-
     @Transactional
     public ProgramResponse update(Long id, ProgramRequest request) {
         Program program = programRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + id));
 
-        Department department = departmentRepository.findById(request.departmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
-
         program.setName(request.name());
         program.setCode(request.code());
-        program.setDegreeType(request.degreeType());
-        program.setDurationYears(request.durationYears());
-        program.setDepartment(department);
+        program.setProgramLevel(request.programLevel());
+
+        if (request.departmentIds() != null) {
+            Set<Department> departments = new HashSet<>(departmentRepository.findAllById(request.departmentIds()));
+            if (departments.size() != request.departmentIds().size()) {
+                throw new ResourceNotFoundException("One or more departments not found");
+            }
+            program.setDepartments(departments);
+        } else {
+            program.setDepartments(new HashSet<>());
+        }
 
         Program updated = programRepository.save(program);
         return toResponse(updated);
@@ -90,24 +92,24 @@ public class ProgramService {
     }
 
     private ProgramResponse toResponse(Program program) {
-        Department department = program.getDepartment();
-        DepartmentResponse departmentResponse = new DepartmentResponse(
-            department.getId(),
-            department.getName(),
-            department.getCode(),
-            department.getDescription(),
-            department.getHodName(),
-            department.getCreatedAt(),
-            department.getUpdatedAt()
-        );
+        List<DepartmentResponse> departmentResponses = program.getDepartments().stream()
+            .map(dept -> new DepartmentResponse(
+                dept.getId(),
+                dept.getName(),
+                dept.getCode(),
+                dept.getDescription(),
+                dept.getHodName(),
+                dept.getCreatedAt(),
+                dept.getUpdatedAt()
+            ))
+            .toList();
 
         return new ProgramResponse(
             program.getId(),
             program.getName(),
             program.getCode(),
-            program.getDegreeType(),
-            program.getDurationYears(),
-            departmentResponse,
+            program.getProgramLevel(),
+            departmentResponses,
             program.getCreatedAt(),
             program.getUpdatedAt()
         );
