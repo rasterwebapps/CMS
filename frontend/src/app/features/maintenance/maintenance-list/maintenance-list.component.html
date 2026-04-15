@@ -1,68 +1,126 @@
-<div class="list-container">
-  <div class="header">
-    <h2 class="page-title">Maintenance Requests</h2>
-    <button mat-flat-button color="primary" routerLink="/maintenance/new">
-      <mat-icon>add</mat-icon> Add Maintenance Request
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Maintenance</span>
+      </nav>
+      <h1 class="page-title">Maintenance Requests</h1>
+      <p class="page-subtitle">Track equipment maintenance, priorities, and assignments</p>
+    </div>
+    <button class="btn-primary" routerLink="/maintenance/new" aria-label="Create new maintenance request">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Request
     </button>
   </div>
-  <mat-card appearance="outlined">
-    <mat-card-content>
-      <div class="table-controls">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search</mat-label>
-          <input matInput [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search..." />
-          @if (searchValue()) {
-            <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
-          }
-        </mat-form-field>
-      </div>
-      @if (loading()) {
-        <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="data-table">
-            <ng-container matColumnDef="equipmentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Equipment</th>
-              <td mat-cell *matCellDef="let row">{{ row.equipmentName }}</td>
-            </ng-container>
-            <ng-container matColumnDef="requestedBy">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Requested By</th>
-              <td mat-cell *matCellDef="let row">{{ row.requestedBy }}</td>
-            </ng-container>
-            <ng-container matColumnDef="priority">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Priority</th>
-              <td mat-cell *matCellDef="let row">{{ row.priority }}</td>
-            </ng-container>
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let row">{{ row.status }}</td>
-            </ng-container>
-            <ng-container matColumnDef="assignedTechnician">
-              <th mat-header-cell *matHeaderCellDef>Assigned Technician</th>
-              <td mat-cell *matCellDef="let row">{{ row.assignedTechnician || '—' }}</td>
-            </ng-container>
-            <ng-container matColumnDef="createdAt">
-              <th mat-header-cell *matHeaderCellDef>Created At</th>
-              <td mat-cell *matCellDef="let row">{{ row.createdAt }}</td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let row">
-                <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
-            </tr>
-          </table>
-        </div>
-        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+
+  <div class="command-bar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search maintenance..."
+        type="text"
+        aria-label="Search maintenance requests"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading maintenance requests"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="equipmentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Equipment</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.equipmentName }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="requestedBy">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Requested By</th>
+            <td mat-cell *matCellDef="let row">{{ row.requestedBy }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Priority</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="'cms-badge ' + (row.priority === 'CRITICAL' || row.priority === 'HIGH' ? 'cms-badge--red' : row.priority === 'MEDIUM' ? 'cms-badge--amber' : 'cms-badge--gray')">{{ row.priority }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="'status-badge status-' + (row.status ? row.status.toLowerCase() : 'unknown')">
+                {{ row.status }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="assignedTechnician">
+            <th mat-header-cell *matHeaderCellDef>Assigned Technician</th>
+            <td mat-cell *matCellDef="let row">{{ row.assignedTechnician || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created At</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.createdAt }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit maintenance request">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete maintenance request">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state__content">
+                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                @if (searchValue()) {
+                  <p class="empty-state__text">No maintenance requests found matching "{{ searchValue() }}"</p>
+                } @else {
+                  <p class="empty-state__text">No maintenance requests available</p>
+                }
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="pagination-wrapper">
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    }
+  </div>
 </div>
