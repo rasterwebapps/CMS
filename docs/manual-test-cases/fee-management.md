@@ -273,3 +273,71 @@
 | **Precondition** | A program has fee structures for two different academic years |
 | **Action**  | Send GET `/api/v1/fee-structures?programId={id}&academicYearId={yearId}` |
 | **Expected**| Only fee structures matching both program and academic year are returned |
+
+---
+
+## TC-FEE-020: Create fee structure with year-wise amounts
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- A program with durationYears = 3 exists
+- An academic year exists
+
+**Steps:**
+1. Send a POST request to `/api/v1/fee-structures` with body:
+   ```json
+   {
+     "programId": 1,
+     "academicYearId": 1,
+     "feeType": "TUITION",
+     "amount": 150000,
+     "description": "Tuition fee",
+     "isMandatory": true,
+     "isActive": true,
+     "yearAmounts": [
+       { "yearNumber": 1, "yearLabel": "First Year", "amount": 55000 },
+       { "yearNumber": 2, "yearLabel": "Second Year", "amount": 50000 },
+       { "yearNumber": 3, "yearLabel": "Third Year", "amount": 45000 }
+     ]
+   }
+   ```
+2. Verify the response status is 201 Created
+3. Verify response includes yearAmounts array with 3 entries
+
+**Expected Result:**
+- Fee structure is created with year-wise breakdown matching program duration
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-021: Update fee structure year-wise amounts
+
+**Preconditions:**
+- A fee structure with year amounts exists
+
+**Steps:**
+1. Send a PUT request with updated yearAmounts values
+2. Verify old year amounts are replaced with new ones
+
+**Expected Result:**
+- Year amounts are replaced (not appended) on update
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-022: Get fee guideline for program and academic year
+
+**Preconditions:**
+- Fee structures exist for a program in a specific academic year
+
+**Steps:**
+1. Send a GET request to `/api/v1/fee-structures?programId=1&academicYearId=1`
+2. Verify response includes fee structures with yearAmounts
+
+**Expected Result:**
+- Active fee structures for the program/academic year are returned with year-wise breakdowns
+- This data serves as the fee guideline shown on the enquiry screen
+
+**Status:** NOT TESTED
