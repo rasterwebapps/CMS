@@ -21,10 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.ExperimentRequest;
 import com.cms.dto.ExperimentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Experiment;
-import com.cms.model.Program;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.ExperimentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,16 +33,16 @@ class ExperimentServiceTest {
     private ExperimentRepository experimentRepository;
 
     @Mock
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
 
     private ExperimentService experimentService;
 
-    private Course testCourse;
+    private Subject testCourse;
 
     @BeforeEach
     void setUp() {
-        experimentService = new ExperimentService(experimentRepository, courseRepository);
-        testCourse = createCourse(1L, "Data Structures Lab", "CS201L");
+        experimentService = new ExperimentService(experimentRepository, subjectRepository);
+        testCourse = createSubject(1L, "Data Structures Lab", "CS201L");
     }
 
     @Test
@@ -61,7 +60,7 @@ class ExperimentServiceTest {
 
         Experiment savedExperiment = createExperiment(1L, testCourse, 1, "Stack Implementation");
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(experimentRepository.save(any(Experiment.class))).thenReturn(savedExperiment);
 
         ExperimentResponse response = experimentService.create(request);
@@ -81,11 +80,11 @@ class ExperimentServiceTest {
             999L, 1, "Test", "Desc", "Aim", "App", "Proc", "Out", "LO", 60, true
         );
 
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> experimentService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
 
         verify(experimentRepository, never()).save(any(Experiment.class));
     }
@@ -129,23 +128,23 @@ class ExperimentServiceTest {
     void shouldFindExperimentsByCourseId() {
         Experiment exp = createExperiment(1L, testCourse, 1, "Test");
 
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(experimentRepository.findByCourseIdOrderByExperimentNumberAsc(1L)).thenReturn(List.of(exp));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(experimentRepository.findBySubjectIdOrderByExperimentNumberAsc(1L)).thenReturn(List.of(exp));
 
-        List<ExperimentResponse> responses = experimentService.findByCourseId(1L);
+        List<ExperimentResponse> responses = experimentService.findBySubjectId(1L);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).courseId()).isEqualTo(1L);
+        assertThat(responses.get(0).subjectId()).isEqualTo(1L);
     }
 
     @Test
     void shouldFindActiveExperimentsByCourseId() {
         Experiment exp = createExperiment(1L, testCourse, 1, "Test");
 
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(experimentRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(List.of(exp));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(experimentRepository.findBySubjectIdAndIsActiveTrue(1L)).thenReturn(List.of(exp));
 
-        List<ExperimentResponse> responses = experimentService.findActiveByCourseId(1L);
+        List<ExperimentResponse> responses = experimentService.findActiveBySubjectId(1L);
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).isActive()).isTrue();
@@ -153,20 +152,20 @@ class ExperimentServiceTest {
 
     @Test
     void shouldThrowExceptionWhenFindByCourseIdWithNonExistentCourse() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> experimentService.findByCourseId(999L))
+        assertThatThrownBy(() -> experimentService.findBySubjectId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
     void shouldThrowExceptionWhenFindActiveByCourseIdWithNonExistentCourse() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> experimentService.findActiveByCourseId(999L))
+        assertThatThrownBy(() -> experimentService.findActiveBySubjectId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
@@ -181,7 +180,7 @@ class ExperimentServiceTest {
         Experiment updatedExperiment = createExperiment(1L, testCourse, 1, "Updated Name");
 
         when(experimentRepository.findById(1L)).thenReturn(Optional.of(existingExperiment));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(experimentRepository.save(any(Experiment.class))).thenReturn(updatedExperiment);
 
         ExperimentResponse response = experimentService.update(1L, updateRequest);
@@ -210,19 +209,15 @@ class ExperimentServiceTest {
         verify(experimentRepository, never()).deleteById(any());
     }
 
-    private Course createCourse(Long id, String name, String code) {
-        Program program = new Program();
-        program.setId(1L);
-        program.setName("Computer Science");
-
-        Course course = new Course(name, code, 3, 2, 1, program, 1);
-        course.setId(id);
-        return course;
+    private Subject createSubject(Long id, String name, String code) {
+        Subject subject = new Subject(name, code, 3, 2, 1, null, null, 1);
+        subject.setId(id);
+        return subject;
     }
 
-    private Experiment createExperiment(Long id, Course course, Integer expNum, String name) {
+    private Experiment createExperiment(Long id, Subject subject, Integer expNum, String name) {
         Experiment experiment = new Experiment(
-            course, expNum, name, "Description", "Aim", "Apparatus",
+            subject, expNum, name, "Description", "Aim", "Apparatus",
             "Procedure", "Expected Outcome", "Learning Outcomes", 120, true
         );
         experiment.setId(id);

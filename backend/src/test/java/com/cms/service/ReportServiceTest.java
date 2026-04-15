@@ -21,7 +21,7 @@ import com.cms.dto.AttendanceAnalyticsReportResponse;
 import com.cms.dto.LabUtilizationReportResponse;
 import com.cms.dto.StudentPerformanceReportResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.ExamResult;
 import com.cms.model.Examination;
 import com.cms.model.Experiment;
@@ -109,8 +109,8 @@ class ReportServiceTest {
     void shouldGetStudentPerformanceReport() {
         Student student = createStudent();
         Examination examination = createExamination();
-        Course course = createCourse();
-        Experiment experiment = createExperiment(course);
+        Subject subject = createSubject();
+        Experiment experiment = createExperiment(subject);
 
         ExamResult examResult = new ExamResult(examination, student,
             new BigDecimal("85.50"), "A", ExamResultStatus.PUBLISHED);
@@ -162,10 +162,10 @@ class ReportServiceTest {
         verify(attendanceRepository).count();
     }
 
-    private Course createCourse() {
-        Course course = new Course("Physics", "PHY101", 4, 3, 1, null, 1);
-        course.setId(1L);
-        return course;
+    private Subject createSubject() {
+        Subject subject = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
+        subject.setId(1L);
+        return subject;
     }
 
     private Semester createSemester() {
@@ -176,7 +176,7 @@ class ReportServiceTest {
     }
 
     private Examination createExamination() {
-        Examination exam = new Examination("Midterm", createCourse(), ExamType.THEORY,
+        Examination exam = new Examination("Midterm", createSubject(), ExamType.THEORY,
             LocalDate.of(2024, 6, 1), 120, 100, createSemester());
         exam.setId(1L);
         exam.setCreatedAt(Instant.now());
@@ -191,8 +191,8 @@ class ReportServiceTest {
         return student;
     }
 
-    private Experiment createExperiment(Course course) {
-        Experiment experiment = new Experiment(course, 1, "Ohm's Law",
+    private Experiment createExperiment(Subject subject) {
+        Experiment experiment = new Experiment(subject, 1, "Ohm's Law",
             null, null, null, null, null, null, null, true);
         experiment.setId(1L);
         return experiment;

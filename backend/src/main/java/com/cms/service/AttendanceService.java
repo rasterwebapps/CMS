@@ -15,11 +15,11 @@ import com.cms.dto.AttendanceResponse;
 import com.cms.dto.BulkAttendanceRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Attendance;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -30,14 +30,14 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
-                              CourseRepository courseRepository) {
+                              SubjectRepository subjectRepository) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     @Transactional
@@ -45,11 +45,11 @@ public class AttendanceService {
         Student student = studentRepository.findById(request.studentId())
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         Attendance attendance = new Attendance(
-            student, course, request.date(), request.status(), request.type()
+            student, subject, request.date(), request.status(), request.type()
         );
         attendance.setRemarks(request.remarks());
 
@@ -59,8 +59,8 @@ public class AttendanceService {
 
     @Transactional
     public List<AttendanceResponse> markBulkAttendance(BulkAttendanceRequest request) {
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         List<AttendanceResponse> responses = new ArrayList<>();
 
@@ -69,7 +69,7 @@ public class AttendanceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + sa.studentId()));
 
             Attendance attendance = new Attendance(
-                student, course, request.date(), sa.status(), request.type()
+                student, subject, request.date(), sa.status(), request.type()
             );
             attendance.setRemarks(sa.remarks());
 
@@ -89,46 +89,46 @@ public class AttendanceService {
             .toList();
     }
 
-    public List<AttendanceResponse> findByCourseId(Long courseId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+    public List<AttendanceResponse> findBySubjectId(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return attendanceRepository.findByCourseId(courseId).stream()
+        return attendanceRepository.findBySubjectId(subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
 
-    public List<AttendanceResponse> findByStudentIdAndCourseId(Long studentId, Long courseId) {
+    public List<AttendanceResponse> findByStudentIdAndSubjectId(Long studentId, Long subjectId) {
         if (!studentRepository.existsById(studentId)) {
             throw new ResourceNotFoundException("Student not found with id: " + studentId);
         }
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return attendanceRepository.findByStudentIdAndCourseId(studentId, courseId).stream()
+        return attendanceRepository.findByStudentIdAndSubjectId(studentId, subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
 
-    public List<AttendanceResponse> findByCourseIdAndDate(Long courseId, LocalDate date) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+    public List<AttendanceResponse> findBySubjectIdAndDate(Long subjectId, LocalDate date) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return attendanceRepository.findByCourseIdAndDate(courseId, date).stream()
+        return attendanceRepository.findBySubjectIdAndDate(subjectId, date).stream()
             .map(this::toResponse)
             .toList();
     }
 
-    public AttendanceReportResponse getAttendanceReport(Long studentId, Long courseId) {
+    public AttendanceReportResponse getAttendanceReport(Long studentId, Long subjectId) {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
-        Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+        Subject subject = subjectRepository.findById(subjectId)
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
-        long totalClasses = attendanceRepository.countByStudentIdAndCourseId(studentId, courseId);
-        long classesAttended = attendanceRepository.countByStudentIdAndCourseIdAndStatus(
-            studentId, courseId, AttendanceStatus.PRESENT);
+        long totalClasses = attendanceRepository.countByStudentIdAndSubjectId(studentId, subjectId);
+        long classesAttended = attendanceRepository.countByStudentIdAndSubjectIdAndStatus(
+            studentId, subjectId, AttendanceStatus.PRESENT);
 
         BigDecimal attendancePercentage = BigDecimal.ZERO;
         if (totalClasses > 0) {
@@ -143,9 +143,9 @@ public class AttendanceService {
             student.getId(),
             student.getFullName(),
             student.getRollNumber(),
-            course.getId(),
-            course.getName(),
-            course.getCode(),
+            subject.getId(),
+            subject.getName(),
+            subject.getCode(),
             totalClasses,
             classesAttended,
             attendancePercentage,
@@ -153,15 +153,15 @@ public class AttendanceService {
         );
     }
 
-    public List<AttendanceReportResponse> getLowAttendanceAlerts(Long courseId) {
-        Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+    public List<AttendanceReportResponse> getLowAttendanceAlerts(Long subjectId) {
+        Subject subject = subjectRepository.findById(subjectId)
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
-        List<Student> students = studentRepository.findByProgramId(course.getProgram().getId());
+        List<Student> students = studentRepository.findByProgramId(subject.getCourse().getProgram().getId());
 
         List<AttendanceReportResponse> alerts = new ArrayList<>();
         for (Student student : students) {
-            AttendanceReportResponse report = getAttendanceReport(student.getId(), courseId);
+            AttendanceReportResponse report = getAttendanceReport(student.getId(), subjectId);
             if (report.lowAttendance()) {
                 alerts.add(report);
             }
@@ -178,11 +178,11 @@ public class AttendanceService {
         Student student = studentRepository.findById(request.studentId())
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         attendance.setStudent(student);
-        attendance.setCourse(course);
+        attendance.setSubject(subject);
         attendance.setDate(request.date());
         attendance.setStatus(request.status());
         attendance.setType(request.type());
@@ -206,9 +206,9 @@ public class AttendanceService {
             attendance.getStudent().getId(),
             attendance.getStudent().getFullName(),
             attendance.getStudent().getRollNumber(),
-            attendance.getCourse().getId(),
-            attendance.getCourse().getName(),
-            attendance.getCourse().getCode(),
+            attendance.getSubject().getId(),
+            attendance.getSubject().getName(),
+            attendance.getSubject().getCode(),
             attendance.getDate(),
             attendance.getStatus(),
             attendance.getType(),

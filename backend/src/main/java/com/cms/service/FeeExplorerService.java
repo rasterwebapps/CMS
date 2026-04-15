@@ -68,14 +68,16 @@ public class FeeExplorerService {
 
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),
-                    student.getProgram().getName(), student.getProgram().getDurationYears(),
+                    student.getProgram().getName(),
+                    student.getCourse() != null ? student.getCourse().getDurationYears() : null,
                     allocation.getNetFee(), totalPaid, totalPending, totalPenalty,
                     allocation.getStatus().name()
                 ));
             } else {
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),
-                    student.getProgram().getName(), student.getProgram().getDurationYears(),
+                    student.getProgram().getName(),
+                    student.getCourse() != null ? student.getCourse().getDurationYears() : null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     "NOT_ALLOCATED"
                 ));

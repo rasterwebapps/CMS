@@ -4,9 +4,9 @@ import java.time.Instant;
 
 public record SyllabusResponse(
     Long id,
-    Long courseId,
-    String courseName,
-    String courseCode,
+    Long subjectId,
+    String subjectName,
+    String subjectCode,
     Integer version,
     Integer theoryHours,
     Integer labHours,

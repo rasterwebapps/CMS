@@ -40,13 +40,13 @@ public class SyllabusController {
 
     @GetMapping
     public ResponseEntity<List<SyllabusResponse>> findAll(
-            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
             @RequestParam(required = false) Boolean activeOnly) {
         List<SyllabusResponse> syllabusList;
-        if (courseId != null && Boolean.TRUE.equals(activeOnly)) {
-            syllabusList = List.of(syllabusService.findActiveByCourseId(courseId));
-        } else if (courseId != null) {
-            syllabusList = syllabusService.findByCourseId(courseId);
+        if (subjectId != null && Boolean.TRUE.equals(activeOnly)) {
+            syllabusList = List.of(syllabusService.findActiveBySubjectId(subjectId));
+        } else if (subjectId != null) {
+            syllabusList = syllabusService.findBySubjectId(subjectId);
         } else {
             syllabusList = syllabusService.findAll();
         }

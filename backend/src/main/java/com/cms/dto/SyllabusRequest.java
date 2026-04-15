@@ -5,8 +5,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record SyllabusRequest(
-    @NotNull(message = "Course ID is required")
-    Long courseId,
+    @NotNull(message = "Subject ID is required")
+    Long subjectId,
 
     @NotNull(message = "Version is required")
     @Positive(message = "Version must be positive")

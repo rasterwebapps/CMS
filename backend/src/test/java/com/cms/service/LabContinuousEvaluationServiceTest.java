@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.LabContinuousEvaluationRequest;
 import com.cms.dto.LabContinuousEvaluationResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Experiment;
 import com.cms.model.LabContinuousEvaluation;
 import com.cms.model.Student;
@@ -208,14 +208,14 @@ class LabContinuousEvaluationServiceTest {
         verify(labContinuousEvaluationRepository, never()).deleteById(any());
     }
 
-    private Course createCourse() {
-        Course course = new Course("Physics", "PHY101", 4, 3, 1, null, 1);
+    private Subject createSubject() {
+        Subject course = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
         course.setId(1L);
         return course;
     }
 
     private Experiment createExperiment() {
-        Experiment experiment = new Experiment(createCourse(), 1, "Ohm's Law",
+        Experiment experiment = new Experiment(createSubject(), 1, "Ohm's Law",
             null, null, null, null, null, null, null, true);
         experiment.setId(1L);
         return experiment;

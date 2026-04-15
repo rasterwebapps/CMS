@@ -6,13 +6,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.DegreeType;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,9 +18,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "courses")
+@Table(name = "subjects")
 @EntityListeners(AuditingEntityListener.class)
-public class Course {
+public class Subject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,16 +32,25 @@ public class Course {
     @Column(nullable = false, unique = true)
     private String code;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "degree_type", nullable = false)
-    private DegreeType degreeType;
+    @Column(nullable = false)
+    private Integer credits;
 
-    @Column(name = "duration_years", nullable = false)
-    private Integer durationYears;
+    @Column(name = "theory_credits", nullable = false)
+    private Integer theoryCredits;
+
+    @Column(name = "lab_credits", nullable = false)
+    private Integer labCredits;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "program_id", nullable = false)
-    private Program program;
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
+    @Column(nullable = false)
+    private Integer semester;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -55,15 +60,19 @@ public class Course {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Course() {
+    public Subject() {
     }
 
-    public Course(String name, String code, DegreeType degreeType, Integer durationYears, Program program) {
+    public Subject(String name, String code, Integer credits, Integer theoryCredits, Integer labCredits,
+                   Course course, Department department, Integer semester) {
         this.name = name;
         this.code = code;
-        this.degreeType = degreeType;
-        this.durationYears = durationYears;
-        this.program = program;
+        this.credits = credits;
+        this.theoryCredits = theoryCredits;
+        this.labCredits = labCredits;
+        this.course = course;
+        this.department = department;
+        this.semester = semester;
     }
 
     public Long getId() {
@@ -90,28 +99,52 @@ public class Course {
         this.code = code;
     }
 
-    public DegreeType getDegreeType() {
-        return degreeType;
+    public Integer getCredits() {
+        return credits;
     }
 
-    public void setDegreeType(DegreeType degreeType) {
-        this.degreeType = degreeType;
+    public void setCredits(Integer credits) {
+        this.credits = credits;
     }
 
-    public Integer getDurationYears() {
-        return durationYears;
+    public Integer getTheoryCredits() {
+        return theoryCredits;
     }
 
-    public void setDurationYears(Integer durationYears) {
-        this.durationYears = durationYears;
+    public void setTheoryCredits(Integer theoryCredits) {
+        this.theoryCredits = theoryCredits;
     }
 
-    public Program getProgram() {
-        return program;
+    public Integer getLabCredits() {
+        return labCredits;
     }
 
-    public void setProgram(Program program) {
-        this.program = program;
+    public void setLabCredits(Integer labCredits) {
+        this.labCredits = labCredits;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    public Department getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public Integer getSemester() {
+        return semester;
+    }
+
+    public void setSemester(Integer semester) {
+        this.semester = semester;
     }
 
     public Instant getCreatedAt() {

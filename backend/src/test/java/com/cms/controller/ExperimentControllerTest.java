@@ -116,14 +116,14 @@ class ExperimentControllerTest {
             "Learning", 120, true, now, now
         );
 
-        when(experimentService.findByCourseId(1L)).thenReturn(List.of(response));
+        when(experimentService.findBySubjectId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/experiments").param("courseId", "1"))
+        mockMvc.perform(get("/experiments").param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].courseId").value(1));
+            .andExpect(jsonPath("$[0].subjectId").value(1));
 
-        verify(experimentService).findByCourseId(1L);
+        verify(experimentService).findBySubjectId(1L);
     }
 
     @Test

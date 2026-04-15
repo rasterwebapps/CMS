@@ -37,6 +37,10 @@ public record StudentRequest(
     @NotNull(message = "Program ID is required")
     Long programId,
 
+    Long courseId,
+
+    Long specializationDepartmentId,
+
     @NotNull(message = "Semester is required")
     @Positive(message = "Semester must be positive")
     Integer semester,

@@ -9,13 +9,13 @@ import com.cms.model.Experiment;
 
 public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
-    List<Experiment> findByCourseId(Long courseId);
+    List<Experiment> findBySubjectId(Long subjectId);
 
-    List<Experiment> findByCourseIdAndIsActiveTrue(Long courseId);
+    List<Experiment> findBySubjectIdAndIsActiveTrue(Long subjectId);
 
-    Optional<Experiment> findByCourseIdAndExperimentNumber(Long courseId, Integer experimentNumber);
+    Optional<Experiment> findBySubjectIdAndExperimentNumber(Long subjectId, Integer experimentNumber);
 
-    boolean existsByCourseIdAndExperimentNumber(Long courseId, Integer experimentNumber);
+    boolean existsBySubjectIdAndExperimentNumber(Long subjectId, Integer experimentNumber);
 
-    List<Experiment> findByCourseIdOrderByExperimentNumberAsc(Long courseId);
+    List<Experiment> findBySubjectIdOrderByExperimentNumberAsc(Long subjectId);
 }

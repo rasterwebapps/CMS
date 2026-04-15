@@ -21,10 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
-import com.cms.model.Program;
+import com.cms.model.Subject;
 import com.cms.model.Syllabus;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.SyllabusRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,16 +33,16 @@ class SyllabusServiceTest {
     private SyllabusRepository syllabusRepository;
 
     @Mock
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
 
     private SyllabusService syllabusService;
 
-    private Course testCourse;
+    private Subject testCourse;
 
     @BeforeEach
     void setUp() {
-        syllabusService = new SyllabusService(syllabusRepository, courseRepository);
-        testCourse = createCourse(1L, "Data Structures", "CS201");
+        syllabusService = new SyllabusService(syllabusRepository, subjectRepository);
+        testCourse = createSubject(1L, "Data Structures", "CS201");
     }
 
     @Test
@@ -57,13 +56,13 @@ class SyllabusServiceTest {
 
         Syllabus savedSyllabus = createSyllabus(1L, testCourse, 1, true);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(syllabusRepository.save(any(Syllabus.class))).thenReturn(savedSyllabus);
 
         SyllabusResponse response = syllabusService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.subjectId()).isEqualTo(1L);
         assertThat(response.version()).isEqualTo(1);
         assertThat(response.isActive()).isTrue();
 
@@ -79,11 +78,11 @@ class SyllabusServiceTest {
             "Objectives", "Content", "Text", "Ref", "CO", true
         );
 
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> syllabusService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
 
         verify(syllabusRepository, never()).save(any(Syllabus.class));
     }
@@ -111,7 +110,7 @@ class SyllabusServiceTest {
         SyllabusResponse response = syllabusService.findById(1L);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.subjectId()).isEqualTo(1L);
     }
 
     @Test
@@ -127,43 +126,43 @@ class SyllabusServiceTest {
     void shouldFindSyllabusByCourseId() {
         Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
 
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(syllabusRepository.findByCourseId(1L)).thenReturn(List.of(syllabus));
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(syllabusRepository.findBySubjectId(1L)).thenReturn(List.of(syllabus));
 
-        List<SyllabusResponse> responses = syllabusService.findByCourseId(1L);
+        List<SyllabusResponse> responses = syllabusService.findBySubjectId(1L);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).courseId()).isEqualTo(1L);
+        assertThat(responses.get(0).subjectId()).isEqualTo(1L);
     }
 
     @Test
     void shouldFindActiveSyllabusByCourseId() {
         Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
 
-        when(syllabusRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(Optional.of(syllabus));
+        when(syllabusRepository.findBySubjectIdAndIsActiveTrue(1L)).thenReturn(Optional.of(syllabus));
 
-        SyllabusResponse response = syllabusService.findActiveByCourseId(1L);
+        SyllabusResponse response = syllabusService.findActiveBySubjectId(1L);
 
-        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.subjectId()).isEqualTo(1L);
         assertThat(response.isActive()).isTrue();
     }
 
     @Test
     void shouldThrowExceptionWhenNoActiveSyllabusFound() {
-        when(syllabusRepository.findByCourseIdAndIsActiveTrue(1L)).thenReturn(Optional.empty());
+        when(syllabusRepository.findBySubjectIdAndIsActiveTrue(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> syllabusService.findActiveByCourseId(1L))
+        assertThatThrownBy(() -> syllabusService.findActiveBySubjectId(1L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("No active syllabus found for course id: 1");
+            .hasMessage("No active syllabus found for subject id: 1");
     }
 
     @Test
     void shouldThrowExceptionWhenFindByCourseIdWithNonExistentCourse() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> syllabusService.findByCourseId(999L))
+        assertThatThrownBy(() -> syllabusService.findBySubjectId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test
@@ -180,7 +179,7 @@ class SyllabusServiceTest {
         Syllabus updatedSyllabus = createSyllabus(1L, testCourse, 2, true);
 
         when(syllabusRepository.findById(1L)).thenReturn(Optional.of(existingSyllabus));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(syllabusRepository.save(any(Syllabus.class))).thenReturn(updatedSyllabus);
 
         SyllabusResponse response = syllabusService.update(1L, updateRequest);
@@ -209,19 +208,15 @@ class SyllabusServiceTest {
         verify(syllabusRepository, never()).deleteById(any());
     }
 
-    private Course createCourse(Long id, String name, String code) {
-        Program program = new Program();
-        program.setId(1L);
-        program.setName("Computer Science");
-
-        Course course = new Course(name, code, 3, 2, 1, program, 1);
-        course.setId(id);
-        return course;
+    private Subject createSubject(Long id, String name, String code) {
+        Subject subject = new Subject(name, code, 3, 2, 1, null, null, 1);
+        subject.setId(id);
+        return subject;
     }
 
-    private Syllabus createSyllabus(Long id, Course course, Integer version, Boolean isActive) {
+    private Syllabus createSyllabus(Long id, Subject subject, Integer version, Boolean isActive) {
         Syllabus syllabus = new Syllabus(
-            course, version, 30, 15, 10,
+            subject, version, 30, 15, 10,
             "Objectives", "Content", "Text books",
             "Reference books", "Course outcomes", isActive
         );

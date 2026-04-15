@@ -109,26 +109,26 @@ class AttendanceControllerTest {
     void shouldFindAttendanceByCourseId() throws Exception {
         AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
 
-        when(attendanceService.findByCourseId(1L)).thenReturn(List.of(response));
+        when(attendanceService.findBySubjectId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/attendance").param("courseId", "1"))
+        mockMvc.perform(get("/attendance").param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(attendanceService).findByCourseId(1L);
+        verify(attendanceService).findBySubjectId(1L);
     }
 
     @Test
     void shouldFindAttendanceByStudentIdAndCourseId() throws Exception {
         AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
 
-        when(attendanceService.findByStudentIdAndCourseId(1L, 1L)).thenReturn(List.of(response));
+        when(attendanceService.findByStudentIdAndSubjectId(1L, 1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/attendance").param("studentId", "1").param("courseId", "1"))
+        mockMvc.perform(get("/attendance").param("studentId", "1").param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(attendanceService).findByStudentIdAndCourseId(1L, 1L);
+        verify(attendanceService).findByStudentIdAndSubjectId(1L, 1L);
     }
 
     @Test
@@ -142,7 +142,7 @@ class AttendanceControllerTest {
 
         mockMvc.perform(get("/attendance/reports")
                 .param("studentId", "1")
-                .param("courseId", "1"))
+                .param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.attendancePercentage").value(80.00));
 

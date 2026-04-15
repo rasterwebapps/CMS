@@ -1,12 +1,14 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.DegreeType;
+import com.cms.model.enums.ProgramLevel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +20,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -37,15 +40,16 @@ public class Program {
     private String code;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "degree_type", nullable = false)
-    private DegreeType degreeType;
+    @Column(name = "program_level", nullable = false)
+    private ProgramLevel programLevel;
 
-    @Column(name = "duration_years", nullable = false)
-    private Integer durationYears;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "program_departments",
+        joinColumns = @JoinColumn(name = "program_id"),
+        inverseJoinColumns = @JoinColumn(name = "department_id")
+    )
+    private Set<Department> departments = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -58,12 +62,10 @@ public class Program {
     public Program() {
     }
 
-    public Program(String name, String code, DegreeType degreeType, Integer durationYears, Department department) {
+    public Program(String name, String code, ProgramLevel programLevel) {
         this.name = name;
         this.code = code;
-        this.degreeType = degreeType;
-        this.durationYears = durationYears;
-        this.department = department;
+        this.programLevel = programLevel;
     }
 
     public Long getId() {
@@ -90,28 +92,20 @@ public class Program {
         this.code = code;
     }
 
-    public DegreeType getDegreeType() {
-        return degreeType;
+    public ProgramLevel getProgramLevel() {
+        return programLevel;
     }
 
-    public void setDegreeType(DegreeType degreeType) {
-        this.degreeType = degreeType;
+    public void setProgramLevel(ProgramLevel programLevel) {
+        this.programLevel = programLevel;
     }
 
-    public Integer getDurationYears() {
-        return durationYears;
+    public Set<Department> getDepartments() {
+        return departments;
     }
 
-    public void setDurationYears(Integer durationYears) {
-        this.durationYears = durationYears;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
+    public void setDepartments(Set<Department> departments) {
+        this.departments = departments;
     }
 
     public Instant getCreatedAt() {

@@ -133,14 +133,14 @@ class ExaminationControllerTest {
     void shouldFindByCourseId() throws Exception {
         ExaminationResponse response = createExaminationResponse();
 
-        when(examinationService.findByCourseId(1L)).thenReturn(List.of(response));
+        when(examinationService.findBySubjectId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/examinations/course/1"))
+        mockMvc.perform(get("/examinations/subject/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].courseId").value(1));
+            .andExpect(jsonPath("$[0].subjectId").value(1));
 
-        verify(examinationService).findByCourseId(1L);
+        verify(examinationService).findBySubjectId(1L);
     }
 
     @Test

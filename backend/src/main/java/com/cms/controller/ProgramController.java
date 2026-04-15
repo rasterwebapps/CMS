@@ -49,12 +49,6 @@ public class ProgramController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<ProgramResponse>> findByDepartmentId(@PathVariable Long departmentId) {
-        List<ProgramResponse> programs = programService.findByDepartmentId(departmentId);
-        return ResponseEntity.ok(programs);
-    }
-
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ProgramResponse> update(

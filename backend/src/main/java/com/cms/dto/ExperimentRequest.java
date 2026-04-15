@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record ExperimentRequest(
-    @NotNull(message = "Course ID is required")
-    Long courseId,
+    @NotNull(message = "Subject ID is required")
+    Long subjectId,
 
     @NotNull(message = "Experiment number is required")
     @Positive(message = "Experiment number must be positive")

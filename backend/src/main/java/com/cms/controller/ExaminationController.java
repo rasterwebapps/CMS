@@ -46,9 +46,9 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.findById(id));
     }
 
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<List<ExaminationResponse>> findByCourseId(@PathVariable Long courseId) {
-        return ResponseEntity.ok(examinationService.findByCourseId(courseId));
+    @GetMapping("/subject/{subjectId}")
+    public ResponseEntity<List<ExaminationResponse>> findBySubjectId(@PathVariable Long subjectId) {
+        return ResponseEntity.ok(examinationService.findBySubjectId(subjectId));
     }
 
     @GetMapping("/semester/{semesterId}")

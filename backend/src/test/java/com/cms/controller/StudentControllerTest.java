@@ -49,7 +49,7 @@ class StudentControllerTest {
     void shouldCreateStudent() throws Exception {
         StudentRequest request = new StudentRequest(
             "CS2024001", "John", "Doe", "john@college.edu", "1234567890",
-            1L, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
+            1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );
@@ -73,7 +73,7 @@ class StudentControllerTest {
     void shouldReturnBadRequestWhenRollNumberIsBlank() throws Exception {
         StudentRequest request = new StudentRequest(
             "", "John", "Doe", "john@college.edu", "1234567890",
-            1L, 1, LocalDate.of(2024, 6, 1), null, null,
+            1L, null, null, 1, LocalDate.of(2024, 6, 1), null, null,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );
@@ -154,7 +154,7 @@ class StudentControllerTest {
     void shouldUpdateStudent() throws Exception {
         StudentRequest request = new StudentRequest(
             "CS2024001", "Johnny", "Doe", "johnny@college.edu", "9999999999",
-            1L, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
+            1L, null, null, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );
@@ -198,6 +198,7 @@ class StudentControllerTest {
         return new StudentResponse(
             id, rollNumber, firstName, lastName, firstName + " " + lastName,
             firstName.toLowerCase() + "@college.edu", "1234567890", 1L, "B.Tech Computer Science",
+            null, null, null, null,
             1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null,

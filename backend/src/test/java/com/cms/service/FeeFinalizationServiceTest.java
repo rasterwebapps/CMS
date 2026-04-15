@@ -60,7 +60,6 @@ class FeeFinalizationServiceTest {
         testProgram = new Program();
         testProgram.setId(1L);
         testProgram.setName("B.Sc CS");
-        testProgram.setDurationYears(4);
 
         testStudent = new Student("CS2024001", "John", "Doe", "john@college.edu",
             testProgram, 1, LocalDate.of(2024, 6, 1), StudentStatus.ACTIVE);

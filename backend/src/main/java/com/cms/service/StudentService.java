@@ -10,9 +10,13 @@ import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
+import com.cms.model.Course;
+import com.cms.model.Department;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.DepartmentRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentRepository;
 
@@ -22,10 +26,15 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final ProgramRepository programRepository;
+    private final CourseRepository courseRepository;
+    private final DepartmentRepository departmentRepository;
 
-    public StudentService(StudentRepository studentRepository, ProgramRepository programRepository) {
+    public StudentService(StudentRepository studentRepository, ProgramRepository programRepository,
+                          CourseRepository courseRepository, DepartmentRepository departmentRepository) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
+        this.courseRepository = courseRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     @Transactional
@@ -47,6 +56,18 @@ public class StudentService {
         );
 
         student.setPhone(request.phone());
+        // Course and specialization department
+        if (request.courseId() != null) {
+            Course course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+            student.setCourse(course);
+        }
+        if (request.specializationDepartmentId() != null) {
+            Department department = departmentRepository.findById(request.specializationDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.specializationDepartmentId()));
+            student.setSpecializationDepartment(department);
+        }
+
         student.setLabBatch(request.labBatch());
 
         // Personal information
@@ -128,6 +149,22 @@ public class StudentService {
         student.setEmail(request.email());
         student.setPhone(request.phone());
         student.setProgram(program);
+        // Course and specialization department
+        if (request.courseId() != null) {
+            Course course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+            student.setCourse(course);
+        } else {
+            student.setCourse(null);
+        }
+        if (request.specializationDepartmentId() != null) {
+            Department department = departmentRepository.findById(request.specializationDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.specializationDepartmentId()));
+            student.setSpecializationDepartment(department);
+        } else {
+            student.setSpecializationDepartment(null);
+        }
+
         student.setSemester(request.semester());
         student.setAdmissionDate(request.admissionDate());
         student.setLabBatch(request.labBatch());
@@ -193,6 +230,10 @@ public class StudentService {
             student.getPhone(),
             student.getProgram().getId(),
             student.getProgram().getName(),
+            student.getCourse() != null ? student.getCourse().getId() : null,
+            student.getCourse() != null ? student.getCourse().getName() : null,
+            student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getId() : null,
+            student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getName() : null,
             student.getSemester(),
             student.getAdmissionDate(),
             student.getLabBatch(),

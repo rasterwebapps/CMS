@@ -13,7 +13,7 @@ import com.cms.model.Equipment;
 import com.cms.model.MaintenanceRequest;
 import com.cms.model.Student;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
@@ -34,7 +34,7 @@ public class DashboardService {
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
     private final DepartmentRepository departmentRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
     private final ProgramRepository programRepository;
     private final LabRepository labRepository;
     private final EquipmentRepository equipmentRepository;
@@ -46,7 +46,7 @@ public class DashboardService {
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
                             DepartmentRepository departmentRepository,
-                            CourseRepository courseRepository,
+                            SubjectRepository subjectRepository,
                             ProgramRepository programRepository,
                             LabRepository labRepository,
                             EquipmentRepository equipmentRepository,
@@ -57,7 +57,7 @@ public class DashboardService {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.departmentRepository = departmentRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
         this.programRepository = programRepository;
         this.labRepository = labRepository;
         this.equipmentRepository = equipmentRepository;
@@ -74,7 +74,7 @@ public class DashboardService {
         long totalStudents = studentRepository.count();
         long totalFaculty = facultyRepository.count();
         long totalDepartments = departmentRepository.count();
-        long totalCourses = courseRepository.count();
+        long totalSubjects = subjectRepository.count();
         long totalPrograms = programRepository.count();
         long totalLabs = labRepository.count();
         long totalEquipment = equipmentRepository.count();
@@ -89,7 +89,7 @@ public class DashboardService {
         Map<String, Long> attendanceByStatus = buildAttendanceStatusMap();
 
         return new DashboardSummaryResponse(
-            totalStudents, totalFaculty, totalDepartments, totalCourses,
+            totalStudents, totalFaculty, totalDepartments, totalSubjects,
             totalPrograms, totalLabs, totalEquipment, totalExaminations,
             totalFeePayments, totalMaintenanceRequests, totalAttendanceRecords,
             equipmentByStatus, maintenanceByStatus, studentsByStatus, attendanceByStatus

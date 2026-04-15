@@ -8,9 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.ExperimentRequest;
 import com.cms.dto.ExperimentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Experiment;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.ExperimentRepository;
 
 @Service
@@ -18,22 +18,22 @@ import com.cms.repository.ExperimentRepository;
 public class ExperimentService {
 
     private final ExperimentRepository experimentRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
 
-    public ExperimentService(ExperimentRepository experimentRepository, CourseRepository courseRepository) {
+    public ExperimentService(ExperimentRepository experimentRepository, SubjectRepository subjectRepository) {
         this.experimentRepository = experimentRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     @Transactional
     public ExperimentResponse create(ExperimentRequest request) {
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
         Experiment experiment = new Experiment(
-            course,
+            subject,
             request.experimentNumber(),
             request.name(),
             request.description(),
@@ -62,20 +62,20 @@ public class ExperimentService {
         return toResponse(experiment);
     }
 
-    public List<ExperimentResponse> findByCourseId(Long courseId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+    public List<ExperimentResponse> findBySubjectId(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return experimentRepository.findByCourseIdOrderByExperimentNumberAsc(courseId).stream()
+        return experimentRepository.findBySubjectIdOrderByExperimentNumberAsc(subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
 
-    public List<ExperimentResponse> findActiveByCourseId(Long courseId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+    public List<ExperimentResponse> findActiveBySubjectId(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return experimentRepository.findByCourseIdAndIsActiveTrue(courseId).stream()
+        return experimentRepository.findBySubjectIdAndIsActiveTrue(subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -85,10 +85,10 @@ public class ExperimentService {
         Experiment experiment = experimentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Experiment not found with id: " + id));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
-        experiment.setCourse(course);
+        experiment.setSubject(subject);
         experiment.setExperimentNumber(request.experimentNumber());
         experiment.setName(request.name());
         experiment.setDescription(request.description());
@@ -118,9 +118,9 @@ public class ExperimentService {
     private ExperimentResponse toResponse(Experiment experiment) {
         return new ExperimentResponse(
             experiment.getId(),
-            experiment.getCourse().getId(),
-            experiment.getCourse().getName(),
-            experiment.getCourse().getCode(),
+            experiment.getSubject().getId(),
+            experiment.getSubject().getName(),
+            experiment.getSubject().getCode(),
             experiment.getExperimentNumber(),
             experiment.getName(),
             experiment.getDescription(),

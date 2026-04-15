@@ -37,8 +37,8 @@ public class Examination {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "exam_type", nullable = false)
@@ -66,10 +66,10 @@ public class Examination {
 
     public Examination() {}
 
-    public Examination(String name, Course course, ExamType examType, LocalDate date,
+    public Examination(String name, Subject subject, ExamType examType, LocalDate date,
                        Integer duration, Integer maxMarks, Semester semester) {
         this.name = name;
-        this.course = course;
+        this.subject = subject;
         this.examType = examType;
         this.date = date;
         this.duration = duration;
@@ -81,8 +81,8 @@ public class Examination {
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public Course getCourse() { return course; }
-    public void setCourse(Course course) { this.course = course; }
+    public Subject getSubject() { return subject; }
+    public void setSubject(Subject subject) { this.subject = subject; }
     public ExamType getExamType() { return examType; }
     public void setExamType(ExamType examType) { this.examType = examType; }
     public LocalDate getDate() { return date; }
