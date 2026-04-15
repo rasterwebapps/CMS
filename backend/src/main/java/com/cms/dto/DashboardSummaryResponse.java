@@ -9,7 +9,7 @@ public record DashboardSummaryResponse(
     long totalStudents,
     long totalFaculty,
     long totalDepartments,
-    long totalCourses,
+    long totalSubjects,
     long totalPrograms,
     long totalLabs,
     long totalEquipment,

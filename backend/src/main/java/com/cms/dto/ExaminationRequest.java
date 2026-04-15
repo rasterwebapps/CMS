@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record ExaminationRequest(
     @NotBlank String name,
-    @NotNull Long courseId,
+    @NotNull Long subjectId,
     @NotNull ExamType examType,
     LocalDate date,
     Integer duration,

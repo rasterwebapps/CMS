@@ -10,8 +10,8 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public record BulkAttendanceRequest(
-    @NotNull(message = "Course ID is required")
-    Long courseId,
+    @NotNull(message = "Subject ID is required")
+    Long subjectId,
 
     @NotNull(message = "Date is required")
     LocalDate date,

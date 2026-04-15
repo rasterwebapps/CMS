@@ -4,9 +4,9 @@ import java.time.Instant;
 
 public record ExperimentResponse(
     Long id,
-    Long courseId,
-    String courseName,
-    String courseCode,
+    Long subjectId,
+    String subjectName,
+    String subjectCode,
     Integer experimentNumber,
     String name,
     String description,

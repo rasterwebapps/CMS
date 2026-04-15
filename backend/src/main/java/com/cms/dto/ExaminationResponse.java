@@ -8,8 +8,8 @@ import com.cms.model.enums.ExamType;
 public record ExaminationResponse(
     Long id,
     String name,
-    Long courseId,
-    String courseName,
+    Long subjectId,
+    String subjectName,
     ExamType examType,
     LocalDate date,
     Integer duration,

@@ -9,8 +9,8 @@ public record LabScheduleRequest(
     @NotNull(message = "Lab ID is required")
     Long labId,
 
-    @NotNull(message = "Course ID is required")
-    Long courseId,
+    @NotNull(message = "Subject ID is required")
+    Long subjectId,
 
     @NotNull(message = "Faculty ID is required")
     Long facultyId,
