@@ -6,7 +6,7 @@ creates data through the secured `/api/v1` endpoints in a dependency-safe order.
 
 All data reflects an actual Indian Nursing College scenario — departments map to
 nursing specializations, programs cover B.Sc. Nursing / M.Sc. Nursing / GNM,
-courses follow the Indian Nursing Council (INC) syllabus, and labs represent
+subjects follow the Indian Nursing Council (INC) syllabus, and labs represent
 real nursing simulation and skills labs.
 """
 
@@ -45,17 +45,27 @@ DEPARTMENTS = [
 ]
 
 PROGRAMS = [
-    # (name, code, degreeType, durationYears, departmentIndex)
-    ('B.Sc. Nursing', 'BSCN', 'BACHELOR', 4, 5),
-    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'MASTER', 2, 0),
-    ('M.Sc. Nursing — Community Health', 'MSCCHN', 'MASTER', 2, 1),
-    ('M.Sc. Nursing — Child Health', 'MSCCHD', 'MASTER', 2, 2),
-    ('M.Sc. Nursing — OBG', 'MSCOBG', 'MASTER', 2, 3),
-    ('General Nursing and Midwifery (GNM)', 'GNM', 'DIPLOMA', 3, 5),
+    # (name, code, programLevel, departmentIndices)
+    ('B.Sc. Nursing', 'BSCN', 'UNDERGRADUATE', [5]),
+    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'POSTGRADUATE', [0]),
+    ('M.Sc. Nursing — Community Health', 'MSCCHN', 'POSTGRADUATE', [1]),
+    ('M.Sc. Nursing — Child Health', 'MSCCHD', 'POSTGRADUATE', [2]),
+    ('M.Sc. Nursing — OBG', 'MSCOBG', 'POSTGRADUATE', [3]),
+    ('General Nursing and Midwifery (GNM)', 'GNM', 'DIPLOMA', [5]),
 ]
 
 COURSES = [
-    # (name, code, credits, theoryCredits, labCredits, programIndex, semester)
+    # (name, code, degreeType, durationYears, programIndex)
+    ('B.Sc. Nursing', 'BSCN-C', 'BACHELOR', 4, 0),
+    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN-C', 'MASTER', 2, 1),
+    ('M.Sc. Nursing — Community Health', 'MSCCHN-C', 'MASTER', 2, 2),
+    ('M.Sc. Nursing — Child Health', 'MSCCHD-C', 'MASTER', 2, 3),
+    ('M.Sc. Nursing — OBG', 'MSCOBG-C', 'MASTER', 2, 4),
+    ('General Nursing and Midwifery (GNM)', 'GNM-C', 'DIPLOMA', 3, 5),
+]
+
+SUBJECTS = [
+    # (name, code, credits, theoryCredits, labCredits, courseIndex, semester)
     # B.Sc. Nursing — Year 1
     ('Anatomy', 'BSN101', 4, 3, 1, 0, 1),
     ('Physiology', 'BSN102', 4, 3, 1, 0, 1),
@@ -178,7 +188,7 @@ MAINTENANCE_ENTRIES = [
 ]
 
 EXAMINATION_DATA = [
-    # (name, courseIdx, examType, daysFromToday, duration, maxMarks)
+    # (name, subjectIdx, examType, daysFromToday, duration, maxMarks)
     ('Anatomy — Internal Assessment I', 0, 'THEORY', 15, 90, 50),
     ('Physiology — Internal Assessment I', 1, 'THEORY', 17, 90, 50),
     ('Nursing Foundation — Practical Exam', 2, 'PRACTICAL', 20, 180, 100),
@@ -192,7 +202,7 @@ EXAMINATION_DATA = [
 ]
 
 AGENTS = [
-    # (name, phone, email, city, region, isActive)
+    # (name, phone, email, area, locality, isActive)
     ('Tamil Nadu Nursing Education Trust', '9443301234', 'tnnet@email.com', 'Chennai', 'Tamil Nadu North', True),
     ('Salem District Health Foundation', '9443312345', 'sdhf@email.com', 'Salem', 'Salem Region', True),
     ('Southern Nursing Academy', '9443323456', 'sna@email.com', 'Madurai', 'Tamil Nadu South', True),
@@ -202,14 +212,15 @@ AGENTS = [
 
 ENQUIRIES = [
     # (name, email, phone, programIdx, source, status, agentIdx, remarks, feeDiscussedAmount)
-    ('Lakshmi Priya R', 'lakshmi.r@gmail.com', '9876501234', 0, 'WALK_IN', 'NEW', None, 'Interested in B.Sc. Nursing, completed HSC with Biology group', None),
-    ('Sathya Devi M', 'sathya.m@gmail.com', '9876512345', 0, 'PHONE', 'CONTACTED', None, 'Called to enquire about B.Sc. admission for 2025-26 batch', None),
-    ('Kavitha S', 'kavitha.s@yahoo.com', '9876523456', 0, 'AGENT_REFERRAL', 'FEE_DISCUSSED', 0, 'Referred by TNNET, discussed fee structure and hostel', '185000.00'),
+    # Valid statuses: ENQUIRED, INTERESTED, NOT_INTERESTED, FEES_FINALIZED, FEES_PAID, PARTIALLY_PAID, DOCUMENTS_SUBMITTED, CONVERTED, CLOSED
+    ('Lakshmi Priya R', 'lakshmi.r@gmail.com', '9876501234', 0, 'WALK_IN', 'ENQUIRED', None, 'Interested in B.Sc. Nursing, completed HSC with Biology group', None),
+    ('Sathya Devi M', 'sathya.m@gmail.com', '9876512345', 0, 'PHONE', 'ENQUIRED', None, 'Called to enquire about B.Sc. admission for 2025-26 batch', None),
+    ('Kavitha S', 'kavitha.s@yahoo.com', '9876523456', 0, 'AGENT_REFERRAL', 'FEES_FINALIZED', 0, 'Referred by TNNET, discussed fee structure and hostel', '185000.00'),
     ('Ranjitha K', 'ranjitha.k@gmail.com', '9876534567', 5, 'WALK_IN', 'INTERESTED', None, 'Wants GNM, has completed 10+2, very keen', '120000.00'),
-    ('Nithya V', 'nithya.v@gmail.com', '9876545678', 1, 'ONLINE', 'NEW', None, 'M.Sc. Medical-Surgical Nursing enquiry, has 5 years experience', None),
-    ('Geetha Ram S', 'geetha.rs@gmail.com', '9876556789', 0, 'AGENT_REFERRAL', 'CONTACTED', 1, 'Referred by Salem Health Foundation, awaiting marks sheet', None),
-    ('Harini B', 'harini.b@gmail.com', '9876567890', 0, 'WALK_IN', 'FEE_DISCUSSED', None, 'Visited campus with parents, toured labs and hostel', '185000.00'),
-    ('Swetha P', 'swetha.p@gmail.com', '9876578901', 2, 'PHONE', 'NEW', None, 'Enquiring about M.Sc. Community Health Nursing seats for 2025-26', None),
+    ('Nithya V', 'nithya.v@gmail.com', '9876545678', 1, 'ONLINE', 'ENQUIRED', None, 'M.Sc. Medical-Surgical Nursing enquiry, has 5 years experience', None),
+    ('Geetha Ram S', 'geetha.rs@gmail.com', '9876556789', 0, 'AGENT_REFERRAL', 'ENQUIRED', 1, 'Referred by Salem Health Foundation, awaiting marks sheet', None),
+    ('Harini B', 'harini.b@gmail.com', '9876567890', 0, 'WALK_IN', 'FEES_FINALIZED', None, 'Visited campus with parents, toured labs and hostel', '185000.00'),
+    ('Swetha P', 'swetha.p@gmail.com', '9876578901', 2, 'PHONE', 'ENQUIRED', None, 'Enquiring about M.Sc. Community Health Nursing seats for 2025-26', None),
     ('Malar K', 'malar.k@gmail.com', '9876589012', 5, 'AGENT_REFERRAL', 'INTERESTED', 2, 'GNM candidate from Madurai, Southern Nursing Academy referral', '115000.00'),
     ('Jayanthi R', 'jayanthi.r@gmail.com', '9876590123', 0, 'WALK_IN', 'NOT_INTERESTED', None, 'Visited but decided to pursue MBBS instead', None),
 ]
@@ -220,6 +231,7 @@ class BatchIds:
     departments: list[int]
     programs: list[int]
     courses: list[int]
+    subjects: list[int]
     academic_years: list[int]
     semesters: list[int]
     faculty: list[int]
@@ -340,21 +352,34 @@ def main() -> int:
     academic_years = create_many(token, '/academic-years', academic_year_payloads)
     print(f'  ✅ Created {len(academic_years)} academic years')
 
-    # 3. Programs
+    # 3. Programs (programLevel + departmentIds)
     program_payloads = [
         {
             'name': p[0],
             'code': p[1],
-            'degreeType': p[2],
-            'durationYears': p[3],
-            'departmentId': departments[p[4]]['id'],
+            'programLevel': p[2],
+            'departmentIds': [departments[di]['id'] for di in p[3]],
         }
         for p in PROGRAMS
     ]
     programs = create_many(token, '/programs', program_payloads)
     print(f'  ✅ Created {len(programs)} programs (B.Sc., M.Sc., GNM)')
 
-    # 4. Semesters
+    # 4. Courses (degreeType + durationYears + programId)
+    course_payloads = [
+        {
+            'name': c[0],
+            'code': c[1],
+            'degreeType': c[2],
+            'durationYears': c[3],
+            'programId': programs[c[4]]['id'],
+        }
+        for c in COURSES
+    ]
+    courses = create_many(token, '/courses', course_payloads)
+    print(f'  ✅ Created {len(courses)} courses')
+
+    # 5. Semesters
     semester_names = [
         'Odd Semester 2024-25', 'Even Semester 2024-25',
         'Odd Semester 2025-26', 'Even Semester 2025-26',
@@ -373,7 +398,7 @@ def main() -> int:
     semesters = create_many(token, '/semesters', semester_payloads)
     print(f'  ✅ Created {len(semesters)} semesters')
 
-    # 5. Faculty
+    # 6. Faculty
     faculty_payloads = [
         {
             'employeeCode': fm[0],
@@ -393,23 +418,25 @@ def main() -> int:
     faculty = create_many(token, '/faculty', faculty_payloads)
     print(f'  ✅ Created {len(faculty)} faculty members')
 
-    # 6. Courses
-    course_payloads = [
+    # 7. Subjects (courseId, credits, semester)
+    subject_payloads = [
         {
-            'name': c[0],
-            'code': c[1],
-            'credits': c[2],
-            'theoryCredits': c[3],
-            'labCredits': c[4],
-            'programId': programs[c[5]]['id'],
-            'semester': c[6],
+            'name': s[0],
+            'code': s[1],
+            'credits': s[2],
+            'theoryCredits': s[3],
+            'labCredits': s[4],
+            'courseId': courses[s[5]]['id'],
+            'semester': s[6],
         }
-        for c in COURSES
+        for s in SUBJECTS
     ]
-    courses = create_many(token, '/courses', course_payloads)
-    print(f'  ✅ Created {len(courses)} courses (INC syllabus)')
+    subjects = create_many(token, '/subjects', subject_payloads)
+    print(f'  ✅ Created {len(subjects)} subjects (INC syllabus)')
 
-    # 7. Students
+    # 8. Students
+    # Map program index to course index (1:1 relationship in our data)
+    program_to_course = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
     student_payloads = []
     for idx, s in enumerate(STUDENTS):
         student_payloads.append({
@@ -419,6 +446,7 @@ def main() -> int:
             'email': s[3],
             'phone': s[4],
             'programId': programs[s[5]]['id'],
+            'courseId': courses[program_to_course[s[5]]]['id'],
             'semester': s[6],
             'admissionDate': today - timedelta(days=365 * 2 + idx * 30),
             'labBatch': f'BATCH-{chr(65 + idx % 3)}',
@@ -446,7 +474,7 @@ def main() -> int:
     students = create_many(token, '/students', student_payloads)
     print(f'  ✅ Created {len(students)} students')
 
-    # 8. Labs
+    # 9. Labs
     lab_payloads = [
         {
             'name': lab[0],
@@ -462,7 +490,7 @@ def main() -> int:
     labs = create_many(token, '/labs', lab_payloads)
     print(f'  ✅ Created {len(labs)} labs (nursing simulation & skills labs)')
 
-    # 9. Fee Structures
+    # 10. Fee Structures
     fee_descriptions = [
         'Tuition fee for B.Sc. Nursing — AY 2025-26',
         'Lab & Clinical Training fee — B.Sc. Nursing',
@@ -495,7 +523,7 @@ def main() -> int:
     fee_structures = create_many(token, '/fee-structures', fee_structure_payloads)
     print(f'  ✅ Created {len(fee_structures)} fee structures')
 
-    # 10. Fee Payments
+    # 11. Fee Payments
     payment_remarks = [
         'Tuition fee paid in full — B.Sc. Y1',
         'Lab fee — partial payment pending',
@@ -524,7 +552,7 @@ def main() -> int:
     fee_payments = create_many(token, '/fee-payments', fee_payment_payloads)
     print(f'  ✅ Created {len(fee_payments)} fee payments')
 
-    # 11. Equipment
+    # 12. Equipment
     equipment_payloads = [
         {
             'name': eq[0],
@@ -546,7 +574,7 @@ def main() -> int:
     equipment = create_many(token, '/equipment', equipment_payloads)
     print(f'  ✅ Created {len(equipment)} equipment items')
 
-    # 12. Inventory
+    # 13. Inventory
     inventory_payloads = [
         {
             'name': inv[0],
@@ -563,7 +591,7 @@ def main() -> int:
     inventory = create_many(token, '/inventory', inventory_payloads)
     print(f'  ✅ Created {len(inventory)} inventory items (nursing supplies)')
 
-    # 13. Maintenance
+    # 14. Maintenance
     maintenance_payloads = [
         {
             'equipmentId': equipment[m[0]]['id'],
@@ -586,11 +614,11 @@ def main() -> int:
     maintenance = create_many(token, '/maintenance', maintenance_payloads)
     print(f'  ✅ Created {len(maintenance)} maintenance requests')
 
-    # 14. Examinations
+    # 15. Examinations (uses subjectId)
     examination_payloads = [
         {
             'name': ex[0],
-            'courseId': courses[ex[1]]['id'],
+            'subjectId': subjects[ex[1]]['id'],
             'examType': ex[2],
             'date': today + timedelta(days=ex[3]),
             'duration': ex[4],
@@ -602,7 +630,7 @@ def main() -> int:
     examinations = create_many(token, '/examinations', examination_payloads)
     print(f'  ✅ Created {len(examinations)} examinations')
 
-    # 15. Exam Results
+    # 16. Exam Results
     grade_map = {range(90, 101): 'O', range(80, 90): 'A+', range(70, 80): 'A',
                  range(60, 70): 'B+', range(50, 60): 'B', range(0, 50): 'F'}
 
@@ -627,7 +655,7 @@ def main() -> int:
     exam_results = create_many(token, '/exam-results', exam_result_payloads)
     print(f'  ✅ Created {len(exam_results)} exam results')
 
-    # 16. Attendance
+    # 17. Attendance (uses subjectId)
     attendance_remarks = [
         'Attended Anatomy lecture', 'Absent — clinical posting at SKS Hospital',
         'Arrived 10 min late — bus delay', 'Excused — community health field visit',
@@ -638,7 +666,7 @@ def main() -> int:
     attendance_payloads = [
         {
             'studentId': students[i % len(students)]['id'],
-            'courseId': courses[i % len(courses)]['id'],
+            'subjectId': subjects[i % len(subjects)]['id'],
             'date': today - timedelta(days=i + 1),
             'status': cycle(ATTENDANCE_STATUSES, i),
             'type': cycle(ATTENDANCE_TYPES, i),
@@ -649,14 +677,14 @@ def main() -> int:
     attendance = create_many(token, '/attendance', attendance_payloads)
     print(f'  ✅ Created {len(attendance)} attendance records')
 
-    # 17. Agents
+    # 18. Agents (area + locality)
     agent_payloads = [
         {
             'name': a[0],
             'phone': a[1],
             'email': a[2],
-            'city': a[3],
-            'region': a[4],
+            'area': a[3],
+            'locality': a[4],
             'isActive': a[5],
         }
         for a in AGENTS
@@ -664,7 +692,7 @@ def main() -> int:
     agents = create_many(token, '/agents', agent_payloads)
     print(f'  ✅ Created {len(agents)} agents')
 
-    # 18. Enquiries
+    # 19. Enquiries
     enquiry_payloads = [
         {
             'name': e[0],
@@ -690,6 +718,7 @@ def main() -> int:
         departments=[item['id'] for item in departments],
         programs=[item['id'] for item in programs],
         courses=[item['id'] for item in courses],
+        subjects=[item['id'] for item in subjects],
         academic_years=[item['id'] for item in academic_years],
         semesters=[item['id'] for item in semesters],
         faculty=[item['id'] for item in faculty],

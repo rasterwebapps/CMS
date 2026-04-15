@@ -158,7 +158,7 @@ class AttendanceControllerTest {
 
         when(attendanceService.getLowAttendanceAlerts(1L)).thenReturn(List.of(alert));
 
-        mockMvc.perform(get("/attendance/alerts").param("courseId", "1"))
+        mockMvc.perform(get("/attendance/alerts").param("subjectId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].lowAttendance").value(true));

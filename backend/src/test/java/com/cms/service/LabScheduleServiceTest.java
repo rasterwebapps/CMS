@@ -148,7 +148,7 @@ class LabScheduleServiceTest {
 
         assertThatThrownBy(() -> labScheduleService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
+            .hasMessage("Subject not found with id: 999");
     }
 
     @Test

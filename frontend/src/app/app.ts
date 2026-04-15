@@ -69,6 +69,7 @@ export class App {
         { label: 'Courses', icon: 'menu_book', route: '/courses' },
         { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years' },
         { label: 'Semesters', icon: 'date_range', route: '/semesters' },
+        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar' },
         { label: 'Labs', icon: 'science', route: '/labs' },
         { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures' },
         { label: 'Equipment', icon: 'devices', route: '/equipment' },
@@ -81,6 +82,12 @@ export class App {
       items: [
         { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
         { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN'] },
+        {
+          label: 'Referral Types',
+          icon: 'share',
+          route: '/referral-types',
+          roles: ['ROLE_ADMIN'],
+        },
         { label: 'Faculty', icon: 'groups', route: '/faculty' },
         { label: 'Students', icon: 'person', route: '/students' },
       ],

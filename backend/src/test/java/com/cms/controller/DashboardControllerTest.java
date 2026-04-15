@@ -45,7 +45,7 @@ class DashboardControllerTest {
             .andExpect(jsonPath("$.totalStudents").value(10))
             .andExpect(jsonPath("$.totalFaculty").value(10))
             .andExpect(jsonPath("$.totalDepartments").value(10))
-            .andExpect(jsonPath("$.totalCourses").value(10))
+            .andExpect(jsonPath("$.totalSubjects").value(10))
             .andExpect(jsonPath("$.totalLabs").value(10))
             .andExpect(jsonPath("$.totalEquipment").value(10))
             .andExpect(jsonPath("$.equipmentByStatus.AVAILABLE").value(6))
