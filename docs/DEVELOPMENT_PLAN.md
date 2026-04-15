@@ -384,26 +384,99 @@ The repository currently contains **documentation only**:
 
 ### Milestone 4.1 — Fee Structure & Collection (Module 8)
 
+> **Business Requirements:** See [BR-1](BUSINESS_REQUIREMENTS.md#br-1-fee-structure--academic-year) and [BR-2](BUSINESS_REQUIREMENTS.md#br-2-year-wise-fee-boxes-per-program-duration).
+
 **Backend:**
-- [ ] **4.1.1** Create `FeeStructure` entity (`id`, `name`, `program`, `semester`, `amount` [BigDecimal], `labFeeComponent` [BigDecimal], `dueDate`)
-- [ ] **4.1.2** Create `FeePayment` entity (`id`, `student`, `feeStructure`, `amountPaid` [BigDecimal], `paymentDate`, `paymentMethod`, `transactionId`, `status`)
-- [ ] **4.1.3** Create fee service with payment processing logic
+- [ ] **4.1.1** Create `FeeStructure` entity (`id`, `name`, `program`, `academicYear`, `feeType`, `amount` [BigDecimal], `isMandatory`, `isActive`)
+  - Fee structure is scoped to **program + academic year** — fees may vary year to year (BR-1)
+- [ ] **4.1.2** Create `FeeStructureYearAmount` entity (`id`, `feeStructure`, `yearNumber`, `yearLabel`, `amount` [BigDecimal])
+  - Year-wise fee boxes generated based on program `durationYears` (BR-2)
+  - Labels: "First Year", "Second Year", etc.
+- [ ] **4.1.3** Create `FeePayment` entity (`id`, `student`, `feeStructure`, `amountPaid` [BigDecimal], `paymentDate`, `paymentMethod`, `transactionId`, `status`)
+- [ ] **4.1.4** Create fee service with payment processing logic
   - All monetary values as `BigDecimal` with `RoundingMode.HALF_UP`
-- [ ] **4.1.4** Create controllers:
-  - `POST /api/v1/fees/structure` — Define fee structure (ROLE_ADMIN)
+  - Year-wise amount storage and retrieval based on program duration
+- [ ] **4.1.5** Create controllers:
+  - `POST /api/v1/fee-structures` — Define fee structure (ROLE_ADMIN)
+  - `GET /api/v1/fee-structures` — List with filters (programId, academicYearId)
   - `POST /api/v1/fee-payments` — Record payment (ROLE_ADMIN)
   - `GET /api/v1/fee-payments/student/{studentId}` — Student fee history
   - `GET /api/v1/fee-payments/reports` — Revenue reports
-- [ ] **4.1.5** Create DTOs and Flyway migrations
-- [ ] **4.1.6** Write unit + controller tests (95% coverage)
-- [ ] **4.1.7** Create manual test cases: `docs/manual-test-cases/fee-management.md`
+- [ ] **4.1.6** Create DTOs and Flyway migrations
+- [ ] **4.1.7** Write unit + controller tests (95% coverage)
+- [ ] **4.1.8** Create manual test cases: `docs/manual-test-cases/fee-management.md`
 
 **Frontend:**
-- [ ] **4.1.8** Create `features/finance/` folder structure
-- [ ] **4.1.9** Create fee structure management component
-- [ ] **4.1.10** Create payment recording component
-- [ ] **4.1.11** Create high-density fee table with Material density `-2`
-- [ ] **4.1.12** Create finance routes (lazy-loaded)
+- [ ] **4.1.9** Create `features/finance/` folder structure
+- [ ] **4.1.10** Create fee structure management component
+  - Dynamic year-wise fee input boxes based on selected program's `durationYears` (BR-2)
+  - Labels generated as "First Year", "Second Year", etc.
+- [ ] **4.1.11** Create payment recording component
+- [ ] **4.1.12** Create high-density fee table with Material density `-2`
+- [ ] **4.1.13** Create finance routes (lazy-loaded)
+
+### Milestone 4.1a — Referral Type Master (Module 8)
+
+> **Business Requirements:** See [BR-4](BUSINESS_REQUIREMENTS.md#br-4-referral-type-master).
+
+**Backend:**
+- [ ] **4.1a.1** Create `ReferralType` entity (`id`, `name`, `code`, `guidelineValue` [BigDecimal], `description`, `isActive`)
+  - Replaces hardcoded `EnquirySource` enum for referral categorization
+  - Default types: WALK_IN, PHONE, ONLINE, AGENT_REFERRAL, STAFF, ALUMNI, PARENT, ADVERTISEMENT
+- [ ] **4.1a.2** Create ReferralType service with CRUD operations
+- [ ] **4.1a.3** Create controllers under `/api/v1/referral-types`
+- [ ] **4.1a.4** Create DTOs and Flyway migrations (seed default referral types)
+- [ ] **4.1a.5** Write unit + controller tests (95% coverage)
+- [ ] **4.1a.6** Create manual test cases: `docs/manual-test-cases/referral-type-management.md`
+
+**Frontend:**
+- [ ] **4.1a.7** Create `features/referral-type/` with list and form components
+- [ ] **4.1a.8** Create referral type routes (lazy-loaded)
+
+### Milestone 4.1b — Enquiry-to-Admission Workflow Enhancement
+
+> **Business Requirements:** See [BR-3](BUSINESS_REQUIREMENTS.md#br-3-fee-structure-guideline-on-enquiry-screen), [BR-5](BUSINESS_REQUIREMENTS.md#br-5-referral-guideline-amount--final-fee-calculation), [BR-6](BUSINESS_REQUIREMENTS.md#br-6-admin-fee-finalization-workflow), [BR-7](BUSINESS_REQUIREMENTS.md#br-7-payment-collection-by-accounting-team), [BR-8](BUSINESS_REQUIREMENTS.md#br-8-enquiry-status-workflow), [BR-9](BUSINESS_REQUIREMENTS.md#br-9-document-submission), [BR-10](BUSINESS_REQUIREMENTS.md#br-10-convert-enquiry-to-student), [BR-11](BUSINESS_REQUIREMENTS.md#br-11-student-explorer-with-filters).
+
+**Backend:**
+- [ ] **4.1b.1** Enhance `Enquiry` entity with fee guideline fields:
+  - `feeGuidelineTotal`, `referralTypeId` (FK → ReferralType), `referralAdditionalAmount`, `finalCalculatedFee`
+  - Year-wise guideline breakdown stored as related records
+- [ ] **4.1b.2** Update `EnquiryStatus` enum to reflect new workflow:
+  - ENQUIRED, INTERESTED, NOT_INTERESTED, FEES_FINALIZED, FEES_PAID, PARTIALLY_PAID, DOCUMENTS_SUBMITTED, CONVERTED, CLOSED
+- [ ] **4.1b.3** Enhance enquiry service:
+  - Fee guideline lookup by program + current academic year (BR-3)
+  - Referral additional amount calculation (BR-5)
+  - Final fee computation (BR-5)
+  - Automatic status transitions (BR-8)
+- [ ] **4.1b.4** Create fee finalization endpoints for admin (BR-6):
+  - `POST /api/v1/enquiries/{id}/finalize-fees` — Admin finalizes fee structure
+  - `GET /api/v1/enquiries/{id}/fee-guideline` — Get fee guideline for enquiry's program
+- [ ] **4.1b.5** Enhance payment collection for enquiry-based fees (BR-7)
+- [ ] **4.1b.6** Create document submission tracking for enquiries (BR-9):
+  - `POST /api/v1/enquiries/{id}/documents` — Submit document
+  - `GET /api/v1/enquiries/{id}/documents` — List submitted documents
+  - `PATCH /api/v1/enquiries/{id}/documents/{docId}/verify` — Verify document
+- [ ] **4.1b.7** Enhance convert-to-student to require DOCUMENTS_SUBMITTED status (BR-10)
+- [ ] **4.1b.8** Create student explorer endpoint with filters (BR-11):
+  - `GET /api/v1/students/explorer` — Search with filters (program, department, academicYear, semester, status, feeStatus, search)
+- [ ] **4.1b.9** Create DTOs and Flyway migrations for all new fields/tables
+- [ ] **4.1b.10** Write unit + controller tests (95% coverage)
+- [ ] **4.1b.11** Update manual test cases: `docs/manual-test-cases/enquiry-management.md`
+
+**Frontend:**
+- [ ] **4.1b.12** Enhance enquiry form with fee structure guideline panel (BR-3)
+  - Side panel showing fee structure for selected program in current academic year
+  - Year-wise breakdown displayed dynamically
+- [ ] **4.1b.13** Add referral type dropdown (from master) with conditional additional amount box (BR-4, BR-5)
+  - Show additional amount box only when referral type has non-zero guidelineValue
+  - Calculate and display final fee
+- [ ] **4.1b.14** Create admin fee finalization screen (BR-6)
+  - Display enquiry guideline values as starting point
+  - Allow admin to adjust fees, provide discounts, modify year-wise split
+- [ ] **4.1b.15** Enhance payment collection screen for enquiry-based workflow (BR-7)
+- [ ] **4.1b.16** Create document submission tracking component (BR-9)
+- [ ] **4.1b.17** Update enquiry list with new status workflow and automatic transitions (BR-8)
+- [ ] **4.1b.18** Create student explorer screen with comprehensive filters (BR-11)
 
 ### Milestone 4.2 — Equipment & Inventory Management (Modules 7.3 & 7.4)
 
@@ -597,6 +670,7 @@ Every task/milestone is considered **complete** only when ALL of the following a
 | **Role-Based Access** | `@PreAuthorize` annotations applied to all controller methods |
 | **Error Handling** | All errors return standardized `ErrorResponse` via GlobalExceptionHandler |
 | **Manual Test Cases** | Manual test case document created in `docs/manual-test-cases/` |
+| **Business Documentation** | Any business/workflow changes documented in `docs/BUSINESS_REQUIREMENTS.md` |
 | **Code Review** | Pull request reviewed and approved |
 | **CHANGELOG** | `CHANGELOG.md` updated with the new feature |
 

@@ -43,9 +43,10 @@ ng serve
 3. **Make** your changes following the [Technical Standards](docs/TECHNICAL_STANDARDS.md)
 4. **Write tests** — maintain 95% backend code coverage (enforced by JaCoCo)
 5. **Create manual test cases** in `docs/manual-test-cases/` (see [template](docs/manual-test-cases/README.md))
-6. **Commit** your changes (`git commit -m 'Add ModuleName module'`)
-7. **Push** to your branch (`git push origin feature/ModuleName`)
-8. **Open** a Pull Request
+6. **Document business/workflow changes** — if your change affects business rules, status transitions, fee logic, or workflows, update `docs/BUSINESS_REQUIREMENTS.md` (see [Section 9 of Technical Standards](docs/TECHNICAL_STANDARDS.md#9-business--workflow-documentation))
+7. **Commit** your changes (`git commit -m 'Add ModuleName module'`)
+8. **Push** to your branch (`git push origin feature/ModuleName`)
+9. **Open** a Pull Request
 
 ---
 

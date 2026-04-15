@@ -209,3 +209,67 @@
 |-------------|--------------------------------------------------|
 | **Action**  | View fee payments list when no payments exist    |
 | **Expected**| Table shows "No data available" message          |
+
+---
+
+## Year-wise Fee Boxes (BR-2)
+
+> **Business Requirement:** See [BR-2](../BUSINESS_REQUIREMENTS.md#br-2-year-wise-fee-boxes-per-program-duration)
+
+### TC-FEE-015: Year-wise fee boxes appear based on program duration
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | A 4-year program (e.g., B.Tech) and a 2-year program (e.g., MBA) exist |
+| **Action**  | Navigate to Add Fee Structure → select the 4-year program |
+| **Expected**| Four year-wise amount input boxes appear labeled "First Year", "Second Year", "Third Year", "Fourth Year" |
+
+---
+
+### TC-FEE-016: Year-wise fee boxes for 2-year program
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | A 2-year program (e.g., MBA) exists |
+| **Action**  | Navigate to Add Fee Structure → select the 2-year program |
+| **Expected**| Two year-wise amount input boxes appear labeled "First Year", "Second Year" |
+
+---
+
+### TC-FEE-017: Year-wise fee amounts saved to database
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | Fee structure form open with year-wise boxes visible for a 3-year program |
+| **Action**  | Enter ₹1,20,000 for First Year, ₹1,00,000 for Second Year, ₹80,000 for Third Year → click Create |
+| **Expected**| Snackbar shows "Created"; all three year-wise amounts are saved as separate records in the database |
+
+---
+
+### TC-FEE-018: Year-wise fee amounts shown on edit
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | A fee structure with year-wise amounts exists |
+| **Action**  | Click edit on the fee structure row |
+| **Expected**| Year-wise amount boxes are pre-populated with the saved values |
+
+---
+
+### TC-FEE-019: Fee structure filtered by academic year
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | Fee structures exist for multiple academic years |
+| **Action**  | Use the Academic Year filter dropdown on the fee structures list |
+| **Expected**| Only fee structures for the selected academic year are shown |
+
+---
+
+### TC-FEE-020: Fee structure scoped to program and academic year
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Precondition** | A program has fee structures for two different academic years |
+| **Action**  | Send GET `/api/v1/fee-structures?programId={id}&academicYearId={yearId}` |
+| **Expected**| Only fee structures matching both program and academic year are returned |
