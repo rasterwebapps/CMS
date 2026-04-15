@@ -40,13 +40,13 @@ public class ExperimentController {
 
     @GetMapping
     public ResponseEntity<List<ExperimentResponse>> findAll(
-            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
             @RequestParam(required = false) Boolean activeOnly) {
         List<ExperimentResponse> experiments;
-        if (courseId != null && Boolean.TRUE.equals(activeOnly)) {
-            experiments = experimentService.findActiveByCourseId(courseId);
-        } else if (courseId != null) {
-            experiments = experimentService.findByCourseId(courseId);
+        if (subjectId != null && Boolean.TRUE.equals(activeOnly)) {
+            experiments = experimentService.findActiveBySubjectId(subjectId);
+        } else if (subjectId != null) {
+            experiments = experimentService.findBySubjectId(subjectId);
         } else {
             experiments = experimentService.findAll();
         }

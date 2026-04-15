@@ -52,17 +52,17 @@ public class AttendanceController {
     @GetMapping
     public ResponseEntity<List<AttendanceResponse>> findAttendance(
             @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
             @RequestParam(required = false) LocalDate date) {
         List<AttendanceResponse> attendances;
-        if (studentId != null && courseId != null) {
-            attendances = attendanceService.findByStudentIdAndCourseId(studentId, courseId);
-        } else if (courseId != null && date != null) {
-            attendances = attendanceService.findByCourseIdAndDate(courseId, date);
+        if (studentId != null && subjectId != null) {
+            attendances = attendanceService.findByStudentIdAndSubjectId(studentId, subjectId);
+        } else if (subjectId != null && date != null) {
+            attendances = attendanceService.findBySubjectIdAndDate(subjectId, date);
         } else if (studentId != null) {
             attendances = attendanceService.findByStudentId(studentId);
-        } else if (courseId != null) {
-            attendances = attendanceService.findByCourseId(courseId);
+        } else if (subjectId != null) {
+            attendances = attendanceService.findBySubjectId(subjectId);
         } else {
             throw new IllegalArgumentException("At least one filter parameter is required");
         }
@@ -72,16 +72,16 @@ public class AttendanceController {
     @GetMapping("/reports")
     public ResponseEntity<AttendanceReportResponse> getAttendanceReport(
             @RequestParam Long studentId,
-            @RequestParam Long courseId) {
-        AttendanceReportResponse report = attendanceService.getAttendanceReport(studentId, courseId);
+            @RequestParam Long subjectId) {
+        AttendanceReportResponse report = attendanceService.getAttendanceReport(studentId, subjectId);
         return ResponseEntity.ok(report);
     }
 
     @GetMapping("/alerts")
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
     public ResponseEntity<List<AttendanceReportResponse>> getLowAttendanceAlerts(
-            @RequestParam Long courseId) {
-        List<AttendanceReportResponse> alerts = attendanceService.getLowAttendanceAlerts(courseId);
+            @RequestParam Long subjectId) {
+        List<AttendanceReportResponse> alerts = attendanceService.getLowAttendanceAlerts(subjectId);
         return ResponseEntity.ok(alerts);
     }
 
