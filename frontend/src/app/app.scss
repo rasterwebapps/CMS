@@ -3,7 +3,7 @@
 }
 
 .app-sidenav {
-  width: 250px;
+  width: 260px;
 
   .sidenav-header {
     display: flex;
@@ -29,6 +29,56 @@
       font: var(--mat-sys-title-large);
     }
   }
+
+  .sidenav-nav {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100% - 65px);
+  }
+}
+
+.nav-group {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+
+  &::ng-deep .mat-expansion-panel-body {
+    padding: 0;
+  }
+
+  mat-expansion-panel-header {
+    padding: 0 16px;
+    height: 48px !important;
+    font: var(--mat-sys-label-large);
+
+    .nav-group-icon {
+      margin-right: 12px;
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    mat-panel-title {
+      display: flex;
+      align-items: center;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-label-large);
+    }
+  }
+
+  mat-nav-list {
+    padding-top: 0;
+    padding-bottom: 0;
+
+    a[mat-list-item] {
+      padding-left: 32px;
+    }
+  }
+}
+
+.top-level-item {
+  font: var(--mat-sys-label-large);
 }
 
 .active-link {
