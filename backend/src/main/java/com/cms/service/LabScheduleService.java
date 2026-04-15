@@ -10,14 +10,14 @@ import com.cms.dto.LabScheduleRequest;
 import com.cms.dto.LabScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.LabSchedule;
 import com.cms.model.LabSlot;
 import com.cms.model.Semester;
 import com.cms.model.enums.DayOfWeek;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabScheduleRepository;
@@ -30,20 +30,20 @@ public class LabScheduleService {
 
     private final LabScheduleRepository labScheduleRepository;
     private final LabRepository labRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
     private final FacultyRepository facultyRepository;
     private final LabSlotRepository labSlotRepository;
     private final SemesterRepository semesterRepository;
 
     public LabScheduleService(LabScheduleRepository labScheduleRepository,
                                LabRepository labRepository,
-                               CourseRepository courseRepository,
+                               SubjectRepository subjectRepository,
                                FacultyRepository facultyRepository,
                                LabSlotRepository labSlotRepository,
                                SemesterRepository semesterRepository) {
         this.labScheduleRepository = labScheduleRepository;
         this.labRepository = labRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
         this.facultyRepository = facultyRepository;
         this.labSlotRepository = labSlotRepository;
         this.semesterRepository = semesterRepository;
@@ -54,8 +54,8 @@ public class LabScheduleService {
         Lab lab = labRepository.findById(request.labId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
@@ -69,7 +69,7 @@ public class LabScheduleService {
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
         LabSchedule labSchedule = new LabSchedule(
-            lab, course, faculty, labSlot,
+            lab, subject, faculty, labSlot,
             request.batchName(), request.dayOfWeek(),
             semester, isActive
         );
@@ -125,28 +125,25 @@ public class LabScheduleService {
         List<String> facultyConflicts = new ArrayList<>();
         List<String> batchConflicts = new ArrayList<>();
 
-        // Check lab conflicts
         List<LabSchedule> conflictingLabSchedules = labScheduleRepository.findConflictingLabSchedules(
             request.labId(), request.dayOfWeek(), request.labSlotId());
         for (LabSchedule conflict : conflictingLabSchedules) {
             labConflicts.add(String.format("Lab is already scheduled for %s on %s",
-                conflict.getCourse().getName(), conflict.getDayOfWeek()));
+                conflict.getSubject().getName(), conflict.getDayOfWeek()));
         }
 
-        // Check faculty conflicts
         List<LabSchedule> conflictingFacultySchedules = labScheduleRepository.findConflictingFacultySchedules(
             request.facultyId(), request.dayOfWeek(), request.labSlotId());
         for (LabSchedule conflict : conflictingFacultySchedules) {
             facultyConflicts.add(String.format("Faculty is already scheduled for %s on %s",
-                conflict.getCourse().getName(), conflict.getDayOfWeek()));
+                conflict.getSubject().getName(), conflict.getDayOfWeek()));
         }
 
-        // Check batch conflicts
         List<LabSchedule> conflictingBatchSchedules = labScheduleRepository.findConflictingBatchSchedules(
             request.batchName(), request.dayOfWeek(), request.labSlotId());
         for (LabSchedule conflict : conflictingBatchSchedules) {
             batchConflicts.add(String.format("Batch is already scheduled for %s on %s",
-                conflict.getCourse().getName(), conflict.getDayOfWeek()));
+                conflict.getSubject().getName(), conflict.getDayOfWeek()));
         }
 
         boolean hasConflict = !labConflicts.isEmpty() || !facultyConflicts.isEmpty() || !batchConflicts.isEmpty();
@@ -161,8 +158,8 @@ public class LabScheduleService {
         Lab lab = labRepository.findById(request.labId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
@@ -174,7 +171,7 @@ public class LabScheduleService {
             .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id: " + request.semesterId()));
 
         labSchedule.setLab(lab);
-        labSchedule.setCourse(course);
+        labSchedule.setSubject(subject);
         labSchedule.setFaculty(faculty);
         labSchedule.setLabSlot(labSlot);
         labSchedule.setBatchName(request.batchName());
@@ -202,9 +199,9 @@ public class LabScheduleService {
             ls.getId(),
             ls.getLab().getId(),
             ls.getLab().getName(),
-            ls.getCourse().getId(),
-            ls.getCourse().getName(),
-            ls.getCourse().getCode(),
+            ls.getSubject().getId(),
+            ls.getSubject().getName(),
+            ls.getSubject().getCode(),
             ls.getFaculty().getId(),
             ls.getFaculty().getFirstName() + " " + ls.getFaculty().getLastName(),
             ls.getLabSlot().getId(),

@@ -8,9 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Syllabus;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.SyllabusRepository;
 
 @Service
@@ -18,22 +18,22 @@ import com.cms.repository.SyllabusRepository;
 public class SyllabusService {
 
     private final SyllabusRepository syllabusRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
 
-    public SyllabusService(SyllabusRepository syllabusRepository, CourseRepository courseRepository) {
+    public SyllabusService(SyllabusRepository syllabusRepository, SubjectRepository subjectRepository) {
         this.syllabusRepository = syllabusRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     @Transactional
     public SyllabusResponse create(SyllabusRequest request) {
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
         Boolean isActive = request.isActive() != null ? request.isActive() : false;
 
         Syllabus syllabus = new Syllabus(
-            course,
+            subject,
             request.version(),
             request.theoryHours(),
             request.labHours(),
@@ -62,19 +62,19 @@ public class SyllabusService {
         return toResponse(syllabus);
     }
 
-    public List<SyllabusResponse> findByCourseId(Long courseId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+    public List<SyllabusResponse> findBySubjectId(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
         }
-        return syllabusRepository.findByCourseId(courseId).stream()
+        return syllabusRepository.findBySubjectId(subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
 
-    public SyllabusResponse findActiveByCourseId(Long courseId) {
-        return syllabusRepository.findByCourseIdAndIsActiveTrue(courseId)
+    public SyllabusResponse findActiveBySubjectId(Long subjectId) {
+        return syllabusRepository.findBySubjectIdAndIsActiveTrue(subjectId)
             .map(this::toResponse)
-            .orElseThrow(() -> new ResourceNotFoundException("No active syllabus found for course id: " + courseId));
+            .orElseThrow(() -> new ResourceNotFoundException("No active syllabus found for subject id: " + subjectId));
     }
 
     @Transactional
@@ -82,10 +82,10 @@ public class SyllabusService {
         Syllabus syllabus = syllabusRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Syllabus not found with id: " + id));
 
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
 
-        syllabus.setCourse(course);
+        syllabus.setSubject(subject);
         syllabus.setVersion(request.version());
         syllabus.setTheoryHours(request.theoryHours());
         syllabus.setLabHours(request.labHours());
@@ -115,9 +115,9 @@ public class SyllabusService {
     private SyllabusResponse toResponse(Syllabus syllabus) {
         return new SyllabusResponse(
             syllabus.getId(),
-            syllabus.getCourse().getId(),
-            syllabus.getCourse().getName(),
-            syllabus.getCourse().getCode(),
+            syllabus.getSubject().getId(),
+            syllabus.getSubject().getName(),
+            syllabus.getSubject().getCode(),
             syllabus.getVersion(),
             syllabus.getTheoryHours(),
             syllabus.getLabHours(),

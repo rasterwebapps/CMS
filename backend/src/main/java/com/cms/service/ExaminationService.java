@@ -8,10 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.ExaminationRequest;
 import com.cms.dto.ExaminationResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
+import com.cms.model.Subject;
 import com.cms.model.Examination;
 import com.cms.model.Semester;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.SemesterRepository;
 
@@ -20,28 +20,28 @@ import com.cms.repository.SemesterRepository;
 public class ExaminationService {
 
     private final ExaminationRepository examinationRepository;
-    private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
     private final SemesterRepository semesterRepository;
 
     public ExaminationService(ExaminationRepository examinationRepository,
-                               CourseRepository courseRepository,
+                               SubjectRepository subjectRepository,
                                SemesterRepository semesterRepository) {
         this.examinationRepository = examinationRepository;
-        this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
         this.semesterRepository = semesterRepository;
     }
 
     @Transactional
     public ExaminationResponse create(ExaminationRequest request) {
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
         Semester semester = null;
         if (request.semesterId() != null) {
             semester = semesterRepository.findById(request.semesterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id: " + request.semesterId()));
         }
         Examination examination = new Examination(
-            request.name(), course, request.examType(),
+            request.name(), subject, request.examType(),
             request.date(), request.duration(), request.maxMarks(), semester
         );
         Examination saved = examinationRepository.save(examination);
@@ -58,8 +58,8 @@ public class ExaminationService {
         return toResponse(examination);
     }
 
-    public List<ExaminationResponse> findByCourseId(Long courseId) {
-        return examinationRepository.findByCourseId(courseId).stream().map(this::toResponse).toList();
+    public List<ExaminationResponse> findBySubjectId(Long subjectId) {
+        return examinationRepository.findBySubjectId(subjectId).stream().map(this::toResponse).toList();
     }
 
     public List<ExaminationResponse> findBySemesterId(Long semesterId) {
@@ -70,10 +70,10 @@ public class ExaminationService {
     public ExaminationResponse update(Long id, ExaminationRequest request) {
         Examination examination = examinationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Examination not found with id: " + id));
-        Course course = courseRepository.findById(request.courseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
         examination.setName(request.name());
-        examination.setCourse(course);
+        examination.setSubject(subject);
         examination.setExamType(request.examType());
         examination.setDate(request.date());
         examination.setDuration(request.duration());
@@ -99,8 +99,8 @@ public class ExaminationService {
         return new ExaminationResponse(
             examination.getId(),
             examination.getName(),
-            examination.getCourse().getId(),
-            examination.getCourse().getName(),
+            examination.getSubject().getId(),
+            examination.getSubject().getName(),
             examination.getExamType(),
             examination.getDate(),
             examination.getDuration(),
