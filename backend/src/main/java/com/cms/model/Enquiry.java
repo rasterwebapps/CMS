@@ -59,6 +59,10 @@ public class Enquiry {
     @JoinColumn(name = "agent_id")
     private Agent agent;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "referral_type_id")
+    private ReferralType referralType;
+
     @Column(name = "assigned_to")
     private String assignedTo;
 
@@ -67,6 +71,39 @@ public class Enquiry {
 
     @Column(name = "fee_discussed_amount", precision = 10, scale = 2)
     private BigDecimal feeDiscussedAmount;
+
+    // Fee guideline values captured at enquiry time
+    @Column(name = "fee_guideline_total", precision = 12, scale = 2)
+    private BigDecimal feeGuidelineTotal;
+
+    @Column(name = "referral_additional_amount", precision = 12, scale = 2)
+    private BigDecimal referralAdditionalAmount;
+
+    @Column(name = "final_calculated_fee", precision = 12, scale = 2)
+    private BigDecimal finalCalculatedFee;
+
+    // Year-wise guideline fees stored as JSON
+    @Column(name = "year_wise_fees", columnDefinition = "TEXT")
+    private String yearWiseFees;
+
+    // Admin fee finalization fields
+    @Column(name = "finalized_total_fee", precision = 12, scale = 2)
+    private BigDecimal finalizedTotalFee;
+
+    @Column(name = "finalized_discount_amount", precision = 12, scale = 2)
+    private BigDecimal finalizedDiscountAmount;
+
+    @Column(name = "finalized_discount_reason")
+    private String finalizedDiscountReason;
+
+    @Column(name = "finalized_net_fee", precision = 12, scale = 2)
+    private BigDecimal finalizedNetFee;
+
+    @Column(name = "finalized_by")
+    private String finalizedBy;
+
+    @Column(name = "finalized_at")
+    private Instant finalizedAt;
 
     @Column(name = "converted_student_id")
     private Long convertedStudentId;
@@ -169,6 +206,14 @@ public class Enquiry {
         this.agent = agent;
     }
 
+    public ReferralType getReferralType() {
+        return referralType;
+    }
+
+    public void setReferralType(ReferralType referralType) {
+        this.referralType = referralType;
+    }
+
     public String getAssignedTo() {
         return assignedTo;
     }
@@ -191,6 +236,86 @@ public class Enquiry {
 
     public void setFeeDiscussedAmount(BigDecimal feeDiscussedAmount) {
         this.feeDiscussedAmount = feeDiscussedAmount;
+    }
+
+    public BigDecimal getFeeGuidelineTotal() {
+        return feeGuidelineTotal;
+    }
+
+    public void setFeeGuidelineTotal(BigDecimal feeGuidelineTotal) {
+        this.feeGuidelineTotal = feeGuidelineTotal;
+    }
+
+    public BigDecimal getReferralAdditionalAmount() {
+        return referralAdditionalAmount;
+    }
+
+    public void setReferralAdditionalAmount(BigDecimal referralAdditionalAmount) {
+        this.referralAdditionalAmount = referralAdditionalAmount;
+    }
+
+    public BigDecimal getFinalCalculatedFee() {
+        return finalCalculatedFee;
+    }
+
+    public void setFinalCalculatedFee(BigDecimal finalCalculatedFee) {
+        this.finalCalculatedFee = finalCalculatedFee;
+    }
+
+    public String getYearWiseFees() {
+        return yearWiseFees;
+    }
+
+    public void setYearWiseFees(String yearWiseFees) {
+        this.yearWiseFees = yearWiseFees;
+    }
+
+    public BigDecimal getFinalizedTotalFee() {
+        return finalizedTotalFee;
+    }
+
+    public void setFinalizedTotalFee(BigDecimal finalizedTotalFee) {
+        this.finalizedTotalFee = finalizedTotalFee;
+    }
+
+    public BigDecimal getFinalizedDiscountAmount() {
+        return finalizedDiscountAmount;
+    }
+
+    public void setFinalizedDiscountAmount(BigDecimal finalizedDiscountAmount) {
+        this.finalizedDiscountAmount = finalizedDiscountAmount;
+    }
+
+    public String getFinalizedDiscountReason() {
+        return finalizedDiscountReason;
+    }
+
+    public void setFinalizedDiscountReason(String finalizedDiscountReason) {
+        this.finalizedDiscountReason = finalizedDiscountReason;
+    }
+
+    public BigDecimal getFinalizedNetFee() {
+        return finalizedNetFee;
+    }
+
+    public void setFinalizedNetFee(BigDecimal finalizedNetFee) {
+        this.finalizedNetFee = finalizedNetFee;
+    }
+
+    public String getFinalizedBy() {
+        return finalizedBy;
+    }
+
+    public void setFinalizedBy(String finalizedBy) {
+        this.finalizedBy = finalizedBy;
+    }
+
+    public Instant getFinalizedAt() {
+        return finalizedAt;
+    }
+
+    public void setFinalizedAt(Instant finalizedAt) {
+        this.finalizedAt = finalizedAt;
     }
 
     public Long getConvertedStudentId() {

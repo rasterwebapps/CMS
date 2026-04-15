@@ -618,3 +618,37 @@ Before accepting AI-generated code, verify:
 ---
 
 *This document is the authoritative reference for all technical decisions in the College Management System. All contributors must adhere to these standards for consistency, performance, and security.*
+
+---
+
+## 9. Business & Workflow Documentation
+
+### 9.1 Mandatory Documentation Rule
+
+**Any change to business rules, workflows, status transitions, fee calculation logic, or operational processes must be documented in `docs/BUSINESS_REQUIREMENTS.md` before the change is considered complete.** This is a mandatory requirement in the Definition of Done for every task.
+
+### 9.2 What Must Be Documented
+
+| Change Type | Documentation Required |
+|-------------|----------------------|
+| New business rule or workflow | Add a new BR-{N} section in `docs/BUSINESS_REQUIREMENTS.md` |
+| Modified status transition | Update the relevant BR section and status transition diagram |
+| New or changed fee calculation logic | Update BR-5 or add a new BR section with formulas |
+| New entity relationship | Update the relevant BR section with data model |
+| New role-based access pattern | Update the relevant BR section's Roles table |
+| New screen or screen modification | Update the relevant BR section with screen layout |
+
+### 9.3 Documentation Workflow
+
+1. **Before coding**: Review existing business requirements in `docs/BUSINESS_REQUIREMENTS.md` for context.
+2. **During design**: Draft any new or modified business requirements.
+3. **Before merging**: Ensure all business/workflow changes are documented in:
+   - `docs/BUSINESS_REQUIREMENTS.md` — business rules and workflows
+   - `docs/DEVELOPMENT_PLAN.md` or `docs/RELEASE_1_MILESTONES.md` — milestone updates
+   - `docs/manual-test-cases/` — test case updates
+   - `CHANGELOG.md` — release notes
+4. **Code review**: Reviewers must verify that business documentation is complete and accurate.
+
+### 9.4 Change Log
+
+Every update to `docs/BUSINESS_REQUIREMENTS.md` must include an entry in the Change Log table at the bottom of the document, recording the date, BR IDs affected, description of the change, and the author.

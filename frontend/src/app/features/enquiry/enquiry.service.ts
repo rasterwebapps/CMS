@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Enquiry, EnquiryRequest } from './enquiry.model';
+import {
+  Enquiry,
+  EnquiryRequest,
+  FeeFinalizationRequest,
+  FeeFinalizationResponse,
+  EnquiryDocument,
+  EnquiryDocumentRequest,
+} from './enquiry.model';
 
 @Injectable({
   providedIn: 'root',
@@ -51,5 +58,21 @@ export class EnquiryService {
 
   convertToStudent(enquiryId: number, studentId: number): Observable<Enquiry> {
     return this.http.put<Enquiry>(`${this.baseUrl}/${enquiryId}/convert?studentId=${studentId}`, {});
+  }
+
+  finalizeFees(enquiryId: number, request: FeeFinalizationRequest): Observable<FeeFinalizationResponse> {
+    return this.http.post<FeeFinalizationResponse>(`${this.baseUrl}/${enquiryId}/finalize-fees`, request);
+  }
+
+  getDocuments(enquiryId: number): Observable<EnquiryDocument[]> {
+    return this.http.get<EnquiryDocument[]>(`${this.baseUrl}/${enquiryId}/documents`);
+  }
+
+  addDocument(enquiryId: number, request: EnquiryDocumentRequest): Observable<EnquiryDocument> {
+    return this.http.post<EnquiryDocument>(`${this.baseUrl}/${enquiryId}/documents`, request);
+  }
+
+  deleteDocument(enquiryId: number, documentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${enquiryId}/documents/${documentId}`);
   }
 }

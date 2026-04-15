@@ -15,6 +15,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Manual test case template and guidelines
 - Contributing guide
 
+### Business Requirements Documentation
+- **`docs/BUSINESS_REQUIREMENTS.md`** — Comprehensive business requirements document (BR-1 to BR-11)
+  - BR-1: Fee structure scoped per program per academic year (fees may vary year to year)
+  - BR-2: Year-wise fee input boxes based on program duration (First Year, Second Year, etc.)
+  - BR-3: Fee structure guideline panel on enquiry screen for selected program's current academic year
+  - BR-4: Referral Type as separate master entity (replaces hardcoded EnquirySource enum) with types: WALK_IN, PHONE, ONLINE, AGENT_REFERRAL, STAFF, ALUMNI, PARENT, ADVERTISEMENT
+  - BR-5: Referral guideline amount — additional box for non-zero values; final fee = program fee + referral amount
+  - BR-6: Admin fee finalization workflow — front office submits, admin reviews/adjusts/finalizes
+  - BR-7: Payment collection by accounting team — full/partial payments, multiple modes, receipts
+  - BR-8: Enhanced enquiry status workflow: ENQUIRED → INTERESTED → FEES_FINALIZED → FEES_PAID/PARTIALLY_PAID → DOCUMENTS_SUBMITTED → CONVERTED
+  - BR-9: Document submission tracking (10th, 12th certificates, etc.)
+  - BR-10: Convert enquiry to student (requires DOCUMENTS_SUBMITTED status)
+  - BR-11: Student explorer screen with comprehensive filters
+  - End-to-end enquiry-to-admission lifecycle documented
+  - Mandatory documentation policy: all business/workflow changes must be documented before merge
+- **Updated `docs/DEVELOPMENT_PLAN.md`**
+  - Added milestones: 4.1a (Referral Type Master), 4.1b (Enquiry-to-Admission Workflow Enhancement)
+  - Enhanced milestone 4.1 with year-wise fee boxes (BR-2) and academic year scoping (BR-1)
+  - Added "Business Documentation" to Definition of Done
+- **Updated `docs/RELEASE_1_MILESTONES.md`**
+  - Added milestones: R1-M4.1a (Referral Type Master), R1-M4.1b (Enquiry-to-Admission Workflow Enhancement)
+  - Enhanced R1-M4.1 with year-wise fee boxes and academic year scoping
+  - Added "Business Documentation" to Definition of Done
+- **Updated `docs/TECHNICAL_STANDARDS.md`**
+  - Added Section 9: Business & Workflow Documentation (mandatory documentation rule, what to document, documentation workflow)
+- **Updated `CONTRIBUTING.md`**
+  - Added step 6: Document business/workflow changes in `docs/BUSINESS_REQUIREMENTS.md`
+- **Updated `docs/README.md`**
+  - Added reference to `BUSINESS_REQUIREMENTS.md` in documentation index
+- **Updated `docs/manual-test-cases/enquiry-management.md`**
+  - Added TC-ENQ-022 to TC-ENQ-035: Fee guideline display, referral type selection, additional amount box, final fee calculation, status workflow, admin finalization, payment collection, document submission, enhanced conversion, student explorer
+- **Updated `docs/manual-test-cases/fee-management.md`**
+  - Added TC-FEE-015 to TC-FEE-020: Year-wise fee boxes per program duration, academic year filtering
+
 ### R1-M0: Project Scaffolding
 - **Backend Initialization**
   - Spring Boot 3.4 project with Gradle (Kotlin DSL), Java 21, virtual threads

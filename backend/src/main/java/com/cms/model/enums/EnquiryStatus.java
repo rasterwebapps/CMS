@@ -1,11 +1,13 @@
 package com.cms.model.enums;
 
 public enum EnquiryStatus {
-    NEW,
-    CONTACTED,
-    FEE_DISCUSSED,
+    ENQUIRED,
     INTERESTED,
-    CONVERTED,
     NOT_INTERESTED,
+    FEES_FINALIZED,
+    FEES_PAID,
+    PARTIALLY_PAID,
+    DOCUMENTS_SUBMITTED,
+    CONVERTED,
     CLOSED
 }

@@ -324,6 +324,7 @@ Every task/milestone is considered **complete** only when ALL of the following a
 | **Role-Based Access** | `@PreAuthorize` annotations applied to all controller methods |
 | **Error Handling** | All errors return standardized `ErrorResponse` via GlobalExceptionHandler |
 | **Manual Test Cases** | Manual test case document created in `docs/manual-test-cases/` |
+| **Business Documentation** | Any business/workflow changes documented in `docs/BUSINESS_REQUIREMENTS.md` |
 | **Code Review** | Pull request reviewed and approved |
 | **CHANGELOG** | `CHANGELOG.md` updated with the new feature |
 | **Release 1 Stable** | All Release 1 features remain functional (regression-free) |

@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import com.cms.model.enums.FeeType;
 
@@ -25,5 +26,7 @@ public record FeeStructureRequest(
 
     Boolean isMandatory,
 
-    Boolean isActive
+    Boolean isActive,
+
+    List<YearAmountRequest> yearAmounts
 ) {}

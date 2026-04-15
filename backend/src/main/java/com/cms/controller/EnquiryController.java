@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
+import com.cms.dto.FeeFinalizationRequest;
+import com.cms.dto.FeeFinalizationResponse;
 import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.service.EnquiryService;
@@ -85,6 +88,17 @@ public class EnquiryController {
             @PathVariable Long id,
             @RequestParam EnquiryStatus status) {
         EnquiryResponse response = enquiryService.updateStatus(id, status);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/finalize-fees")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<FeeFinalizationResponse> finalizeFees(
+            @PathVariable Long id,
+            @Valid @RequestBody FeeFinalizationRequest request,
+            Principal principal) {
+        String adminUsername = principal != null ? principal.getName() : "admin";
+        FeeFinalizationResponse response = enquiryService.finalizeFees(id, request, adminUsername);
         return ResponseEntity.ok(response);
     }
 

@@ -49,7 +49,7 @@ export class EnquiryListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly statusFilter = signal('');
-  protected readonly statuses = ['NEW', 'CONTACTED', 'FEE_DISCUSSED', 'INTERESTED', 'CONVERTED', 'NOT_INTERESTED', 'CLOSED'];
+  protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
 
   /** Date range filter — defaults to current month */
   protected dateFrom: Date;
@@ -94,12 +94,14 @@ export class EnquiryListComponent implements OnInit {
 
   protected getStatusColor(status: string): string {
     switch (status) {
-      case 'NEW': return 'primary';
-      case 'CONTACTED': return 'accent';
-      case 'FEE_DISCUSSED': return 'accent';
-      case 'INTERESTED': return 'primary';
-      case 'CONVERTED': return 'primary';
+      case 'ENQUIRED': return 'primary';
+      case 'INTERESTED': return 'accent';
       case 'NOT_INTERESTED': return 'warn';
+      case 'FEES_FINALIZED': return 'primary';
+      case 'FEES_PAID': return 'primary';
+      case 'PARTIALLY_PAID': return 'accent';
+      case 'DOCUMENTS_SUBMITTED': return 'primary';
+      case 'CONVERTED': return 'primary';
       case 'CLOSED': return '';
       default: return '';
     }
@@ -108,12 +110,15 @@ export class EnquiryListComponent implements OnInit {
   /** Returns the list of allowed next statuses for the given current status. */
   protected getNextStatuses(currentStatus: string): string[] {
     switch (currentStatus) {
-      case 'NEW': return ['CONTACTED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'CONTACTED': return ['FEE_DISCUSSED', 'INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'FEE_DISCUSSED': return ['INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'INTERESTED': return ['FEE_DISCUSSED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'NOT_INTERESTED': return ['CONTACTED', 'CLOSED'];
-      case 'CLOSED': return ['NEW'];
+      case 'ENQUIRED': return ['INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'INTERESTED': return ['FEES_FINALIZED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'NOT_INTERESTED': return ['INTERESTED', 'CLOSED'];
+      case 'FEES_FINALIZED': return ['FEES_PAID', 'PARTIALLY_PAID', 'CLOSED'];
+      case 'FEES_PAID': return ['DOCUMENTS_SUBMITTED'];
+      case 'PARTIALLY_PAID': return ['FEES_PAID', 'DOCUMENTS_SUBMITTED'];
+      case 'DOCUMENTS_SUBMITTED': return [];
+      case 'CONVERTED': return [];
+      case 'CLOSED': return ['ENQUIRED'];
       default: return [];
     }
   }
@@ -140,7 +145,11 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canConvert(item: Enquiry): boolean {
-    return item.status === 'INTERESTED' || item.status === 'FEE_DISCUSSED';
+    return item.status === 'DOCUMENTS_SUBMITTED'
+      || item.status === 'FEES_PAID'
+      || item.status === 'PARTIALLY_PAID'
+      || item.status === 'INTERESTED'
+      || item.status === 'FEES_FINALIZED';
   }
 
   protected convert(item: Enquiry): void {

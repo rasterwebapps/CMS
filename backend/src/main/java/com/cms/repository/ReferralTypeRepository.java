@@ -1,0 +1,17 @@
+package com.cms.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.cms.model.ReferralType;
+
+public interface ReferralTypeRepository extends JpaRepository<ReferralType, Long> {
+
+    List<ReferralType> findByIsActiveTrue();
+
+    Optional<ReferralType> findByCode(String code);
+
+    boolean existsByCode(String code);
+}

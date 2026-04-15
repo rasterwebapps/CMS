@@ -335,12 +335,13 @@ The backend supports multiple Spring profiles for database configuration:
 3. **Write unit tests for all backend services and controllers** — maintain 95% code coverage
 4. **No frontend unit tests** — frontend testing is not required
 5. **Create manual test cases** for every completed task (see [Manual Test Cases](#manual-test-cases))
-6. **Keep controllers thin** - business logic belongs in services
-7. **Use meaningful variable and method names**
-8. **Document public APIs with Javadoc (backend)** and JSDoc (frontend)
-9. **Handle errors gracefully** with appropriate error responses
-10. **Follow existing patterns** in the codebase when adding new features
-11. **Use the `local` profile** for development (H2) and `prod` for production (PostgreSQL)
+6. **Document business/workflow changes** — update `docs/BUSINESS_REQUIREMENTS.md` whenever business rules, status transitions, fee logic, or workflows are added or modified
+7. **Keep controllers thin** - business logic belongs in services
+8. **Use meaningful variable and method names**
+9. **Document public APIs with Javadoc (backend)** and JSDoc (frontend)
+10. **Handle errors gracefully** with appropriate error responses
+11. **Follow existing patterns** in the codebase when adding new features
+12. **Use the `local` profile** for development (H2) and `prod` for production (PostgreSQL)
 
 ## AI Code Generation Quality
 

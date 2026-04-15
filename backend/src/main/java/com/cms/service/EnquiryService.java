@@ -1,5 +1,7 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -8,16 +10,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
+import com.cms.dto.FeeFinalizationRequest;
+import com.cms.dto.FeeFinalizationResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
+import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -28,15 +34,18 @@ public class EnquiryService {
     private final ProgramRepository programRepository;
     private final AgentRepository agentRepository;
     private final StudentRepository studentRepository;
+    private final ReferralTypeRepository referralTypeRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
                            AgentRepository agentRepository,
-                           StudentRepository studentRepository) {
+                           StudentRepository studentRepository,
+                           ReferralTypeRepository referralTypeRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
         this.studentRepository = studentRepository;
+        this.referralTypeRepository = referralTypeRepository;
     }
 
     @Transactional
@@ -53,16 +62,27 @@ public class EnquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + request.agentId()));
         }
 
-        EnquiryStatus status = request.status() != null ? request.status() : EnquiryStatus.NEW;
+        ReferralType referralType = null;
+        if (request.referralTypeId() != null) {
+            referralType = referralTypeRepository.findById(request.referralTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+        }
+
+        EnquiryStatus status = request.status() != null ? request.status() : EnquiryStatus.ENQUIRED;
 
         Enquiry enquiry = new Enquiry(
             request.name(), request.email(), request.phone(),
             program, request.enquiryDate(), request.source(), status
         );
         enquiry.setAgent(agent);
+        enquiry.setReferralType(referralType);
         enquiry.setAssignedTo(request.assignedTo());
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
+        enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
+        enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
+        enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
+        enquiry.setYearWiseFees(request.yearWiseFees());
 
         Enquiry saved = enquiryRepository.save(enquiry);
         return toResponse(saved);
@@ -115,6 +135,12 @@ public class EnquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + request.agentId()));
         }
 
+        ReferralType referralType = null;
+        if (request.referralTypeId() != null) {
+            referralType = referralTypeRepository.findById(request.referralTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+        }
+
         enquiry.setName(request.name());
         enquiry.setEmail(request.email());
         enquiry.setPhone(request.phone());
@@ -122,9 +148,14 @@ public class EnquiryService {
         enquiry.setEnquiryDate(request.enquiryDate());
         enquiry.setSource(request.source());
         enquiry.setAgent(agent);
+        enquiry.setReferralType(referralType);
         enquiry.setAssignedTo(request.assignedTo());
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
+        enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
+        enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
+        enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
+        enquiry.setYearWiseFees(request.yearWiseFees());
 
         if (request.status() != null) {
             enquiry.setStatus(request.status());
@@ -135,13 +166,58 @@ public class EnquiryService {
     }
 
     @Transactional
+    public FeeFinalizationResponse finalizeFees(Long enquiryId, FeeFinalizationRequest request, String adminUsername) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
+
+        if (enquiry.getStatus() != EnquiryStatus.INTERESTED
+            && enquiry.getStatus() != EnquiryStatus.ENQUIRED) {
+            throw new IllegalStateException(
+                "Enquiry must be in ENQUIRED or INTERESTED status to finalize fees. Current status: " + enquiry.getStatus()
+            );
+        }
+
+        BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
+        BigDecimal netFee = request.totalFee().subtract(discount);
+
+        enquiry.setFinalizedTotalFee(request.totalFee());
+        enquiry.setFinalizedDiscountAmount(discount);
+        enquiry.setFinalizedDiscountReason(request.discountReason());
+        enquiry.setFinalizedNetFee(netFee);
+        enquiry.setFinalizedBy(adminUsername);
+        enquiry.setFinalizedAt(Instant.now());
+        enquiry.setStatus(EnquiryStatus.FEES_FINALIZED);
+
+        if (request.yearWiseFees() != null) {
+            enquiry.setYearWiseFees(request.yearWiseFees());
+        }
+
+        Enquiry saved = enquiryRepository.save(enquiry);
+
+        return new FeeFinalizationResponse(
+            saved.getId(),
+            saved.getFinalizedTotalFee(),
+            saved.getFinalizedDiscountAmount(),
+            saved.getFinalizedDiscountReason(),
+            saved.getFinalizedNetFee(),
+            saved.getFinalizedBy(),
+            saved.getFinalizedAt(),
+            saved.getStatus().name()
+        );
+    }
+
+    @Transactional
     public EnquiryResponse convertToStudent(Long enquiryId, Long studentId) {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.INTERESTED && enquiry.getStatus() != EnquiryStatus.FEE_DISCUSSED) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED
+            && enquiry.getStatus() != EnquiryStatus.FEES_PAID
+            && enquiry.getStatus() != EnquiryStatus.PARTIALLY_PAID
+            && enquiry.getStatus() != EnquiryStatus.INTERESTED
+            && enquiry.getStatus() != EnquiryStatus.FEES_FINALIZED) {
             throw new IllegalStateException(
-                "Enquiry must be in INTERESTED or FEE_DISCUSSED status to convert. Current status: " + enquiry.getStatus()
+                "Enquiry must be in an eligible status to convert. Current status: " + enquiry.getStatus()
             );
         }
 
@@ -197,9 +273,22 @@ public class EnquiryService {
             e.getStatus(),
             e.getAgent() != null ? e.getAgent().getId() : null,
             e.getAgent() != null ? e.getAgent().getName() : null,
+            e.getReferralType() != null ? e.getReferralType().getId() : null,
+            e.getReferralType() != null ? e.getReferralType().getName() : null,
+            e.getReferralType() != null ? e.getReferralType().getGuidelineValue() : null,
             e.getAssignedTo(),
             e.getRemarks(),
             e.getFeeDiscussedAmount(),
+            e.getFeeGuidelineTotal(),
+            e.getReferralAdditionalAmount(),
+            e.getFinalCalculatedFee(),
+            e.getYearWiseFees(),
+            e.getFinalizedTotalFee(),
+            e.getFinalizedDiscountAmount(),
+            e.getFinalizedDiscountReason(),
+            e.getFinalizedNetFee(),
+            e.getFinalizedBy(),
+            e.getFinalizedAt(),
             e.getConvertedStudentId(),
             e.getCreatedAt(),
             e.getUpdatedAt()

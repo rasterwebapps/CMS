@@ -48,7 +48,7 @@ class FeeStructureControllerTest {
     @Test
     void shouldCreateFeeStructure() throws Exception {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true
+            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null
         );
 
         FeeStructureResponse response = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
@@ -133,7 +133,7 @@ class FeeStructureControllerTest {
     @Test
     void shouldUpdateFeeStructure() throws Exception {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
         );
 
         FeeStructureResponse response = createResponse(1L, FeeType.LAB_FEE, new BigDecimal("10000.00"));
@@ -174,7 +174,7 @@ class FeeStructureControllerTest {
         Instant now = Instant.now();
         return new FeeStructureResponse(
             id, 1L, "B.Tech CS", 1L, "2024-25", feeType, amount,
-            "Description", true, true, now, now
+            "Description", true, true, List.of(), now, now
         );
     }
 }

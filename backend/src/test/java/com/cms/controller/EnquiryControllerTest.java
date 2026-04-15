@@ -52,11 +52,12 @@ class EnquiryControllerTest {
     void shouldCreateEnquiry() throws Exception {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW,
-            null, "Admin", "Interested in CS", new BigDecimal("50000.00")
+            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
+            null, null, "Admin", "Interested in CS", new BigDecimal("50000.00"),
+            null, null, null, null
         );
 
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.create(any(EnquiryRequest.class))).thenReturn(response);
 
@@ -72,7 +73,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindAllEnquiries() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findAll()).thenReturn(List.of(response));
 
@@ -85,20 +86,20 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
-        when(enquiryService.findByStatus(EnquiryStatus.NEW)).thenReturn(List.of(response));
+        when(enquiryService.findByStatus(EnquiryStatus.ENQUIRED)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/enquiries").param("status", "NEW"))
+        mockMvc.perform(get("/enquiries").param("status", "ENQUIRED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(enquiryService).findByStatus(EnquiryStatus.NEW);
+        verify(enquiryService).findByStatus(EnquiryStatus.ENQUIRED);
     }
 
     @Test
     void shouldFindBySource() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findBySource(EnquirySource.WALK_IN)).thenReturn(List.of(response));
 
@@ -111,7 +112,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindById() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findById(1L)).thenReturn(response);
 
@@ -138,11 +139,12 @@ class EnquiryControllerTest {
     void shouldUpdateEnquiry() throws Exception {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar Updated", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.CONTACTED,
-            null, "Staff", "Called back", new BigDecimal("45000.00")
+            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED,
+            null, null, "Staff", "Called back", new BigDecimal("45000.00"),
+            null, null, null, null
         );
 
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquirySource.PHONE, EnquiryStatus.CONTACTED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquirySource.PHONE, EnquiryStatus.INTERESTED);
 
         when(enquiryService.update(eq(1L), any(EnquiryRequest.class))).thenReturn(response);
 
@@ -161,7 +163,9 @@ class EnquiryControllerTest {
             1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             1L, "B.Tech CS", LocalDate.of(2024, 6, 15),
             EnquirySource.WALK_IN, EnquiryStatus.CONVERTED,
-            null, null, "Admin", "Converted", new BigDecimal("50000.00"),
+            null, null, null, null, null, "Admin", "Converted", new BigDecimal("50000.00"),
+            null, null, null, null,
+            null, null, null, null, null, null,
             10L, Instant.now(), Instant.now()
         );
 
@@ -198,7 +202,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByDateRange() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findByDateRange(LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)))
             .thenReturn(List.of(response));
@@ -214,34 +218,34 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByDateRangeAndStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findByDateRangeAndStatus(
-            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.NEW))
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.ENQUIRED))
             .thenReturn(List.of(response));
 
         mockMvc.perform(get("/enquiries")
                 .param("fromDate", "2024-06-01")
                 .param("toDate", "2024-06-30")
-                .param("status", "NEW"))
+                .param("status", "ENQUIRED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
         verify(enquiryService).findByDateRangeAndStatus(
-            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.NEW);
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.ENQUIRED);
     }
 
     @Test
     void shouldUpdateStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.CONTACTED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
 
-        when(enquiryService.updateStatus(1L, EnquiryStatus.CONTACTED)).thenReturn(response);
+        when(enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED)).thenReturn(response);
 
-        mockMvc.perform(patch("/enquiries/1/status").param("status", "CONTACTED"))
+        mockMvc.perform(patch("/enquiries/1/status").param("status", "INTERESTED"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("CONTACTED"));
+            .andExpect(jsonPath("$.status").value("INTERESTED"));
 
-        verify(enquiryService).updateStatus(1L, EnquiryStatus.CONTACTED);
+        verify(enquiryService).updateStatus(1L, EnquiryStatus.INTERESTED);
     }
 
     @Test
@@ -249,10 +253,10 @@ class EnquiryControllerTest {
         when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class)))
             .thenThrow(new ResourceNotFoundException("Enquiry not found with id: 999"));
 
-        mockMvc.perform(patch("/enquiries/999/status").param("status", "CONTACTED"))
+        mockMvc.perform(patch("/enquiries/999/status").param("status", "INTERESTED"))
             .andExpect(status().isNotFound());
 
-        verify(enquiryService).updateStatus(999L, EnquiryStatus.CONTACTED);
+        verify(enquiryService).updateStatus(999L, EnquiryStatus.INTERESTED);
     }
 
     private EnquiryResponse createResponse(Long id, String name, EnquirySource source, EnquiryStatus status) {
@@ -260,8 +264,10 @@ class EnquiryControllerTest {
         return new EnquiryResponse(
             id, name, "ravi@email.com", "9876543210",
             1L, "B.Tech CS", LocalDate.of(2024, 6, 15),
-            source, status, null, null, "Admin", "Remarks",
-            new BigDecimal("50000.00"), null, now, now
+            source, status, null, null, null, null, null, "Admin", "Remarks",
+            new BigDecimal("50000.00"), null, null, null, null,
+            null, null, null, null, null, null,
+            null, now, now
         );
     }
 }
