@@ -585,6 +585,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'referral-types',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/referral-type/referral-type-list/referral-type-list.component').then(
+        (m) => m.ReferralTypeListComponent
+      ),
+  },
+  {
+    path: 'referral-types/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/referral-type/referral-type-form/referral-type-form.component').then(
+        (m) => m.ReferralTypeFormComponent
+      ),
+  },
+  {
+    path: 'referral-types/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/referral-type/referral-type-form/referral-type-form.component').then(
+        (m) => m.ReferralTypeFormComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: 'dashboard',
     pathMatch: 'full',
