@@ -24,61 +24,92 @@
             @for (s of statuses; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
           </mat-select>
         </mat-form-field>
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>From Date</mat-label>
+          <input matInput [matDatepicker]="fromPicker" [(ngModel)]="dateFrom" (dateChange)="onDateRangeChange()" />
+          <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+          <mat-datepicker #fromPicker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>To Date</mat-label>
+          <input matInput [matDatepicker]="toPicker" [(ngModel)]="dateTo" (dateChange)="onDateRangeChange()" />
+          <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+          <mat-datepicker #toPicker></mat-datepicker>
+        </mat-form-field>
+        <button mat-icon-button matTooltip="Reset date filter" (click)="clearDateFilter()">
+          <mat-icon>refresh</mat-icon>
+        </button>
       </div>
+
+      <!-- Loading overlay -->
       @if (loading()) {
         <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="data-table">
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let row">{{ row.name }}</td>
-            </ng-container>
-            <ng-container matColumnDef="phone">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
-              <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
-            </ng-container>
-            <ng-container matColumnDef="programName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-              <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
-            </ng-container>
-            <ng-container matColumnDef="enquiryDate">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Enquiry Date</th>
-              <td mat-cell *matCellDef="let row">{{ row.enquiryDate }}</td>
-            </ng-container>
-            <ng-container matColumnDef="source">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
-              <td mat-cell *matCellDef="let row">{{ row.source }}</td>
-            </ng-container>
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let row">
-                <mat-chip [highlighted]="getStatusColor(row.status) === 'primary'">{{ row.status }}</mat-chip>
-              </td>
-            </ng-container>
-            <ng-container matColumnDef="agentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Agent</th>
-              <td mat-cell *matCellDef="let row">{{ row.agentName || '—' }}</td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let row">
-                <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
-                @if (canConvert(row)) {
-                  <button mat-icon-button matTooltip="Convert to Student" (click)="convert(row)"><mat-icon>school</mat-icon></button>
-                }
-                <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
-            </tr>
-          </table>
-        </div>
-        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
       }
+
+      <div class="table-container" [class.hidden]="loading()">
+        <table mat-table [dataSource]="dataSource" matSort class="data-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="phone">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
+            <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="programName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="enquiryDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Enquiry Date</th>
+            <td mat-cell *matCellDef="let row">{{ row.enquiryDate }}</td>
+          </ng-container>
+          <ng-container matColumnDef="source">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
+            <td mat-cell *matCellDef="let row">{{ row.source }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let row">
+              @if (canChangeStatus(row)) {
+                <mat-chip [highlighted]="getStatusColor(row.status) === 'primary'"
+                          [matMenuTriggerFor]="statusMenu"
+                          class="status-chip">
+                  {{ row.status }}
+                  <mat-icon matChipTrailingIcon>arrow_drop_down</mat-icon>
+                </mat-chip>
+                <mat-menu #statusMenu="matMenu">
+                  @for (s of getNextStatuses(row.status); track s) {
+                    <button mat-menu-item (click)="onStatusUpdate(row, s)">{{ s }}</button>
+                  }
+                </mat-menu>
+              } @else {
+                <mat-chip [highlighted]="getStatusColor(row.status) === 'primary'">{{ row.status }}</mat-chip>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="agentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Agent</th>
+            <td mat-cell *matCellDef="let row">{{ row.agentName || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let row">
+              <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
+              @if (canConvert(row)) {
+                <button mat-icon-button matTooltip="Convert to Student" (click)="convert(row)"><mat-icon>school</mat-icon></button>
+              }
+              <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator [class.hidden]="loading()" [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
     </mat-card-content>
   </mat-card>
 </div>

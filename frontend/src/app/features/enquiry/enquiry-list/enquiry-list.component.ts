@@ -15,6 +15,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatMenuModule } from '@angular/material/menu';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -26,7 +29,8 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-    MatChipsModule, MatSelectModule,
+    MatChipsModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule,
+    MatMenuModule,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
@@ -47,7 +51,19 @@ export class EnquiryListComponent implements OnInit {
   protected readonly statusFilter = signal('');
   protected readonly statuses = ['NEW', 'CONTACTED', 'FEE_DISCUSSED', 'INTERESTED', 'CONVERTED', 'NOT_INTERESTED', 'CLOSED'];
 
-  ngOnInit(): void { this.load(); }
+  /** Date range filter — defaults to current month */
+  protected dateFrom: Date;
+  protected dateTo: Date;
+
+  constructor() {
+    const now = new Date();
+    this.dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+    this.dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+
+  ngOnInit(): void {
+    this.load();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -60,20 +76,20 @@ export class EnquiryListComponent implements OnInit {
 
   protected onStatusFilterChange(status: string): void {
     this.statusFilter.set(status);
-    if (status) {
-      this.loading.set(true);
-      this.enquiryService.getByStatus(status).subscribe({
-        next: (data) => {
-          this.dataSource.data = data;
-          this.dataSource.paginator = this.paginator;
-          this.dataSource.sort = this.sort;
-          this.loading.set(false);
-        },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },
-      });
-    } else {
+    this.load();
+  }
+
+  protected onDateRangeChange(): void {
+    if (this.dateFrom && this.dateTo) {
       this.load();
     }
+  }
+
+  protected clearDateFilter(): void {
+    const now = new Date();
+    this.dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+    this.dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    this.load();
   }
 
   protected getStatusColor(status: string): string {
@@ -87,6 +103,40 @@ export class EnquiryListComponent implements OnInit {
       case 'CLOSED': return '';
       default: return '';
     }
+  }
+
+  /** Returns the list of allowed next statuses for the given current status. */
+  protected getNextStatuses(currentStatus: string): string[] {
+    switch (currentStatus) {
+      case 'NEW': return ['CONTACTED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'CONTACTED': return ['FEE_DISCUSSED', 'INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'FEE_DISCUSSED': return ['INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'INTERESTED': return ['FEE_DISCUSSED', 'NOT_INTERESTED', 'CLOSED'];
+      case 'NOT_INTERESTED': return ['CONTACTED', 'CLOSED'];
+      case 'CLOSED': return ['NEW'];
+      default: return [];
+    }
+  }
+
+  protected canChangeStatus(item: Enquiry): boolean {
+    return item.status !== 'CONVERTED' && this.getNextStatuses(item.status).length > 0;
+  }
+
+  protected onStatusUpdate(item: Enquiry, newStatus: string): void {
+    this.enquiryService.updateStatus(item.id, newStatus).subscribe({
+      next: (updated) => {
+        const data = this.dataSource.data;
+        const idx = data.findIndex((e) => e.id === item.id);
+        if (idx >= 0) {
+          data[idx] = { ...data[idx], status: updated.status };
+          this.dataSource.data = [...data];
+        }
+        this.snackBar.open(`Status updated to ${updated.status}`, 'Close', { duration: 3000 });
+      },
+      error: () => {
+        this.snackBar.open('Failed to update status', 'Close', { duration: 3000 });
+      },
+    });
   }
 
   protected canConvert(item: Enquiry): boolean {
@@ -113,13 +163,28 @@ export class EnquiryListComponent implements OnInit {
     });
   }
 
+  private formatDate(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.enquiryService.getEnquiries().subscribe({
+    const fromStr = this.formatDate(this.dateFrom);
+    const toStr = this.formatDate(this.dateTo);
+    const status = this.statusFilter();
+
+    this.enquiryService.getEnquiriesByDateRange(fromStr, toStr, status || undefined).subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+          if (this.sort && !this.sort.active) {
+            this.sort.active = 'enquiryDate';
+            this.sort.direction = 'asc';
+            this.sort.sortChange.emit({ active: 'enquiryDate', direction: 'asc' });
+          }
+        });
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },

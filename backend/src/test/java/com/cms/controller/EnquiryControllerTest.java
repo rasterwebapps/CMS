@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -193,6 +194,65 @@ class EnquiryControllerTest {
             .andExpect(status().isNotFound());
 
         verify(enquiryService).delete(999L);
+    }
+
+    @Test
+    void shouldFindByDateRange() throws Exception {
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+
+        when(enquiryService.findByDateRange(LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)))
+            .thenReturn(List.of(response));
+
+        mockMvc.perform(get("/enquiries")
+                .param("fromDate", "2024-06-01")
+                .param("toDate", "2024-06-30"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(enquiryService).findByDateRange(LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+    }
+
+    @Test
+    void shouldFindByDateRangeAndStatus() throws Exception {
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.NEW);
+
+        when(enquiryService.findByDateRangeAndStatus(
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.NEW))
+            .thenReturn(List.of(response));
+
+        mockMvc.perform(get("/enquiries")
+                .param("fromDate", "2024-06-01")
+                .param("toDate", "2024-06-30")
+                .param("status", "NEW"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(enquiryService).findByDateRangeAndStatus(
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.NEW);
+    }
+
+    @Test
+    void shouldUpdateStatus() throws Exception {
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.CONTACTED);
+
+        when(enquiryService.updateStatus(1L, EnquiryStatus.CONTACTED)).thenReturn(response);
+
+        mockMvc.perform(patch("/enquiries/1/status").param("status", "CONTACTED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("CONTACTED"));
+
+        verify(enquiryService).updateStatus(1L, EnquiryStatus.CONTACTED);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingStatusForNonExistent() throws Exception {
+        when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class)))
+            .thenThrow(new ResourceNotFoundException("Enquiry not found with id: 999"));
+
+        mockMvc.perform(patch("/enquiries/999/status").param("status", "CONTACTED"))
+            .andExpect(status().isNotFound());
+
+        verify(enquiryService).updateStatus(999L, EnquiryStatus.CONTACTED);
     }
 
     private EnquiryResponse createResponse(Long id, String name, EnquirySource source, EnquiryStatus status) {

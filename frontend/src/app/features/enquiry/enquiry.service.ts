@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments';
 import { Enquiry, EnquiryRequest } from './enquiry.model';
 
 @Injectable({
@@ -13,6 +13,14 @@ export class EnquiryService {
 
   getEnquiries(): Observable<Enquiry[]> {
     return this.http.get<Enquiry[]>(this.baseUrl);
+  }
+
+  getEnquiriesByDateRange(fromDate: string, toDate: string, status?: string): Observable<Enquiry[]> {
+    let params = new HttpParams().set('fromDate', fromDate).set('toDate', toDate);
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http.get<Enquiry[]>(this.baseUrl, { params });
   }
 
   getEnquiryById(id: number): Observable<Enquiry> {
@@ -29,6 +37,12 @@ export class EnquiryService {
 
   updateEnquiry(id: number, request: EnquiryRequest): Observable<Enquiry> {
     return this.http.put<Enquiry>(`${this.baseUrl}/${id}`, request);
+  }
+
+  updateStatus(id: number, status: string): Observable<Enquiry> {
+    return this.http.patch<Enquiry>(`${this.baseUrl}/${id}/status`, null, {
+      params: new HttpParams().set('status', status),
+    });
   }
 
   deleteEnquiry(id: number): Observable<void> {

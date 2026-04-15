@@ -6,76 +6,130 @@
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Email</mat-label>
-            <input matInput formControlName="email" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Phone</mat-label>
-            <input matInput formControlName="phone" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Program</mat-label>
-            <mat-select formControlName="programId">
-              @for (p of programs(); track p.id) { <mat-option [value]="p.id">{{ p.name }}</mat-option> }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Enquiry Date</mat-label>
-            <input matInput type="date" formControlName="enquiryDate" />
-            @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Source</mat-label>
-            <mat-select formControlName="source">
-              @for (s of sources; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
-            </mat-select>
-            @if (form.get('source')?.invalid && form.get('source')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          @if (isEditMode()) {
+    <div class="form-layout">
+      <mat-card appearance="outlined" class="form-card">
+        <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Status</mat-label>
-              <mat-select formControlName="status">
-                @for (s of statusOptions; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
+            </mat-form-field>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Email</mat-label>
+                <input matInput formControlName="email" type="email" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Phone</mat-label>
+                <input matInput formControlName="phone" />
+              </mat-form-field>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Program</mat-label>
+              <mat-select formControlName="programId" (selectionChange)="onProgramChange($event.value)">
+                <mat-option [value]="null">— None —</mat-option>
+                @for (p of programs(); track p.id) { <mat-option [value]="p.id">{{ p.name }} ({{ p.code }})</mat-option> }
               </mat-select>
             </mat-form-field>
-          }
-          @if (isAgentReferral()) {
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Agent</mat-label>
-              <mat-select formControlName="agentId">
-                @for (a of agents(); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }
-              </mat-select>
+              <mat-label>Enquiry Date</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="enquiryDate" [max]="maxDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) { <mat-error>Required</mat-error> }
             </mat-form-field>
-          }
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Assigned To</mat-label>
-            <input matInput formControlName="assignedTo" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Remarks</mat-label>
-            <textarea matInput formControlName="remarks" rows="3"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Fee Discussed Amount (₹)</mat-label>
-            <input matInput type="number" formControlName="feeDiscussedAmount" min="0" />
-          </mat-form-field>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/enquiries">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Source</mat-label>
+                <mat-select formControlName="source">
+                  @for (s of sources; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+                </mat-select>
+                @if (form.get('source')?.invalid && form.get('source')?.touched) { <mat-error>Required</mat-error> }
+              </mat-form-field>
+              @if (isEditMode()) {
+                <mat-form-field appearance="outline" class="half-width">
+                  <mat-label>Status</mat-label>
+                  <mat-select formControlName="status">
+                    @for (s of statusOptions; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+                  </mat-select>
+                </mat-form-field>
+              }
+            </div>
+            @if (isAgentReferral()) {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Agent</mat-label>
+                <mat-select formControlName="agentId">
+                  @for (a of agents(); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }
+                </mat-select>
+              </mat-form-field>
+            }
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Assigned To</mat-label>
+              <input matInput formControlName="assignedTo" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Remarks</mat-label>
+              <textarea matInput formControlName="remarks" rows="3"></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Fee Discussed Amount (₹)</mat-label>
+              <input matInput type="number" formControlName="feeDiscussedAmount" min="0" />
+            </mat-form-field>
+            <div class="form-actions">
+              <button mat-stroked-button type="button" routerLink="/enquiries">Cancel</button>
+              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Fee Structure Panel — shows when a program is selected -->
+      @if (selectedProgram()) {
+        <mat-card appearance="outlined" class="fee-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="fee-icon">account_balance</mat-icon>
+            <mat-card-title>Fee Structure</mat-card-title>
+            <mat-card-subtitle>{{ selectedProgram()!.name }} ({{ selectedProgram()!.durationYears }} years)</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <!-- Total Fees -->
+            <div class="fee-total">
+              <span class="fee-total-label">Total Program Fees</span>
+              <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+            </div>
+
+            <!-- Year-wise Split -->
+            @if (yearWiseFees().length > 0) {
+              <div class="fee-year-grid">
+                @for (amount of yearWiseFees(); track $index) {
+                  <div class="fee-year-box">
+                    <div class="fee-year-label">Year {{ $index + 1 }}</div>
+                    <div class="fee-year-amount">{{ amount | currency:'INR':'symbol':'1.0-0' }}</div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Fee Type Breakdown -->
+            @if (feeStructures().length > 0) {
+              <div class="fee-breakdown">
+                <div class="fee-breakdown-title">Fee Breakdown</div>
+                @for (fs of feeStructures(); track fs.id) {
+                  <div class="fee-row">
+                    <span class="fee-type">{{ fs.feeType }}@if (fs.isMandatory) { <span class="mandatory-badge">*</span> }</span>
+                    <span class="fee-amount">{{ fs.amount | currency:'INR':'symbol':'1.0-0' }}</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="no-fee-hint">No fee structures configured for this program.</p>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
   }
 </div>

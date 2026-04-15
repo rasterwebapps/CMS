@@ -1,12 +1,15 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -43,9 +46,15 @@ public class EnquiryController {
     @GetMapping
     public ResponseEntity<List<EnquiryResponse>> findAll(
             @RequestParam(required = false) EnquiryStatus status,
-            @RequestParam(required = false) EnquirySource source) {
+            @RequestParam(required = false) EnquirySource source,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         List<EnquiryResponse> enquiries;
-        if (status != null) {
+        if (fromDate != null && toDate != null && status != null) {
+            enquiries = enquiryService.findByDateRangeAndStatus(fromDate, toDate, status);
+        } else if (fromDate != null && toDate != null) {
+            enquiries = enquiryService.findByDateRange(fromDate, toDate);
+        } else if (status != null) {
             enquiries = enquiryService.findByStatus(status);
         } else if (source != null) {
             enquiries = enquiryService.findBySource(source);
@@ -67,6 +76,15 @@ public class EnquiryController {
             @PathVariable Long id,
             @Valid @RequestBody EnquiryRequest request) {
         EnquiryResponse response = enquiryService.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<EnquiryResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestParam EnquiryStatus status) {
+        EnquiryResponse response = enquiryService.updateStatus(id, status);
         return ResponseEntity.ok(response);
     }
 

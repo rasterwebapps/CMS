@@ -10,11 +10,34 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { EnquiryRequest } from '../enquiry.model';
 import { Agent } from '../../agent/agent.model';
 import { AgentService } from '../../agent/agent.service';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../environments';
+
+interface ProgramInfo {
+  id: number;
+  name: string;
+  code: string;
+  degreeType: string;
+  durationYears: number;
+  department: { id: number; name: string };
+}
+
+interface FeeStructureInfo {
+  id: number;
+  programId: number;
+  programName: string;
+  feeType: string;
+  amount: number;
+  description: string;
+  isMandatory: boolean;
+  isActive: boolean;
+}
 
 @Component({
   selector: 'app-enquiry-form',
@@ -22,6 +45,7 @@ import { environment } from '../../../../environments/environment';
   imports: [
     RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
     MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatDatepickerModule, MatNativeDateModule, CurrencyPipe,
   ],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
@@ -39,10 +63,19 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Enquiry');
-  protected readonly programs = signal<{ id: number; name: string }[]>([]);
+  protected readonly programs = signal<ProgramInfo[]>([]);
   protected readonly agents = signal<Agent[]>([]);
   protected readonly sources = ['WALK_IN', 'PHONE', 'ONLINE', 'AGENT_REFERRAL'];
   protected readonly statusOptions = ['NEW', 'CONTACTED', 'FEE_DISCUSSED', 'INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
+
+  /** Max date for enquiry date picker — today */
+  protected readonly maxDate = new Date();
+
+  /** Fee structures loaded for the selected program */
+  protected readonly feeStructures = signal<FeeStructureInfo[]>([]);
+  protected readonly selectedProgram = signal<ProgramInfo | null>(null);
+  protected readonly totalFees = signal(0);
+  protected readonly yearWiseFees = signal<number[]>([]);
 
   private itemId: number | null = null;
 
@@ -50,23 +83,25 @@ export class EnquiryFormComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(255)]],
     email: [''],
     phone: [''],
-    programId: [null],
-    enquiryDate: ['', Validators.required],
+    programId: [null as number | null],
+    enquiryDate: [new Date(), Validators.required],
     source: ['', Validators.required],
     status: ['NEW'],
-    agentId: [null],
+    agentId: [null as number | null],
     assignedTo: [''],
     remarks: [''],
-    feeDiscussedAmount: [null],
+    feeDiscussedAmount: [null as number | null],
   });
 
   ngOnInit(): void {
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/programs`).subscribe({
+    this.http.get<ProgramInfo[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (data) => this.programs.set(data),
     });
     this.agentService.getActiveAgents().subscribe({
       next: (data) => this.agents.set(data),
+      error: () => {},
     });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);
@@ -77,15 +112,60 @@ export class EnquiryFormComponent implements OnInit {
         next: (item) => {
           this.form.patchValue({
             name: item.name, email: item.email, phone: item.phone, programId: item.programId,
-            enquiryDate: item.enquiryDate, source: item.source, status: item.status,
+            enquiryDate: item.enquiryDate ? new Date(item.enquiryDate + 'T00:00:00') : new Date(),
+            source: item.source, status: item.status,
             agentId: item.agentId, assignedTo: item.assignedTo, remarks: item.remarks,
             feeDiscussedAmount: item.feeDiscussedAmount,
           });
+          if (item.programId) {
+            this.loadFeeStructures(item.programId);
+          }
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/enquiries']); },
+        error: () => {
+          this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+          void this.router.navigate(['/enquiries']);
+        },
       });
     }
+  }
+
+  protected onProgramChange(programId: number): void {
+    if (programId) {
+      this.loadFeeStructures(programId);
+    } else {
+      this.feeStructures.set([]);
+      this.selectedProgram.set(null);
+      this.totalFees.set(0);
+      this.yearWiseFees.set([]);
+    }
+  }
+
+  private loadFeeStructures(programId: number): void {
+    const program = this.programs().find((p) => p.id === programId) ?? null;
+    this.selectedProgram.set(program);
+
+    this.http.get<FeeStructureInfo[]>(`${environment.apiUrl}/fee-structures?programId=${programId}`).subscribe({
+      next: (data) => {
+        this.feeStructures.set(data);
+        const total = data.reduce((sum, fs) => sum + fs.amount, 0);
+        this.totalFees.set(total);
+
+        // Build year-wise split based on program duration
+        const years = program?.durationYears ?? 1;
+        const perYear = years > 0 ? total / years : total;
+        const splits: number[] = [];
+        for (let i = 0; i < years; i++) {
+          splits.push(Math.round(perYear * 100) / 100);
+        }
+        this.yearWiseFees.set(splits);
+      },
+      error: () => {
+        this.feeStructures.set([]);
+        this.totalFees.set(0);
+        this.yearWiseFees.set([]);
+      },
+    });
   }
 
   protected isAgentReferral(): boolean {
@@ -95,17 +175,32 @@ export class EnquiryFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const v = this.form.value;
+
+    // Format date to YYYY-MM-DD string
+    let dateStr = '';
+    if (v.enquiryDate instanceof Date) {
+      const d = v.enquiryDate;
+      dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    } else {
+      dateStr = v.enquiryDate;
+    }
+
     const request: EnquiryRequest = {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
-      programId: v.programId || undefined, enquiryDate: v.enquiryDate, source: v.source,
+      programId: v.programId || undefined, enquiryDate: dateStr, source: v.source,
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
       assignedTo: v.assignedTo || undefined, remarks: v.remarks || undefined,
       feeDiscussedAmount: v.feeDiscussedAmount || undefined,
     };
     this.saving.set(true);
-    const op$ = this.isEditMode() ? this.enquiryService.updateEnquiry(this.itemId!, request) : this.enquiryService.createEnquiry(request);
+    const op$ = this.isEditMode()
+      ? this.enquiryService.updateEnquiry(this.itemId!, request)
+      : this.enquiryService.createEnquiry(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/enquiries']); },
+      next: () => {
+        this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
+        void this.router.navigate(['/enquiries']);
+      },
       error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
     });
   }

@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -150,6 +151,27 @@ public class EnquiryService {
         enquiry.setStatus(EnquiryStatus.CONVERTED);
         enquiry.setConvertedStudentId(student.getId());
 
+        Enquiry saved = enquiryRepository.save(enquiry);
+        return toResponse(saved);
+    }
+
+    public List<EnquiryResponse> findByDateRange(LocalDate fromDate, LocalDate toDate) {
+        return enquiryRepository.findByEnquiryDateBetween(fromDate, toDate).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<EnquiryResponse> findByDateRangeAndStatus(LocalDate fromDate, LocalDate toDate, EnquiryStatus status) {
+        return enquiryRepository.findByEnquiryDateBetweenAndStatus(fromDate, toDate, status).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public EnquiryResponse updateStatus(Long id, EnquiryStatus status) {
+        Enquiry enquiry = enquiryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
+        enquiry.setStatus(status);
         Enquiry saved = enquiryRepository.save(enquiry);
         return toResponse(saved);
     }

@@ -353,6 +353,65 @@ class EnquiryServiceTest {
         verify(enquiryRepository, never()).deleteById(any());
     }
 
+    @Test
+    void shouldFindByDateRange() {
+        LocalDate from = LocalDate.of(2024, 6, 1);
+        LocalDate to = LocalDate.of(2024, 6, 30);
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+
+        when(enquiryRepository.findByEnquiryDateBetween(from, to)).thenReturn(List.of(enquiry));
+
+        List<EnquiryResponse> responses = enquiryService.findByDateRange(from, to);
+
+        assertThat(responses).hasSize(1);
+        verify(enquiryRepository).findByEnquiryDateBetween(from, to);
+    }
+
+    @Test
+    void shouldFindByDateRangeAndStatus() {
+        LocalDate from = LocalDate.of(2024, 6, 1);
+        LocalDate to = LocalDate.of(2024, 6, 30);
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+
+        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.NEW))
+            .thenReturn(List.of(enquiry));
+
+        List<EnquiryResponse> responses = enquiryService.findByDateRangeAndStatus(from, to, EnquiryStatus.NEW);
+
+        assertThat(responses).hasSize(1);
+        verify(enquiryRepository).findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.NEW);
+    }
+
+    @Test
+    void shouldUpdateStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.NEW);
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONTACTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.CONTACTED);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.CONTACTED);
+        verify(enquiryRepository).save(any(Enquiry.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingStatusOfNonExistent() {
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.CONTACTED))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Enquiry not found with id: 999");
+
+        verify(enquiryRepository, never()).save(any());
+    }
+
     private Enquiry createEnquiry(Long id, String name, String email, String phone,
                                    Program program, LocalDate enquiryDate,
                                    EnquirySource source, EnquiryStatus status) {

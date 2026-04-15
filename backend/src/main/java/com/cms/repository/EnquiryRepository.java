@@ -1,5 +1,6 @@
 package com.cms.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +19,8 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
     List<Enquiry> findByAgentId(Long agentId);
 
     Optional<Enquiry> findByConvertedStudentId(Long studentId);
+
+    List<Enquiry> findByEnquiryDateBetween(LocalDate fromDate, LocalDate toDate);
+
+    List<Enquiry> findByEnquiryDateBetweenAndStatus(LocalDate fromDate, LocalDate toDate, EnquiryStatus status);
 }
