@@ -5,14 +5,40 @@
       <mat-icon class="app-logo" style="display:none">school</mat-icon>
       <span class="app-name">SKS CMS</span>
     </div>
-    <mat-nav-list>
-      @for (item of filteredNavItems(); track item.route) {
-        <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
+    <div class="sidenav-nav">
+      @for (entry of filteredNavEntries(); track entry.label) {
+        @if (isNavGroup(entry)) {
+          <mat-expansion-panel
+            class="nav-group"
+            [expanded]="isGroupExpanded(entry.label)"
+            (afterExpand)="setGroupExpanded(entry.label, true)"
+            (afterCollapse)="setGroupExpanded(entry.label, false)"
+          >
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="nav-group-icon">{{ entry.icon }}</mat-icon>
+                <span>{{ entry.label }}</span>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-nav-list dense>
+              @for (item of entry.items; track item.route) {
+                <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                  <span matListItemTitle>{{ item.label }}</span>
+                </a>
+              }
+            </mat-nav-list>
+          </mat-expansion-panel>
+        } @else {
+          <mat-nav-list dense>
+            <a mat-list-item [routerLink]="entry.route" routerLinkActive="active-link" class="top-level-item">
+              <mat-icon matListItemIcon>{{ entry.icon }}</mat-icon>
+              <span matListItemTitle>{{ entry.label }}</span>
+            </a>
+          </mat-nav-list>
+        }
       }
-    </mat-nav-list>
+    </div>
   </mat-sidenav>
 
   <mat-sidenav-content>
