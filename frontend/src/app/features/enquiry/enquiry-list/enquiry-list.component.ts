@@ -44,7 +44,7 @@ export class EnquiryListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['name', 'phone', 'programName', 'enquiryDate', 'source', 'status', 'agentName', 'actions'];
+  protected readonly displayedColumns = ['name', 'phone', 'programName', 'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

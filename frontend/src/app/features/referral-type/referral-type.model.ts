@@ -2,7 +2,8 @@ export interface ReferralType {
   id: number;
   name: string;
   code: string;
-  guidelineValue: number;
+  commissionAmount: number;
+  hasCommission: boolean;
   description: string;
   isActive: boolean;
   createdAt: string;
@@ -12,7 +13,8 @@ export interface ReferralType {
 export interface ReferralTypeRequest {
   name: string;
   code: string;
-  guidelineValue: number;
+  commissionAmount: number;
+  hasCommission: boolean;
   description?: string;
   isActive?: boolean;
 }

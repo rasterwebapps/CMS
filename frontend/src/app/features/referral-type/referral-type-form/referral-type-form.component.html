@@ -19,11 +19,14 @@
             <input matInput formControlName="code" />
             @if (form.get('code')?.invalid && form.get('code')?.touched) { <mat-error>Code is required</mat-error> }
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Guideline Value</mat-label>
-            <input matInput formControlName="guidelineValue" type="number" />
-            @if (form.get('guidelineValue')?.invalid && form.get('guidelineValue')?.touched) { <mat-error>Guideline value must be 0 or greater</mat-error> }
-          </mat-form-field>
+          <mat-slide-toggle formControlName="hasCommission" class="full-width">Has Commission</mat-slide-toggle>
+          @if (form.get('hasCommission')?.value) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Commission Amount (₹)</mat-label>
+              <input matInput formControlName="commissionAmount" type="number" />
+              @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) { <mat-error>Commission amount must be 0 or greater</mat-error> }
+            </mat-form-field>
+          }
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Description</mat-label>
             <textarea matInput formControlName="description" rows="3"></textarea>
