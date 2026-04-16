@@ -131,7 +131,9 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     const newStatus = v.amount >= netFee ? 'FEES_PAID' : 'PARTIALLY_PAID';
 
     this.saving.set(true);
-    // Update the enquiry status to reflect payment
+    // TODO: When an enquiry payment entity is added, persist payment details
+    // (amount, date, mode, reference, remarks) before updating status.
+    // Currently only the status transition is tracked.
     this.enquiryService.updateStatus(enquiry.id, newStatus).subscribe({
       next: () => {
         this.snackBar.open(
