@@ -5,6 +5,7 @@ public enum PaymentMode {
     CARD,
     UPI,
     NET_BANKING,
+    BANK_TRANSFER,
     CHEQUE,
     DEMAND_DRAFT,
     SCHOLARSHIP
