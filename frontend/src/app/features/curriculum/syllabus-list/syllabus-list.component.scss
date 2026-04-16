@@ -1,9 +1,2 @@
-.list-container { padding: 24px 32px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.table-controls { margin-bottom: 16px; }
-.search-field { width: 100%; max-width: 400px; }
-.loading-container { display: flex; justify-content: center; align-items: center; padding: 48px; }
-.table-container { overflow-x: auto; }
-.data-table { width: 100%; }
-.no-data-cell { text-align: center; padding: 48px 16px; color: var(--cms-text-muted); }
+// Syllabus list — uses global list-page classes from styles.scss
+// No component-specific overrides needed

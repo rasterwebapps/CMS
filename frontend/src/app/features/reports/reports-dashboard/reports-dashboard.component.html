@@ -1,133 +1,124 @@
-<div class="dashboard-container">
-  <h2 class="page-title">Reports &amp; Analytics</h2>
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Reports</span>
+      </nav>
+      <h1 class="page-title">Reports &amp; Analytics</h1>
+      <p class="page-subtitle">Lab utilization, equipment status, and attendance insights</p>
+    </div>
+  </div>
+
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
   } @else {
     <!-- Lab Utilization Section -->
-    <h3 class="section-title">Lab Utilization</h3>
-    <div class="cards-grid">
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">science</mat-icon>
-          <div class="kpi-value">{{ labReport()?.totalLabs ?? '—' }}</div>
-          <div class="kpi-label">Total Labs</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">event</mat-icon>
-          <div class="kpi-value">{{ labReport()?.totalSchedules ?? '—' }}</div>
-          <div class="kpi-label">Total Schedules</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">analytics</mat-icon>
-          <div class="kpi-value">{{ labReport()?.averageSchedulesPerLab ?? '—' }}</div>
-          <div class="kpi-label">Avg Schedules / Lab</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">precision_manufacturing</mat-icon>
-          <div class="kpi-value">{{ labReport()?.totalEquipment ?? '—' }}</div>
-          <div class="kpi-label">Total Equipment</div>
-        </mat-card-content>
-      </mat-card>
+    <h3 class="section-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Lab Utilization
+    </h3>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-card--blue">
+        <div class="kpi-card__value">{{ labReport()?.totalLabs ?? '—' }}</div>
+        <div class="kpi-card__label">Total Labs</div>
+      </div>
+      <div class="kpi-card kpi-card--violet">
+        <div class="kpi-card__value">{{ labReport()?.totalSchedules ?? '—' }}</div>
+        <div class="kpi-card__label">Total Schedules</div>
+      </div>
+      <div class="kpi-card kpi-card--cyan">
+        <div class="kpi-card__value">{{ labReport()?.averageSchedulesPerLab ?? '—' }}</div>
+        <div class="kpi-card__label">Avg Schedules / Lab</div>
+      </div>
+      <div class="kpi-card kpi-card--emerald">
+        <div class="kpi-card__value">{{ labReport()?.totalEquipment ?? '—' }}</div>
+        <div class="kpi-card__label">Total Equipment</div>
+      </div>
     </div>
 
     <!-- Equipment & Lab Status Breakdowns -->
     @if (labReport(); as lr) {
       <div class="breakdown-grid">
-        <mat-card appearance="outlined">
-          <mat-card-header><mat-card-title>Equipment by Status</mat-card-title></mat-card-header>
-          <mat-card-content>
-            <div class="status-list">
-              @for (entry of lr.equipmentByStatus | keyvalue; track entry.key) {
-                <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
-                  <span class="status-value">{{ entry.value }}</span>
-                </div>
-              }
-              @empty {
-                <p class="empty-hint">No equipment data</p>
-              }
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card appearance="outlined">
-          <mat-card-header><mat-card-title>Labs by Status</mat-card-title></mat-card-header>
-          <mat-card-content>
-            <div class="status-list">
-              @for (entry of lr.labsByStatus | keyvalue; track entry.key) {
-                <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
-                  <span class="status-value">{{ entry.value }}</span>
-                </div>
-              }
-              @empty {
-                <p class="empty-hint">No lab data</p>
-              }
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <div class="breakdown-card">
+          <h4 class="breakdown-card__title">Equipment by Status</h4>
+          <div class="breakdown-card__list">
+            @for (entry of lr.equipmentByStatus | keyvalue; track entry.key) {
+              <div class="breakdown-row">
+                <span class="breakdown-row__label">{{ formatStatus(entry.key) }}</span>
+                <span class="breakdown-row__value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty {
+              <p class="breakdown-card__empty">No equipment data</p>
+            }
+          </div>
+        </div>
+        <div class="breakdown-card">
+          <h4 class="breakdown-card__title">Labs by Status</h4>
+          <div class="breakdown-card__list">
+            @for (entry of lr.labsByStatus | keyvalue; track entry.key) {
+              <div class="breakdown-row">
+                <span class="breakdown-row__label">{{ formatStatus(entry.key) }}</span>
+                <span class="breakdown-row__value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty {
+              <p class="breakdown-card__empty">No lab data</p>
+            }
+          </div>
+        </div>
       </div>
     }
 
     <!-- Attendance Analytics Section -->
-    <h3 class="section-title">Attendance Analytics</h3>
-    <div class="cards-grid">
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">groups</mat-icon>
-          <div class="kpi-value">{{ attendanceReport()?.totalStudents ?? '—' }}</div>
-          <div class="kpi-label">Total Students</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="kpi-card">
-        <mat-card-content>
-          <mat-icon class="kpi-icon">fact_check</mat-icon>
-          <div class="kpi-value">{{ attendanceReport()?.totalAttendanceRecords ?? '—' }}</div>
-          <div class="kpi-label">Total Records</div>
-        </mat-card-content>
-      </mat-card>
+    <h3 class="section-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Attendance Analytics
+    </h3>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-card--blue">
+        <div class="kpi-card__value">{{ attendanceReport()?.totalStudents ?? '—' }}</div>
+        <div class="kpi-card__label">Total Students</div>
+      </div>
+      <div class="kpi-card kpi-card--violet">
+        <div class="kpi-card__value">{{ attendanceReport()?.totalAttendanceRecords ?? '—' }}</div>
+        <div class="kpi-card__label">Total Records</div>
+      </div>
     </div>
 
     <!-- Attendance Breakdowns -->
     @if (attendanceReport(); as ar) {
       <div class="breakdown-grid">
-        <mat-card appearance="outlined">
-          <mat-card-header><mat-card-title>Attendance by Status</mat-card-title></mat-card-header>
-          <mat-card-content>
-            <div class="status-list">
-              @for (entry of ar.attendanceByStatus | keyvalue; track entry.key) {
-                <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
-                  <span class="status-value">{{ entry.value }}</span>
-                </div>
-              }
-              @empty {
-                <p class="empty-hint">No attendance data</p>
-              }
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card appearance="outlined">
-          <mat-card-header><mat-card-title>Attendance by Type</mat-card-title></mat-card-header>
-          <mat-card-content>
-            <div class="status-list">
-              @for (entry of ar.attendanceByType | keyvalue; track entry.key) {
-                <div class="status-row">
-                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
-                  <span class="status-value">{{ entry.value }}</span>
-                </div>
-              }
-              @empty {
-                <p class="empty-hint">No type data</p>
-              }
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <div class="breakdown-card">
+          <h4 class="breakdown-card__title">Attendance by Status</h4>
+          <div class="breakdown-card__list">
+            @for (entry of ar.attendanceByStatus | keyvalue; track entry.key) {
+              <div class="breakdown-row">
+                <span class="breakdown-row__label">{{ formatStatus(entry.key) }}</span>
+                <span class="breakdown-row__value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty {
+              <p class="breakdown-card__empty">No attendance data</p>
+            }
+          </div>
+        </div>
+        <div class="breakdown-card">
+          <h4 class="breakdown-card__title">Attendance by Type</h4>
+          <div class="breakdown-card__list">
+            @for (entry of ar.attendanceByType | keyvalue; track entry.key) {
+              <div class="breakdown-row">
+                <span class="breakdown-row__label">{{ formatStatus(entry.key) }}</span>
+                <span class="breakdown-row__value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty {
+              <p class="breakdown-card__empty">No type data</p>
+            }
+          </div>
+        </div>
       </div>
     }
   }

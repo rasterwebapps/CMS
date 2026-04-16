@@ -1,19 +1,39 @@
-<div class="dashboard-container">
-  <h1 class="dashboard-title">Welcome, {{ username() }}</h1>
-  <p class="dashboard-subtitle">College Management System Dashboard</p>
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Welcome, {{ username() }}</h1>
+      <p class="page-subtitle">College Management System — Overview &amp; Quick Stats</p>
+    </div>
+  </div>
 
   <div class="dashboard-grid">
     @for (card of cards; track card.title) {
-      <mat-card class="dashboard-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="card-icon">{{ card.icon }}</mat-icon>
-          <mat-card-title>{{ card.title }}</mat-card-title>
-          <mat-card-subtitle>{{ card.subtitle }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p class="card-value">{{ card.value }}</p>
-        </mat-card-content>
-      </mat-card>
+      <div class="dashboard-card">
+        <div class="dashboard-card__icon-wrap">
+          @switch (card.icon) {
+            @case ('school') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+            }
+            @case ('people') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            }
+            @case ('business') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            }
+            @case ('computer') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            }
+            @default {
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+            }
+          }
+        </div>
+        <div class="dashboard-card__content">
+          <span class="dashboard-card__label">{{ card.title }}</span>
+          <span class="dashboard-card__value">{{ card.value }}</span>
+          <span class="dashboard-card__sub">{{ card.subtitle }}</span>
+        </div>
+      </div>
     }
   </div>
 </div>

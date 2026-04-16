@@ -1,145 +1,157 @@
-<div class="faculty-list-container">
-  <div class="header">
-    <h2 class="page-title">Faculty</h2>
-    <button mat-flat-button color="primary" routerLink="/faculty/new">
-      <mat-icon>add</mat-icon>
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Faculty</span>
+      </nav>
+      <h1 class="page-title">Faculty</h1>
+      <p class="page-subtitle">Manage faculty members, designations, and department assignments</p>
+    </div>
+    <button class="btn-primary" routerLink="/faculty/new" aria-label="Add new faculty">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Faculty
     </button>
   </div>
 
-  <mat-card appearance="outlined">
-    <mat-card-content>
-      <div class="table-controls">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search</mat-label>
-          <input
-            matInput
-            [value]="searchValue()"
-            (input)="applyFilter($event)"
-            placeholder="Search faculty..."
-          />
-          @if (searchValue()) {
-            <button matSuffix mat-icon-button (click)="clearFilter()">
-              <mat-icon>close</mat-icon>
-            </button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
+  <div class="command-bar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search faculty..."
+        type="text"
+        aria-label="Search faculty"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <div class="filter-pill-group">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
+        <mat-label>Department</mat-label>
+        <mat-select
+          [value]="selectedDepartmentId()"
+          (selectionChange)="onDepartmentChange($event.value)"
+        >
+          <mat-option [value]="null">All Departments</mat-option>
+          @for (dept of departments(); track dept.id) {
+            <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
           }
-        </mat-form-field>
+        </mat-select>
+      </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Department</mat-label>
-          <mat-select
-            [value]="selectedDepartmentId()"
-            (selectionChange)="onDepartmentChange($event.value)"
-          >
-            <mat-option [value]="null">All Departments</mat-option>
-            @for (dept of departments(); track dept.id) {
-              <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
+        <mat-label>Status</mat-label>
+        <mat-select
+          [value]="selectedStatus()"
+          (selectionChange)="onStatusChange($event.value)"
+        >
+          <mat-option [value]="null">All Statuses</mat-option>
+          @for (status of statusOptions; track status.value) {
+            <mat-option [value]="status.value">{{ status.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Status</mat-label>
-          <mat-select
-            [value]="selectedStatus()"
-            (selectionChange)="onStatusChange($event.value)"
-          >
-            <mat-option [value]="null">All Statuses</mat-option>
-            @for (status of statusOptions; track status.value) {
-              <mat-option [value]="status.value">{{ status.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      @if (selectedDepartmentId() || selectedStatus() || searchValue()) {
+        <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear Filters
+        </button>
+      }
+    </div>
+  </div>
 
-        @if (selectedDepartmentId() || selectedStatus() || searchValue()) {
-          <button mat-stroked-button (click)="clearFilters()">
-            <mat-icon>filter_alt_off</mat-icon>
-            Clear Filters
-          </button>
-        }
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="employeeCode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee Code</th>
+            <td mat-cell *matCellDef="let faculty">
+              <span class="cell-code">{{ faculty.employeeCode }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fullName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let faculty">
+              <span class="cell-name">{{ faculty.fullName }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="departmentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
+            <td mat-cell *matCellDef="let faculty">{{ faculty.departmentName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="designation">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Designation</th>
+            <td mat-cell *matCellDef="let faculty">{{ faculty.designation | titlecase }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let faculty">
+              <span class="status-badge" [class.status-active]="faculty.status === 'ACTIVE'" [class.status-inactive]="faculty.status !== 'ACTIVE'">
+                {{ faculty.status | titlecase }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let faculty">
+              <div class="row-actions">
+                <button class="action-btn action-btn--view" matTooltip="View" (click)="viewFaculty(faculty)" aria-label="View faculty">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="action-btn" matTooltip="Edit" (click)="editFaculty(faculty)" aria-label="Edit faculty">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteFaculty(faculty)" aria-label="Delete faculty">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state__content">
+                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                @if (searchValue()) {
+                  <p class="empty-state__text">No faculty found matching "{{ searchValue() }}"</p>
+                } @else {
+                  <p class="empty-state__text">No faculty available</p>
+                }
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
-      @if (loading()) {
-        <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-        </div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="faculty-table">
-            <ng-container matColumnDef="employeeCode">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee Code</th>
-              <td mat-cell *matCellDef="let faculty">{{ faculty.employeeCode }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="fullName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let faculty">{{ faculty.fullName }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="departmentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
-              <td mat-cell *matCellDef="let faculty">{{ faculty.departmentName }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="designation">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Designation</th>
-              <td mat-cell *matCellDef="let faculty">
-                {{ faculty.designation | titlecase }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let faculty">
-                <mat-chip [highlighted]="faculty.status === 'ACTIVE'" [color]="getStatusColor(faculty.status)">
-                  {{ faculty.status | titlecase }}
-                </mat-chip>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let faculty">
-                <button mat-icon-button matTooltip="View" (click)="viewFaculty(faculty)">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button mat-icon-button matTooltip="Edit" (click)="editFaculty(faculty)">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  matTooltip="Delete"
-                  color="warn"
-                  (click)="deleteFaculty(faculty)"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                @if (searchValue()) {
-                  No faculty found matching "{{ searchValue() }}"
-                } @else {
-                  No faculty available
-                }
-              </td>
-            </tr>
-          </table>
-        </div>
-
+      <div class="pagination-wrapper">
         <mat-paginator
           [pageSizeOptions]="[5, 10, 25, 50]"
           [pageSize]="10"
           showFirstLastButtons
         ></mat-paginator>
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+    }
+  </div>
 </div>

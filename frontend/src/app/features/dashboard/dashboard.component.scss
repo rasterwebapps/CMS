@@ -1,55 +1,64 @@
-.dashboard-container {
-  
-  margin: 0 auto;
-  padding: 24px 32px;
-}
-
-.dashboard-title {
-  font-size: 1.75rem;
-  font-weight: 800;
-  margin-bottom: 4px;
-  color: var(--cms-text-primary);
-  letter-spacing: -0.03em;
-}
-
-.dashboard-subtitle {
-  font-size: 0.9375rem;
-  color: var(--cms-text-muted);
-  margin-bottom: 32px;
-}
+// Dashboard — Premium card layout
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 
 .dashboard-card {
-  cursor: default;
-  border-radius: var(--cms-radius-lg) !important;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--cms-bg-card);
+  border-radius: var(--cms-radius-lg);
+  border: 1px solid var(--cms-border-default);
+  box-shadow: var(--cms-shadow-sm);
   transition: var(--cms-transition);
+  cursor: default;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--cms-shadow-lg);
   }
-}
 
-.card-icon {
-  font-size: 40px;
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+  &__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--cms-radius-md);
+    background: var(--cms-primary-light);
+    color: var(--cms-primary);
+    flex-shrink: 0;
+  }
 
-.card-value {
-  font-size: 2.25rem;
-  font-weight: 800;
-  text-align: center;
-  padding: 16px 0;
-  color: var(--cms-text-primary);
-  letter-spacing: -0.03em;
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--cms-text-muted);
+    letter-spacing: 0.01em;
+  }
+
+  &__value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  &__sub {
+    font-size: 0.75rem;
+    color: var(--cms-text-muted);
+  }
 }

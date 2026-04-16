@@ -1,66 +1,123 @@
-<div class="list-container">
-  <div class="header">
-    <h2 class="page-title">System Configuration</h2>
-    <button mat-flat-button color="primary" routerLink="/settings/new">
-      <mat-icon>add</mat-icon> Add Configuration
+<div class="list-page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Settings</span>
+      </nav>
+      <h1 class="page-title">System Configuration</h1>
+      <p class="page-subtitle">Manage application settings, data types, and access controls</p>
+    </div>
+    <button class="btn-primary" routerLink="/settings/new" aria-label="Add new configuration">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Configuration
     </button>
   </div>
-  <mat-card appearance="outlined">
-    <mat-card-content>
-      <div class="table-controls">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search</mat-label>
-          <input matInput [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search..." />
-          @if (searchValue()) {
-            <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
-          }
-        </mat-form-field>
-      </div>
-      @if (loading()) {
-        <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="data-table">
-            <ng-container matColumnDef="configKey">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
-              <td mat-cell *matCellDef="let row">{{ row.configKey }}</td>
-            </ng-container>
-            <ng-container matColumnDef="configValue">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
-              <td mat-cell *matCellDef="let row">{{ row.configValue }}</td>
-            </ng-container>
-            <ng-container matColumnDef="category">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
-              <td mat-cell *matCellDef="let row"><mat-chip>{{ row.category }}</mat-chip></td>
-            </ng-container>
-            <ng-container matColumnDef="dataType">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Data Type</th>
-              <td mat-cell *matCellDef="let row">{{ row.dataType }}</td>
-            </ng-container>
-            <ng-container matColumnDef="isEditable">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Editable</th>
-              <td mat-cell *matCellDef="let row">
-                <mat-chip [highlighted]="row.isEditable">{{ row.isEditable ? 'Yes' : 'No' }}</mat-chip>
-              </td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let row">
-                <button mat-icon-button matTooltip="Edit" (click)="edit(row)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button matTooltip="Delete" color="warn" (click)="delete(row)"><mat-icon>delete</mat-icon></button>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
-            </tr>
-          </table>
-        </div>
-        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+
+  <div class="command-bar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search settings..."
+        type="text"
+        aria-label="Search settings"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading settings"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="configKey">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-code">{{ row.configKey }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="configValue">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.configValue }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cms-badge cms-badge--blue">{{ row.category }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="dataType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Data Type</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cms-badge cms-badge--gray">{{ row.dataType }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="isEditable">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Access</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="status-badge" [class.status-active]="row.isEditable" [class.status-inactive]="!row.isEditable">
+                {{ row.isEditable ? 'Editable' : 'Locked' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit configuration">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete configuration">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state__content">
+                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                @if (searchValue()) {
+                  <p class="empty-state__text">No settings found matching "{{ searchValue() }}"</p>
+                } @else {
+                  <p class="empty-state__text">No system configurations available</p>
+                }
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="pagination-wrapper">
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    }
+  </div>
 </div>

@@ -1,13 +1,10 @@
-.list-container { padding: 24px 32px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.table-controls { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-.search-field { width: 100%; max-width: 400px; }
-.filter-field { width: 200px; }
-.date-field { width: 160px; }
-.loading-container { display: flex; justify-content: center; align-items: center; padding: 64px; }
-.table-container { overflow-x: auto; }
-.data-table { width: 100%; }
-.no-data-cell { text-align: center; padding: 64px 16px; color: var(--cms-text-muted); font-size: 0.875rem; }
-.hidden { display: none; }
-.status-chip { cursor: pointer; font-weight: 600; letter-spacing: 0.01em; }
+// Enquiry list — uses global list-page classes from styles.scss
+
+.status-badge--clickable {
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  &:hover {
+    filter: brightness(0.92);
+  }
+}
