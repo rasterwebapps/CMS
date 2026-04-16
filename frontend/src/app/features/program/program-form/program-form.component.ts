@@ -10,7 +10,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProgramService } from '../program.service';
-import { DegreeType, DEGREE_TYPES, ProgramRequest } from '../program.model';
+import { ProgramLevel, PROGRAM_LEVELS, ProgramRequest } from '../program.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 
@@ -45,16 +45,16 @@ export class ProgramFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Program');
   protected readonly departments = signal<Department[]>([]);
-  protected readonly degreeTypes = DEGREE_TYPES;
+  protected readonly programLevels = PROGRAM_LEVELS;
 
   private programId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     code: ['', [Validators.required, Validators.maxLength(20)]],
-    degreeType: ['', [Validators.required]],
+    programLevel: ['', [Validators.required]],
     durationYears: [4, [Validators.required, Validators.min(1), Validators.max(10)]],
-    departmentId: [null as number | null, [Validators.required]],
+    departmentIds: [[] as number[], [Validators.required, Validators.minLength(1)]],
   });
 
   ngOnInit(): void {
@@ -78,9 +78,9 @@ export class ProgramFormComponent implements OnInit {
     const request: ProgramRequest = {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
-      degreeType: this.form.value.degreeType as DegreeType,
+      programLevel: this.form.value.programLevel as ProgramLevel,
       durationYears: this.form.value.durationYears,
-      departmentId: this.form.value.departmentId,
+      departmentIds: this.form.value.departmentIds,
     };
 
     this.saving.set(true);
@@ -136,9 +136,9 @@ export class ProgramFormComponent implements OnInit {
     const labels: Record<string, string> = {
       name: 'Name',
       code: 'Code',
-      degreeType: 'Degree Type',
+      programLevel: 'Program Level',
       durationYears: 'Duration',
-      departmentId: 'Department',
+      departmentIds: 'Departments',
     };
     return labels[fieldName] || fieldName;
   }
@@ -163,9 +163,9 @@ export class ProgramFormComponent implements OnInit {
         this.form.patchValue({
           name: program.name,
           code: program.code,
-          degreeType: program.degreeType,
+          programLevel: program.programLevel,
           durationYears: program.durationYears,
-          departmentId: program.department?.id,
+          departmentIds: program.departments?.map((d: { id: number }) => d.id) ?? [],
         });
         this.loading.set(false);
       },

@@ -52,8 +52,7 @@ export class CourseListComponent implements OnInit {
   protected readonly displayedColumns = [
     'code',
     'name',
-    'credits',
-    'semester',
+    'specialization',
     'program',
     'actions',
   ];

@@ -32,14 +32,14 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Degree Type</mat-label>
-            <mat-select formControlName="degreeType">
-              @for (type of degreeTypes; track type.value) {
+            <mat-label>Program Level</mat-label>
+            <mat-select formControlName="programLevel">
+              @for (type of programLevels; track type.value) {
                 <mat-option [value]="type.value">{{ type.label }}</mat-option>
               }
             </mat-select>
-            @if (form.get('degreeType')?.invalid && form.get('degreeType')?.touched) {
-              <mat-error>{{ getErrorMessage('degreeType') }}</mat-error>
+            @if (form.get('programLevel')?.invalid && form.get('programLevel')?.touched) {
+              <mat-error>{{ getErrorMessage('programLevel') }}</mat-error>
             }
           </mat-form-field>
 
@@ -59,14 +59,14 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Department</mat-label>
-            <mat-select formControlName="departmentId">
+            <mat-label>Departments</mat-label>
+            <mat-select formControlName="departmentIds" multiple>
               @for (dept of departments(); track dept.id) {
                 <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
               }
             </mat-select>
-            @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-              <mat-error>{{ getErrorMessage('departmentId') }}</mat-error>
+            @if (form.get('departmentIds')?.invalid && form.get('departmentIds')?.touched) {
+              <mat-error>{{ getErrorMessage('departmentIds') }}</mat-error>
             }
           </mat-form-field>
 

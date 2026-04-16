@@ -32,7 +32,6 @@ import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
-import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.SubjectRepository;
@@ -74,7 +73,7 @@ class AttendanceServiceTest {
         testCourse = new Subject("Data Structures", "CS201", 3, 2, 1, null, null, 3);
         testCourse.setId(1L);
         // Set course→program chain needed by getLowAttendanceAlerts
-        Course courseObj = new Course("B.Tech CS", "BTCS", DegreeType.BACHELOR, 4, testProgram);
+        Course courseObj = new Course("B.Tech CS", "BTCS", null, testProgram);
         courseObj.setId(1L);
         testCourse.setCourse(courseObj);
     }

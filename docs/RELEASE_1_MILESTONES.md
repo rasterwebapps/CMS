@@ -170,7 +170,7 @@
 ### R1-M2.2 — Program & Course Management (Module 1)
 
 **Backend:**
-- [x] **R1-2.2.1** Create `Program` entity (`id`, `name`, `code`, `degreeType`, `durationYears`, `department`)
+- [x] **R1-2.2.1** Create `Program` entity (`id`, `name`, `code`, `programLevel`, `durationYears`, `departments`)
 - [x] **R1-2.2.2** Create `Course` entity (`id`, `name`, `code`, `credits`, `theoryCredits`, `labCredits`, `program`, `semester`)
 - [x] **R1-2.2.3** Create repositories, services, controllers for Program and Course
 - [x] **R1-2.2.4** Create DTOs (Java records) for Program and Course

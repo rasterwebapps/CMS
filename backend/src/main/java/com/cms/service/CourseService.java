@@ -35,8 +35,7 @@ public class CourseService {
         Course course = new Course(
             request.name(),
             request.code(),
-            request.degreeType(),
-            request.durationYears(),
+            request.specialization(),
             program
         );
         Course saved = courseRepository.save(course);
@@ -74,8 +73,7 @@ public class CourseService {
 
         course.setName(request.name());
         course.setCode(request.code());
-        course.setDegreeType(request.degreeType());
-        course.setDurationYears(request.durationYears());
+        course.setSpecialization(request.specialization());
         course.setProgram(program);
 
         Course updated = courseRepository.save(course);
@@ -110,6 +108,7 @@ public class CourseService {
             program.getName(),
             program.getCode(),
             program.getProgramLevel(),
+            program.getDurationYears(),
             departmentResponses,
             program.getCreatedAt(),
             program.getUpdatedAt()
@@ -119,8 +118,7 @@ public class CourseService {
             course.getId(),
             course.getName(),
             course.getCode(),
-            course.getDegreeType(),
-            course.getDurationYears(),
+            course.getSpecialization(),
             programResponse,
             course.getCreatedAt(),
             course.getUpdatedAt()

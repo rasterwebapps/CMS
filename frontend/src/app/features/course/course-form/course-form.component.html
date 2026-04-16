@@ -45,18 +45,13 @@
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Semester</mat-label>
+                <mat-label>Specialization</mat-label>
                 <input
                   matInput
-                  type="number"
-                  formControlName="semester"
-                  placeholder="1-8"
-                  min="1"
-                  max="8"
+                  formControlName="specialization"
+                  placeholder="e.g. Obs Gyn"
                 />
-                @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                  <mat-error>{{ getErrorMessage('semester') }}</mat-error>
-                }
+                <mat-hint>Optional specialization</mat-hint>
               </mat-form-field>
             </div>
 
@@ -69,56 +64,6 @@
               </mat-select>
               @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
                 <mat-error>{{ getErrorMessage('programId') }}</mat-error>
-              }
-            </mat-form-field>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h3 class="form-section__title">Credit Distribution</h3>
-          <div class="credits-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>Total Credits</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="credits"
-                placeholder="Total"
-                min="1"
-                max="12"
-              />
-              @if (form.get('credits')?.invalid && form.get('credits')?.touched) {
-                <mat-error>{{ getErrorMessage('credits') }}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Theory Credits</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="theoryCredits"
-                placeholder="Theory"
-                min="0"
-                max="12"
-              />
-              @if (form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched) {
-                <mat-error>{{ getErrorMessage('theoryCredits') }}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Lab Credits</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="labCredits"
-                placeholder="Lab"
-                min="0"
-                max="12"
-              />
-              @if (form.get('labCredits')?.invalid && form.get('labCredits')?.touched) {
-                <mat-error>{{ getErrorMessage('labCredits') }}</mat-error>
               }
             </mat-form-field>
           </div>

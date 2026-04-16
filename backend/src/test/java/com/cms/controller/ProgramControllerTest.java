@@ -51,6 +51,7 @@ class ProgramControllerTest {
             "UG Program",
             "UG",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
@@ -63,6 +64,7 @@ class ProgramControllerTest {
             "UG Program",
             "UG",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(deptResponse),
             now,
             now
@@ -78,6 +80,7 @@ class ProgramControllerTest {
             .andExpect(jsonPath("$.name").value("UG Program"))
             .andExpect(jsonPath("$.code").value("UG"))
             .andExpect(jsonPath("$.programLevel").value("UNDERGRADUATE"))
+            .andExpect(jsonPath("$.durationYears").value(4))
             .andExpect(jsonPath("$.departments.length()").value(1));
 
         verify(programService).create(any(ProgramRequest.class));
@@ -89,6 +92,7 @@ class ProgramControllerTest {
             "",
             "UG",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
@@ -104,6 +108,7 @@ class ProgramControllerTest {
             "UG Program",
             "",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
@@ -136,10 +141,10 @@ class ProgramControllerTest {
             1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
         );
         ProgramResponse prog1 = new ProgramResponse(
-            1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, List.of(deptResponse), now, now
+            1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, 4, List.of(deptResponse), now, now
         );
         ProgramResponse prog2 = new ProgramResponse(
-            2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, List.of(deptResponse), now, now
+            2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, 2, List.of(deptResponse), now, now
         );
 
         when(programService.findAll()).thenReturn(List.of(prog1, prog2));
@@ -177,6 +182,7 @@ class ProgramControllerTest {
             "Bachelor of Computer Science",
             "BCS",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(deptResponse),
             now,
             now
@@ -210,6 +216,7 @@ class ProgramControllerTest {
             "Bachelor of Computer Science Updated",
             "BCSU",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
@@ -222,6 +229,7 @@ class ProgramControllerTest {
             "Bachelor of Computer Science Updated",
             "BCSU",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(deptResponse),
             now,
             now
@@ -246,6 +254,7 @@ class ProgramControllerTest {
             "Name",
             "CODE",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
@@ -266,6 +275,7 @@ class ProgramControllerTest {
             "",
             "",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 

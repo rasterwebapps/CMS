@@ -6,13 +6,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.DegreeType;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,12 +32,8 @@ public class Course {
     @Column(nullable = false, unique = true)
     private String code;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "degree_type", nullable = false)
-    private DegreeType degreeType;
-
-    @Column(name = "duration_years", nullable = false)
-    private Integer durationYears;
+    @Column(name = "specialization")
+    private String specialization;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
@@ -58,11 +50,10 @@ public class Course {
     public Course() {
     }
 
-    public Course(String name, String code, DegreeType degreeType, Integer durationYears, Program program) {
+    public Course(String name, String code, String specialization, Program program) {
         this.name = name;
         this.code = code;
-        this.degreeType = degreeType;
-        this.durationYears = durationYears;
+        this.specialization = specialization;
         this.program = program;
     }
 
@@ -90,20 +81,12 @@ public class Course {
         this.code = code;
     }
 
-    public DegreeType getDegreeType() {
-        return degreeType;
+    public String getSpecialization() {
+        return specialization;
     }
 
-    public void setDegreeType(DegreeType degreeType) {
-        this.degreeType = degreeType;
-    }
-
-    public Integer getDurationYears() {
-        return durationYears;
-    }
-
-    public void setDurationYears(Integer durationYears) {
-        this.durationYears = durationYears;
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 
     public Program getProgram() {

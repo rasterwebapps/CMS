@@ -30,7 +30,6 @@ import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.ProgramLevel;
 import com.cms.service.SubjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,9 +52,9 @@ class SubjectControllerTest {
     private SubjectResponse createTestResponse(Long id, String name, String code) {
         DepartmentResponse dept = new DepartmentResponse(1L, "MSN", "MSN", "Desc", "Dr. X", now, now);
         ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN",
-            ProgramLevel.UNDERGRADUATE, List.of(dept), now, now);
+            ProgramLevel.UNDERGRADUATE, 4, List.of(dept), now, now);
         CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
-            DegreeType.BACHELOR, 4, prog, now, now);
+            "General", prog, now, now);
         return new SubjectResponse(id, name, code, 4, 3, 1, courseResp, dept, 1, now, now);
     }
 

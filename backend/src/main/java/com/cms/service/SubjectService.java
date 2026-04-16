@@ -138,13 +138,13 @@ public class SubjectService {
 
         ProgramResponse programResponse = new ProgramResponse(
             program.getId(), program.getName(), program.getCode(),
-            program.getProgramLevel(), programDeptResponses,
+            program.getProgramLevel(), program.getDurationYears(), programDeptResponses,
             program.getCreatedAt(), program.getUpdatedAt()
         );
 
         CourseResponse courseResponse = new CourseResponse(
             course.getId(), course.getName(), course.getCode(),
-            course.getDegreeType(), course.getDurationYears(),
+            course.getSpecialization(),
             programResponse,
             course.getCreatedAt(), course.getUpdatedAt()
         );

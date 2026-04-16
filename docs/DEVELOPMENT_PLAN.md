@@ -189,7 +189,7 @@ The repository currently contains **documentation only**:
 ### Milestone 2.2 — Program & Course Management (Module 1)
 
 **Backend:**
-- [ ] **2.2.1** Create `Program` entity (`id`, `name`, `code`, `degreeType`, `durationYears`, `department`)
+- [ ] **2.2.1** Create `Program` entity (`id`, `name`, `code`, `programLevel`, `durationYears`, `departments`)
 - [ ] **2.2.2** Create `Course` entity (`id`, `name`, `code`, `credits`, `theoryCredits`, `labCredits`, `program`, `semester`)
 - [ ] **2.2.3** Create repositories, services, controllers for Program and Course
 - [ ] **2.2.4** Create DTOs (Java records) for Program and Course

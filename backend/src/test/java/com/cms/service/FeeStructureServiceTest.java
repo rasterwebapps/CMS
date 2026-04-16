@@ -311,7 +311,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldCreateFeeStructureWithCourse() {
         com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
-            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+            null, testProgram);
         testCourse.setId(1L);
 
         FeeStructureRequest request = new FeeStructureRequest(
@@ -352,7 +352,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
-            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+            null, testProgram);
         testCourse.setId(1L);
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
