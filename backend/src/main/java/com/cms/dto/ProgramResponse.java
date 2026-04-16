@@ -10,6 +10,7 @@ public record ProgramResponse(
     String name,
     String code,
     ProgramLevel programLevel,
+    Integer durationYears,
     List<DepartmentResponse> departments,
     Instant createdAt,
     Instant updatedAt

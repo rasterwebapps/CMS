@@ -43,6 +43,9 @@ public class Program {
     @Column(name = "program_level", nullable = false)
     private ProgramLevel programLevel;
 
+    @Column(name = "duration_years", nullable = false)
+    private Integer durationYears;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "program_departments",
@@ -62,10 +65,11 @@ public class Program {
     public Program() {
     }
 
-    public Program(String name, String code, ProgramLevel programLevel) {
+    public Program(String name, String code, ProgramLevel programLevel, Integer durationYears) {
         this.name = name;
         this.code = code;
         this.programLevel = programLevel;
+        this.durationYears = durationYears;
     }
 
     public Long getId() {
@@ -98,6 +102,14 @@ public class Program {
 
     public void setProgramLevel(ProgramLevel programLevel) {
         this.programLevel = programLevel;
+    }
+
+    public Integer getDurationYears() {
+        return durationYears;
+    }
+
+    public void setDurationYears(Integer durationYears) {
+        this.durationYears = durationYears;
     }
 
     public Set<Department> getDepartments() {

@@ -33,7 +33,8 @@ public class ProgramService {
         Program program = new Program(
             request.name(),
             request.code(),
-            request.programLevel()
+            request.programLevel(),
+            request.durationYears()
         );
 
         if (request.departmentIds() != null && !request.departmentIds().isEmpty()) {
@@ -68,6 +69,7 @@ public class ProgramService {
         program.setName(request.name());
         program.setCode(request.code());
         program.setProgramLevel(request.programLevel());
+        program.setDurationYears(request.durationYears());
 
         if (request.departmentIds() != null) {
             Set<Department> departments = new HashSet<>(departmentRepository.findAllById(request.departmentIds()));
@@ -109,6 +111,7 @@ public class ProgramService {
             program.getName(),
             program.getCode(),
             program.getProgramLevel(),
+            program.getDurationYears(),
             departmentResponses,
             program.getCreatedAt(),
             program.getUpdatedAt()
