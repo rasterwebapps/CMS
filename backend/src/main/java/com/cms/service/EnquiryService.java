@@ -275,7 +275,7 @@ public class EnquiryService {
             e.getAgent() != null ? e.getAgent().getName() : null,
             e.getReferralType() != null ? e.getReferralType().getId() : null,
             e.getReferralType() != null ? e.getReferralType().getName() : null,
-            e.getReferralType() != null ? e.getReferralType().getGuidelineValue() : null,
+            e.getReferralType() != null ? e.getReferralType().getCommissionAmount() : null,
             e.getAssignedTo(),
             e.getRemarks(),
             e.getFeeDiscussedAmount(),

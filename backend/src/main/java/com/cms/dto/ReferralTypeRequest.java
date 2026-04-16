@@ -12,8 +12,10 @@ public record ReferralTypeRequest(
     @NotBlank(message = "Code is required")
     String code,
 
-    @NotNull(message = "Guideline value is required")
-    BigDecimal guidelineValue,
+    @NotNull(message = "Commission amount is required")
+    BigDecimal commissionAmount,
+
+    Boolean hasCommission,
 
     String description,
 

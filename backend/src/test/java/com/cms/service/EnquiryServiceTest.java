@@ -504,7 +504,7 @@ class EnquiryServiceTest {
     @Test
     void shouldCreateEnquiryWithReferralType() {
         com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
-            "Staff", "STAFF", new BigDecimal("5000.00"), "Staff referral", true
+            "Staff", "STAFF", new BigDecimal("5000.00"), true, "Staff referral", true
         );
         referralType.setId(1L);
         referralType.setCreatedAt(Instant.now());
@@ -527,7 +527,7 @@ class EnquiryServiceTest {
 
         assertThat(response.referralTypeId()).isEqualTo(1L);
         assertThat(response.referralTypeName()).isEqualTo("Staff");
-        assertThat(response.referralGuidelineValue()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.referralCommissionAmount()).isEqualTo(new BigDecimal("5000.00"));
     }
 
     @Test
@@ -641,7 +641,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
 
         com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
-            "Staff", "STAFF", BigDecimal.ZERO, "Staff referral", true
+            "Staff", "STAFF", BigDecimal.ZERO, false, "Staff referral", true
         );
         referralType.setId(1L);
         referralType.setCreatedAt(Instant.now());

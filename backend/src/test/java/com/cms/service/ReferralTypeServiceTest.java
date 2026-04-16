@@ -40,7 +40,7 @@ class ReferralTypeServiceTest {
     @Test
     void shouldCreateReferralType() {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff", "STAFF", new BigDecimal("5000.00"), "Staff referral", true
+            "Staff", "STAFF", new BigDecimal("5000.00"), true, "Staff referral", true
         );
 
         ReferralType saved = createReferralType(1L, "Staff", "STAFF", new BigDecimal("5000.00"));
@@ -53,14 +53,15 @@ class ReferralTypeServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Staff");
         assertThat(response.code()).isEqualTo("STAFF");
-        assertThat(response.guidelineValue()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.commissionAmount()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.hasCommission()).isTrue();
         verify(referralTypeRepository).save(any(ReferralType.class));
     }
 
     @Test
     void shouldThrowWhenDuplicateCode() {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff", "STAFF", BigDecimal.ZERO, null, true
+            "Staff", "STAFF", BigDecimal.ZERO, false, null, true
         );
 
         when(referralTypeRepository.existsByCode("STAFF")).thenReturn(true);
@@ -73,7 +74,7 @@ class ReferralTypeServiceTest {
     @Test
     void shouldCreateWithDefaultActiveTrue() {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff", "STAFF", BigDecimal.ZERO, null, null
+            "Staff", "STAFF", BigDecimal.ZERO, null, null, null
         );
 
         ReferralType saved = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
@@ -135,7 +136,7 @@ class ReferralTypeServiceTest {
     void shouldUpdate() {
         ReferralType existing = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff Updated", "STAFF", new BigDecimal("10000.00"), "Updated", true
+            "Staff Updated", "STAFF", new BigDecimal("10000.00"), true, "Updated", true
         );
 
         ReferralType updated = createReferralType(1L, "Staff Updated", "STAFF", new BigDecimal("10000.00"));
@@ -146,13 +147,13 @@ class ReferralTypeServiceTest {
         ReferralTypeResponse response = referralTypeService.update(1L, request);
 
         assertThat(response.name()).isEqualTo("Staff Updated");
-        assertThat(response.guidelineValue()).isEqualTo(new BigDecimal("10000.00"));
+        assertThat(response.commissionAmount()).isEqualTo(new BigDecimal("10000.00"));
     }
 
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff", "STAFF", BigDecimal.ZERO, null, true
+            "Staff", "STAFF", BigDecimal.ZERO, false, null, true
         );
 
         when(referralTypeRepository.findById(999L)).thenReturn(Optional.empty());
@@ -182,8 +183,8 @@ class ReferralTypeServiceTest {
         verify(referralTypeRepository, never()).deleteById(any());
     }
 
-    private ReferralType createReferralType(Long id, String name, String code, BigDecimal guidelineValue) {
-        ReferralType rt = new ReferralType(name, code, guidelineValue, name + " description", true);
+    private ReferralType createReferralType(Long id, String name, String code, BigDecimal commissionAmount) {
+        ReferralType rt = new ReferralType(name, code, commissionAmount, true, name + " description", true);
         rt.setId(id);
         Instant now = Instant.now();
         rt.setCreatedAt(now);

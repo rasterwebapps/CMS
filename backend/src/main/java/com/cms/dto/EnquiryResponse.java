@@ -21,7 +21,7 @@ public record EnquiryResponse(
     String agentName,
     Long referralTypeId,
     String referralTypeName,
-    BigDecimal referralGuidelineValue,
+    BigDecimal referralCommissionAmount,
     String assignedTo,
     String remarks,
     BigDecimal feeDiscussedAmount,
