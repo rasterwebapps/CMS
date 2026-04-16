@@ -54,7 +54,7 @@ export class ProgramFormComponent implements OnInit {
     code: ['', [Validators.required, Validators.maxLength(20)]],
     programLevel: ['', [Validators.required]],
     durationYears: [4, [Validators.required, Validators.min(1), Validators.max(10)]],
-    departmentIds: [[] as number[], [Validators.required]],
+    departmentIds: [[] as number[], [Validators.required, Validators.minLength(1)]],
   });
 
   ngOnInit(): void {
