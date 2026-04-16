@@ -23,7 +23,6 @@ import com.cms.dto.CourseResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
 import com.cms.model.Program;
-import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.ProgramLevel;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.ProgramRepository;
@@ -44,7 +43,7 @@ class CourseServiceTest {
     @BeforeEach
     void setUp() {
         courseService = new CourseService(courseRepository, programRepository);
-        program = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE);
+        program = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, 4);
     }
 
     @Test
@@ -52,12 +51,11 @@ class CourseServiceTest {
         CourseRequest request = new CourseRequest(
             "B.Sc. Nursing",
             "BSN",
-            DegreeType.BACHELOR,
-            4,
+            "General",
             1L
         );
 
-        Course savedCourse = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
+        Course savedCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
         when(courseRepository.save(any(Course.class))).thenReturn(savedCourse);
@@ -67,9 +65,9 @@ class CourseServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("B.Sc. Nursing");
         assertThat(response.code()).isEqualTo("BSN");
-        assertThat(response.degreeType()).isEqualTo(DegreeType.BACHELOR);
-        assertThat(response.durationYears()).isEqualTo(4);
+        assertThat(response.specialization()).isEqualTo("General");
         assertThat(response.program().id()).isEqualTo(1L);
+        assertThat(response.program().durationYears()).isEqualTo(4);
 
         ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
         verify(courseRepository).save(captor.capture());
@@ -83,8 +81,7 @@ class CourseServiceTest {
         CourseRequest request = new CourseRequest(
             "B.Sc. Nursing",
             "BSN",
-            DegreeType.BACHELOR,
-            4,
+            null,
             999L
         );
 
@@ -99,8 +96,8 @@ class CourseServiceTest {
 
     @Test
     void shouldFindAllCourses() {
-        Course course1 = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
-        Course course2 = createCourse(2L, "M.Sc. Nursing", "MSN", DegreeType.MASTER, 2, program);
+        Course course1 = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        Course course2 = createCourse(2L, "M.Sc. Nursing", "MSN", "Obs Gyn", program);
 
         when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
 
@@ -124,7 +121,7 @@ class CourseServiceTest {
 
     @Test
     void shouldFindCourseById() {
-        Course course = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
+        Course course = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
 
@@ -149,8 +146,8 @@ class CourseServiceTest {
 
     @Test
     void shouldFindCoursesByProgramId() {
-        Course course1 = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
-        Course course2 = createCourse(2L, "M.Sc. Nursing", "MSN", DegreeType.MASTER, 2, program);
+        Course course1 = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        Course course2 = createCourse(2L, "M.Sc. Nursing", "MSN", "Obs Gyn", program);
 
         when(programRepository.existsById(1L)).thenReturn(true);
         when(courseRepository.findByProgramId(1L)).thenReturn(List.of(course1, course2));
@@ -187,19 +184,18 @@ class CourseServiceTest {
 
     @Test
     void shouldUpdateCourse() {
-        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
+        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        Program newProgram = createProgram(2L, "Postgraduate Programs", "PG", ProgramLevel.POSTGRADUATE);
+        Program newProgram = createProgram(2L, "Postgraduate Programs", "PG", ProgramLevel.POSTGRADUATE, 2);
 
         CourseRequest updateRequest = new CourseRequest(
             "M.Sc. Nursing",
             "MSN",
-            DegreeType.MASTER,
-            2,
+            "Obs Gyn",
             2L
         );
 
-        Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", DegreeType.MASTER, 2, newProgram);
+        Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
@@ -210,9 +206,9 @@ class CourseServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("M.Sc. Nursing");
         assertThat(response.code()).isEqualTo("MSN");
-        assertThat(response.degreeType()).isEqualTo(DegreeType.MASTER);
-        assertThat(response.durationYears()).isEqualTo(2);
+        assertThat(response.specialization()).isEqualTo("Obs Gyn");
         assertThat(response.program().id()).isEqualTo(2L);
+        assertThat(response.program().durationYears()).isEqualTo(2);
 
         verify(courseRepository).findById(1L);
         verify(courseRepository).save(any(Course.class));
@@ -220,7 +216,7 @@ class CourseServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentCourse() {
-        CourseRequest request = new CourseRequest("Name", "CODE", DegreeType.BACHELOR, 4, 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, 1L);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -234,9 +230,9 @@ class CourseServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingWithNonExistentProgram() {
-        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, program);
+        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        CourseRequest request = new CourseRequest("Name", "CODE", DegreeType.BACHELOR, 4, 999L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, 999L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -270,8 +266,9 @@ class CourseServiceTest {
         verify(courseRepository, never()).deleteById(any());
     }
 
-    private Program createProgram(Long id, String name, String code, ProgramLevel programLevel) {
-        Program prog = new Program(name, code, programLevel);
+    private Program createProgram(Long id, String name, String code, ProgramLevel programLevel,
+                                  Integer durationYears) {
+        Program prog = new Program(name, code, programLevel, durationYears);
         prog.setId(id);
         Instant now = Instant.now();
         prog.setCreatedAt(now);
@@ -279,9 +276,9 @@ class CourseServiceTest {
         return prog;
     }
 
-    private Course createCourse(Long id, String name, String code, DegreeType degreeType,
-                                Integer durationYears, Program prog) {
-        Course course = new Course(name, code, degreeType, durationYears, prog);
+    private Course createCourse(Long id, String name, String code, String specialization,
+                                Program prog) {
+        Course course = new Course(name, code, specialization, prog);
         course.setId(id);
         Instant now = Instant.now();
         course.setCreatedAt(now);

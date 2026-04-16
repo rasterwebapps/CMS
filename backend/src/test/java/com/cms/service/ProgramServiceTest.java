@@ -52,11 +52,12 @@ class ProgramServiceTest {
             "Bachelor of Computer Science",
             "BCS",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(1L)
         );
 
         Program savedProgram = createProgram(1L, "Bachelor of Computer Science", "BCS",
-            ProgramLevel.UNDERGRADUATE, department);
+            ProgramLevel.UNDERGRADUATE, 4, department);
 
         when(departmentRepository.findAllById(any())).thenReturn(List.of(department));
         when(programRepository.save(any(Program.class))).thenReturn(savedProgram);
@@ -83,6 +84,7 @@ class ProgramServiceTest {
             "Bachelor of Computer Science",
             "BCS",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(999L)
         );
 
@@ -97,8 +99,8 @@ class ProgramServiceTest {
 
     @Test
     void shouldFindAllPrograms() {
-        Program prog1 = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, department);
-        Program prog2 = createProgram(2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, department);
+        Program prog1 = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, 4, department);
+        Program prog2 = createProgram(2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, 2, department);
 
         when(programRepository.findAll()).thenReturn(List.of(prog1, prog2));
 
@@ -123,7 +125,7 @@ class ProgramServiceTest {
     @Test
     void shouldFindProgramById() {
         Program program = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, department);
+            ProgramLevel.UNDERGRADUATE, 4, department);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
 
@@ -149,7 +151,7 @@ class ProgramServiceTest {
     @Test
     void shouldUpdateProgram() {
         Program existingProgram = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, department);
+            ProgramLevel.UNDERGRADUATE, 4, department);
 
         Department newDepartment = createDepartment(2L, "Mathematics", "MATH", "Math Dept", "Dr. Jane");
 
@@ -157,11 +159,12 @@ class ProgramServiceTest {
             "Bachelor of Computer Science Updated",
             "BCSU",
             ProgramLevel.UNDERGRADUATE,
+            4,
             List.of(2L)
         );
 
         Program updatedProgram = createProgram(1L, "Bachelor of Computer Science Updated", "BCSU",
-            ProgramLevel.UNDERGRADUATE, newDepartment);
+            ProgramLevel.UNDERGRADUATE, 4, newDepartment);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
         when(departmentRepository.findAllById(any())).thenReturn(List.of(newDepartment));
@@ -181,7 +184,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentProgram() {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, List.of(1L));
+        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, 4, List.of(1L));
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -196,9 +199,9 @@ class ProgramServiceTest {
     @Test
     void shouldThrowExceptionWhenUpdatingWithNonExistentDepartment() {
         Program existingProgram = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, department);
+            ProgramLevel.UNDERGRADUATE, 4, department);
 
-        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, List.of(999L));
+        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, 4, List.of(999L));
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
         when(departmentRepository.findAllById(any())).thenReturn(List.of());
@@ -243,8 +246,8 @@ class ProgramServiceTest {
     }
 
     private Program createProgram(Long id, String name, String code,
-                                  ProgramLevel programLevel, Department dept) {
-        Program program = new Program(name, code, programLevel);
+                                  ProgramLevel programLevel, Integer durationYears, Department dept) {
+        Program program = new Program(name, code, programLevel, durationYears);
         if (dept != null) {
             program.setDepartments(new java.util.HashSet<>(java.util.Set.of(dept)));
         }

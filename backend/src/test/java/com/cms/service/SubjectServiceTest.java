@@ -27,7 +27,6 @@ import com.cms.model.Course;
 import com.cms.model.Department;
 import com.cms.model.Program;
 import com.cms.model.Subject;
-import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.ProgramLevel;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.DepartmentRepository;
@@ -77,8 +76,7 @@ class SubjectServiceTest {
         course.setId(1L);
         course.setName("B.Sc. Nursing Course");
         course.setCode("BSN");
-        course.setDegreeType(DegreeType.BACHELOR);
-        course.setDurationYears(4);
+        course.setSpecialization("General");
         course.setProgram(program);
         course.setCreatedAt(now);
         course.setUpdatedAt(now);

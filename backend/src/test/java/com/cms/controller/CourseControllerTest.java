@@ -28,7 +28,6 @@ import com.cms.dto.CourseRequest;
 import com.cms.dto.CourseResponse;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.DegreeType;
 import com.cms.model.enums.ProgramLevel;
 import com.cms.service.CourseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,15 +48,15 @@ class CourseControllerTest {
     @Test
     void shouldCreateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, 1L
+            "B.Sc. Nursing", "BSN", "General", 1L
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, List.of(), now, now
+            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, 4, List.of(), now, now
         );
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
         );
 
         when(courseService.create(any(CourseRequest.class))).thenReturn(response);
@@ -69,16 +68,16 @@ class CourseControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("B.Sc. Nursing"))
             .andExpect(jsonPath("$.code").value("BSN"))
-            .andExpect(jsonPath("$.degreeType").value("BACHELOR"))
-            .andExpect(jsonPath("$.durationYears").value(4))
-            .andExpect(jsonPath("$.program.id").value(1));
+            .andExpect(jsonPath("$.specialization").value("General"))
+            .andExpect(jsonPath("$.program.id").value(1))
+            .andExpect(jsonPath("$.program.durationYears").value(4));
 
         verify(courseService).create(any(CourseRequest.class));
     }
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("", "BSN", DegreeType.BACHELOR, 4, 1L);
+        CourseRequest request = new CourseRequest("", "BSN", null, 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -88,45 +87,11 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", DegreeType.BACHELOR, 4, 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDegreeTypeIsNull() throws Exception {
-        String jsonRequest = """
-            {
-                "name": "B.Sc. Nursing",
-                "code": "BSN",
-                "durationYears": 4,
-                "programId": 1
-            }
-            """;
-
-        mockMvc.perform(post("/courses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDurationYearsIsNull() throws Exception {
-        String jsonRequest = """
-            {
-                "name": "B.Sc. Nursing",
-                "code": "BSN",
-                "degreeType": "BACHELOR",
-                "programId": 1
-            }
-            """;
-
-        mockMvc.perform(post("/courses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
             .andExpect(status().isBadRequest());
     }
 
@@ -135,9 +100,7 @@ class CourseControllerTest {
         String jsonRequest = """
             {
                 "name": "B.Sc. Nursing",
-                "code": "BSN",
-                "degreeType": "BACHELOR",
-                "durationYears": 4
+                "code": "BSN"
             }
             """;
 
@@ -148,36 +111,16 @@ class CourseControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenDurationYearsTooLow() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 0, 1L);
-
-        mockMvc.perform(post("/courses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDurationYearsTooHigh() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 11, 1L);
-
-        mockMvc.perform(post("/courses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void shouldFindAllCourses() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, List.of(), now, now
+            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, 4, List.of(), now, now
         );
         CourseResponse course1 = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
         );
         CourseResponse course2 = new CourseResponse(
-            2L, "M.Sc. Nursing", "MSN", DegreeType.MASTER, 2, progResponse, now, now
+            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", progResponse, now, now
         );
 
         when(courseService.findAll()).thenReturn(List.of(course1, course2));
@@ -208,10 +151,10 @@ class CourseControllerTest {
     void shouldFindCourseById() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, List.of(), now, now
+            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, 4, List.of(), now, now
         );
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
         );
 
         when(courseService.findById(1L)).thenReturn(response);
@@ -240,13 +183,13 @@ class CourseControllerTest {
     void shouldFindCoursesByProgramId() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, List.of(), now, now
+            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, 4, List.of(), now, now
         );
         CourseResponse course1 = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", DegreeType.BACHELOR, 4, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
         );
         CourseResponse course2 = new CourseResponse(
-            2L, "M.Sc. Nursing", "MSN", DegreeType.MASTER, 2, progResponse, now, now
+            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", progResponse, now, now
         );
 
         when(courseService.findByProgramId(1L)).thenReturn(List.of(course1, course2));
@@ -274,15 +217,15 @@ class CourseControllerTest {
     @Test
     void shouldUpdateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing Updated", "BSNU", DegreeType.BACHELOR, 5, 1L
+            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", 1L
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, List.of(), now, now
+            1L, "UG Programs", "UG", ProgramLevel.UNDERGRADUATE, 4, List.of(), now, now
         );
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing Updated", "BSNU", DegreeType.BACHELOR, 5, progResponse, now, now
+            1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", progResponse, now, now
         );
 
         when(courseService.update(eq(1L), any(CourseRequest.class))).thenReturn(response);
@@ -300,7 +243,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentCourse() throws Exception {
-        CourseRequest request = new CourseRequest("Name", "CODE", DegreeType.BACHELOR, 4, 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, 1L);
 
         when(courseService.update(eq(999L), any(CourseRequest.class)))
             .thenThrow(new ResourceNotFoundException("Course not found with id: 999"));
@@ -315,7 +258,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        CourseRequest request = new CourseRequest("", "", DegreeType.BACHELOR, 4, 1L);
+        CourseRequest request = new CourseRequest("", "", null, 1L);
 
         mockMvc.perform(put("/courses/1")
                 .contentType(MediaType.APPLICATION_JSON)

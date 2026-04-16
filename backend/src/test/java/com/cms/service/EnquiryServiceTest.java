@@ -680,7 +680,7 @@ class EnquiryServiceTest {
     @Test
     void shouldCreateEnquiryWithCourse() {
         com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
-            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+            null, testProgram);
         testCourse.setId(1L);
 
         EnquiryRequest request = new EnquiryRequest(
@@ -726,7 +726,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
-            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+            null, testProgram);
         testCourse.setId(1L);
 
         EnquiryRequest updateRequest = new EnquiryRequest(
