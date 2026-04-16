@@ -115,15 +115,16 @@ FeeStructureYearAmount:
 
 ### Business Rule
 
-When the front office selects a program on the enquiry screen, the system must display the **fee structure for that program in the current academic year** as a guideline panel on the side. This helps the front office personnel inform the enquirer about the fees.
+When the front office selects a **program** and **course** on the enquiry screen, the system must display the **fee structure for that program + course in the current academic year** as a guideline panel on the side. This helps the front office personnel inform the enquirer about the fees.
 
 ### Key Points
 
 1. The fee guideline panel is **read-only** on the enquiry screen — it is for reference only.
 2. It shows the total fee, year-wise breakdown (from BR-2), and individual fee type amounts.
-3. The guideline values are fetched from the fee structure for the **current (active) academic year**.
-4. If no fee structure exists for the selected program in the current academic year, the panel shows a message: "No fee structure defined for this program in the current academic year."
+3. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **program and course**.
+4. If no fee structure exists for the selected program+course in the current academic year, the panel shows a message: "No fee structure defined for this program in the current academic year."
 5. The chosen/displayed guideline values must be **saved with the enquiry record** so they can be presented to the admin during fee finalization (BR-6).
+6. **Flow**: Select Program → Select Course → Fee structure panel auto-loads.
 
 ### Screen Layout
 
@@ -131,17 +132,18 @@ When the front office selects a program on the enquiry screen, the system must d
 ┌─────────────────────────────────┬──────────────────────────────┐
 │ Enquiry Form                    │ Fee Structure Guideline       │
 │                                 │                              │
-│ Name: [___________]             │ Program: B.Tech (CSE)        │
-│ Phone: [__________]             │ Academic Year: 2026-27       │
-│ Email: [__________]             │ Duration: 4 Years            │
-│ Program: [▼ Select Program]     │                              │
-│ Source: [▼ Select Source]       │ Total Fee: ₹4,00,000        │
-│ Referral Type: [▼ Select]       │                              │
+│ Name: [___________]             │ Program: B.Sc Nursing        │
+│ Phone: [__________]             │ Course: BSc Nursing          │
+│ Email: [__________]             │ Academic Year: 2026-27       │
+│ Program: [▼ Select Program]     │ Duration: 4 Years            │
+│ Course: [▼ Select Course]       │                              │
+│ Referral Type: [▼ Select]       │ Total Fee: ₹4,00,000        │
+│ Agent: [▼ Select] (if agent)    │                              │
 │                                 │ Year-wise Breakdown:         │
-│ Remarks: [___________]          │  First Year:  ₹1,20,000     │
-│                                 │  Second Year: ₹1,00,000     │
-│ [Referral Additional: ₹5,000]  │  Third Year:  ₹90,000       │
-│                                 │  Fourth Year: ₹90,000       │
+│ Remarks: [___________]          │  Year 1:  ₹1,20,000         │
+│                                 │  Year 2:  ₹1,00,000         │
+│ [Commission Amount: ₹5,000]     │  Year 3:  ₹90,000           │
+│                                 │  Year 4:  ₹90,000           │
 │ Final Calculated Fee: ₹4,05,000│                              │
 │                                 │ Fee Types:                   │
 │ [Save] [Cancel]                 │  Tuition: ₹3,50,000 *       │
@@ -162,25 +164,30 @@ When the front office selects a program on the enquiry screen, the system must d
 
 ### Business Rule
 
-Referral types must be managed as a **separate master entity** where administrators can add, edit, activate, and deactivate referral types. This replaces the fixed `EnquirySource` enum approach for referral categorization.
+Referral types must be managed as a **separate master entity** where administrators can add, edit, activate, and deactivate referral types. This replaces the fixed `EnquirySource` enum approach for referral categorization. The `source` field on enquiries has been removed; the `referralType` FK is now the **sole field** for tracking how an enquiry was referred.
 
 ### Key Points
 
 1. The referral type master is a standalone CRUD entity (not an enum).
 2. Default referral types to be seeded: `WALK_IN`, `PHONE`, `ONLINE`, `AGENT_REFERRAL`, `STAFF`, `ALUMNI`, `PARENT`, `ADVERTISEMENT`.
-3. Each referral type has a `guidelineValue` (BigDecimal) — this represents any additional fee amount (commission, discount, or surcharge) associated with that referral type.
-4. A `guidelineValue` of zero means no additional fee impact.
-5. Referral types can be activated/deactivated (soft delete). Only active types appear in the enquiry form dropdown.
-6. The enquiry screen's referral/source field must fetch data from this master table instead of a hardcoded enum.
+3. Each referral type has:
+   - `hasCommission` (Boolean) — indicates whether this referral type incurs a commission.
+   - `commissionAmount` (BigDecimal) — the commission amount when `hasCommission` is true.
+4. A `hasCommission` value of `false` means no additional fee impact.
+5. When `hasCommission` is `true`, the `commissionAmount` is pre-filled on the enquiry form as the referral additional amount (editable by the user).
+6. Referral types can be activated/deactivated (soft delete). Only active types appear in the enquiry form dropdown.
+7. The enquiry form's referral type field is **required** and fetches data from this master table.
+8. When the selected referral type code is `AGENT_REFERRAL`, an Agent dropdown appears for selecting the referring agent.
 
-### Data Model (New)
+### Data Model
 
 ```
 ReferralType:
   - id (PK)
   - name (VARCHAR, unique, e.g., "Staff", "Agent Referral")
   - code (VARCHAR, unique, e.g., "STAFF", "AGENT_REFERRAL")
-  - guidelineValue (DECIMAL/BigDecimal, default 0)
+  - hasCommission (BOOLEAN, default false)
+  - commissionAmount (DECIMAL/BigDecimal, default 0)
   - description (TEXT, optional)
   - isActive (BOOLEAN, default true)
   - createdAt, updatedAt (audit)
@@ -200,34 +207,34 @@ ReferralType:
 
 ---
 
-## BR-5: Referral Guideline Amount & Final Fee Calculation
+## BR-5: Referral Commission Amount & Final Fee Calculation
 
 ### Business Rule
 
-When a referral type is selected on the enquiry screen, if the referral type has a non-zero `guidelineValue`, an **additional amount box** must be displayed showing the referral guideline amount. The system must calculate and show the **final fee** by adding the referral guideline amount to the program's total fee.
+When a referral type is selected on the enquiry screen, if the referral type has `hasCommission=true`, an **additional amount box** must be displayed showing the commission amount. The system must calculate and show the **final fee** by adding the commission amount to the program's total fee.
 
 ### Key Points
 
-1. If the selected referral type's `guidelineValue` is **zero**, no additional box is shown.
-2. If the `guidelineValue` is **greater than zero**, an additional box labeled "Referral Additional Amount" is displayed with the value pre-filled (editable by the user).
-3. The **final calculated fee** = Program Total Fee (from fee structure guideline) + Referral Additional Amount.
+1. If the selected referral type's `hasCommission` is **false**, no additional box is shown.
+2. If `hasCommission` is **true**, an additional box labeled "Commission Amount" is displayed with the value pre-filled from `commissionAmount` (editable by the user).
+3. The **final calculated fee** = Program Total Fee (from fee structure guideline) + Commission Amount.
 4. The final calculated fee is displayed prominently on the enquiry form.
-5. Both the referral additional amount and the final calculated fee are saved with the enquiry record.
+5. Both the commission amount and the final calculated fee are saved with the enquiry record.
 6. This calculated fee serves as the **starting point** for admin fee finalization (BR-6).
 
 ### Calculation Formula
 
 ```
-Final Fee = Total Program Fee (from fee structure) + Referral Guideline Amount (from referral type)
+Final Fee = Total Program Fee (from fee structure) + Commission Amount (from referral type, if hasCommission=true)
 ```
 
 ### Example
 
-| Scenario | Program Fee | Referral Type | Guideline Value | Final Fee |
-|----------|------------|---------------|-----------------|-----------|
-| Walk-in enquiry | ₹4,00,000 | Walk-In | ₹0 | ₹4,00,000 |
-| Agent referral | ₹4,00,000 | Agent Referral | ₹15,000 | ₹4,15,000 |
-| Staff referral | ₹4,00,000 | Staff | ₹5,000 | ₹4,05,000 |
+| Scenario | Program Fee | Referral Type | Has Commission | Commission Amount | Final Fee |
+|----------|------------|---------------|----------------|-------------------|-----------|
+| Walk-in enquiry | ₹4,00,000 | Walk-In | No | ₹0 | ₹4,00,000 |
+| Agent referral | ₹4,00,000 | Agent Referral | Yes | ₹15,000 | ₹4,15,000 |
+| Staff referral | ₹4,00,000 | Staff | No | ₹0 | ₹4,00,000 |
 
 ---
 
@@ -235,20 +242,25 @@ Final Fee = Total Program Fee (from fee structure) + Referral Guideline Amount (
 
 ### Business Rule
 
-The enquiry screen is used by the **front office** to capture initial data. Once the enquiry is submitted and the student expresses interest in joining, the **admin** reviews and finalizes the fee structure. The guideline values from the enquiry are presented to the admin, who can modify them.
+The enquiry screen is used by the **front office** to capture initial data. Once the enquiry is submitted and the student expresses interest in joining (status = INTERESTED), the **admin** reviews and finalizes the fee structure on the **Fee Finalization Screen**. The guideline values from the enquiry are presented to the admin, who can modify them.
 
 ### Key Points
 
-1. The front office submits the enquiry with: student details, program selection, fee guideline values, referral type, referral additional amount, and final calculated fee.
+1. The front office submits the enquiry with: student details, program + course selection, fee guideline values, referral type, commission amount (if applicable), and final calculated fee.
 2. All guideline values chosen by the front office are **saved with the enquiry**.
-3. When the admin opens the fee finalization screen, the enquiry's saved guideline values are presented as the starting point.
-4. The admin can:
+3. The **Fee Finalization Screen** shows a list of enquiries in **INTERESTED** status.
+4. The admin selects an enquiry to finalize, and the form is pre-populated with:
+   - Proposed fee from enquiry's `finalCalculatedFee`
+   - Guideline fee from fee structure lookup (`feeGuidelineTotal`)
+   - Year-wise breakdown from enquiry's `yearWiseFees`
+   - Commission info (if referral type has commission)
+5. The admin can:
    - **Increase** the fee amount (e.g., special program charges)
    - **Provide a discount** (reduce the fee)
    - **Modify year-wise fee distribution**
-   - **Override the referral additional amount**
-5. The admin's finalized values are saved separately (not overwriting the original enquiry values) for audit purposes.
-6. Upon finalization, the enquiry status automatically transitions to **FEES_FINALIZED**.
+6. The admin's finalized values are saved separately (not overwriting the original enquiry values) for audit purposes.
+7. Upon finalization, the enquiry status automatically transitions to **FEES_FINALIZED**.
+8. The `assignedTo` field is **not used** in this workflow.
 
 ### Data to Capture in Enquiry
 
@@ -282,17 +294,18 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 
 ### Business Rule
 
-After admin finalization (BR-6), the finalized fee data is presented to the **accounting team / cashier** for payment collection. The student may pay the full amount or partial amounts in installments using various payment modes.
+After admin finalization (BR-6), the finalized fee data is presented to the **accounting team / cashier** for payment collection on the **Payment Collection Screen**. The screen lists enquiries in **FEES_FINALIZED** status. The student may pay the full amount or partial amounts using various payment modes.
 
 ### Key Points
 
-1. The cashier sees the finalized fee breakdown: net fee, year-wise amounts, and due dates.
-2. Payment can be collected in **full** or in **parts** (installments).
-3. Supported payment modes: `CASH`, `CARD`, `UPI`, `NET_BANKING`, `CHEQUE`, `DEMAND_DRAFT`, `SCHOLARSHIP`.
-4. Each payment generates a unique **receipt number**.
-5. Excess payment on one year's fee automatically **carries forward** to the next year.
-6. Late payments beyond the due date incur **penalties** (configurable rate, default ₹100/day).
-7. The system tracks total paid, pending amount, and payment status per year.
+1. The **Payment Collection Screen** shows a list of enquiries in **FEES_FINALIZED** status.
+2. The cashier selects an enquiry and sees the finalized fee breakdown: total fee, discount, net fee, year-wise amounts.
+3. The cashier enters payment details: amount, payment date, payment mode, transaction reference, and remarks.
+4. Payment can be collected in **full** or in **parts** (partial/advance).
+5. Upon full payment, the enquiry status transitions to **FEES_PAID**.
+6. Upon partial payment, the enquiry status transitions to **PARTIALLY_PAID**.
+7. Payments are currently tracked against the **enquiry** record. Student record creation happens at explicit conversion (BR-10).
+8. Supported payment modes: `CASH`, `CARD`, `UPI`, `BANK_TRANSFER`, `CHEQUE`.
 
 ### Payment Status Tracking
 
@@ -504,6 +517,7 @@ Step 7: STUDENT EXPLORER
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |
 | 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, document submission, and student explorer | — |
 
 ---

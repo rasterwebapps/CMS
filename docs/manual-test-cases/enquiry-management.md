@@ -23,6 +23,7 @@
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 - At least one program exists
+- At least one referral type exists and is active
 
 **Steps:**
 1. Send a POST request to `/api/v1/enquiries` with body:
@@ -32,14 +33,14 @@
      "phone": "9876543210",
      "email": "jane@example.com",
      "programId": 1,
+     "courseId": 1,
      "enquiryDate": "2024-06-15",
-     "source": "WALK_IN",
-     "status": "ENQUIRED",
+     "referralTypeId": 1,
      "remarks": "Interested in B.Sc Nursing"
    }
    ```
 2. Verify the response status is 201 Created
-3. Verify the returned object has the correct values
+3. Verify the returned object has the correct values including status ENQUIRED
 
 **Expected Result:**
 - Enquiry is created with status ENQUIRED and returned with an ID
