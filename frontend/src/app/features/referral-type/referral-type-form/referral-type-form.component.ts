@@ -47,7 +47,8 @@ export class ReferralTypeFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
     code: ['', [Validators.required, Validators.maxLength(50)]],
-    guidelineValue: [0, [Validators.required, Validators.min(0)]],
+    hasCommission: [false],
+    commissionAmount: [0, [Validators.required, Validators.min(0)]],
     description: [''],
     isActive: [true],
   });
@@ -64,7 +65,8 @@ export class ReferralTypeFormComponent implements OnInit {
           this.form.patchValue({
             name: item.name,
             code: item.code,
-            guidelineValue: item.guidelineValue,
+            hasCommission: item.hasCommission,
+            commissionAmount: item.commissionAmount,
             description: item.description,
             isActive: item.isActive,
           });
@@ -87,7 +89,8 @@ export class ReferralTypeFormComponent implements OnInit {
     const request: ReferralTypeRequest = {
       name: v.name.trim(),
       code: v.code.trim(),
-      guidelineValue: v.guidelineValue,
+      hasCommission: v.hasCommission,
+      commissionAmount: v.commissionAmount,
       description: v.description || undefined,
       isActive: v.isActive,
     };

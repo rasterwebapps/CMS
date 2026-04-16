@@ -11,10 +11,12 @@ import com.cms.dto.FeeStructureResponse;
 import com.cms.dto.YearAmountResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Course;
 import com.cms.model.FeeStructure;
 import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.Program;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.ProgramRepository;
@@ -27,15 +29,18 @@ public class FeeStructureService {
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureYearAmountRepository yearAmountRepository;
+    private final CourseRepository courseRepository;
 
     public FeeStructureService(FeeStructureRepository feeStructureRepository,
                                 ProgramRepository programRepository,
                                 AcademicYearRepository academicYearRepository,
-                                FeeStructureYearAmountRepository yearAmountRepository) {
+                                FeeStructureYearAmountRepository yearAmountRepository,
+                                CourseRepository courseRepository) {
         this.feeStructureRepository = feeStructureRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
         this.yearAmountRepository = yearAmountRepository;
+        this.courseRepository = courseRepository;
     }
 
     @Transactional
@@ -46,6 +51,12 @@ public class FeeStructureService {
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
 
+        Course course = null;
+        if (request.courseId() != null) {
+            course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
         Boolean isMandatory = request.isMandatory() != null ? request.isMandatory() : true;
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
@@ -53,6 +64,7 @@ public class FeeStructureService {
             program, academicYear, request.feeType(), request.amount(), isMandatory, isActive
         );
         feeStructure.setDescription(request.description());
+        feeStructure.setCourse(course);
 
         FeeStructure saved = feeStructureRepository.save(feeStructure);
 
@@ -97,6 +109,15 @@ public class FeeStructureService {
             .toList();
     }
 
+    public List<FeeStructureResponse> findByProgramIdAndCourseId(Long programId, Long courseId) {
+        if (!programRepository.existsById(programId)) {
+            throw new ResourceNotFoundException("Program not found with id: " + programId);
+        }
+        return feeStructureRepository.findByProgramIdAndCourseId(programId, courseId).stream()
+            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+            .toList();
+    }
+
     @Transactional
     public FeeStructureResponse update(Long id, FeeStructureRequest request) {
         FeeStructure feeStructure = feeStructureRepository.findById(id)
@@ -108,8 +129,15 @@ public class FeeStructureService {
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
 
+        Course course = null;
+        if (request.courseId() != null) {
+            course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
         feeStructure.setProgram(program);
         feeStructure.setAcademicYear(academicYear);
+        feeStructure.setCourse(course);
         feeStructure.setFeeType(request.feeType());
         feeStructure.setAmount(request.amount());
         feeStructure.setDescription(request.description());
@@ -161,6 +189,8 @@ public class FeeStructureService {
             fs.getId(),
             fs.getProgram().getId(),
             fs.getProgram().getName(),
+            fs.getCourse() != null ? fs.getCourse().getId() : null,
+            fs.getCourse() != null ? fs.getCourse().getName() : null,
             fs.getAcademicYear().getId(),
             fs.getAcademicYear().getName(),
             fs.getFeeType(),

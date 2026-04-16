@@ -47,7 +47,7 @@ class ReferralTypeControllerTest {
     @Test
     void shouldCreateReferralType() throws Exception {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff", "STAFF", new BigDecimal("5000.00"), "Staff referral", true
+            "Staff", "STAFF", new BigDecimal("5000.00"), true, "Staff referral", true
         );
 
         ReferralTypeResponse response = createResponse(1L, "Staff", "STAFF", new BigDecimal("5000.00"));
@@ -119,7 +119,7 @@ class ReferralTypeControllerTest {
     @Test
     void shouldUpdate() throws Exception {
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Staff Updated", "STAFF", new BigDecimal("10000.00"), "Updated", true
+            "Staff Updated", "STAFF", new BigDecimal("10000.00"), true, "Updated", true
         );
 
         ReferralTypeResponse response = createResponse(1L, "Staff Updated", "STAFF", new BigDecimal("10000.00"));
@@ -156,8 +156,8 @@ class ReferralTypeControllerTest {
         verify(referralTypeService).delete(999L);
     }
 
-    private ReferralTypeResponse createResponse(Long id, String name, String code, BigDecimal guidelineValue) {
+    private ReferralTypeResponse createResponse(Long id, String name, String code, BigDecimal commissionAmount) {
         Instant now = Instant.now();
-        return new ReferralTypeResponse(id, name, code, guidelineValue, name + " description", true, now, now);
+        return new ReferralTypeResponse(id, name, code, commissionAmount, true, name + " description", true, now, now);
     }
 }

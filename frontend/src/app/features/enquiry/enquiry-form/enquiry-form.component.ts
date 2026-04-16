@@ -30,10 +30,20 @@ interface ProgramInfo {
   department: { id: number; name: string };
 }
 
+interface CourseInfo {
+  id: number;
+  name: string;
+  code: string;
+  durationYears: number;
+  programId: number;
+}
+
 interface FeeStructureInfo {
   id: number;
   programId: number;
   programName: string;
+  courseId: number | null;
+  courseName: string | null;
   feeType: string;
   amount: number;
   description: string;
@@ -68,10 +78,10 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Enquiry');
   protected readonly programs = signal<ProgramInfo[]>([]);
+  protected readonly courses = signal<CourseInfo[]>([]);
   protected readonly agents = signal<Agent[]>([]);
   protected readonly referralTypes = signal<ReferralType[]>([]);
   protected readonly referralAdditionalAmount = signal(0);
-  protected readonly sources = ['WALK_IN', 'PHONE', 'ONLINE', 'AGENT_REFERRAL', 'STAFF', 'ALUMNI', 'PARENT', 'ADVERTISEMENT'];
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
 
   /** Max date for enquiry date picker — today */
@@ -91,12 +101,11 @@ export class EnquiryFormComponent implements OnInit {
     email: [''],
     phone: [''],
     programId: [null as number | null],
+    courseId: [null as number | null],
     enquiryDate: [new Date(), Validators.required],
-    source: ['', Validators.required],
+    referralTypeId: [null as number | null, Validators.required],
     status: ['ENQUIRED'],
     agentId: [null as number | null],
-    referralTypeId: [null as number | null],
-    assignedTo: [''],
     remarks: [''],
     feeDiscussedAmount: [null as number | null],
   });
@@ -124,17 +133,19 @@ export class EnquiryFormComponent implements OnInit {
         next: (item) => {
           this.form.patchValue({
             name: item.name, email: item.email, phone: item.phone, programId: item.programId,
+            courseId: item.courseId,
             enquiryDate: item.enquiryDate ? new Date(item.enquiryDate + 'T00:00:00') : new Date(),
-            source: item.source, status: item.status,
-            agentId: item.agentId, referralTypeId: item.referralTypeId,
-            assignedTo: item.assignedTo, remarks: item.remarks,
+            referralTypeId: item.referralTypeId, status: item.status,
+            agentId: item.agentId,
+            remarks: item.remarks,
             feeDiscussedAmount: item.feeDiscussedAmount,
           });
           if (item.referralTypeId) {
             this.onReferralTypeChange(item.referralTypeId);
           }
           if (item.programId) {
-            this.loadFeeStructures(item.programId);
+            this.loadCoursesForProgram(item.programId);
+            this.loadFeeStructures(item.programId, item.courseId ?? undefined);
           }
           this.loading.set(false);
         },
@@ -147,7 +158,10 @@ export class EnquiryFormComponent implements OnInit {
   }
 
   protected onProgramChange(programId: number): void {
+    this.form.patchValue({ courseId: null });
+    this.courses.set([]);
     if (programId) {
+      this.loadCoursesForProgram(programId);
       this.loadFeeStructures(programId);
     } else {
       this.feeStructures.set([]);
@@ -157,11 +171,30 @@ export class EnquiryFormComponent implements OnInit {
     }
   }
 
-  private loadFeeStructures(programId: number): void {
+  protected onCourseChange(courseId: number): void {
+    const programId = this.form.get('programId')?.value;
+    if (programId) {
+      this.loadFeeStructures(programId, courseId ?? undefined);
+    }
+  }
+
+  private loadCoursesForProgram(programId: number): void {
+    this.http.get<CourseInfo[]>(`${environment.apiUrl}/courses?programId=${programId}`).subscribe({
+      next: (data) => this.courses.set(data),
+      error: () => this.courses.set([]),
+    });
+  }
+
+  private loadFeeStructures(programId: number, courseId?: number): void {
     const program = this.programs().find((p) => p.id === programId) ?? null;
     this.selectedProgram.set(program);
 
-    this.http.get<FeeStructureInfo[]>(`${environment.apiUrl}/fee-structures?programId=${programId}`).subscribe({
+    let url = `${environment.apiUrl}/fee-structures?programId=${programId}`;
+    if (courseId) {
+      url += `&courseId=${courseId}`;
+    }
+
+    this.http.get<FeeStructureInfo[]>(url).subscribe({
       next: (data) => {
         this.feeStructures.set(data);
         const total = data.reduce((sum, fs) => sum + fs.amount, 0);
@@ -204,7 +237,16 @@ export class EnquiryFormComponent implements OnInit {
   }
 
   protected isAgentReferral(): boolean {
-    return this.form.get('source')?.value === 'AGENT_REFERRAL';
+    const rtId = this.form.get('referralTypeId')?.value;
+    if (!rtId) return false;
+    const rt = this.referralTypes().find((r) => r.id === rtId);
+    return rt?.code === 'AGENT_REFERRAL';
+  }
+
+  protected selectedReferralType(): ReferralType | undefined {
+    const rtId = this.form.get('referralTypeId')?.value;
+    if (!rtId) return undefined;
+    return this.referralTypes().find((r) => r.id === rtId);
   }
 
   protected onReferralTypeChange(referralTypeId: number): void {
@@ -213,7 +255,7 @@ export class EnquiryFormComponent implements OnInit {
       return;
     }
     const rt = this.referralTypes().find((r) => r.id === referralTypeId);
-    this.referralAdditionalAmount.set(rt?.guidelineValue ?? 0);
+    this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
   }
 
   protected onSubmit(): void {
@@ -235,10 +277,10 @@ export class EnquiryFormComponent implements OnInit {
 
     const request: EnquiryRequest = {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
-      programId: v.programId || undefined, enquiryDate: dateStr, source: v.source,
+      programId: v.programId || undefined, courseId: v.courseId || undefined,
+      enquiryDate: dateStr, referralTypeId: v.referralTypeId,
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
-      referralTypeId: v.referralTypeId || undefined,
-      assignedTo: v.assignedTo || undefined, remarks: v.remarks || undefined,
+      remarks: v.remarks || undefined,
       feeDiscussedAmount: v.feeDiscussedAmount || undefined,
       feeGuidelineTotal: this.totalFees() || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,

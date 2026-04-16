@@ -2,7 +2,13 @@
 .header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
 .page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
 .loading-container { display: flex; justify-content: center; padding: 48px; }
-.form-card { max-width: 600px; }
+.form-card { max-width: 640px; }
 .form { display: flex; flex-direction: column; gap: 8px; }
 .full-width { width: 100%; }
 .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.section-title { margin: 16px 0 8px; font-size: 1rem; font-weight: 600; color: var(--mat-sys-on-surface-variant, #555); }
+.year-amounts-section { border: 1px solid var(--mat-sys-outline-variant, #e0e0e0); border-radius: 12px; padding: 16px; margin: 8px 0; }
+.year-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0); margin-top: 4px; }
+.year-total__label { font-weight: 600; font-size: 0.95rem; }
+.year-total__value { font-weight: 700; font-size: 1.1rem; color: var(--mat-sys-primary, #1976d2); }
+.toggle-row { display: flex; gap: 24px; padding: 8px 0; }

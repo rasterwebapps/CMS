@@ -28,10 +28,11 @@ public class ReferralTypeService {
         }
 
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
+        Boolean hasCommission = request.hasCommission() != null ? request.hasCommission() : false;
 
         ReferralType referralType = new ReferralType(
-            request.name(), request.code(), request.guidelineValue(),
-            request.description(), isActive
+            request.name(), request.code(), request.commissionAmount(),
+            hasCommission, request.description(), isActive
         );
 
         ReferralType saved = referralTypeRepository.save(referralType);
@@ -63,8 +64,12 @@ public class ReferralTypeService {
 
         referralType.setName(request.name());
         referralType.setCode(request.code());
-        referralType.setGuidelineValue(request.guidelineValue());
+        referralType.setCommissionAmount(request.commissionAmount());
         referralType.setDescription(request.description());
+
+        if (request.hasCommission() != null) {
+            referralType.setHasCommission(request.hasCommission());
+        }
 
         if (request.isActive() != null) {
             referralType.setIsActive(request.isActive());
@@ -84,8 +89,9 @@ public class ReferralTypeService {
 
     private ReferralTypeResponse toResponse(ReferralType rt) {
         return new ReferralTypeResponse(
-            rt.getId(), rt.getName(), rt.getCode(), rt.getGuidelineValue(),
-            rt.getDescription(), rt.getIsActive(), rt.getCreatedAt(), rt.getUpdatedAt()
+            rt.getId(), rt.getName(), rt.getCode(), rt.getCommissionAmount(),
+            rt.getHasCommission(), rt.getDescription(), rt.getIsActive(),
+            rt.getCreatedAt(), rt.getUpdatedAt()
         );
     }
 }

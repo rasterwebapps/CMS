@@ -8,7 +8,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 
 import jakarta.persistence.Column;
@@ -44,12 +43,12 @@ public class Enquiry {
     @JoinColumn(name = "program_id")
     private Program program;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     @Column(name = "enquiry_date", nullable = false)
     private LocalDate enquiryDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EnquirySource source;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -60,11 +59,8 @@ public class Enquiry {
     private Agent agent;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "referral_type_id")
+    @JoinColumn(name = "referral_type_id", nullable = false)
     private ReferralType referralType;
-
-    @Column(name = "assigned_to")
-    private String assignedTo;
 
     @Column(columnDefinition = "TEXT")
     private String remarks;
@@ -120,13 +116,13 @@ public class Enquiry {
     }
 
     public Enquiry(String name, String email, String phone, Program program,
-                   LocalDate enquiryDate, EnquirySource source, EnquiryStatus status) {
+                   LocalDate enquiryDate, ReferralType referralType, EnquiryStatus status) {
         this.name = name;
         this.email = email;
         this.phone = phone;
         this.program = program;
         this.enquiryDate = enquiryDate;
-        this.source = source;
+        this.referralType = referralType;
         this.status = status;
     }
 
@@ -174,20 +170,20 @@ public class Enquiry {
         this.program = program;
     }
 
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
     public LocalDate getEnquiryDate() {
         return enquiryDate;
     }
 
     public void setEnquiryDate(LocalDate enquiryDate) {
         this.enquiryDate = enquiryDate;
-    }
-
-    public EnquirySource getSource() {
-        return source;
-    }
-
-    public void setSource(EnquirySource source) {
-        this.source = source;
     }
 
     public EnquiryStatus getStatus() {
@@ -212,14 +208,6 @@ public class Enquiry {
 
     public void setReferralType(ReferralType referralType) {
         this.referralType = referralType;
-    }
-
-    public String getAssignedTo() {
-        return assignedTo;
-    }
-
-    public void setAssignedTo(String assignedTo) {
-        this.assignedTo = assignedTo;
     }
 
     public String getRemarks() {

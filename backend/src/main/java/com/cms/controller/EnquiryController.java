@@ -23,7 +23,6 @@ import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.service.EnquiryService;
 
@@ -49,7 +48,7 @@ public class EnquiryController {
     @GetMapping
     public ResponseEntity<List<EnquiryResponse>> findAll(
             @RequestParam(required = false) EnquiryStatus status,
-            @RequestParam(required = false) EnquirySource source,
+            @RequestParam(required = false) Long referralTypeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         List<EnquiryResponse> enquiries;
@@ -59,8 +58,8 @@ public class EnquiryController {
             enquiries = enquiryService.findByDateRange(fromDate, toDate);
         } else if (status != null) {
             enquiries = enquiryService.findByStatus(status);
-        } else if (source != null) {
-            enquiries = enquiryService.findBySource(source);
+        } else if (referralTypeId != null) {
+            enquiries = enquiryService.findByReferralTypeId(referralTypeId);
         } else {
             enquiries = enquiryService.findAll();
         }

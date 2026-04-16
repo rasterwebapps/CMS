@@ -38,6 +38,10 @@ export class FinanceService {
     return this.http.delete<void>(`${this.feeStructureUrl}/${id}`);
   }
 
+  getFeeStructuresByProgramAndCourse(programId: number, courseId: number): Observable<FeeStructure[]> {
+    return this.http.get<FeeStructure[]>(`${this.feeStructureUrl}?programId=${programId}&courseId=${courseId}`);
+  }
+
   getPayments(): Observable<FeePayment[]> {
     return this.http.get<FeePayment[]>(this.feePaymentUrl);
   }

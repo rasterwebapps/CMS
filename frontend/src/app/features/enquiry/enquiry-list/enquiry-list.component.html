@@ -99,9 +99,9 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="source">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
-            <td mat-cell *matCellDef="let row">{{ row.source }}</td>
+          <ng-container matColumnDef="referralTypeName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Referral Type</th>
+            <td mat-cell *matCellDef="let row">{{ row.referralTypeName || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="status">

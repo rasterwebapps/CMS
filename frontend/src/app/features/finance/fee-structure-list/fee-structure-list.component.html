@@ -42,22 +42,25 @@
     } @else {
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.name }}</span>
-            </td>
-          </ng-container>
-
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
             <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="semester">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
+          <ng-container matColumnDef="courseName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
+            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="academicYearName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Academic Year</th>
+            <td mat-cell *matCellDef="let row">{{ row.academicYearName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="feeType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Fee Type</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cms-badge cms-badge--gray">Sem {{ row.semester }}</span>
+              <span class="cms-badge cms-badge--gray">{{ row.feeType }}</span>
             </td>
           </ng-container>
 
@@ -68,10 +71,10 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="dueDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Due Date</th>
+          <ng-container matColumnDef="isMandatory">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Mandatory</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-date">{{ row.dueDate || '—' }}</span>
+              <span class="cms-badge" [class.cms-badge--green]="row.isMandatory" [class.cms-badge--gray]="!row.isMandatory">{{ row.isMandatory ? 'Yes' : 'No' }}</span>
             </td>
           </ng-container>
 

@@ -30,7 +30,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.service.EnquiryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,13 +50,13 @@ class EnquiryControllerTest {
     @Test
     void shouldCreateEnquiry() throws Exception {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
-            null, null, "Admin", "Interested in CS", new BigDecimal("50000.00"),
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            null, "Interested in CS", new BigDecimal("50000.00"),
             null, null, null, null
         );
 
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.create(any(EnquiryRequest.class))).thenReturn(response);
 
@@ -73,7 +72,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindAllEnquiries() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findAll()).thenReturn(List.of(response));
 
@@ -86,7 +85,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findByStatus(EnquiryStatus.ENQUIRED)).thenReturn(List.of(response));
 
@@ -98,21 +97,21 @@ class EnquiryControllerTest {
     }
 
     @Test
-    void shouldFindBySource() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+    void shouldFindByReferralTypeId() throws Exception {
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
-        when(enquiryService.findBySource(EnquirySource.WALK_IN)).thenReturn(List.of(response));
+        when(enquiryService.findByReferralTypeId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/enquiries").param("source", "WALK_IN"))
+        mockMvc.perform(get("/enquiries").param("referralTypeId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(enquiryService).findBySource(EnquirySource.WALK_IN);
+        verify(enquiryService).findByReferralTypeId(1L);
     }
 
     @Test
     void shouldFindById() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findById(1L)).thenReturn(response);
 
@@ -138,13 +137,13 @@ class EnquiryControllerTest {
     @Test
     void shouldUpdateEnquiry() throws Exception {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar Updated", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED,
-            null, null, "Staff", "Called back", new BigDecimal("45000.00"),
+            "Ravi Kumar Updated", "ravi@email.com", "9876543210", 1L, null,
+            LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
+            null, "Called back", new BigDecimal("45000.00"),
             null, null, null, null
         );
 
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquirySource.PHONE, EnquiryStatus.INTERESTED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquiryStatus.INTERESTED);
 
         when(enquiryService.update(eq(1L), any(EnquiryRequest.class))).thenReturn(response);
 
@@ -161,9 +160,10 @@ class EnquiryControllerTest {
     void shouldConvertToStudent() throws Exception {
         EnquiryResponse response = new EnquiryResponse(
             1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            1L, "B.Tech CS", LocalDate.of(2024, 6, 15),
-            EnquirySource.WALK_IN, EnquiryStatus.CONVERTED,
-            null, null, null, null, null, "Admin", "Converted", new BigDecimal("50000.00"),
+            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
+            1L, "Walk In", null, false,
+            EnquiryStatus.CONVERTED,
+            null, null, "Converted", new BigDecimal("50000.00"),
             null, null, null, null,
             null, null, null, null, null, null,
             10L, Instant.now(), Instant.now()
@@ -202,7 +202,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByDateRange() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findByDateRange(LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)))
             .thenReturn(List.of(response));
@@ -218,7 +218,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindByDateRangeAndStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
 
         when(enquiryService.findByDateRangeAndStatus(
             LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30), EnquiryStatus.ENQUIRED))
@@ -237,7 +237,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldUpdateStatus() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.INTERESTED);
 
         when(enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED)).thenReturn(response);
 
@@ -259,12 +259,37 @@ class EnquiryControllerTest {
         verify(enquiryService).updateStatus(999L, EnquiryStatus.INTERESTED);
     }
 
-    private EnquiryResponse createResponse(Long id, String name, EnquirySource source, EnquiryStatus status) {
+    @Test
+    void shouldFinalizeFees() throws Exception {
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird", null
+        );
+
+        com.cms.dto.FeeFinalizationResponse response = new com.cms.dto.FeeFinalizationResponse(
+            1L, new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird",
+            new BigDecimal("95000.00"), "admin", Instant.now(), "FEES_FINALIZED"
+        );
+
+        when(enquiryService.finalizeFees(eq(1L), any(com.cms.dto.FeeFinalizationRequest.class), any(String.class)))
+            .thenReturn(response);
+
+        mockMvc.perform(post("/enquiries/1/finalize-fees")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enquiryId").value(1))
+            .andExpect(jsonPath("$.status").value("FEES_FINALIZED"));
+
+        verify(enquiryService).finalizeFees(eq(1L), any(com.cms.dto.FeeFinalizationRequest.class), any(String.class));
+    }
+
+    private EnquiryResponse createResponse(Long id, String name, EnquiryStatus status) {
         Instant now = Instant.now();
         return new EnquiryResponse(
             id, name, "ravi@email.com", "9876543210",
-            1L, "B.Tech CS", LocalDate.of(2024, 6, 15),
-            source, status, null, null, null, null, null, "Admin", "Remarks",
+            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
+            1L, "Walk In", null, false,
+            status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null,
             null, null, null, null, null, null,
             null, now, now

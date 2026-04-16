@@ -38,7 +38,7 @@ export class FeeStructureListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['name', 'programName', 'semester', 'amount', 'dueDate', 'actions'];
+  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeType', 'amount', 'isMandatory', 'actions'];
   protected readonly dataSource = new MatTableDataSource<FeeStructure>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -58,7 +58,7 @@ export class FeeStructureListComponent implements OnInit {
 
   protected delete(item: FeeStructure): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Fee Structure', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+      data: { title: 'Delete Fee Structure', message: `Delete this ${item.feeType} fee structure?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 

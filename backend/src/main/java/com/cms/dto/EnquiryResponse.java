@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 
 public record EnquiryResponse(
@@ -14,15 +13,16 @@ public record EnquiryResponse(
     String phone,
     Long programId,
     String programName,
+    Long courseId,
+    String courseName,
     LocalDate enquiryDate,
-    EnquirySource source,
+    Long referralTypeId,
+    String referralTypeName,
+    BigDecimal referralCommissionAmount,
+    Boolean referralHasCommission,
     EnquiryStatus status,
     Long agentId,
     String agentName,
-    Long referralTypeId,
-    String referralTypeName,
-    BigDecimal referralGuidelineValue,
-    String assignedTo,
     String remarks,
     BigDecimal feeDiscussedAmount,
     BigDecimal feeGuidelineTotal,

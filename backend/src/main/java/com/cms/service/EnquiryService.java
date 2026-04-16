@@ -14,13 +14,14 @@ import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
+import com.cms.model.Course;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
@@ -35,17 +36,20 @@ public class EnquiryService {
     private final AgentRepository agentRepository;
     private final StudentRepository studentRepository;
     private final ReferralTypeRepository referralTypeRepository;
+    private final CourseRepository courseRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
                            AgentRepository agentRepository,
                            StudentRepository studentRepository,
-                           ReferralTypeRepository referralTypeRepository) {
+                           ReferralTypeRepository referralTypeRepository,
+                           CourseRepository courseRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
         this.studentRepository = studentRepository;
         this.referralTypeRepository = referralTypeRepository;
+        this.courseRepository = courseRepository;
     }
 
     @Transactional
@@ -62,21 +66,23 @@ public class EnquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + request.agentId()));
         }
 
-        ReferralType referralType = null;
-        if (request.referralTypeId() != null) {
-            referralType = referralTypeRepository.findById(request.referralTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+        ReferralType referralType = referralTypeRepository.findById(request.referralTypeId())
+            .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+
+        Course course = null;
+        if (request.courseId() != null) {
+            course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
         }
 
         EnquiryStatus status = request.status() != null ? request.status() : EnquiryStatus.ENQUIRED;
 
         Enquiry enquiry = new Enquiry(
             request.name(), request.email(), request.phone(),
-            program, request.enquiryDate(), request.source(), status
+            program, request.enquiryDate(), referralType, status
         );
         enquiry.setAgent(agent);
-        enquiry.setReferralType(referralType);
-        enquiry.setAssignedTo(request.assignedTo());
+        enquiry.setCourse(course);
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
         enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
@@ -106,8 +112,8 @@ public class EnquiryService {
             .toList();
     }
 
-    public List<EnquiryResponse> findBySource(EnquirySource source) {
-        return enquiryRepository.findBySource(source).stream()
+    public List<EnquiryResponse> findByReferralTypeId(Long referralTypeId) {
+        return enquiryRepository.findByReferralTypeId(referralTypeId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -135,21 +141,23 @@ public class EnquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + request.agentId()));
         }
 
-        ReferralType referralType = null;
-        if (request.referralTypeId() != null) {
-            referralType = referralTypeRepository.findById(request.referralTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+        ReferralType referralType = referralTypeRepository.findById(request.referralTypeId())
+            .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
+
+        Course course = null;
+        if (request.courseId() != null) {
+            course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
         }
 
         enquiry.setName(request.name());
         enquiry.setEmail(request.email());
         enquiry.setPhone(request.phone());
         enquiry.setProgram(program);
+        enquiry.setCourse(course);
         enquiry.setEnquiryDate(request.enquiryDate());
-        enquiry.setSource(request.source());
         enquiry.setAgent(agent);
         enquiry.setReferralType(referralType);
-        enquiry.setAssignedTo(request.assignedTo());
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
         enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
@@ -268,15 +276,16 @@ public class EnquiryService {
             e.getPhone(),
             e.getProgram() != null ? e.getProgram().getId() : null,
             e.getProgram() != null ? e.getProgram().getName() : null,
+            e.getCourse() != null ? e.getCourse().getId() : null,
+            e.getCourse() != null ? e.getCourse().getName() : null,
             e.getEnquiryDate(),
-            e.getSource(),
+            e.getReferralType() != null ? e.getReferralType().getId() : null,
+            e.getReferralType() != null ? e.getReferralType().getName() : null,
+            e.getReferralType() != null ? e.getReferralType().getCommissionAmount() : null,
+            e.getReferralType() != null ? e.getReferralType().getHasCommission() : null,
             e.getStatus(),
             e.getAgent() != null ? e.getAgent().getId() : null,
             e.getAgent() != null ? e.getAgent().getName() : null,
-            e.getReferralType() != null ? e.getReferralType().getId() : null,
-            e.getReferralType() != null ? e.getReferralType().getName() : null,
-            e.getReferralType() != null ? e.getReferralType().getGuidelineValue() : null,
-            e.getAssignedTo(),
             e.getRemarks(),
             e.getFeeDiscussedAmount(),
             e.getFeeGuidelineTotal(),

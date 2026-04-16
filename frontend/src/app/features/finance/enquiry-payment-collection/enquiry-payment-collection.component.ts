@@ -1,20 +1,19 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
-import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
+import { Enquiry } from '../../enquiry/enquiry.model';
 
 interface YearFee {
   yearNumber: number;
@@ -22,29 +21,27 @@ interface YearFee {
 }
 
 @Component({
-  selector: 'app-fee-finalization',
+  selector: 'app-enquiry-payment-collection',
   standalone: true,
   imports: [
     CurrencyPipe,
-    DecimalPipe,
     RouterLink,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTableModule,
-    MatPaginatorModule,
-    MatChipsModule,
     MatTooltipModule,
   ],
-  templateUrl: './fee-finalization.component.html',
-  styleUrl: './fee-finalization.component.scss',
+  templateUrl: './enquiry-payment-collection.component.html',
+  styleUrl: './enquiry-payment-collection.component.scss',
 })
-export class FeeFinalizationComponent implements OnInit {
+export class EnquiryPaymentCollectionComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
@@ -55,35 +52,33 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly yearFees = signal<YearFee[]>([]);
 
+  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD'];
+
   protected readonly displayedColumns = [
     'name',
     'programName',
     'courseName',
-    'referralTypeName',
-    'finalCalculatedFee',
+    'finalizedNetFee',
+    'finalizedAt',
     'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
   protected readonly form: FormGroup = this.fb.group({
-    totalFee: [null, [Validators.required, Validators.min(0)]],
-    discountAmount: [0, [Validators.min(0)]],
-    discountReason: [''],
-  });
-
-  protected readonly netFee = computed(() => {
-    const total = this.form.get('totalFee')?.value || 0;
-    const discount = this.form.get('discountAmount')?.value || 0;
-    return total - discount;
+    amount: [null, [Validators.required, Validators.min(1)]],
+    paymentDate: ['', Validators.required],
+    paymentMode: ['', Validators.required],
+    transactionReference: [''],
+    remarks: [''],
   });
 
   ngOnInit(): void {
-    this.loadInterestedEnquiries();
+    this.loadFinalizedEnquiries();
   }
 
-  private loadInterestedEnquiries(): void {
+  private loadFinalizedEnquiries(): void {
     this.loading.set(true);
-    this.enquiryService.getByStatus('INTERESTED').subscribe({
+    this.enquiryService.getByStatus('FEES_FINALIZED').subscribe({
       next: (data) => {
         this.dataSource.data = data;
         this.loading.set(false);
@@ -98,15 +93,13 @@ export class FeeFinalizationComponent implements OnInit {
   protected selectEnquiry(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
 
-    // Pre-populate form with enquiry data
-    const totalFee = enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0;
+    // Pre-fill payment amount with net fee
     this.form.patchValue({
-      totalFee,
-      discountAmount: 0,
-      discountReason: '',
+      amount: enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0,
+      paymentDate: new Date().toISOString().split('T')[0],
     });
 
-    // Parse year-wise fees from enquiry
+    // Parse year-wise fees
     if (enquiry.yearWiseFees) {
       try {
         const parsed = JSON.parse(enquiry.yearWiseFees) as YearFee[];
@@ -122,7 +115,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected backToList(): void {
     this.selectedEnquiry.set(null);
     this.yearFees.set([]);
-    this.form.reset({ totalFee: null, discountAmount: 0, discountReason: '' });
+    this.form.reset();
   }
 
   protected onSubmit(): void {
@@ -134,28 +127,26 @@ export class FeeFinalizationComponent implements OnInit {
     if (!enquiry) return;
 
     const v = this.form.value;
-    const yearWiseFeesJson =
-      this.yearFees().length > 0
-        ? JSON.stringify(this.yearFees())
-        : undefined;
-
-    const request: FeeFinalizationRequest = {
-      totalFee: v.totalFee,
-      discountAmount: v.discountAmount || undefined,
-      discountReason: v.discountReason?.trim() || undefined,
-      yearWiseFees: yearWiseFeesJson,
-    };
+    const netFee = enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0;
+    const newStatus = v.amount >= netFee ? 'FEES_PAID' : 'PARTIALLY_PAID';
 
     this.saving.set(true);
-    this.enquiryService.finalizeFees(enquiry.id, request).subscribe({
+    // TODO: When an enquiry payment entity is added, persist payment details
+    // (amount, date, mode, reference, remarks) before updating status.
+    // Currently only the status transition is tracked.
+    this.enquiryService.updateStatus(enquiry.id, newStatus).subscribe({
       next: () => {
-        this.snackBar.open('Fee finalized successfully', 'Close', { duration: 3000 });
+        this.snackBar.open(
+          newStatus === 'FEES_PAID' ? 'Full payment collected' : 'Partial payment collected',
+          'Close',
+          { duration: 3000 },
+        );
         this.selectedEnquiry.set(null);
-        this.loadInterestedEnquiries();
+        this.loadFinalizedEnquiries();
         this.saving.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to finalize fee', 'Close', { duration: 3000 });
+        this.snackBar.open('Failed to collect payment', 'Close', { duration: 3000 });
         this.saving.set(false);
       },
     });

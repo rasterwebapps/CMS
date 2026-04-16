@@ -25,10 +25,11 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
+import com.cms.model.ReferralType;
 import com.cms.model.Student;
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
@@ -47,15 +48,18 @@ class EnquiryServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private ReferralTypeRepository referralTypeRepository;
+    @Mock
+    private CourseRepository courseRepository;
 
     private EnquiryService enquiryService;
 
     private Program testProgram;
     private Agent testAgent;
+    private ReferralType testReferralType;
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -63,30 +67,35 @@ class EnquiryServiceTest {
 
         testAgent = new Agent("John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
         testAgent.setId(1L);
+
+        testReferralType = new ReferralType("Walk In", "WALK_IN", BigDecimal.ZERO, false, "Walk in enquiry", true);
+        testReferralType.setId(1L);
+        testReferralType.setCreatedAt(Instant.now());
+        testReferralType.setUpdatedAt(Instant.now());
     }
 
     @Test
     void shouldCreateEnquiry() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
-            1L, null, "Admin", "Interested in CS", new BigDecimal("50000.00"),
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            1L, "Interested in CS", new BigDecimal("50000.00"),
             null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
         saved.setAgent(testAgent);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(agentRepository.findById(1L)).thenReturn(Optional.of(testAgent));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
 
         EnquiryResponse response = enquiryService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Ravi Kumar");
-        assertThat(response.source()).isEqualTo(EnquirySource.WALK_IN);
         assertThat(response.status()).isEqualTo(EnquiryStatus.ENQUIRED);
         verify(enquiryRepository).save(any(Enquiry.class));
     }
@@ -94,15 +103,16 @@ class EnquiryServiceTest {
     @Test
     void shouldCreateEnquiryWithoutProgramAndAgent() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.PHONE, null,
-            null, null, null, null, null,
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null,
             null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            null, LocalDate.of(2024, 6, 15), EnquirySource.PHONE, EnquiryStatus.ENQUIRED);
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
 
         EnquiryResponse response = enquiryService.create(request);
@@ -115,9 +125,9 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenProgramNotFoundOnCreate() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", 999L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
-            null, null, null, null, null,
+            "Ravi Kumar", "ravi@email.com", "9876543210", 999L, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            null, null, null,
             null, null, null, null
         );
 
@@ -131,9 +141,9 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenAgentNotFoundOnCreate() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.ENQUIRED,
-            999L, null, null, null, null,
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            999L, null, null,
             null, null, null, null
         );
 
@@ -147,7 +157,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindAllEnquiries() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findAll()).thenReturn(List.of(enquiry));
 
@@ -160,7 +170,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindById() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
@@ -185,7 +195,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFindByStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findByStatus(EnquiryStatus.ENQUIRED)).thenReturn(List.of(enquiry));
 
@@ -196,22 +206,22 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldFindBySource() {
+    void shouldFindByReferralTypeId() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
-        when(enquiryRepository.findBySource(EnquirySource.WALK_IN)).thenReturn(List.of(enquiry));
+        when(enquiryRepository.findByReferralTypeId(1L)).thenReturn(List.of(enquiry));
 
-        List<EnquiryResponse> responses = enquiryService.findBySource(EnquirySource.WALK_IN);
+        List<EnquiryResponse> responses = enquiryService.findByReferralTypeId(1L);
 
         assertThat(responses).hasSize(1);
-        verify(enquiryRepository).findBySource(EnquirySource.WALK_IN);
+        verify(enquiryRepository).findByReferralTypeId(1L);
     }
 
     @Test
     void shouldFindByAgentId() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.AGENT_REFERRAL, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
         enquiry.setAgent(testAgent);
 
         when(enquiryRepository.findByAgentId(1L)).thenReturn(List.of(enquiry));
@@ -225,20 +235,21 @@ class EnquiryServiceTest {
     @Test
     void shouldUpdateEnquiry() {
         Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         EnquiryRequest updateRequest = new EnquiryRequest(
-            "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890", 1L,
-            LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED,
-            null, null, "Staff", "Called back", new BigDecimal("45000.00"),
+            "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890", 1L, null,
+            LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
+            null, "Called back", new BigDecimal("45000.00"),
             null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890",
-            testProgram, LocalDate.of(2024, 6, 20), EnquirySource.PHONE, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 20), testReferralType, EnquiryStatus.INTERESTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
         EnquiryResponse response = enquiryService.update(1L, updateRequest);
@@ -250,9 +261,9 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED,
-            null, null, null, null, null,
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            null, null, null,
             null, null, null, null
         );
 
@@ -268,13 +279,13 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudent() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -290,13 +301,13 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudentWhenFeeDiscussed() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.FEES_FINALIZED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_FINALIZED);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -311,7 +322,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenConvertingWithInvalidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
@@ -332,7 +343,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenStudentNotFoundOnConvert() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -367,7 +378,7 @@ class EnquiryServiceTest {
         LocalDate from = LocalDate.of(2024, 6, 1);
         LocalDate to = LocalDate.of(2024, 6, 30);
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findByEnquiryDateBetween(from, to)).thenReturn(List.of(enquiry));
 
@@ -382,7 +393,7 @@ class EnquiryServiceTest {
         LocalDate from = LocalDate.of(2024, 6, 1);
         LocalDate to = LocalDate.of(2024, 6, 30);
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(from, to, EnquiryStatus.ENQUIRED))
             .thenReturn(List.of(enquiry));
@@ -396,10 +407,10 @@ class EnquiryServiceTest {
     @Test
     void shouldUpdateStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
@@ -423,8 +434,8 @@ class EnquiryServiceTest {
 
     private Enquiry createEnquiry(Long id, String name, String email, String phone,
                                    Program program, LocalDate enquiryDate,
-                                   EnquirySource source, EnquiryStatus status) {
-        Enquiry enquiry = new Enquiry(name, email, phone, program, enquiryDate, source, status);
+                                   ReferralType referralType, EnquiryStatus status) {
+        Enquiry enquiry = new Enquiry(name, email, phone, program, enquiryDate, referralType, status);
         enquiry.setId(id);
         Instant now = Instant.now();
         enquiry.setCreatedAt(now);
@@ -435,7 +446,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFinalizeFees() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
             new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null
@@ -457,7 +468,7 @@ class EnquiryServiceTest {
     @Test
     void shouldFinalizeFeesFromEnquiredStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
             new BigDecimal("50000.00"), null, null, null
@@ -475,7 +486,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenFinalizingFeesWithWrongStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
@@ -504,38 +515,37 @@ class EnquiryServiceTest {
     @Test
     void shouldCreateEnquiryWithReferralType() {
         com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
-            "Staff", "STAFF", new BigDecimal("5000.00"), "Staff referral", true
+            "Staff", "STAFF", new BigDecimal("5000.00"), true, "Staff referral", true
         );
-        referralType.setId(1L);
+        referralType.setId(2L);
         referralType.setCreatedAt(Instant.now());
         referralType.setUpdatedAt(Instant.now());
 
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
-            null, 1L, null, null, null, null, null, null, null
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 2L, null,
+            null, null, null, null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            null, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
-        saved.setReferralType(referralType);
+            null, LocalDate.of(2024, 6, 15), referralType, EnquiryStatus.ENQUIRED);
 
-        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(referralType));
+        when(referralTypeRepository.findById(2L)).thenReturn(Optional.of(referralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
 
         EnquiryResponse response = enquiryService.create(request);
 
-        assertThat(response.referralTypeId()).isEqualTo(1L);
+        assertThat(response.referralTypeId()).isEqualTo(2L);
         assertThat(response.referralTypeName()).isEqualTo("Staff");
-        assertThat(response.referralGuidelineValue()).isEqualTo(new BigDecimal("5000.00"));
+        assertThat(response.referralCommissionAmount()).isEqualTo(new BigDecimal("5000.00"));
     }
 
     @Test
     void shouldThrowWhenReferralTypeNotFound() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
-            null, 999L, null, null, null, null, null, null, null
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 999L, null,
+            null, null, null, null, null, null, null
         );
 
         when(referralTypeRepository.findById(999L)).thenReturn(Optional.empty());
@@ -548,13 +558,13 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertFromDocumentsSubmittedStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -569,13 +579,13 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertFromFeesPaidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.FEES_PAID);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -590,13 +600,13 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertFromPartiallyPaidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.PARTIALLY_PAID);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.PARTIALLY_PAID);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -611,20 +621,21 @@ class EnquiryServiceTest {
     @Test
     void shouldCreateEnquiryWithFeeGuidelineData() {
         EnquiryRequest request = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", null,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
-            null, null, null, null, null,
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null,
             new BigDecimal("100000.00"), new BigDecimal("5000.00"),
             new BigDecimal("105000.00"), "[50000,55000]"
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            null, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
         saved.setFeeGuidelineTotal(new BigDecimal("100000.00"));
         saved.setReferralAdditionalAmount(new BigDecimal("5000.00"));
         saved.setFinalCalculatedFee(new BigDecimal("105000.00"));
         saved.setYearWiseFees("[50000,55000]");
 
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
 
         EnquiryResponse response = enquiryService.create(request);
@@ -638,32 +649,141 @@ class EnquiryServiceTest {
     @Test
     void shouldUpdateEnquiryWithReferralType() {
         Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         com.cms.model.ReferralType referralType = new com.cms.model.ReferralType(
-            "Staff", "STAFF", BigDecimal.ZERO, "Staff referral", true
+            "Staff", "STAFF", BigDecimal.ZERO, false, "Staff referral", true
         );
-        referralType.setId(1L);
+        referralType.setId(2L);
         referralType.setCreatedAt(Instant.now());
         referralType.setUpdatedAt(Instant.now());
 
         EnquiryRequest updateRequest = new EnquiryRequest(
-            "Ravi Kumar", "ravi@email.com", "9876543210", 1L,
-            LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, null,
-            null, 1L, null, null, null, null, null, null, null
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
+            LocalDate.of(2024, 6, 15), 2L, null,
+            null, null, null, null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), EnquirySource.WALK_IN, EnquiryStatus.ENQUIRED);
-        updated.setReferralType(referralType);
+            testProgram, LocalDate.of(2024, 6, 15), referralType, EnquiryStatus.ENQUIRED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
-        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(referralType));
+        when(referralTypeRepository.findById(2L)).thenReturn(Optional.of(referralType));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
         EnquiryResponse response = enquiryService.update(1L, updateRequest);
 
-        assertThat(response.referralTypeId()).isEqualTo(1L);
+        assertThat(response.referralTypeId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldCreateEnquiryWithCourse() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
+            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+        testCourse.setId(1L);
+
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L, 1L,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null
+        );
+
+        Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        saved.setCourse(testCourse);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        EnquiryResponse response = enquiryService.create(request);
+
+        assertThat(response.courseId()).isEqualTo(1L);
+        assertThat(response.courseName()).isEqualTo("CS101");
+    }
+
+    @Test
+    void shouldThrowWhenCourseNotFoundOnCreate() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, 999L,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enquiryService.create(request))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
+    void shouldUpdateEnquiryWithCourse() {
+        Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
+            com.cms.model.enums.DegreeType.BACHELOR, 4, testProgram);
+        testCourse.setId(1L);
+
+        EnquiryRequest updateRequest = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", 1L, 1L,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null
+        );
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        updated.setCourse(testCourse);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.update(1L, updateRequest);
+
+        assertThat(response.courseId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldThrowWhenCourseNotFoundOnUpdate() {
+        Enquiry existing = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+
+        EnquiryRequest updateRequest = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, 999L,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enquiryService.update(1L, updateRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
+    void shouldFinalizeFeesWithYearWiseFees() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), null, null, "[50000,50000]"
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
+
+        assertThat(response.finalizedTotalFee()).isEqualTo(new BigDecimal("100000.00"));
     }
 }

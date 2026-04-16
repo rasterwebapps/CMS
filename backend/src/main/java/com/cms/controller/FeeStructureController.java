@@ -41,9 +41,12 @@ public class FeeStructureController {
     @GetMapping
     public ResponseEntity<List<FeeStructureResponse>> findAll(
             @RequestParam(required = false) Long programId,
-            @RequestParam(required = false) Long academicYearId) {
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) Long courseId) {
         List<FeeStructureResponse> feeStructures;
-        if (programId != null && academicYearId != null) {
+        if (programId != null && courseId != null) {
+            feeStructures = feeStructureService.findByProgramIdAndCourseId(programId, courseId);
+        } else if (programId != null && academicYearId != null) {
             feeStructures = feeStructureService.findByProgramIdAndAcademicYearId(programId, academicYearId);
         } else if (programId != null) {
             feeStructures = feeStructureService.findByProgramId(programId);

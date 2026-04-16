@@ -577,6 +577,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'student-fees/collect-payment',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/enquiry-payment-collection/enquiry-payment-collection.component').then(
+        (m) => m.EnquiryPaymentCollectionComponent
+      ),
+  },
+  {
     path: 'student-fees/:studentId',
     canActivate: [authGuard],
     loadComponent: () =>

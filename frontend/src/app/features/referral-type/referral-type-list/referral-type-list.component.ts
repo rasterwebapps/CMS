@@ -55,7 +55,8 @@ export class ReferralTypeListComponent implements OnInit {
   protected readonly displayedColumns = [
     'name',
     'code',
-    'guidelineValue',
+    'hasCommission',
+    'commissionAmount',
     'isActive',
     'actions',
   ];

@@ -1,23 +1,44 @@
 export interface FeeStructure {
   id: number;
-  name: string;
   programId: number;
   programName: string;
-  semester: number;
+  courseId: number | null;
+  courseName: string | null;
+  academicYearId: number;
+  academicYearName: string;
+  feeType: string;
   amount: number;
-  labFeeComponent: number;
-  dueDate?: string;
+  description: string;
+  isMandatory: boolean;
+  isActive: boolean;
+  yearAmounts: YearAmountResponse[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface FeeStructureRequest {
-  name: string;
   programId: number;
-  semester: number;
+  academicYearId: number;
+  feeType: string;
   amount: number;
-  labFeeComponent?: number;
-  dueDate?: string;
+  description?: string;
+  isMandatory?: boolean;
+  isActive?: boolean;
+  courseId?: number;
+  yearAmounts?: YearAmountRequest[];
+}
+
+export interface YearAmountResponse {
+  id: number;
+  yearNumber: number;
+  yearLabel: string;
+  amount: number;
+}
+
+export interface YearAmountRequest {
+  yearNumber: number;
+  yearLabel: string;
+  amount: number;
 }
 
 export interface FeePayment {

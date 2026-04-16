@@ -30,8 +30,11 @@ public class ReferralType {
     @Column(nullable = false, unique = true)
     private String code;
 
-    @Column(name = "guideline_value", nullable = false, precision = 10, scale = 2)
-    private BigDecimal guidelineValue;
+    @Column(name = "commission_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal commissionAmount;
+
+    @Column(name = "has_commission", nullable = false)
+    private Boolean hasCommission;
 
     private String description;
 
@@ -49,11 +52,12 @@ public class ReferralType {
     public ReferralType() {
     }
 
-    public ReferralType(String name, String code, BigDecimal guidelineValue,
-                        String description, Boolean isActive) {
+    public ReferralType(String name, String code, BigDecimal commissionAmount,
+                        Boolean hasCommission, String description, Boolean isActive) {
         this.name = name;
         this.code = code;
-        this.guidelineValue = guidelineValue;
+        this.commissionAmount = commissionAmount;
+        this.hasCommission = hasCommission;
         this.description = description;
         this.isActive = isActive;
     }
@@ -82,12 +86,20 @@ public class ReferralType {
         this.code = code;
     }
 
-    public BigDecimal getGuidelineValue() {
-        return guidelineValue;
+    public BigDecimal getCommissionAmount() {
+        return commissionAmount;
     }
 
-    public void setGuidelineValue(BigDecimal guidelineValue) {
-        this.guidelineValue = guidelineValue;
+    public void setCommissionAmount(BigDecimal commissionAmount) {
+        this.commissionAmount = commissionAmount;
+    }
+
+    public Boolean getHasCommission() {
+        return hasCommission;
+    }
+
+    public void setHasCommission(Boolean hasCommission) {
+        this.hasCommission = hasCommission;
     }
 
     public String getDescription() {

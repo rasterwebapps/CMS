@@ -23,6 +23,7 @@
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 - At least one program exists
+- At least one referral type exists and is active
 
 **Steps:**
 1. Send a POST request to `/api/v1/enquiries` with body:
@@ -32,14 +33,14 @@
      "phone": "9876543210",
      "email": "jane@example.com",
      "programId": 1,
+     "courseId": 1,
      "enquiryDate": "2024-06-15",
-     "source": "WALK_IN",
-     "status": "ENQUIRED",
+     "referralTypeId": 1,
      "remarks": "Interested in B.Sc Nursing"
    }
    ```
 2. Verify the response status is 201 Created
-3. Verify the returned object has the correct values
+3. Verify the returned object has the correct values including status ENQUIRED
 
 **Expected Result:**
 - Enquiry is created with status ENQUIRED and returned with an ID
@@ -880,5 +881,103 @@
 **Expected Result:**
 - Referral types are loaded from the master table
 - Additional amount box is conditionally shown based on guideline value
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-020: Create enquiry with referralTypeId (required, no source)
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one referral type exists (e.g., WALK_IN with id=1)
+
+**Steps:**
+1. Send a POST request to `/api/v1/enquiries` with body:
+   ```json
+   {
+     "name": "Test Student",
+     "email": "test@email.com",
+     "phone": "9876543210",
+     "enquiryDate": "2024-06-15",
+     "referralTypeId": 1
+   }
+   ```
+2. Verify the response status is 201 Created
+3. Verify the response contains `referralTypeId`, `referralTypeName`, `referralCommissionAmount`, and `referralHasCommission`
+4. Verify the response does NOT contain `source` or `assignedTo` fields
+
+**Expected Result:**
+- Enquiry is created with the specified referral type
+- Response includes referral type details and has no source/assignedTo fields
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-021: Create enquiry without referralTypeId returns validation error
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+
+**Steps:**
+1. Send a POST request to `/api/v1/enquiries` without `referralTypeId`:
+   ```json
+   {
+     "name": "Test Student",
+     "enquiryDate": "2024-06-15"
+   }
+   ```
+2. Verify the response status is 400 Bad Request
+3. Verify the validation error message says "Referral type is required"
+
+**Expected Result:**
+- Validation error returned since referralTypeId is now required
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-022: Create enquiry with courseId
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one course exists (e.g., id=1)
+- At least one referral type exists (e.g., id=1)
+
+**Steps:**
+1. Send a POST request to `/api/v1/enquiries` with body:
+   ```json
+   {
+     "name": "Test Student",
+     "enquiryDate": "2024-06-15",
+     "referralTypeId": 1,
+     "courseId": 1
+   }
+   ```
+2. Verify the response status is 201 Created
+3. Verify the response contains `courseId` and `courseName`
+
+**Expected Result:**
+- Enquiry is created with the specified course
+- Response includes course details
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-023: Filter enquiries by referralTypeId
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Enquiries exist with various referral types
+
+**Steps:**
+1. Send a GET request to `/api/v1/enquiries?referralTypeId=1`
+2. Verify the response status is 200 OK
+3. Verify all returned enquiries have the matching referralTypeId
+
+**Expected Result:**
+- Only enquiries with the specified referral type are returned
 
 **Status:** NOT TESTED
