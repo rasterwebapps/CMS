@@ -1,0 +1,175 @@
+<div class="form-container">
+  <div class="header">
+    @if (selectedEnquiry()) {
+      <button mat-icon-button (click)="backToList()"><mat-icon>arrow_back</mat-icon></button>
+      <h2 class="page-title">Collect Payment — {{ selectedEnquiry()!.name }}</h2>
+    } @else {
+      <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
+      <h2 class="page-title">Payment Collection</h2>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+  } @else if (!selectedEnquiry()) {
+    <!-- Enquiry List -->
+    <p class="page-subtitle">Select a fee-finalized enquiry to collect payment.</p>
+    <div class="content-card">
+      @if (dataSource.data.length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-state__icon-mat">payments</mat-icon>
+          <p class="empty-state__text">No enquiries in FEES_FINALIZED status</p>
+        </div>
+      } @else {
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="dataSource" class="modern-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.name }}</span></td>
+            </ng-container>
+            <ng-container matColumnDef="programName">
+              <th mat-header-cell *matHeaderCellDef>Program</th>
+              <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="courseName">
+              <th mat-header-cell *matHeaderCellDef>Course</th>
+              <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="finalizedNetFee">
+              <th mat-header-cell *matHeaderCellDef>Net Fee</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.finalizedNetFee) {
+                  <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+                } @else {
+                  <span>—</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="finalizedAt">
+              <th mat-header-cell *matHeaderCellDef>Finalized At</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-date">{{ row.finalizedAt || '—' }}</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+              <td mat-cell *matCellDef="let row">
+                <div class="row-actions">
+                  <button class="btn-primary btn-small" (click)="selectEnquiry(row)">Collect</button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          </table>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Payment Form -->
+    <div class="payment-layout">
+      <!-- Enquiry Summary -->
+      <mat-card appearance="outlined" class="summary-card">
+        <mat-card-content>
+          <h3 class="section-title">Fee Summary</h3>
+          <div class="enquiry-summary">
+            <div class="summary-row">
+              <span class="summary-label">Name</span>
+              <span class="summary-value">{{ selectedEnquiry()!.name }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Program</span>
+              <span class="summary-value">{{ selectedEnquiry()!.programName || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Course</span>
+              <span class="summary-value">{{ selectedEnquiry()!.courseName || '—' }}</span>
+            </div>
+            @if (selectedEnquiry()!.finalizedTotalFee) {
+              <div class="summary-row">
+                <span class="summary-label">Total Fee</span>
+                <span class="summary-value">{{ selectedEnquiry()!.finalizedTotalFee | currency:'INR':'₹':'1.0-0' }}</span>
+              </div>
+            }
+            @if (selectedEnquiry()!.finalizedDiscountAmount) {
+              <div class="summary-row">
+                <span class="summary-label">Discount</span>
+                <span class="summary-value discount-value">-{{ selectedEnquiry()!.finalizedDiscountAmount | currency:'INR':'₹':'1.0-0' }}</span>
+              </div>
+            }
+            <div class="summary-row summary-total">
+              <span class="summary-label">Net Fee Payable</span>
+              <span class="summary-value">{{ selectedEnquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+            </div>
+          </div>
+
+          @if (yearFees().length > 0) {
+            <h3 class="section-title">Year-wise Breakdown</h3>
+            <div class="fee-year-grid">
+              @for (yf of yearFees(); track yf.yearNumber) {
+                <div class="fee-year-box">
+                  <div class="fee-year-label">Year {{ yf.yearNumber }}</div>
+                  <div class="fee-year-amount">{{ yf.amount | currency:'INR':'₹':'1.0-0' }}</div>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Payment Form -->
+      <mat-card appearance="outlined" class="form-card">
+        <mat-card-content>
+          <h3 class="section-title">Payment Details</h3>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Amount (₹)</mat-label>
+              <input matInput type="number" formControlName="amount" min="1" />
+              @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+                <mat-error>Valid amount is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Payment Date</mat-label>
+              <input matInput type="date" formControlName="paymentDate" />
+              @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+                <mat-error>Payment date is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Payment Mode</mat-label>
+              <mat-select formControlName="paymentMode">
+                @for (mode of paymentModes; track mode) {
+                  <mat-option [value]="mode">{{ mode }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
+                <mat-error>Payment mode is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Transaction Reference</mat-label>
+              <input matInput formControlName="transactionReference" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Remarks</mat-label>
+              <textarea matInput formControlName="remarks" rows="3"></textarea>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button mat-stroked-button type="button" (click)="backToList()">Cancel</button>
+              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Collect Payment }
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

@@ -1,83 +1,155 @@
 <div class="form-container">
   <div class="header">
-    <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">Finalize Student Fee</h2>
+    @if (selectedEnquiry()) {
+      <button mat-icon-button (click)="backToList()"><mat-icon>arrow_back</mat-icon></button>
+      <h2 class="page-title">Finalize Fee — {{ selectedEnquiry()!.name }}</h2>
+    } @else {
+      <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
+      <h2 class="page-title">Fee Finalization</h2>
+    }
   </div>
 
-  <mat-card appearance="outlined" class="form-card">
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Student ID</mat-label>
-          <input matInput type="number" formControlName="studentId" />
-          @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
-            <mat-error>Valid Student ID is required</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Total Fee (₹)</mat-label>
-          <input matInput type="number" formControlName="totalFee" min="0" />
-          @if (form.get('totalFee')?.invalid && form.get('totalFee')?.touched) {
-            <mat-error>Total fee is required</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Discount Amount (₹)</mat-label>
-          <input matInput type="number" formControlName="discountAmount" min="0" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Discount Reason</mat-label>
-          <input matInput formControlName="discountReason" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Agent Commission (₹)</mat-label>
-          <input matInput type="number" formControlName="agentCommission" min="0" />
-        </mat-form-field>
-
-        <div class="net-fee-preview">
-          <strong>Net Fee: ₹{{ netFee | number }}</strong>
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+  } @else if (!selectedEnquiry()) {
+    <!-- Enquiry List -->
+    <p class="page-subtitle">Select an enquiry with status INTERESTED to finalize fees.</p>
+    <div class="content-card">
+      @if (dataSource.data.length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-state__icon-mat">hourglass_empty</mat-icon>
+          <p class="empty-state__text">No enquiries in INTERESTED status</p>
         </div>
+      } @else {
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="dataSource" class="modern-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.name }}</span></td>
+            </ng-container>
+            <ng-container matColumnDef="programName">
+              <th mat-header-cell *matHeaderCellDef>Program</th>
+              <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="courseName">
+              <th mat-header-cell *matHeaderCellDef>Course</th>
+              <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="referralTypeName">
+              <th mat-header-cell *matHeaderCellDef>Referral Type</th>
+              <td mat-cell *matCellDef="let row">{{ row.referralTypeName || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="finalCalculatedFee">
+              <th mat-header-cell *matHeaderCellDef>Proposed Fee</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.finalCalculatedFee) {
+                  <span class="cell-currency">{{ row.finalCalculatedFee | currency:'INR':'₹':'1.0-0' }}</span>
+                } @else {
+                  <span>—</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+              <td mat-cell *matCellDef="let row">
+                <div class="row-actions">
+                  <button class="btn-primary btn-small" (click)="selectEnquiry(row)">Finalize</button>
+                </div>
+              </td>
+            </ng-container>
 
-        <div class="year-fees-section">
-          <div class="year-fees-header">
-            <h3>Year-wise Fee Breakdown</h3>
-            <button mat-stroked-button type="button" (click)="addYear()">
-              <mat-icon>add</mat-icon> Add Year
-            </button>
-          </div>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          </table>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Finalization Form -->
+    <div class="finalize-layout">
+      <mat-card appearance="outlined" class="form-card">
+        <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+            <!-- Enquiry Summary -->
+            <div class="enquiry-summary">
+              <div class="summary-row">
+                <span class="summary-label">Name</span>
+                <span class="summary-value">{{ selectedEnquiry()!.name }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Program</span>
+                <span class="summary-value">{{ selectedEnquiry()!.programName || '—' }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Course</span>
+                <span class="summary-value">{{ selectedEnquiry()!.courseName || '—' }}</span>
+              </div>
+              @if (selectedEnquiry()!.referralTypeName) {
+                <div class="summary-row">
+                  <span class="summary-label">Referral Type</span>
+                  <span class="summary-value">{{ selectedEnquiry()!.referralTypeName }}</span>
+                </div>
+              }
+              @if (selectedEnquiry()!.referralHasCommission) {
+                <div class="summary-row">
+                  <span class="summary-label">Commission Amount</span>
+                  <span class="summary-value commission-value">{{ selectedEnquiry()!.referralCommissionAmount | currency:'INR':'₹':'1.0-0' }}</span>
+                </div>
+              }
+              @if (selectedEnquiry()!.feeGuidelineTotal) {
+                <div class="summary-row">
+                  <span class="summary-label">Guideline Fee (from structure)</span>
+                  <span class="summary-value">{{ selectedEnquiry()!.feeGuidelineTotal | currency:'INR':'₹':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
 
-          @for (year of yearFees.controls; track $index; let i = $index) {
-            <div class="year-row" [formGroupName]="i" formArrayName="yearFees">
-              <mat-form-field appearance="outline" class="year-field">
-                <mat-label>Year</mat-label>
-                <input matInput type="number" formControlName="yearNumber" min="1" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="year-field">
-                <mat-label>Amount (₹)</mat-label>
-                <input matInput type="number" formControlName="amount" min="0" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="year-field">
-                <mat-label>Due Date</mat-label>
-                <input matInput type="date" formControlName="dueDate" />
-              </mat-form-field>
-              <button mat-icon-button type="button" color="warn" (click)="removeYear(i)">
-                <mat-icon>delete</mat-icon>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Total Fee (₹)</mat-label>
+              <input matInput type="number" formControlName="totalFee" min="0" />
+              @if (form.get('totalFee')?.invalid && form.get('totalFee')?.touched) {
+                <mat-error>Total fee is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Discount Amount (₹)</mat-label>
+              <input matInput type="number" formControlName="discountAmount" min="0" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Discount Reason</mat-label>
+              <input matInput formControlName="discountReason" />
+            </mat-form-field>
+
+            <div class="net-fee-preview">
+              <strong>Net Fee: ₹{{ netFee() | number }}</strong>
+            </div>
+
+            <!-- Year-wise breakdown (read-only from enquiry data) -->
+            @if (yearFees().length > 0) {
+              <div class="year-fees-section">
+                <h3>Year-wise Fee Breakdown</h3>
+                <div class="fee-year-grid">
+                  @for (yf of yearFees(); track yf.yearNumber) {
+                    <div class="fee-year-box">
+                      <div class="fee-year-label">Year {{ yf.yearNumber }}</div>
+                      <div class="fee-year-amount">{{ yf.amount | currency:'INR':'₹':'1.0-0' }}</div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="form-actions">
+              <button mat-stroked-button type="button" (click)="backToList()">Cancel</button>
+              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Finalize Fee }
               </button>
             </div>
-          }
-        </div>
-
-        <div class="form-actions">
-          <button mat-stroked-button type="button" routerLink="/student-fees">Cancel</button>
-          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-            @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Finalize }
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
 </div>
