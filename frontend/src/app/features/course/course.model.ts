@@ -4,10 +4,7 @@ export interface Course {
   id: number;
   name: string;
   code: string;
-  credits: number;
-  theoryCredits: number;
-  labCredits: number;
-  semester: number;
+  specialization: string | null;
   program: Program;
   createdAt: string;
   updatedAt: string;
@@ -16,9 +13,6 @@ export interface Course {
 export interface CourseRequest {
   name: string;
   code: string;
-  credits: number;
-  theoryCredits: number;
-  labCredits: number;
-  semester: number;
+  specialization: string | null;
   programId: number;
 }

@@ -25,16 +25,16 @@ interface ProgramInfo {
   id: number;
   name: string;
   code: string;
-  degreeType: string;
+  programLevel: string;
   durationYears: number;
-  department: { id: number; name: string };
+  departments: { id: number; name: string }[];
 }
 
 interface CourseInfo {
   id: number;
   name: string;
   code: string;
-  durationYears: number;
+  specialization: string | null;
   programId: number;
 }
 

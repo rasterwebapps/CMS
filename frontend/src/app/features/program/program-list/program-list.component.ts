@@ -15,7 +15,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgramService } from '../program.service';
-import { Program, DEGREE_TYPES } from '../program.model';
+import { Program, PROGRAM_LEVELS } from '../program.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -56,7 +56,7 @@ export class ProgramListComponent implements OnInit {
   protected readonly displayedColumns = [
     'code',
     'name',
-    'degreeType',
+    'programLevel',
     'durationYears',
     'department',
     'actions',
@@ -66,7 +66,7 @@ export class ProgramListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly selectedDepartmentId = signal<number | null>(null);
   protected readonly departments = signal<Department[]>([]);
-  protected readonly degreeTypes = DEGREE_TYPES;
+  protected readonly programLevels = PROGRAM_LEVELS;
 
   ngOnInit(): void {
     this.loadDepartments();
@@ -110,9 +110,16 @@ export class ProgramListComponent implements OnInit {
     });
   }
 
-  protected getDegreeTypeLabel(degreeType: string): string {
-    const found = DEGREE_TYPES.find((d) => d.value === degreeType);
-    return found ? found.label : degreeType;
+  protected getProgramLevelLabel(programLevel: string): string {
+    const found = PROGRAM_LEVELS.find((d) => d.value === programLevel);
+    return found ? found.label : programLevel;
+  }
+
+  protected getDepartmentNames(program: Program): string {
+    if (!program.departments || program.departments.length === 0) {
+      return '—';
+    }
+    return program.departments.map((d) => d.name).join(', ');
   }
 
   private performDelete(program: Program): void {

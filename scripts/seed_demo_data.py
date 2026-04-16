@@ -45,23 +45,23 @@ DEPARTMENTS = [
 ]
 
 PROGRAMS = [
-    # (name, code, programLevel, departmentIndices)
-    ('B.Sc. Nursing', 'BSCN', 'UNDERGRADUATE', [5]),
-    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'POSTGRADUATE', [0]),
-    ('M.Sc. Nursing — Community Health', 'MSCCHN', 'POSTGRADUATE', [1]),
-    ('M.Sc. Nursing — Child Health', 'MSCCHD', 'POSTGRADUATE', [2]),
-    ('M.Sc. Nursing — OBG', 'MSCOBG', 'POSTGRADUATE', [3]),
-    ('General Nursing and Midwifery (GNM)', 'GNM', 'DIPLOMA', [5]),
+    # (name, code, programLevel, durationYears, departmentIndices)
+    ('B.Sc. Nursing', 'BSCN', 'UNDERGRADUATE', 4, [5]),
+    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'POSTGRADUATE', 2, [0]),
+    ('M.Sc. Nursing — Community Health', 'MSCCHN', 'POSTGRADUATE', 2, [1]),
+    ('M.Sc. Nursing — Child Health', 'MSCCHD', 'POSTGRADUATE', 2, [2]),
+    ('M.Sc. Nursing — OBG', 'MSCOBG', 'POSTGRADUATE', 2, [3]),
+    ('General Nursing and Midwifery (GNM)', 'GNM', 'DIPLOMA', 3, [5]),
 ]
 
 COURSES = [
-    # (name, code, degreeType, durationYears, programIndex)
-    ('B.Sc. Nursing', 'BSCN-C', 'BACHELOR', 4, 0),
-    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN-C', 'MASTER', 2, 1),
-    ('M.Sc. Nursing — Community Health', 'MSCCHN-C', 'MASTER', 2, 2),
-    ('M.Sc. Nursing — Child Health', 'MSCCHD-C', 'MASTER', 2, 3),
-    ('M.Sc. Nursing — OBG', 'MSCOBG-C', 'MASTER', 2, 4),
-    ('General Nursing and Midwifery (GNM)', 'GNM-C', 'DIPLOMA', 3, 5),
+    # (name, code, specialization, programIndex)
+    ('B.Sc. Nursing', 'BSCN-C', None, 0),
+    ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN-C', 'Medical-Surgical', 1),
+    ('M.Sc. Nursing — Community Health', 'MSCCHN-C', 'Community Health', 2),
+    ('M.Sc. Nursing — Child Health', 'MSCCHD-C', 'Child Health', 3),
+    ('M.Sc. Nursing — OBG', 'MSCOBG-C', 'Obs Gyn', 4),
+    ('General Nursing and Midwifery (GNM)', 'GNM-C', None, 5),
 ]
 
 SUBJECTS = [
@@ -352,27 +352,27 @@ def main() -> int:
     academic_years = create_many(token, '/academic-years', academic_year_payloads)
     print(f'  ✅ Created {len(academic_years)} academic years')
 
-    # 3. Programs (programLevel + departmentIds)
+    # 3. Programs (programLevel + durationYears + departmentIds)
     program_payloads = [
         {
             'name': p[0],
             'code': p[1],
             'programLevel': p[2],
-            'departmentIds': [departments[di]['id'] for di in p[3]],
+            'durationYears': p[3],
+            'departmentIds': [departments[di]['id'] for di in p[4]],
         }
         for p in PROGRAMS
     ]
     programs = create_many(token, '/programs', program_payloads)
     print(f'  ✅ Created {len(programs)} programs (B.Sc., M.Sc., GNM)')
 
-    # 4. Courses (degreeType + durationYears + programId)
+    # 4. Courses (specialization + programId)
     course_payloads = [
         {
             'name': c[0],
             'code': c[1],
-            'degreeType': c[2],
-            'durationYears': c[3],
-            'programId': programs[c[4]]['id'],
+            'specialization': c[2],
+            'programId': programs[c[3]]['id'],
         }
         for c in COURSES
     ]

@@ -49,10 +49,7 @@ export class CourseFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     code: ['', [Validators.required, Validators.maxLength(20)]],
-    credits: [3, [Validators.required, Validators.min(1), Validators.max(12)]],
-    theoryCredits: [2, [Validators.required, Validators.min(0), Validators.max(12)]],
-    labCredits: [1, [Validators.required, Validators.min(0), Validators.max(12)]],
-    semester: [1, [Validators.required, Validators.min(1), Validators.max(8)]],
+    specialization: [''],
     programId: [null as number | null, [Validators.required]],
   });
 
@@ -77,10 +74,7 @@ export class CourseFormComponent implements OnInit {
     const request: CourseRequest = {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
-      credits: this.form.value.credits,
-      theoryCredits: this.form.value.theoryCredits,
-      labCredits: this.form.value.labCredits,
-      semester: this.form.value.semester,
+      specialization: this.form.value.specialization?.trim() || null,
       programId: this.form.value.programId,
     };
 
@@ -135,10 +129,7 @@ export class CourseFormComponent implements OnInit {
     const labels: Record<string, string> = {
       name: 'Name',
       code: 'Code',
-      credits: 'Total Credits',
-      theoryCredits: 'Theory Credits',
-      labCredits: 'Lab Credits',
-      semester: 'Semester',
+      specialization: 'Specialization',
       programId: 'Program',
     };
     return labels[fieldName] || fieldName;
@@ -164,10 +155,7 @@ export class CourseFormComponent implements OnInit {
         this.form.patchValue({
           name: course.name,
           code: course.code,
-          credits: course.credits,
-          theoryCredits: course.theoryCredits,
-          labCredits: course.labCredits,
-          semester: course.semester,
+          specialization: course.specialization,
           programId: course.program?.id,
         });
         this.loading.set(false);
