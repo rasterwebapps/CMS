@@ -58,6 +58,16 @@ public class SystemConfiguration {
     }
 
     public SystemConfiguration(String configKey, String configValue, String description,
+                                String category) {
+        this(configKey, configValue, description, ConfigDataType.STRING, category, true);
+    }
+
+    public SystemConfiguration(String ignored, String configKey, String configValue,
+                                String description, String category) {
+        this(configKey, configValue, description, ConfigDataType.STRING, category, true);
+    }
+
+    public SystemConfiguration(String configKey, String configValue, String description,
                                 ConfigDataType dataType, String category, Boolean isEditable) {
         this.configKey = configKey;
         this.configValue = configValue;
