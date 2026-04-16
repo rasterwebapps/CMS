@@ -341,3 +341,49 @@
 - This data serves as the fee guideline shown on the enquiry screen
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FEE-018: Create fee structure with courseId
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one program and course exist
+
+**Steps:**
+1. Send a POST request to `/api/v1/fee-structures` with body:
+   ```json
+   {
+     "programId": 1,
+     "academicYearId": 1,
+     "feeType": "TUITION",
+     "amount": 50000.00,
+     "courseId": 1
+   }
+   ```
+2. Verify the response status is 201 Created
+3. Verify the response contains `courseId` and `courseName`
+
+**Expected Result:**
+- Fee structure is created and associated with the specified course
+- Response includes course details
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-019: Filter fee structures by programId and courseId
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Fee structures exist for different courses under a program
+
+**Steps:**
+1. Send a GET request to `/api/v1/fee-structures?programId=1&courseId=2`
+2. Verify the response status is 200 OK
+3. Verify all returned fee structures match the specified program and course
+
+**Expected Result:**
+- Only fee structures matching both programId and courseId are returned
+
+**Status:** NOT TESTED

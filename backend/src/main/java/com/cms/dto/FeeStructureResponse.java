@@ -10,6 +10,8 @@ public record FeeStructureResponse(
     Long id,
     Long programId,
     String programName,
+    Long courseId,
+    String courseName,
     Long academicYearId,
     String academicYearName,
     FeeType feeType,

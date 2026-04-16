@@ -39,6 +39,10 @@ public class FeeStructure {
     @JoinColumn(name = "academic_year_id", nullable = false)
     private AcademicYear academicYear;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "fee_type", nullable = false)
     private FeeType feeType;
@@ -97,6 +101,14 @@ public class FeeStructure {
 
     public void setAcademicYear(AcademicYear academicYear) {
         this.academicYear = academicYear;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
     }
 
     public FeeType getFeeType() {

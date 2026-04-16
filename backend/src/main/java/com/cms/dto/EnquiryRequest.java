@@ -3,7 +3,6 @@ package com.cms.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 
 import jakarta.validation.constraints.NotBlank;
@@ -19,19 +18,17 @@ public record EnquiryRequest(
 
     Long programId,
 
+    Long courseId,
+
     @NotNull(message = "Enquiry date is required")
     LocalDate enquiryDate,
 
-    @NotNull(message = "Source is required")
-    EnquirySource source,
+    @NotNull(message = "Referral type is required")
+    Long referralTypeId,
 
     EnquiryStatus status,
 
     Long agentId,
-
-    Long referralTypeId,
-
-    String assignedTo,
 
     String remarks,
 

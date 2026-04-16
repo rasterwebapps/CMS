@@ -22,9 +22,9 @@ import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
+import com.cms.model.ReferralType;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
-import com.cms.model.enums.EnquirySource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -46,7 +46,7 @@ class EnquiryDocumentServiceTest {
         documentService = new EnquiryDocumentService(documentRepository, enquiryRepository);
 
         testEnquiry = new Enquiry("Test", "test@email.com", "1234567890", null,
-            java.time.LocalDate.now(), EnquirySource.WALK_IN, EnquiryStatus.FEES_PAID);
+            java.time.LocalDate.now(), new ReferralType("Walk In", "WALK_IN", java.math.BigDecimal.ZERO, false, "Walk in", true), EnquiryStatus.FEES_PAID);
         testEnquiry.setId(1L);
         testEnquiry.setCreatedAt(Instant.now());
         testEnquiry.setUpdatedAt(Instant.now());

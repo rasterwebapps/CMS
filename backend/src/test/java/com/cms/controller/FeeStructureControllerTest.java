@@ -48,7 +48,7 @@ class FeeStructureControllerTest {
     @Test
     void shouldCreateFeeStructure() throws Exception {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null
+            1L, 1L, FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null, null
         );
 
         FeeStructureResponse response = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
@@ -133,7 +133,7 @@ class FeeStructureControllerTest {
     @Test
     void shouldUpdateFeeStructure() throws Exception {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
         FeeStructureResponse response = createResponse(1L, FeeType.LAB_FEE, new BigDecimal("10000.00"));
@@ -170,10 +170,25 @@ class FeeStructureControllerTest {
         verify(feeStructureService).delete(999L);
     }
 
+    @Test
+    void shouldFindByProgramIdAndCourseId() throws Exception {
+        FeeStructureResponse response = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureService.findByProgramIdAndCourseId(1L, 2L)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/fee-structures")
+                .param("programId", "1")
+                .param("courseId", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(feeStructureService).findByProgramIdAndCourseId(1L, 2L);
+    }
+
     private FeeStructureResponse createResponse(Long id, FeeType feeType, BigDecimal amount) {
         Instant now = Instant.now();
         return new FeeStructureResponse(
-            id, 1L, "B.Tech CS", 1L, "2024-25", feeType, amount,
+            id, 1L, "B.Tech CS", null, null, 1L, "2024-25", feeType, amount,
             "Description", true, true, List.of(), now, now
         );
     }

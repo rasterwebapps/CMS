@@ -28,5 +28,7 @@ public record FeeStructureRequest(
 
     Boolean isActive,
 
+    Long courseId,
+
     List<YearAmountRequest> yearAmounts
 ) {}
