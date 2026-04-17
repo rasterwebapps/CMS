@@ -33,7 +33,6 @@ public class ProgramService {
         Program program = new Program(
             request.name(),
             request.code(),
-            request.programLevel(),
             request.durationYears()
         );
 
@@ -68,7 +67,6 @@ public class ProgramService {
 
         program.setName(request.name());
         program.setCode(request.code());
-        program.setProgramLevel(request.programLevel());
         program.setDurationYears(request.durationYears());
 
         if (request.departmentIds() != null) {
@@ -93,7 +91,7 @@ public class ProgramService {
         programRepository.deleteById(id);
     }
 
-    private ProgramResponse toResponse(Program program) {
+    public ProgramResponse toResponse(Program program) {
         List<DepartmentResponse> departmentResponses = program.getDepartments().stream()
             .map(dept -> new DepartmentResponse(
                 dept.getId(),
@@ -110,7 +108,6 @@ public class ProgramService {
             program.getId(),
             program.getName(),
             program.getCode(),
-            program.getProgramLevel(),
             program.getDurationYears(),
             departmentResponses,
             program.getCreatedAt(),
@@ -118,3 +115,4 @@ public class ProgramService {
         );
     }
 }
+

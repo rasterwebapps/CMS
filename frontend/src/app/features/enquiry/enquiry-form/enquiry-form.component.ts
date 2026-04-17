@@ -25,7 +25,6 @@ interface ProgramInfo {
   id: number;
   name: string;
   code: string;
-  programLevel: string;
   durationYears: number;
   departments: { id: number; name: string }[];
 }

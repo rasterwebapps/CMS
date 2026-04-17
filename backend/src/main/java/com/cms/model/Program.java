@@ -8,13 +8,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.ProgramLevel;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,10 +35,6 @@ public class Program {
     @Column(nullable = false, unique = true)
     private String code;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "program_level", nullable = false)
-    private ProgramLevel programLevel;
-
     @Column(name = "duration_years", nullable = false)
     private Integer durationYears;
 
@@ -65,10 +57,9 @@ public class Program {
     public Program() {
     }
 
-    public Program(String name, String code, ProgramLevel programLevel, Integer durationYears) {
+    public Program(String name, String code, Integer durationYears) {
         this.name = name;
         this.code = code;
-        this.programLevel = programLevel;
         this.durationYears = durationYears;
     }
 
@@ -94,14 +85,6 @@ public class Program {
 
     public void setCode(String code) {
         this.code = code;
-    }
-
-    public ProgramLevel getProgramLevel() {
-        return programLevel;
-    }
-
-    public void setProgramLevel(ProgramLevel programLevel) {
-        this.programLevel = programLevel;
     }
 
     public Integer getDurationYears() {

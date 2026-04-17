@@ -10,7 +10,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProgramService } from '../program.service';
-import { ProgramLevel, PROGRAM_LEVELS, ProgramRequest } from '../program.model';
+import { ProgramRequest } from '../program.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 
@@ -45,14 +45,12 @@ export class ProgramFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Program');
   protected readonly departments = signal<Department[]>([]);
-  protected readonly programLevels = PROGRAM_LEVELS;
 
   private programId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     code: ['', [Validators.required, Validators.maxLength(20)]],
-    programLevel: ['', [Validators.required]],
     durationYears: [4, [Validators.required, Validators.min(1), Validators.max(10)]],
     departmentIds: [[] as number[], [Validators.required, Validators.minLength(1)]],
   });
@@ -78,7 +76,6 @@ export class ProgramFormComponent implements OnInit {
     const request: ProgramRequest = {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
-      programLevel: this.form.value.programLevel as ProgramLevel,
       durationYears: this.form.value.durationYears,
       departmentIds: this.form.value.departmentIds,
     };
@@ -135,7 +132,6 @@ export class ProgramFormComponent implements OnInit {
     const labels: Record<string, string> = {
       name: 'Name',
       code: 'Code',
-      programLevel: 'Program Level',
       durationYears: 'Duration',
       departmentIds: 'Departments',
     };
@@ -162,7 +158,6 @@ export class ProgramFormComponent implements OnInit {
         this.form.patchValue({
           name: program.name,
           code: program.code,
-          programLevel: program.programLevel,
           durationYears: program.durationYears,
           departmentIds: program.departments?.map((d: { id: number }) => d.id) ?? [],
         });
