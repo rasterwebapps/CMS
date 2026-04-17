@@ -115,3 +115,22 @@
 |-------------|--------------------------------------------------|
 | **Action**  | View department list when no departments exist   |
 | **Expected**| Table shows "No data available" message          |
+
+---
+
+## TC-DEPT-013: Duplicate department shows meaningful error
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- A department with code "CS" already exists
+
+**Steps:**
+1. Navigate to **Departments → Add Department**
+2. Enter the same code ("CS") as an existing department
+3. Click **Save**
+
+**Expected Result:**
+- The form shows a snackbar with the message "A record with the same name or code already exists." (not a generic "Failed" message)
+- The form stays open so the user can correct the code
+
+**Status:** NOT TESTED

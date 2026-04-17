@@ -350,8 +350,6 @@ export class FeeStructureFormComponent implements OnInit {
       feeType: ['', Validators.required],
       amount: [0, [Validators.required, Validators.min(0.01)]],
       description: [''],
-      isMandatory: [true],
-      isActive: [true],
       yearAmounts: this.fb.array([]),
     });
     this.feeItems.push(newGroup);
@@ -430,15 +428,11 @@ export class FeeStructureFormComponent implements OnInit {
         feeType: string;
         amount: number;
         description: string;
-        isMandatory: boolean;
-        isActive: boolean;
         yearAmounts: { yearNumber: number; yearLabel: string; amount: number }[];
       }) => ({
         feeType: item.feeType,
         amount: item.amount,
         description: item.description || undefined,
-        isMandatory: item.isMandatory,
-        isActive: item.isActive,
         yearAmounts:
           item.yearAmounts && item.yearAmounts.length > 0
             ? item.yearAmounts.map((ya) => ({

@@ -63,17 +63,16 @@
             @if (feeItems.invalid && feeItems.touched) {
               <span class="items-error">Each fee item must have a type and a positive amount</span>
             }
+            <button mat-stroked-button type="button" class="add-fee-type-btn" [disabled]="!canAddMoreItems" (click)="addItem()">
+              <mat-icon>add</mat-icon> Add Fee Type
+            </button>
           </div>
 
           <!-- Column headers -->
           <div class="fee-table-head">
             <span class="col-feetype">Fee Type</span>
-            @if (selectedCourseDuration() <= 1) {
-              <span class="col-amount">Amount (₹)</span>
-            }
+            <span class="col-amount">Amount (₹)</span>
             <span class="col-desc">Description</span>
-            <span class="col-toggle">Mandatory</span>
-            <span class="col-toggle">Active</span>
             <span class="col-del"></span>
           </div>
 
@@ -102,24 +101,20 @@
                   }
                 </mat-form-field>
 
-                @if (selectedCourseDuration() <= 1) {
-                  <mat-form-field appearance="outline" class="col-amount">
-                    <mat-label>Amount (₹)</mat-label>
-                    <input matInput type="number" formControlName="amount" min="0.01"
-                           (input)="onItemAmountChange()" />
-                    @if (getItemGroup(i).get('amount')?.invalid && getItemGroup(i).get('amount')?.touched) {
-                      <mat-error>Enter a positive amount</mat-error>
-                    }
-                  </mat-form-field>
-                }
+                <mat-form-field appearance="outline" class="col-amount">
+                  <mat-label>Amount (₹)</mat-label>
+                  <input matInput type="number" formControlName="amount" min="0.01"
+                         [readonly]="selectedCourseDuration() > 1"
+                         (input)="onItemAmountChange()" />
+                  @if (getItemGroup(i).get('amount')?.invalid && getItemGroup(i).get('amount')?.touched) {
+                    <mat-error>Enter a positive amount</mat-error>
+                  }
+                </mat-form-field>
 
                 <mat-form-field appearance="outline" class="col-desc">
                   <mat-label>Description</mat-label>
                   <input matInput formControlName="description" />
                 </mat-form-field>
-
-                <mat-slide-toggle formControlName="isMandatory" class="col-toggle"></mat-slide-toggle>
-                <mat-slide-toggle formControlName="isActive" class="col-toggle"></mat-slide-toggle>
 
                 <button
                   mat-icon-button type="button"
@@ -160,12 +155,6 @@
             <span class="grand-total__value">₹{{ grandTotal() | number }}</span>
           </div>
 
-          <!-- Add row button -->
-          <div class="add-item-row">
-            <button mat-stroked-button type="button" [disabled]="!canAddMoreItems" (click)="addItem()">
-              <mat-icon>add</mat-icon> Add Fee Type
-            </button>
-          </div>
         </div>
 
         <!-- Actions -->

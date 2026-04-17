@@ -64,6 +64,11 @@
             <td mat-cell *matCellDef="let row">{{ row.area || '—' }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="allottedSeats">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Allotted Seats</th>
+            <td mat-cell *matCellDef="let row">{{ row.allottedSeats ?? '—' }}</td>
+          </ng-container>
+
           <ng-container matColumnDef="isActive">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let row">

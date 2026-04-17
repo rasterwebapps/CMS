@@ -86,11 +86,10 @@ export class DepartmentFormComponent implements OnInit {
         this.snackBar.open(message, 'Close', { duration: 3000 });
         void this.router.navigate(['/departments']);
       },
-      error: () => {
-        const message = this.isEditMode()
-          ? 'Failed to update department'
-          : 'Failed to create department';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+      error: (err) => {
+        const message = err?.error?.message
+          ?? (this.isEditMode() ? 'Failed to update department' : 'Failed to create department');
+        this.snackBar.open(message, 'Close', { duration: 4000 });
         this.saving.set(false);
       },
     });

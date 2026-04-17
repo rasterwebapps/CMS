@@ -91,6 +91,16 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="phone">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
+            <td mat-cell *matCellDef="let faculty">{{ faculty.phone || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+            <td mat-cell *matCellDef="let faculty">{{ faculty.email || '—' }}</td>
+          </ng-container>
+
           <ng-container matColumnDef="departmentName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
             <td mat-cell *matCellDef="let faculty">{{ faculty.departmentName }}</td>

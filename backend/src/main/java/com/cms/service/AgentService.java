@@ -29,6 +29,7 @@ public class AgentService {
             request.name(), request.phone(), request.email(),
             request.area(), request.locality(), isActive
         );
+        agent.setAllottedSeats(request.allottedSeats());
 
         Agent saved = agentRepository.save(agent);
         return toResponse(saved);
@@ -62,6 +63,7 @@ public class AgentService {
         agent.setEmail(request.email());
         agent.setArea(request.area());
         agent.setLocality(request.locality());
+        agent.setAllottedSeats(request.allottedSeats());
 
         if (request.isActive() != null) {
             agent.setIsActive(request.isActive());
@@ -87,6 +89,7 @@ public class AgentService {
             agent.getEmail(),
             agent.getArea(),
             agent.getLocality(),
+            agent.getAllottedSeats(),
             agent.getIsActive(),
             agent.getCreatedAt(),
             agent.getUpdatedAt()

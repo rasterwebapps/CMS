@@ -103,8 +103,9 @@ export class ReferralTypeFormComponent implements OnInit {
         this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
         void this.router.navigate(['/referral-types']);
       },
-      error: () => {
-        this.snackBar.open('Failed to save', 'Close', { duration: 3000 });
+      error: (err) => {
+        const message = err?.error?.message ?? (this.isEditMode() ? 'Failed to update' : 'Failed to save');
+        this.snackBar.open(message, 'Close', { duration: 4000 });
         this.saving.set(false);
       },
     });

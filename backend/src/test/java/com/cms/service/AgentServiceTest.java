@@ -39,10 +39,10 @@ class AgentServiceTest {
     @Test
     void shouldCreateAgent() {
         AgentRequest request = new AgentRequest(
-            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true
         );
 
-        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
 
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
@@ -51,6 +51,7 @@ class AgentServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("John Agent");
         assertThat(response.phone()).isEqualTo("9876543210");
+        assertThat(response.allottedSeats()).isEqualTo(50);
         assertThat(response.isActive()).isTrue();
         verify(agentRepository).save(any(Agent.class));
     }
@@ -58,10 +59,10 @@ class AgentServiceTest {
     @Test
     void shouldCreateAgentWithDefaultIsActive() {
         AgentRequest request = new AgentRequest(
-            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null
         );
 
-        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
@@ -72,7 +73,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindAllAgents() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentRepository.findAll()).thenReturn(List.of(agent));
 
@@ -85,7 +86,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindById() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(agent));
 
@@ -109,7 +110,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindActiveAgents() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentRepository.findByIsActiveTrue()).thenReturn(List.of(agent));
 
@@ -121,13 +122,13 @@ class AgentServiceTest {
 
     @Test
     void shouldUpdateAgent() {
-        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true);
+        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
 
         AgentRequest updateRequest = new AgentRequest(
-            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", false
+            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false
         );
 
-        Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", false);
+        Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(agentRepository.save(any(Agent.class))).thenReturn(updated);
@@ -135,6 +136,7 @@ class AgentServiceTest {
         AgentResponse response = agentService.update(1L, updateRequest);
 
         assertThat(response.name()).isEqualTo("Jane Agent");
+        assertThat(response.allottedSeats()).isEqualTo(100);
         assertThat(response.isActive()).isFalse();
         verify(agentRepository).findById(1L);
         verify(agentRepository).save(any(Agent.class));
@@ -143,7 +145,7 @@ class AgentServiceTest {
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
         AgentRequest request = new AgentRequest(
-            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", true
+            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", null, true
         );
 
         when(agentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -177,9 +179,10 @@ class AgentServiceTest {
     }
 
     private Agent createAgent(Long id, String name, String phone, String email,
-                               String area, String locality, Boolean isActive) {
+                               String area, String locality, Integer allottedSeats, Boolean isActive) {
         Agent agent = new Agent(name, phone, email, area, locality, isActive);
         agent.setId(id);
+        agent.setAllottedSeats(allottedSeats);
         Instant now = Instant.now();
         agent.setCreatedAt(now);
         agent.setUpdatedAt(now);

@@ -209,3 +209,29 @@
 - The delete button on the remaining single row is disabled (must keep at least one row)
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FEE-STRUCT-009: Amount column always visible and Add Fee Type button at top-right
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one Program with a multi-year course (durationYears > 1) exists
+
+**Steps:**
+1. Navigate to **Fee Structures → Add Fee Structure**
+2. Select a Program → select a 4-year Course → select an Academic Year
+3. Observe the Fee Items section header — verify the **+ Add Fee Type** button appears at the top-right of the "Fee Items" card
+4. Verify there are **no Mandatory or Active toggle columns** in the fee items table
+5. Verify the **Amount (₹)** column header is visible
+6. Observe that the Amount field in each row is readonly (greyed out) when a multi-year course is selected; year-wise fields appear below
+7. Enter year-wise amounts; verify the Amount field in the row auto-populates with the sum
+8. For a single-year course: select a 1-year program/course, verify the Amount field is editable directly
+
+**Expected Result:**
+- "+ Add Fee Type" button is at the top-right of the Fee Items header
+- No Mandatory/Active toggles
+- Amount column is always visible
+- For multi-year: Amount is readonly and auto-computed from year fields
+
+**Status:** NOT TESTED

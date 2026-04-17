@@ -189,3 +189,44 @@
 - A 404 error response is returned
 
 **Status:** NOT TESTED
+
+---
+
+## TC-AGENT-011: Create an agent with allottedSeats
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Application is running
+
+**Steps:**
+1. Navigate to **Agents** from the sidebar
+2. Click **Add Agent**
+3. Fill in Name: "Test Agent", Phone: "9876543210", Area: "Salem", Allotted Seats: `30`
+4. Click **Create**
+5. Verify a success message appears
+6. Navigate back to the Agents list
+7. Verify "Test Agent" appears with **Allotted Seats** column showing `30`
+
+**Expected Result:**
+- Agent is created with allottedSeats = 30
+- The Agents table shows the Allotted Seats column
+
+**Status:** NOT TESTED
+
+---
+
+## TC-AGENT-012: Allotted Seats is optional
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+
+**Steps:**
+1. Create an agent without entering a value in Allotted Seats
+2. Verify the agent is saved successfully
+3. In the Agents list, verify the Allotted Seats column shows `—` for that agent
+
+**Expected Result:**
+- Agent is created successfully without allottedSeats
+- List shows `—` for agents with no allotted seats
+
+**Status:** NOT TESTED

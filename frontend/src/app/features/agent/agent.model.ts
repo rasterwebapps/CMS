@@ -5,6 +5,7 @@ export interface Agent {
   email: string;
   area: string;
   locality: string;
+  allottedSeats: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -16,6 +17,7 @@ export interface AgentRequest {
   email?: string;
   area?: string;
   locality?: string;
+  allottedSeats?: number | null;
   isActive?: boolean;
 }
 

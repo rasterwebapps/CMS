@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -63,6 +64,19 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().status()).isEqualTo(400);
         assertThat(response.getBody().message()).contains("email: must be a valid email");
         assertThat(response.getBody().message()).contains("firstName: must not be blank");
+        assertThat(response.getBody().timestamp()).isNotNull();
+    }
+
+    @Test
+    void shouldHandleDataIntegrityViolationException() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("Unique constraint violation");
+
+        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message()).isEqualTo("A record with the same name or code already exists.");
         assertThat(response.getBody().timestamp()).isNotNull();
     }
 

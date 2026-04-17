@@ -92,9 +92,10 @@ export class CourseFormComponent implements OnInit {
         this.snackBar.open(message, 'Close', { duration: 3000 });
         void this.router.navigate(['/courses']);
       },
-      error: () => {
-        const message = this.isEditMode() ? 'Failed to update course' : 'Failed to create course';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+      error: (err) => {
+        const message = err?.error?.message
+          ?? (this.isEditMode() ? 'Failed to update course' : 'Failed to create course');
+        this.snackBar.open(message, 'Close', { duration: 4000 });
         this.saving.set(false);
       },
     });

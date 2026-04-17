@@ -34,6 +34,9 @@ public class Agent {
 
     private String locality;
 
+    @Column(name = "allotted_seats")
+    private Integer allottedSeats;
+
     @Column(name = "is_active")
     private Boolean isActive;
 
@@ -103,6 +106,14 @@ public class Agent {
 
     public void setLocality(String locality) {
         this.locality = locality;
+    }
+
+    public Integer getAllottedSeats() {
+        return allottedSeats;
+    }
+
+    public void setAllottedSeats(Integer allottedSeats) {
+        this.allottedSeats = allottedSeats;
     }
 
     public Boolean getIsActive() {

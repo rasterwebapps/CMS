@@ -115,3 +115,21 @@
 |-------------|--------------------------------------------------|
 | **Action**  | View faculty list when no faculty members exist  |
 | **Expected**| Table shows "No data available" message          |
+
+---
+
+## TC-FAC-013: Phone and Email columns are visible in Faculty list
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one faculty member with phone and email exists
+
+**Steps:**
+1. Navigate to **Faculty** from the sidebar
+2. Observe the table columns
+
+**Expected Result:**
+- The Faculty table shows **Phone** and **Email** columns between Name and Department
+- Faculty members with phone/email show the values; those without show `—`
+
+**Status:** NOT TESTED
