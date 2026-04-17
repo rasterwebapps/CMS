@@ -196,12 +196,33 @@ class EquipmentServiceTest {
 
         when(equipmentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(equipmentRepository.existsByAssetCodeAndIdNot("ASSET001", 1L)).thenReturn(false);
         when(equipmentRepository.save(any(Equipment.class))).thenReturn(updated);
 
         EquipmentResponse response = equipmentService.update(1L, updateRequest);
 
         assertThat(response.name()).isEqualTo("HP Computer");
         assertThat(response.status()).isEqualTo(EquipmentStatus.IN_USE);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithDuplicateAssetCode() {
+        Equipment existing = createEquipment(1L, "Dell Computer", "ASSET001", EquipmentCategory.COMPUTER, testLab, EquipmentStatus.AVAILABLE);
+
+        EquipmentRequest updateRequest = new EquipmentRequest(
+            "Dell Computer", "ASSET002", "SN123", EquipmentCategory.COMPUTER, 1L,
+            null, null, EquipmentStatus.AVAILABLE, null, null, null, null, null
+        );
+
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(equipmentRepository.existsByAssetCodeAndIdNot("ASSET002", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> equipmentService.update(1L, updateRequest))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Equipment with asset code 'ASSET002' already exists");
+
+        verify(equipmentRepository, never()).save(any());
     }
 
     @Test

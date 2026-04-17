@@ -131,6 +131,7 @@ class AgentServiceTest {
         Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(agentRepository.existsByNameAndIdNot("Jane Agent", 1L)).thenReturn(false);
         when(agentRepository.save(any(Agent.class))).thenReturn(updated);
 
         AgentResponse response = agentService.update(1L, updateRequest);
@@ -140,6 +141,24 @@ class AgentServiceTest {
         assertThat(response.isActive()).isFalse();
         verify(agentRepository).findById(1L);
         verify(agentRepository).save(any(Agent.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithDuplicateName() {
+        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
+
+        AgentRequest updateRequest = new AgentRequest(
+            "Existing Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, true
+        );
+
+        when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(agentRepository.existsByNameAndIdNot("Existing Agent", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> agentService.update(1L, updateRequest))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("An agent with the name 'Existing Agent' already exists");
+
+        verify(agentRepository, never()).save(any());
     }
 
     @Test

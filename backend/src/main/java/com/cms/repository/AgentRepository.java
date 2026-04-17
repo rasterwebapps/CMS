@@ -11,4 +11,6 @@ public interface AgentRepository extends JpaRepository<Agent, Long> {
     List<Agent> findByIsActiveTrue();
 
     List<Agent> findByNameContainingIgnoreCase(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }

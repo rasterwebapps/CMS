@@ -86,6 +86,15 @@ public class FacultyService {
         Department department = departmentRepository.findById(request.departmentId())
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
 
+        if (facultyRepository.existsByEmployeeCodeAndIdNot(request.employeeCode(), id)) {
+            throw new IllegalArgumentException(
+                "A faculty with employee code '" + request.employeeCode() + "' already exists");
+        }
+        if (facultyRepository.existsByEmailAndIdNot(request.email(), id)) {
+            throw new IllegalArgumentException(
+                "A faculty with email '" + request.email() + "' already exists");
+        }
+
         faculty.setEmployeeCode(request.employeeCode());
         faculty.setFirstName(request.firstName());
         faculty.setLastName(request.lastName());

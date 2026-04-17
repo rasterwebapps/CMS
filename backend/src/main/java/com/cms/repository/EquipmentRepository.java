@@ -21,5 +21,7 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
     Optional<Equipment> findByAssetCode(String assetCode);
 
+    boolean existsByAssetCodeAndIdNot(String assetCode, Long id);
+
     List<Equipment> findByLabIdAndCategory(Long labId, EquipmentCategory category);
 }

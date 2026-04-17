@@ -192,6 +192,22 @@ public class FeeStructureService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
         }
 
+        boolean duplicateFeeType;
+        if (request.courseId() != null) {
+            duplicateFeeType = feeStructureRepository
+                .existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIdAndIdNot(
+                    request.feeType(), request.programId(), request.academicYearId(), request.courseId(), id);
+        } else {
+            duplicateFeeType = feeStructureRepository
+                .existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
+                    request.feeType(), request.programId(), request.academicYearId(), id);
+        }
+        if (duplicateFeeType) {
+            throw new IllegalArgumentException(
+                "A fee structure with fee type '" + request.feeType()
+                + "' already exists for this program and academic year combination");
+        }
+
         feeStructure.setProgram(program);
         feeStructure.setAcademicYear(academicYear);
         feeStructure.setCourse(course);

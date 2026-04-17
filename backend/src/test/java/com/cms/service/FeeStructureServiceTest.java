@@ -213,12 +213,35 @@ class FeeStructureServiceTest {
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
+            FeeType.LAB_FEE, 1L, 1L, 1L)).thenReturn(false);
         when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(updated);
 
         FeeStructureResponse response = feeStructureService.update(1L, updateRequest);
 
         assertThat(response.feeType()).isEqualTo(FeeType.LAB_FEE);
         assertThat(response.amount()).isEqualTo(new BigDecimal("10000.00"));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithDuplicateFeeType() {
+        FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        FeeStructureRequest updateRequest = new FeeStructureRequest(
+            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+        );
+
+        when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
+            FeeType.LAB_FEE, 1L, 1L, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> feeStructureService.update(1L, updateRequest))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A fee structure with fee type 'LAB_FEE' already exists for this program and academic year combination");
+
+        verify(feeStructureRepository, never()).save(any());
     }
 
     @Test
@@ -368,6 +391,8 @@ class FeeStructureServiceTest {
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
         when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(feeStructureRepository.existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIdAndIdNot(
+            FeeType.TUITION, 1L, 1L, 1L, 1L)).thenReturn(false);
         when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(updated);
 
         FeeStructureResponse response = feeStructureService.update(1L, updateRequest);

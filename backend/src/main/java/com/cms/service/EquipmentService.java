@@ -95,6 +95,11 @@ public class EquipmentService {
         Lab lab = labRepository.findById(request.labId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
 
+        if (request.assetCode() != null && equipmentRepository.existsByAssetCodeAndIdNot(request.assetCode(), id)) {
+            throw new IllegalArgumentException(
+                "Equipment with asset code '" + request.assetCode() + "' already exists");
+        }
+
         equipment.setName(request.name());
         equipment.setAssetCode(request.assetCode());
         equipment.setSerialNumber(request.serialNumber());
