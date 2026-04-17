@@ -209,6 +209,8 @@ class CourseServiceTest {
         when(programService.toResponse(newProgram)).thenReturn(newProgResponse);
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
+        when(courseRepository.existsByNameAndIdNot("M.Sc. Nursing", 1L)).thenReturn(false);
+        when(courseRepository.existsByCodeAndIdNot("MSN", 1L)).thenReturn(false);
         when(courseRepository.save(any(Course.class))).thenReturn(updatedCourse);
 
         CourseResponse response = courseService.update(1L, updateRequest);
@@ -222,6 +224,41 @@ class CourseServiceTest {
 
         verify(courseRepository).findById(1L);
         verify(courseRepository).save(any(Course.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingCourseWithDuplicateName() {
+        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, 1L);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(courseRepository.existsByNameAndIdNot("M.Sc. Nursing", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> courseService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("M.Sc. Nursing")
+            .hasMessageContaining("already exists");
+
+        verify(courseRepository, never()).save(any(Course.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingCourseWithDuplicateCode() {
+        Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, 1L);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(courseRepository.existsByNameAndIdNot("B.Sc. Nursing", 1L)).thenReturn(false);
+        when(courseRepository.existsByCodeAndIdNot("MSN", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> courseService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("MSN")
+            .hasMessageContaining("already exists");
+
+        verify(courseRepository, never()).save(any(Course.class));
     }
 
     @Test

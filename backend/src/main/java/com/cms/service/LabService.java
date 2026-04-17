@@ -82,6 +82,13 @@ public class LabService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Department not found with id: " + request.departmentId()));
 
+        if (labRepository.existsByNameAndDepartmentIdAndIdNot(
+                request.name(), request.departmentId(), id)) {
+            throw new IllegalArgumentException(
+                "A lab with the name '" + request.name()
+                + "' already exists in this department");
+        }
+
         lab.setName(request.name());
         lab.setLabType(request.labType());
         lab.setDepartment(department);

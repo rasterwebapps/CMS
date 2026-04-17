@@ -13,6 +13,10 @@ public interface SubjectRepository extends JpaRepository<Subject, Long> {
 
     boolean existsByCode(String code);
 
+    boolean existsByNameAndIdNot(String name, Long id);
+
+    boolean existsByCodeAndIdNot(String code, Long id);
+
     List<Subject> findByCourseId(Long courseId);
 
     List<Subject> findByDepartmentId(Long departmentId);

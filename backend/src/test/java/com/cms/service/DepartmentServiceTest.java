@@ -133,6 +133,8 @@ class DepartmentServiceTest {
             "New Description", "Dr. New");
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existingDepartment));
+        when(departmentRepository.existsByNameAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
+        when(departmentRepository.existsByCodeAndIdNot("CSU", 1L)).thenReturn(false);
         when(departmentRepository.save(any(Department.class))).thenReturn(updatedDepartment);
 
         DepartmentResponse response = departmentService.update(1L, updateRequest);
@@ -145,6 +147,39 @@ class DepartmentServiceTest {
 
         verify(departmentRepository).findById(1L);
         verify(departmentRepository).save(any(Department.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingDepartmentWithDuplicateName() {
+        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", "HOD");
+        DepartmentRequest request = new DepartmentRequest("Mathematics", "CS", "Desc", "HOD");
+
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(departmentRepository.existsByNameAndIdNot("Mathematics", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> departmentService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Mathematics")
+            .hasMessageContaining("already exists");
+
+        verify(departmentRepository, never()).save(any(Department.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingDepartmentWithDuplicateCode() {
+        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", "HOD");
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "MATH", "Desc", "HOD");
+
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(departmentRepository.existsByNameAndIdNot("Computer Science", 1L)).thenReturn(false);
+        when(departmentRepository.existsByCodeAndIdNot("MATH", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> departmentService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("MATH")
+            .hasMessageContaining("already exists");
+
+        verify(departmentRepository, never()).save(any(Department.class));
     }
 
     @Test

@@ -11,4 +11,6 @@ public interface LabRepository extends JpaRepository<Lab, Long> {
     List<Lab> findByDepartmentId(Long departmentId);
 
     boolean existsByNameAndDepartmentId(String name, Long departmentId);
+
+    boolean existsByNameAndDepartmentIdAndIdNot(String name, Long departmentId, Long id);
 }

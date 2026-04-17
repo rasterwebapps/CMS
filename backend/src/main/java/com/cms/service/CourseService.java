@@ -75,6 +75,15 @@ public class CourseService {
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
+        if (courseRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "A course with the name '" + request.name() + "' already exists");
+        }
+        if (courseRepository.existsByCodeAndIdNot(request.code(), id)) {
+            throw new IllegalArgumentException(
+                "A course with the code '" + request.code() + "' already exists");
+        }
+
         course.setName(request.name());
         course.setCode(request.code());
         course.setSpecialization(request.specialization());

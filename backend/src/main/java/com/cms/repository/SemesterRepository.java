@@ -11,4 +11,6 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
     List<Semester> findByAcademicYearId(Long academicYearId);
 
     List<Semester> findByAcademicYearIdOrderBySemesterNumber(Long academicYearId);
+
+    boolean existsByNameAndAcademicYearIdAndIdNot(String name, Long academicYearId, Long id);
 }

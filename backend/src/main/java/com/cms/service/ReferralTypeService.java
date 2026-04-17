@@ -62,6 +62,15 @@ public class ReferralTypeService {
         ReferralType referralType = referralTypeRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + id));
 
+        if (referralTypeRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "A referral type with the name '" + request.name() + "' already exists");
+        }
+        if (referralTypeRepository.existsByCodeAndIdNot(request.code(), id)) {
+            throw new IllegalArgumentException(
+                "A referral type with the code '" + request.code() + "' already exists");
+        }
+
         referralType.setName(request.name());
         referralType.setCode(request.code());
         referralType.setCommissionAmount(request.commissionAmount());

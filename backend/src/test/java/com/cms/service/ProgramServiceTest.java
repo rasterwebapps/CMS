@@ -116,6 +116,8 @@ class ProgramServiceTest {
         Program updatedProgram = createProgram(1L, "Bachelor Updated", "BACHELOR", 4);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
+        when(programRepository.existsByNameAndIdNot("Bachelor Updated", 1L)).thenReturn(false);
+        when(programRepository.existsByCodeAndIdNot("BACHELOR", 1L)).thenReturn(false);
         when(programRepository.save(any(Program.class))).thenReturn(updatedProgram);
 
         ProgramResponse response = programService.update(1L, updateRequest);
@@ -125,6 +127,39 @@ class ProgramServiceTest {
 
         verify(programRepository).findById(1L);
         verify(programRepository).save(any(Program.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingProgramWithDuplicateName() {
+        Program existing = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        ProgramRequest request = new ProgramRequest("Master", "BACHELOR", 4);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.existsByNameAndIdNot("Master", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> programService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Master")
+            .hasMessageContaining("already exists");
+
+        verify(programRepository, never()).save(any(Program.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingProgramWithDuplicateCode() {
+        Program existing = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        ProgramRequest request = new ProgramRequest("Bachelor", "MASTER", 4);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(programRepository.existsByNameAndIdNot("Bachelor", 1L)).thenReturn(false);
+        when(programRepository.existsByCodeAndIdNot("MASTER", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> programService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("MASTER")
+            .hasMessageContaining("already exists");
+
+        verify(programRepository, never()).save(any(Program.class));
     }
 
     @Test

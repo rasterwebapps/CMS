@@ -234,6 +234,7 @@ class AcademicYearServiceTest {
             LocalDate.of(2024, 9, 1), LocalDate.of(2025, 6, 30), false);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existingAcademicYear));
+        when(academicYearRepository.existsByNameAndIdNot("2024-2025 Updated", 1L)).thenReturn(false);
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(updatedAcademicYear);
 
         AcademicYearResponse response = academicYearService.update(1L, updateRequest);
@@ -244,6 +245,29 @@ class AcademicYearServiceTest {
         assertThat(response.endDate()).isEqualTo(LocalDate.of(2025, 6, 30));
         verify(academicYearRepository).findById(1L);
         verify(academicYearRepository).save(any(AcademicYear.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingAcademicYearWithDuplicateName() {
+        AcademicYear existing = createAcademicYear(1L, "2024-2025",
+            LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), false);
+
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2023-2024",
+            LocalDate.of(2024, 8, 1),
+            LocalDate.of(2025, 5, 31),
+            false
+        );
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.existsByNameAndIdNot("2023-2024", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> academicYearService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("2023-2024")
+            .hasMessageContaining("already exists");
+
+        verify(academicYearRepository, never()).save(any(AcademicYear.class));
     }
 
     @Test
@@ -262,6 +286,7 @@ class AcademicYearServiceTest {
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existingAcademicYear));
+        when(academicYearRepository.existsByNameAndIdNot("2024-2025", 1L)).thenReturn(false);
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(updatedAcademicYear);
 
         AcademicYearResponse response = academicYearService.update(1L, updateRequest);
@@ -286,6 +311,7 @@ class AcademicYearServiceTest {
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existingAcademicYear));
+        when(academicYearRepository.existsByNameAndIdNot("2024-2025 Updated", 1L)).thenReturn(false);
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(updatedAcademicYear);
 
         academicYearService.update(1L, updateRequest);

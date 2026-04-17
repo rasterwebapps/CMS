@@ -106,6 +106,15 @@ public class SubjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
         }
 
+        if (subjectRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "A subject with the name '" + request.name() + "' already exists");
+        }
+        if (subjectRepository.existsByCodeAndIdNot(request.code(), id)) {
+            throw new IllegalArgumentException(
+                "A subject with the code '" + request.code() + "' already exists");
+        }
+
         subject.setName(request.name());
         subject.setCode(request.code());
         subject.setCredits(request.credits());

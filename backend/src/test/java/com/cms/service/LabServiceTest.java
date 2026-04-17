@@ -228,6 +228,8 @@ class LabServiceTest {
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
+        when(labRepository.existsByNameAndDepartmentIdAndIdNot("Electronics Lab Updated", 2L, 1L))
+            .thenReturn(false);
         when(labRepository.save(any(Lab.class))).thenReturn(updatedLab);
 
         LabResponse response = labService.update(1L, updateRequest);
@@ -243,6 +245,28 @@ class LabServiceTest {
 
         verify(labRepository).findById(1L);
         verify(labRepository).save(any(Lab.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingLabWithDuplicateNameInSameDepartment() {
+        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+            "Main Building", "101", 30, LabStatus.ACTIVE);
+
+        LabRequest request = new LabRequest(
+            "Computer Lab 2", LabType.COMPUTER, 1L, "Main Building", "102", 25, LabStatus.ACTIVE
+        );
+
+        when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(labRepository.existsByNameAndDepartmentIdAndIdNot("Computer Lab 2", 1L, 1L))
+            .thenReturn(true);
+
+        assertThatThrownBy(() -> labService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Computer Lab 2")
+            .hasMessageContaining("already exists");
+
+        verify(labRepository, never()).save(any(Lab.class));
     }
 
     @Test
