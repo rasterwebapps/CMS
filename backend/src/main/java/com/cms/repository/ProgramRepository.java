@@ -11,4 +11,8 @@ public interface ProgramRepository extends JpaRepository<Program, Long> {
     Optional<Program> findByCode(String code);
 
     boolean existsByCode(String code);
+
+    boolean existsByNameAndIdNot(String name, Long id);
+
+    boolean existsByCodeAndIdNot(String code, Long id);
 }

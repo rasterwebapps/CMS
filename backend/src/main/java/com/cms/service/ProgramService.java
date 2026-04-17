@@ -48,6 +48,15 @@ public class ProgramService {
         Program program = programRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + id));
 
+        if (programRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "A program with the name '" + request.name() + "' already exists");
+        }
+        if (programRepository.existsByCodeAndIdNot(request.code(), id)) {
+            throw new IllegalArgumentException(
+                "A program with the code '" + request.code() + "' already exists");
+        }
+
         program.setName(request.name());
         program.setCode(request.code());
         program.setDurationYears(request.durationYears());

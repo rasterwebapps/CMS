@@ -66,6 +66,11 @@ public class AcademicYearService {
 
         validateDateRange(request);
 
+        if (academicYearRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "An academic year with the name '" + request.name() + "' already exists");
+        }
+
         Boolean isCurrent = request.isCurrent() != null ? request.isCurrent() : false;
 
         if (Boolean.TRUE.equals(isCurrent) && !Boolean.TRUE.equals(academicYear.getIsCurrent())) {

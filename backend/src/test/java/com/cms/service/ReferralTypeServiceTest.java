@@ -142,12 +142,51 @@ class ReferralTypeServiceTest {
         ReferralType updated = createReferralType(1L, "Staff Updated", "STAFF", new BigDecimal("10000.00"));
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameAndIdNot("Staff Updated", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByCodeAndIdNot("STAFF", 1L)).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(updated);
 
         ReferralTypeResponse response = referralTypeService.update(1L, request);
 
         assertThat(response.name()).isEqualTo("Staff Updated");
         assertThat(response.commissionAmount()).isEqualTo(new BigDecimal("10000.00"));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingReferralTypeWithDuplicateName() {
+        ReferralType existing = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Alumni", "STAFF", BigDecimal.ZERO, false, null, true
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameAndIdNot("Alumni", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> referralTypeService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Alumni")
+            .hasMessageContaining("already exists");
+
+        verify(referralTypeRepository, never()).save(any(ReferralType.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingReferralTypeWithDuplicateCode() {
+        ReferralType existing = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Staff", "ALUMNI", BigDecimal.ZERO, false, null, true
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameAndIdNot("Staff", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByCodeAndIdNot("ALUMNI", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> referralTypeService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ALUMNI")
+            .hasMessageContaining("already exists");
+
+        verify(referralTypeRepository, never()).save(any(ReferralType.class));
     }
 
     @Test

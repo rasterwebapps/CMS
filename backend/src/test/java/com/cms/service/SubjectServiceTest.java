@@ -236,6 +236,8 @@ class SubjectServiceTest {
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeAndIdNot("PHYS101", 1L)).thenReturn(false);
         when(subjectRepository.save(any(Subject.class))).thenReturn(updatedSubject);
 
         SubjectResponse response = subjectService.update(1L, request);
@@ -257,12 +259,45 @@ class SubjectServiceTest {
 
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeAndIdNot("PHYS101", 1L)).thenReturn(false);
         when(subjectRepository.save(any(Subject.class))).thenReturn(updatedSubject);
 
         SubjectResponse response = subjectService.update(1L, request);
 
         assertThat(response.department()).isNull();
         verify(departmentRepository, never()).findById(any());
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingSubjectWithDuplicateName() {
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 5, 4, 1, 1L, null, 1);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.existsByNameAndIdNot("Anatomy", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> subjectService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Anatomy")
+            .hasMessageContaining("already exists");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingSubjectWithDuplicateCode() {
+        SubjectRequest request = new SubjectRequest("Physiology", "ANAT101", 5, 4, 1, 1L, null, 1);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeAndIdNot("ANAT101", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> subjectService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ANAT101")
+            .hasMessageContaining("already exists");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
     }
 
     @Test

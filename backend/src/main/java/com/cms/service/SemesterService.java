@@ -80,6 +80,13 @@ public class SemesterService {
         validateDateRange(request);
         validateDatesWithinAcademicYear(request, academicYear);
 
+        if (semesterRepository.existsByNameAndAcademicYearIdAndIdNot(
+                request.name(), request.academicYearId(), id)) {
+            throw new IllegalArgumentException(
+                "A semester with the name '" + request.name()
+                + "' already exists in this academic year");
+        }
+
         semester.setName(request.name());
         semester.setAcademicYear(academicYear);
         semester.setStartDate(request.startDate());

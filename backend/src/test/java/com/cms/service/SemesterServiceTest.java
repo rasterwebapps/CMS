@@ -288,6 +288,8 @@ class SemesterServiceTest {
 
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Fall 2024 Updated", 1L, 1L))
+            .thenReturn(false);
         when(semesterRepository.save(any(Semester.class))).thenReturn(updatedSemester);
 
         SemesterResponse response = semesterService.update(1L, updateRequest);
@@ -321,12 +323,40 @@ class SemesterServiceTest {
 
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
         when(academicYearRepository.findById(2L)).thenReturn(Optional.of(newAcademicYear));
+        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Fall 2025", 2L, 1L))
+            .thenReturn(false);
         when(semesterRepository.save(any(Semester.class))).thenReturn(updatedSemester);
 
         SemesterResponse response = semesterService.update(1L, updateRequest);
 
         assertThat(response.academicYear().id()).isEqualTo(2L);
         verify(academicYearRepository).findById(2L);
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingSemesterWithDuplicateName() {
+        Semester existingSemester = createSemester(1L, "Fall 2024", academicYear,
+            LocalDate.of(2024, 8, 1), LocalDate.of(2024, 12, 15), 1);
+
+        SemesterRequest request = new SemesterRequest(
+            "Spring 2025",
+            1L,
+            LocalDate.of(2024, 8, 1),
+            LocalDate.of(2024, 12, 15),
+            1
+        );
+
+        when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Spring 2025", 1L, 1L))
+            .thenReturn(true);
+
+        assertThatThrownBy(() -> semesterService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Spring 2025")
+            .hasMessageContaining("already exists");
+
+        verify(semesterRepository, never()).save(any(Semester.class));
     }
 
     @Test
