@@ -44,9 +44,9 @@ BEGIN
 
     -- ── 5. Academic Years ────────────────────────────────────────────────────
     INSERT INTO academic_years (name, start_date, end_date, is_current, created_at, updated_at) VALUES
-        ('2023-2024', '2023-06-01', '2024-05-31', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        ('2024-2025', '2024-06-01', '2025-05-31', TRUE,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        ('2025-2026', '2025-06-01', '2026-05-31', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        ('2023-2024', '2023-06-01'::date, '2024-05-31'::date, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        ('2024-2025', '2024-06-01'::date, '2025-05-31'::date, TRUE,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        ('2025-2026', '2025-06-01'::date, '2026-05-31'::date, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
     -- ── 6. Semesters ─────────────────────────────────────────────────────────
     INSERT INTO semesters (name, academic_year_id, start_date, end_date, semester_number, created_at, updated_at)
@@ -358,18 +358,18 @@ BEGIN
     SELECT e.id, 'PROGRAM_SPECIFIC_OUTCOME','PSO1','Apply anatomy in clinical care',          'MEDIUM', 'Foundation for clinical nursing',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM experiments e WHERE e.name = 'Skeletal System Identification';
 
     -- ── 31. Lab Schedules ────────────────────────────────────────────────────
-    INSERT INTO lab_schedules (lab_id, subject_id, faculty_id, lab_slot_id, batch_name, day_of_week, semester_id, is_active, created_at, updated_at)
-    SELECT l.id, sub.id, f.id, ls.id, 'Batch A', 'MONDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, subjects sub, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Nursing Foundation Lab' AND sub.code = 'BSC-SUB-004' AND f.employee_code = 'FAC007' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, sub.id, f.id, ls.id, 'Batch B', 'WEDNESDAY', sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, subjects sub, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Nursing Foundation Lab' AND sub.code = 'BSC-SUB-004' AND f.employee_code = 'FAC008' AND ls.name = 'Morning Slot 2'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, sub.id, f.id, ls.id, 'Batch A', 'TUESDAY',   sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, subjects sub, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Anatomy Lab'            AND sub.code = 'BSC-SUB-001' AND f.employee_code = 'FAC004' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, sub.id, f.id, ls.id, 'Batch A', 'FRIDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, subjects sub, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Computer Lab'           AND sub.code = 'GNM-SUB-001' AND f.employee_code = 'FAC007' AND ls.name = 'Afternoon Slot 1' AND sem.name = 'Odd Semester 2024-2025';
+    INSERT INTO lab_schedules (lab_id, course_id, faculty_id, lab_slot_id, batch_name, day_of_week, semester_id, is_active, created_at, updated_at)
+    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'MONDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+    WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC007' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+    SELECT l.id, c.id, f.id, ls.id, 'Batch B', 'WEDNESDAY', sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+    WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC008' AND ls.name = 'Morning Slot 2'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'TUESDAY',   sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+    WHERE l.name = 'Anatomy Lab'            AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC004' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'FRIDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+    WHERE l.name = 'Computer Lab'           AND c.code = 'GNM-GEN'      AND f.employee_code = 'FAC007' AND ls.name = 'Afternoon Slot 1' AND sem.name = 'Odd Semester 2024-2025';
 
 END $$;
