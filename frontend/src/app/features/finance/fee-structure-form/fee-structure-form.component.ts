@@ -111,7 +111,10 @@ export class FeeStructureFormComponent implements OnInit {
     return this.bulkForm.get('items') as FormArray;
   }
 
-  protected grandTotal = computed(() => {
+  private readonly _grandTotalVersion = signal(0);
+
+  protected readonly grandTotal = computed(() => {
+    this._grandTotalVersion(); // track changes
     let total = 0;
     for (let i = 0; i < this.feeItems.length; i++) {
       const itemGroup = this.feeItems.at(i) as FormGroup;
@@ -335,6 +338,11 @@ export class FeeStructureFormComponent implements OnInit {
       total += Number(ya.at(j).get('amount')?.value) || 0;
     }
     (this.feeItems.at(itemIndex) as FormGroup).patchValue({ amount: total }, { emitEvent: false });
+    this._grandTotalVersion.update((v) => v + 1);
+  }
+
+  protected onItemAmountChange(): void {
+    this._grandTotalVersion.update((v) => v + 1);
   }
 
   protected addItem(): void {
@@ -352,10 +360,12 @@ export class FeeStructureFormComponent implements OnInit {
     if (duration > 1) {
       this.buildYearAmountsForItem(this.feeItems.length - 1, duration);
     }
+    this._grandTotalVersion.update((v) => v + 1);
   }
 
   protected removeItem(index: number): void {
     this.feeItems.removeAt(index);
+    this._grandTotalVersion.update((v) => v + 1);
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────

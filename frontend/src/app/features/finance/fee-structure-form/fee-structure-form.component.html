@@ -79,6 +79,7 @@
 
           <!-- Item rows -->
           @for (item of feeItems.controls; track $index; let i = $index) {
+            @let currentFeeType = getItemGroup(i).get('feeType')?.value;
             <div class="fee-item-block" [class.has-year-amounts]="selectedCourseDuration() > 1">
 
               <!-- Main row -->
@@ -90,9 +91,9 @@
                     @for (ft of getAvailableFeeTypes(i); track ft) {
                       <mat-option [value]="ft">{{ feeTypeLabels[ft] }}</mat-option>
                     }
-                    @if (getItemGroup(i).get('feeType')?.value && !getAvailableFeeTypes(i).includes(getItemGroup(i).get('feeType')!.value)) {
-                      <mat-option [value]="getItemGroup(i).get('feeType')!.value">
-                        {{ feeTypeLabels[getItemGroup(i).get('feeType')!.value] }}
+                    @if (currentFeeType && !getAvailableFeeTypes(i).includes(currentFeeType)) {
+                      <mat-option [value]="currentFeeType">
+                        {{ feeTypeLabels[currentFeeType] }}
                       </mat-option>
                     }
                   </mat-select>
@@ -104,7 +105,8 @@
                 @if (selectedCourseDuration() <= 1) {
                   <mat-form-field appearance="outline" class="col-amount">
                     <mat-label>Amount (₹)</mat-label>
-                    <input matInput type="number" formControlName="amount" min="0.01" />
+                    <input matInput type="number" formControlName="amount" min="0.01"
+                           (input)="onItemAmountChange()" />
                     @if (getItemGroup(i).get('amount')?.invalid && getItemGroup(i).get('amount')?.touched) {
                       <mat-error>Enter a positive amount</mat-error>
                     }
