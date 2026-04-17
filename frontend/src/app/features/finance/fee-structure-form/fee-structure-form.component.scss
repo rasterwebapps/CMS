@@ -7,13 +7,9 @@
 .full-width { width: 100%; }
 .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 .section-title { margin: 0; font-size: 1rem; font-weight: 600; color: var(--mat-sys-on-surface-variant, #555); }
-.year-amounts-section { border: 1px solid var(--mat-sys-outline-variant, #e0e0e0); border-radius: 12px; padding: 16px; margin: 8px 0; }
-.year-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0); margin-top: 4px; }
-.year-total__label { font-weight: 600; font-size: 0.95rem; }
-.year-total__value { font-weight: 700; font-size: 1.1rem; color: var(--mat-sys-primary, #1976d2); }
-.toggle-row { display: flex; gap: 24px; padding: 8px 0; }
+.section-hint { margin: 2px 0 0; font-size: 0.82rem; color: var(--mat-sys-on-surface-variant, #888); }
 
-// ── Bulk / bill-style create form ──────────────────────────────────────────
+// ── Bulk / bill-style form ──────────────────────────────────────────
 .fee-items-section {
   max-width: 900px;
   background: var(--cms-bg-card, #fff);
@@ -25,24 +21,15 @@
 
 .fee-items-header-row {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
   margin-bottom: 12px;
-
-  .add-fee-type-btn {
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-}
-
-.items-error {
-  font-size: 0.8rem;
-  color: var(--mat-sys-error, #d32f2f);
 }
 
 .fee-table-head {
   display: grid;
-  grid-template-columns: 200px 160px 1fr 16px;
+  grid-template-columns: 200px 160px 1fr;
   gap: 12px;
   padding: 0 8px 8px;
   font-size: 0.78rem;
@@ -63,7 +50,7 @@
 
 .fee-item-row {
   display: grid;
-  grid-template-columns: 200px 160px 1fr 40px;
+  grid-template-columns: 200px 160px 1fr;
   gap: 8px;
   align-items: flex-start;
   padding: 4px 0;
@@ -71,19 +58,19 @@
   .col-feetype { min-width: 0; }
   .col-amount  { min-width: 0; }
   .col-desc    { min-width: 0; }
-  .col-del     { display: flex; align-items: center; padding-top: 8px; }
 }
 
-.has-year-amounts .fee-item-row {
-  grid-template-columns: 200px 160px 1fr 40px;
+.fee-type-label {
+  display: flex;
+  align-items: center;
+  padding-top: 18px;
 }
 
-.remove-btn {
-  color: var(--mat-sys-error, #d32f2f);
-  opacity: 0.6;
-
-  &:hover:not([disabled]) { opacity: 1; }
-  &[disabled] { opacity: 0.25; }
+.fee-type-badge {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface, #333);
 }
 
 .year-amounts-inline {

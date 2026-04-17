@@ -490,6 +490,143 @@ class FeeStructureServiceTest {
         assertThat(responses.get(0).courseId()).isEqualTo(1L);
     }
 
+    @Test
+    void shouldFindGroupedFeeStructures() {
+        FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(feeStructureRepository.findAll()).thenReturn(List.of(fs1, fs2));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(null, null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).totalAmount()).isEqualByComparingTo(new BigDecimal("55000.00"));
+        assertThat(result.get(0).items()).hasSize(2);
+    }
+
+    @Test
+    void shouldFindGroupedWithProgramFilter() {
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureRepository.findByProgramId(1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(1L, null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).programId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldFindGroupedWithAcademicYearFilter() {
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureRepository.findByAcademicYearId(1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(null, 1L, null);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void shouldFindGroupedWithProgramAndAcademicYearFilter() {
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearId(1L, 1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(1L, 1L, null);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void shouldFindGroupedWithProgramAndCourseFilter() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101", null, testProgram);
+        testCourse.setId(2L);
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        fs.setCourse(testCourse);
+
+        when(feeStructureRepository.findByProgramIdAndCourseId(1L, 2L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(1L, null, 2L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).courseId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldFindGroupedWithAllFilters() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101", null, testProgram);
+        testCourse.setId(2L);
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        fs.setCourse(testCourse);
+
+        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(1L, 2L, 1L)).thenReturn(List.of(fs));
+        when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(1L, 1L, 2L);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void shouldBulkUpdateFeeStructures() {
+        FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        FeeStructureItemRequest newTuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("60000.00"), "Updated", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(newTuition));
+
+        FeeStructure savedNew = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("60000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existing));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(savedNew);
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
+
+        verify(yearAmountRepository).deleteByFeeStructureId(1L);
+        verify(feeStructureRepository).deleteById(1L);
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).amount()).isEqualByComparingTo(new BigDecimal("60000.00"));
+    }
+
+    @Test
+    void shouldDeleteGroup() {
+        FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(fs1, fs2));
+
+        feeStructureService.deleteGroup(1L, 1L, null);
+
+        verify(yearAmountRepository).deleteByFeeStructureId(1L);
+        verify(yearAmountRepository).deleteByFeeStructureId(2L);
+        verify(feeStructureRepository).deleteById(1L);
+        verify(feeStructureRepository).deleteById(2L);
+    }
+
+    @Test
+    void shouldDeleteGroupWithCourse() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101", null, testProgram);
+        testCourse.setId(2L);
+        FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        fs.setCourse(testCourse);
+
+        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(1L, 2L, 1L)).thenReturn(List.of(fs));
+
+        feeStructureService.deleteGroup(1L, 1L, 2L);
+
+        verify(yearAmountRepository).deleteByFeeStructureId(1L);
+        verify(feeStructureRepository).deleteById(1L);
+    }
+
     private FeeStructure createFeeStructure(Long id, Program program, AcademicYear academicYear,
                                              FeeType feeType, BigDecimal amount) {
         FeeStructure fs = new FeeStructure(program, academicYear, feeType, amount, true, true);

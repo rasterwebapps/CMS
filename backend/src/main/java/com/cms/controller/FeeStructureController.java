@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.BulkFeeStructureRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
+import com.cms.dto.GroupedFeeStructureResponse;
 import com.cms.service.FeeStructureService;
 
 import jakarta.validation.Valid;
@@ -37,6 +38,32 @@ public class FeeStructureController {
     public ResponseEntity<List<FeeStructureResponse>> bulkCreate(@Valid @RequestBody BulkFeeStructureRequest request) {
         List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+    }
+
+    @PutMapping("/bulk")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<FeeStructureResponse>> bulkUpdate(@Valid @RequestBody BulkFeeStructureRequest request) {
+        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/grouped")
+    public ResponseEntity<List<GroupedFeeStructureResponse>> findGrouped(
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) Long courseId) {
+        List<GroupedFeeStructureResponse> grouped = feeStructureService.findGrouped(programId, academicYearId, courseId);
+        return ResponseEntity.ok(grouped);
+    }
+
+    @DeleteMapping("/group")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> deleteGroup(
+            @RequestParam Long programId,
+            @RequestParam Long academicYearId,
+            @RequestParam(required = false) Long courseId) {
+        feeStructureService.deleteGroup(programId, academicYearId, courseId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping
