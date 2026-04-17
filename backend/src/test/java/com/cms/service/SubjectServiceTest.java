@@ -8,10 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,11 +69,10 @@ class SubjectServiceTest {
         program.setName("Bachelor");
         program.setCode("BACHELOR");
         program.setDurationYears(4);
-        program.setDepartments(new HashSet<>(Set.of(department)));
         program.setCreatedAt(now);
         program.setUpdatedAt(now);
 
-        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, List.of(), now, now);
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
         org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
 
         course = new Course();

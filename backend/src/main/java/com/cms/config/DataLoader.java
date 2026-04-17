@@ -226,11 +226,11 @@ public class DataLoader implements CommandLineRunner {
         Department pnDept    = depts.get(4);
 
         // ── 3. Programs ──────────────────────────────────────────────────────
-        Program bachelorProgram = seedProgram("Bachelor", "BACHELOR", 4, List.of(gnDept, msnDept, pnDept));
-        Program masterProgram   = seedProgram("Master",   "MASTER",   2, List.of(gnDept, msnDept));
-        Program diplomaProgram  = seedProgram("Diploma",  "DIPLOMA",  3, List.of(gnDept, moDept));
-        seedProgram("Certificate", "CERTIFICATE", 1, List.of());
-        seedProgram("Doctoral",    "DOCTORAL",    3, List.of());
+        Program bachelorProgram = seedProgram("Bachelor",    "BACHELOR",    4);
+        Program masterProgram   = seedProgram("Master",      "MASTER",      2);
+        Program diplomaProgram  = seedProgram("Diploma",     "DIPLOMA",     3);
+        seedProgram("Certificate", "CERTIFICATE", 1);
+        seedProgram("Doctoral",    "DOCTORAL",    3);
 
         // ── 4. Academic Years ────────────────────────────────────────────────
         AcademicYear ay2324 = academicYearRepository.save(new AcademicYear(
@@ -574,10 +574,8 @@ public class DataLoader implements CommandLineRunner {
         return List.of(gn, mo, chn, msn, pn);
     }
 
-    private Program seedProgram(String name, String code, int durationYears,
-                                List<Department> departments) {
+    private Program seedProgram(String name, String code, int durationYears) {
         Program program = new Program(name, code, durationYears);
-        program.getDepartments().addAll(departments);
         return programRepository.save(program);
     }
 

@@ -1,8 +1,6 @@
 package com.cms.model;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -11,13 +9,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -37,14 +31,6 @@ public class Program {
 
     @Column(name = "duration_years", nullable = false)
     private Integer durationYears;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "program_departments",
-        joinColumns = @JoinColumn(name = "program_id"),
-        inverseJoinColumns = @JoinColumn(name = "department_id")
-    )
-    private Set<Department> departments = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -93,14 +79,6 @@ public class Program {
 
     public void setDurationYears(Integer durationYears) {
         this.durationYears = durationYears;
-    }
-
-    public Set<Department> getDepartments() {
-        return departments;
-    }
-
-    public void setDepartments(Set<Department> departments) {
-        this.departments = departments;
     }
 
     public Instant getCreatedAt() {

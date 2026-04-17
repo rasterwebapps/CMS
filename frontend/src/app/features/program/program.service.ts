@@ -19,10 +19,6 @@ export class ProgramService {
     return this.http.get<Program>(`${this.baseUrl}/${id}`);
   }
 
-  getByDepartment(departmentId: number): Observable<Program[]> {
-    return this.http.get<Program[]>(`${this.baseUrl}/department/${departmentId}`);
-  }
-
   create(request: ProgramRequest): Observable<Program> {
     return this.http.post<Program>(this.baseUrl, request);
   }

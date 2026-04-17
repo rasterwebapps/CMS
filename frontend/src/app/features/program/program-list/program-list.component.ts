@@ -6,7 +6,6 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -16,8 +15,6 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgramService } from '../program.service';
 import { Program } from '../program.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -31,7 +28,6 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
     MatSortModule,
     MatInputModule,
     MatFormFieldModule,
-    MatSelectModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -45,7 +41,6 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 })
 export class ProgramListComponent implements OnInit {
   private readonly programService = inject(ProgramService);
-  private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -53,21 +48,12 @@ export class ProgramListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = [
-    'code',
-    'name',
-    'durationYears',
-    'department',
-    'actions',
-  ];
+  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
-  protected readonly selectedDepartmentId = signal<number | null>(null);
-  protected readonly departments = signal<Department[]>([]);
 
   ngOnInit(): void {
-    this.loadDepartments();
     this.loadPrograms();
   }
 
@@ -80,11 +66,6 @@ export class ProgramListComponent implements OnInit {
   protected clearFilter(): void {
     this.searchValue.set('');
     this.applyFilters();
-  }
-
-  protected onDepartmentFilterChange(departmentId: number | null): void {
-    this.selectedDepartmentId.set(departmentId);
-    this.loadPrograms();
   }
 
   protected editProgram(program: Program): void {
@@ -108,13 +89,6 @@ export class ProgramListComponent implements OnInit {
     });
   }
 
-  protected getDepartmentNames(program: Program): string {
-    if (!program.departments || program.departments.length === 0) {
-      return '—';
-    }
-    return program.departments.map((d) => d.name).join(', ');
-  }
-
   private performDelete(program: Program): void {
     this.loading.set(true);
     this.programService.delete(program.id).subscribe({
@@ -133,28 +107,9 @@ export class ProgramListComponent implements OnInit {
     });
   }
 
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => {
-        this.departments.set(departments);
-      },
-      error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', {
-          duration: 3000,
-        });
-      },
-    });
-  }
-
   private loadPrograms(): void {
     this.loading.set(true);
-    const departmentId = this.selectedDepartmentId();
-
-    const programs$ = departmentId
-      ? this.programService.getByDepartment(departmentId)
-      : this.programService.getAll();
-
-    programs$.subscribe({
+    this.programService.getAll().subscribe({
       next: (programs) => {
         this.dataSource.data = programs;
         this.dataSource.paginator = this.paginator;
@@ -179,3 +134,4 @@ export class ProgramListComponent implements OnInit {
     }
   }
 }
+
