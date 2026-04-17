@@ -28,6 +28,7 @@ import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
@@ -80,7 +81,7 @@ class EnquiryServiceTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             1L, "Interested in CS", new BigDecimal("50000.00"),
-            null, null, null, null
+            null, null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -106,7 +107,7 @@ class EnquiryServiceTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
             LocalDate.of(2024, 6, 15), 1L, null,
             null, null, null,
-            null, null, null, null
+            null, null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -128,7 +129,7 @@ class EnquiryServiceTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", 999L, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, null, null,
-            null, null, null, null
+            null, null, null, null, null
         );
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -144,7 +145,7 @@ class EnquiryServiceTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             999L, null, null,
-            null, null, null, null
+            null, null, null, null, null
         );
 
         when(agentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -241,7 +242,7 @@ class EnquiryServiceTest {
             "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890", 1L, null,
             LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
             null, "Called back", new BigDecimal("45000.00"),
-            null, null, null, null
+            null, null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar Updated", "ravi.updated@email.com", "1234567890",
@@ -264,7 +265,7 @@ class EnquiryServiceTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, null, null,
-            null, null, null, null
+            null, null, null, null, null
         );
 
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
@@ -524,7 +525,7 @@ class EnquiryServiceTest {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
             LocalDate.of(2024, 6, 15), 2L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -545,7 +546,7 @@ class EnquiryServiceTest {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
             LocalDate.of(2024, 6, 15), 999L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         when(referralTypeRepository.findById(999L)).thenReturn(Optional.empty());
@@ -625,7 +626,7 @@ class EnquiryServiceTest {
             LocalDate.of(2024, 6, 15), 1L, null,
             null, null, null,
             new BigDecimal("100000.00"), new BigDecimal("5000.00"),
-            new BigDecimal("105000.00"), "[50000,55000]"
+            new BigDecimal("105000.00"), "[50000,55000]", null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -661,7 +662,7 @@ class EnquiryServiceTest {
         EnquiryRequest updateRequest = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 15), 2L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -686,7 +687,7 @@ class EnquiryServiceTest {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, 1L,
             LocalDate.of(2024, 6, 15), 1L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -709,7 +710,7 @@ class EnquiryServiceTest {
         EnquiryRequest request = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null, 999L,
             LocalDate.of(2024, 6, 15), 1L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
@@ -732,7 +733,7 @@ class EnquiryServiceTest {
         EnquiryRequest updateRequest = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, 1L,
             LocalDate.of(2024, 6, 15), 1L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
@@ -758,7 +759,7 @@ class EnquiryServiceTest {
         EnquiryRequest updateRequest = new EnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", null, 999L,
             LocalDate.of(2024, 6, 15), 1L, null,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -785,5 +786,45 @@ class EnquiryServiceTest {
         com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
 
         assertThat(response.finalizedTotalFee()).isEqualTo(new BigDecimal("100000.00"));
+    }
+
+    @Test
+    void shouldCreateEnquiryWithStudentType() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null, StudentType.HOSTELER
+        );
+
+        Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        saved.setStudentType(StudentType.HOSTELER);
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        EnquiryResponse response = enquiryService.create(request);
+
+        assertThat(response.studentType()).isEqualTo(StudentType.HOSTELER);
+    }
+
+    @Test
+    void shouldCreateEnquiryWithDayScholarType() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Priya", "priya@email.com", "9876543211", null, null,
+            LocalDate.of(2024, 6, 15), 1L, null,
+            null, null, null, null, null, null, null, StudentType.DAY_SCHOLAR
+        );
+
+        Enquiry saved = createEnquiry(1L, "Priya", "priya@email.com", "9876543211",
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        saved.setStudentType(StudentType.DAY_SCHOLAR);
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        EnquiryResponse response = enquiryService.create(request);
+
+        assertThat(response.studentType()).isEqualTo(StudentType.DAY_SCHOLAR);
     }
 }

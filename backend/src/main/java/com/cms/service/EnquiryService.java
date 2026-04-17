@@ -89,6 +89,7 @@ public class EnquiryService {
         enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
         enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
         enquiry.setYearWiseFees(request.yearWiseFees());
+        enquiry.setStudentType(request.studentType());
 
         Enquiry saved = enquiryRepository.save(enquiry);
         return toResponse(saved);
@@ -164,6 +165,7 @@ public class EnquiryService {
         enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
         enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
         enquiry.setYearWiseFees(request.yearWiseFees());
+        enquiry.setStudentType(request.studentType());
 
         if (request.status() != null) {
             enquiry.setStatus(request.status());
@@ -292,6 +294,7 @@ public class EnquiryService {
             e.getReferralAdditionalAmount(),
             e.getFinalCalculatedFee(),
             e.getYearWiseFees(),
+            e.getStudentType(),
             e.getFinalizedTotalFee(),
             e.getFinalizedDiscountAmount(),
             e.getFinalizedDiscountReason(),

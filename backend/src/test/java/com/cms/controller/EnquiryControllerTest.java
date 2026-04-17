@@ -53,7 +53,7 @@ class EnquiryControllerTest {
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, "Interested in CS", new BigDecimal("50000.00"),
-            null, null, null, null
+            null, null, null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
@@ -140,7 +140,7 @@ class EnquiryControllerTest {
             "Ravi Kumar Updated", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
             null, "Called back", new BigDecimal("45000.00"),
-            null, null, null, null
+            null, null, null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquiryStatus.INTERESTED);
@@ -164,7 +164,7 @@ class EnquiryControllerTest {
             1L, "Walk In", null, false,
             EnquiryStatus.CONVERTED,
             null, null, "Converted", new BigDecimal("50000.00"),
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             10L, Instant.now(), Instant.now()
         );
@@ -290,7 +290,7 @@ class EnquiryControllerTest {
             1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
             1L, "Walk In", null, false,
             status, null, null, "Remarks",
-            new BigDecimal("50000.00"), null, null, null, null,
+            new BigDecimal("50000.00"), null, null, null, null, null,
             null, null, null, null, null, null,
             null, now, now
         );

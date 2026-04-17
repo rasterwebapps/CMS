@@ -20,12 +20,12 @@ import { environment } from '../../../../environments';
 interface Program {
   id: number;
   name: string;
+  durationYears: number;
 }
 
 interface Course {
   id: number;
   name: string;
-  durationYears: number;
 }
 
 interface AcademicYear {
@@ -59,7 +59,7 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly programs = signal<Program[]>([]);
   protected readonly courses = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
-  protected readonly selectedCourseDuration = signal(0);
+  protected readonly selectedProgramDuration = signal(0);
 
   protected readonly feeTypes = [
     'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
@@ -131,7 +131,15 @@ export class FeeStructureFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
-      next: (data) => this.programs.set(data),
+      next: (data) => {
+        this.programs.set(data);
+        // In edit mode, set program duration once programs are loaded
+        const pId = this.route.snapshot.queryParamMap.get('programId');
+        if (pId) {
+          const program = data.find((p) => p.id === Number(pId));
+          if (program) this.selectedProgramDuration.set(program.durationYears);
+        }
+      },
     });
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({
       next: (data) => this.academicYears.set(data),
@@ -152,15 +160,9 @@ export class FeeStructureFormComponent implements OnInit {
       const ayId = Number(academicYearId);
       const cId = courseId ? Number(courseId) : undefined;
 
-      // Load courses for the program first
+      // Load courses for the program
       this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${pId}`).subscribe({
-        next: (courses) => {
-          this.courses.set(courses);
-          if (cId) {
-            const course = courses.find((c) => c.id === cId);
-            if (course) this.selectedCourseDuration.set(course.durationYears);
-          }
-        },
+        next: (courses) => this.courses.set(courses),
       });
 
       this.financeService.getGroupedFeeStructures({ programId: pId, academicYearId: ayId, courseId: cId }).subscribe({
@@ -195,7 +197,7 @@ export class FeeStructureFormComponent implements OnInit {
           }
           // Fill in missing fee types with amount 0
           const existingTypes = new Set(group ? group.items.map((i) => i.feeType) : []);
-          const duration = this.selectedCourseDuration();
+          const duration = this.selectedProgramDuration();
           for (const ft of this.feeTypes) {
             if (!existingTypes.has(ft)) {
               const newGroup = this.fb.group({
@@ -204,7 +206,7 @@ export class FeeStructureFormComponent implements OnInit {
                 description: [''],
                 yearAmounts: this.fb.array([]),
               });
-              if (duration > 1) {
+              if (duration >= 1) {
                 const ya = newGroup.get('yearAmounts') as FormArray;
                 for (let i = 1; i <= duration; i++) {
                   ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.required, Validators.min(0)]] }));
@@ -234,21 +236,24 @@ export class FeeStructureFormComponent implements OnInit {
   protected onBulkProgramChange(programId: number): void {
     this.bulkForm.patchValue({ courseId: null });
     this.courses.set([]);
-    this.selectedCourseDuration.set(0);
     this.clearAllItemYearAmounts();
 
     if (programId) {
+      const program = this.programs().find((p) => p.id === programId);
+      const duration = program ? program.durationYears : 0;
+      this.selectedProgramDuration.set(duration);
+      this.rebuildAllItemYearAmounts(duration);
+
       this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
         next: (data) => this.courses.set(data),
       });
+    } else {
+      this.selectedProgramDuration.set(0);
     }
   }
 
-  protected onBulkCourseChange(courseId: number): void {
-    const course = this.courses().find((c) => c.id === courseId);
-    const duration = course ? course.durationYears : 0;
-    this.selectedCourseDuration.set(duration);
-    this.rebuildAllItemYearAmounts(duration);
+  protected onBulkCourseChange(_courseId: number): void {
+    // Course selection does not affect year amounts — duration is program-based
   }
 
   private clearAllItemYearAmounts(): void {
@@ -299,8 +304,8 @@ export class FeeStructureFormComponent implements OnInit {
       yearAmounts: this.fb.array([]),
     });
     this.feeItems.push(newGroup);
-    const duration = this.selectedCourseDuration();
-    if (duration > 1) {
+    const duration = this.selectedProgramDuration();
+    if (duration >= 1) {
       this.buildYearAmountsForItem(this.feeItems.length - 1, duration);
     }
     this._grandTotalVersion.update((v) => v + 1);

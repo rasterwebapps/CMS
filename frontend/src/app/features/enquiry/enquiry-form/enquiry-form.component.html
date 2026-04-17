@@ -42,6 +42,15 @@
               </mat-form-field>
             }
             <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Student Type</mat-label>
+              <mat-select formControlName="studentType" (selectionChange)="onStudentTypeChange()">
+                <mat-option [value]="null">— Not Specified —</mat-option>
+                @for (st of studentTypeOptions; track st.value) {
+                  <mat-option [value]="st.value">{{ st.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Enquiry Date</mat-label>
               <input matInput [matDatepicker]="picker" formControlName="enquiryDate" [max]="maxDate" />
               <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
@@ -100,57 +109,15 @@
             <mat-card-subtitle>{{ selectedProgram()!.name }} ({{ selectedProgram()!.durationYears }} years)</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
-            <!-- Total Fees -->
-            <div class="fee-total">
-              <span class="fee-total-label">Total Program Fees</span>
-              <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-
-            <!-- Year-wise Split -->
-            @if (yearWiseFees().length > 0) {
-              <div class="fee-year-grid">
-                @for (amount of yearWiseFees(); track $index) {
-                  <div class="fee-year-box">
-                    <div class="fee-year-label">Year {{ $index + 1 }}</div>
-                    <div class="fee-year-amount">{{ amount | currency:'INR':'symbol':'1.0-0' }}</div>
-                  </div>
-                }
-              </div>
-            }
-
-            @if (referralAdditionalAmount() > 0) {
-              <div class="fee-total referral-amount">
-                <span class="fee-total-label">Referral Commission Amount</span>
-                <span class="fee-total-value">{{ referralAdditionalAmount() | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-            }
-
-            @if (selectedReferralType(); as rt) {
-              @if (rt.hasCommission) {
-                <div class="fee-total commission-info">
-                  <span class="fee-total-label">Commission: {{ rt.name }}</span>
-                  <span class="fee-total-value">{{ rt.commissionAmount | currency:'INR':'symbol':'1.0-0' }}</span>
-                </div>
-              }
-            }
-
-            @if (finalCalculatedFee() > 0) {
-              <div class="fee-total final-fee">
-                <span class="fee-total-label">Final Calculated Fee</span>
-                <span class="fee-total-value">{{ finalCalculatedFee() | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-            }
-
-            <!-- Fee Type Breakdown -->
+            <!-- Total Fees — filtered by student type -->
             @if (feeStructures().length > 0) {
-              <div class="fee-breakdown">
-                <div class="fee-breakdown-title">Fee Breakdown</div>
-                @for (fs of feeStructures(); track fs.id) {
-                  <div class="fee-row">
-                    <span class="fee-type">{{ fs.feeType }}@if (fs.isMandatory) { <span class="mandatory-badge">*</span> }</span>
-                    <span class="fee-amount">{{ fs.amount | currency:'INR':'symbol':'1.0-0' }}</span>
-                  </div>
-                }
+              <div class="fee-total">
+                <span class="fee-total-label">
+                  Total Course Fee
+                  @if (form.get('studentType')?.value === 'DAY_SCHOLAR') { <span class="fee-type-hint">(Day Scholar)</span> }
+                  @else if (form.get('studentType')?.value === 'HOSTELER') { <span class="fee-type-hint">(Hosteler)</span> }
+                </span>
+                <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
               </div>
             } @else {
               <p class="no-fee-hint">No fee structures configured for this program.</p>

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.StudentType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -40,5 +41,7 @@ public record EnquiryRequest(
 
     BigDecimal finalCalculatedFee,
 
-    String yearWiseFees
+    String yearWiseFees,
+
+    StudentType studentType
 ) {}

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.StudentType;
 
 public record EnquiryResponse(
     Long id,
@@ -29,6 +30,7 @@ public record EnquiryResponse(
     BigDecimal referralAdditionalAmount,
     BigDecimal finalCalculatedFee,
     String yearWiseFees,
+    StudentType studentType,
     BigDecimal finalizedTotalFee,
     BigDecimal finalizedDiscountAmount,
     String finalizedDiscountReason,

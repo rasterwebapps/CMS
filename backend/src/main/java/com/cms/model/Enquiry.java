@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.StudentType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,6 +54,10 @@ public class Enquiry {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EnquiryStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "student_type")
+    private StudentType studentType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
@@ -192,6 +197,14 @@ public class Enquiry {
 
     public void setStatus(EnquiryStatus status) {
         this.status = status;
+    }
+
+    public StudentType getStudentType() {
+        return studentType;
+    }
+
+    public void setStudentType(StudentType studentType) {
+        this.studentType = studentType;
     }
 
     public Agent getAgent() {

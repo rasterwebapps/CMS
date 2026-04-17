@@ -66,6 +66,42 @@ public class FeeStructureService {
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
 
+        if (request.courseId() != null) {
+            courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
+        // Enforce one fee structure group per (program, academic year, course)
+        List<FeeStructure> existing;
+        if (request.courseId() != null) {
+            existing = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(
+                request.programId(), request.courseId(), request.academicYearId());
+        } else {
+            existing = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(
+                request.programId(), request.academicYearId());
+        }
+        if (!existing.isEmpty()) {
+            throw new IllegalArgumentException(
+                "A fee structure already exists for this program, course, and academic year combination. Use the edit function to update it.");
+        }
+
+        return bulkCreateInternal(request);
+    }
+
+    private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
+        Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
+        for (FeeStructureItemRequest item : request.items()) {
+            if (!seenTypes.add(item.feeType())) {
+                throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
+            }
+        }
+
+        Program program = programRepository.findById(request.programId())
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+
+        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
+
         Course course = null;
         if (request.courseId() != null) {
             course = courseRepository.findById(request.courseId())
@@ -289,7 +325,7 @@ public class FeeStructureService {
     @Transactional
     public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
         deleteGroupInternal(request.programId(), request.academicYearId(), request.courseId());
-        return bulkCreate(request);
+        return bulkCreateInternal(request);
     }
 
     @Transactional
