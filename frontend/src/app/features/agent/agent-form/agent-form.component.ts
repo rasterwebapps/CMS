@@ -43,6 +43,7 @@ export class AgentFormComponent implements OnInit {
     email: [''],
     area: [''],
     locality: [''],
+    allottedSeats: [null as number | null],
     isActive: [true],
   });
 
@@ -55,7 +56,7 @@ export class AgentFormComponent implements OnInit {
       this.loading.set(true);
       this.agentService.getAgentById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ name: item.name, phone: item.phone, email: item.email, area: item.area, locality: item.locality, isActive: item.isActive });
+          this.form.patchValue({ name: item.name, phone: item.phone, email: item.email, area: item.area, locality: item.locality, allottedSeats: item.allottedSeats, isActive: item.isActive });
           this.loading.set(false);
         },
         error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/agents']); },
@@ -66,7 +67,7 @@ export class AgentFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const v = this.form.value;
-    const request: AgentRequest = { name: v.name.trim(), phone: v.phone || undefined, email: v.email || undefined, area: v.area || undefined, locality: v.locality || undefined, isActive: v.isActive };
+    const request: AgentRequest = { name: v.name.trim(), phone: v.phone || undefined, email: v.email || undefined, area: v.area || undefined, locality: v.locality || undefined, allottedSeats: v.allottedSeats ?? undefined, isActive: v.isActive };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.agentService.updateAgent(this.itemId!, request) : this.agentService.createAgent(request);
     op$.subscribe({

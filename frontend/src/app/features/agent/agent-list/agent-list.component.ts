@@ -38,7 +38,7 @@ export class AgentListComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['name', 'phone', 'email', 'area', 'isActive', 'actions'];
+  protected readonly displayedColumns = ['name', 'phone', 'email', 'area', 'allottedSeats', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Agent>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

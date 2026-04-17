@@ -46,11 +46,11 @@ class AgentControllerTest {
     @Test
     void shouldCreateAgent() throws Exception {
         AgentRequest request = new AgentRequest(
-            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", true
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true
         );
 
         AgentResponse response = createResponse(1L, "John Agent", "9876543210",
-            "john@agent.com", "Salem", "Local Area", true);
+            "john@agent.com", "Salem", "Local Area", 50, true);
 
         when(agentService.create(any(AgentRequest.class))).thenReturn(response);
 
@@ -59,7 +59,8 @@ class AgentControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.name").value("John Agent"));
+            .andExpect(jsonPath("$.name").value("John Agent"))
+            .andExpect(jsonPath("$.allottedSeats").value(50));
 
         verify(agentService).create(any(AgentRequest.class));
     }
@@ -67,7 +68,7 @@ class AgentControllerTest {
     @Test
     void shouldFindAllAgents() throws Exception {
         AgentResponse response = createResponse(1L, "John Agent", "9876543210",
-            "john@agent.com", "Salem", "Local Area", true);
+            "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentService.findAll()).thenReturn(List.of(response));
 
@@ -81,7 +82,7 @@ class AgentControllerTest {
     @Test
     void shouldFindActiveAgents() throws Exception {
         AgentResponse response = createResponse(1L, "John Agent", "9876543210",
-            "john@agent.com", "Salem", "Local Area", true);
+            "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentService.findActiveAgents()).thenReturn(List.of(response));
 
@@ -95,7 +96,7 @@ class AgentControllerTest {
     @Test
     void shouldFindById() throws Exception {
         AgentResponse response = createResponse(1L, "John Agent", "9876543210",
-            "john@agent.com", "Salem", "Local Area", true);
+            "john@agent.com", "Salem", "Local Area", null, true);
 
         when(agentService.findById(1L)).thenReturn(response);
 
@@ -121,11 +122,11 @@ class AgentControllerTest {
     @Test
     void shouldUpdateAgent() throws Exception {
         AgentRequest request = new AgentRequest(
-            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", false
+            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false
         );
 
         AgentResponse response = createResponse(1L, "Jane Agent", "1234567890",
-            "jane@agent.com", "Chennai", "City Area", false);
+            "jane@agent.com", "Chennai", "City Area", 100, false);
 
         when(agentService.update(eq(1L), any(AgentRequest.class))).thenReturn(response);
 
@@ -133,7 +134,8 @@ class AgentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.name").value("Jane Agent"));
+            .andExpect(jsonPath("$.name").value("Jane Agent"))
+            .andExpect(jsonPath("$.allottedSeats").value(100));
 
         verify(agentService).update(eq(1L), any(AgentRequest.class));
     }
@@ -160,8 +162,8 @@ class AgentControllerTest {
     }
 
     private AgentResponse createResponse(Long id, String name, String phone, String email,
-                                          String area, String locality, Boolean isActive) {
+                                          String area, String locality, Integer allottedSeats, Boolean isActive) {
         Instant now = Instant.now();
-        return new AgentResponse(id, name, phone, email, area, locality, isActive, now, now);
+        return new AgentResponse(id, name, phone, email, area, locality, allottedSeats, isActive, now, now);
     }
 }

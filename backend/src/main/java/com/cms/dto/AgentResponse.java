@@ -9,6 +9,7 @@ public record AgentResponse(
     String email,
     String area,
     String locality,
+    Integer allottedSeats,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

@@ -28,6 +28,11 @@
   align-items: center;
   gap: 16px;
   margin-bottom: 12px;
+
+  .add-fee-type-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
 }
 
 .items-error {
@@ -37,7 +42,7 @@
 
 .fee-table-head {
   display: grid;
-  grid-template-columns: 200px 1fr 80px 60px 16px;
+  grid-template-columns: 200px 160px 1fr 16px;
   gap: 12px;
   padding: 0 8px 8px;
   font-size: 0.78rem;
@@ -45,10 +50,6 @@
   color: var(--mat-sys-on-surface-variant, #666);
   border-bottom: 1px solid var(--mat-sys-outline-variant, #e8e8e8);
   margin-bottom: 4px;
-
-  &.has-year-amounts {
-    grid-template-columns: 200px 1fr 80px 60px 16px;
-  }
 }
 
 .fee-item-block {
@@ -62,7 +63,7 @@
 
 .fee-item-row {
   display: grid;
-  grid-template-columns: 200px 160px 1fr 60px 60px 40px;
+  grid-template-columns: 200px 160px 1fr 40px;
   gap: 8px;
   align-items: flex-start;
   padding: 4px 0;
@@ -70,12 +71,11 @@
   .col-feetype { min-width: 0; }
   .col-amount  { min-width: 0; }
   .col-desc    { min-width: 0; }
-  .col-toggle  { display: flex; align-items: center; padding-top: 16px; }
   .col-del     { display: flex; align-items: center; padding-top: 8px; }
 }
 
 .has-year-amounts .fee-item-row {
-  grid-template-columns: 200px 1fr 60px 60px 40px;
+  grid-template-columns: 200px 160px 1fr 40px;
 }
 
 .remove-btn {
@@ -135,8 +135,4 @@
   font-weight: 800;
   font-size: 1.25rem;
   color: var(--mat-sys-primary, #1976d2);
-}
-
-.add-item-row {
-  padding-top: 12px;
 }

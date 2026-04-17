@@ -30,6 +30,10 @@
             <mat-label>Locality</mat-label>
             <input matInput formControlName="locality" />
           </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Allotted Seats</mat-label>
+            <input matInput type="number" formControlName="allottedSeats" min="0" />
+          </mat-form-field>
           <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
           <div class="form-actions">
             <button mat-stroked-button type="button" routerLink="/agents">Cancel</button>

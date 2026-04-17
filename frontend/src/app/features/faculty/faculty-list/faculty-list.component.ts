@@ -60,6 +60,8 @@ export class FacultyListComponent implements OnInit {
   protected readonly displayedColumns = [
     'employeeCode',
     'fullName',
+    'phone',
+    'email',
     'departmentName',
     'designation',
     'status',

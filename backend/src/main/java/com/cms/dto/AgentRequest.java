@@ -14,5 +14,7 @@ public record AgentRequest(
 
     String locality,
 
+    Integer allottedSeats,
+
     Boolean isActive
 ) {}

@@ -97,11 +97,10 @@ export class ProgramFormComponent implements OnInit {
         this.snackBar.open(message, 'Close', { duration: 3000 });
         void this.router.navigate(['/programs']);
       },
-      error: () => {
-        const message = this.isEditMode()
-          ? 'Failed to update program'
-          : 'Failed to create program';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+      error: (err) => {
+        const message = err?.error?.message
+          ?? (this.isEditMode() ? 'Failed to update program' : 'Failed to create program');
+        this.snackBar.open(message, 'Close', { duration: 4000 });
         this.saving.set(false);
       },
     });
