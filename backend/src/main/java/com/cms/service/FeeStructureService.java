@@ -53,17 +53,12 @@ public class FeeStructureService {
 
     @Transactional
     public List<FeeStructureResponse> bulkCreate(BulkFeeStructureRequest request) {
-        Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
-        for (FeeStructureItemRequest item : request.items()) {
-            if (!seenTypes.add(item.feeType())) {
-                throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
-            }
-        }
+        validateNoDuplicateFeeTypes(request.items());
 
-        Program program = programRepository.findById(request.programId())
+        programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
+        academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
 
         if (request.courseId() != null) {
@@ -88,14 +83,17 @@ public class FeeStructureService {
         return bulkCreateInternal(request);
     }
 
-    private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
+    private void validateNoDuplicateFeeTypes(List<FeeStructureItemRequest> items) {
         Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
-        for (FeeStructureItemRequest item : request.items()) {
+        for (FeeStructureItemRequest item : items) {
             if (!seenTypes.add(item.feeType())) {
                 throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
             }
         }
+    }
 
+    private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
+        validateNoDuplicateFeeTypes(request.items());
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 

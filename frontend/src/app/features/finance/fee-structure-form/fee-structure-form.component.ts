@@ -206,7 +206,7 @@ export class FeeStructureFormComponent implements OnInit {
                 description: [''],
                 yearAmounts: this.fb.array([]),
               });
-              if (duration >= 1) {
+              if (duration > 1) {
                 const ya = newGroup.get('yearAmounts') as FormArray;
                 for (let i = 1; i <= duration; i++) {
                   ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.required, Validators.min(0)]] }));
@@ -305,7 +305,7 @@ export class FeeStructureFormComponent implements OnInit {
     });
     this.feeItems.push(newGroup);
     const duration = this.selectedProgramDuration();
-    if (duration >= 1) {
+    if (duration > 1) {
       this.buildYearAmountsForItem(this.feeItems.length - 1, duration);
     }
     this._grandTotalVersion.update((v) => v + 1);
