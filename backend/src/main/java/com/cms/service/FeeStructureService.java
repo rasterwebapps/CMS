@@ -1,8 +1,11 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -12,6 +15,7 @@ import com.cms.dto.BulkFeeStructureRequest;
 import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
+import com.cms.dto.GroupedFeeStructureResponse;
 import com.cms.dto.YearAmountResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
@@ -218,6 +222,76 @@ public class FeeStructureService {
         }
         yearAmountRepository.deleteByFeeStructureId(id);
         feeStructureRepository.deleteById(id);
+    }
+
+    public List<GroupedFeeStructureResponse> findGrouped(Long programId, Long academicYearId, Long courseId) {
+        List<FeeStructure> allStructures;
+        if (programId != null && academicYearId != null && courseId != null) {
+            allStructures = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, academicYearId);
+        } else if (programId != null && academicYearId != null) {
+            allStructures = feeStructureRepository.findByProgramIdAndAcademicYearId(programId, academicYearId);
+        } else if (programId != null && courseId != null) {
+            allStructures = feeStructureRepository.findByProgramIdAndCourseId(programId, courseId);
+        } else if (programId != null) {
+            allStructures = feeStructureRepository.findByProgramId(programId);
+        } else if (academicYearId != null) {
+            allStructures = feeStructureRepository.findByAcademicYearId(academicYearId);
+        } else {
+            allStructures = feeStructureRepository.findAll();
+        }
+
+        Map<String, List<FeeStructure>> grouped = new LinkedHashMap<>();
+        for (FeeStructure fs : allStructures) {
+            String key = fs.getProgram().getId() + "_" + fs.getAcademicYear().getId() + "_"
+                + (fs.getCourse() != null ? fs.getCourse().getId() : "null");
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(fs);
+        }
+
+        List<GroupedFeeStructureResponse> result = new ArrayList<>();
+        for (List<FeeStructure> group : grouped.values()) {
+            FeeStructure first = group.get(0);
+            BigDecimal total = group.stream()
+                .map(FeeStructure::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            List<FeeStructureResponse> items = group.stream()
+                .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+                .toList();
+            result.add(new GroupedFeeStructureResponse(
+                first.getProgram().getId(),
+                first.getProgram().getName(),
+                first.getCourse() != null ? first.getCourse().getId() : null,
+                first.getCourse() != null ? first.getCourse().getName() : null,
+                first.getAcademicYear().getId(),
+                first.getAcademicYear().getName(),
+                total,
+                items
+            ));
+        }
+        return result;
+    }
+
+    @Transactional
+    public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
+        deleteGroupInternal(request.programId(), request.academicYearId(), request.courseId());
+        return bulkCreate(request);
+    }
+
+    @Transactional
+    public void deleteGroup(Long programId, Long academicYearId, Long courseId) {
+        deleteGroupInternal(programId, academicYearId, courseId);
+    }
+
+    private void deleteGroupInternal(Long programId, Long academicYearId, Long courseId) {
+        List<FeeStructure> toDelete;
+        if (courseId != null) {
+            toDelete = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, academicYearId);
+        } else {
+            toDelete = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(programId, academicYearId);
+        }
+        for (FeeStructure fs : toDelete) {
+            yearAmountRepository.deleteByFeeStructureId(fs.getId());
+            feeStructureRepository.deleteById(fs.getId());
+        }
     }
 
     private List<FeeStructureYearAmount> saveYearAmounts(FeeStructure feeStructure, FeeStructureRequest request) {

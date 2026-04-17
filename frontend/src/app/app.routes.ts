@@ -257,6 +257,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'fee-structures/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-structure-form/fee-structure-form.component').then(
+        (m) => m.FeeStructureFormComponent
+      ),
+  },
+  {
     path: 'fee-structures/:id/edit',
     canActivate: [authGuard],
     loadComponent: () =>

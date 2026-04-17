@@ -1,12 +1,13 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -14,16 +15,24 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { HttpClient } from '@angular/common/http';
 import { FinanceService } from '../finance.service';
-import { FeeStructure } from '../finance.model';
+import { GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { environment } from '../../../../environments';
+
+interface Program { id: number; name: string; }
+interface Course { id: number; name: string; }
+interface AcademicYear { id: number; name: string; }
 
 @Component({
   selector: 'app-fee-structure-list',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
+    DecimalPipe, RouterLink, FormsModule, ReactiveFormsModule,
+    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatInputModule, MatFormFieldModule, MatSelectModule,
+    MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
   ],
   templateUrl: './fee-structure-list.component.html',
@@ -34,45 +43,92 @@ export class FeeStructureListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly http = inject(HttpClient);
+  private readonly fb = inject(FormBuilder);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeType', 'amount', 'isMandatory', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<FeeStructure>([]);
+  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeCount', 'totalAmount', 'actions'];
+  protected readonly dataSource = new MatTableDataSource<GroupedFeeStructure>([]);
   protected readonly loading = signal(false);
-  protected readonly searchValue = signal('');
 
-  ngOnInit(): void { this.load(); }
+  protected readonly programs = signal<Program[]>([]);
+  protected readonly courses = signal<Course[]>([]);
+  protected readonly academicYears = signal<AcademicYear[]>([]);
 
-  protected applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+  protected readonly filterForm: FormGroup = this.fb.group({
+    academicYearId: [null as number | null],
+    programId: [null as number | null],
+    courseId: [null as number | null],
+  });
+
+  ngOnInit(): void {
+    this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({ next: (d) => this.programs.set(d) });
+    this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: (d) => this.academicYears.set(d) });
+    this.load();
   }
 
-  protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
+  protected onProgramFilterChange(programId: number | null): void {
+    this.filterForm.patchValue({ courseId: null });
+    this.courses.set([]);
+    if (programId) {
+      this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
+        next: (d) => this.courses.set(d),
+      });
+    }
+    this.applyFilters();
+  }
 
-  protected edit(item: FeeStructure): void { void this.router.navigate(['/fee-structures', item.id, 'edit']); }
+  protected applyFilters(): void {
+    const v = this.filterForm.value;
+    this.load({
+      programId: v.programId ?? undefined,
+      academicYearId: v.academicYearId ?? undefined,
+      courseId: v.courseId ?? undefined,
+    });
+  }
 
-  protected delete(item: FeeStructure): void {
+  protected clearFilters(): void {
+    this.filterForm.reset();
+    this.courses.set([]);
+    this.load();
+  }
+
+  protected edit(item: GroupedFeeStructure): void {
+    const params: Record<string, string> = {
+      programId: item.programId.toString(),
+      academicYearId: item.academicYearId.toString(),
+    };
+    if (item.courseId) params['courseId'] = item.courseId.toString();
+    void this.router.navigate(['/fee-structures/edit'], { queryParams: params });
+  }
+
+  protected delete(item: GroupedFeeStructure): void {
+    const label = `${item.programName} / ${item.academicYearName}${item.courseName ? ' / ' + item.courseName : ''}`;
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Fee Structure', message: `Delete this ${item.feeType} fee structure?`, confirmText: 'Delete', cancelText: 'Cancel' },
+      data: {
+        title: 'Delete Fee Structure Group',
+        message: `Delete all fee structures for "${label}"?`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 
-  private doDelete(item: FeeStructure): void {
+  private doDelete(item: GroupedFeeStructure): void {
     this.loading.set(true);
-    this.financeService.deleteFeeStructure(item.id).subscribe({
+    this.financeService.deleteGroupedFeeStructures(
+      item.programId, item.academicYearId, item.courseId ?? undefined
+    ).subscribe({
       next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
       error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
     });
   }
 
-  private load(): void {
+  private load(params?: { programId?: number; academicYearId?: number; courseId?: number }): void {
     this.loading.set(true);
-    this.financeService.getFeeStructures().subscribe({
+    this.financeService.getGroupedFeeStructures(params).subscribe({
       next: (data) => {
         this.dataSource.data = data;
         this.dataSource.paginator = this.paginator;
@@ -83,3 +139,4 @@ export class FeeStructureListComponent implements OnInit {
     });
   }
 }
+

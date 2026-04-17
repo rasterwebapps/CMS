@@ -1,2 +1,4 @@
 // Fee structure list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+.filter-field {
+  min-width: 180px;
+}

@@ -32,6 +32,17 @@ export interface FeeStructure {
   updatedAt: string;
 }
 
+export interface GroupedFeeStructure {
+  programId: number;
+  programName: string;
+  courseId: number | null;
+  courseName: string | null;
+  academicYearId: number;
+  academicYearName: string;
+  totalAmount: number;
+  items: FeeStructure[];
+}
+
 export interface FeeStructureRequest {
   programId: number;
   academicYearId: number;

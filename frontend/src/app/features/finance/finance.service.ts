@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -7,6 +7,7 @@ import {
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, BulkFeeStructureRequest,
+  GroupedFeeStructure,
 } from './finance.model';
 
 @Injectable({
@@ -20,6 +21,30 @@ export class FinanceService {
 
   bulkCreateFeeStructures(request: BulkFeeStructureRequest): Observable<FeeStructure[]> {
     return this.http.post<FeeStructure[]>(`${this.feeStructureUrl}/bulk`, request);
+  }
+
+  bulkUpdateFeeStructures(request: BulkFeeStructureRequest): Observable<FeeStructure[]> {
+    return this.http.put<FeeStructure[]>(`${this.feeStructureUrl}/bulk`, request);
+  }
+
+  getGroupedFeeStructures(params?: {
+    programId?: number;
+    academicYearId?: number;
+    courseId?: number;
+  }): Observable<GroupedFeeStructure[]> {
+    let httpParams = new HttpParams();
+    if (params?.programId) httpParams = httpParams.set('programId', params.programId.toString());
+    if (params?.academicYearId) httpParams = httpParams.set('academicYearId', params.academicYearId.toString());
+    if (params?.courseId) httpParams = httpParams.set('courseId', params.courseId.toString());
+    return this.http.get<GroupedFeeStructure[]>(`${this.feeStructureUrl}/grouped`, { params: httpParams });
+  }
+
+  deleteGroupedFeeStructures(programId: number, academicYearId: number, courseId?: number): Observable<void> {
+    let httpParams = new HttpParams()
+      .set('programId', programId.toString())
+      .set('academicYearId', academicYearId.toString());
+    if (courseId) httpParams = httpParams.set('courseId', courseId.toString());
+    return this.http.delete<void>(`${this.feeStructureUrl}/group`, { params: httpParams });
   }
 
   getFeeStructures(): Observable<FeeStructure[]> {

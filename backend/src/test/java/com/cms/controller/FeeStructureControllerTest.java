@@ -29,6 +29,7 @@ import com.cms.dto.BulkFeeStructureRequest;
 import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
+import com.cms.dto.GroupedFeeStructureResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.FeeType;
 import com.cms.service.FeeStructureService;
@@ -229,6 +230,90 @@ class FeeStructureControllerTest {
             .andExpect(jsonPath("$.length()").value(1));
 
         verify(feeStructureService).findByProgramIdAndCourseId(1L, 2L);
+    }
+
+    @Test
+    void shouldReturnGroupedFeeStructures() throws Exception {
+        FeeStructureResponse item = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+        GroupedFeeStructureResponse grouped = new GroupedFeeStructureResponse(
+            1L, "B.Tech CS", null, null, 1L, "2024-25", new BigDecimal("50000.00"), List.of(item)
+        );
+
+        when(feeStructureService.findGrouped(null, null, null)).thenReturn(List.of(grouped));
+
+        mockMvc.perform(get("/fee-structures/grouped"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].programName").value("B.Tech CS"))
+            .andExpect(jsonPath("$[0].totalAmount").value(50000.00))
+            .andExpect(jsonPath("$[0].items.length()").value(1));
+
+        verify(feeStructureService).findGrouped(null, null, null);
+    }
+
+    @Test
+    void shouldReturnGroupedFeeStructuresWithFilters() throws Exception {
+        FeeStructureResponse item = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+        GroupedFeeStructureResponse grouped = new GroupedFeeStructureResponse(
+            1L, "B.Tech CS", 2L, "CS", 1L, "2024-25", new BigDecimal("50000.00"), List.of(item)
+        );
+
+        when(feeStructureService.findGrouped(1L, 1L, 2L)).thenReturn(List.of(grouped));
+
+        mockMvc.perform(get("/fee-structures/grouped")
+                .param("programId", "1")
+                .param("academicYearId", "1")
+                .param("courseId", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(feeStructureService).findGrouped(1L, 1L, 2L);
+    }
+
+    @Test
+    void shouldBulkUpdateFeeStructures() throws Exception {
+        FeeStructureItemRequest tuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition));
+
+        FeeStructureResponse resp = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        when(feeStructureService.bulkUpdate(any(BulkFeeStructureRequest.class))).thenReturn(List.of(resp));
+
+        mockMvc.perform(put("/fee-structures/bulk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].feeType").value("TUITION"));
+
+        verify(feeStructureService).bulkUpdate(any(BulkFeeStructureRequest.class));
+    }
+
+    @Test
+    void shouldDeleteGroup() throws Exception {
+        doNothing().when(feeStructureService).deleteGroup(1L, 1L, null);
+
+        mockMvc.perform(delete("/fee-structures/group")
+                .param("programId", "1")
+                .param("academicYearId", "1"))
+            .andExpect(status().isNoContent());
+
+        verify(feeStructureService).deleteGroup(1L, 1L, null);
+    }
+
+    @Test
+    void shouldDeleteGroupWithCourse() throws Exception {
+        doNothing().when(feeStructureService).deleteGroup(1L, 1L, 2L);
+
+        mockMvc.perform(delete("/fee-structures/group")
+                .param("programId", "1")
+                .param("academicYearId", "1")
+                .param("courseId", "2"))
+            .andExpect(status().isNoContent());
+
+        verify(feeStructureService).deleteGroup(1L, 1L, 2L);
     }
 
     private FeeStructureResponse createResponse(Long id, FeeType feeType, BigDecimal amount) {

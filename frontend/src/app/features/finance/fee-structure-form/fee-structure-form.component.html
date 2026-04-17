@@ -8,274 +8,132 @@
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
 
-    <!-- ═══════════════════════════════════════════════════════════
-         CREATE MODE — Bill-style bulk form
-    ═══════════════════════════════════════════════════════════ -->
-    @if (!isEditMode()) {
-      <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
-        <!-- Header: Program / Course / Academic Year -->
-        <mat-card appearance="outlined" class="form-card">
-          <mat-card-content class="form">
+      <!-- Header: Program / Course / Academic Year -->
+      <mat-card appearance="outlined" class="form-card">
+        <mat-card-content class="form">
 
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Program *</mat-label>
+            <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
+              @for (p of programs(); track p.id) {
+                <mat-option [value]="p.id">{{ p.name }}</mat-option>
+              }
+            </mat-select>
+            @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
+              <mat-error>Program is required</mat-error>
+            }
+          </mat-form-field>
+
+          @if (courses().length > 0) {
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Program *</mat-label>
-              <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
-                @for (p of programs(); track p.id) {
-                  <mat-option [value]="p.id">{{ p.name }}</mat-option>
+              <mat-label>Course</mat-label>
+              <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
+                @for (c of courses(); track c.id) {
+                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
                 }
               </mat-select>
-              @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
-                <mat-error>Program is required</mat-error>
-              }
             </mat-form-field>
-
-            @if (courses().length > 0) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Course</mat-label>
-                <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
-                  @for (c of courses(); track c.id) {
-                    <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            }
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Academic Year *</mat-label>
-              <mat-select formControlName="academicYearId">
-                @for (ay of academicYears(); track ay.id) {
-                  <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
-                }
-              </mat-select>
-              @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
-                <mat-error>Academic Year is required</mat-error>
-              }
-            </mat-form-field>
-
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Fee Items Section -->
-        <div class="fee-items-section">
-          <div class="fee-items-header-row">
-            <h3 class="section-title">Fee Items</h3>
-            @if (feeItems.invalid && feeItems.touched) {
-              <span class="items-error">Each fee item must have a type and a positive amount</span>
-            }
-            <button mat-stroked-button type="button" class="add-fee-type-btn" [disabled]="!canAddMoreItems" (click)="addItem()">
-              <mat-icon>add</mat-icon> Add Fee Type
-            </button>
-          </div>
-
-          <!-- Column headers -->
-          <div class="fee-table-head">
-            <span class="col-feetype">Fee Type</span>
-            <span class="col-amount">Amount (₹)</span>
-            <span class="col-desc">Description</span>
-            <span class="col-del"></span>
-          </div>
-
-          <!-- Item rows -->
-          @for (item of feeItems.controls; track $index; let i = $index) {
-            @let currentFeeType = getItemGroup(i).get('feeType')?.value;
-            <div class="fee-item-block" [class.has-year-amounts]="selectedCourseDuration() > 1">
-
-              <!-- Main row -->
-              <div class="fee-item-row" [formGroup]="getItemGroup(i)">
-
-                <mat-form-field appearance="outline" class="col-feetype">
-                  <mat-label>Fee Type</mat-label>
-                  <mat-select formControlName="feeType">
-                    @for (ft of getAvailableFeeTypes(i); track ft) {
-                      <mat-option [value]="ft">{{ feeTypeLabels[ft] }}</mat-option>
-                    }
-                    @if (currentFeeType && !getAvailableFeeTypes(i).includes(currentFeeType)) {
-                      <mat-option [value]="currentFeeType">
-                        {{ feeTypeLabels[currentFeeType] }}
-                      </mat-option>
-                    }
-                  </mat-select>
-                  @if (getItemGroup(i).get('feeType')?.invalid && getItemGroup(i).get('feeType')?.touched) {
-                    <mat-error>Required</mat-error>
-                  }
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="col-amount">
-                  <mat-label>Amount (₹)</mat-label>
-                  <input matInput type="number" formControlName="amount" min="0.01"
-                         [readonly]="selectedCourseDuration() > 1"
-                         (input)="onItemAmountChange()" />
-                  @if (getItemGroup(i).get('amount')?.invalid && getItemGroup(i).get('amount')?.touched) {
-                    <mat-error>Enter a positive amount</mat-error>
-                  }
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="col-desc">
-                  <mat-label>Description</mat-label>
-                  <input matInput formControlName="description" />
-                </mat-form-field>
-
-                <button
-                  mat-icon-button type="button"
-                  class="col-del remove-btn"
-                  [disabled]="feeItems.length === 1"
-                  (click)="removeItem(i)"
-                  matTooltip="Remove row"
-                >
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
-              </div>
-
-              <!-- Year-wise amounts (shown when course has durationYears > 1) -->
-              @if (selectedCourseDuration() > 1) {
-                <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
-                  <div class="year-amounts-grid" formArrayName="yearAmounts">
-                    @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
-                      <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
-                        <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
-                        <input matInput type="number" formControlName="amount" min="0"
-                               (input)="onItemYearAmountChange(i)" />
-                      </mat-form-field>
-                    }
-                  </div>
-                  <div class="item-year-total">
-                    <span>Row total:</span>
-                    <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
-                  </div>
-                </div>
-              }
-
-            </div>
           }
 
-          <!-- Grand Total -->
-          <div class="grand-total-row">
-            <span class="grand-total__label">Grand Total</span>
-            <span class="grand-total__value">₹{{ grandTotal() | number }}</span>
-          </div>
-
-        </div>
-
-        <!-- Actions -->
-        <div class="form-actions">
-          <button mat-stroked-button type="button" routerLink="/fee-structures">Cancel</button>
-          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              Save All
-            }
-          </button>
-        </div>
-
-      </form>
-    }
-
-    <!-- ═══════════════════════════════════════════════════════════
-         EDIT MODE — Single item form (unchanged)
-    ═══════════════════════════════════════════════════════════ -->
-    @if (isEditMode()) {
-      <mat-card appearance="outlined" class="form-card">
-        <mat-card-content>
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Program</mat-label>
-              <mat-select formControlName="programId" (selectionChange)="onProgramChange($event.value)">
-                @for (p of programs(); track p.id) {
-                  <mat-option [value]="p.id">{{ p.name }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-                <mat-error>Program is required</mat-error>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Academic Year *</mat-label>
+            <mat-select formControlName="academicYearId">
+              @for (ay of academicYears(); track ay.id) {
+                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
               }
-            </mat-form-field>
+            </mat-select>
+            @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
+              <mat-error>Academic Year is required</mat-error>
+            }
+          </mat-form-field>
 
-            @if (courses().length > 0) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Course</mat-label>
-                <mat-select formControlName="courseId" (selectionChange)="onCourseChange($event.value)">
-                  @for (c of courses(); track c.id) {
-                    <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                  }
-                </mat-select>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Fee Items Section -->
+      <div class="fee-items-section">
+        <div class="fee-items-header-row">
+          <h3 class="section-title">Fee Items</h3>
+          <p class="section-hint">Enter amounts for the fee types that apply. Leave zero to skip.</p>
+        </div>
+
+        <!-- Column headers -->
+        <div class="fee-table-head">
+          <span class="col-feetype">Fee Type</span>
+          <span class="col-amount">Amount (₹)</span>
+          <span class="col-desc">Description</span>
+        </div>
+
+        <!-- Item rows -->
+        @for (item of feeItems.controls; track $index; let i = $index) {
+          <div class="fee-item-block" [class.has-year-amounts]="selectedCourseDuration() > 1">
+
+            <!-- Main row -->
+            <div class="fee-item-row" [formGroup]="getItemGroup(i)">
+
+              <div class="col-feetype fee-type-label">
+                <span class="fee-type-badge">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+              </div>
+
+              <mat-form-field appearance="outline" class="col-amount">
+                <mat-label>Amount (₹)</mat-label>
+                <input matInput type="number" formControlName="amount" min="0"
+                       [readonly]="selectedCourseDuration() > 1"
+                       (input)="onItemAmountChange()" />
               </mat-form-field>
-            }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Academic Year</mat-label>
-              <mat-select formControlName="academicYearId">
-                @for (ay of academicYears(); track ay.id) {
-                  <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched) {
-                <mat-error>Academic Year is required</mat-error>
-              }
-            </mat-form-field>
+              <mat-form-field appearance="outline" class="col-desc">
+                <mat-label>Description</mat-label>
+                <input matInput formControlName="description" />
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Fee Type</mat-label>
-              <mat-select formControlName="feeType">
-                @for (ft of feeTypes; track ft) {
-                  <mat-option [value]="ft">{{ feeTypeLabels[ft] }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('feeType')?.invalid && form.get('feeType')?.touched) {
-                <mat-error>Fee Type is required</mat-error>
-              }
-            </mat-form-field>
+            </div>
 
-            @if (yearAmounts.length > 0) {
-              <div class="year-amounts-section">
-                <h3 class="section-title">Year-wise Amounts</h3>
-                @for (ya of yearAmounts.controls; track $index) {
-                  <mat-form-field appearance="outline" class="full-width" [formGroup]="$any(ya)">
-                    <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
-                    <input matInput type="number" formControlName="amount" min="0" (input)="onYearAmountChange()" />
-                  </mat-form-field>
-                }
-                <div class="year-total">
-                  <span class="year-total__label">Total:</span>
-                  <span class="year-total__value">₹{{ calculatedTotal() | number }}</span>
+            <!-- Year-wise amounts (shown when course has durationYears > 1) -->
+            @if (selectedCourseDuration() > 1) {
+              <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
+                <div class="year-amounts-grid" formArrayName="yearAmounts">
+                  @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
+                    <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
+                      <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
+                      <input matInput type="number" formControlName="amount" min="0"
+                             (input)="onItemYearAmountChange(i)" />
+                    </mat-form-field>
+                  }
+                </div>
+                <div class="item-year-total">
+                  <span>Row total:</span>
+                  <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
                 </div>
               </div>
             }
 
-            @if (yearAmounts.length === 0) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Amount (₹)</mat-label>
-                <input matInput type="number" formControlName="amount" min="0" />
-                @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-                  <mat-error>Amount is required</mat-error>
-                }
-              </mat-form-field>
-            }
+          </div>
+        }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Description</mat-label>
-              <textarea matInput formControlName="description" rows="3"></textarea>
-            </mat-form-field>
+        <!-- Grand Total -->
+        <div class="grand-total-row">
+          <span class="grand-total__label">Grand Total</span>
+          <span class="grand-total__value">₹{{ grandTotal() | number }}</span>
+        </div>
 
-            <div class="toggle-row">
-              <mat-slide-toggle formControlName="isMandatory">Mandatory</mat-slide-toggle>
-              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
-            </div>
+      </div>
 
-            <div class="form-actions">
-              <button mat-stroked-button type="button" routerLink="/fee-structures">Cancel</button>
-              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-                @if (saving()) {
-                  <mat-spinner diameter="20"></mat-spinner>
-                } @else {
-                  Update
-                }
-              </button>
-            </div>
-          </form>
-        </mat-card-content>
-      </mat-card>
-    }
+      <!-- Actions -->
+      <div class="form-actions">
+        <button mat-stroked-button type="button" routerLink="/fee-structures">Cancel</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            {{ isEditMode() ? 'Update' : 'Save All' }}
+          }
+        </button>
+      </div>
+
+    </form>
 
   }
 </div>
