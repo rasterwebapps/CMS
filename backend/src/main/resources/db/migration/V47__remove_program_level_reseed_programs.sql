@@ -3,7 +3,9 @@
 -- Step 1: Drop the program_level column (no longer needed — Program IS the level)
 ALTER TABLE programs DROP COLUMN IF EXISTS program_level;
 
--- Step 2: Remove existing seeded programs that were domain-specific
+-- Step 2: Remove domain-specific seed programs from the initial V45 seed data.
+-- These codes (BSC_NURS, MSC_NURS, GNM) were only inserted by V45__insert_seed_data.sql.
+-- Any programs added by users after initial setup will not be affected by this deletion.
 DELETE FROM program_departments WHERE program_id IN (
     SELECT id FROM programs WHERE code IN ('BSC_NURS', 'MSC_NURS', 'GNM')
 );
