@@ -194,3 +194,111 @@ already exists.
 - Update is successful (same name in a different department is not a conflict)
 
 **Status:** NOT TESTED
+
+---
+
+## TC-DUP-012: Edit equipment with an asset code that already exists
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Two equipment items exist: "Dell Computer" (ASSET001) and "HP Computer" (ASSET002)
+
+**Steps:**
+1. Navigate to Equipment and click Edit on "Dell Computer"
+2. Change the Asset Code field to "ASSET002"
+3. Click Save
+
+**Expected Result:**
+- Save is rejected with an error alert: "Equipment with asset code 'ASSET002' already exists"
+- Equipment is NOT updated
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DUP-013: Edit equipment keeping the same asset code (no conflict)
+
+**Preconditions:**
+- Equipment "Dell Computer" (ASSET001) exists
+
+**Steps:**
+1. Navigate to Equipment and click Edit on "Dell Computer"
+2. Change the Name only, keep Asset Code as "ASSET001"
+3. Click Save
+
+**Expected Result:**
+- Equipment is updated successfully (same asset code — not treated as a conflict with itself)
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DUP-014: Edit faculty with an employee code that already exists
+
+**Preconditions:**
+- Two faculty members exist: "John Doe" (EMP001) and "Jane Smith" (EMP002)
+
+**Steps:**
+1. Navigate to Faculty and click Edit on "John Doe"
+2. Change the Employee Code field to "EMP002"
+3. Click Save
+
+**Expected Result:**
+- Save is rejected with an error alert: "A faculty with employee code 'EMP002' already exists"
+- Faculty is NOT updated
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DUP-015: Edit faculty with an email that already exists
+
+**Preconditions:**
+- Two faculty members exist: "John Doe" (john@college.edu) and "Jane Smith" (jane@college.edu)
+
+**Steps:**
+1. Navigate to Faculty and click Edit on "John Doe"
+2. Change the Email to "jane@college.edu"
+3. Click Save
+
+**Expected Result:**
+- Save is rejected with an error alert: "A faculty with email 'jane@college.edu' already exists"
+- Faculty is NOT updated
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DUP-016: Edit agent with a name that already exists
+
+**Preconditions:**
+- Two agents exist: "North Zone Agent" and "South Zone Agent"
+
+**Steps:**
+1. Navigate to Agents and click Edit on "North Zone Agent"
+2. Change the Name field to "South Zone Agent"
+3. Click Save
+
+**Expected Result:**
+- Save is rejected with an error alert: "An agent with the name 'South Zone Agent' already exists"
+- Agent is NOT updated
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DUP-017: Edit fee structure with a fee type that already exists in the same group
+
+**Preconditions:**
+- Two fee structures exist for the same Program + Academic Year + Course: TUITION and LAB_FEE
+
+**Steps:**
+1. Navigate to Fee Structures and edit the TUITION entry for that combination
+2. Change the Fee Type to "LAB_FEE"
+3. Click Save
+
+**Expected Result:**
+- Save is rejected with an error alert: "A fee structure with fee type 'LAB_FEE' already exists for this program and academic year combination"
+- Fee structure is NOT updated
+
+**Status:** NOT TESTED

@@ -268,6 +268,8 @@ class FacultyServiceTest {
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
+        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP001-UPD", 1L)).thenReturn(false);
+        when(facultyRepository.existsByEmailAndIdNot("john.updated@college.edu", 1L)).thenReturn(false);
         when(facultyRepository.save(any(Faculty.class))).thenReturn(updatedFaculty);
 
         FacultyResponse response = facultyService.update(1L, updateRequest);
@@ -282,6 +284,51 @@ class FacultyServiceTest {
         verify(facultyRepository).findById(1L);
         verify(departmentRepository).findById(2L);
         verify(facultyRepository).save(any(Faculty.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithDuplicateEmployeeCode() {
+        Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
+            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+
+        FacultyRequest request = new FacultyRequest(
+            "EMP002", "John", "Doe", "john@college.edu", "123",
+            1L, Designation.PROFESSOR, "AI", "ML Lab",
+            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
+        );
+
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP002", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> facultyService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A faculty with employee code 'EMP002' already exists");
+
+        verify(facultyRepository, never()).save(any(Faculty.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithDuplicateEmail() {
+        Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
+            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+
+        FacultyRequest request = new FacultyRequest(
+            "EMP001", "John", "Doe", "other@college.edu", "123",
+            1L, Designation.PROFESSOR, "AI", "ML Lab",
+            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
+        );
+
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP001", 1L)).thenReturn(false);
+        when(facultyRepository.existsByEmailAndIdNot("other@college.edu", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> facultyService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("A faculty with email 'other@college.edu' already exists");
+
+        verify(facultyRepository, never()).save(any(Faculty.class));
     }
 
     @Test

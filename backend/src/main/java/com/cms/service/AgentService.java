@@ -58,6 +58,11 @@ public class AgentService {
         Agent agent = agentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + id));
 
+        if (agentRepository.existsByNameAndIdNot(request.name(), id)) {
+            throw new IllegalArgumentException(
+                "An agent with the name '" + request.name() + "' already exists");
+        }
+
         agent.setName(request.name());
         agent.setPhone(request.phone());
         agent.setEmail(request.email());

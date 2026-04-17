@@ -18,6 +18,10 @@ public interface FacultyRepository extends JpaRepository<Faculty, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmployeeCodeAndIdNot(String employeeCode, Long id);
+
+    boolean existsByEmailAndIdNot(String email, Long id);
+
     List<Faculty> findByDepartmentId(Long departmentId);
 
     List<Faculty> findByStatus(FacultyStatus status);
