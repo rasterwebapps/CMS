@@ -433,6 +433,7 @@ class FeeStructureServiceTest {
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of());
         when(feeStructureRepository.save(any(FeeStructure.class)))
             .thenReturn(savedTuition)
             .thenReturn(savedLab);
@@ -506,6 +507,7 @@ class FeeStructureServiceTest {
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
         when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(1L, 1L, 1L)).thenReturn(List.of());
         when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(saved);
         when(yearAmountRepository.save(any(com.cms.model.FeeStructureYearAmount.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -650,6 +652,26 @@ class FeeStructureServiceTest {
 
         verify(yearAmountRepository).deleteByFeeStructureId(1L);
         verify(feeStructureRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldThrowWhenBulkCreateGroupAlreadyExists() {
+        FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("60000.00"), null, true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(item));
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L))
+            .thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> feeStructureService.bulkCreate(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("A fee structure already exists for this program, course, and academic year combination");
+
+        verify(feeStructureRepository, never()).save(any());
     }
 
     private FeeStructure createFeeStructure(Long id, Program program, AcademicYear academicYear,

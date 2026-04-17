@@ -981,3 +981,88 @@
 - Only enquiries with the specified referral type are returned
 
 **Status:** NOT TESTED
+
+---
+
+## TC-ENQ-024: Create enquiry with student type (Day Scholar)
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- Application is running
+- A fee structure exists with HOSTEL_FEE and TRANSPORT_FEE amounts configured
+
+**Steps:**
+1. Navigate to **Enquiries** → **Add Enquiry**
+2. Select a Program that has a fee structure
+3. Select **Student Type = Day Scholar**
+4. Observe the fee panel on the right
+
+**Expected Result:**
+- Fee panel shows only the **total fee** (no year-wise or type breakdown)
+- HOSTEL_FEE is **excluded** from the total; TRANSPORT_FEE is **included**
+- The total reflects Day Scholar applicable fees
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-025: Create enquiry with student type (Hosteler)
+
+**Preconditions:**
+- Same as TC-ENQ-024
+
+**Steps:**
+1. Navigate to **Enquiries** → **Add Enquiry**
+2. Select a Program that has a fee structure
+3. Select **Student Type = Hosteler**
+4. Observe the fee panel on the right
+
+**Expected Result:**
+- Fee panel shows only the **total fee**
+- TRANSPORT_FEE is **excluded** from the total; HOSTEL_FEE is **included**
+- The total reflects Hosteler applicable fees
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-026: Student type shown in enquiry list
+
+**Preconditions:**
+- Enquiries exist with different student types
+
+**Steps:**
+1. Navigate to **Enquiries** list
+2. Observe the **Student Type** column
+3. Verify Day Scholar shows as a badge labeled "Day Scholar"
+4. Verify Hosteler shows as a badge labeled "Hosteler"
+5. Verify enquiries without student type show "—"
+
+**Expected Result:**
+- Student Type column is visible in the list
+- Day Scholar and Hosteler have distinct badges
+- Enquiries without student type show "—"
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-027: Fee total updates when student type changes
+
+**Preconditions:**
+- Fee structure exists with both HOSTEL_FEE (₹50,000) and TRANSPORT_FEE (₹20,000)
+
+**Steps:**
+1. Open Add Enquiry form
+2. Select a Program with the above fee structure
+3. Note the total fee with no student type selected (includes all)
+4. Change Student Type to **Day Scholar** — note total (HOSTEL_FEE excluded)
+5. Change Student Type to **Hosteler** — note total (TRANSPORT_FEE excluded)
+
+**Expected Result:**
+- Total fee changes on every student type selection
+- Day Scholar total = All fees − HOSTEL_FEE
+- Hosteler total = All fees − TRANSPORT_FEE
+
+**Status:** NOT TESTED
+

@@ -18,6 +18,7 @@
 - [BR-9: Document Submission](#br-9-document-submission)
 - [BR-10: Convert Enquiry to Student](#br-10-convert-enquiry-to-student)
 - [BR-11: Student Explorer with Filters](#br-11-student-explorer-with-filters)
+- [BR-12: Student Type on Enquiry](#br-12-student-type-on-enquiry)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -43,14 +44,15 @@ This applies to:
 
 ### Business Rule
 
-The fee structure is defined **per program per academic year**. Since fees may vary from year to year, every fee structure entry must be scoped to a specific academic year. When viewing or calculating fees, the system must always reference the fee structure for the **current academic year** associated with the selected program.
+The fee structure is defined **per program (or course) per academic year**. Since fees may vary from year to year, every fee structure entry must be scoped to a specific academic year. When viewing or calculating fees, the system must always reference the fee structure for the **current academic year** associated with the selected program.
 
 ### Key Points
 
 1. A fee structure record is uniquely identified by the combination of **program + academic year + fee type**.
-2. Fee structures from previous academic years are retained for historical reference but are not used for new enquiries or admissions.
-3. When a new academic year begins, administrators must create new fee structure entries for each program. Previous year entries are **not** automatically carried forward.
-4. The fee structure screen must allow filtering by both program and academic year.
+2. **There must be only one fee structure group per course (or program) per academic year.** Creating a second group for the same combination is rejected by the system.
+3. Fee structures from previous academic years are retained for historical reference but are not used for new enquiries or admissions.
+4. When a new academic year begins, administrators must create new fee structure entries for each program. Previous year entries are **not** automatically carried forward.
+5. The fee structure screen must allow filtering by both program and academic year.
 
 ### Entities Involved
 
@@ -68,15 +70,17 @@ The fee structure is defined **per program per academic year**. Since fees may v
 
 ### Business Rule
 
-When selecting a program in the fee structure screen, the system must dynamically generate **year-wise fee input boxes** based on the program's `durationYears` field. Each box represents one year of the program (e.g., "First Year", "Second Year", "Third Year" for a 3-year program).
+When selecting a program in the fee structure screen, the system must dynamically generate **year-wise fee input boxes for every fee type** based on the program's `durationYears` field. Each box represents one year of the program (e.g., "Year 1", "Year 2", "Year 3" for a 3-year program). All 8 fee types are shown for all year boxes.
 
 ### Key Points
 
-1. The number of year-wise fee boxes equals the `durationYears` value of the selected program.
-2. Each box is labeled sequentially: "First Year", "Second Year", "Third Year", "Fourth Year", etc.
-3. Each year-wise amount is stored as a separate record in the database, linked to the fee structure.
-4. The sum of all year-wise amounts should equal the total fee for that fee type.
-5. This allows institutions to have different fee amounts for different years of the same program.
+1. The number of year-wise fee boxes equals the `durationYears` value of the **selected program** (not the course).
+2. Year boxes are shown for **every fee type** (TUITION, LAB_FEE, LIBRARY_FEE, EXAMINATION_FEE, HOSTEL_FEE, TRANSPORT_FEE, MISCELLANEOUS, LATE_FEE).
+3. Each box is labeled sequentially: "Year 1", "Year 2", "Year 3", "Year 4", etc.
+4. Each year-wise amount is stored as a separate record in the database, linked to the fee structure.
+5. The sum of all year-wise amounts for a fee type equals the total fee for that fee type.
+6. This allows institutions to have different fee amounts for different years of the same program.
+7. The year box count is driven by program duration; course selection only scopes which fee structure to save (per program+course+academic year).
 
 ### Example
 
@@ -115,41 +119,47 @@ FeeStructureYearAmount:
 
 ### Business Rule
 
-When the front office selects a **program** and **course** on the enquiry screen, the system must display the **fee structure for that program + course in the current academic year** as a guideline panel on the side. This helps the front office personnel inform the enquirer about the fees.
+When the front office selects a **program** and **course** on the enquiry screen, the system must display the **fee for that program + course in the current academic year** as a guideline panel on the side. Only the **total fee** is shown — no year-wise breakdown or fee type split-up. The total fee shown depends on the **student type** selected.
 
 ### Key Points
 
 1. The fee guideline panel is **read-only** on the enquiry screen — it is for reference only.
-2. It shows the total fee, year-wise breakdown (from BR-2), and individual fee type amounts.
+2. **Only the total fee is displayed** — no year-wise breakdown or individual fee type amounts.
 3. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **program and course**.
-4. If no fee structure exists for the selected program+course in the current academic year, the panel shows a message: "No fee structure defined for this program in the current academic year."
-5. The chosen/displayed guideline values must be **saved with the enquiry record** so they can be presented to the admin during fee finalization (BR-6).
-6. **Flow**: Select Program → Select Course → Fee structure panel auto-loads.
+4. If no fee structure exists for the selected program+course in the current academic year, the panel shows a message: "No fee structure defined for this program."
+5. The chosen/displayed guideline total is **saved with the enquiry record** for use during fee finalization (BR-6).
+6. **Flow**: Select Program → Select Course → Select Student Type → Fee total auto-loads.
+
+### Student Type Fee Rules (BR-12)
+
+The total fee displayed depends on the **student type** chosen on the enquiry form:
+
+| Student Type | Fee Types Included |
+|---|---|
+| **Day Scholar** | TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + **TRANSPORT_FEE** + MISCELLANEOUS + LATE_FEE |
+| **Hosteler** | TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + **HOSTEL_FEE** + MISCELLANEOUS + LATE_FEE |
+| **Not Specified** | All fee types included |
+
+- HOSTEL_FEE is included **only for Hostelers**.
+- TRANSPORT_FEE is included **only for Day Scholars**.
+- All other fees are common for all student types.
 
 ### Screen Layout
 
 ```
 ┌─────────────────────────────────┬──────────────────────────────┐
-│ Enquiry Form                    │ Fee Structure Guideline       │
+│ Enquiry Form                    │ Fee Structure                 │
 │                                 │                              │
 │ Name: [___________]             │ Program: B.Sc Nursing        │
-│ Phone: [__________]             │ Course: BSc Nursing          │
-│ Email: [__________]             │ Academic Year: 2026-27       │
-│ Program: [▼ Select Program]     │ Duration: 4 Years            │
-│ Course: [▼ Select Course]       │                              │
-│ Referral Type: [▼ Select]       │ Total Fee: ₹4,00,000        │
+│ Phone: [__________]             │ Duration: 4 Years            │
+│ Email: [__________]             │                              │
+│ Program: [▼ Select Program]     │ Total Course Fee             │
+│ Course: [▼ Select Course]       │ (Hosteler)                   │
+│ Student Type: [▼ Hosteler]      │ ₹4,20,000                   │
+│ Referral Type: [▼ Select]       │                              │
 │ Agent: [▼ Select] (if agent)    │                              │
-│                                 │ Year-wise Breakdown:         │
-│ Remarks: [___________]          │  Year 1:  ₹1,20,000         │
-│                                 │  Year 2:  ₹1,00,000         │
-│ [Commission Amount: ₹5,000]     │  Year 3:  ₹90,000           │
-│                                 │  Year 4:  ₹90,000           │
-│ Final Calculated Fee: ₹4,05,000│                              │
-│                                 │ Fee Types:                   │
-│ [Save] [Cancel]                 │  Tuition: ₹3,50,000 *       │
-│                                 │  Lab Fee: ₹30,000 *         │
-│                                 │  Library: ₹10,000 *         │
-│                                 │  Exam Fee: ₹10,000          │
+│ Remarks: [___________]          │                              │
+│ [Save] [Cancel]                 │                              │
 └─────────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -465,6 +475,43 @@ All students created through the enquiry-to-admission process (and other admissi
 
 ---
 
+## BR-12: Student Type on Enquiry
+
+### Business Rule
+
+Every enquiry can optionally capture the **student type** — whether the student will be a **Day Scholar** or a **Hosteler**. This choice affects which fee types are included in the total fee displayed on the enquiry screen.
+
+### Key Points
+
+1. Student type is an optional field on the enquiry form: `DAY_SCHOLAR` or `HOSTELER`.
+2. When **Day Scholar** is selected, the total fee shown **excludes HOSTEL_FEE** and **includes TRANSPORT_FEE**.
+3. When **Hosteler** is selected, the total fee shown **excludes TRANSPORT_FEE** and **includes HOSTEL_FEE**.
+4. When not specified, the total fee includes all fee types.
+5. The student type is saved with the enquiry record and shown in the enquiry list.
+6. Rules for fee type inclusion:
+
+| Fee Type | Day Scholar | Hosteler | Not Specified |
+|---|---|---|---|
+| TUITION | ✓ | ✓ | ✓ |
+| LAB_FEE | ✓ | ✓ | ✓ |
+| LIBRARY_FEE | ✓ | ✓ | ✓ |
+| EXAMINATION_FEE | ✓ | ✓ | ✓ |
+| HOSTEL_FEE | ✗ | ✓ | ✓ |
+| TRANSPORT_FEE | ✓ | ✗ | ✓ |
+| MISCELLANEOUS | ✓ | ✓ | ✓ |
+| LATE_FEE | ✓ | ✓ | ✓ |
+
+### Entities Involved
+
+- `Enquiry` — has `studentType` field (nullable, values: `DAY_SCHOLAR`, `HOSTELER`)
+- `FeeStructure` — filtered by fee type based on student type
+
+### Roles
+
+- **ROLE_ADMIN** — can set/update student type on enquiry form
+
+---
+
 ## 🔄 Enquiry-to-Admission Lifecycle (End-to-End)
 
 This section describes the complete lifecycle of a student from initial enquiry to admission:
@@ -517,6 +564,7 @@ Step 7: STUDENT EXPLORER
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-04-17 | BR-1, BR-2, BR-3, BR-12 | Fee structure and enquiry enhancements: (1) BR-1 updated — one fee structure group per course+academic year enforced; (2) BR-2 updated — year boxes based on program durationYears, all 8 fee types shown; (3) BR-3 updated — enquiry shows total fee only (no split), filtered by student type; (4) BR-12 added — student type (DAY_SCHOLAR/HOSTELER) on enquiry, controls fee inclusion | — |
 | 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |
 | 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, document submission, and student explorer | — |
 

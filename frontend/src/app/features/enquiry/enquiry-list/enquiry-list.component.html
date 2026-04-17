@@ -92,6 +92,19 @@
             <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="studentType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Type</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.studentType === 'DAY_SCHOLAR') {
+                <span class="cms-badge cms-badge--info">Day Scholar</span>
+              } @else if (row.studentType === 'HOSTELER') {
+                <span class="cms-badge cms-badge--accent">Hosteler</span>
+              } @else {
+                <span>—</span>
+              }
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="enquiryDate">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Enquiry Date</th>
             <td mat-cell *matCellDef="let row">

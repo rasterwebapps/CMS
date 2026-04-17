@@ -82,6 +82,10 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly referralTypes = signal<ReferralType[]>([]);
   protected readonly referralAdditionalAmount = signal(0);
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
+  protected readonly studentTypeOptions: { value: 'DAY_SCHOLAR' | 'HOSTELER'; label: string }[] = [
+    { value: 'DAY_SCHOLAR', label: 'Day Scholar' },
+    { value: 'HOSTELER', label: 'Hosteler' },
+  ];
 
   /** Max date for enquiry date picker — today */
   protected readonly maxDate = new Date();
@@ -90,7 +94,6 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly feeStructures = signal<FeeStructureInfo[]>([]);
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
   protected readonly totalFees = signal(0);
-  protected readonly yearWiseFees = signal<number[]>([]);
   protected readonly finalCalculatedFee = computed(() => this.totalFees() + this.referralAdditionalAmount());
 
   private itemId: number | null = null;
@@ -107,6 +110,7 @@ export class EnquiryFormComponent implements OnInit {
     agentId: [null as number | null],
     remarks: [''],
     feeDiscussedAmount: [null as number | null],
+    studentType: [null as 'DAY_SCHOLAR' | 'HOSTELER' | null],
   });
 
   ngOnInit(): void {
@@ -138,6 +142,7 @@ export class EnquiryFormComponent implements OnInit {
             agentId: item.agentId,
             remarks: item.remarks,
             feeDiscussedAmount: item.feeDiscussedAmount,
+            studentType: item.studentType ?? null,
           });
           if (item.referralTypeId) {
             this.onReferralTypeChange(item.referralTypeId);
@@ -166,7 +171,6 @@ export class EnquiryFormComponent implements OnInit {
       this.feeStructures.set([]);
       this.selectedProgram.set(null);
       this.totalFees.set(0);
-      this.yearWiseFees.set([]);
     }
   }
 
@@ -175,6 +179,23 @@ export class EnquiryFormComponent implements OnInit {
     if (programId) {
       this.loadFeeStructures(programId, courseId ?? undefined);
     }
+  }
+
+  protected onStudentTypeChange(): void {
+    // Recompute total fees based on new student type
+    this.computeTotalFromFeeStructures(this.feeStructures());
+  }
+
+  private computeTotalFromFeeStructures(data: FeeStructureInfo[]): void {
+    const studentType = this.form.get('studentType')?.value as 'DAY_SCHOLAR' | 'HOSTELER' | null;
+    let filtered = data;
+    if (studentType === 'DAY_SCHOLAR') {
+      filtered = data.filter((fs) => fs.feeType !== 'HOSTEL_FEE');
+    } else if (studentType === 'HOSTELER') {
+      filtered = data.filter((fs) => fs.feeType !== 'TRANSPORT_FEE');
+    }
+    const total = filtered.reduce((sum, fs) => sum + fs.amount, 0);
+    this.totalFees.set(total);
   }
 
   private loadCoursesForProgram(programId: number): void {
@@ -196,41 +217,11 @@ export class EnquiryFormComponent implements OnInit {
     this.http.get<FeeStructureInfo[]>(url).subscribe({
       next: (data) => {
         this.feeStructures.set(data);
-        const total = data.reduce((sum, fs) => sum + fs.amount, 0);
-        this.totalFees.set(total);
-
-        // Build year-wise split: prefer yearAmounts from fee structures if available
-        const years = program?.durationYears ?? 1;
-        const yearAmountsMap = new Map<number, number>();
-        let hasYearAmounts = false;
-        for (const fs of data) {
-          if (fs.yearAmounts && fs.yearAmounts.length > 0) {
-            hasYearAmounts = true;
-            for (const ya of fs.yearAmounts) {
-              yearAmountsMap.set(ya.yearNumber, (yearAmountsMap.get(ya.yearNumber) ?? 0) + ya.amount);
-            }
-          }
-        }
-
-        if (hasYearAmounts) {
-          const splits: number[] = [];
-          for (let i = 1; i <= years; i++) {
-            splits.push(yearAmountsMap.get(i) ?? 0);
-          }
-          this.yearWiseFees.set(splits);
-        } else {
-          const perYear = years > 0 ? total / years : total;
-          const splits: number[] = [];
-          for (let i = 0; i < years; i++) {
-            splits.push(Math.round(perYear * 100) / 100);
-          }
-          this.yearWiseFees.set(splits);
-        }
+        this.computeTotalFromFeeStructures(data);
       },
       error: () => {
         this.feeStructures.set([]);
         this.totalFees.set(0);
-        this.yearWiseFees.set([]);
       },
     });
   }
@@ -270,10 +261,6 @@ export class EnquiryFormComponent implements OnInit {
       dateStr = v.enquiryDate;
     }
 
-    const yearWiseFeesJson = this.yearWiseFees().length > 0
-      ? JSON.stringify(this.yearWiseFees().map((amount, i) => ({ yearNumber: i + 1, amount })))
-      : undefined;
-
     const request: EnquiryRequest = {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
       programId: v.programId || undefined, courseId: v.courseId || undefined,
@@ -284,7 +271,7 @@ export class EnquiryFormComponent implements OnInit {
       feeGuidelineTotal: this.totalFees() || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
       finalCalculatedFee: this.finalCalculatedFee() || undefined,
-      yearWiseFees: yearWiseFeesJson,
+      studentType: v.studentType || undefined,
     };
     this.saving.set(true);
     const op$ = this.isEditMode()

@@ -53,13 +53,47 @@ public class FeeStructureService {
 
     @Transactional
     public List<FeeStructureResponse> bulkCreate(BulkFeeStructureRequest request) {
+        validateNoDuplicateFeeTypes(request.items());
+
+        programRepository.findById(request.programId())
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+
+        academicYearRepository.findById(request.academicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
+
+        if (request.courseId() != null) {
+            courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
+        // Enforce one fee structure group per (program, academic year, course)
+        List<FeeStructure> existing;
+        if (request.courseId() != null) {
+            existing = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(
+                request.programId(), request.courseId(), request.academicYearId());
+        } else {
+            existing = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(
+                request.programId(), request.academicYearId());
+        }
+        if (!existing.isEmpty()) {
+            throw new IllegalArgumentException(
+                "A fee structure already exists for this program, course, and academic year combination. Use the edit function to update it.");
+        }
+
+        return bulkCreateInternal(request);
+    }
+
+    private void validateNoDuplicateFeeTypes(List<FeeStructureItemRequest> items) {
         Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
-        for (FeeStructureItemRequest item : request.items()) {
+        for (FeeStructureItemRequest item : items) {
             if (!seenTypes.add(item.feeType())) {
                 throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
             }
         }
+    }
 
+    private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
+        validateNoDuplicateFeeTypes(request.items());
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
@@ -289,7 +323,7 @@ public class FeeStructureService {
     @Transactional
     public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
         deleteGroupInternal(request.programId(), request.academicYearId(), request.courseId());
-        return bulkCreate(request);
+        return bulkCreateInternal(request);
     }
 
     @Transactional

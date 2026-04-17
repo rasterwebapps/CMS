@@ -68,7 +68,7 @@
 
         <!-- Item rows -->
         @for (item of feeItems.controls; track $index; let i = $index) {
-          <div class="fee-item-block" [class.has-year-amounts]="selectedCourseDuration() > 1">
+          <div class="fee-item-block" [class.has-year-amounts]="selectedProgramDuration() > 1">
 
             <!-- Main row -->
             <div class="fee-item-row" [formGroup]="getItemGroup(i)">
@@ -80,7 +80,7 @@
               <mat-form-field appearance="outline" class="col-amount">
                 <mat-label>Amount (₹)</mat-label>
                 <input matInput type="number" formControlName="amount" min="0"
-                       [readonly]="selectedCourseDuration() > 1"
+                       [readonly]="selectedProgramDuration() > 1"
                        (input)="onItemAmountChange()" />
               </mat-form-field>
 
@@ -92,7 +92,7 @@
             </div>
 
             <!-- Year-wise amounts (shown when course has durationYears > 1) -->
-            @if (selectedCourseDuration() > 1) {
+            @if (selectedProgramDuration() > 1) {
               <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
                 <div class="year-amounts-grid" formArrayName="yearAmounts">
                   @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {

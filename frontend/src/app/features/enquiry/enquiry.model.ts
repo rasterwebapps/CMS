@@ -21,6 +21,7 @@ export interface Enquiry {
   referralAdditionalAmount: number | null;
   finalCalculatedFee: number | null;
   yearWiseFees: string | null;
+  studentType: 'DAY_SCHOLAR' | 'HOSTELER' | null;
   finalizedTotalFee: number | null;
   finalizedDiscountAmount: number | null;
   finalizedDiscountReason: string | null;
@@ -48,6 +49,7 @@ export interface EnquiryRequest {
   referralAdditionalAmount?: number;
   finalCalculatedFee?: number;
   yearWiseFees?: string;
+  studentType?: 'DAY_SCHOLAR' | 'HOSTELER';
 }
 
 export interface FeeFinalizationRequest {

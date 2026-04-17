@@ -457,3 +457,72 @@
 - For multi-year: Amount is readonly and auto-computed from year fields
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-001: Enforce one fee structure group per course per academic year
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure group already exists for Program A + Course X + Academic Year 2026-27
+- Application is running
+
+**Steps:**
+1. Navigate to **Fee Structures** → **Add Fee Structure**
+2. Select the **same Program A**, **same Course X**, and **same Academic Year 2026-27** as the existing group
+3. Enter amounts for fee types
+4. Click **Save All**
+5. Observe the response
+
+**Expected Result:**
+- The system returns an error: "A fee structure already exists for this program, course, and academic year combination. Use the edit function to update it."
+- No new fee structure is created
+- Use the **Edit** button on the existing group to update amounts
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-002: Year boxes driven by program duration (not course)
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A Program exists with `durationYears = 4`
+- The program has at least one Course
+- Application is running
+
+**Steps:**
+1. Navigate to **Fee Structures** → **Add Fee Structure**
+2. Select the 4-year **Program**
+3. Observe the year amount boxes shown for each fee type row
+4. Count the year boxes for any fee type
+
+**Expected Result:**
+- Each fee type row shows **4 year boxes** (Year 1, Year 2, Year 3, Year 4) — matching program duration
+- Year boxes appear immediately upon program selection — not after course selection
+- Selecting a different course does NOT change the number of year boxes
+- For a 2-year program: 2 year boxes are shown per fee type
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-003: All 8 fee types shown in create and edit mode
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A Program and Academic Year exist
+
+**Steps:**
+1. Navigate to **Fee Structures** → **Add Fee Structure**
+2. Select a Program and Academic Year
+3. Count the fee type rows displayed
+4. Also navigate to an existing fee structure group and click **Edit**
+5. Count the fee type rows in edit mode
+
+**Expected Result:**
+- Both create and edit modes show all **8 fee types**: Tuition Fee, Lab Fee, Library Fee, Examination Fee, Hostel Fee, Transport Fee, Miscellaneous, Late Fee
+- Fee types with amount 0 are still shown (user can enter any amount)
+
+**Status:** NOT TESTED
+
