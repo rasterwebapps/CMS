@@ -52,7 +52,7 @@ class CourseControllerTest {
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, List.of(), now, now
+            1L, "UG Programs", "UG", 4, now, now
         );
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
@@ -113,7 +113,7 @@ class CourseControllerTest {
     void shouldFindAllCourses() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, List.of(), now, now
+            1L, "UG Programs", "UG", 4, now, now
         );
         CourseResponse course1 = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
@@ -150,7 +150,7 @@ class CourseControllerTest {
     void shouldFindCourseById() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, List.of(), now, now
+            1L, "UG Programs", "UG", 4, now, now
         );
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
@@ -182,7 +182,7 @@ class CourseControllerTest {
     void shouldFindCoursesByProgramId() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, List.of(), now, now
+            1L, "UG Programs", "UG", 4, now, now
         );
         CourseResponse course1 = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", progResponse, now, now
@@ -221,7 +221,7 @@ class CourseControllerTest {
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, List.of(), now, now
+            1L, "UG Programs", "UG", 4, now, now
         );
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", progResponse, now, now

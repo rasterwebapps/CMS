@@ -7,7 +7,7 @@
         <span class="breadcrumb__current" aria-current="page">Programs</span>
       </nav>
       <h1 class="page-title">Programs</h1>
-      <p class="page-subtitle">Manage academic programs, degrees, and their departments</p>
+      <p class="page-subtitle">Manage academic programs and degrees</p>
     </div>
     <button class="btn-primary" routerLink="/programs/new" aria-label="Add new program">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -31,21 +31,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       }
-    </div>
-
-    <div class="filter-pill-group">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Department</mat-label>
-        <mat-select
-          [value]="selectedDepartmentId()"
-          (selectionChange)="onDepartmentFilterChange($event.value)"
-        >
-          <mat-option [value]="null">All Departments</mat-option>
-          @for (dept of departments(); track dept.id) {
-            <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
     </div>
   </div>
 
@@ -76,11 +61,6 @@
             <td mat-cell *matCellDef="let program">
               <span class="cms-badge cms-badge--gray">{{ program.durationYears }} {{ program.durationYears === 1 ? 'Year' : 'Years' }}</span>
             </td>
-          </ng-container>
-
-          <ng-container matColumnDef="department">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Departments</th>
-            <td mat-cell *matCellDef="let program">{{ getDepartmentNames(program) }}</td>
           </ng-container>
 
           <ng-container matColumnDef="actions">

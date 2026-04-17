@@ -46,18 +46,6 @@
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Departments</mat-label>
-            <mat-select formControlName="departmentIds" multiple>
-              @for (dept of departments(); track dept.id) {
-                <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
-              }
-            </mat-select>
-            @if (form.get('departmentIds')?.invalid && form.get('departmentIds')?.touched) {
-              <mat-error>{{ getErrorMessage('departmentIds') }}</mat-error>
-            }
-          </mat-form-field>
-
           <div class="form-actions">
             <button mat-stroked-button type="button" routerLink="/programs">Cancel</button>
             <button mat-flat-button color="primary" type="submit" [disabled]="saving()">

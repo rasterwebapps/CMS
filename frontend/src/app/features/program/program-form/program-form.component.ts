@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -11,8 +10,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProgramService } from '../program.service';
 import { ProgramRequest } from '../program.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
 
 @Component({
   selector: 'app-program-form',
@@ -22,7 +19,6 @@ import { Department } from '../../department/department.model';
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -37,14 +33,12 @@ export class ProgramFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly programService = inject(ProgramService);
-  private readonly departmentService = inject(DepartmentService);
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Program');
-  protected readonly departments = signal<Department[]>([]);
 
   private programId: number | null = null;
 
@@ -52,12 +46,9 @@ export class ProgramFormComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(100)]],
     code: ['', [Validators.required, Validators.maxLength(20)]],
     durationYears: [4, [Validators.required, Validators.min(1), Validators.max(10)]],
-    departmentIds: [[] as number[]],
   });
 
   ngOnInit(): void {
-    this.loadDepartments();
-
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.programId = Number(idParam);
@@ -77,7 +68,6 @@ export class ProgramFormComponent implements OnInit {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
       durationYears: this.form.value.durationYears,
-      departmentIds: this.form.value.departmentIds,
     };
 
     this.saving.set(true);
@@ -133,20 +123,8 @@ export class ProgramFormComponent implements OnInit {
       name: 'Name',
       code: 'Code',
       durationYears: 'Duration',
-      departmentIds: 'Departments',
     };
     return labels[fieldName] || fieldName;
-  }
-
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => {
-        this.departments.set(departments);
-      },
-      error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', { duration: 3000 });
-      },
-    });
   }
 
   private loadProgram(): void {
@@ -159,7 +137,6 @@ export class ProgramFormComponent implements OnInit {
           name: program.name,
           code: program.code,
           durationYears: program.durationYears,
-          departmentIds: program.departments?.map((d: { id: number }) => d.id) ?? [],
         });
         this.loading.set(false);
       },
@@ -170,3 +147,4 @@ export class ProgramFormComponent implements OnInit {
     });
   }
 }
+

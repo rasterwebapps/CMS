@@ -24,7 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.dto.DepartmentResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -46,15 +45,10 @@ class ProgramControllerTest {
 
     @Test
     void shouldCreateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4);
 
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
-        );
-        ProgramResponse response = new ProgramResponse(
-            1L, "UG Program", "UG", 4, List.of(deptResponse), now, now
-        );
+        ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, now, now);
 
         when(programService.create(any(ProgramRequest.class))).thenReturn(response);
 
@@ -65,15 +59,14 @@ class ProgramControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("UG Program"))
             .andExpect(jsonPath("$.code").value("UG"))
-            .andExpect(jsonPath("$.durationYears").value(4))
-            .andExpect(jsonPath("$.departments.length()").value(1));
+            .andExpect(jsonPath("$.durationYears").value(4));
 
         verify(programService).create(any(ProgramRequest.class));
     }
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        ProgramRequest request = new ProgramRequest("", "UG", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("", "UG", 4);
 
         mockMvc.perform(post("/programs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -83,7 +76,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        ProgramRequest request = new ProgramRequest("UG Program", "", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("UG Program", "", 4);
 
         mockMvc.perform(post("/programs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -96,8 +89,7 @@ class ProgramControllerTest {
         String jsonRequest = """
             {
                 "name": "UG Program",
-                "code": "UG",
-                "departmentIds": [1]
+                "code": "UG"
             }
             """;
 
@@ -110,15 +102,8 @@ class ProgramControllerTest {
     @Test
     void shouldFindAllPrograms() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
-        );
-        ProgramResponse prog1 = new ProgramResponse(
-            1L, "Bachelor", "BACHELOR", 4, List.of(deptResponse), now, now
-        );
-        ProgramResponse prog2 = new ProgramResponse(
-            2L, "Master", "MASTER", 2, List.of(deptResponse), now, now
-        );
+        ProgramResponse prog1 = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
+        ProgramResponse prog2 = new ProgramResponse(2L, "Master",   "MASTER",   2, now, now);
 
         when(programService.findAll()).thenReturn(List.of(prog1, prog2));
 
@@ -147,12 +132,7 @@ class ProgramControllerTest {
     @Test
     void shouldFindProgramById() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
-        );
-        ProgramResponse response = new ProgramResponse(
-            1L, "Bachelor", "BACHELOR", 4, List.of(deptResponse), now, now
-        );
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
 
         when(programService.findById(1L)).thenReturn(response);
 
@@ -178,15 +158,10 @@ class ProgramControllerTest {
 
     @Test
     void shouldUpdateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4);
 
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
-        );
-        ProgramResponse response = new ProgramResponse(
-            1L, "Bachelor Updated", "BACHELOR", 4, List.of(deptResponse), now, now
-        );
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, now, now);
 
         when(programService.update(eq(1L), any(ProgramRequest.class))).thenReturn(response);
 
@@ -203,7 +178,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4);
 
         when(programService.update(eq(999L), any(ProgramRequest.class)))
             .thenThrow(new ResourceNotFoundException("Program not found with id: 999"));
@@ -218,7 +193,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        ProgramRequest request = new ProgramRequest("", "", 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("", "", 4);
 
         mockMvc.perform(put("/programs/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -247,3 +222,4 @@ class ProgramControllerTest {
         verify(programService).delete(999L);
     }
 }
+
