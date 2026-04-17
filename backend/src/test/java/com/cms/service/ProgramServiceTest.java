@@ -71,6 +71,24 @@ class ProgramServiceTest {
     }
 
     @Test
+    void shouldCreateProgramWithoutDepartments() {
+        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, null);
+
+        Program savedProgram = createProgram(1L, "Bachelor", "BACHELOR", 4, null);
+
+        when(programRepository.save(any(Program.class))).thenReturn(savedProgram);
+
+        ProgramResponse response = programService.create(request);
+
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.name()).isEqualTo("Bachelor");
+        assertThat(response.departments()).isEmpty();
+
+        verify(departmentRepository, never()).findAllById(any());
+        verify(programRepository).save(any(Program.class));
+    }
+
+    @Test
     void shouldThrowExceptionWhenCreatingProgramWithNonExistentDepartment() {
         ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, List.of(999L));
 

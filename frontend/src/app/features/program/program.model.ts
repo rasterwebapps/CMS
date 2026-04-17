@@ -14,5 +14,5 @@ export interface ProgramRequest {
   name: string;
   code: string;
   durationYears: number;
-  departmentIds: number[];
+  departmentIds?: number[];
 }
