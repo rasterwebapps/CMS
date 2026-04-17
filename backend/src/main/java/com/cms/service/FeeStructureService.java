@@ -1,11 +1,15 @@
 package com.cms.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.BulkFeeStructureRequest;
+import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
 import com.cms.dto.YearAmountResponse;
@@ -41,6 +45,55 @@ public class FeeStructureService {
         this.academicYearRepository = academicYearRepository;
         this.yearAmountRepository = yearAmountRepository;
         this.courseRepository = courseRepository;
+    }
+
+    @Transactional
+    public List<FeeStructureResponse> bulkCreate(BulkFeeStructureRequest request) {
+        Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
+        for (FeeStructureItemRequest item : request.items()) {
+            if (!seenTypes.add(item.feeType())) {
+                throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
+            }
+        }
+
+        Program program = programRepository.findById(request.programId())
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+
+        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
+
+        Course course = null;
+        if (request.courseId() != null) {
+            course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
+        List<FeeStructureResponse> responses = new ArrayList<>();
+        for (FeeStructureItemRequest item : request.items()) {
+            Boolean isMandatory = item.isMandatory() != null ? item.isMandatory() : true;
+            Boolean isActive = item.isActive() != null ? item.isActive() : true;
+
+            FeeStructure feeStructure = new FeeStructure(
+                program, academicYear, item.feeType(), item.amount(), isMandatory, isActive
+            );
+            feeStructure.setDescription(item.description());
+            feeStructure.setCourse(course);
+
+            FeeStructure saved = feeStructureRepository.save(feeStructure);
+
+            List<FeeStructureYearAmount> yearAmounts = new ArrayList<>();
+            if (item.yearAmounts() != null && !item.yearAmounts().isEmpty()) {
+                for (var ya : item.yearAmounts()) {
+                    FeeStructureYearAmount yearAmount = new FeeStructureYearAmount(
+                        saved, ya.yearNumber(), ya.yearLabel(), ya.amount()
+                    );
+                    yearAmounts.add(yearAmountRepository.save(yearAmount));
+                }
+            }
+
+            responses.add(toResponse(saved, yearAmounts));
+        }
+        return responses;
     }
 
     @Transactional

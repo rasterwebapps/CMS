@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.BulkFeeStructureRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
 import com.cms.service.FeeStructureService;
@@ -29,6 +30,13 @@ public class FeeStructureController {
 
     public FeeStructureController(FeeStructureService feeStructureService) {
         this.feeStructureService = feeStructureService;
+    }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<FeeStructureResponse>> bulkCreate(@Valid @RequestBody BulkFeeStructureRequest request) {
+        List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
     @PostMapping

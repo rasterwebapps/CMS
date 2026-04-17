@@ -25,6 +25,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.BulkFeeStructureRequest;
+import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -44,6 +46,50 @@ class FeeStructureControllerTest {
 
     @MockitoBean
     private FeeStructureService feeStructureService;
+
+    @Test
+    void shouldBulkCreateFeeStructures() throws Exception {
+        FeeStructureItemRequest tuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null
+        );
+        FeeStructureItemRequest lab = new FeeStructureItemRequest(
+            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab fee", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
+
+        FeeStructureResponse resp1 = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructureResponse resp2 = createResponse(2L, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(feeStructureService.bulkCreate(any(BulkFeeStructureRequest.class))).thenReturn(List.of(resp1, resp2));
+
+        mockMvc.perform(post("/fee-structures/bulk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].feeType").value("TUITION"))
+            .andExpect(jsonPath("$[1].feeType").value("LAB_FEE"));
+
+        verify(feeStructureService).bulkCreate(any(BulkFeeStructureRequest.class));
+    }
+
+    @Test
+    void shouldReturnBadRequestForDuplicateFeeTypeInBulk() throws Exception {
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(item, item));
+
+        when(feeStructureService.bulkCreate(any(BulkFeeStructureRequest.class)))
+            .thenThrow(new IllegalArgumentException("Duplicate fee type in bulk request: TUITION"));
+
+        mockMvc.perform(post("/fee-structures/bulk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(feeStructureService).bulkCreate(any(BulkFeeStructureRequest.class));
+    }
 
     @Test
     void shouldCreateFeeStructure() throws Exception {
