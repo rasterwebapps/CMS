@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.BulkFeeStructureRequest;
+import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -389,6 +391,103 @@ class FeeStructureServiceTest {
         assertThatThrownBy(() -> feeStructureService.update(1L, updateRequest))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Course not found with id: 999");
+    }
+
+    @Test
+    void shouldBulkCreateFeeStructures() {
+        FeeStructureItemRequest tuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), "Tuition", true, true, null
+        );
+        FeeStructureItemRequest lab = new FeeStructureItemRequest(
+            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
+
+        FeeStructure savedTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure savedLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.save(any(FeeStructure.class)))
+            .thenReturn(savedTuition)
+            .thenReturn(savedLab);
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
+
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).feeType()).isEqualTo(FeeType.TUITION);
+        assertThat(responses.get(1).feeType()).isEqualTo(FeeType.LAB_FEE);
+    }
+
+    @Test
+    void shouldThrowWhenBulkCreateHasDuplicateFeeTypes() {
+        FeeStructureItemRequest tuition1 = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
+        );
+        FeeStructureItemRequest tuition2 = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("60000.00"), null, true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition1, tuition2));
+
+        assertThatThrownBy(() -> feeStructureService.bulkCreate(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Duplicate fee type");
+    }
+
+    @Test
+    void shouldThrowWhenBulkCreateProgramNotFound() {
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(999L, 1L, null, List.of(item));
+
+        when(programRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feeStructureService.bulkCreate(request))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Program not found with id: 999");
+    }
+
+    @Test
+    void shouldThrowWhenBulkCreateAcademicYearNotFound() {
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 999L, null, List.of(item));
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feeStructureService.bulkCreate(request))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Academic year not found with id: 999");
+    }
+
+    @Test
+    void shouldBulkCreateWithCourseAndYearAmounts() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101", null, testProgram);
+        testCourse.setId(1L);
+
+        com.cms.dto.YearAmountRequest ya1 = new com.cms.dto.YearAmountRequest(1, "Year 1", new BigDecimal("25000.00"));
+        com.cms.dto.YearAmountRequest ya2 = new com.cms.dto.YearAmountRequest(2, "Year 2", new BigDecimal("25000.00"));
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), null, true, true, List.of(ya1, ya2)
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, 1L, List.of(item));
+
+        FeeStructure saved = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        saved.setCourse(testCourse);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(saved);
+        when(yearAmountRepository.save(any(com.cms.model.FeeStructureYearAmount.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).courseId()).isEqualTo(1L);
     }
 
     private FeeStructure createFeeStructure(Long id, Program program, AcademicYear academicYear,

@@ -6,7 +6,7 @@ import {
   FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
-  PenaltyResponse, FeeExplorerResult, Receipt,
+  PenaltyResponse, FeeExplorerResult, Receipt, BulkFeeStructureRequest,
 } from './finance.model';
 
 @Injectable({
@@ -17,6 +17,10 @@ export class FinanceService {
   private readonly feeStructureUrl = `${environment.apiUrl}/fee-structures`;
   private readonly feePaymentUrl = `${environment.apiUrl}/fee-payments`;
   private readonly studentFeeUrl = `${environment.apiUrl}/student-fees`;
+
+  bulkCreateFeeStructures(request: BulkFeeStructureRequest): Observable<FeeStructure[]> {
+    return this.http.post<FeeStructure[]>(`${this.feeStructureUrl}/bulk`, request);
+  }
 
   getFeeStructures(): Observable<FeeStructure[]> {
     return this.http.get<FeeStructure[]>(this.feeStructureUrl);

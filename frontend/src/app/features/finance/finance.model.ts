@@ -1,3 +1,19 @@
+export interface FeeStructureItemRequest {
+  feeType: string;
+  amount: number;
+  description?: string;
+  isMandatory?: boolean;
+  isActive?: boolean;
+  yearAmounts?: YearAmountRequest[];
+}
+
+export interface BulkFeeStructureRequest {
+  programId: number;
+  academicYearId: number;
+  courseId?: number;
+  items: FeeStructureItemRequest[];
+}
+
 export interface FeeStructure {
   id: number;
   programId: number;
