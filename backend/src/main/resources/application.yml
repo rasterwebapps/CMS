@@ -1,6 +1,6 @@
 spring:
   profiles:
-    default: local
+    default: prod
 
   application:
     name: cms-backend
