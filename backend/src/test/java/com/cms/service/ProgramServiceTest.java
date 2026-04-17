@@ -23,7 +23,6 @@ import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Department;
 import com.cms.model.Program;
-import com.cms.model.enums.ProgramLevel;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -48,16 +47,9 @@ class ProgramServiceTest {
 
     @Test
     void shouldCreateProgram() {
-        ProgramRequest request = new ProgramRequest(
-            "Bachelor of Computer Science",
-            "BCS",
-            ProgramLevel.UNDERGRADUATE,
-            4,
-            List.of(1L)
-        );
+        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, List.of(1L));
 
-        Program savedProgram = createProgram(1L, "Bachelor of Computer Science", "BCS",
-            ProgramLevel.UNDERGRADUATE, 4, department);
+        Program savedProgram = createProgram(1L, "Bachelor", "BACHELOR", 4, department);
 
         when(departmentRepository.findAllById(any())).thenReturn(List.of(department));
         when(programRepository.save(any(Program.class))).thenReturn(savedProgram);
@@ -65,28 +57,22 @@ class ProgramServiceTest {
         ProgramResponse response = programService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Bachelor of Computer Science");
-        assertThat(response.code()).isEqualTo("BCS");
-        assertThat(response.programLevel()).isEqualTo(ProgramLevel.UNDERGRADUATE);
+        assertThat(response.name()).isEqualTo("Bachelor");
+        assertThat(response.code()).isEqualTo("BACHELOR");
+        assertThat(response.durationYears()).isEqualTo(4);
         assertThat(response.departments()).hasSize(1);
         assertThat(response.departments().get(0).id()).isEqualTo(1L);
 
         ArgumentCaptor<Program> captor = ArgumentCaptor.forClass(Program.class);
         verify(programRepository).save(captor.capture());
         Program captured = captor.getValue();
-        assertThat(captured.getName()).isEqualTo("Bachelor of Computer Science");
-        assertThat(captured.getCode()).isEqualTo("BCS");
+        assertThat(captured.getName()).isEqualTo("Bachelor");
+        assertThat(captured.getCode()).isEqualTo("BACHELOR");
     }
 
     @Test
     void shouldThrowExceptionWhenCreatingProgramWithNonExistentDepartment() {
-        ProgramRequest request = new ProgramRequest(
-            "Bachelor of Computer Science",
-            "BCS",
-            ProgramLevel.UNDERGRADUATE,
-            4,
-            List.of(999L)
-        );
+        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, List.of(999L));
 
         when(departmentRepository.findAllById(any())).thenReturn(List.of());
 
@@ -99,16 +85,16 @@ class ProgramServiceTest {
 
     @Test
     void shouldFindAllPrograms() {
-        Program prog1 = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, 4, department);
-        Program prog2 = createProgram(2L, "Master of CS", "MCS", ProgramLevel.POSTGRADUATE, 2, department);
+        Program prog1 = createProgram(1L, "Bachelor", "BACHELOR", 4, department);
+        Program prog2 = createProgram(2L, "Master",   "MASTER",   2, department);
 
         when(programRepository.findAll()).thenReturn(List.of(prog1, prog2));
 
         List<ProgramResponse> responses = programService.findAll();
 
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).name()).isEqualTo("Bachelor of CS");
-        assertThat(responses.get(1).name()).isEqualTo("Master of CS");
+        assertThat(responses.get(0).name()).isEqualTo("Bachelor");
+        assertThat(responses.get(1).name()).isEqualTo("Master");
         verify(programRepository).findAll();
     }
 
@@ -124,16 +110,15 @@ class ProgramServiceTest {
 
     @Test
     void shouldFindProgramById() {
-        Program program = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, 4, department);
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4, department);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
 
         ProgramResponse response = programService.findById(1L);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Bachelor of CS");
-        assertThat(response.code()).isEqualTo("BCS");
+        assertThat(response.name()).isEqualTo("Bachelor");
+        assertThat(response.code()).isEqualTo("BACHELOR");
         verify(programRepository).findById(1L);
     }
 
@@ -150,21 +135,12 @@ class ProgramServiceTest {
 
     @Test
     void shouldUpdateProgram() {
-        Program existingProgram = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, 4, department);
-
+        Program existingProgram = createProgram(1L, "Bachelor", "BACHELOR", 4, department);
         Department newDepartment = createDepartment(2L, "Mathematics", "MATH", "Math Dept", "Dr. Jane");
 
-        ProgramRequest updateRequest = new ProgramRequest(
-            "Bachelor of Computer Science Updated",
-            "BCSU",
-            ProgramLevel.UNDERGRADUATE,
-            4,
-            List.of(2L)
-        );
+        ProgramRequest updateRequest = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, List.of(2L));
 
-        Program updatedProgram = createProgram(1L, "Bachelor of Computer Science Updated", "BCSU",
-            ProgramLevel.UNDERGRADUATE, 4, newDepartment);
+        Program updatedProgram = createProgram(1L, "Bachelor Updated", "BACHELOR", 4, newDepartment);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
         when(departmentRepository.findAllById(any())).thenReturn(List.of(newDepartment));
@@ -173,8 +149,7 @@ class ProgramServiceTest {
         ProgramResponse response = programService.update(1L, updateRequest);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Bachelor of Computer Science Updated");
-        assertThat(response.code()).isEqualTo("BCSU");
+        assertThat(response.name()).isEqualTo("Bachelor Updated");
         assertThat(response.departments()).hasSize(1);
         assertThat(response.departments().get(0).id()).isEqualTo(2L);
 
@@ -184,7 +159,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentProgram() {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, 4, List.of(1L));
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, List.of(1L));
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -198,10 +173,8 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingWithNonExistentDepartment() {
-        Program existingProgram = createProgram(1L, "Bachelor of CS", "BCS",
-            ProgramLevel.UNDERGRADUATE, 4, department);
-
-        ProgramRequest request = new ProgramRequest("Name", "CODE", ProgramLevel.UNDERGRADUATE, 4, List.of(999L));
+        Program existingProgram = createProgram(1L, "Bachelor", "BACHELOR", 4, department);
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, List.of(999L));
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
         when(departmentRepository.findAllById(any())).thenReturn(List.of());
@@ -246,8 +219,8 @@ class ProgramServiceTest {
     }
 
     private Program createProgram(Long id, String name, String code,
-                                  ProgramLevel programLevel, Integer durationYears, Department dept) {
-        Program program = new Program(name, code, programLevel, durationYears);
+                                  Integer durationYears, Department dept) {
+        Program program = new Program(name, code, durationYears);
         if (dept != null) {
             program.setDepartments(new java.util.HashSet<>(java.util.Set.of(dept)));
         }

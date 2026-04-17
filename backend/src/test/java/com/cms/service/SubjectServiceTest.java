@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -27,7 +28,6 @@ import com.cms.model.Course;
 import com.cms.model.Department;
 import com.cms.model.Program;
 import com.cms.model.Subject;
-import com.cms.model.enums.ProgramLevel;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.SubjectRepository;
@@ -44,6 +44,9 @@ class SubjectServiceTest {
     @Mock
     private DepartmentRepository departmentRepository;
 
+    @Mock
+    private ProgramService programService;
+
     private SubjectService subjectService;
 
     private Program program;
@@ -54,7 +57,7 @@ class SubjectServiceTest {
 
     @BeforeEach
     void setUp() {
-        subjectService = new SubjectService(subjectRepository, courseRepository, departmentRepository);
+        subjectService = new SubjectService(subjectRepository, courseRepository, departmentRepository, programService);
 
         department = new Department();
         department.setId(1L);
@@ -65,12 +68,15 @@ class SubjectServiceTest {
 
         program = new Program();
         program.setId(1L);
-        program.setName("B.Sc. Nursing");
-        program.setCode("BSCN");
-        program.setProgramLevel(ProgramLevel.UNDERGRADUATE);
+        program.setName("Bachelor");
+        program.setCode("BACHELOR");
+        program.setDurationYears(4);
         program.setDepartments(new HashSet<>(Set.of(department)));
         program.setCreatedAt(now);
         program.setUpdatedAt(now);
+
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, List.of(), now, now);
+        org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
 
         course = new Course();
         course.setId(1L);

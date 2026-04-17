@@ -26,12 +26,15 @@ public class SubjectService {
     private final SubjectRepository subjectRepository;
     private final CourseRepository courseRepository;
     private final DepartmentRepository departmentRepository;
+    private final ProgramService programService;
 
     public SubjectService(SubjectRepository subjectRepository, CourseRepository courseRepository,
-                          DepartmentRepository departmentRepository) {
+                          DepartmentRepository departmentRepository,
+                          ProgramService programService) {
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
         this.departmentRepository = departmentRepository;
+        this.programService = programService;
     }
 
     @Transactional
@@ -128,19 +131,7 @@ public class SubjectService {
         Course course = subject.getCourse();
         Program program = course.getProgram();
 
-        List<DepartmentResponse> programDeptResponses = program.getDepartments().stream()
-            .map(dept -> new DepartmentResponse(
-                dept.getId(), dept.getName(), dept.getCode(),
-                dept.getDescription(), dept.getHodName(),
-                dept.getCreatedAt(), dept.getUpdatedAt()
-            ))
-            .toList();
-
-        ProgramResponse programResponse = new ProgramResponse(
-            program.getId(), program.getName(), program.getCode(),
-            program.getProgramLevel(), program.getDurationYears(), programDeptResponses,
-            program.getCreatedAt(), program.getUpdatedAt()
-        );
+        ProgramResponse programResponse = programService.toResponse(program);
 
         CourseResponse courseResponse = new CourseResponse(
             course.getId(), course.getName(), course.getCode(),

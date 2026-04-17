@@ -68,7 +68,6 @@ import com.cms.model.enums.MappingLevel;
 import com.cms.model.enums.OutcomeType;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.PaymentStatus;
-import com.cms.model.enums.ProgramLevel;
 import com.cms.model.enums.QualificationType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AcademicQualificationRepository;
@@ -227,12 +226,11 @@ public class DataLoader implements CommandLineRunner {
         Department pnDept    = depts.get(4);
 
         // ── 3. Programs ──────────────────────────────────────────────────────
-        Program bscProgram = seedProgram("B.Sc Nursing", "BSC_NURS", ProgramLevel.UNDERGRADUATE, 4,
-                List.of(gnDept, msnDept, pnDept));
-        Program mscProgram = seedProgram("M.Sc Nursing", "MSC_NURS", ProgramLevel.POSTGRADUATE, 2,
-                List.of(gnDept, msnDept));
-        Program gnmProgram = seedProgram("General Nursing & Midwifery", "GNM",
-                ProgramLevel.DIPLOMA, 3, List.of(gnDept, moDept));
+        Program bachelorProgram = seedProgram("Bachelor", "BACHELOR", 4, List.of(gnDept, msnDept, pnDept));
+        Program masterProgram   = seedProgram("Master",   "MASTER",   2, List.of(gnDept, msnDept));
+        Program diplomaProgram  = seedProgram("Diploma",  "DIPLOMA",  3, List.of(gnDept, moDept));
+        seedProgram("Certificate", "CERTIFICATE", 1, List.of());
+        seedProgram("Doctoral",    "DOCTORAL",    3, List.of());
 
         // ── 4. Academic Years ────────────────────────────────────────────────
         AcademicYear ay2324 = academicYearRepository.save(new AcademicYear(
@@ -254,11 +252,11 @@ public class DataLoader implements CommandLineRunner {
 
         // ── 6. Courses ───────────────────────────────────────────────────────
         Course bscCourse = courseRepository.save(
-                new Course("B.Sc Nursing – Generalist", "BSC-NURS-GEN", null, bscProgram));
+                new Course("B.Sc Nursing – Generalist", "BSC-NURS-GEN", null, bachelorProgram));
         Course mscCourse = courseRepository.save(
-                new Course("M.Sc Nursing – Adult Health", "MSC-AHN", "Adult Health Nursing", mscProgram));
+                new Course("M.Sc Nursing – Adult Health", "MSC-AHN", "Adult Health Nursing", masterProgram));
         Course gnmCourse = courseRepository.save(
-                new Course("GNM – General Nursing & Midwifery", "GNM-GEN", null, gnmProgram));
+                new Course("GNM – General Nursing & Midwifery", "GNM-GEN", null, diplomaProgram));
 
         // ── 7. Subjects ──────────────────────────────────────────────────────
         Subject anatomy    = subjectRepository.save(new Subject("Anatomy & Physiology",       "BSC-SUB-001", 4, 3, 1, bscCourse, gnDept, 1));
@@ -301,7 +299,7 @@ public class DataLoader implements CommandLineRunner {
         labInChargeAssignmentRepository.save(new LabInChargeAssignment(nfLab2,  f8.getId(), "Ramya Krishnan", LabInChargeRole.TECHNICIAN,   LocalDate.of(2024, 6, 1)));
 
         // ── 12. Students ─────────────────────────────────────────────────────
-        List<Student> students = seedStudents(bscProgram, gnmProgram, mscProgram);
+        List<Student> students = seedStudents(bachelorProgram, diplomaProgram, masterProgram);
         Student s1  = students.get(0);
         Student s2  = students.get(1);
         Student s3  = students.get(2);
@@ -344,14 +342,14 @@ public class DataLoader implements CommandLineRunner {
         Agent ag3 = agentRepository.save(new Agent("Tamil Nadu Education Hub",    "9988776655", "tneduhub@gmail.com",      "Madurai",    "SS Colony", true));
 
         // ── 15. Agent Commission Guidelines ─────────────────────────────────
-        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, bscProgram, LocalityType.LOCAL,    new BigDecimal("15000.00")));
-        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, bscProgram, LocalityType.DISTRICT, new BigDecimal("12000.00")));
-        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, gnmProgram, LocalityType.LOCAL,    new BigDecimal("8000.00")));
-        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag2, bscProgram, LocalityType.STATE,    new BigDecimal("10000.00")));
-        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag3, gnmProgram, LocalityType.DISTRICT, new BigDecimal("7000.00")));
+        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, bachelorProgram, LocalityType.LOCAL,    new BigDecimal("15000.00")));
+        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, bachelorProgram, LocalityType.DISTRICT, new BigDecimal("12000.00")));
+        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag1, diplomaProgram, LocalityType.LOCAL,    new BigDecimal("8000.00")));
+        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag2, bachelorProgram, LocalityType.STATE,    new BigDecimal("10000.00")));
+        agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag3, diplomaProgram, LocalityType.DISTRICT, new BigDecimal("7000.00")));
 
         // ── 16. Fee Structures ───────────────────────────────────────────────
-        FeeStructure bscTuition = new FeeStructure(bscProgram, ay2425, FeeType.TUITION, new BigDecimal("95000.00"), true, true);
+        FeeStructure bscTuition = new FeeStructure(bachelorProgram, ay2425, FeeType.TUITION, new BigDecimal("95000.00"), true, true);
         bscTuition.setDescription("B.Sc Nursing 4-Year Tuition Fee 2024-25");
         bscTuition = feeStructureRepository.save(bscTuition);
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 1, "Year 1", new BigDecimal("25000.00")));
@@ -359,7 +357,7 @@ public class DataLoader implements CommandLineRunner {
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 3, "Year 3", new BigDecimal("25000.00")));
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 4, "Year 4", new BigDecimal("20000.00")));
 
-        FeeStructure bscLabFee = new FeeStructure(bscProgram, ay2425, FeeType.LAB_FEE, new BigDecimal("12000.00"), true, true);
+        FeeStructure bscLabFee = new FeeStructure(bachelorProgram, ay2425, FeeType.LAB_FEE, new BigDecimal("12000.00"), true, true);
         bscLabFee.setDescription("B.Sc Nursing Lab Fee 2024-25");
         bscLabFee = feeStructureRepository.save(bscLabFee);
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 1, "Year 1", new BigDecimal("3000.00")));
@@ -367,14 +365,14 @@ public class DataLoader implements CommandLineRunner {
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 3, "Year 3", new BigDecimal("3000.00")));
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 4, "Year 4", new BigDecimal("3000.00")));
 
-        FeeStructure gnmTuition = new FeeStructure(gnmProgram, ay2425, FeeType.TUITION, new BigDecimal("65000.00"), true, true);
+        FeeStructure gnmTuition = new FeeStructure(diplomaProgram, ay2425, FeeType.TUITION, new BigDecimal("65000.00"), true, true);
         gnmTuition.setDescription("GNM 3-Year Tuition Fee 2024-25");
         gnmTuition = feeStructureRepository.save(gnmTuition);
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 1, "Year 1", new BigDecimal("22000.00")));
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 2, "Year 2", new BigDecimal("22000.00")));
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 3, "Year 3", new BigDecimal("21000.00")));
 
-        FeeStructure mscTuition = new FeeStructure(mscProgram, ay2425, FeeType.TUITION, new BigDecimal("45000.00"), true, true);
+        FeeStructure mscTuition = new FeeStructure(masterProgram, ay2425, FeeType.TUITION, new BigDecimal("45000.00"), true, true);
         mscTuition.setDescription("M.Sc Nursing 2-Year Tuition Fee 2024-25");
         mscTuition = feeStructureRepository.save(mscTuition);
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(mscTuition, 1, "Year 1", new BigDecimal("23000.00")));
@@ -392,7 +390,7 @@ public class DataLoader implements CommandLineRunner {
 
         // ── 18. Student Fee Allocations ──────────────────────────────────────
         StudentFeeAllocation alloc1 = studentFeeAllocationRepository.save(
-                new StudentFeeAllocation(s1, bscProgram, new BigDecimal("95000.00"),
+                new StudentFeeAllocation(s1, bachelorProgram, new BigDecimal("95000.00"),
                         new BigDecimal("5000.00"), "Merit Scholarship", null, new BigDecimal("90000.00"),
                         FeeAllocationStatus.FINALIZED));
         semesterFeeRepository.save(new SemesterFee(alloc1, 1, "Year 1", new BigDecimal("25000.00"), LocalDate.of(2024, 6, 30)));
@@ -401,7 +399,7 @@ public class DataLoader implements CommandLineRunner {
         semesterFeeRepository.save(new SemesterFee(alloc1, 4, "Year 4", new BigDecimal("15000.00"), LocalDate.of(2027, 6, 30)));
 
         StudentFeeAllocation alloc2 = studentFeeAllocationRepository.save(
-                new StudentFeeAllocation(s6, gnmProgram, new BigDecimal("65000.00"),
+                new StudentFeeAllocation(s6, diplomaProgram, new BigDecimal("65000.00"),
                         null, null, null, new BigDecimal("65000.00"), FeeAllocationStatus.FINALIZED));
         semesterFeeRepository.save(new SemesterFee(alloc2, 1, "Year 1", new BigDecimal("22000.00"), LocalDate.of(2024, 6, 30)));
         semesterFeeRepository.save(new SemesterFee(alloc2, 2, "Year 2", new BigDecimal("22000.00"), LocalDate.of(2025, 6, 30)));
@@ -483,7 +481,7 @@ public class DataLoader implements CommandLineRunner {
         examResultRepository.save(new ExamResult(ex5, s7,  new BigDecimal("55"), "B",  ExamResultStatus.PUBLISHED));
 
         // ── 23. Enquiries ────────────────────────────────────────────────────
-        seedEnquiries(bscProgram, gnmProgram, mscProgram, bscCourse, gnmCourse, ag1);
+        seedEnquiries(bachelorProgram, diplomaProgram, masterProgram, bscCourse, gnmCourse, ag1);
 
         // ── 24. Syllabi + Experiments + CO-PO Mappings ───────────────────────
         Syllabus syl1 = syllabusRepository.save(new Syllabus(anatomy, 1, 45, 15, 10,
@@ -576,69 +574,69 @@ public class DataLoader implements CommandLineRunner {
         return List.of(gn, mo, chn, msn, pn);
     }
 
-    private Program seedProgram(String name, String code, ProgramLevel level, int durationYears,
+    private Program seedProgram(String name, String code, int durationYears,
                                 List<Department> departments) {
-        Program program = new Program(name, code, level, durationYears);
+        Program program = new Program(name, code, durationYears);
         program.getDepartments().addAll(departments);
         return programRepository.save(program);
     }
 
-    private List<Student> seedStudents(Program bscProgram, Program gnmProgram, Program mscProgram) {
-        Student s1 = new Student("2024BSC001", "Aishwarya", "Rajput",   "aishwarya.rajput@student.cms.edu",   bscProgram, 1, LocalDate.of(2024, 6, 10), StudentStatus.ACTIVE);
+    private List<Student> seedStudents(Program bachelorProgram, Program diplomaProgram, Program masterProgram) {
+        Student s1 = new Student("2024BSC001", "Aishwarya", "Rajput",   "aishwarya.rajput@student.cms.edu",   bachelorProgram, 1, LocalDate.of(2024, 6, 10), StudentStatus.ACTIVE);
         s1.setPhone("8765400001"); s1.setDateOfBirth(LocalDate.of(2004, 3, 15)); s1.setGender(Gender.FEMALE);
         s1.setNationality("Indian"); s1.setReligion("Hindu"); s1.setCommunityCategory(CommunityCategory.BC);
         s1.setBloodGroup(BloodGroup.O_POSITIVE); s1.setFatherName("Ramesh Rajput"); s1.setMotherName("Sunita Rajput");
         s1.setParentMobile("9876540001"); s1.setLabBatch("Batch A");
 
-        Student s2 = new Student("2024BSC002", "Bhavana",   "Menon",    "bhavana.menon@student.cms.edu",      bscProgram, 1, LocalDate.of(2024, 6, 12), StudentStatus.ACTIVE);
+        Student s2 = new Student("2024BSC002", "Bhavana",   "Menon",    "bhavana.menon@student.cms.edu",      bachelorProgram, 1, LocalDate.of(2024, 6, 12), StudentStatus.ACTIVE);
         s2.setPhone("8765400002"); s2.setDateOfBirth(LocalDate.of(2004, 7, 22)); s2.setGender(Gender.FEMALE);
         s2.setNationality("Indian"); s2.setReligion("Hindu"); s2.setCommunityCategory(CommunityCategory.OC);
         s2.setBloodGroup(BloodGroup.A_POSITIVE); s2.setFatherName("Gopal Menon"); s2.setMotherName("Geetha Menon");
         s2.setParentMobile("9876540002"); s2.setLabBatch("Batch A");
 
-        Student s3 = new Student("2023BSC003", "Chandrika", "Pillai",   "chandrika.pillai@student.cms.edu",   bscProgram, 2, LocalDate.of(2023, 6, 10), StudentStatus.ACTIVE);
+        Student s3 = new Student("2023BSC003", "Chandrika", "Pillai",   "chandrika.pillai@student.cms.edu",   bachelorProgram, 2, LocalDate.of(2023, 6, 10), StudentStatus.ACTIVE);
         s3.setPhone("8765400003"); s3.setDateOfBirth(LocalDate.of(2003, 11, 5)); s3.setGender(Gender.FEMALE);
         s3.setNationality("Indian"); s3.setReligion("Christian"); s3.setCommunityCategory(CommunityCategory.OC);
         s3.setBloodGroup(BloodGroup.B_POSITIVE); s3.setFatherName("Suresh Pillai"); s3.setMotherName("Vimala Pillai");
         s3.setParentMobile("9876540003"); s3.setLabBatch("Batch B");
 
-        Student s4 = new Student("2023BSC004", "Divya",     "Nair",     "divya.nair@student.cms.edu",         bscProgram, 2, LocalDate.of(2023, 6, 12), StudentStatus.ACTIVE);
+        Student s4 = new Student("2023BSC004", "Divya",     "Nair",     "divya.nair@student.cms.edu",         bachelorProgram, 2, LocalDate.of(2023, 6, 12), StudentStatus.ACTIVE);
         s4.setPhone("8765400004"); s4.setDateOfBirth(LocalDate.of(2003, 4, 18)); s4.setGender(Gender.FEMALE);
         s4.setNationality("Indian"); s4.setReligion("Hindu"); s4.setCommunityCategory(CommunityCategory.OC);
         s4.setBloodGroup(BloodGroup.AB_POSITIVE); s4.setFatherName("Sathish Nair"); s4.setMotherName("Rekha Nair");
         s4.setParentMobile("9876540004"); s4.setLabBatch("Batch B");
 
-        Student s5 = new Student("2022BSC005", "Ezhilarasi","Thangaraj", "ezhilarasi.t@student.cms.edu",       bscProgram, 3, LocalDate.of(2022, 6, 8),  StudentStatus.ACTIVE);
+        Student s5 = new Student("2022BSC005", "Ezhilarasi","Thangaraj", "ezhilarasi.t@student.cms.edu",       bachelorProgram, 3, LocalDate.of(2022, 6, 8),  StudentStatus.ACTIVE);
         s5.setPhone("8765400005"); s5.setDateOfBirth(LocalDate.of(2002, 9, 12)); s5.setGender(Gender.FEMALE);
         s5.setNationality("Indian"); s5.setReligion("Hindu"); s5.setCommunityCategory(CommunityCategory.MBC);
         s5.setBloodGroup(BloodGroup.O_NEGATIVE); s5.setFatherName("Thangaraj S"); s5.setMotherName("Kavitha T");
         s5.setParentMobile("9876540005"); s5.setLabBatch("Batch A");
 
-        Student s6 = new Student("2024GNM001", "Fathima",   "Begum",    "fathima.begum@student.cms.edu",      gnmProgram, 1, LocalDate.of(2024, 6, 14), StudentStatus.ACTIVE);
+        Student s6 = new Student("2024GNM001", "Fathima",   "Begum",    "fathima.begum@student.cms.edu",      diplomaProgram, 1, LocalDate.of(2024, 6, 14), StudentStatus.ACTIVE);
         s6.setPhone("8765400006"); s6.setDateOfBirth(LocalDate.of(2004, 1, 25)); s6.setGender(Gender.FEMALE);
         s6.setNationality("Indian"); s6.setReligion("Muslim"); s6.setCommunityCategory(CommunityCategory.BC);
         s6.setBloodGroup(BloodGroup.B_POSITIVE); s6.setFatherName("Abdul Begum"); s6.setMotherName("Noor Begum");
         s6.setParentMobile("9876540006"); s6.setLabBatch("Batch A");
 
-        Student s7 = new Student("2024GNM002", "Geetha",    "Kumari",   "geetha.kumari@student.cms.edu",      gnmProgram, 1, LocalDate.of(2024, 6, 16), StudentStatus.ACTIVE);
+        Student s7 = new Student("2024GNM002", "Geetha",    "Kumari",   "geetha.kumari@student.cms.edu",      diplomaProgram, 1, LocalDate.of(2024, 6, 16), StudentStatus.ACTIVE);
         s7.setPhone("8765400007"); s7.setDateOfBirth(LocalDate.of(2004, 6, 8));  s7.setGender(Gender.FEMALE);
         s7.setNationality("Indian"); s7.setReligion("Hindu"); s7.setCommunityCategory(CommunityCategory.SC);
         s7.setBloodGroup(BloodGroup.A_POSITIVE); s7.setFatherName("Murugan K"); s7.setMotherName("Selvi K");
         s7.setParentMobile("9876540007"); s7.setLabBatch("Batch B");
 
-        Student s8 = new Student("2024MSC001", "Harini",    "Sundaram",  "harini.sundaram@student.cms.edu",   mscProgram, 1, LocalDate.of(2024, 6, 15), StudentStatus.ACTIVE);
+        Student s8 = new Student("2024MSC001", "Harini",    "Sundaram",  "harini.sundaram@student.cms.edu",   masterProgram, 1, LocalDate.of(2024, 6, 15), StudentStatus.ACTIVE);
         s8.setPhone("8765400008"); s8.setDateOfBirth(LocalDate.of(2000, 5, 30)); s8.setGender(Gender.FEMALE);
         s8.setNationality("Indian"); s8.setReligion("Hindu"); s8.setCommunityCategory(CommunityCategory.OC);
         s8.setBloodGroup(BloodGroup.O_POSITIVE); s8.setFatherName("Sundaram V"); s8.setMotherName("Padma S");
         s8.setParentMobile("9876540008");
 
-        Student s9 = new Student("2021BSC006", "Indira",    "Mohan",    "indira.mohan@student.cms.edu",       bscProgram, 4, LocalDate.of(2021, 6, 7),  StudentStatus.ON_LEAVE);
+        Student s9 = new Student("2021BSC006", "Indira",    "Mohan",    "indira.mohan@student.cms.edu",       bachelorProgram, 4, LocalDate.of(2021, 6, 7),  StudentStatus.ON_LEAVE);
         s9.setPhone("8765400009"); s9.setDateOfBirth(LocalDate.of(2001, 8, 17)); s9.setGender(Gender.FEMALE);
         s9.setNationality("Indian"); s9.setReligion("Hindu"); s9.setCommunityCategory(CommunityCategory.BC);
         s9.setBloodGroup(BloodGroup.A_NEGATIVE); s9.setFatherName("Mohan D"); s9.setMotherName("Devi M");
         s9.setParentMobile("9876540009");
 
-        Student s10 = new Student("2024BSC007", "Jayanthi", "Krishnan", "jayanthi.krishnan@student.cms.edu",  bscProgram, 1, LocalDate.of(2024, 6, 18), StudentStatus.ACTIVE);
+        Student s10 = new Student("2024BSC007", "Jayanthi", "Krishnan", "jayanthi.krishnan@student.cms.edu",  bachelorProgram, 1, LocalDate.of(2024, 6, 18), StudentStatus.ACTIVE);
         s10.setPhone("8765400010"); s10.setDateOfBirth(LocalDate.of(2004, 12, 2)); s10.setGender(Gender.FEMALE);
         s10.setNationality("Indian"); s10.setReligion("Hindu"); s10.setCommunityCategory(CommunityCategory.MBC);
         s10.setBloodGroup(BloodGroup.B_NEGATIVE); s10.setFatherName("Krishnan R"); s10.setMotherName("Meena K");
@@ -647,23 +645,23 @@ public class DataLoader implements CommandLineRunner {
         return studentRepository.saveAll(List.of(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10));
     }
 
-    private void seedEnquiries(Program bscProgram, Program gnmProgram, Program mscProgram,
+    private void seedEnquiries(Program bachelorProgram, Program diplomaProgram, Program masterProgram,
                                Course bscCourse, Course gnmCourse, Agent ag1) {
         ReferralType walkIn   = referralTypeRepository.findByCode("WALK_IN").orElseThrow();
         ReferralType phone    = referralTypeRepository.findByCode("PHONE").orElseThrow();
         ReferralType agentRef = referralTypeRepository.findByCode("AGENT_REFERRAL").orElseThrow();
         ReferralType online   = referralTypeRepository.findByCode("ONLINE").orElseThrow();
 
-        Enquiry e1 = new Enquiry("Aarav Patel",    "aarav.patel@email.com",    "9000000001", bscProgram, LocalDate.of(2025, 1, 5),  walkIn,   EnquiryStatus.ENQUIRED);
+        Enquiry e1 = new Enquiry("Aarav Patel",    "aarav.patel@email.com",    "9000000001", bachelorProgram, LocalDate.of(2025, 1, 5),  walkIn,   EnquiryStatus.ENQUIRED);
         e1.setCourse(bscCourse); e1.setRemarks("Interested in B.Sc Nursing. Walk-in visit from Coimbatore.");
         enquiryRepository.save(e1);
 
-        Enquiry e2 = new Enquiry("Priya Krishnan", "priya.k@email.com",        "9000000002", gnmProgram, LocalDate.of(2025, 1, 8),  phone,    EnquiryStatus.INTERESTED);
+        Enquiry e2 = new Enquiry("Priya Krishnan", "priya.k@email.com",        "9000000002", diplomaProgram, LocalDate.of(2025, 1, 8),  phone,    EnquiryStatus.INTERESTED);
         e2.setCourse(gnmCourse); e2.setRemarks("Called to enquire about GNM program. Interested in scholarship options.");
         e2.setFeeDiscussedAmount(new BigDecimal("65000.00"));
         enquiryRepository.save(e2);
 
-        Enquiry e3 = new Enquiry("Vikram Reddy",   "vikram.r@email.com",       "9000000003", bscProgram, LocalDate.of(2025, 1, 12), agentRef, EnquiryStatus.FEES_FINALIZED);
+        Enquiry e3 = new Enquiry("Vikram Reddy",   "vikram.r@email.com",       "9000000003", bachelorProgram, LocalDate.of(2025, 1, 12), agentRef, EnquiryStatus.FEES_FINALIZED);
         e3.setCourse(bscCourse); e3.setAgent(ag1); e3.setRemarks("Agent referral from Srinivas Education Services.");
         e3.setFeeDiscussedAmount(new BigDecimal("95000.00"));
         e3.setFinalizedTotalFee(new BigDecimal("95000.00"));
@@ -673,21 +671,21 @@ public class DataLoader implements CommandLineRunner {
         e3.setFinalizedBy("admin");
         enquiryRepository.save(e3);
 
-        Enquiry e4 = new Enquiry("Sneha Iyer",     "sneha.iyer@email.com",     "9000000004", gnmProgram, LocalDate.of(2024, 12, 10), online,  EnquiryStatus.CONVERTED);
+        Enquiry e4 = new Enquiry("Sneha Iyer",     "sneha.iyer@email.com",     "9000000004", diplomaProgram, LocalDate.of(2024, 12, 10), online,  EnquiryStatus.CONVERTED);
         e4.setCourse(gnmCourse); e4.setRemarks("Online enquiry, documents submitted and converted to student.");
         e4.setConvertedStudentId(6L);
         enquiryRepository.save(e4);
 
-        Enquiry e5 = new Enquiry("Raju Sharma",    "raju.sharma@email.com",    "9000000005", mscProgram, LocalDate.of(2025, 1, 20), walkIn,   EnquiryStatus.NOT_INTERESTED);
+        Enquiry e5 = new Enquiry("Raju Sharma",    "raju.sharma@email.com",    "9000000005", masterProgram, LocalDate.of(2025, 1, 20), walkIn,   EnquiryStatus.NOT_INTERESTED);
         e5.setRemarks("Visited campus but not interested due to distance from home.");
         enquiryRepository.save(e5);
 
-        Enquiry e6 = new Enquiry("Meena Selvam",   "meena.selvam@email.com",   "9000000006", bscProgram, LocalDate.of(2025, 2, 3),  phone,    EnquiryStatus.DOCUMENTS_SUBMITTED);
+        Enquiry e6 = new Enquiry("Meena Selvam",   "meena.selvam@email.com",   "9000000006", bachelorProgram, LocalDate.of(2025, 2, 3),  phone,    EnquiryStatus.DOCUMENTS_SUBMITTED);
         e6.setCourse(bscCourse); e6.setRemarks("All documents submitted. Pending approval.");
         e6.setFeeDiscussedAmount(new BigDecimal("95000.00"));
         enquiryRepository.save(e6);
 
-        Enquiry e7 = new Enquiry("Arjun Verma",    "arjun.verma@email.com",    "9000000007", gnmProgram, LocalDate.of(2025, 2, 10), walkIn,   EnquiryStatus.INTERESTED);
+        Enquiry e7 = new Enquiry("Arjun Verma",    "arjun.verma@email.com",    "9000000007", diplomaProgram, LocalDate.of(2025, 2, 10), walkIn,   EnquiryStatus.INTERESTED);
         e7.setCourse(gnmCourse); e7.setRemarks("Walk-in from Trichy. Very interested in GNM course.");
         enquiryRepository.save(e7);
     }

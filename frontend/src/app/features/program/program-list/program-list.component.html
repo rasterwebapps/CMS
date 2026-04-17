@@ -71,13 +71,6 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="programLevel">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program Level</th>
-            <td mat-cell *matCellDef="let program">
-              <span class="cms-badge cms-badge--blue">{{ getProgramLevelLabel(program.programLevel) }}</span>
-            </td>
-          </ng-container>
-
           <ng-container matColumnDef="durationYears">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration</th>
             <td mat-cell *matCellDef="let program">

@@ -20,10 +20,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.CourseRequest;
 import com.cms.dto.CourseResponse;
+import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
 import com.cms.model.Program;
-import com.cms.model.enums.ProgramLevel;
+
 import com.cms.repository.CourseRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -36,14 +37,20 @@ class CourseServiceTest {
     @Mock
     private ProgramRepository programRepository;
 
+    @Mock
+    private ProgramService programService;
+
     private CourseService courseService;
 
     private Program program;
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, programRepository);
-        program = createProgram(1L, "Bachelor of CS", "BCS", ProgramLevel.UNDERGRADUATE, 4);
+        courseService = new CourseService(courseRepository, programRepository, programService);
+        program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        Instant now = Instant.now();
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, List.of(), now, now);
+        org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
     }
 
     @Test
@@ -186,7 +193,7 @@ class CourseServiceTest {
     void shouldUpdateCourse() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        Program newProgram = createProgram(2L, "Postgraduate Programs", "PG", ProgramLevel.POSTGRADUATE, 2);
+        Program newProgram = createProgram(2L, "Master", "MASTER", 2);
 
         CourseRequest updateRequest = new CourseRequest(
             "M.Sc. Nursing",
@@ -197,6 +204,9 @@ class CourseServiceTest {
 
         Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
 
+        Instant now = Instant.now();
+        ProgramResponse newProgResponse = new ProgramResponse(2L, "Master", "MASTER", 2, List.of(), now, now);
+        when(programService.toResponse(newProgram)).thenReturn(newProgResponse);
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
         when(courseRepository.save(any(Course.class))).thenReturn(updatedCourse);
@@ -266,9 +276,8 @@ class CourseServiceTest {
         verify(courseRepository, never()).deleteById(any());
     }
 
-    private Program createProgram(Long id, String name, String code, ProgramLevel programLevel,
-                                  Integer durationYears) {
-        Program prog = new Program(name, code, programLevel, durationYears);
+    private Program createProgram(Long id, String name, String code, Integer durationYears) {
+        Program prog = new Program(name, code, durationYears);
         prog.setId(id);
         Instant now = Instant.now();
         prog.setCreatedAt(now);
