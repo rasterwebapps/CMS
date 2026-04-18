@@ -71,13 +71,19 @@ export class ThemeService {
     const [r, g, b] = this.hexToRgb(baseHex);
     const [h, s, l] = this.rgbToHsl(r, g, b);
 
-    // Endpoints for the linear interpolation
+    // Interpolation endpoints:
+    //   LIGHT — very desaturated near-white (shade 50 target)
+    //     saturation capped at 25% so the palest tints don't look washed-out
+    //   DARK  — slightly desaturated near-black (shade 950 target)
+    //     lightness 15% keeps the darkest shade legible on a dark background
     const LIGHT_S = Math.min(s * 0.25, 0.25);
-    const LIGHT_L = 0.97;
-    const DARK_S = s * 0.85;
-    const DARK_L = 0.15;
+    const LIGHT_L = 0.97;  // ~97% → almost white for shade 50
+    const DARK_S = s * 0.85; // reduce saturation slightly so darks look natural
+    const DARK_L = 0.15;   // ~15% → near-black for shade 950
 
-    // Shade 500 sits at position 5 out of [0..10]
+    // SHADES array has 11 entries; shade 500 is at index 5 (the midpoint).
+    // Lighter shades (indices 0–4) interpolate toward LIGHT.
+    // Darker shades (indices 6–10) interpolate toward DARK.
     const BASE_POS = 5;
     const MAX_POS = 10;
 
