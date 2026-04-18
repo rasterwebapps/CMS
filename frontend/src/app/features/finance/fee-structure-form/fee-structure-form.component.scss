@@ -7,25 +7,48 @@
 // ── Page Header ────────────────────────────────────────────────────────────
 .page-header {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 28px;
+  padding: 16px 20px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 14px;
+  box-shadow: var(--cms-shadow-sm);
 }
 
 .back-btn {
   flex-shrink: 0;
-  margin-top: 4px;
   color: var(--cms-text-secondary);
+  background: var(--cms-bg-muted) !important;
+  border-radius: 10px !important;
+
+  &:hover {
+    color: var(--cms-primary);
+    background: var(--cms-primary-light) !important;
+  }
 }
 
-.page-header__content { display: flex; flex-direction: column; }
+.page-header__divider {
+  width: 1px;
+  height: 36px;
+  background: var(--cms-border-default);
+  flex-shrink: 0;
+}
+
+.page-header__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .page-title {
-  margin: 0 0 3px;
-  font-size: 1.65rem;
+  margin: 0;
+  font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--cms-text-primary);
+  line-height: 1.2;
 }
 
 .page-subtitle {
@@ -168,10 +191,10 @@
     }
 
     &--additional {
-      color: #6d28d9;
+      color: var(--cms-primary);
 
       &::after {
-        background: linear-gradient(90deg, rgba(109, 40, 217, 0.2) 0%, transparent 100%);
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
       }
     }
   }
@@ -202,7 +225,7 @@
 
   &--additional-type:not(.fee-grid__row--total) {
     &:hover {
-      background: rgba(109, 40, 217, 0.03);
+      background: rgba(99, 102, 241, 0.03);
     }
   }
 
@@ -215,7 +238,7 @@
   }
 
   &--header-additional {
-    border-bottom-color: rgba(109, 40, 217, 0.25);
+    border-bottom-color: rgba(99, 102, 241, 0.25);
   }
 
   // Totals / ledger row
@@ -228,8 +251,8 @@
   }
 
   &--total-additional {
-    background: rgba(245, 243, 255, 0.6);
-    border-top-color: rgba(109, 40, 217, 0.18);
+    background: rgba(248, 250, 252, 0.7);
+    border-top-color: rgba(99, 102, 241, 0.18);
   }
 }
 
@@ -299,7 +322,7 @@
       color: var(--cms-primary);
     }
 
-    &-additional mat-icon { color: #6d28d9; }
+    &-additional mat-icon { color: var(--cms-primary); }
   }
 
   // Total-row year cells
@@ -310,7 +333,7 @@
     justify-content: flex-end;
     padding-right: 8px;
 
-    &-additional { color: #7c3aed; }
+    &-additional { color: var(--cms-primary); }
   }
 
   // Total-row grand total cell
@@ -319,7 +342,7 @@
     font-weight: 800;
     color: var(--cms-primary);
 
-    &-additional { color: #6d28d9; }
+    &-additional { color: var(--cms-primary); }
   }
 }
 
@@ -331,7 +354,7 @@
   color: #9ca3af;
   flex-shrink: 0;
 
-  &--additional { color: #a78bfa; }
+  &--additional { color: #9ca3af; }
 }
 
 // Fee-type label text
@@ -356,7 +379,7 @@
 .g-total--additional {
   color: var(--cms-text-muted);
 
-  &.g-total--nonzero { color: #7c3aed; }
+  &.g-total--nonzero { color: var(--cms-primary); }
 }
 
 // ── Seamless Grid Input ───────────────────────────────────────────────────
@@ -393,7 +416,7 @@
 
   // Additional fee type variant focus ring
   &--additional:focus {
-    box-shadow: 0 0 0 2.5px rgba(109, 40, 217, 0.32);
+    box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.38);
   }
 }
 
@@ -429,8 +452,8 @@
   &--additional:hover,
   &--additional.note-btn--open,
   &--additional.note-btn--has-value {
-    color: #6d28d9;
-    background: #f5f3ff;
+    color: var(--cms-primary);
+    background: var(--cms-primary-light);
   }
 }
 
@@ -443,7 +466,7 @@
   background: rgba(99, 102, 241, 0.02);
   border-radius: 0 0 5px 5px;
 
-  &--additional { background: rgba(109, 40, 217, 0.02); }
+  &--additional { background: rgba(99, 102, 241, 0.02); }
 }
 
 .note-row-icon {
@@ -473,7 +496,7 @@
 
   &:focus { border-bottom-color: var(--cms-primary); }
 
-  .fee-grid__note-row--additional &:focus { border-bottom-color: #6d28d9; }
+  .fee-grid__note-row--additional &:focus { border-bottom-color: var(--cms-primary); }
 }
 
 // ── Form Actions ──────────────────────────────────────────────────────────

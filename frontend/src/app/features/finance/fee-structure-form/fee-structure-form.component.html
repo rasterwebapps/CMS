@@ -2,7 +2,7 @@
 
   <!-- ── Page Header ─────────────────────────────────────────────── -->
   <div class="page-header">
-    <button mat-icon-button class="back-btn" routerLink="/fee-structures">
+    <button mat-icon-button class="back-btn" routerLink="/fee-structures" matTooltip="Back to Fee Structures">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <div class="page-header__content">
@@ -31,7 +31,8 @@
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Academic Year *</mat-label>
-            <mat-select formControlName="academicYearId">
+            <mat-select formControlName="academicYearId"
+                        (selectionChange)="onBulkAcademicYearChange($event.value)">
               @for (ay of academicYears(); track ay.id) {
                 <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
               }
@@ -43,26 +44,38 @@
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Program *</mat-label>
-            <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
+            <mat-select formControlName="programId"
+                        [disabled]="!bulkForm.get('academicYearId')?.value"
+                        (selectionChange)="onBulkProgramChange($event.value)">
               @for (p of programs(); track p.id) {
                 <mat-option [value]="p.id">{{ p.name }}</mat-option>
               }
             </mat-select>
+            @if (!bulkForm.get('academicYearId')?.value) {
+              <mat-hint>Select an academic year first</mat-hint>
+            }
             @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
               <mat-error>Program is required</mat-error>
             }
           </mat-form-field>
 
-          @if (courses().length > 0) {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Course *</mat-label>
-              <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
-                @for (c of courses(); track c.id) {
-                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Course</mat-label>
+            <mat-select formControlName="courseId"
+                        [disabled]="!bulkForm.get('programId')?.value || courses().length === 0"
+                        (selectionChange)="onBulkCourseChange($event.value)">
+              @for (c of courses(); track c.id) {
+                <mat-option [value]="c.id" [disabled]="isCourseDisabled(c.id)">
+                  {{ c.name }}{{ isCourseDisabled(c.id) ? ' (already configured)' : '' }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (!bulkForm.get('programId')?.value) {
+              <mat-hint>Select a program first</mat-hint>
+            } @else if (courses().length === 0 && bulkForm.get('programId')?.value) {
+              <mat-hint>No courses for this program</mat-hint>
+            }
+          </mat-form-field>
 
         </div>
       </div>
