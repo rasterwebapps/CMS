@@ -1455,6 +1455,140 @@ body {
   max-width: 160px;
 }
 
+// ──────────────────────────────────────────────────
+// 🎨 Theme Color Picker — Global Overlay Styles
+// mat-menu content is rendered in a CDK overlay
+// portal that lies outside any Angular component's
+// DOM scope. Component-scoped SCSS cannot reach it;
+// these rules must be declared globally.
+// ──────────────────────────────────────────────────
+.theme-picker-menu {
+  .mat-mdc-menu-content {
+    padding: 0 !important;
+  }
+}
+
+.theme-picker-panel {
+  padding: 12px 16px 16px;
+  min-width: 176px;
+
+  .theme-picker-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cms-text-muted);
+    margin: 0 0 12px;
+    padding: 0;
+  }
+
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    justify-items: center;
+  }
+
+  .swatch-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    outline: none;
+
+    &:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cms-primary);
+      outline-offset: 2px;
+    }
+
+    &.swatch-active {
+      border-color: rgba(255, 255, 255, 0.9);
+      box-shadow:
+        0 0 0 2.5px rgba(0, 0, 0, 0.35),
+        0 3px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transform: scale(1.1);
+    }
+
+    .swatch-check {
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────
+// 🌙 Dark Theme — Material Component Overrides
+// The rules below fix components whose base styles
+// use hardcoded #ffffff / #e5e7eb values with
+// !important that do not respond to CSS variable–
+// based dark token updates. The !important flags here
+// are required to win the cascade against those base
+// declarations; removing them would have no effect.
+// ──────────────────────────────────────────────────
+@mixin dark-component-overrides {
+  .app-toolbar {
+    background: var(--cms-bg-card) !important;
+    border-bottom-color: var(--cms-border-default) !important;
+    color: var(--cms-text-primary) !important;
+  }
+
+  .mat-mdc-card {
+    background-color: var(--cms-bg-card) !important;
+    border-color: var(--cms-border-default) !important;
+  }
+
+  .mat-mdc-form-field {
+    .mdc-text-field--outlined,
+    .mdc-text-field--filled {
+      background-color: var(--cms-bg-muted) !important;
+    }
+  }
+
+  .mat-mdc-select-panel {
+    background-color: var(--cms-bg-card) !important;
+    border-color: var(--cms-border-default) !important;
+  }
+
+  .mat-mdc-menu-panel {
+    background-color: var(--cms-bg-card) !important;
+    border-color: var(--cms-border-default) !important;
+  }
+
+  .mat-mdc-table {
+    background-color: var(--cms-bg-card) !important;
+  }
+}
+
+html.dark-theme {
+  @include dark-component-overrides;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) {
+    @include dark-component-overrides;
+  }
+}
+
 // ── Two-column field row ──────────────────────────
 .field-row {
   display: grid;
