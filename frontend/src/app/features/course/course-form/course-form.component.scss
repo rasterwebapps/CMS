@@ -4,8 +4,7 @@
 
 .course-form-page {
   padding: 32px 40px;
-  max-width: 780px;
-  margin: 0 auto;
+  max-width: 672px; // max-w-2xl — readable without stretching on wide screens
 
   @media (max-width: 768px) {
     padding: 20px 16px;
@@ -100,16 +99,10 @@
 }
 
 // ── Form Card ────────────────────────────────────
+// Borderless canvas — form sits directly on the page background
 .form-card {
-  background: var(--cms-bg-card);
-  border-radius: var(--cms-radius-lg);
-  box-shadow: var(--cms-shadow-md);
-  border: 1px solid var(--cms-border-light);
-  padding: 32px;
-
-  @media (max-width: 640px) {
-    padding: 20px 16px;
-  }
+  background: transparent;
+  padding: 0;
 }
 
 .course-form {
@@ -121,14 +114,12 @@
 // ── Form Sections ────────────────────────────────
 .form-section {
   &__title {
-    font-size: 0.8125rem;
+    font-size: 1.0625rem;   // ~text-lg
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cms-text-table-header);
-    margin: 0 0 16px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--cms-border-light);
+    color: var(--cms-text-primary);
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--cms-border-default);
   }
 }
 
@@ -164,6 +155,12 @@
   }
 }
 
+// ── Mat-hint — muted helper text ─────────────────
+.course-form-page .mat-mdc-form-field-hint {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
 // ── Form Actions ─────────────────────────────────
 .form-actions {
   display: flex;
@@ -179,7 +176,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 24px;
-  background: var(--cms-primary);
+  background: #0f172a; // deep slate — premium dark button (same value as --cms-text-primary)
   color: #fff;
   border: none;
   border-radius: var(--cms-radius-sm);
@@ -187,11 +184,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: var(--cms-transition);
-  box-shadow: var(--cms-shadow-sm);
 
   &:hover:not(:disabled) {
-    background: var(--cms-primary-hover);
-    box-shadow: var(--cms-shadow-md);
+    background: var(--cms-primary);
+    box-shadow: var(--cms-shadow-colored);
     transform: translateY(-1px);
   }
 
