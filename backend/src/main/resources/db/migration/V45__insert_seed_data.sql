@@ -64,6 +64,8 @@ BEGIN
     UNION ALL
     SELECT 'M.Sc Nursing – Adult Health',        'MSC-AHN',      'Adult Health Nursing',  id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs WHERE code = 'MSC_NURS'
     UNION ALL
+    SELECT 'M.Sc Nursing – Child Care',        'MSC-PED',      'Child Care',  id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs WHERE code = 'MSC_NURS'
+    UNION ALL
     SELECT 'GNM – General Nursing & Midwifery',  'GNM-GEN',      NULL,                    id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs WHERE code = 'GNM';
 
     -- ── 8. Subjects ──────────────────────────────────────────────────────────
@@ -107,14 +109,14 @@ BEGIN
 
     -- ── 9. Faculty ───────────────────────────────────────────────────────────
     INSERT INTO faculty (employee_code, first_name, last_name, email, phone, department_id, designation, specialization, lab_expertise, joining_date, status, created_at, updated_at)
-    SELECT 'FAC001', 'Priya',     'Sharma',   'priya.sharma@cms.edu',    '9876500001', d.id, 'HOD',                 'General Nursing',          'Nursing Simulation',       '2015-06-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC002', 'Lakshmi',   'Devi',     'lakshmi.devi@cms.edu',    '9876500002', d.id, 'HOD',                 'Midwifery',                'Obstetric Lab',            '2014-07-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MO'  UNION ALL
-    SELECT 'FAC003', 'Anitha',    'Rao',      'anitha.rao@cms.edu',      '9876500003', d.id, 'PROFESSOR',           'Community Health',         'Community Lab',            '2016-08-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'CHN' UNION ALL
-    SELECT 'FAC004', 'Rajesh',    'Kumar',    'rajesh.kumar@cms.edu',    '9876500004', d.id, 'ASSOCIATE_PROFESSOR', 'Medical-Surgical Nursing', 'Anatomy Lab',              '2018-01-15', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN' UNION ALL
-    SELECT 'FAC005', 'Kavitha',   'Nair',     'kavitha.nair@cms.edu',    '9876500005', d.id, 'ASSISTANT_PROFESSOR', 'Fundamentals of Nursing',  NULL,                       '2020-06-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC006', 'Deepa',     'Thomas',   'deepa.thomas@cms.edu',    '9876500006', d.id, 'LECTURER',            'Pediatric Nursing',        NULL,                       '2021-03-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'PN'  UNION ALL
-    SELECT 'FAC007', 'Suresh',    'Babu',     'suresh.babu@cms.edu',     '9876500007', d.id, 'LAB_INSTRUCTOR',      'Nursing Simulation',       'Nursing Foundation Lab',   '2019-09-01', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC008', 'Ramya',     'Krishnan', 'ramya.krishnan@cms.edu',  '9876500008', d.id, 'ASSISTANT_PROFESSOR', 'Clinical Nursing',         'Skills Lab',               '2022-01-10', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN';
+    SELECT 'FAC001', 'Priya',     'Sharma',   'priya.sharma@cms.edu',    '9876500001', d.id, 'HOD',                 'General Nursing',          'Nursing Simulation',       '2015-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC002', 'Lakshmi',   'Devi',     'lakshmi.devi@cms.edu',    '9876500002', d.id, 'HOD',                 'Midwifery',                'Obstetric Lab',            '2014-07-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MO'  UNION ALL
+    SELECT 'FAC003', 'Anitha',    'Rao',      'anitha.rao@cms.edu',      '9876500003', d.id, 'PROFESSOR',           'Community Health',         'Community Lab',            '2016-08-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'CHN' UNION ALL
+    SELECT 'FAC004', 'Rajesh',    'Kumar',    'rajesh.kumar@cms.edu',    '9876500004', d.id, 'ASSOCIATE_PROFESSOR', 'Medical-Surgical Nursing', 'Anatomy Lab',              '2018-01-15'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN' UNION ALL
+    SELECT 'FAC005', 'Kavitha',   'Nair',     'kavitha.nair@cms.edu',    '9876500005', d.id, 'ASSISTANT_PROFESSOR', 'Fundamentals of Nursing',  NULL,                       '2020-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC006', 'Deepa',     'Thomas',   'deepa.thomas@cms.edu',    '9876500006', d.id, 'LECTURER',            'Pediatric Nursing',        NULL,                       '2021-03-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'PN'  UNION ALL
+    SELECT 'FAC007', 'Suresh',    'Babu',     'suresh.babu@cms.edu',     '9876500007', d.id, 'LAB_INSTRUCTOR',      'Nursing Simulation',       'Nursing Foundation Lab',   '2019-09-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC008', 'Ramya',     'Krishnan', 'ramya.krishnan@cms.edu',  '9876500008', d.id, 'ASSISTANT_PROFESSOR', 'Clinical Nursing',         'Skills Lab',               '2022-01-10'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN';
 
     -- ── 10. Labs ─────────────────────────────────────────────────────────────
     INSERT INTO labs (name, lab_type, department_id, building, room_number, capacity, status, created_at, updated_at)
@@ -132,33 +134,33 @@ BEGIN
 
     -- ── 12. Lab Incharge Assignments ─────────────────────────────────────────
     INSERT INTO lab_incharge_assignments (lab_id, assignee_id, assignee_name, role, assigned_date, created_at, updated_at)
-    SELECT l.id, f.id, 'Suresh Babu',    'LAB_INCHARGE', '2024-06-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    SELECT l.id, f.id, 'Suresh Babu',    'LAB_INCHARGE', '2024-06-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM labs l, faculty f WHERE l.name = 'Nursing Foundation Lab' AND f.employee_code = 'FAC007' UNION ALL
-    SELECT l.id, f.id, 'Rajesh Kumar',   'LAB_INCHARGE', '2024-06-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    SELECT l.id, f.id, 'Rajesh Kumar',   'LAB_INCHARGE', '2024-06-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM labs l, faculty f WHERE l.name = 'Anatomy Lab'            AND f.employee_code = 'FAC004' UNION ALL
-    SELECT l.id, f.id, 'Priya Sharma',   'LAB_INCHARGE', '2024-06-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    SELECT l.id, f.id, 'Priya Sharma',   'LAB_INCHARGE', '2024-06-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM labs l, faculty f WHERE l.name = 'Computer Lab'           AND f.employee_code = 'FAC001' UNION ALL
-    SELECT l.id, f.id, 'Ramya Krishnan', 'TECHNICIAN',   '2024-06-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    SELECT l.id, f.id, 'Ramya Krishnan', 'TECHNICIAN',   '2024-06-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM labs l, faculty f WHERE l.name = 'Nursing Foundation Lab' AND f.employee_code = 'FAC008';
 
     -- ── 13. Students ──────────────────────────────────────────────────────────
     INSERT INTO students (roll_number, first_name, last_name, email, phone, program_id, semester, admission_date, lab_batch, status, date_of_birth, gender, nationality, religion, community_category, blood_group, father_name, mother_name, parent_mobile, created_at, updated_at)
-    SELECT '2024BSC001', 'Aishwarya', 'Rajput',   'aishwarya.rajput@student.cms.edu',  '8765400001', p.id, 1, '2024-06-10', 'Batch A', 'ACTIVE', '2004-03-15', 'FEMALE', 'Indian', 'Hindu',    'BC',  'O_POSITIVE',  'Ramesh Rajput',  'Sunita Rajput',  '9876540001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2024BSC002', 'Bhavana',   'Menon',    'bhavana.menon@student.cms.edu',     '8765400002', p.id, 1, '2024-06-12', 'Batch A', 'ACTIVE', '2004-07-22', 'FEMALE', 'Indian', 'Hindu',    'OC',  'A_POSITIVE',  'Gopal Menon',    'Geetha Menon',   '9876540002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2023BSC003', 'Chandrika', 'Pillai',   'chandrika.pillai@student.cms.edu',  '8765400003', p.id, 2, '2023-06-10', 'Batch B', 'ACTIVE', '2003-11-05', 'FEMALE', 'Indian', 'Christian','OC',  'B_POSITIVE',  'Suresh Pillai',  'Vimala Pillai',  '9876540003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2023BSC004', 'Divya',     'Nair',     'divya.nair@student.cms.edu',        '8765400004', p.id, 2, '2023-06-12', 'Batch B', 'ACTIVE', '2003-04-18', 'FEMALE', 'Indian', 'Hindu',    'OC',  'AB_POSITIVE', 'Sathish Nair',   'Rekha Nair',     '9876540004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2022BSC005', 'Ezhilarasi','Thangaraj', 'ezhilarasi.t@student.cms.edu',     '8765400005', p.id, 3, '2022-06-08', 'Batch A', 'ACTIVE', '2002-09-12', 'FEMALE', 'Indian', 'Hindu',    'MBC', 'O_NEGATIVE',  'Thangaraj S',    'Kavitha T',      '9876540005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2024GNM001', 'Fathima',   'Begum',    'fathima.begum@student.cms.edu',     '8765400006', p.id, 1, '2024-06-14', 'Batch A', 'ACTIVE', '2004-01-25', 'FEMALE', 'Indian', 'Muslim',   'BC',  'B_POSITIVE',  'Abdul Begum',    'Noor Begum',     '9876540006', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'GNM'      UNION ALL
-    SELECT '2024GNM002', 'Geetha',    'Kumari',   'geetha.kumari@student.cms.edu',     '8765400007', p.id, 1, '2024-06-16', 'Batch B', 'ACTIVE', '2004-06-08', 'FEMALE', 'Indian', 'Hindu',    'SC',  'A_POSITIVE',  'Murugan K',      'Selvi K',        '9876540007', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'GNM'      UNION ALL
-    SELECT '2024MSC001', 'Harini',    'Sundaram',  'harini.sundaram@student.cms.edu',  '8765400008', p.id, 1, '2024-06-15', NULL,      'ACTIVE', '2000-05-30', 'FEMALE', 'Indian', 'Hindu',    'OC',  'O_POSITIVE',  'Sundaram V',     'Padma S',        '9876540008', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'MSC_NURS' UNION ALL
-    SELECT '2021BSC006', 'Indira',    'Mohan',    'indira.mohan@student.cms.edu',      '8765400009', p.id, 4, '2021-06-07', NULL,      'ON_LEAVE','2001-08-17', 'FEMALE', 'Indian', 'Hindu',    'BC',  'A_NEGATIVE',  'Mohan D',        'Devi M',         '9876540009', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
-    SELECT '2024BSC007', 'Jayanthi',  'Krishnan', 'jayanthi.krishnan@student.cms.edu', '8765400010', p.id, 1, '2024-06-18', 'Batch A', 'ACTIVE', '2004-12-02', 'FEMALE', 'Indian', 'Hindu',    'MBC', 'B_NEGATIVE',  'Krishnan R',     'Meena K',        '9876540010', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS';
+    SELECT '2024BSC001', 'Aishwarya', 'Rajput',   'aishwarya.rajput@student.cms.edu',  '8765400001', p.id, 1, '2024-06-10'::date, 'Batch A', 'ACTIVE', '2004-03-15'::date, 'FEMALE', 'Indian', 'Hindu',    'BC',  'O_POSITIVE',  'Ramesh Rajput',  'Sunita Rajput',  '9876540001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2024BSC002', 'Bhavana',   'Menon',    'bhavana.menon@student.cms.edu',     '8765400002', p.id, 1, '2024-06-12'::date, 'Batch A', 'ACTIVE', '2004-07-22'::date, 'FEMALE', 'Indian', 'Hindu',    'OC',  'A_POSITIVE',  'Gopal Menon',    'Geetha Menon',   '9876540002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2023BSC003', 'Chandrika', 'Pillai',   'chandrika.pillai@student.cms.edu',  '8765400003', p.id, 2, '2023-06-10'::date, 'Batch B', 'ACTIVE', '2003-11-05'::date, 'FEMALE', 'Indian', 'Christian','OC',  'B_POSITIVE',  'Suresh Pillai',  'Vimala Pillai',  '9876540003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2023BSC004', 'Divya',     'Nair',     'divya.nair@student.cms.edu',        '8765400004', p.id, 2, '2023-06-12'::date, 'Batch B', 'ACTIVE', '2003-04-18'::date, 'FEMALE', 'Indian', 'Hindu',    'OC',  'AB_POSITIVE', 'Sathish Nair',   'Rekha Nair',     '9876540004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2022BSC005', 'Ezhilarasi','Thangaraj', 'ezhilarasi.t@student.cms.edu',     '8765400005', p.id, 3, '2022-06-08'::date, 'Batch A', 'ACTIVE', '2002-09-12'::date, 'FEMALE', 'Indian', 'Hindu',    'MBC', 'O_NEGATIVE',  'Thangaraj S',    'Kavitha T',      '9876540005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2024GNM001', 'Fathima',   'Begum',    'fathima.begum@student.cms.edu',     '8765400006', p.id, 1, '2024-06-14'::date, 'Batch A', 'ACTIVE', '2004-01-25'::date, 'FEMALE', 'Indian', 'Muslim',   'BC',  'B_POSITIVE',  'Abdul Begum',    'Noor Begum',     '9876540006', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'GNM'      UNION ALL
+    SELECT '2024GNM002', 'Geetha',    'Kumari',   'geetha.kumari@student.cms.edu',     '8765400007', p.id, 1, '2024-06-16'::date, 'Batch B', 'ACTIVE', '2004-06-08'::date, 'FEMALE', 'Indian', 'Hindu',    'SC',  'A_POSITIVE',  'Murugan K',      'Selvi K',        '9876540007', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'GNM'      UNION ALL
+    SELECT '2024MSC001', 'Harini',    'Sundaram',  'harini.sundaram@student.cms.edu',  '8765400008', p.id, 1, '2024-06-15'::date, NULL,      'ACTIVE', '2000-05-30'::date, 'FEMALE', 'Indian', 'Hindu',    'OC',  'O_POSITIVE',  'Sundaram V',     'Padma S',        '9876540008', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'MSC_NURS' UNION ALL
+    SELECT '2021BSC006', 'Indira',    'Mohan',    'indira.mohan@student.cms.edu',      '8765400009', p.id, 4, '2021-06-07'::date, NULL,      'ON_LEAVE','2001-08-17'::date, 'FEMALE', 'Indian', 'Hindu',    'BC',  'A_NEGATIVE',  'Mohan D',        'Devi M',         '9876540009', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS' UNION ALL
+    SELECT '2024BSC007', 'Jayanthi',  'Krishnan', 'jayanthi.krishnan@student.cms.edu', '8765400010', p.id, 1, '2024-06-18'::date, 'Batch A', 'ACTIVE', '2004-12-02'::date, 'FEMALE', 'Indian', 'Hindu',    'MBC', 'B_NEGATIVE',  'Krishnan R',     'Meena K',        '9876540010', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p WHERE p.code = 'BSC_NURS';
 
     -- ── 14. Admissions ────────────────────────────────────────────────────────
     INSERT INTO admissions (student_id, academic_year_from, academic_year_to, application_date, status, declaration_place, declaration_date, parent_consent_given, applicant_consent_given, created_at, updated_at)
-    SELECT s.id, 2024, 2025, '2024-06-10', 'APPROVED', 'Chennai',    '2024-06-10', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024BSC001' UNION ALL
-    SELECT s.id, 2024, 2025, '2024-06-12', 'APPROVED', 'Coimbatore', '2024-06-12', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024BSC002' UNION ALL
-    SELECT s.id, 2024, 2025, '2024-06-15', 'APPROVED', 'Madurai',    '2024-06-15', TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024MSC001';
+    SELECT s.id, 2024, 2025, '2024-06-10'::date, 'APPROVED', 'Chennai',    '2024-06-10'::date, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024BSC001' UNION ALL
+    SELECT s.id, 2024, 2025, '2024-06-12'::date, 'APPROVED', 'Coimbatore', '2024-06-12'::date, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024BSC002' UNION ALL
+    SELECT s.id, 2024, 2025, '2024-06-15'::date, 'APPROVED', 'Madurai',    '2024-06-15'::date, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s WHERE s.roll_number = '2024MSC001';
 
     -- ── 15. Academic Qualifications ───────────────────────────────────────────
     INSERT INTO academic_qualifications (admission_id, qualification_type, school_name, major_subject, total_marks, percentage, month_and_year_of_passing, university_or_board, created_at, updated_at)
@@ -206,25 +208,25 @@ BEGIN
 
     -- ── 19. Fee Payments ──────────────────────────────────────────────────────
     INSERT INTO fee_payments (student_id, fee_structure_id, receipt_number, amount_paid, payment_date, payment_mode, status, created_at, updated_at)
-    SELECT s.id, fs.id, 'RCP-2024-0001', 25000.00, '2024-06-15', 'CASH',        'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024BSC001' AND p.code = 'BSC_NURS' AND fs.fee_type = 'TUITION' UNION ALL
-    SELECT s.id, fs.id, 'RCP-2024-0002', 25000.00, '2024-06-18', 'UPI',         'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024BSC002' AND p.code = 'BSC_NURS' AND fs.fee_type = 'TUITION' UNION ALL
-    SELECT s.id, fs.id, 'RCP-2024-0003', 22000.00, '2024-06-20', 'NET_BANKING', 'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024GNM001' AND p.code = 'GNM'      AND fs.fee_type = 'TUITION' UNION ALL
-    SELECT s.id, fs.id, 'RCP-2024-0004', 23000.00, '2024-06-22', 'DEMAND_DRAFT','PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024MSC001' AND p.code = 'MSC_NURS' AND fs.fee_type = 'TUITION';
+    SELECT s.id, fs.id, 'RCP-2024-0001', 25000.00, '2024-06-15'::date, 'CASH',        'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024BSC001' AND p.code = 'BSC_NURS' AND fs.fee_type = 'TUITION' UNION ALL
+    SELECT s.id, fs.id, 'RCP-2024-0002', 25000.00, '2024-06-18'::date, 'UPI',         'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024BSC002' AND p.code = 'BSC_NURS' AND fs.fee_type = 'TUITION' UNION ALL
+    SELECT s.id, fs.id, 'RCP-2024-0003', 22000.00, '2024-06-20'::date, 'NET_BANKING', 'PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024GNM001' AND p.code = 'GNM'      AND fs.fee_type = 'TUITION' UNION ALL
+    SELECT s.id, fs.id, 'RCP-2024-0004', 23000.00, '2024-06-22'::date, 'DEMAND_DRAFT','PAID', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, fee_structures fs JOIN programs p ON fs.program_id = p.id WHERE s.roll_number = '2024MSC001' AND p.code = 'MSC_NURS' AND fs.fee_type = 'TUITION';
 
     -- ── 20. Student Fee Allocations ───────────────────────────────────────────
     INSERT INTO student_fee_allocations (student_id, program_id, total_fee, discount_amount, discount_reason, agent_commission, net_fee, status, created_at, updated_at)
-    SELECT s.id, p.id, 95000.00, 5000.00, 'Merit Scholarship', NULL, 90000.00, 'FINALIZED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, programs p WHERE s.roll_number = '2024BSC001' AND p.code = 'BSC_NURS' UNION ALL
-    SELECT s.id, p.id, 65000.00, NULL,    NULL,                 NULL, 65000.00, 'FINALIZED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, programs p WHERE s.roll_number = '2024GNM001' AND p.code = 'GNM';
+    SELECT s.id, p.id, 95000.00, 5000.00, 'Merit Scholarship', 0, 90000.00, 'FINALIZED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, programs p WHERE s.roll_number = '2024BSC001' AND p.code = 'BSC_NURS' UNION ALL
+    SELECT s.id, p.id, 65000.00, NULL,    NULL,                 0, 65000.00, 'FINALIZED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM students s, programs p WHERE s.roll_number = '2024GNM001' AND p.code = 'GNM';
 
     -- ── 21. Semester Fees ─────────────────────────────────────────────────────
     INSERT INTO semester_fees (allocation_id, year_number, semester_label, amount, due_date, created_at, updated_at)
-    SELECT sfa.id, 1, 'Year 1', 25000.00, '2024-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
-    SELECT sfa.id, 2, 'Year 2', 25000.00, '2025-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
-    SELECT sfa.id, 3, 'Year 3', 25000.00, '2026-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
-    SELECT sfa.id, 4, 'Year 4', 15000.00, '2027-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
-    SELECT sfa.id, 1, 'Year 1', 22000.00, '2024-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001' UNION ALL
-    SELECT sfa.id, 2, 'Year 2', 22000.00, '2025-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001' UNION ALL
-    SELECT sfa.id, 3, 'Year 3', 21000.00, '2026-06-30', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001';
+    SELECT sfa.id, 1, 'Year 1', 25000.00, '2024-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
+    SELECT sfa.id, 2, 'Year 2', 25000.00, '2025-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
+    SELECT sfa.id, 3, 'Year 3', 25000.00, '2026-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
+    SELECT sfa.id, 4, 'Year 4', 15000.00, '2027-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024BSC001' UNION ALL
+    SELECT sfa.id, 1, 'Year 1', 22000.00, '2024-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001' UNION ALL
+    SELECT sfa.id, 2, 'Year 2', 22000.00, '2025-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001' UNION ALL
+    SELECT sfa.id, 3, 'Year 3', 21000.00, '2026-06-30'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM student_fee_allocations sfa JOIN students s ON sfa.student_id = s.id WHERE s.roll_number = '2024GNM001';
 
     -- ── 22. Equipment ─────────────────────────────────────────────────────────
     INSERT INTO equipment (name, asset_code, category, lab_id, status, created_at, updated_at)
@@ -236,11 +238,11 @@ BEGIN
 
     -- ── 23. Inventory Items ───────────────────────────────────────────────────
     INSERT INTO inventory_items (name, item_code, lab_id, quantity, minimum_quantity, unit, last_restocked, created_at, updated_at)
-    SELECT 'Surgical Gloves',  'INV001', l.id, 200, 50, 'Pairs',   '2024-10-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
-    SELECT 'Cotton Rolls',     'INV002', l.id,  15,  5, 'Rolls',   '2024-10-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
-    SELECT 'Bandages Box',     'INV003', l.id,  30, 10, 'Boxes',   '2024-10-05', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
-    SELECT 'Printing Paper',   'INV004', l.id,  20,  5, 'Reams',   '2024-11-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Computer Lab'           UNION ALL
-    SELECT 'Hand Sanitizer',   'INV005', l.id,  10,  3, 'Bottles', '2024-11-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Computer Lab';
+    SELECT 'Surgical Gloves',  'INV001', l.id, 200, 50, 'Pairs',   '2024-10-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
+    SELECT 'Cotton Rolls',     'INV002', l.id,  15,  5, 'Rolls',   '2024-10-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
+    SELECT 'Bandages Box',     'INV003', l.id,  30, 10, 'Boxes',   '2024-10-05'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Nursing Foundation Lab' UNION ALL
+    SELECT 'Printing Paper',   'INV004', l.id,  20,  5, 'Reams',   '2024-11-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Computer Lab'           UNION ALL
+    SELECT 'Hand Sanitizer',   'INV005', l.id,  10,  3, 'Bottles', '2024-11-01'::date, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM labs l WHERE l.name = 'Computer Lab';
 
     -- ── 24. Maintenance Requests ──────────────────────────────────────────────
     INSERT INTO maintenance_requests (equipment_id, title, description, maintenance_type, priority, status, requested_by, assigned_to, request_date, scheduled_date, estimated_cost, created_at, updated_at)
@@ -249,30 +251,30 @@ BEGIN
            'CORRECTIVE', 'HIGH', 'IN_PROGRESS',
            (SELECT f.id FROM faculty f WHERE f.employee_code = 'FAC001'),
            (SELECT f.id FROM faculty f WHERE f.employee_code = 'FAC007'),
-           '2025-01-10', NULL, 3500.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+           '2025-01-10'::date, NULL, 3500.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM equipment eq WHERE eq.asset_code = 'ASSET005' UNION ALL
     SELECT eq.id, 'Annual Computer Servicing',
            'Annual preventive maintenance for all computers in Computer Lab.',
            'PREVENTIVE', 'LOW', 'SCHEDULED',
            (SELECT f.id FROM faculty f WHERE f.employee_code = 'FAC001'),
            NULL,
-           '2025-02-01', '2025-02-15', 1200.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+           '2025-02-01'::date, '2025-02-15'::date, 1200.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM equipment eq WHERE eq.asset_code = 'ASSET001' UNION ALL
     SELECT eq.id, 'Stethoscope Calibration',
            'Routine calibration and cleaning of stethoscope sets.',
            'ROUTINE', 'MEDIUM', 'COMPLETED',
            (SELECT f.id FROM faculty f WHERE f.employee_code = 'FAC007'),
            NULL,
-           '2024-12-05', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+           '2024-12-05'::date, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM equipment eq WHERE eq.asset_code = 'ASSET003';
 
     -- ── 25. Examinations ──────────────────────────────────────────────────────
     INSERT INTO examinations (name, subject_id, exam_type, date, duration, max_marks, semester_id, created_at, updated_at)
-    SELECT 'Anatomy Mid-Term',               sub.id, 'THEORY',    '2024-09-15', 180, 100, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
-    SELECT 'Anatomy End-Term',               sub.id, 'THEORY',    '2024-11-20', 180, 100, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
-    SELECT 'Nursing Foundations Practical',  sub.id, 'PRACTICAL', '2024-10-05', 120,  50, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-004' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
-    SELECT 'Advanced Nursing Practice Viva', sub.id, 'VIVA',      '2024-10-20',  60,  50, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'MSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
-    SELECT 'Basic Nursing Mid-Term',         sub.id, 'THEORY',    '2024-09-20', 120,  75, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'GNM-SUB-001' AND sem.name = 'Odd Semester 2024-2025';
+    SELECT 'Anatomy Mid-Term',               sub.id, 'THEORY',    '2024-09-15'::date, 180, 100, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
+    SELECT 'Anatomy End-Term',               sub.id, 'THEORY',    '2024-11-20'::date, 180, 100, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
+    SELECT 'Nursing Foundations Practical',  sub.id, 'PRACTICAL', '2024-10-05'::date, 120,  50, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'BSC-SUB-004' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
+    SELECT 'Advanced Nursing Practice Viva', sub.id, 'VIVA',      '2024-10-20'::date,  60,  50, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'MSC-SUB-001' AND sem.name = 'Odd Semester 2024-2025'  UNION ALL
+    SELECT 'Basic Nursing Mid-Term',         sub.id, 'THEORY',    '2024-09-20'::date, 120,  75, sem.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM subjects sub, semesters sem WHERE sub.code = 'GNM-SUB-001' AND sem.name = 'Odd Semester 2024-2025';
 
     -- ── 26. Exam Results ──────────────────────────────────────────────────────
     INSERT INTO exam_results (examination_id, student_id, marks_obtained, grade, status, created_at, updated_at)
@@ -288,15 +290,15 @@ BEGIN
     SELECT ex.id, s.id,  60, 'B+', 'PUBLISHED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM examinations ex, students s WHERE ex.name = 'Basic Nursing Mid-Term' AND s.roll_number = '2024GNM001' UNION ALL
     SELECT ex.id, s.id,  55, 'B',  'PUBLISHED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM examinations ex, students s WHERE ex.name = 'Basic Nursing Mid-Term' AND s.roll_number = '2024GNM002';
 
-    -- ── 27. Enquiries ─────────────────────────────────────────────────────────
-    INSERT INTO enquiries (name, email, phone, program_id, course_id, enquiry_date, status, agent_id, referral_type_id, remarks, fee_discussed_amount, finalized_total_fee, finalized_discount_amount, finalized_discount_reason, finalized_net_fee, finalized_by, converted_student_id, created_at, updated_at)
-    SELECT 'Aarav Patel',    'aarav.patel@email.com',    '9000000001', p.id, c.id, '2025-01-05', 'ENQUIRED',           NULL, rt.id, 'Interested in B.Sc Nursing. Walk-in visit from Coimbatore.',         NULL,     NULL,     NULL,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'WALK_IN'       UNION ALL
-    SELECT 'Priya Krishnan', 'priya.k@email.com',        '9000000002', p.id, c.id, '2025-01-08', 'INTERESTED',         NULL, rt.id, 'Called to enquire about GNM program. Interested in scholarship.',  65000.00, NULL,     NULL,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt WHERE p.code = 'GNM'      AND c.code = 'GNM-GEN'       AND rt.code = 'PHONE'         UNION ALL
-    SELECT 'Vikram Reddy',   'vikram.r@email.com',       '9000000003', p.id, c.id, '2025-01-12', 'FEES_FINALIZED', ag.id, rt.id, 'Agent referral from Srinivas Education Services.',                 95000.00, 95000.00, 5000.00,'Agent referral discount',    90000.00,'admin',  NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt, agents ag WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'AGENT_REFERRAL' AND ag.name = 'Srinivas Education Services' UNION ALL
-    SELECT 'Sneha Iyer',     'sneha.iyer@email.com',     '9000000004', p.id, c.id, '2024-12-10', 'CONVERTED',          NULL, rt.id, 'Online enquiry, documents submitted and converted to student.',    NULL,     NULL,     NULL,   NULL,                         NULL,     NULL,    (SELECT s.id FROM students s WHERE s.roll_number = '2024GNM001'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt WHERE p.code = 'GNM' AND c.code = 'GNM-GEN' AND rt.code = 'ONLINE' UNION ALL
-    SELECT 'Raju Sharma',    'raju.sharma@email.com',    '9000000005', p.id, NULL, '2025-01-20', 'NOT_INTERESTED',     NULL, rt.id, 'Visited campus but not interested due to distance from home.',    NULL,     NULL,     NULL,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, referral_types rt WHERE p.code = 'MSC_NURS' AND rt.code = 'WALK_IN'  UNION ALL
-    SELECT 'Meena Selvam',   'meena.selvam@email.com',   '9000000006', p.id, c.id, '2025-02-03', 'DOCUMENTS_SUBMITTED',NULL, rt.id, 'All documents submitted. Pending approval.',                      95000.00, NULL,     NULL,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'PHONE'    UNION ALL
-    SELECT 'Arjun Verma',    'arjun.verma@email.com',    '9000000007', p.id, c.id, '2025-02-10', 'INTERESTED',         NULL, rt.id, 'Walk-in from Trichy. Very interested in GNM course.',             NULL,     NULL,     NULL,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, referral_types rt WHERE p.code = 'GNM'      AND c.code = 'GNM-GEN'       AND rt.code = 'WALK_IN';
+--     -- ── 27. Enquiries ─────────────────────────────────────────────────────────
+--     INSERT INTO enquiries (name, email, phone, program_id, course_id, enquiry_date, status, agent_id, referral_type_id, remarks, fee_discussed_amount, finalized_total_fee, finalized_discount_amount, finalized_discount_reason, finalized_net_fee, finalized_by, converted_student_id, created_at, updated_at)
+--     SELECT 'Aarav Patel',    'aarav.patel@email.com',    '9000000001', p.id, c.id, '2025-01-05', 'ENQUIRED',           ag.id, rt.id, 'Interested in B.Sc Nursing. Walk-in visit from Coimbatore.',         450000.00,     450000.00,     0.0,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag, referral_types rt WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'WALK_IN'       UNION ALL
+--     SELECT 'Priya Krishnan', 'priya.k@email.com',        '9000000002', p.id, c.id, '2025-01-08', 'INTERESTED',         ag.id, rt.id, 'Called to enquire about GNM program. Interested in scholarship.',  65000.00, 450000.00,     0.0,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag,referral_types rt WHERE p.code = 'GNM'      AND c.code = 'GNM-GEN'       AND rt.code = 'PHONE'         UNION ALL
+--     SELECT 'Vikram Reddy',   'vikram.r@email.com',       '9000000003', p.id, c.id, '2025-01-12', 'FEES_FINALIZED',     ag.id, rt.id, 'Agent referral from Srinivas Education Services.',                 95000.00, 95000.00, 5000.00,'Agent referral discount',    90000.00,'admin',  NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag,referral_types rt WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'AGENT_REFERRAL' AND ag.name = 'Srinivas Education Services' UNION ALL
+--     SELECT 'Sneha Iyer',     'sneha.iyer@email.com',     '9000000004', p.id, c.id, '2024-12-10', 'CONVERTED',          ag.id, rt.id, 'Online enquiry, documents submitted and converted to student.',    450000.00,     450000.00,     0.0,   NULL,                         NULL,     NULL,    (SELECT s.id FROM students s WHERE s.roll_number = '2024GNM001'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag,referral_types rt WHERE p.code = 'GNM' AND c.code = 'GNM-GEN' AND rt.code = 'ONLINE' UNION ALL
+--     SELECT 'Raju Sharma',    'raju.sharma@email.com',    '9000000005', p.id, c.id, '2025-01-20', 'NOT_INTERESTED',     ag.id, rt.id, 'Visited campus but not interested due to distance from home.',    450000.00,     450000.00,     0.0,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, referral_types rt WHERE p.code = 'MSC_NURS' AND rt.code = 'WALK_IN'  UNION ALL
+--     SELECT 'Meena Selvam',   'meena.selvam@email.com',   '9000000006', p.id, c.id, '2025-02-03', 'DOCUMENTS_SUBMITTED',ag.id, rt.id, 'All documents submitted. Pending approval.',                      95000.00, 450000.00,     0.0,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag,referral_types rt WHERE p.code = 'BSC_NURS' AND c.code = 'BSC-NURS-GEN' AND rt.code = 'PHONE'    UNION ALL
+--     SELECT 'Arjun Verma',    'arjun.verma@email.com',    '9000000007', p.id, c.id, '2025-02-10', 'INTERESTED',         ag.id, rt.id, 'Walk-in from Trichy. Very interested in GNM course.',             450000.00,     450000.00,     0.0,   NULL,                         NULL,     NULL,    NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs p, courses c, agents ag,referral_types rt WHERE p.code = 'GNM'      AND c.code = 'GNM-GEN'       AND rt.code = 'WALK_IN';
 
     -- ── 28. Syllabi ───────────────────────────────────────────────────────────
     INSERT INTO syllabi (subject_id, version, theory_hours, lab_hours, tutorial_hours, objectives, content, text_books, reference_books, course_outcomes, is_active, created_at, updated_at)
@@ -326,34 +328,34 @@ BEGIN
     FROM subjects sub WHERE sub.code = 'GNM-SUB-001';
 
     -- ── 29. Experiments ───────────────────────────────────────────────────────
-    INSERT INTO experiments (subject_id, experiment_number, name, description, aim, apparatus, procedure, expected_outcome, learning_outcomes, estimated_duration_minutes, is_active, created_at, updated_at)
-    SELECT sub.id, 1, 'Vital Signs Measurement',
-        'Students practice measuring temperature, pulse, BP and SpO2',
-        'To measure and record vital signs accurately',
-        'Thermometer, BP cuff, stethoscope, pulse oximeter',
-        '1. Measure temperature orally' || chr(10) || '2. Palpate radial pulse for 1 min' || chr(10) || '3. Measure BP using sphygmomanometer' || chr(10) || '4. Measure SpO2',
-        'Accurate vital sign readings within normal ranges',
-        'Clinical accuracy in vital sign measurement; Documentation skills',
-        45, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM subjects sub WHERE sub.code = 'BSC-SUB-004' UNION ALL
-    SELECT sub.id, 2, 'Bed Making Technique',
-        'Students practice occupied and unoccupied bed making',
-        'To perform bed making maintaining patient comfort and infection control',
-        'Hospital bed, linen set, draw sheet, mackintosh',
-        '1. Gather required linen' || chr(10) || '2. Strip bed' || chr(10) || '3. Apply bottom sheet using mitered corners' || chr(10) || '4. Position patient' || chr(10) || '5. Complete top linen',
-        'Neat and wrinkle-free bed maintaining patient comfort and safety',
-        'Manual dexterity in bed making; Infection control practices',
-        45, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM subjects sub WHERE sub.code = 'BSC-SUB-004' UNION ALL
-    SELECT sub.id, 1, 'Skeletal System Identification',
-        'Students identify bones using anatomical models',
-        'To identify and label major bones of the human skeletal system',
-        'Full skeletal model, bone chart, labeling pins',
-        '1. Examine skull bones' || chr(10) || '2. Identify vertebral column bones' || chr(10) || '3. Label long bones' || chr(10) || '4. Sketch and label diagram',
-        'Correct identification of ≥ 90% of bones presented',
-        'Structural knowledge of skeletal system; Anatomical terminology',
-        60, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM subjects sub WHERE sub.code = 'BSC-SUB-001';
+--     INSERT INTO experiments (subject_id, experiment_number, name, description, aim, apparatus, procedure, expected_outcome, learning_outcomes, estimated_duration_minutes, is_active, created_at, updated_at)
+--     SELECT sub.id, 1, 'Vital Signs Measurement',
+--         'Students practice measuring temperature, pulse, BP and SpO2',
+--         'To measure and record vital signs accurately',
+--         'Thermometer, BP cuff, stethoscope, pulse oximeter',
+--         '1. Measure temperature orally' || chr(10) || '2. Palpate radial pulse for 1 min' || chr(10) || '3. Measure BP using sphygmomanometer' || chr(10) || '4. Measure SpO2',
+--         'Accurate vital sign readings within normal ranges',
+--         'Clinical accuracy in vital sign measurement; Documentation skills',
+--         45, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM subjects sub WHERE sub.code = 'BSC-SUB-004' UNION ALL
+--     SELECT sub.id, 2, 'Bed Making Technique',
+--         'Students practice occupied and unoccupied bed making',
+--         'To perform bed making maintaining patient comfort and infection control',
+--         'Hospital bed, linen set, draw sheet, mackintosh',
+--         '1. Gather required linen' || chr(10) || '2. Strip bed' || chr(10) || '3. Apply bottom sheet using mitered corners' || chr(10) || '4. Position patient' || chr(10) || '5. Complete top linen',
+--         'Neat and wrinkle-free bed maintaining patient comfort and safety',
+--         'Manual dexterity in bed making; Infection control practices',
+--         45, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM subjects sub WHERE sub.code = 'BSC-SUB-004' UNION ALL
+--     SELECT sub.id, 1, 'Skeletal System Identification',
+--         'Students identify bones using anatomical models',
+--         'To identify and label major bones of the human skeletal system',
+--         'Full skeletal model, bone chart, labeling pins',
+--         '1. Examine skull bones' || chr(10) || '2. Identify vertebral column bones' || chr(10) || '3. Label long bones' || chr(10) || '4. Sketch and label diagram',
+--         'Correct identification of ≥ 90% of bones presented',
+--         'Structural knowledge of skeletal system; Anatomical terminology',
+--         60, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM subjects sub WHERE sub.code = 'BSC-SUB-001';
 
     -- ── 30. Lab Curriculum Mappings (CO-PO) ──────────────────────────────────
     INSERT INTO lab_curriculum_mappings (experiment_id, outcome_type, outcome_code, outcome_description, mapping_level, justification, created_at, updated_at)
@@ -365,18 +367,18 @@ BEGIN
     SELECT e.id, 'PROGRAM_SPECIFIC_OUTCOME','PSO1','Apply anatomy in clinical care',          'MEDIUM', 'Foundation for clinical nursing',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM experiments e WHERE e.name = 'Skeletal System Identification';
 
     -- ── 31. Lab Schedules ────────────────────────────────────────────────────
-    INSERT INTO lab_schedules (lab_id, course_id, faculty_id, lab_slot_id, batch_name, day_of_week, semester_id, is_active, created_at, updated_at)
-    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'MONDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC007' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, c.id, f.id, ls.id, 'Batch B', 'WEDNESDAY', sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC008' AND ls.name = 'Morning Slot 2'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'TUESDAY',   sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Anatomy Lab'            AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC004' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
-    SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'FRIDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
-    WHERE l.name = 'Computer Lab'           AND c.code = 'GNM-GEN'      AND f.employee_code = 'FAC007' AND ls.name = 'Afternoon Slot 1' AND sem.name = 'Odd Semester 2024-2025';
+--     INSERT INTO lab_schedules (lab_id, course_id, faculty_id, lab_slot_id, batch_name, day_of_week, semester_id, is_active, created_at, updated_at)
+--     SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'MONDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+--     WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC007' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+--     SELECT l.id, c.id, f.id, ls.id, 'Batch B', 'WEDNESDAY', sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+--     WHERE l.name = 'Nursing Foundation Lab' AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC008' AND ls.name = 'Morning Slot 2'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+--     SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'TUESDAY',   sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+--     WHERE l.name = 'Anatomy Lab'            AND c.code = 'BSC-NURS-GEN' AND f.employee_code = 'FAC004' AND ls.name = 'Morning Slot 1'   AND sem.name = 'Odd Semester 2024-2025' UNION ALL
+--     SELECT l.id, c.id, f.id, ls.id, 'Batch A', 'FRIDAY',    sem.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+--     FROM labs l, courses c, faculty f, lab_slots ls, semesters sem
+--     WHERE l.name = 'Computer Lab'           AND c.code = 'GNM-GEN'      AND f.employee_code = 'FAC007' AND ls.name = 'Afternoon Slot 1' AND sem.name = 'Odd Semester 2024-2025';
 
 END $$;
