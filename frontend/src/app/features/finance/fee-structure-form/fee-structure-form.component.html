@@ -66,57 +66,114 @@
           <span class="col-desc">Description</span>
         </div>
 
-        <!-- Item rows -->
+        <!-- Generic Fee Items -->
+        <div class="fee-section-label">Generic Fees (included in course total)</div>
         @for (item of feeItems.controls; track $index; let i = $index) {
-          <div class="fee-item-block" [class.has-year-amounts]="selectedProgramDuration() > 1">
+          @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+            <div class="fee-item-block" [class.has-year-amounts]="selectedProgramDuration() > 1">
 
-            <!-- Main row -->
-            <div class="fee-item-row" [formGroup]="getItemGroup(i)">
+              <!-- Main row -->
+              <div class="fee-item-row" [formGroup]="getItemGroup(i)">
 
-              <div class="col-feetype fee-type-label">
-                <span class="fee-type-badge">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+                <div class="col-feetype fee-type-label">
+                  <span class="fee-type-badge">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+                </div>
+
+                <mat-form-field appearance="outline" class="col-amount">
+                  <mat-label>Amount (₹)</mat-label>
+                  <input matInput type="number" formControlName="amount" min="0"
+                         [readonly]="selectedProgramDuration() > 1"
+                         (input)="onItemAmountChange()" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="col-desc">
+                  <mat-label>Description</mat-label>
+                  <input matInput formControlName="description" />
+                </mat-form-field>
+
               </div>
 
-              <mat-form-field appearance="outline" class="col-amount">
-                <mat-label>Amount (₹)</mat-label>
-                <input matInput type="number" formControlName="amount" min="0"
-                       [readonly]="selectedProgramDuration() > 1"
-                       (input)="onItemAmountChange()" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="col-desc">
-                <mat-label>Description</mat-label>
-                <input matInput formControlName="description" />
-              </mat-form-field>
+              <!-- Year-wise amounts (shown when course has durationYears > 1) -->
+              @if (selectedProgramDuration() > 1) {
+                <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
+                  <div class="year-amounts-grid" formArrayName="yearAmounts">
+                    @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
+                      <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
+                        <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
+                        <input matInput type="number" formControlName="amount" min="0"
+                               (input)="onItemYearAmountChange(i)" />
+                      </mat-form-field>
+                    }
+                  </div>
+                  <div class="item-year-total">
+                    <span>Row total:</span>
+                    <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                  </div>
+                </div>
+              }
 
             </div>
-
-            <!-- Year-wise amounts (shown when course has durationYears > 1) -->
-            @if (selectedProgramDuration() > 1) {
-              <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
-                <div class="year-amounts-grid" formArrayName="yearAmounts">
-                  @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
-                    <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
-                      <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
-                      <input matInput type="number" formControlName="amount" min="0"
-                             (input)="onItemYearAmountChange(i)" />
-                    </mat-form-field>
-                  }
-                </div>
-                <div class="item-year-total">
-                  <span>Row total:</span>
-                  <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
-                </div>
-              </div>
-            }
-
-          </div>
+          }
         }
 
-        <!-- Grand Total -->
+        <!-- Generic Course Total -->
         <div class="grand-total-row">
-          <span class="grand-total__label">Grand Total</span>
+          <span class="grand-total__label">Course Total (Generic)</span>
           <span class="grand-total__value">₹{{ grandTotal() | number }}</span>
+        </div>
+
+        <!-- Additional Fee Items -->
+        <div class="fee-section-label fee-section-label--additional">Additional Fees (hostel / transport)</div>
+        @for (item of feeItems.controls; track $index; let i = $index) {
+          @if (additionalFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+            <div class="fee-item-block" [class.has-year-amounts]="selectedProgramDuration() > 1">
+
+              <div class="fee-item-row" [formGroup]="getItemGroup(i)">
+
+                <div class="col-feetype fee-type-label">
+                  <span class="fee-type-badge fee-type-badge--additional">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+                </div>
+
+                <mat-form-field appearance="outline" class="col-amount">
+                  <mat-label>Amount (₹)</mat-label>
+                  <input matInput type="number" formControlName="amount" min="0"
+                         [readonly]="selectedProgramDuration() > 1"
+                         (input)="onItemAmountChange()" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="col-desc">
+                  <mat-label>Description</mat-label>
+                  <input matInput formControlName="description" />
+                </mat-form-field>
+
+              </div>
+
+              @if (selectedProgramDuration() > 1) {
+                <div class="year-amounts-inline" [formGroup]="getItemGroup(i)">
+                  <div class="year-amounts-grid" formArrayName="yearAmounts">
+                    @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
+                      <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
+                        <mat-label>{{ ya.get('yearLabel')?.value }} Amount (₹)</mat-label>
+                        <input matInput type="number" formControlName="amount" min="0"
+                               (input)="onItemYearAmountChange(i)" />
+                      </mat-form-field>
+                    }
+                  </div>
+                  <div class="item-year-total">
+                    <span>Row total:</span>
+                    <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                  </div>
+                </div>
+              }
+
+            </div>
+          }
+        }
+
+        <!-- Additional Fees Total -->
+        <div class="grand-total-row grand-total-row--additional">
+          <span class="grand-total__label">Additional Fees Total</span>
+          <span class="grand-total__value">₹{{ additionalTotal() | number }}</span>
         </div>
 
       </div>

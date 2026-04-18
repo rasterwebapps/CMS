@@ -39,6 +39,23 @@
   margin-bottom: 4px;
 }
 
+.fee-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mat-sys-primary, #1976d2);
+  padding: 10px 8px 4px;
+  margin-top: 8px;
+
+  &--additional {
+    color: var(--mat-sys-secondary, #7b1fa2);
+    border-top: 1px dashed var(--mat-sys-outline-variant, #e0e0e0);
+    margin-top: 8px;
+    padding-top: 14px;
+  }
+}
+
 .fee-item-block {
   border-bottom: 1px solid var(--mat-sys-outline-variant, #f0f0f0);
   padding: 4px 0;
@@ -71,6 +88,10 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--mat-sys-on-surface, #333);
+
+  &--additional {
+    color: var(--mat-sys-secondary, #7b1fa2);
+  }
 }
 
 .year-amounts-inline {
@@ -111,6 +132,14 @@
   padding: 14px 8px 6px;
   border-top: 2px solid var(--mat-sys-outline-variant, #e0e0e0);
   margin-top: 8px;
+
+  &--additional {
+    border-top-color: var(--mat-sys-secondary, #7b1fa2);
+    border-top-style: dashed;
+
+    .grand-total__label { color: var(--mat-sys-secondary, #7b1fa2); }
+    .grand-total__value { color: var(--mat-sys-secondary, #7b1fa2); }
+  }
 }
 
 .grand-total__label {
@@ -123,3 +152,4 @@
   font-size: 1.25rem;
   color: var(--mat-sys-primary, #1976d2);
 }
+

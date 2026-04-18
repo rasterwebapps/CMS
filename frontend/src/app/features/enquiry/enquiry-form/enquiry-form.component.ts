@@ -109,7 +109,6 @@ export class EnquiryFormComponent implements OnInit {
     status: ['ENQUIRED'],
     agentId: [null as number | null],
     remarks: [''],
-    feeDiscussedAmount: [null as number | null],
     studentType: [null as 'DAY_SCHOLAR' | 'HOSTELER' | null],
   });
 
@@ -141,15 +140,18 @@ export class EnquiryFormComponent implements OnInit {
             referralTypeId: item.referralTypeId, status: item.status,
             agentId: item.agentId,
             remarks: item.remarks,
-            feeDiscussedAmount: item.feeDiscussedAmount,
             studentType: item.studentType ?? null,
           });
           if (item.referralTypeId) {
             this.onReferralTypeChange(item.referralTypeId);
           }
           if (item.programId) {
+            const program = this.programs().find((p) => p.id === item.programId) ?? null;
+            this.selectedProgram.set(program);
             this.loadCoursesForProgram(item.programId);
-            this.loadFeeStructures(item.programId, item.courseId ?? undefined);
+            if (item.courseId) {
+              this.loadFeeStructures(item.programId, item.courseId);
+            }
           }
           this.loading.set(false);
         },
@@ -164,20 +166,23 @@ export class EnquiryFormComponent implements OnInit {
   protected onProgramChange(programId: number): void {
     this.form.patchValue({ courseId: null });
     this.courses.set([]);
+    this.feeStructures.set([]);
+    this.selectedProgram.set(null);
+    this.totalFees.set(0);
     if (programId) {
       this.loadCoursesForProgram(programId);
-      this.loadFeeStructures(programId);
-    } else {
-      this.feeStructures.set([]);
-      this.selectedProgram.set(null);
-      this.totalFees.set(0);
+      const program = this.programs().find((p) => p.id === programId) ?? null;
+      this.selectedProgram.set(program);
     }
   }
 
   protected onCourseChange(courseId: number): void {
     const programId = this.form.get('programId')?.value;
-    if (programId) {
-      this.loadFeeStructures(programId, courseId ?? undefined);
+    if (programId && courseId) {
+      this.loadFeeStructures(programId, courseId);
+    } else {
+      this.feeStructures.set([]);
+      this.totalFees.set(0);
     }
   }
 
@@ -188,31 +193,32 @@ export class EnquiryFormComponent implements OnInit {
 
   private computeTotalFromFeeStructures(data: FeeStructureInfo[]): void {
     const studentType = this.form.get('studentType')?.value as 'DAY_SCHOLAR' | 'HOSTELER' | null;
-    let filtered = data;
+    // Generic fees exclude HOSTEL_FEE and TRANSPORT_FEE
+    const genericTotal = data
+      .filter((fs) => fs.feeType !== 'HOSTEL_FEE' && fs.feeType !== 'TRANSPORT_FEE')
+      .reduce((sum, fs) => sum + fs.amount, 0);
+    let additionalFee = 0;
     if (studentType === 'DAY_SCHOLAR') {
-      filtered = data.filter((fs) => fs.feeType !== 'HOSTEL_FEE');
+      additionalFee = data
+        .filter((fs) => fs.feeType === 'TRANSPORT_FEE')
+        .reduce((sum, fs) => sum + fs.amount, 0);
     } else if (studentType === 'HOSTELER') {
-      filtered = data.filter((fs) => fs.feeType !== 'TRANSPORT_FEE');
+      additionalFee = data
+        .filter((fs) => fs.feeType === 'HOSTEL_FEE')
+        .reduce((sum, fs) => sum + fs.amount, 0);
     }
-    const total = filtered.reduce((sum, fs) => sum + fs.amount, 0);
-    this.totalFees.set(total);
+    this.totalFees.set(genericTotal + additionalFee);
   }
 
   private loadCoursesForProgram(programId: number): void {
-    this.http.get<CourseInfo[]>(`${environment.apiUrl}/courses?programId=${programId}`).subscribe({
+    this.http.get<CourseInfo[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
       next: (data) => this.courses.set(data),
       error: () => this.courses.set([]),
     });
   }
 
-  private loadFeeStructures(programId: number, courseId?: number): void {
-    const program = this.programs().find((p) => p.id === programId) ?? null;
-    this.selectedProgram.set(program);
-
-    let url = `${environment.apiUrl}/fee-structures?programId=${programId}`;
-    if (courseId) {
-      url += `&courseId=${courseId}`;
-    }
+  private loadFeeStructures(programId: number, courseId: number): void {
+    const url = `${environment.apiUrl}/fee-structures?programId=${programId}&courseId=${courseId}`;
 
     this.http.get<FeeStructureInfo[]>(url).subscribe({
       next: (data) => {
@@ -267,7 +273,6 @@ export class EnquiryFormComponent implements OnInit {
       enquiryDate: dateStr, referralTypeId: v.referralTypeId,
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
-      feeDiscussedAmount: v.feeDiscussedAmount || undefined,
       feeGuidelineTotal: this.totalFees() || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
       finalCalculatedFee: this.finalCalculatedFee() || undefined,

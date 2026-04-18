@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -55,6 +55,13 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly yearFees = signal<YearFee[]>([]);
 
+  /** Cross-field validator: discount must not exceed total fee. */
+  private discountNotExceedTotalValidator(group: AbstractControl): ValidationErrors | null {
+    const total = Number(group.get('totalFee')?.value) || 0;
+    const discount = Number(group.get('discountAmount')?.value) || 0;
+    return discount > total ? { discountExceedsTotal: true } : null;
+  }
+
   protected readonly displayedColumns = [
     'name',
     'programName',
@@ -69,7 +76,7 @@ export class FeeFinalizationComponent implements OnInit {
     totalFee: [null, [Validators.required, Validators.min(0)]],
     discountAmount: [0, [Validators.min(0)]],
     discountReason: [''],
-  });
+  }, { validators: this.discountNotExceedTotalValidator });
 
   protected readonly netFee = computed(() => {
     const total = this.form.get('totalFee')?.value || 0;

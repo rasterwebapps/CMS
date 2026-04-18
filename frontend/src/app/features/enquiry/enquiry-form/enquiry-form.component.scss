@@ -20,6 +20,41 @@
 .half-width { flex: 1; }
 .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 
+/* Inline read-only fee amount display inside the form */
+.fee-amount-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--cms-primary-light, #e8f5e9);
+  border: 1.5px solid var(--cms-primary, #1976d2);
+  border-radius: 10px;
+  margin: 4px 0 8px;
+}
+
+.fee-amount-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--cms-primary, #1976d2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fee-amount-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--cms-primary, #1976d2);
+  letter-spacing: -0.02em;
+}
+
+.fee-type-hint {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--cms-primary, #1976d2);
+  opacity: 0.7;
+}
+
 /* Fee Structure Card */
 .fee-card { max-width: 100%; }
 .fee-icon { color: var(--cms-primary); }
@@ -34,13 +69,15 @@
   border-radius: 12px;
 }
 .fee-total-label {
-  font-size: 1rem; font-weight: 700;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--cms-primary);
 }
 .fee-total-value {
-  font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
-  color: var(--cms-primary);
+  font-size: 1.25rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cms-primary);
 }
 
 .fee-year-grid {
@@ -58,19 +95,23 @@
   border-radius: 8px;
 }
 .fee-year-label {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--cms-text-muted);
   margin-bottom: 4px;
 }
 .fee-year-amount {
-  font-size: 1rem; font-weight: 700;
-  color: var(--cms-primary);
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--cms-primary);
 }
 
 .fee-breakdown { margin-top: 8px; }
 .fee-breakdown-title {
-  font-size: 0.9375rem; font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 700;
   color: var(--cms-text-muted);
   margin-bottom: 8px;
 }
@@ -82,12 +123,13 @@
   &:last-child { border-bottom: none; }
 }
 .fee-type { font-size: 0.8125rem; font-weight: 500; }
-.fee-amount { font-size: 0.8125rem; font-weight: 500; font-weight: 600; color: var(--cms-primary); }
+.fee-amount { font-size: 0.8125rem; font-weight: 600; color: var(--cms-primary); }
 .mandatory-badge { color: var(--cms-danger); font-weight: bold; margin-left: 2px; }
 .no-fee-hint {
   text-align: center;
   color: var(--cms-text-muted);
-  font-size: 0.8125rem; font-weight: 500;
+  font-size: 0.8125rem;
+  font-weight: 500;
   padding: 16px 0;
 }
 
@@ -105,3 +147,4 @@
     color: var(--cms-badge-violet-text);
   }
 }
+

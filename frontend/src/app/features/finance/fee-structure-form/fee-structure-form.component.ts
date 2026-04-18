@@ -61,10 +61,19 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly selectedProgramDuration = signal(0);
 
+  /** All fee types in display order (generic first, then additional). */
   protected readonly feeTypes = [
     'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
-    'HOSTEL_FEE', 'TRANSPORT_FEE', 'MISCELLANEOUS', 'LATE_FEE',
+    'MISCELLANEOUS', 'LATE_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE',
   ];
+
+  /** Generic fee types — included in the course total. */
+  protected readonly genericFeeTypes = [
+    'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'MISCELLANEOUS', 'LATE_FEE',
+  ];
+
+  /** Additional fee types — NOT included in the generic course total. */
+  protected readonly additionalFeeTypes = ['HOSTEL_FEE', 'TRANSPORT_FEE'];
 
   protected readonly feeTypeLabels: Record<string, string> = {
     TUITION: 'Tuition Fee',
@@ -91,11 +100,34 @@ export class FeeStructureFormComponent implements OnInit {
 
   private readonly _grandTotalVersion = signal(0);
 
+  /** Course total — includes only Generic fee types (excludes HOSTEL_FEE and TRANSPORT_FEE). */
   protected readonly grandTotal = computed(() => {
     this._grandTotalVersion();
     let total = 0;
     for (let i = 0; i < this.feeItems.length; i++) {
       const itemGroup = this.feeItems.at(i) as FormGroup;
+      const feeType: string = itemGroup.get('feeType')?.value;
+      if (!this.genericFeeTypes.includes(feeType)) continue;
+      const itemYearAmounts = itemGroup.get('yearAmounts') as FormArray;
+      if (itemYearAmounts && itemYearAmounts.length > 0) {
+        for (let j = 0; j < itemYearAmounts.length; j++) {
+          total += Number(itemYearAmounts.at(j).get('amount')?.value) || 0;
+        }
+      } else {
+        total += Number(itemGroup.get('amount')?.value) || 0;
+      }
+    }
+    return total;
+  });
+
+  /** Additional fees total (HOSTEL_FEE + TRANSPORT_FEE). */
+  protected readonly additionalTotal = computed(() => {
+    this._grandTotalVersion();
+    let total = 0;
+    for (let i = 0; i < this.feeItems.length; i++) {
+      const itemGroup = this.feeItems.at(i) as FormGroup;
+      const feeType: string = itemGroup.get('feeType')?.value;
+      if (!this.additionalFeeTypes.includes(feeType)) continue;
       const itemYearAmounts = itemGroup.get('yearAmounts') as FormArray;
       if (itemYearAmounts && itemYearAmounts.length > 0) {
         for (let j = 0; j < itemYearAmounts.length; j++) {
