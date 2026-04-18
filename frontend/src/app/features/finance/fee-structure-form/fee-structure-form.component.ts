@@ -158,6 +158,76 @@ export class FeeStructureFormComponent implements OnInit {
     return (this.feeItems.at(i) as FormGroup).get('yearAmounts') as FormArray;
   }
 
+  // ── Grid view helpers ────────────────────────────────────────────────────
+
+  private readonly _expandedNotes = signal<Set<number>>(new Set<number>());
+
+  /** Year numbers for column headers: [1, 2, …, N] or [1] when N ≤ 1. */
+  protected readonly yearRange = computed(() => {
+    const d = this.selectedProgramDuration();
+    return d > 1 ? Array.from({ length: d }, (_, i) => i + 1) : [1];
+  });
+
+  /** CSS grid-template-columns value shared by every row in the fee grid. */
+  protected readonly gridTemplateColumns = computed(() => {
+    const cols = Math.max(this.selectedProgramDuration(), 1);
+    return `minmax(180px, 220px) repeat(${cols}, minmax(96px, 1fr)) 110px`;
+  });
+
+  /** Per-year column totals for generic (course) fee types. */
+  protected readonly yearTotals = computed(() => {
+    this._grandTotalVersion();
+    const cols = Math.max(this.selectedProgramDuration(), 1);
+    const totals = new Array<number>(cols).fill(0);
+    for (let i = 0; i < this.feeItems.length; i++) {
+      const ig = this.feeItems.at(i) as FormGroup;
+      if (!this.genericFeeTypes.includes(ig.get('feeType')?.value as string)) continue;
+      const ya = ig.get('yearAmounts') as FormArray;
+      if (ya && ya.length > 0) {
+        for (let j = 0; j < Math.min(ya.length, cols); j++) {
+          totals[j] += Number(ya.at(j).get('amount')?.value) || 0;
+        }
+      } else {
+        totals[0] += Number(ig.get('amount')?.value) || 0;
+      }
+    }
+    return totals;
+  });
+
+  /** Per-year column totals for additional fee types. */
+  protected readonly additionalYearTotals = computed(() => {
+    this._grandTotalVersion();
+    const cols = Math.max(this.selectedProgramDuration(), 1);
+    const totals = new Array<number>(cols).fill(0);
+    for (let i = 0; i < this.feeItems.length; i++) {
+      const ig = this.feeItems.at(i) as FormGroup;
+      if (!this.additionalFeeTypes.includes(ig.get('feeType')?.value as string)) continue;
+      const ya = ig.get('yearAmounts') as FormArray;
+      if (ya && ya.length > 0) {
+        for (let j = 0; j < Math.min(ya.length, cols); j++) {
+          totals[j] += Number(ya.at(j).get('amount')?.value) || 0;
+        }
+      } else {
+        totals[0] += Number(ig.get('amount')?.value) || 0;
+      }
+    }
+    return totals;
+  });
+
+  protected toggleNote(index: number): void {
+    this._expandedNotes.update(s => {
+      const next = new Set(s);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  }
+
+  protected isNoteExpanded(index: number): boolean {
+    return this._expandedNotes().has(index);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   protected getItemRowTotal(i: number): number {
     const itemGroup = this.feeItems.at(i) as FormGroup;
     const itemYearAmounts = itemGroup.get('yearAmounts') as FormArray;
