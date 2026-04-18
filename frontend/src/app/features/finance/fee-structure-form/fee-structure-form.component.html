@@ -10,9 +10,21 @@
 
     <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
-      <!-- Header: Program / Course / Academic Year -->
+      <!-- Header: Academic Year / Program / Course -->
       <mat-card appearance="outlined" class="form-card">
         <mat-card-content class="form">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Academic Year *</mat-label>
+            <mat-select formControlName="academicYearId">
+              @for (ay of academicYears(); track ay.id) {
+                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
+              }
+            </mat-select>
+            @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
+              <mat-error>Academic Year is required</mat-error>
+            }
+          </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Program *</mat-label>
@@ -36,18 +48,6 @@
               </mat-select>
             </mat-form-field>
           }
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Academic Year *</mat-label>
-            <mat-select formControlName="academicYearId">
-              @for (ay of academicYears(); track ay.id) {
-                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
-              }
-            </mat-select>
-            @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
-              <mat-error>Academic Year is required</mat-error>
-            }
-          </mat-form-field>
 
         </mat-card-content>
       </mat-card>
@@ -78,7 +78,7 @@
                   </mat-form-field>
                 </div>
 
-                <!-- Amounts row: year boxes + row total -->
+                <!-- Amounts row: year boxes + row total (inline) -->
                 <div class="fee-item-amounts-row" [formGroup]="getItemGroup(i)">
                   <div class="fee-type-spacer"></div>
                   <div class="fee-amounts-wrap">
@@ -91,17 +91,22 @@
                                    (input)="onItemYearAmountChange(i)" />
                           </mat-form-field>
                         }
+                        <div class="item-year-total">
+                          <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                        </div>
                       </div>
                     } @else {
-                      <mat-form-field appearance="outline" class="year-field">
-                        <mat-label>Amount (₹) *</mat-label>
-                        <input matInput type="number" formControlName="amount" min="0"
-                               (input)="onItemAmountChange()" />
-                      </mat-form-field>
+                      <div class="single-amount-row">
+                        <mat-form-field appearance="outline" class="year-field">
+                          <mat-label>Amount (₹) *</mat-label>
+                          <input matInput type="number" formControlName="amount" min="0"
+                                 (input)="onItemAmountChange()" />
+                        </mat-form-field>
+                        <div class="item-year-total">
+                          <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                        </div>
+                      </div>
                     }
-                    <div class="item-year-total">
-                      <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
-                    </div>
                   </div>
                 </div>
 
