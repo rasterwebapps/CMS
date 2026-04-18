@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { AuthService } from './core/auth/auth.service';
+import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 
 interface NavItem {
   label: string;
@@ -46,6 +47,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatTooltipModule,
     MatExpansionModule,
     MatDivider,
+    ThemePickerComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',

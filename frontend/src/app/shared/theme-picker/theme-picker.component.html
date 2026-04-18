@@ -1,0 +1,33 @@
+<button
+  mat-icon-button
+  [matMenuTriggerFor]="themeMenu"
+  matTooltip="Choose accent colour"
+  class="toolbar-action-btn theme-picker-trigger"
+  aria-label="Open theme colour picker"
+>
+  <mat-icon>palette</mat-icon>
+</button>
+
+<mat-menu #themeMenu="matMenu" class="theme-picker-menu" xPosition="before">
+  <div class="theme-picker-panel" (click)="$event.stopPropagation()">
+    <p class="theme-picker-label">Accent Colour</p>
+    <div class="swatch-grid">
+      @for (swatch of swatches; track swatch.id) {
+        <button
+          class="swatch-btn"
+          [class.swatch-active]="themeService.activeSwatch().id === swatch.id"
+          [style.background]="swatch.hex"
+          [attr.aria-label]="swatch.name"
+          [attr.aria-pressed]="themeService.activeSwatch().id === swatch.id"
+          matTooltip="{{ swatch.name }}"
+          matTooltipPosition="above"
+          (click)="themeService.applyTheme(swatch)"
+        >
+          @if (themeService.activeSwatch().id === swatch.id) {
+            <span class="swatch-check" aria-hidden="true">✓</span>
+          }
+        </button>
+      }
+    </div>
+  </div>
+</mat-menu>

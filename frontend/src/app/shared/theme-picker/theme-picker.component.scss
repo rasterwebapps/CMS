@@ -1,0 +1,9 @@
+.theme-picker-trigger {
+  border-radius: var(--cms-radius-sm) !important;
+}
+
+// Panel rendered in an overlay — styles must be global enough to reach it
+// (component :host encapsulation does not apply inside mat-menu portals)
+:host {
+  display: contents;
+}
