@@ -30,6 +30,7 @@ import com.cms.model.Program;
 import com.cms.model.enums.FeeType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.ProgramRepository;
@@ -47,6 +48,8 @@ class FeeStructureServiceTest {
     private FeeStructureYearAmountRepository yearAmountRepository;
     @Mock
     private CourseRepository courseRepository;
+    @Mock
+    private FeePaymentRepository feePaymentRepository;
 
     private FeeStructureService feeStructureService;
 
@@ -55,7 +58,7 @@ class FeeStructureServiceTest {
 
     @BeforeEach
     void setUp() {
-        feeStructureService = new FeeStructureService(feeStructureRepository, programRepository, academicYearRepository, yearAmountRepository, courseRepository);
+        feeStructureService = new FeeStructureService(feeStructureRepository, programRepository, academicYearRepository, yearAmountRepository, courseRepository, feePaymentRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -293,11 +296,24 @@ class FeeStructureServiceTest {
     @Test
     void shouldDeleteFeeStructure() {
         when(feeStructureRepository.existsById(1L)).thenReturn(true);
+        when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(false);
 
         feeStructureService.delete(1L);
 
         verify(yearAmountRepository).deleteByFeeStructureId(1L);
         verify(feeStructureRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingFeeStructureWithPayments() {
+        when(feeStructureRepository.existsById(1L)).thenReturn(true);
+        when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> feeStructureService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("payments");
+
+        verify(feeStructureRepository, never()).deleteById(any());
     }
 
     @Test
@@ -609,19 +625,96 @@ class FeeStructureServiceTest {
         );
         BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(newTuition));
 
-        FeeStructure savedNew = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("60000.00"));
+        FeeStructure savedUpdated = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("60000.00"));
 
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
-        when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(savedNew);
+        when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(savedUpdated);
 
         List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
 
+        // Existing record updated in place — no delete/recreate
         verify(yearAmountRepository).deleteByFeeStructureId(1L);
-        verify(feeStructureRepository).deleteById(1L);
+        verify(feeStructureRepository, never()).deleteById(anyLong());
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).amount()).isEqualByComparingTo(new BigDecimal("60000.00"));
+    }
+
+    @Test
+    void shouldBulkUpdateRemovingUnpaidFeeType() {
+        FeeStructure existingTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        FeeStructureItemRequest newTuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("55000.00"), "Updated", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(newTuition));
+
+        FeeStructure savedUpdated = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("55000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existingTuition, existingLab));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feePaymentRepository.existsByFeeStructureId(2L)).thenReturn(false);
+        when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(savedUpdated);
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
+
+        verify(yearAmountRepository).deleteByFeeStructureId(2L);
+        verify(feeStructureRepository).deleteById(2L);
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void shouldThrowWhenBulkUpdateRemovesFeeTypeWithPayments() {
+        FeeStructure existingTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        FeeStructureItemRequest newTuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("55000.00"), "Updated", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(newTuition));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existingTuition, existingLab));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feePaymentRepository.existsByFeeStructureId(2L)).thenReturn(true);
+
+        assertThatThrownBy(() -> feeStructureService.bulkUpdate(request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("LAB_FEE")
+            .hasMessageContaining("payments");
+
+        verify(feeStructureRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldBulkUpdateAddingNewFeeType() {
+        FeeStructure existingTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+
+        FeeStructureItemRequest tuition = new FeeStructureItemRequest(
+            FeeType.TUITION, new BigDecimal("50000.00"), "Tuition", true, true, null
+        );
+        FeeStructureItemRequest lab = new FeeStructureItemRequest(
+            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
+
+        FeeStructure savedTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure savedLab = createFeeStructure(3L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existingTuition));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.save(any(FeeStructure.class)))
+            .thenReturn(savedTuition)
+            .thenReturn(savedLab);
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
+
+        verify(feeStructureRepository, never()).deleteById(any());
+        assertThat(responses).hasSize(2);
     }
 
     @Test
@@ -630,6 +723,8 @@ class FeeStructureServiceTest {
         FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(fs1, fs2));
+        when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(false);
+        when(feePaymentRepository.existsByFeeStructureId(2L)).thenReturn(false);
 
         feeStructureService.deleteGroup(1L, 1L, null);
 
@@ -640,6 +735,21 @@ class FeeStructureServiceTest {
     }
 
     @Test
+    void shouldThrowWhenDeletingGroupWithPayments() {
+        FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(fs1, fs2));
+        when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> feeStructureService.deleteGroup(1L, 1L, null))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("payments");
+
+        verify(feeStructureRepository, never()).deleteById(any());
+    }
+
+    @Test
     void shouldDeleteGroupWithCourse() {
         com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101", null, testProgram);
         testCourse.setId(2L);
@@ -647,6 +757,7 @@ class FeeStructureServiceTest {
         fs.setCourse(testCourse);
 
         when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(1L, 2L, 1L)).thenReturn(List.of(fs));
+        when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(false);
 
         feeStructureService.deleteGroup(1L, 1L, 2L);
 

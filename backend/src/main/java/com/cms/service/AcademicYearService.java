@@ -10,15 +10,19 @@ import com.cms.dto.AcademicYearResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.FeeStructureRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class AcademicYearService {
 
     private final AcademicYearRepository academicYearRepository;
+    private final FeeStructureRepository feeStructureRepository;
 
-    public AcademicYearService(AcademicYearRepository academicYearRepository) {
+    public AcademicYearService(AcademicYearRepository academicYearRepository,
+                               FeeStructureRepository feeStructureRepository) {
         this.academicYearRepository = academicYearRepository;
+        this.feeStructureRepository = feeStructureRepository;
     }
 
     @Transactional
@@ -90,6 +94,10 @@ public class AcademicYearService {
     public void delete(Long id) {
         if (!academicYearRepository.existsById(id)) {
             throw new ResourceNotFoundException("Academic year not found with id: " + id);
+        }
+        if (feeStructureRepository.existsByAcademicYearId(id)) {
+            throw new IllegalStateException(
+                "Cannot delete academic year because fee structures are associated with it.");
         }
         academicYearRepository.deleteById(id);
     }

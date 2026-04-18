@@ -49,11 +49,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error);
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.CONFLICT.value(),
-            "A record with the same name or code already exists.",
+            ex.getMessage(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String message;
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause != null && cause.getMessage() != null
+                && cause.getMessage().toLowerCase().contains("foreign key")) {
+            message = "Cannot delete or update this record because it is referenced by other records.";
+        } else {
+            message = "A record with the same name or code already exists.";
+        }
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            message,
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
