@@ -9,7 +9,8 @@ INSERT INTO programs (name, code, duration_years, created_at, updated_at) VALUES
     ('Master',      'MASTER',      2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('Diploma',     'DIPLOMA',     3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('Certificate', 'CERTIFICATE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Doctoral',    'DOCTORAL',    3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('Doctoral',    'DOCTORAL',    3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (code) DO NOTHING;
 
 -- Step 3: Migrate all data referencing the domain-specific seed programs (inserted by V45)
 -- to the new generic degree-type programs: BSC_NURS → BACHELOR, MSC_NURS → MASTER, GNM → DIPLOMA.
