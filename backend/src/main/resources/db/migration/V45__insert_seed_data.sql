@@ -50,13 +50,13 @@ BEGIN
 
     -- ── 6. Semesters ─────────────────────────────────────────────────────────
     INSERT INTO semesters (name, academic_year_id, start_date, end_date, semester_number, created_at, updated_at)
-    SELECT 'Odd Semester 2023-2024',  id, '2023-06-01', '2023-11-30', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2023-2024'
+    SELECT 'Odd Semester 2023-2024',  id, '2023-06-01'::date, '2023-11-30'::date, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2023-2024'
     UNION ALL
-    SELECT 'Even Semester 2023-2024', id, '2024-01-01', '2024-05-31', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2023-2024'
+    SELECT 'Even Semester 2023-2024', id, '2024-01-01'::date, '2024-05-31'::date, 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2023-2024'
     UNION ALL
-    SELECT 'Odd Semester 2024-2025',  id, '2024-06-01', '2024-11-30', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2024-2025'
+    SELECT 'Odd Semester 2024-2025',  id, '2024-06-01'::date, '2024-11-30'::date, 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2024-2025'
     UNION ALL
-    SELECT 'Even Semester 2024-2025', id, '2025-01-01', '2025-05-31', 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2024-2025';
+    SELECT 'Even Semester 2024-2025', id, '2025-01-01'::date, '2025-05-31'::date, 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM academic_years WHERE name = '2024-2025';
 
     -- ── 7. Courses ───────────────────────────────────────────────────────────
     INSERT INTO courses (name, code, specialization, program_id, created_at, updated_at)
