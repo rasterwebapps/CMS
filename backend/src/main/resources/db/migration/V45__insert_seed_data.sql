@@ -67,6 +67,13 @@ BEGIN
     SELECT 'GNM – General Nursing & Midwifery',  'GNM-GEN',      NULL,                    id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM programs WHERE code = 'GNM';
 
     -- ── 8. Subjects ──────────────────────────────────────────────────────────
+    -- Fix: V37 renamed the old courses table to subjects and renamed program_id → course_id
+    -- but did not update the FK constraint. It still references programs(id) instead of
+    -- the new courses(id) table. Drop and recreate with the correct reference.
+    ALTER TABLE subjects DROP CONSTRAINT IF EXISTS courses_program_id_fkey;
+    ALTER TABLE subjects ADD CONSTRAINT subjects_course_id_fkey
+        FOREIGN KEY (course_id) REFERENCES courses(id);
+
     INSERT INTO subjects (name, code, credits, theory_credits, lab_credits, course_id, department_id, semester, created_at, updated_at)
     SELECT 'Anatomy & Physiology',       'BSC-SUB-001', 4, 3, 1, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
