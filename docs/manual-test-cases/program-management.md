@@ -45,7 +45,7 @@
 2. Inspect the form fields
 
 **Expected Result:**
-- Form shows: Name, Code, Duration (Years), Departments fields
+- Form shows: Program Name, Program Code, Duration (Years) fields
 - No "Program Level" dropdown is present
 
 **Status:** NOT TESTED
@@ -115,3 +115,69 @@
 - Each course's `program` contains: `id`, `name`, `code`, `durationYears`, `departments` — no `programLevel` field
 
 **Status:** NOT TESTED
+
+---
+
+## TC-PROG-008: Add Program form — modern UI layout and field behaviour
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Application is running and navigated to Programs → Add Program
+
+**Steps:**
+1. Observe the Add Program page layout
+2. Verify the page title ("Add Program") and subtitle text are visible beneath the back arrow
+3. Verify no Material card shadow/elevation is present around the form
+4. Verify each field has a label rendered **above** the input box (not floating inside the border)
+5. Verify the "Program Code" and "Duration (Years)" fields each display a helper text line below the input
+6. Click the "Program Name" input and verify a subtle indigo focus ring appears
+7. Submit the form empty; verify inline error messages appear below the respective inputs
+8. Fill in valid values and click "Create Program"; verify success snackbar and redirect to list
+
+**Expected Result:**
+- Flat form card with a whisper-thin border and no box shadow is displayed
+- Labels are positioned above each input with a dark gray style
+- Helper text renders as small muted text below the relevant inputs
+- Focus state shows an indigo ring without heavy Material outline borders
+- Error messages appear below the input (not inside a Material error slot)
+- Successful submission redirects to the Programs list
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PROG-009: Add Program form — Cancel button navigates back
+
+**Preconditions:**
+- User is on the Add Program page
+
+**Steps:**
+1. Click the "Cancel" button
+2. Observe navigation
+
+**Expected Result:**
+- User is navigated back to the Programs list without any data being saved
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PROG-010: Edit Program form — form pre-fills existing values
+
+**Preconditions:**
+- A program "Bachelor" with code "BACHELOR" and durationYears 4 exists
+- User navigates to the Edit Program page for that program
+
+**Steps:**
+1. Observe the form fields on load
+2. Verify the page title reads "Edit Program"
+3. Verify the subtitle reads "Update the program details below."
+4. Verify all three fields are pre-populated with existing values
+5. Change the name and click "Update Program"
+
+**Expected Result:**
+- Form loads pre-filled values
+- Successful update shows a snackbar and redirects to the list
+
+**Status:** NOT TESTED
+

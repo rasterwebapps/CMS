@@ -24,6 +24,7 @@
   --cms-primary-hover: #4f46e5;
   --cms-primary-light: #eef2ff;
   --cms-primary-ring: rgba(99, 102, 241, 0.3);
+  --cms-border-hover: #a5b4fc;
 
   // ─── Accent Gradient Palette ───
   --cms-gradient-brand: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -48,6 +49,7 @@
   --cms-warning-light: #fffbeb;
   --cms-danger: #ef4444;
   --cms-danger-light: #fef2f2;
+  --cms-danger-ring: rgba(239, 68, 68, 0.15);
   --cms-info: #3b82f6;
   --cms-info-light: #eff6ff;
 
@@ -1075,5 +1077,354 @@ body {
   &:hover {
     background-color: rgba(139, 92, 246, 0.08) !important;
   }
+}
+
+// ══════════════════════════════════════════════════
+// 📝  ENTRY FORM PAGE LAYOUT SYSTEM
+//     Master template for simple data entry screens.
+//     Mirrors the premium SaaS aesthetic of list-page.
+// ══════════════════════════════════════════════════
+
+// ── Page Container ────────────────────────────────
+.entry-form-page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
+}
+
+// ── Page Header (back button + title block) ───────
+.entry-form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 28px;
+
+  .back-btn {
+    flex-shrink: 0;
+    margin-top: 4px;
+    margin-left: -8px;
+    color: var(--cms-text-secondary);
+    transition: var(--cms-transition);
+
+    &:hover {
+      color: var(--cms-primary);
+      background: var(--cms-bg-hover) !important;
+    }
+  }
+
+  .page-title {
+    margin: 0 0 2px;
+    font-size: 1.75rem;
+  }
+}
+
+// ── Flat Form Card (no shadow, whisper-thin border) ─
+.entry-form-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  padding: 28px 32px;
+  max-width: 640px;
+
+  @media (max-width: 640px) {
+    padding: 20px 16px;
+    border-radius: var(--cms-radius-md);
+  }
+}
+
+// ── Field Group (wrapper per field) ──────────────
+.field-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+// ── Field Label (above the input) ────────────────
+.field-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  cursor: default;
+}
+
+// ── Field Input ───────────────────────────────────
+.field-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  outline: none;
+  transition: var(--cms-transition);
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--cms-text-muted);
+    font-weight: 400;
+  }
+
+  &:hover:not(:disabled):not(.field-input--error) {
+    border-color: var(--cms-border-hover);
+  }
+
+  &:focus:not(.field-input--error) {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+  }
+
+  &--error {
+    border-color: var(--cms-danger) !important;
+
+    &:focus {
+      box-shadow: 0 0 0 3px var(--cms-danger-ring) !important;
+    }
+  }
+
+  &--narrow {
+    max-width: 160px;
+  }
+
+  &[disabled] {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  // Hide number input spin buttons
+  &[type='number'] {
+    -moz-appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+}
+
+// ── Field Textarea ────────────────────────────────
+.field-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  outline: none;
+  transition: var(--cms-transition);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.6;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--cms-text-muted);
+    font-weight: 400;
+  }
+
+  &:hover:not(:disabled):not(.field-textarea--error) {
+    border-color: var(--cms-border-hover);
+  }
+
+  &:focus:not(.field-textarea--error) {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+  }
+
+  &--error {
+    border-color: var(--cms-danger) !important;
+
+    &:focus {
+      box-shadow: 0 0 0 3px var(--cms-danger-ring) !important;
+    }
+  }
+
+  &[disabled] {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// ── Field Select ──────────────────────────────────
+.field-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 36px 0 14px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  outline: none;
+  transition: var(--cms-transition);
+  box-sizing: border-box;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cms-border-hover);
+  }
+
+  &:focus {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+  }
+
+  &--error {
+    border-color: var(--cms-danger) !important;
+
+    &:focus {
+      box-shadow: 0 0 0 3px var(--cms-danger-ring) !important;
+    }
+  }
+
+  &[disabled] {
+    background-color: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// ── Hint text (helper text below input) ──────────
+.field-hint {
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  line-height: 1.5;
+}
+
+// ── Error text ────────────────────────────────────
+.field-error {
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  color: var(--cms-danger);
+  font-weight: 500;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// ── Form Footer (action row) ──────────────────────
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 24px;
+  margin-top: 24px;
+  border-top: 1px solid var(--cms-border-light);
+}
+
+// ── Submit / Primary Action Button ───────────────
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 20px;
+  background: var(--cms-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--cms-primary-hover);
+    box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+}
+
+// ── Cancel / Secondary Action Button ─────────────
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+}
+
+// ── Spinner inside a button ───────────────────────
+.btn-spinner {
+  display: inline-flex;
 }
 

@@ -1,9 +1,14 @@
-<div class="program-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/programs" class="back-button">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/programs" class="back-btn" aria-label="Back to programs">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the program details below.' : 'Fill in the details below to register a new academic program.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -11,53 +16,70 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="program-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter program name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <mat-error>{{ getErrorMessage('name') }}</mat-error>
-            }
-          </mat-form-field>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Code</mat-label>
-            <input matInput formControlName="code" placeholder="Enter program code" />
-            <mat-hint>Short code for the program (e.g., BACH, MAST)</mat-hint>
-            @if (form.get('code')?.invalid && form.get('code')?.touched) {
-              <mat-error>{{ getErrorMessage('code') }}</mat-error>
-            }
-          </mat-form-field>
+        <div class="field-group">
+          <label for="program-name" class="field-label">Program Name</label>
+          <input
+            id="program-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., Bachelor of Computer Science"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">{{ getErrorMessage('name') }}</p>
+          }
+        </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Duration (Years)</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="durationYears"
-              placeholder="Enter duration in years"
-              min="1"
-              max="10"
-            />
-            @if (form.get('durationYears')?.invalid && form.get('durationYears')?.touched) {
-              <mat-error>{{ getErrorMessage('durationYears') }}</mat-error>
-            }
-          </mat-form-field>
+        <div class="field-group">
+          <label for="program-code" class="field-label">Program Code</label>
+          <input
+            id="program-code"
+            class="field-input field-input--narrow"
+            formControlName="code"
+            placeholder="e.g., BACH, MAST"
+            autocomplete="off"
+            [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+          />
+          <p class="field-hint">Short uppercase code for the program (max 20 characters)</p>
+          @if (form.get('code')?.invalid && form.get('code')?.touched) {
+            <p class="field-error">{{ getErrorMessage('code') }}</p>
+          }
+        </div>
 
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/programs">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        <div class="field-group">
+          <label for="program-duration" class="field-label">Duration (Years)</label>
+          <input
+            id="program-duration"
+            class="field-input field-input--narrow"
+            type="number"
+            formControlName="durationYears"
+            placeholder="e.g., 3"
+            min="1"
+            max="10"
+            [class.field-input--error]="form.get('durationYears')?.invalid && form.get('durationYears')?.touched"
+          />
+          <p class="field-hint">Enter a value between 1 and 10</p>
+          @if (form.get('durationYears')?.invalid && form.get('durationYears')?.touched) {
+            <p class="field-error">{{ getErrorMessage('durationYears') }}</p>
+          }
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/programs">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Program' : 'Create Program' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>
