@@ -8,7 +8,7 @@
   <mat-icon>palette</mat-icon>
 </button>
 
-<mat-menu #themeMenu="matMenu" class="theme-picker-menu" xPosition="before">
+<mat-menu #themeMenu="matMenu" panelClass="theme-picker-menu" xPosition="before">
   <div class="theme-picker-panel" (click)="$event.stopPropagation()">
     <p class="theme-picker-label">Accent Colour</p>
     <div class="swatch-grid">
