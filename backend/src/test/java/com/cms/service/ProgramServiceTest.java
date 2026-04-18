@@ -22,6 +22,7 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
+import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,11 +31,14 @@ class ProgramServiceTest {
     @Mock
     private ProgramRepository programRepository;
 
+    @Mock
+    private FeeStructureRepository feeStructureRepository;
+
     private ProgramService programService;
 
     @BeforeEach
     void setUp() {
-        programService = new ProgramService(programRepository);
+        programService = new ProgramService(programRepository, feeStructureRepository);
     }
 
     @Test
@@ -179,11 +183,24 @@ class ProgramServiceTest {
     @Test
     void shouldDeleteProgram() {
         when(programRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByProgramId(1L)).thenReturn(false);
 
         programService.delete(1L);
 
         verify(programRepository).existsById(1L);
         verify(programRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingProgramWithFeeStructures() {
+        when(programRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByProgramId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> programService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("fee structures");
+
+        verify(programRepository, never()).deleteById(any());
     }
 
     @Test

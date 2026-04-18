@@ -526,3 +526,162 @@
 
 **Status:** NOT TESTED
 
+
+---
+
+## TC-FEE-NEW-004: Edit fee structure when payments exist — amounts update without FK error
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure group exists for a Program + Academic Year combination
+- At least one fee payment has been recorded against a fee type in that group (e.g., TUITION)
+- Application is running
+
+**Steps:**
+1. Navigate to **Fee Structures** in the sidebar
+2. Find the grouped fee structure row (the one that has payments)
+3. Click **Edit** on that group
+4. Change the amount for **Tuition Fee** (e.g., from ₹50,000 to ₹55,000)
+5. Leave all other fee types unchanged
+6. Click **Save All**
+
+**Expected Result:**
+- The save succeeds without any database error
+- The updated amount (₹55,000) is reflected in the fee structure list
+- No `fee_payments_fee_structure_id_fkey` FK constraint violation error occurs in the logs
+- Existing fee payment records remain linked correctly
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-005: Edit fee structure — remove a fee type that has no payments
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure group exists with at least two fee types (e.g., TUITION and LAB_FEE)
+- No payments exist against LAB_FEE
+
+**Steps:**
+1. Navigate to **Fee Structures** → **Edit** on the target group
+2. Set the **Lab Fee** amount to `0` (or remove it if the UI supports it)
+3. Click **Save All**
+
+**Expected Result:**
+- The save succeeds
+- The group no longer shows LAB_FEE in the list
+- TUITION remains with its existing ID (payments, if any, remain valid)
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-006: Edit fee structure — attempt to remove a fee type that has payments
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure group exists with at least two fee types
+- A fee payment has been recorded against LAB_FEE
+
+**Steps:**
+1. Navigate to **Fee Structures** → **Edit** on the target group
+2. Remove the **Lab Fee** row (set amount to 0 or remove it)
+3. Click **Save All**
+
+**Expected Result:**
+- The save is rejected with a `409 Conflict` error
+- Error message indicates that LAB_FEE cannot be removed because payments have been recorded against it
+- No fee structures are deleted
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-007: Delete a single fee structure — blocked when payments exist
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure record has at least one payment linked to it
+
+**Steps:**
+1. Attempt to delete a single fee structure via `DELETE /api/v1/fee-structures/{id}`
+   (where `{id}` is the ID of a fee structure with payments)
+
+**Expected Result:**
+- Returns `409 Conflict`
+- Error message: "Cannot delete fee structure because payments have been recorded against it."
+- Fee structure remains in the database
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-008: Delete fee structure group — blocked when any fee type has payments
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A fee structure group has at least one fee type with recorded payments
+
+**Steps:**
+1. Attempt to delete the entire group via `DELETE /api/v1/fee-structures/group?programId=X&academicYearId=Y`
+
+**Expected Result:**
+- Returns `409 Conflict`
+- Error message: "Cannot delete fee structure group because payments have been recorded against one or more fee types."
+- All fee structures in the group remain untouched
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-009: Delete Program — blocked when fee structures exist
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A Program has at least one fee structure associated with it
+
+**Steps:**
+1. Attempt to delete the program via `DELETE /api/v1/programs/{id}`
+
+**Expected Result:**
+- Returns `409 Conflict`
+- Error message: "Cannot delete program because fee structures are associated with it."
+- Program remains in the database
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-010: Delete Academic Year — blocked when fee structures exist
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- An Academic Year has at least one fee structure associated with it
+
+**Steps:**
+1. Attempt to delete the academic year via `DELETE /api/v1/academic-years/{id}`
+
+**Expected Result:**
+- Returns `409 Conflict`
+- Error message: "Cannot delete academic year because fee structures are associated with it."
+- Academic Year remains in the database
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-NEW-011: Delete Course — blocked when fee structures exist
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A Course has at least one fee structure associated with it
+
+**Steps:**
+1. Attempt to delete the course via `DELETE /api/v1/courses/{id}`
+
+**Expected Result:**
+- Returns `409 Conflict`
+- Error message: "Cannot delete course because fee structures are associated with it."
+- Course remains in the database
+
+**Status:** NOT TESTED

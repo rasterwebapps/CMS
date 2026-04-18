@@ -9,6 +9,7 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
+import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.ProgramRepository;
 
 @Service
@@ -16,9 +17,12 @@ import com.cms.repository.ProgramRepository;
 public class ProgramService {
 
     private final ProgramRepository programRepository;
+    private final FeeStructureRepository feeStructureRepository;
 
-    public ProgramService(ProgramRepository programRepository) {
+    public ProgramService(ProgramRepository programRepository,
+                          FeeStructureRepository feeStructureRepository) {
         this.programRepository = programRepository;
+        this.feeStructureRepository = feeStructureRepository;
     }
 
     @Transactional
@@ -68,6 +72,10 @@ public class ProgramService {
     public void delete(Long id) {
         if (!programRepository.existsById(id)) {
             throw new ResourceNotFoundException("Program not found with id: " + id);
+        }
+        if (feeStructureRepository.existsByProgramId(id)) {
+            throw new IllegalStateException(
+                "Cannot delete program because fee structures are associated with it.");
         }
         programRepository.deleteById(id);
     }

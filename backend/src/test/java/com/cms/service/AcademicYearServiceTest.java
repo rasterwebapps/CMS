@@ -24,6 +24,7 @@ import com.cms.dto.AcademicYearResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.FeeStructureRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AcademicYearServiceTest {
@@ -31,11 +32,14 @@ class AcademicYearServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private FeeStructureRepository feeStructureRepository;
+
     private AcademicYearService academicYearService;
 
     @BeforeEach
     void setUp() {
-        academicYearService = new AcademicYearService(academicYearRepository);
+        academicYearService = new AcademicYearService(academicYearRepository, feeStructureRepository);
     }
 
     @Test
@@ -362,11 +366,24 @@ class AcademicYearServiceTest {
     @Test
     void shouldDeleteAcademicYear() {
         when(academicYearRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByAcademicYearId(1L)).thenReturn(false);
 
         academicYearService.delete(1L);
 
         verify(academicYearRepository).existsById(1L);
         verify(academicYearRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingAcademicYearWithFeeStructures() {
+        when(academicYearRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByAcademicYearId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> academicYearService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("fee structures");
+
+        verify(academicYearRepository, never()).deleteById(any());
     }
 
     @Test

@@ -68,7 +68,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void shouldHandleDataIntegrityViolationException() {
+    void shouldHandleDataIntegrityViolationExceptionForUniqueConstraint() {
         DataIntegrityViolationException ex = new DataIntegrityViolationException("Unique constraint violation");
 
         ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex);
@@ -77,6 +77,35 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo(409);
         assertThat(response.getBody().message()).isEqualTo("A record with the same name or code already exists.");
+        assertThat(response.getBody().timestamp()).isNotNull();
+    }
+
+    @Test
+    void shouldHandleDataIntegrityViolationExceptionForForeignKeyConstraint() {
+        RuntimeException fkCause = new RuntimeException(
+            "ERROR: update or delete on table \"fee_structures\" violates foreign key constraint");
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("FK violation", fkCause);
+
+        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message())
+            .isEqualTo("Cannot delete or update this record because it is referenced by other records.");
+        assertThat(response.getBody().timestamp()).isNotNull();
+    }
+
+    @Test
+    void shouldHandleIllegalStateException() {
+        IllegalStateException ex = new IllegalStateException("Cannot delete fee structure because payments have been recorded against it.");
+
+        ResponseEntity<ErrorResponse> response = handler.handleIllegalState(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message()).contains("payments");
         assertThat(response.getBody().timestamp()).isNotNull();
     }
 

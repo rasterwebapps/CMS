@@ -26,6 +26,7 @@ import com.cms.model.Course;
 import com.cms.model.Program;
 
 import com.cms.repository.CourseRepository;
+import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,13 +41,16 @@ class CourseServiceTest {
     @Mock
     private ProgramService programService;
 
+    @Mock
+    private FeeStructureRepository feeStructureRepository;
+
     private CourseService courseService;
 
     private Program program;
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, programRepository, programService);
+        courseService = new CourseService(courseRepository, programRepository, programService, feeStructureRepository);
         program = createProgram(1L, "Bachelor", "BACHELOR", 4);
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
@@ -294,11 +298,24 @@ class CourseServiceTest {
     @Test
     void shouldDeleteCourse() {
         when(courseRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByCourseId(1L)).thenReturn(false);
 
         courseService.delete(1L);
 
         verify(courseRepository).existsById(1L);
         verify(courseRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingCourseWithFeeStructures() {
+        when(courseRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.existsByCourseId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> courseService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("fee structures");
+
+        verify(courseRepository, never()).deleteById(any());
     }
 
     @Test

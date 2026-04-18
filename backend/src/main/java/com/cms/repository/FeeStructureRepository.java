@@ -32,4 +32,10 @@ public interface FeeStructureRepository extends JpaRepository<FeeStructure, Long
 
     boolean existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
         FeeType feeType, Long programId, Long academicYearId, Long id);
+
+    boolean existsByProgramId(Long programId);
+
+    boolean existsByAcademicYearId(Long academicYearId);
+
+    boolean existsByCourseId(Long courseId);
 }

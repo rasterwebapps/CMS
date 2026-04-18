@@ -15,6 +15,8 @@ public interface FeePaymentRepository extends JpaRepository<FeePayment, Long> {
 
     List<FeePayment> findByStudentId(Long studentId);
 
+    boolean existsByFeeStructureId(Long feeStructureId);
+
     List<FeePayment> findByFeeStructureId(Long feeStructureId);
 
     List<FeePayment> findByStudentIdAndFeeStructureId(Long studentId, Long feeStructureId);
