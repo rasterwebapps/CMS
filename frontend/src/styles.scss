@@ -1456,7 +1456,7 @@ body {
 }
 
 // ──────────────────────────────────────────────────
-// 🎨 Theme Colour Picker — Global Overlay Styles
+// 🎨 Theme Color Picker — Global Overlay Styles
 // mat-menu content is rendered in a CDK overlay
 // portal that lies outside any Angular component's
 // DOM scope. Component-scoped SCSS cannot reach it;
@@ -1539,8 +1539,11 @@ body {
 // ──────────────────────────────────────────────────
 // 🌙 Dark Theme — Material Component Overrides
 // The rules below fix components whose base styles
-// use hardcoded #ffffff / #e5e7eb values that do not
-// respond to CSS variable–based dark token updates.
+// use hardcoded #ffffff / #e5e7eb values with
+// !important that do not respond to CSS variable–
+// based dark token updates. The !important flags here
+// are required to win the cascade against those base
+// declarations; removing them would have no effect.
 // ──────────────────────────────────────────────────
 @mixin dark-component-overrides {
   .app-toolbar {
