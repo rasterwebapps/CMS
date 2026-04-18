@@ -20,7 +20,7 @@
 
     <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
-      <!-- ── Selection Panel ─────────────────────────────────────── -->
+      <!-- ── Selection Criteria (3-column horizontal row) ────────── -->
       <div class="selection-panel">
         <div class="selection-panel__header">
           <mat-icon>tune</mat-icon>
@@ -29,54 +29,39 @@
 
         <div class="selection-panel__fields">
 
-          <div class="selection-field-row">
-            <div class="selection-field-icon-wrap">
-              <mat-icon class="selection-field-icon">calendar_today</mat-icon>
-            </div>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Academic Year *</mat-label>
-              <mat-select formControlName="academicYearId">
-                @for (ay of academicYears(); track ay.id) {
-                  <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
-                }
-              </mat-select>
-              @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
-                <mat-error>Academic Year is required</mat-error>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Academic Year *</mat-label>
+            <mat-select formControlName="academicYearId">
+              @for (ay of academicYears(); track ay.id) {
+                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
               }
-            </mat-form-field>
-          </div>
+            </mat-select>
+            @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
+              <mat-error>Academic Year is required</mat-error>
+            }
+          </mat-form-field>
 
-          <div class="selection-field-row">
-            <div class="selection-field-icon-wrap">
-              <mat-icon class="selection-field-icon">school</mat-icon>
-            </div>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Program *</mat-label>
-              <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
-                @for (p of programs(); track p.id) {
-                  <mat-option [value]="p.id">{{ p.name }}</mat-option>
-                }
-              </mat-select>
-              @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
-                <mat-error>Program is required</mat-error>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Program *</mat-label>
+            <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
+              @for (p of programs(); track p.id) {
+                <mat-option [value]="p.id">{{ p.name }}</mat-option>
               }
-            </mat-form-field>
-          </div>
+            </mat-select>
+            @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
+              <mat-error>Program is required</mat-error>
+            }
+          </mat-form-field>
 
           @if (courses().length > 0) {
-            <div class="selection-field-row">
-              <div class="selection-field-icon-wrap">
-                <mat-icon class="selection-field-icon">menu_book</mat-icon>
-              </div>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Course *</mat-label>
-                <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
-                  @for (c of courses(); track c.id) {
-                    <mat-option [value]="c.id">{{ c.name }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Course *</mat-label>
+              <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
+                @for (c of courses(); track c.id) {
+                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
           }
 
         </div>
@@ -84,143 +69,194 @@
 
       @if (showFeeItems()) {
 
-        <!-- ── Fee Panel ───────────────────────────────────────────── -->
+        <!-- ── Fee Schedule Panel ──────────────────────────────────── -->
         <div class="fee-panel">
 
           <div class="fee-panel__header">
             <div class="fee-panel__title-row">
               <mat-icon class="fee-panel__icon">receipt_long</mat-icon>
-              <h3 class="fee-panel__title">Fee Items</h3>
+              <h3 class="fee-panel__title">Fee Schedule</h3>
             </div>
-            <p class="fee-panel__hint">Enter amounts for the fee types that apply. Leave zero to skip.</p>
+            <p class="fee-panel__hint">Enter amounts per year. Leave zero to exclude a fee type.</p>
           </div>
 
           <!-- ══ Course Fees ════════════════════════════════════════ -->
-          <div class="fee-section-heading fee-section-heading--course">
-            <mat-icon>payments</mat-icon>
-            <span>Course Fees</span>
-          </div>
+          <div class="grid-section">
+            <div class="grid-section__label">
+              <mat-icon>payments</mat-icon>
+              <span>Course Fees</span>
+            </div>
 
-          <div class="fee-items-list">
-            @for (item of feeItems.controls; track $index; let i = $index) {
-              @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
-                <div class="fee-item-row">
+            <div class="fee-grid" [style.--grid-cols]="gridTemplateColumns()">
 
-                  <!-- Meta: chip + description -->
-                  <div class="fee-item-row__meta" [formGroup]="getItemGroup(i)">
-                    <div class="fee-type-chip">
-                      <mat-icon class="fee-type-chip__icon">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
-                      <span class="fee-type-chip__label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+              <!-- Header Row -->
+              <div class="fee-grid__row fee-grid__row--header">
+                <div class="g-cell g-cell--type">Fee Type</div>
+                @for (yr of yearRange(); track yr) {
+                  <div class="g-cell g-cell--year g-cell--hdr">Year {{ yr }}</div>
+                }
+                <div class="g-cell g-cell--total g-cell--hdr">Total</div>
+              </div>
+
+              <!-- Data Rows -->
+              @for (item of feeItems.controls; track $index; let i = $index) {
+                @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+
+                  <div class="fee-grid__row" [formGroup]="getItemGroup(i)">
+                    <!-- Fee Type Cell -->
+                    <div class="g-cell g-cell--type">
+                      <mat-icon class="g-type-icon">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
+                      <span class="g-type-label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+                      <button type="button" class="note-btn"
+                              (click)="toggleNote(i)"
+                              [class.note-btn--open]="isNoteExpanded(i)"
+                              [class.note-btn--has-value]="!!getItemGroup(i).get('description')?.value"
+                              matTooltip="Toggle note">
+                        <mat-icon>notes</mat-icon>
+                      </button>
                     </div>
-                    <mat-form-field appearance="outline" class="desc-field">
-                      <mat-label>Note / Description</mat-label>
-                      <input matInput formControlName="description" placeholder="Optional note" />
-                    </mat-form-field>
-                  </div>
-
-                  <!-- Amounts: year inputs + inline total -->
-                  <div class="fee-item-row__amounts" [formGroup]="getItemGroup(i)">
+                    <!-- Year Amount Cells -->
                     @if (selectedProgramDuration() > 1) {
-                      <div class="year-fields-scroll" formArrayName="yearAmounts">
+                      <ng-container formArrayName="yearAmounts">
                         @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
-                          <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
-                            <mat-label>{{ ya.get('yearLabel')?.value }} (₹)</mat-label>
-                            <input matInput type="number" formControlName="amount" min="0"
+                          <div class="g-cell g-cell--year" [formGroupName]="j">
+                            <input class="grid-input"
+                                   [class.grid-input--zero]="(ya.get('amount')?.value ?? 0) == 0"
+                                   type="number" formControlName="amount" min="0"
                                    (input)="onItemYearAmountChange(i)" />
-                          </mat-form-field>
+                          </div>
                         }
-                      </div>
+                      </ng-container>
                     } @else {
-                      <div class="year-fields-scroll">
-                        <mat-form-field appearance="outline" class="year-field">
-                          <mat-label>Amount (₹)</mat-label>
-                          <input matInput type="number" formControlName="amount" min="0"
-                                 (input)="onItemAmountChange()" />
-                        </mat-form-field>
+                      <div class="g-cell g-cell--year">
+                        <input class="grid-input"
+                               [class.grid-input--zero]="(getItemGroup(i).get('amount')?.value ?? 0) == 0"
+                               type="number" formControlName="amount" min="0"
+                               (input)="onItemAmountChange()" />
                       </div>
                     }
-                    <div class="row-total-pill" [class.row-total-pill--active]="getItemRowTotal(i) > 0">
-                      <span class="row-total-pill__label">Total</span>
-                      <span class="row-total-pill__value">₹{{ getItemRowTotal(i) | number }}</span>
+                    <!-- Row Total Cell -->
+                    <div class="g-cell g-cell--total">
+                      <span [class.g-total--nonzero]="getItemRowTotal(i) > 0">
+                        ₹{{ getItemRowTotal(i) | number }}
+                      </span>
                     </div>
                   </div>
 
-                </div>
-              }
-            }
-          </div>
+                  <!-- Inline Note Row -->
+                  @if (isNoteExpanded(i)) {
+                    <div class="fee-grid__note-row" [formGroup]="getItemGroup(i)">
+                      <mat-icon class="note-row-icon">edit_note</mat-icon>
+                      <input class="note-input" type="text" formControlName="description"
+                             placeholder="Add a note for this fee type…" autocomplete="off" />
+                    </div>
+                  }
 
-          <!-- Course Fees Summary -->
-          <div class="section-total-bar section-total-bar--course">
-            <div class="section-total-bar__inner">
-              <mat-icon>summarize</mat-icon>
-              <span class="section-total-bar__label">Total Course Fees</span>
-              <span class="section-total-bar__value">₹{{ grandTotal() | number }}</span>
+                }
+              }
+
+              <!-- Course Fees Total Row -->
+              <div class="fee-grid__row fee-grid__row--total">
+                <div class="g-cell g-cell--type g-cell--total-label">
+                  <mat-icon>summarize</mat-icon>
+                  <span>Total Course Fees</span>
+                </div>
+                @for (yt of yearTotals(); track $index) {
+                  <div class="g-cell g-cell--year g-cell--total-value">₹{{ yt | number }}</div>
+                }
+                <div class="g-cell g-cell--total g-cell--grand-total">₹{{ grandTotal() | number }}</div>
+              </div>
+
             </div>
           </div>
 
           <!-- ══ Additional Fees ════════════════════════════════════ -->
-          <div class="fee-section-heading fee-section-heading--additional">
-            <mat-icon>add_home</mat-icon>
-            <span>Additional Fees</span>
-          </div>
+          <div class="grid-section grid-section--additional">
+            <div class="grid-section__label grid-section__label--additional">
+              <mat-icon>add_home</mat-icon>
+              <span>Additional Fees</span>
+            </div>
 
-          <div class="fee-items-list">
-            @for (item of feeItems.controls; track $index; let i = $index) {
-              @if (additionalFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
-                <div class="fee-item-row fee-item-row--additional">
+            <div class="fee-grid" [style.--grid-cols]="gridTemplateColumns()">
 
-                  <!-- Meta: chip + description -->
-                  <div class="fee-item-row__meta" [formGroup]="getItemGroup(i)">
-                    <div class="fee-type-chip fee-type-chip--additional">
-                      <mat-icon class="fee-type-chip__icon">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
-                      <span class="fee-type-chip__label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+              <!-- Header Row -->
+              <div class="fee-grid__row fee-grid__row--header fee-grid__row--header-additional">
+                <div class="g-cell g-cell--type">Fee Type</div>
+                @for (yr of yearRange(); track yr) {
+                  <div class="g-cell g-cell--year g-cell--hdr">Year {{ yr }}</div>
+                }
+                <div class="g-cell g-cell--total g-cell--hdr">Total</div>
+              </div>
+
+              <!-- Data Rows -->
+              @for (item of feeItems.controls; track $index; let i = $index) {
+                @if (additionalFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+
+                  <div class="fee-grid__row fee-grid__row--additional-type" [formGroup]="getItemGroup(i)">
+                    <!-- Fee Type Cell -->
+                    <div class="g-cell g-cell--type">
+                      <mat-icon class="g-type-icon g-type-icon--additional">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
+                      <span class="g-type-label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+                      <button type="button" class="note-btn note-btn--additional"
+                              (click)="toggleNote(i)"
+                              [class.note-btn--open]="isNoteExpanded(i)"
+                              [class.note-btn--has-value]="!!getItemGroup(i).get('description')?.value"
+                              matTooltip="Toggle note">
+                        <mat-icon>notes</mat-icon>
+                      </button>
                     </div>
-                    <mat-form-field appearance="outline" class="desc-field">
-                      <mat-label>Note / Description</mat-label>
-                      <input matInput formControlName="description" placeholder="Optional note" />
-                    </mat-form-field>
-                  </div>
-
-                  <!-- Amounts: year inputs + inline total -->
-                  <div class="fee-item-row__amounts" [formGroup]="getItemGroup(i)">
+                    <!-- Year Amount Cells -->
                     @if (selectedProgramDuration() > 1) {
-                      <div class="year-fields-scroll" formArrayName="yearAmounts">
+                      <ng-container formArrayName="yearAmounts">
                         @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
-                          <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
-                            <mat-label>{{ ya.get('yearLabel')?.value }} (₹)</mat-label>
-                            <input matInput type="number" formControlName="amount" min="0"
+                          <div class="g-cell g-cell--year" [formGroupName]="j">
+                            <input class="grid-input grid-input--additional"
+                                   [class.grid-input--zero]="(ya.get('amount')?.value ?? 0) == 0"
+                                   type="number" formControlName="amount" min="0"
                                    (input)="onItemYearAmountChange(i)" />
-                          </mat-form-field>
+                          </div>
                         }
-                      </div>
+                      </ng-container>
                     } @else {
-                      <div class="year-fields-scroll">
-                        <mat-form-field appearance="outline" class="year-field">
-                          <mat-label>Amount (₹)</mat-label>
-                          <input matInput type="number" formControlName="amount" min="0"
-                                 (input)="onItemAmountChange()" />
-                        </mat-form-field>
+                      <div class="g-cell g-cell--year">
+                        <input class="grid-input grid-input--additional"
+                               [class.grid-input--zero]="(getItemGroup(i).get('amount')?.value ?? 0) == 0"
+                               type="number" formControlName="amount" min="0"
+                               (input)="onItemAmountChange()" />
                       </div>
                     }
-                    <div class="row-total-pill row-total-pill--additional"
-                         [class.row-total-pill--active]="getItemRowTotal(i) > 0">
-                      <span class="row-total-pill__label">Total</span>
-                      <span class="row-total-pill__value">₹{{ getItemRowTotal(i) | number }}</span>
+                    <!-- Row Total Cell -->
+                    <div class="g-cell g-cell--total">
+                      <span [class.g-total--nonzero]="getItemRowTotal(i) > 0" class="g-total--additional">
+                        ₹{{ getItemRowTotal(i) | number }}
+                      </span>
                     </div>
                   </div>
 
-                </div>
-              }
-            }
-          </div>
+                  <!-- Inline Note Row -->
+                  @if (isNoteExpanded(i)) {
+                    <div class="fee-grid__note-row fee-grid__note-row--additional" [formGroup]="getItemGroup(i)">
+                      <mat-icon class="note-row-icon">edit_note</mat-icon>
+                      <input class="note-input" type="text" formControlName="description"
+                             placeholder="Add a note for this fee type…" autocomplete="off" />
+                    </div>
+                  }
 
-          <!-- Additional Fees Summary -->
-          <div class="section-total-bar section-total-bar--additional">
-            <div class="section-total-bar__inner">
-              <mat-icon>summarize</mat-icon>
-              <span class="section-total-bar__label">Total Additional Fees</span>
-              <span class="section-total-bar__value">₹{{ additionalTotal() | number }}</span>
+                }
+              }
+
+              <!-- Additional Fees Total Row -->
+              <div class="fee-grid__row fee-grid__row--total fee-grid__row--total-additional">
+                <div class="g-cell g-cell--type g-cell--total-label g-cell--total-label-additional">
+                  <mat-icon>summarize</mat-icon>
+                  <span>Total Additional Fees</span>
+                </div>
+                @for (yt of additionalYearTotals(); track $index) {
+                  <div class="g-cell g-cell--year g-cell--total-value g-cell--total-value-additional">₹{{ yt | number }}</div>
+                }
+                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total-additional">₹{{ additionalTotal() | number }}</div>
+              </div>
+
             </div>
           </div>
 
