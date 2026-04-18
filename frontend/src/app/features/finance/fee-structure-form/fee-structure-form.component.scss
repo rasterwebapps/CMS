@@ -1,162 +1,444 @@
-.form-container { padding: 24px 32px; }
-.header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.loading-container { display: flex; justify-content: center; padding: 48px; }
-.form-card { max-width: 900px; margin-bottom: 16px; }
-.form { display: flex; flex-direction: column; gap: 8px; }
-.full-width { width: 100%; }
-.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
-.section-title { margin: 0; font-size: 1rem; font-weight: 600; color: var(--mat-sys-on-surface-variant, #555); }
-.section-hint { margin: 2px 0 0; font-size: 0.82rem; color: var(--mat-sys-on-surface-variant, #888); }
-
-// ── Bulk / bill-style form ──────────────────────────────────────────
-.fee-items-section {
-  max-width: 900px;
-  background: var(--cms-bg-card, #fff);
-  border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
+// ── Container ──────────────────────────────────────────────────────────────
+.form-container {
+  padding: 24px 32px;
+  max-width: 1060px;
 }
 
-.fee-items-header-row {
+// ── Page Header ────────────────────────────────────────────────────────────
+.page-header {
   display: flex;
   align-items: flex-start;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 28px;
 }
 
-.fee-section-label {
-  font-size: 0.78rem;
+.back-btn {
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: var(--cms-text-secondary);
+}
+
+.page-header__content { display: flex; flex-direction: column; }
+
+.page-title {
+  margin: 0 0 3px;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--cms-text-primary);
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Loading ────────────────────────────────────────────────────────────────
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 72px;
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Selection Panel ────────────────────────────────────────────────────────
+.selection-panel {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 16px;
+  box-shadow: var(--cms-shadow-sm);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.selection-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f8 100%);
+  border-bottom: 1px solid var(--cms-border-light);
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--mat-sys-primary, #1976d2);
-  padding: 10px 8px 4px;
-  margin-top: 8px;
+  letter-spacing: 0.09em;
+  color: var(--cms-text-secondary);
 
-  &--additional {
-    color: var(--mat-sys-secondary, #7b1fa2);
-    border-top: 1px dashed var(--mat-sys-outline-variant, #e0e0e0);
-    margin-top: 8px;
-    padding-top: 14px;
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: var(--cms-primary);
   }
 }
 
-.fee-item-block {
-  border-bottom: 1px solid var(--mat-sys-outline-variant, #f0f0f0);
-  padding: 4px 0 8px;
-
-  &:last-of-type {
-    border-bottom: none;
-  }
-}
-
-// Top row: Fee Type label | Description input
-.fee-item-top-row {
+.selection-panel__fields {
+  padding: 16px 20px 12px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 4px 0 0;
-}
-
-// Amounts row: left spacer matching fee-type-label width | year boxes + total
-.fee-item-amounts-row {
-  display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 0;
 }
 
-.fee-type-spacer {
-  width: 200px;
+.selection-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.selection-field-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 56px; // vertically center with form-field
   flex-shrink: 0;
 }
 
-.fee-desc-field {
-  flex: 1;
-  min-width: 0;
+.selection-field-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--cms-primary);
+  opacity: 0.7;
 }
 
-.fee-amounts-wrap {
-  flex: 1;
+.full-width { width: 100%; }
+
+// ── Fee Panel ──────────────────────────────────────────────────────────────
+.fee-panel {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 16px;
+  box-shadow: var(--cms-shadow-sm);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.fee-panel__header {
+  padding: 16px 24px 14px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f8 100%);
+  border-bottom: 1px solid var(--cms-border-light);
+}
+
+.fee-panel__title-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-  background: var(--cms-bg-shell, #f8f9fa);
-  border-radius: 8px;
-  padding: 4px 8px;
-  min-width: 0;
+  margin-bottom: 4px;
 }
 
-.fee-type-label {
+.fee-panel__icon {
+  color: var(--cms-primary);
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.fee-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.fee-panel__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Section Headings ──────────────────────────────────────────────────────
+.fee-section-heading {
   display: flex;
   align-items: center;
-  width: 200px;
-  flex-shrink: 0;
-  padding-top: 18px;
-}
+  gap: 8px;
+  padding: 18px 24px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--cms-primary);
 
-.fee-type-badge {
-  display: inline-block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--mat-sys-on-surface, #333);
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1.5px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0.04) 100%);
+  }
 
   &--additional {
-    color: var(--mat-sys-secondary, #7b1fa2);
+    color: #6d28d9;
+    margin-top: 4px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cms-border-light);
+
+    &::after {
+      background: linear-gradient(90deg, rgba(109, 40, 217, 0.35) 0%, rgba(109, 40, 217, 0.04) 100%);
+    }
   }
 }
 
-.year-amounts-grid {
+// ── Fee Items List ────────────────────────────────────────────────────────
+.fee-items-list {
+  padding: 0 20px 8px;
+}
+
+// ── Fee Item Row ──────────────────────────────────────────────────────────
+.fee-item-row {
+  border-radius: 10px;
+  padding: 6px 12px 2px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.04);
+    border-color: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.06);
+  }
+
+  &--additional:hover {
+    background: rgba(109, 40, 217, 0.04);
+    border-color: rgba(109, 40, 217, 0.12);
+    box-shadow: 0 1px 4px rgba(109, 40, 217, 0.06);
+  }
+}
+
+// Meta: chip + description
+.fee-item-row__meta {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.fee-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--cms-primary-light);
+  color: var(--cms-primary);
+  border-radius: 20px;
+  padding: 5px 12px 5px 8px;
+  font-size: 0.79rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 16px; // visually align with form field label area
+
+  &__icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &--additional {
+    background: var(--cms-badge-violet-bg);
+    color: var(--cms-badge-violet-text);
+  }
+}
+
+.desc-field {
+  flex: 1;
+  min-width: 0;
+}
+
+// Amounts: year inputs (scrollable) + total pill (fixed)
+.fee-item-row__amounts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.year-fields-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: var(--cms-border-default) transparent;
+  // WebKit
+  &::-webkit-scrollbar { height: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--cms-border-default);
+    border-radius: 2px;
+  }
 }
 
 .year-field {
-  width: 140px;
+  width: 128px;
   flex-shrink: 0;
 }
 
-.item-year-total {
+// Row total pill
+.row-total-pill {
+  flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 18px 4px 0;
+  justify-content: center;
+  min-width: 90px;
+  padding: 7px 14px;
+  background: var(--cms-bg-muted);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: 10px;
+  gap: 1px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  &__label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--cms-text-muted);
+    line-height: 1;
+  }
 
   &__value {
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    color: var(--mat-sys-primary, #1976d2);
+    color: var(--cms-text-secondary);
+    line-height: 1.3;
+  }
+
+  // Active state — has a non-zero total
+  &--active {
+    background: var(--cms-primary-light);
+    border-color: rgba(99, 102, 241, 0.35);
+
+    .row-total-pill__label { color: rgba(99, 102, 241, 0.75); }
+    .row-total-pill__value { color: var(--cms-primary); font-size: 1rem; font-weight: 800; }
+  }
+
+  // Additional fees variant
+  &--additional.row-total-pill--active {
+    background: var(--cms-badge-violet-bg);
+    border-color: rgba(109, 40, 217, 0.3);
+
+    .row-total-pill__label { color: rgba(109, 40, 217, 0.65); }
+    .row-total-pill__value { color: var(--cms-badge-violet-text); }
   }
 }
 
-.grand-total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 8px 6px;
-  border-top: 2px solid var(--mat-sys-outline-variant, #e0e0e0);
-  margin-top: 8px;
+// ── Section Total Bars ────────────────────────────────────────────────────
+.section-total-bar {
+  margin: 10px 20px 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--cms-shadow-sm);
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+
+    mat-icon {
+      color: var(--cms-primary);
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &__label {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--cms-primary);
+    letter-spacing: -0.02em;
+  }
 
   &--additional {
-    border-top-color: var(--mat-sys-secondary, #7b1fa2);
-    border-top-style: dashed;
+    .section-total-bar__inner {
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      border-color: rgba(109, 40, 217, 0.2);
 
-    .grand-total__label { color: var(--mat-sys-secondary, #7b1fa2); }
-    .grand-total__value { color: var(--mat-sys-secondary, #7b1fa2); }
+      mat-icon { color: #6d28d9; }
+    }
+
+    .section-total-bar__value { color: #6d28d9; }
   }
 }
 
-.grand-total__label {
-  font-weight: 700;
-  font-size: 1rem;
+// ── Form Actions ──────────────────────────────────────────────────────────
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
 }
 
-.grand-total__value {
-  font-weight: 800;
-  font-size: 1.25rem;
-  color: var(--mat-sys-primary, #1976d2);
+.cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cms-text-secondary) !important;
+  border-color: var(--cms-border-default) !important;
 }
 
+.save-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  // Override Material's flat-button background / text color
+  background: var(--cms-gradient-brand) !important;
+  color: #fff !important;
+  // Geometry — Material sets height/padding/font through its theme; override explicitly
+  height: 44px !important;
+  padding: 0 28px !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+  border-radius: 10px !important;
+  box-shadow: var(--cms-shadow-colored) !important;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+
+  &:hover:not([disabled]) {
+    box-shadow: 0 6px 22px -4px rgba(99, 102, 241, 0.55) !important;
+    transform: translateY(-1px);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    background: var(--cms-text-muted) !important;
+    box-shadow: none !important;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  mat-spinner { margin-right: 4px; }
+}

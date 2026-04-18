@@ -85,15 +85,15 @@ export class FeeStructureFormComponent implements OnInit {
   /** Additional fee types — NOT included in the generic course total. */
   protected readonly additionalFeeTypes = ['HOSTEL_FEE', 'TRANSPORT_FEE'];
 
-  protected readonly feeTypeLabels: Record<string, string> = {
-    TUITION: 'Tuition Fee',
-    LAB_FEE: 'Lab Fee',
-    LIBRARY_FEE: 'Library Fee',
-    EXAMINATION_FEE: 'Examination Fee',
-    HOSTEL_FEE: 'Hostel Fee',
-    TRANSPORT_FEE: 'Transport Fee',
-    MISCELLANEOUS: 'Miscellaneous',
-    LATE_FEE: 'Late Fee',
+  protected readonly feeTypeMeta: Record<string, { label: string; icon: string }> = {
+    TUITION:        { label: 'Tuition Fee',      icon: 'school' },
+    LAB_FEE:        { label: 'Lab Fee',           icon: 'science' },
+    LIBRARY_FEE:    { label: 'Library Fee',       icon: 'menu_book' },
+    EXAMINATION_FEE:{ label: 'Examination Fee',  icon: 'assignment' },
+    HOSTEL_FEE:     { label: 'Hostel Fee',        icon: 'hotel' },
+    TRANSPORT_FEE:  { label: 'Transport Fee',     icon: 'directions_bus' },
+    MISCELLANEOUS:  { label: 'Miscellaneous',     icon: 'category' },
+    LATE_FEE:       { label: 'Late Fee',          icon: 'schedule' },
   };
 
   // Bulk form — used for both create and edit

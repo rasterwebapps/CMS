@@ -1,89 +1,127 @@
 <div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/fee-structures"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+
+  <!-- ── Page Header ─────────────────────────────────────────────── -->
+  <div class="page-header">
+    <button mat-icon-button class="back-btn" routerLink="/fee-structures">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="page-header__content">
+      <h2 class="page-title">{{ pageTitle() }}</h2>
+      <p class="page-subtitle">Configure year-wise fee amounts for each fee category</p>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p class="loading-text">Loading fee structure…</p>
+    </div>
   } @else {
 
     <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
-      <!-- Header: Program / Course / Academic Year -->
-      <mat-card appearance="outlined" class="form-card">
-        <mat-card-content class="form">
+      <!-- ── Selection Panel ─────────────────────────────────────── -->
+      <div class="selection-panel">
+        <div class="selection-panel__header">
+          <mat-icon>tune</mat-icon>
+          <span>Select Criteria</span>
+        </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Program *</mat-label>
-            <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
-              @for (p of programs(); track p.id) {
-                <mat-option [value]="p.id">{{ p.name }}</mat-option>
-              }
-            </mat-select>
-            @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
-              <mat-error>Program is required</mat-error>
-            }
-          </mat-form-field>
+        <div class="selection-panel__fields">
 
-          @if (courses().length > 0) {
+          <div class="selection-field-row">
+            <div class="selection-field-icon-wrap">
+              <mat-icon class="selection-field-icon">calendar_today</mat-icon>
+            </div>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Course *</mat-label>
-              <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
-                @for (c of courses(); track c.id) {
-                  <mat-option [value]="c.id">{{ c.name }}</mat-option>
+              <mat-label>Academic Year *</mat-label>
+              <mat-select formControlName="academicYearId">
+                @for (ay of academicYears(); track ay.id) {
+                  <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
                 }
               </mat-select>
+              @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
+                <mat-error>Academic Year is required</mat-error>
+              }
             </mat-form-field>
+          </div>
+
+          <div class="selection-field-row">
+            <div class="selection-field-icon-wrap">
+              <mat-icon class="selection-field-icon">school</mat-icon>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Program *</mat-label>
+              <mat-select formControlName="programId" (selectionChange)="onBulkProgramChange($event.value)">
+                @for (p of programs(); track p.id) {
+                  <mat-option [value]="p.id">{{ p.name }}</mat-option>
+                }
+              </mat-select>
+              @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
+                <mat-error>Program is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          @if (courses().length > 0) {
+            <div class="selection-field-row">
+              <div class="selection-field-icon-wrap">
+                <mat-icon class="selection-field-icon">menu_book</mat-icon>
+              </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Course *</mat-label>
+                <mat-select formControlName="courseId" (selectionChange)="onBulkCourseChange($event.value)">
+                  @for (c of courses(); track c.id) {
+                    <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
           }
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Academic Year *</mat-label>
-            <mat-select formControlName="academicYearId">
-              @for (ay of academicYears(); track ay.id) {
-                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
-              }
-            </mat-select>
-            @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
-              <mat-error>Academic Year is required</mat-error>
-            }
-          </mat-form-field>
-
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
       @if (showFeeItems()) {
 
-        <!-- Fee Items Section -->
-        <div class="fee-items-section">
-          <div class="fee-items-header-row">
-            <h3 class="section-title">Fee Items</h3>
-            <p class="section-hint">Enter amounts for the fee types that apply. Leave zero to skip.</p>
+        <!-- ── Fee Panel ───────────────────────────────────────────── -->
+        <div class="fee-panel">
+
+          <div class="fee-panel__header">
+            <div class="fee-panel__title-row">
+              <mat-icon class="fee-panel__icon">receipt_long</mat-icon>
+              <h3 class="fee-panel__title">Fee Items</h3>
+            </div>
+            <p class="fee-panel__hint">Enter amounts for the fee types that apply. Leave zero to skip.</p>
           </div>
 
-          <!-- Course Fee Items -->
-          <div class="fee-section-label">Course Fees</div>
-          @for (item of feeItems.controls; track $index; let i = $index) {
-            @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
-              <div class="fee-item-block">
+          <!-- ══ Course Fees ════════════════════════════════════════ -->
+          <div class="fee-section-heading fee-section-heading--course">
+            <mat-icon>payments</mat-icon>
+            <span>Course Fees</span>
+          </div>
 
-                <!-- Top row: Fee Type name + Description -->
-                <div class="fee-item-top-row" [formGroup]="getItemGroup(i)">
-                  <div class="fee-type-label">
-                    <span class="fee-type-badge">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+          <div class="fee-items-list">
+            @for (item of feeItems.controls; track $index; let i = $index) {
+              @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+                <div class="fee-item-row">
+
+                  <!-- Meta: chip + description -->
+                  <div class="fee-item-row__meta" [formGroup]="getItemGroup(i)">
+                    <div class="fee-type-chip">
+                      <mat-icon class="fee-type-chip__icon">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
+                      <span class="fee-type-chip__label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+                    </div>
+                    <mat-form-field appearance="outline" class="desc-field">
+                      <mat-label>Note / Description</mat-label>
+                      <input matInput formControlName="description" placeholder="Optional note" />
+                    </mat-form-field>
                   </div>
-                  <mat-form-field appearance="outline" class="fee-desc-field">
-                    <mat-label>Description</mat-label>
-                    <input matInput formControlName="description" />
-                  </mat-form-field>
-                </div>
 
-                <!-- Amounts row: year boxes + row total -->
-                <div class="fee-item-amounts-row" [formGroup]="getItemGroup(i)">
-                  <div class="fee-type-spacer"></div>
-                  <div class="fee-amounts-wrap">
+                  <!-- Amounts: year inputs + inline total -->
+                  <div class="fee-item-row__amounts" [formGroup]="getItemGroup(i)">
                     @if (selectedProgramDuration() > 1) {
-                      <div class="year-amounts-grid" formArrayName="yearAmounts">
+                      <div class="year-fields-scroll" formArrayName="yearAmounts">
                         @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
                           <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
                             <mat-label>{{ ya.get('yearLabel')?.value }} (₹)</mat-label>
@@ -93,51 +131,61 @@
                         }
                       </div>
                     } @else {
-                      <mat-form-field appearance="outline" class="year-field">
-                        <mat-label>Amount (₹) *</mat-label>
-                        <input matInput type="number" formControlName="amount" min="0"
-                               (input)="onItemAmountChange()" />
-                      </mat-form-field>
+                      <div class="year-fields-scroll">
+                        <mat-form-field appearance="outline" class="year-field">
+                          <mat-label>Amount (₹)</mat-label>
+                          <input matInput type="number" formControlName="amount" min="0"
+                                 (input)="onItemAmountChange()" />
+                        </mat-form-field>
+                      </div>
                     }
-                    <div class="item-year-total">
-                      <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                    <div class="row-total-pill" [class.row-total-pill--active]="getItemRowTotal(i) > 0">
+                      <span class="row-total-pill__label">Total</span>
+                      <span class="row-total-pill__value">₹{{ getItemRowTotal(i) | number }}</span>
                     </div>
                   </div>
+
                 </div>
-
-              </div>
+              }
             }
-          }
-
-          <!-- Total Course Fees -->
-          <div class="grand-total-row">
-            <span class="grand-total__label">Total Course Fees</span>
-            <span class="grand-total__value">₹{{ grandTotal() | number }}</span>
           </div>
 
-          <!-- Additional Fee Items -->
-          <div class="fee-section-label fee-section-label--additional">Additional Fees</div>
-          @for (item of feeItems.controls; track $index; let i = $index) {
-            @if (additionalFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
-              <div class="fee-item-block">
+          <!-- Course Fees Summary -->
+          <div class="section-total-bar section-total-bar--course">
+            <div class="section-total-bar__inner">
+              <mat-icon>summarize</mat-icon>
+              <span class="section-total-bar__label">Total Course Fees</span>
+              <span class="section-total-bar__value">₹{{ grandTotal() | number }}</span>
+            </div>
+          </div>
 
-                <!-- Top row: Fee Type name + Description -->
-                <div class="fee-item-top-row" [formGroup]="getItemGroup(i)">
-                  <div class="fee-type-label">
-                    <span class="fee-type-badge fee-type-badge--additional">{{ feeTypeLabels[getItemGroup(i).get('feeType')?.value] }}</span>
+          <!-- ══ Additional Fees ════════════════════════════════════ -->
+          <div class="fee-section-heading fee-section-heading--additional">
+            <mat-icon>add_home</mat-icon>
+            <span>Additional Fees</span>
+          </div>
+
+          <div class="fee-items-list">
+            @for (item of feeItems.controls; track $index; let i = $index) {
+              @if (additionalFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+                <div class="fee-item-row fee-item-row--additional">
+
+                  <!-- Meta: chip + description -->
+                  <div class="fee-item-row__meta" [formGroup]="getItemGroup(i)">
+                    <div class="fee-type-chip fee-type-chip--additional">
+                      <mat-icon class="fee-type-chip__icon">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.icon }}</mat-icon>
+                      <span class="fee-type-chip__label">{{ feeTypeMeta[getItemGroup(i).get('feeType')?.value]?.label }}</span>
+                    </div>
+                    <mat-form-field appearance="outline" class="desc-field">
+                      <mat-label>Note / Description</mat-label>
+                      <input matInput formControlName="description" placeholder="Optional note" />
+                    </mat-form-field>
                   </div>
-                  <mat-form-field appearance="outline" class="fee-desc-field">
-                    <mat-label>Description</mat-label>
-                    <input matInput formControlName="description" />
-                  </mat-form-field>
-                </div>
 
-                <!-- Amounts row: year boxes + row total -->
-                <div class="fee-item-amounts-row" [formGroup]="getItemGroup(i)">
-                  <div class="fee-type-spacer"></div>
-                  <div class="fee-amounts-wrap">
+                  <!-- Amounts: year inputs + inline total -->
+                  <div class="fee-item-row__amounts" [formGroup]="getItemGroup(i)">
                     @if (selectedProgramDuration() > 1) {
-                      <div class="year-amounts-grid" formArrayName="yearAmounts">
+                      <div class="year-fields-scroll" formArrayName="yearAmounts">
                         @for (ya of getItemYearAmounts(i).controls; track $index; let j = $index) {
                           <mat-form-field appearance="outline" class="year-field" [formGroupName]="j">
                             <mat-label>{{ ya.get('yearLabel')?.value }} (₹)</mat-label>
@@ -147,39 +195,50 @@
                         }
                       </div>
                     } @else {
-                      <mat-form-field appearance="outline" class="year-field">
-                        <mat-label>Amount (₹) *</mat-label>
-                        <input matInput type="number" formControlName="amount" min="0"
-                               (input)="onItemAmountChange()" />
-                      </mat-form-field>
+                      <div class="year-fields-scroll">
+                        <mat-form-field appearance="outline" class="year-field">
+                          <mat-label>Amount (₹)</mat-label>
+                          <input matInput type="number" formControlName="amount" min="0"
+                                 (input)="onItemAmountChange()" />
+                        </mat-form-field>
+                      </div>
                     }
-                    <div class="item-year-total">
-                      <span class="item-year-total__value">₹{{ getItemRowTotal(i) | number }}</span>
+                    <div class="row-total-pill row-total-pill--additional"
+                         [class.row-total-pill--active]="getItemRowTotal(i) > 0">
+                      <span class="row-total-pill__label">Total</span>
+                      <span class="row-total-pill__value">₹{{ getItemRowTotal(i) | number }}</span>
                     </div>
                   </div>
+
                 </div>
-
-              </div>
+              }
             }
-          }
+          </div>
 
-          <!-- Total Additional Fees -->
-          <div class="grand-total-row grand-total-row--additional">
-            <span class="grand-total__label">Total Additional Fees</span>
-            <span class="grand-total__value">₹{{ additionalTotal() | number }}</span>
+          <!-- Additional Fees Summary -->
+          <div class="section-total-bar section-total-bar--additional">
+            <div class="section-total-bar__inner">
+              <mat-icon>summarize</mat-icon>
+              <span class="section-total-bar__label">Total Additional Fees</span>
+              <span class="section-total-bar__value">₹{{ additionalTotal() | number }}</span>
+            </div>
           </div>
 
         </div>
 
-        <!-- Actions -->
+        <!-- ── Actions ─────────────────────────────────────────────── -->
         <div class="form-actions">
-          <button mat-stroked-button type="button" routerLink="/fee-structures">Cancel</button>
-          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          <button mat-stroked-button type="button" class="cancel-btn" routerLink="/fee-structures">
+            <mat-icon>close</mat-icon>
+            Cancel
+          </button>
+          <button mat-flat-button class="save-btn" type="submit" [disabled]="saving()">
             @if (saving()) {
-              <mat-spinner diameter="20"></mat-spinner>
+              <mat-spinner diameter="18"></mat-spinner>
             } @else {
-              {{ isEditMode() ? 'Update' : 'Save All' }}
+              <mat-icon>{{ isEditMode() ? 'update' : 'save' }}</mat-icon>
             }
+            <span>{{ saving() ? 'Saving…' : (isEditMode() ? 'Update Fee Structure' : 'Save Fee Structure') }}</span>
           </button>
         </div>
 
