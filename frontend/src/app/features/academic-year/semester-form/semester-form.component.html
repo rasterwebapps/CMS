@@ -1,9 +1,14 @@
-<div class="semester-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/semesters" class="back-button">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/semesters" class="back-btn" aria-label="Back to semesters">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the semester details below.' : 'Fill in the details below to register a new semester.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -11,84 +16,102 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="semester-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Academic Year</mat-label>
-            <mat-select formControlName="academicYearId">
-              @for (academicYear of academicYears(); track academicYear.id) {
-                <mat-option [value]="academicYear.id">
-                  {{ academicYear.name }}
-                </mat-option>
-              }
-            </mat-select>
-            @if (form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched) {
-              <mat-error>{{ getErrorMessage('academicYearId') }}</mat-error>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="sem-ay" class="field-label">Academic Year</label>
+          <select
+            id="sem-ay"
+            class="field-select"
+            formControlName="academicYearId"
+            [class.field-select--error]="form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched"
+          >
+            <option [ngValue]="null" disabled>Select an academic year</option>
+            @for (academicYear of academicYears(); track academicYear.id) {
+              <option [ngValue]="academicYear.id">{{ academicYear.name }}</option>
             }
-          </mat-form-field>
+          </select>
+          @if (form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched) {
+            <p class="field-error">{{ getErrorMessage('academicYearId') }}</p>
+          }
+        </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="e.g., Fall 2024" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+        <div class="field-group">
+          <label for="sem-name" class="field-label">Name</label>
+          <input
+            id="sem-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., Fall 2024"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">{{ getErrorMessage('name') }}</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="sem-number" class="field-label">Semester Number</label>
+          <select
+            id="sem-number"
+            class="field-select"
+            formControlName="semesterNumber"
+            [class.field-select--error]="form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched"
+          >
+            <option [ngValue]="null" disabled>Select semester number</option>
+            @for (num of semesterNumbers; track num) {
+              <option [ngValue]="num">Semester {{ num }}</option>
             }
-          </mat-form-field>
+          </select>
+          @if (form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched) {
+            <p class="field-error">{{ getErrorMessage('semesterNumber') }}</p>
+          }
+        </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Semester Number</mat-label>
-            <mat-select formControlName="semesterNumber">
-              @for (num of semesterNumbers; track num) {
-                <mat-option [value]="num">Semester {{ num }}</mat-option>
-              }
-            </mat-select>
-            @if (form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched) {
-              <mat-error>{{ getErrorMessage('semesterNumber') }}</mat-error>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="sem-start" class="field-label">Start Date</label>
+            <input
+              id="sem-start"
+              type="date"
+              class="field-input"
+              formControlName="startDate"
+              [class.field-input--error]="form.get('startDate')?.invalid && form.get('startDate')?.touched"
+            />
+            @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('startDate') }}</p>
             }
-          </mat-form-field>
-
-          <div class="date-fields">
-            <mat-form-field appearance="outline" class="date-field">
-              <mat-label>Start Date</mat-label>
-              <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-              <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-              <mat-datepicker #startPicker></mat-datepicker>
-              @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
-                <mat-error>{{ getErrorMessage('startDate') }}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="date-field">
-              <mat-label>End Date</mat-label>
-              <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-              <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-              <mat-datepicker #endPicker></mat-datepicker>
-              @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
-                <mat-error>{{ getErrorMessage('endDate') }}</mat-error>
-              }
-            </mat-form-field>
           </div>
 
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/semesters">
-              Cancel
-            </button>
-            <button
-              mat-flat-button
-              color="primary"
-              type="submit"
-              [disabled]="saving()"
-            >
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
+          <div class="field-group">
+            <label for="sem-end" class="field-label">End Date</label>
+            <input
+              id="sem-end"
+              type="date"
+              class="field-input"
+              formControlName="endDate"
+              [class.field-input--error]="form.get('endDate')?.invalid && form.get('endDate')?.touched"
+            />
+            @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('endDate') }}</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/semesters">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Semester' : 'Create Semester' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

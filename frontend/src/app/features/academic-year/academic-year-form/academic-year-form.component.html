@@ -1,9 +1,14 @@
-<div class="academic-year-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/academic-years" class="back-button">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/academic-years" class="back-btn" aria-label="Back to academic years">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the academic year details below.' : 'Fill in the details below to register a new academic year.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -11,62 +16,70 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="academic-year-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="e.g., 2024-2025" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="ay-name" class="field-label">Name</label>
+          <input
+            id="ay-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., 2024-2025"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">{{ getErrorMessage('name') }}</p>
+          }
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="ay-start" class="field-label">Start Date</label>
+            <input
+              id="ay-start"
+              type="date"
+              class="field-input"
+              formControlName="startDate"
+              [class.field-input--error]="form.get('startDate')?.invalid && form.get('startDate')?.touched"
+            />
+            @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('startDate') }}</p>
             }
-          </mat-form-field>
-
-          <div class="date-fields">
-            <mat-form-field appearance="outline" class="date-field">
-              <mat-label>Start Date</mat-label>
-              <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-              <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-              <mat-datepicker #startPicker></mat-datepicker>
-              @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
-                <mat-error>{{ getErrorMessage('startDate') }}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="date-field">
-              <mat-label>End Date</mat-label>
-              <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-              <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-              <mat-datepicker #endPicker></mat-datepicker>
-              @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
-                <mat-error>{{ getErrorMessage('endDate') }}</mat-error>
-              }
-            </mat-form-field>
           </div>
 
-          <div class="toggle-field">
-            <mat-slide-toggle formControlName="isCurrent">Set as Current Academic Year</mat-slide-toggle>
+          <div class="field-group">
+            <label for="ay-end" class="field-label">End Date</label>
+            <input
+              id="ay-end"
+              type="date"
+              class="field-input"
+              formControlName="endDate"
+              [class.field-input--error]="form.get('endDate')?.invalid && form.get('endDate')?.touched"
+            />
+            @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('endDate') }}</p>
+            }
           </div>
+        </div>
 
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/academic-years">
-              Cancel
-            </button>
-            <button
-              mat-flat-button
-              color="primary"
-              type="submit"
-              [disabled]="saving()"
-            >
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        <div class="field-group">
+          <mat-slide-toggle formControlName="isCurrent">Set as Current Academic Year</mat-slide-toggle>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/academic-years">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Academic Year' : 'Create Academic Year' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

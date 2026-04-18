@@ -1428,3 +1428,36 @@ body {
   display: inline-flex;
 }
 
+// ── Narrow modifier for select (same as input) ────
+.field-select--narrow {
+  max-width: 160px;
+}
+
+// ── Two-column field row ──────────────────────────
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Section divider inside a form card ───────────
+.form-section-divider {
+  border: none;
+  border-top: 1px solid var(--cms-border-light);
+  margin: 20px 0 24px;
+}
+
+// ── Section heading inside a form card ───────────
+.form-section-title {
+  margin: 0 0 20px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+

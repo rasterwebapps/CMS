@@ -1,16 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { FacultyService } from '../faculty.service';
 import {
   FacultyRequest,
@@ -28,16 +22,10 @@ import { Department } from '../../department/department.model';
   imports: [
     RouterLink,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
   ],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',
@@ -70,7 +58,7 @@ export class FacultyFormComponent implements OnInit {
     designation: [null as Designation | null, [Validators.required]],
     specialization: ['', [Validators.maxLength(255)]],
     labExpertise: ['', [Validators.maxLength(1000)]],
-    joiningDate: [null as Date | null, [Validators.required]],
+    joiningDate: ['', [Validators.required]],
     status: ['ACTIVE' as FacultyStatus],
   });
 
@@ -92,12 +80,6 @@ export class FacultyFormComponent implements OnInit {
       return;
     }
 
-    const joiningDate = this.form.value.joiningDate;
-    const formattedDate =
-      joiningDate instanceof Date
-        ? joiningDate.toISOString().split('T')[0]
-        : joiningDate;
-
     const request: FacultyRequest = {
       employeeCode: (this.form.value.employeeCode ?? '').trim(),
       firstName: (this.form.value.firstName ?? '').trim(),
@@ -108,7 +90,7 @@ export class FacultyFormComponent implements OnInit {
       designation: this.form.value.designation,
       specialization: this.form.value.specialization?.trim() || undefined,
       labExpertise: this.form.value.labExpertise?.trim() || undefined,
-      joiningDate: formattedDate,
+      joiningDate: this.form.value.joiningDate,
       status: this.form.value.status || undefined,
     };
 
@@ -200,7 +182,7 @@ export class FacultyFormComponent implements OnInit {
           designation: faculty.designation,
           specialization: faculty.specialization || '',
           labExpertise: faculty.labExpertise || '',
-          joiningDate: new Date(faculty.joiningDate),
+          joiningDate: faculty.joiningDate,
           status: faculty.status,
         });
         this.loading.set(false);

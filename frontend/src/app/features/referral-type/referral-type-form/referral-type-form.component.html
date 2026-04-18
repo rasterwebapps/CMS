@@ -1,45 +1,106 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/referral-types"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/referral-types" class="back-btn" aria-label="Back to referral types">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the referral type details below.' : 'Define a new referral type and its commission structure.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Code</mat-label>
-            <input matInput formControlName="code" />
-            @if (form.get('code')?.invalid && form.get('code')?.touched) { <mat-error>Code is required</mat-error> }
-          </mat-form-field>
-          <mat-slide-toggle formControlName="hasCommission" class="full-width">Has Commission</mat-slide-toggle>
-          @if (form.get('hasCommission')?.value) {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Commission Amount (₹)</mat-label>
-              <input matInput formControlName="commissionAmount" type="number" />
-              @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) { <mat-error>Commission amount must be 0 or greater</mat-error> }
-            </mat-form-field>
-          }
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" rows="3"></textarea>
-          </mat-form-field>
-          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/referral-types">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-            </button>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="rt-name" class="field-label">Name</label>
+            <input
+              id="rt-name"
+              class="field-input"
+              formControlName="name"
+              placeholder="e.g., Walk-in"
+              autocomplete="off"
+              [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+            />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <p class="field-error">Name is required</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field-group">
+            <label for="rt-code" class="field-label">Code</label>
+            <input
+              id="rt-code"
+              class="field-input"
+              formControlName="code"
+              placeholder="e.g., WALK_IN"
+              autocomplete="off"
+              [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+            />
+            <p class="field-hint">Unique uppercase code</p>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <p class="field-error">Code is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-group">
+          <mat-slide-toggle formControlName="hasCommission">Has Commission</mat-slide-toggle>
+        </div>
+
+        @if (form.get('hasCommission')?.value) {
+          <div class="field-group">
+            <label for="rt-commission" class="field-label">Commission Amount (₹)</label>
+            <input
+              id="rt-commission"
+              type="number"
+              class="field-input field-input--narrow"
+              formControlName="commissionAmount"
+              min="0"
+              placeholder="0"
+              [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched"
+            />
+            @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
+              <p class="field-error">Commission amount must be 0 or greater</p>
+            }
+          </div>
+        }
+
+        <div class="field-group">
+          <label for="rt-description" class="field-label">Description</label>
+          <textarea
+            id="rt-description"
+            class="field-textarea"
+            formControlName="description"
+            placeholder="Optional description"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="field-group">
+          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/referral-types">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Referral Type' : 'Create Referral Type' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

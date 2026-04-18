@@ -2,16 +2,10 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { EnquiryRequest } from '../enquiry.model';
@@ -55,9 +49,8 @@ interface FeeStructureInfo {
   selector: 'app-enquiry-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatDatepickerModule, MatNativeDateModule, CurrencyPipe,
+    RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
+    MatProgressSpinnerModule, MatSnackBarModule, CurrencyPipe,
   ],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
@@ -87,8 +80,8 @@ export class EnquiryFormComponent implements OnInit {
     { value: 'HOSTELER', label: 'Hosteler' },
   ];
 
-  /** Max date for enquiry date picker — today */
-  protected readonly maxDate = new Date();
+  /** Max date for enquiry date input — today as YYYY-MM-DD string */
+  protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
 
   /** Fee structures loaded for the selected program */
   protected readonly feeStructures = signal<FeeStructureInfo[]>([]);
@@ -104,7 +97,7 @@ export class EnquiryFormComponent implements OnInit {
     phone: [''],
     programId: [null as number | null],
     courseId: [null as number | null],
-    enquiryDate: [new Date(), Validators.required],
+    enquiryDate: [this.maxDateStr, Validators.required],
     referralTypeId: [null as number | null, Validators.required],
     status: ['ENQUIRED'],
     agentId: [null as number | null],
@@ -136,7 +129,7 @@ export class EnquiryFormComponent implements OnInit {
           this.form.patchValue({
             name: item.name, email: item.email, phone: item.phone, programId: item.programId,
             courseId: item.courseId,
-            enquiryDate: item.enquiryDate ? new Date(item.enquiryDate + 'T00:00:00') : new Date(),
+            enquiryDate: item.enquiryDate ?? this.maxDateStr,
             referralTypeId: item.referralTypeId, status: item.status,
             agentId: item.agentId,
             remarks: item.remarks,
@@ -258,19 +251,10 @@ export class EnquiryFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const v = this.form.value;
 
-    // Format date to YYYY-MM-DD string
-    let dateStr = '';
-    if (v.enquiryDate instanceof Date) {
-      const d = v.enquiryDate;
-      dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    } else {
-      dateStr = v.enquiryDate;
-    }
-
     const request: EnquiryRequest = {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
       programId: v.programId || undefined, courseId: v.courseId || undefined,
-      enquiryDate: dateStr, referralTypeId: v.referralTypeId,
+      enquiryDate: v.enquiryDate, referralTypeId: v.referralTypeId,
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
       feeGuidelineTotal: this.totalFees() || undefined,
