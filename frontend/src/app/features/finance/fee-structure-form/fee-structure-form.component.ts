@@ -60,6 +60,16 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly courses = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly selectedProgramDuration = signal(0);
+  private readonly _courseSelected = signal(false);
+
+  /** Show fee items only after a course is selected (create mode) or always in edit mode.
+   *  Fallback: also show when a program is selected but the program has no courses. */
+  protected readonly showFeeItems = computed(
+    () =>
+      this.isEditMode() ||
+      this._courseSelected() ||
+      (this.selectedProgramDuration() > 0 && this.courses().length === 0),
+  );
 
   /** All fee types in display order (generic first, then additional). */
   protected readonly feeTypes = [
@@ -268,6 +278,7 @@ export class FeeStructureFormComponent implements OnInit {
   protected onBulkProgramChange(programId: number): void {
     this.bulkForm.patchValue({ courseId: null });
     this.courses.set([]);
+    this._courseSelected.set(false);
     this.clearAllItemYearAmounts();
 
     if (programId) {
@@ -284,8 +295,8 @@ export class FeeStructureFormComponent implements OnInit {
     }
   }
 
-  protected onBulkCourseChange(_courseId: number): void {
-    // Course selection does not affect year amounts — duration is program-based
+  protected onBulkCourseChange(courseId: number): void {
+    this._courseSelected.set(!!courseId);
   }
 
   private clearAllItemYearAmounts(): void {
