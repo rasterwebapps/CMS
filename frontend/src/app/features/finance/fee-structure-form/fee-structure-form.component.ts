@@ -106,9 +106,10 @@ export class FeeStructureFormComponent implements OnInit {
   };
 
   // Bulk form — used for both create and edit
+  // programId and courseId start disabled; they are enabled progressively as upstream fields are filled
   protected readonly bulkForm: FormGroup = this.fb.group({
-    programId: [null as number | null, Validators.required],
-    courseId: [null as number | null],
+    programId: [{ value: null as number | null, disabled: true }, Validators.required],
+    courseId: [{ value: null as number | null, disabled: true }],
     academicYearId: [null as number | null, Validators.required],
     items: this.fb.array([]),
   });
@@ -338,6 +339,10 @@ export class FeeStructureFormComponent implements OnInit {
           }
           this._grandTotalVersion.update((v) => v + 1);
           this.loading.set(false);
+          // Lock all criteria dropdowns in edit mode — they must not be changed
+          this.bulkForm.get('academicYearId')?.disable();
+          this.bulkForm.get('programId')?.disable();
+          this.bulkForm.get('courseId')?.disable();
         },
         error: () => {
           this.snackBar.open('Failed to load fee structures', 'Close', { duration: 3000 });
@@ -356,6 +361,12 @@ export class FeeStructureFormComponent implements OnInit {
 
   protected onBulkAcademicYearChange(yearId: number): void {
     this.bulkForm.patchValue({ programId: null, courseId: null });
+    this.bulkForm.get('courseId')?.disable();
+    if (yearId) {
+      this.bulkForm.get('programId')?.enable();
+    } else {
+      this.bulkForm.get('programId')?.disable();
+    }
     this.courses.set([]);
     this._courseSelected.set(false);
     this._existingGroups.set([]);
@@ -365,6 +376,7 @@ export class FeeStructureFormComponent implements OnInit {
 
   protected onBulkProgramChange(programId: number): void {
     this.bulkForm.patchValue({ courseId: null });
+    this.bulkForm.get('courseId')?.disable();
     this.courses.set([]);
     this._courseSelected.set(false);
     this._existingGroups.set([]);
@@ -377,7 +389,12 @@ export class FeeStructureFormComponent implements OnInit {
       this.rebuildAllItemYearAmounts(duration);
 
       this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
-        next: (data) => this.courses.set(data),
+        next: (data) => {
+          this.courses.set(data);
+          if (data.length > 0) {
+            this.bulkForm.get('courseId')?.enable();
+          }
+        },
       });
 
       // Load existing fee structures to prevent duplicate course selection
