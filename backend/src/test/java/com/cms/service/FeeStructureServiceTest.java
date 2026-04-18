@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -635,6 +636,7 @@ class FeeStructureServiceTest {
         List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
 
         // Existing record updated in place — no delete/recreate
+        verify(feeStructureRepository, times(1)).save(any(FeeStructure.class));
         verify(yearAmountRepository).deleteByFeeStructureId(1L);
         verify(feeStructureRepository, never()).deleteById(anyLong());
         assertThat(responses).hasSize(1);

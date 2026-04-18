@@ -446,22 +446,18 @@ public class FeeStructureService {
     }
 
     private List<FeeStructureYearAmount> saveYearAmounts(FeeStructure feeStructure, FeeStructureRequest request) {
-        List<FeeStructureYearAmount> yearAmounts = new ArrayList<>();
-        if (request.yearAmounts() != null && !request.yearAmounts().isEmpty()) {
-            for (var ya : request.yearAmounts()) {
-                FeeStructureYearAmount yearAmount = new FeeStructureYearAmount(
-                    feeStructure, ya.yearNumber(), ya.yearLabel(), ya.amount()
-                );
-                yearAmounts.add(yearAmountRepository.save(yearAmount));
-            }
-        }
-        return yearAmounts;
+        return buildYearAmounts(feeStructure, request.yearAmounts());
     }
 
     private List<FeeStructureYearAmount> saveItemYearAmounts(FeeStructure feeStructure, FeeStructureItemRequest item) {
+        return buildYearAmounts(feeStructure, item.yearAmounts());
+    }
+
+    private List<FeeStructureYearAmount> buildYearAmounts(FeeStructure feeStructure,
+            List<com.cms.dto.YearAmountRequest> yearAmountRequests) {
         List<FeeStructureYearAmount> yearAmounts = new ArrayList<>();
-        if (item.yearAmounts() != null && !item.yearAmounts().isEmpty()) {
-            for (var ya : item.yearAmounts()) {
+        if (yearAmountRequests != null && !yearAmountRequests.isEmpty()) {
+            for (var ya : yearAmountRequests) {
                 FeeStructureYearAmount yearAmount = new FeeStructureYearAmount(
                     feeStructure, ya.yearNumber(), ya.yearLabel(), ya.amount()
                 );
