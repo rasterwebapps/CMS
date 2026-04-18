@@ -1,49 +1,115 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/settings"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/settings" class="back-btn" aria-label="Back to settings">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the configuration entry below.' : 'Define a new system configuration key and value.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Config Key</mat-label>
-            <input matInput formControlName="configKey" />
-            @if (form.get('configKey')?.invalid && form.get('configKey')?.touched) { <mat-error>Config key is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Config Value</mat-label>
-            <input matInput formControlName="configValue" />
-            @if (form.get('configValue')?.invalid && form.get('configValue')?.touched) { <mat-error>Config value is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" rows="3"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Data Type</mat-label>
-            <mat-select formControlName="dataType">
-              @for (dt of dataTypes; track dt) { <mat-option [value]="dt">{{ dt }}</mat-option> }
-            </mat-select>
-            @if (form.get('dataType')?.invalid && form.get('dataType')?.touched) { <mat-error>Data type is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Category</mat-label>
-            <input matInput formControlName="category" />
-            @if (form.get('category')?.invalid && form.get('category')?.touched) { <mat-error>Category is required</mat-error> }
-          </mat-form-field>
-          <mat-slide-toggle formControlName="isEditable">Editable</mat-slide-toggle>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/settings">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-            </button>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="cfg-key" class="field-label">Config Key</label>
+          <input
+            id="cfg-key"
+            class="field-input"
+            formControlName="configKey"
+            placeholder="e.g., MAX_STUDENTS_PER_LAB"
+            autocomplete="off"
+            [class.field-input--error]="form.get('configKey')?.invalid && form.get('configKey')?.touched"
+          />
+          @if (form.get('configKey')?.invalid && form.get('configKey')?.touched) {
+            <p class="field-error">Config key is required</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="cfg-value" class="field-label">Config Value</label>
+          <input
+            id="cfg-value"
+            class="field-input"
+            formControlName="configValue"
+            placeholder="Enter value"
+            autocomplete="off"
+            [class.field-input--error]="form.get('configValue')?.invalid && form.get('configValue')?.touched"
+          />
+          @if (form.get('configValue')?.invalid && form.get('configValue')?.touched) {
+            <p class="field-error">Config value is required</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="cfg-description" class="field-label">Description</label>
+          <textarea
+            id="cfg-description"
+            class="field-textarea"
+            formControlName="description"
+            placeholder="Describe what this configuration controls"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="cfg-datatype" class="field-label">Data Type</label>
+            <select
+              id="cfg-datatype"
+              class="field-select"
+              formControlName="dataType"
+              [class.field-select--error]="form.get('dataType')?.invalid && form.get('dataType')?.touched"
+            >
+              @for (dt of dataTypes; track dt) {
+                <option [value]="dt">{{ dt }}</option>
+              }
+            </select>
+            @if (form.get('dataType')?.invalid && form.get('dataType')?.touched) {
+              <p class="field-error">Data type is required</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field-group">
+            <label for="cfg-category" class="field-label">Category</label>
+            <input
+              id="cfg-category"
+              class="field-input"
+              formControlName="category"
+              placeholder="e.g., ACADEMIC, SYSTEM"
+              autocomplete="off"
+              [class.field-input--error]="form.get('category')?.invalid && form.get('category')?.touched"
+            />
+            @if (form.get('category')?.invalid && form.get('category')?.touched) {
+              <p class="field-error">Category is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-group">
+          <mat-slide-toggle formControlName="isEditable">Editable</mat-slide-toggle>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/settings">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Configuration' : 'Create Configuration' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

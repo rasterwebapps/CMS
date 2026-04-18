@@ -1,16 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { provideNativeDateAdapter } from '@angular/material/core';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYearRequest } from '../academic-year.model';
 
@@ -20,17 +15,12 @@ import { AcademicYearRequest } from '../academic-year.model';
   imports: [
     RouterLink,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDatepickerModule,
     MatSlideToggleModule,
   ],
-  providers: [provideNativeDateAdapter()],
   templateUrl: './academic-year-form.component.html',
   styleUrl: './academic-year-form.component.scss',
 })
@@ -50,8 +40,8 @@ export class AcademicYearFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    startDate: [null as Date | null, [Validators.required]],
-    endDate: [null as Date | null, [Validators.required]],
+    startDate: ['', [Validators.required]],
+    endDate: ['', [Validators.required]],
     isCurrent: [false],
   });
 
@@ -71,13 +61,10 @@ export class AcademicYearFormComponent implements OnInit {
       return;
     }
 
-    const startDate = this.form.value.startDate as Date;
-    const endDate = this.form.value.endDate as Date;
-
     const request: AcademicYearRequest = {
       name: (this.form.value.name ?? '').trim(),
-      startDate: this.formatDate(startDate),
-      endDate: this.formatDate(endDate),
+      startDate: this.form.value.startDate,
+      endDate: this.form.value.endDate,
       isCurrent: this.form.value.isCurrent ?? false,
     };
 
@@ -130,13 +117,6 @@ export class AcademicYearFormComponent implements OnInit {
     return labels[fieldName] || fieldName;
   }
 
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   private loadAcademicYear(): void {
     if (!this.academicYearId) return;
 
@@ -145,8 +125,8 @@ export class AcademicYearFormComponent implements OnInit {
       next: (academicYear) => {
         this.form.patchValue({
           name: academicYear.name,
-          startDate: new Date(academicYear.startDate),
-          endDate: new Date(academicYear.endDate),
+          startDate: academicYear.startDate,
+          endDate: academicYear.endDate,
           isCurrent: academicYear.isCurrent,
         });
         this.loading.set(false);
