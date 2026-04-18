@@ -69,13 +69,15 @@
   border-radius: 12px;
 }
 .fee-total-label {
-  font-size: 1rem; font-weight: 700;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--cms-primary);
 }
 .fee-total-value {
-  font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
-  color: var(--cms-primary);
+  font-size: 1.25rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cms-primary);
 }
 
 .fee-year-grid {
@@ -93,19 +95,23 @@
   border-radius: 8px;
 }
 .fee-year-label {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--cms-text-muted);
   margin-bottom: 4px;
 }
 .fee-year-amount {
-  font-size: 1rem; font-weight: 700;
-  color: var(--cms-primary);
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--cms-primary);
 }
 
 .fee-breakdown { margin-top: 8px; }
 .fee-breakdown-title {
-  font-size: 0.9375rem; font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 700;
   color: var(--cms-text-muted);
   margin-bottom: 8px;
 }
@@ -117,12 +123,13 @@
   &:last-child { border-bottom: none; }
 }
 .fee-type { font-size: 0.8125rem; font-weight: 500; }
-.fee-amount { font-size: 0.8125rem; font-weight: 500; font-weight: 600; color: var(--cms-primary); }
+.fee-amount { font-size: 0.8125rem; font-weight: 600; color: var(--cms-primary); }
 .mandatory-badge { color: var(--cms-danger); font-weight: bold; margin-left: 2px; }
 .no-fee-hint {
   text-align: center;
   color: var(--cms-text-muted);
-  font-size: 0.8125rem; font-weight: 500;
+  font-size: 0.8125rem;
+  font-weight: 500;
   padding: 16px 0;
 }
 
@@ -141,106 +148,3 @@
   }
 }
 
-
-.form-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-  @media (max-width: 960px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-card { max-width: 100%; }
-.form { display: flex; flex-direction: column; gap: 4px; }
-.full-width { width: 100%; }
-.form-row { display: flex; gap: 16px; }
-.half-width { flex: 1; }
-.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
-
-/* Fee Structure Card */
-.fee-card { max-width: 100%; }
-.fee-icon { color: var(--cms-primary); }
-
-.fee-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  margin: 12px 0;
-  background: var(--cms-primary-light);
-  border-radius: 12px;
-}
-.fee-total-label {
-  font-size: 1rem; font-weight: 700;
-  color: var(--cms-primary);
-}
-.fee-total-value {
-  font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
-  color: var(--cms-primary);
-  font-weight: 700;
-}
-
-.fee-year-grid {
-  display: flex;
-  gap: 12px;
-  margin: 12px 0 16px;
-  flex-wrap: wrap;
-}
-.fee-year-box {
-  flex: 1;
-  min-width: 100px;
-  text-align: center;
-  padding: 12px 8px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 8px;
-}
-.fee-year-label {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--cms-text-muted);
-  margin-bottom: 4px;
-}
-.fee-year-amount {
-  font-size: 1rem; font-weight: 700;
-  color: var(--cms-primary);
-  font-weight: 600;
-}
-
-.fee-breakdown { margin-top: 8px; }
-.fee-breakdown-title {
-  font-size: 0.9375rem; font-weight: 700;
-  color: var(--cms-text-muted);
-  margin-bottom: 8px;
-}
-.fee-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--cms-border-light);
-  &:last-child { border-bottom: none; }
-}
-.fee-type { font-size: 0.8125rem; font-weight: 500; }
-.fee-amount { font-size: 0.8125rem; font-weight: 500; font-weight: 600; color: var(--cms-primary); }
-.mandatory-badge { color: var(--cms-danger); font-weight: bold; margin-left: 2px; }
-.no-fee-hint {
-  text-align: center;
-  color: var(--cms-text-muted);
-  font-size: 0.8125rem; font-weight: 500;
-  padding: 16px 0;
-}
-
-.referral-amount {
-  background: var(--cms-badge-cyan-bg);
-  .fee-total-label, .fee-total-value {
-    color: var(--cms-badge-cyan-text);
-  }
-}
-
-.final-fee {
-  background: var(--cms-badge-violet-bg);
-  margin-top: 12px;
-  .fee-total-label, .fee-total-value {
-    color: var(--cms-badge-violet-text);
-  }
-}
