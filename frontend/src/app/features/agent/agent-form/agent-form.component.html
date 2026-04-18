@@ -1,48 +1,117 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/agents"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/agents" class="back-btn" aria-label="Back to agents">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the agent details below.' : 'Fill in the details below to register a new agent.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Phone</mat-label>
-            <input matInput formControlName="phone" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Email</mat-label>
-            <input matInput formControlName="email" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Area</mat-label>
-            <input matInput formControlName="area" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Locality</mat-label>
-            <input matInput formControlName="locality" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Allotted Seats</mat-label>
-            <input matInput type="number" formControlName="allottedSeats" min="0" />
-          </mat-form-field>
-          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/agents">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-            </button>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="agent-name" class="field-label">Name</label>
+          <input
+            id="agent-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="Enter agent name"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">Name is required</p>
+          }
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="agent-phone" class="field-label">Phone</label>
+            <input
+              id="agent-phone"
+              class="field-input"
+              formControlName="phone"
+              placeholder="+91 9876543210"
+              autocomplete="off"
+            />
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field-group">
+            <label for="agent-email" class="field-label">Email</label>
+            <input
+              id="agent-email"
+              type="email"
+              class="field-input"
+              formControlName="email"
+              placeholder="agent@example.com"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="agent-area" class="field-label">Area</label>
+            <input
+              id="agent-area"
+              class="field-input"
+              formControlName="area"
+              placeholder="e.g., South Zone"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field-group">
+            <label for="agent-locality" class="field-label">Locality</label>
+            <input
+              id="agent-locality"
+              class="field-input"
+              formControlName="locality"
+              placeholder="e.g., Anna Nagar"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="agent-seats" class="field-label">Allotted Seats</label>
+          <input
+            id="agent-seats"
+            type="number"
+            class="field-input field-input--narrow"
+            formControlName="allottedSeats"
+            min="0"
+            placeholder="0"
+          />
+          <p class="field-hint">Number of seats assigned to this agent</p>
+        </div>
+
+        <div class="field-group">
+          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Agent' : 'Create Agent' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

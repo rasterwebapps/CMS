@@ -1,16 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatSelectModule } from '@angular/material/select';
-import { provideNativeDateAdapter } from '@angular/material/core';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, SemesterRequest } from '../academic-year.model';
 
@@ -20,17 +14,11 @@ import { AcademicYear, SemesterRequest } from '../academic-year.model';
   imports: [
     RouterLink,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDatepickerModule,
-    MatSelectModule,
   ],
-  providers: [provideNativeDateAdapter()],
   templateUrl: './semester-form.component.html',
   styleUrl: './semester-form.component.scss',
 })
@@ -53,8 +41,8 @@ export class SemesterFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     semesterNumber: [null as number | null, [Validators.required]],
-    startDate: [null as Date | null, [Validators.required]],
-    endDate: [null as Date | null, [Validators.required]],
+    startDate: ['', [Validators.required]],
+    endDate: ['', [Validators.required]],
     academicYearId: [null as number | null, [Validators.required]],
   });
 
@@ -76,14 +64,11 @@ export class SemesterFormComponent implements OnInit {
       return;
     }
 
-    const startDate = this.form.value.startDate as Date;
-    const endDate = this.form.value.endDate as Date;
-
     const request: SemesterRequest = {
       name: (this.form.value.name ?? '').trim(),
       semesterNumber: this.form.value.semesterNumber,
-      startDate: this.formatDate(startDate),
-      endDate: this.formatDate(endDate),
+      startDate: this.form.value.startDate,
+      endDate: this.form.value.endDate,
       academicYearId: this.form.value.academicYearId,
     };
 
@@ -139,13 +124,6 @@ export class SemesterFormComponent implements OnInit {
     return labels[fieldName] || fieldName;
   }
 
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   private loadAcademicYears(): void {
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (academicYears) => {
@@ -166,8 +144,8 @@ export class SemesterFormComponent implements OnInit {
         this.form.patchValue({
           name: semester.name,
           semesterNumber: semester.semesterNumber,
-          startDate: new Date(semester.startDate),
-          endDate: new Date(semester.endDate),
+          startDate: semester.startDate,
+          endDate: semester.endDate,
           academicYearId: semester.academicYear?.id,
         });
         this.loading.set(false);

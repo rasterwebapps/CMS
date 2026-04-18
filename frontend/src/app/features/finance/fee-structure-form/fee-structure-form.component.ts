@@ -2,15 +2,11 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
@@ -37,9 +33,9 @@ interface AcademicYear {
   selector: 'app-fee-structure-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
+    RouterLink, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatSlideToggleModule, MatTooltipModule, DecimalPipe,
+    MatTooltipModule, DecimalPipe,
   ],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',

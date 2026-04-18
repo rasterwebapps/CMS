@@ -1,137 +1,240 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/enquiries"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+<div class="enquiry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/enquiries" class="back-btn" aria-label="Back to enquiries">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the enquiry details below.' : 'Fill in the prospective student details to log a new enquiry.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="form-layout">
-      <mat-card appearance="outlined" class="form-card">
-        <mat-card-content>
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="name" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
-            </mat-form-field>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Email</mat-label>
-                <input matInput formControlName="email" type="email" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Phone</mat-label>
-                <input matInput formControlName="phone" />
-              </mat-form-field>
+    <div class="enquiry-layout">
+
+      <!-- ── Main Form Card ───────────────────────────────── -->
+      <div class="entry-form-card">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <div class="field-group">
+            <label for="enq-name" class="field-label">Name</label>
+            <input
+              id="enq-name"
+              class="field-input"
+              formControlName="name"
+              placeholder="Student's full name"
+              autocomplete="name"
+              [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+            />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <p class="field-error">Name is required</p>
+            }
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="enq-email" class="field-label">Email</label>
+              <input
+                id="enq-email"
+                type="email"
+                class="field-input"
+                formControlName="email"
+                placeholder="student@example.com"
+                autocomplete="email"
+              />
             </div>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Program</mat-label>
-              <mat-select formControlName="programId" (selectionChange)="onProgramChange($event.value)">
-                <mat-option [value]="null">— None —</mat-option>
-                @for (p of programs(); track p.id) { <mat-option [value]="p.id">{{ p.name }} ({{ p.code }})</mat-option> }
-              </mat-select>
-            </mat-form-field>
-            @if (courses().length > 0) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Course *</mat-label>
-                <mat-select formControlName="courseId" (selectionChange)="onCourseChange($event.value)">
-                  <mat-option [value]="null">— None —</mat-option>
-                  @for (c of courses(); track c.id) { <mat-option [value]="c.id">{{ c.name }} ({{ c.code }})</mat-option> }
-                </mat-select>
-              </mat-form-field>
-            }
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Student Type</mat-label>
-              <mat-select formControlName="studentType" (selectionChange)="onStudentTypeChange()">
-                <mat-option [value]="null">— Not Specified —</mat-option>
-                @for (st of studentTypeOptions; track st.value) {
-                  <mat-option [value]="st.value">{{ st.label }}</mat-option>
+
+            <div class="field-group">
+              <label for="enq-phone" class="field-label">Phone</label>
+              <input
+                id="enq-phone"
+                class="field-input"
+                formControlName="phone"
+                placeholder="+91 9876543210"
+                autocomplete="tel"
+              />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="enq-program" class="field-label">Program</label>
+            <select
+              id="enq-program"
+              class="field-select"
+              formControlName="programId"
+              (change)="onProgramChange(form.get('programId')?.value)"
+            >
+              <option [ngValue]="null">— None —</option>
+              @for (p of programs(); track p.id) {
+                <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option>
+              }
+            </select>
+          </div>
+
+          @if (courses().length > 0) {
+            <div class="field-group">
+              <label for="enq-course" class="field-label">Course</label>
+              <select
+                id="enq-course"
+                class="field-select"
+                formControlName="courseId"
+                (change)="onCourseChange(form.get('courseId')?.value)"
+              >
+                <option [ngValue]="null">— None —</option>
+                @for (c of courses(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }} ({{ c.code }})</option>
                 }
-              </mat-select>
-            </mat-form-field>
-            <!-- Read-only fee total — auto-loaded from fee structure after course selection -->
-            @if (form.get('courseId')?.value && totalFees() > 0) {
-              <div class="fee-amount-display">
-                <span class="fee-amount-label">
-                  Total Fee
-                  @if (form.get('studentType')?.value === 'DAY_SCHOLAR') { <span class="fee-type-hint">(Day Scholar)</span> }
-                  @else if (form.get('studentType')?.value === 'HOSTELER') { <span class="fee-type-hint">(Hosteler)</span> }
-                </span>
-                <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-            }
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Enquiry Date</mat-label>
-              <input matInput [matDatepicker]="picker" formControlName="enquiryDate" [max]="maxDate" />
-              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-              <mat-datepicker #picker></mat-datepicker>
-              @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) { <mat-error>Required</mat-error> }
-            </mat-form-field>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Referral Type</mat-label>
-                <mat-select formControlName="referralTypeId" (selectionChange)="onReferralTypeChange($event.value)">
-                  @for (rt of referralTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }}</mat-option> }
-                </mat-select>
-                @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) { <mat-error>Required</mat-error> }
-              </mat-form-field>
-              @if (isEditMode()) {
-                <mat-form-field appearance="outline" class="half-width">
-                  <mat-label>Status</mat-label>
-                  <mat-select formControlName="status">
-                    @for (s of statusOptions; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
-                  </mat-select>
-                </mat-form-field>
+              </select>
+            </div>
+          }
+
+          <div class="field-group">
+            <label for="enq-student-type" class="field-label">Student Type</label>
+            <select
+              id="enq-student-type"
+              class="field-select"
+              formControlName="studentType"
+              (change)="onStudentTypeChange()"
+            >
+              <option [ngValue]="null">— Not Specified —</option>
+              @for (st of studentTypeOptions; track st.value) {
+                <option [value]="st.value">{{ st.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Read-only fee total — auto-loaded after course + student type selection -->
+          @if (form.get('courseId')?.value && totalFees() > 0) {
+            <div class="fee-amount-display">
+              <span class="fee-amount-label">
+                Total Fee
+                @if (form.get('studentType')?.value === 'DAY_SCHOLAR') {
+                  <span class="fee-type-hint">(Day Scholar)</span>
+                } @else if (form.get('studentType')?.value === 'HOSTELER') {
+                  <span class="fee-type-hint">(Hosteler)</span>
+                }
+              </span>
+              <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+            </div>
+          }
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="enq-date" class="field-label">Enquiry Date</label>
+              <input
+                id="enq-date"
+                type="date"
+                class="field-input"
+                formControlName="enquiryDate"
+                [attr.max]="maxDateStr"
+                [class.field-input--error]="form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched"
+              />
+              @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) {
+                <p class="field-error">Enquiry date is required</p>
               }
             </div>
-            @if (isAgentReferral()) {
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Agent</mat-label>
-                <mat-select formControlName="agentId">
-                  @for (a of agents(); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }
-                </mat-select>
-              </mat-form-field>
-            }
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Remarks</mat-label>
-              <textarea matInput formControlName="remarks" rows="3"></textarea>
-            </mat-form-field>
-            <div class="form-actions">
-              <button mat-stroked-button type="button" routerLink="/enquiries">Cancel</button>
-              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-                @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-              </button>
-            </div>
-          </form>
-        </mat-card-content>
-      </mat-card>
 
-      <!-- Fee Structure Panel — shows when a program + course are selected and fee data loaded -->
+            <div class="field-group">
+              <label for="enq-referral" class="field-label">Referral Type</label>
+              <select
+                id="enq-referral"
+                class="field-select"
+                formControlName="referralTypeId"
+                (change)="onReferralTypeChange(form.get('referralTypeId')?.value)"
+                [class.field-select--error]="form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched"
+              >
+                <option [ngValue]="null" disabled>Select referral type</option>
+                @for (rt of referralTypes(); track rt.id) {
+                  <option [ngValue]="rt.id">{{ rt.name }}</option>
+                }
+              </select>
+              @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) {
+                <p class="field-error">Referral type is required</p>
+              }
+            </div>
+          </div>
+
+          @if (isEditMode()) {
+            <div class="field-group">
+              <label for="enq-status" class="field-label">Status</label>
+              <select id="enq-status" class="field-select" formControlName="status">
+                @for (s of statusOptions; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (isAgentReferral()) {
+            <div class="field-group">
+              <label for="enq-agent" class="field-label">Agent</label>
+              <select id="enq-agent" class="field-select" formControlName="agentId">
+                <option [ngValue]="null">— None —</option>
+                @for (a of agents(); track a.id) {
+                  <option [ngValue]="a.id">{{ a.name }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="field-group">
+            <label for="enq-remarks" class="field-label">Remarks</label>
+            <textarea
+              id="enq-remarks"
+              class="field-textarea"
+              formControlName="remarks"
+              rows="3"
+              placeholder="Any additional notes"
+            ></textarea>
+          </div>
+
+          <div class="form-footer">
+            <button type="button" class="btn-cancel" routerLink="/enquiries">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Enquiry' : 'Create Enquiry' }}
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- ── Fee Structure Sidebar ─────────────────────────── -->
       @if (selectedProgram() && form.get('courseId')?.value) {
-        <mat-card appearance="outlined" class="fee-card">
-          <mat-card-header>
-            <mat-icon mat-card-avatar class="fee-icon">account_balance</mat-icon>
-            <mat-card-title>Fee Structure</mat-card-title>
-            <mat-card-subtitle>{{ selectedProgram()!.name }} ({{ selectedProgram()!.durationYears }} years)</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <!-- Total Fees — filtered by student type -->
-            @if (feeStructures().length > 0) {
-              <div class="fee-total">
-                <span class="fee-total-label">
-                  Total Course Fee
-                  @if (form.get('studentType')?.value === 'DAY_SCHOLAR') { <span class="fee-type-hint">(Day Scholar)</span> }
-                  @else if (form.get('studentType')?.value === 'HOSTELER') { <span class="fee-type-hint">(Hosteler)</span> }
-                </span>
-                <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-            } @else {
-              <p class="no-fee-hint">No fee structures configured for this course.</p>
-            }
-          </mat-card-content>
-        </mat-card>
+        <div class="fee-sidebar-card">
+          <div class="fee-sidebar-header">
+            <mat-icon class="fee-icon">account_balance</mat-icon>
+            <div>
+              <p class="fee-sidebar-title">Fee Structure</p>
+              <p class="fee-sidebar-sub">{{ selectedProgram()!.name }} ({{ selectedProgram()!.durationYears }} yrs)</p>
+            </div>
+          </div>
+
+          @if (feeStructures().length > 0) {
+            <div class="fee-total">
+              <span class="fee-total-label">
+                Total Course Fee
+                @if (form.get('studentType')?.value === 'DAY_SCHOLAR') {
+                  <span class="fee-type-hint">(Day Scholar)</span>
+                } @else if (form.get('studentType')?.value === 'HOSTELER') {
+                  <span class="fee-type-hint">(Hosteler)</span>
+                }
+              </span>
+              <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+            </div>
+          } @else {
+            <p class="no-fee-hint">No fee structures configured for this course.</p>
+          }
+        </div>
       }
+
     </div>
   }
 </div>

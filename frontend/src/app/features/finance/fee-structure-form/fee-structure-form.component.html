@@ -29,51 +29,68 @@
 
         <div class="selection-panel__fields">
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Academic Year *</mat-label>
-            <mat-select formControlName="academicYearId"
-                        (selectionChange)="onBulkAcademicYearChange($event.value)">
+          <div class="field-group">
+            <label for="fs-ay" class="field-label">Academic Year *</label>
+            <select
+              id="fs-ay"
+              class="field-select"
+              formControlName="academicYearId"
+              (change)="onBulkAcademicYearChange(bulkForm.get('academicYearId')?.value)"
+              [class.field-select--error]="bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched"
+            >
+              <option [ngValue]="null" disabled>Select academic year</option>
               @for (ay of academicYears(); track ay.id) {
-                <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
+                <option [ngValue]="ay.id">{{ ay.name }}</option>
               }
-            </mat-select>
+            </select>
             @if (bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched) {
-              <mat-error>Academic Year is required</mat-error>
+              <p class="field-error">Academic Year is required</p>
             }
-          </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Program *</mat-label>
-            <mat-select formControlName="programId"
-                        (selectionChange)="onBulkProgramChange($event.value)">
+          <div class="field-group">
+            <label for="fs-program" class="field-label">Program *</label>
+            <select
+              id="fs-program"
+              class="field-select"
+              formControlName="programId"
+              (change)="onBulkProgramChange(bulkForm.get('programId')?.value)"
+              [class.field-select--error]="bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched"
+            >
+              <option [ngValue]="null" disabled>Select program</option>
               @for (p of programs(); track p.id) {
-                <mat-option [value]="p.id">{{ p.name }}</mat-option>
+                <option [ngValue]="p.id">{{ p.name }}</option>
               }
-            </mat-select>
+            </select>
             @if (!isEditMode() && !bulkForm.get('academicYearId')?.value) {
-              <mat-hint>Select an academic year first</mat-hint>
+              <p class="field-hint">Select an academic year first</p>
             }
             @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
-              <mat-error>Program is required</mat-error>
+              <p class="field-error">Program is required</p>
             }
-          </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Course</mat-label>
-            <mat-select formControlName="courseId"
-                        (selectionChange)="onBulkCourseChange($event.value)">
+          <div class="field-group">
+            <label for="fs-course" class="field-label">Course</label>
+            <select
+              id="fs-course"
+              class="field-select"
+              formControlName="courseId"
+              (change)="onBulkCourseChange(bulkForm.get('courseId')?.value)"
+            >
+              <option [ngValue]="null">— None —</option>
               @for (c of courses(); track c.id) {
-                <mat-option [value]="c.id" [disabled]="isCourseDisabled(c.id)">
+                <option [ngValue]="c.id" [disabled]="isCourseDisabled(c.id)">
                   {{ c.name }}{{ isCourseDisabled(c.id) ? ' (already configured)' : '' }}
-                </mat-option>
+                </option>
               }
-            </mat-select>
+            </select>
             @if (!isEditMode() && !bulkForm.get('programId')?.value) {
-              <mat-hint>Select a program first</mat-hint>
+              <p class="field-hint">Select a program first</p>
             } @else if (!isEditMode() && courses().length === 0 && bulkForm.get('programId')?.value) {
-              <mat-hint>No courses for this program</mat-hint>
+              <p class="field-hint">No courses for this program</p>
             }
-          </mat-form-field>
+          </div>
 
         </div>
       </div>

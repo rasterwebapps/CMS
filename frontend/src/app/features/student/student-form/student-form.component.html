@@ -1,9 +1,14 @@
-<div class="student-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/students" class="back-button">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/students" class="back-btn" aria-label="Back to students">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the student record below.' : 'Fill in the details below to register a new student.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -11,231 +16,314 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="student-form">
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-          <h3 class="section-title">Basic Information</h3>
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Roll Number</mat-label>
-              <input matInput formControlName="rollNumber" placeholder="e.g. CS2024001" />
-              @if (form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched) {
-                <mat-error>{{ getErrorMessage('rollNumber') }}</mat-error>
+        <!-- ── Basic Information ────────────────────────────── -->
+        <p class="form-section-title">Basic Information</p>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-roll" class="field-label">Roll Number</label>
+            <input
+              id="stu-roll"
+              class="field-input"
+              formControlName="rollNumber"
+              placeholder="e.g. CS2024001"
+              autocomplete="off"
+              [class.field-input--error]="form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched"
+            />
+            @if (form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched) {
+              <p class="field-error">{{ getErrorMessage('rollNumber') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="stu-admission" class="field-label">Admission Date</label>
+            <input
+              id="stu-admission"
+              type="date"
+              class="field-input"
+              formControlName="admissionDate"
+              [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched"
+            />
+            @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('admissionDate') }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-first" class="field-label">First Name</label>
+            <input
+              id="stu-first"
+              class="field-input"
+              formControlName="firstName"
+              placeholder="First name"
+              autocomplete="given-name"
+              [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+            />
+            @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+              <p class="field-error">{{ getErrorMessage('firstName') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="stu-last" class="field-label">Last Name</label>
+            <input
+              id="stu-last"
+              class="field-input"
+              formControlName="lastName"
+              placeholder="Last name"
+              autocomplete="family-name"
+              [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+            />
+            @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+              <p class="field-error">{{ getErrorMessage('lastName') }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-email" class="field-label">Email</label>
+            <input
+              id="stu-email"
+              type="email"
+              class="field-input"
+              formControlName="email"
+              placeholder="student@example.com"
+              autocomplete="email"
+              [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
+            />
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <p class="field-error">{{ getErrorMessage('email') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="stu-phone" class="field-label">Phone</label>
+            <input
+              id="stu-phone"
+              class="field-input"
+              formControlName="phone"
+              placeholder="+91 9876543210"
+              autocomplete="tel"
+            />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-program" class="field-label">Program</label>
+            <select
+              id="stu-program"
+              class="field-select"
+              formControlName="programId"
+              [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched"
+            >
+              <option [ngValue]="null" disabled>Select a program</option>
+              @for (program of programs(); track program.id) {
+                <option [ngValue]="program.id">{{ program.name }}</option>
               }
-            </mat-form-field>
+            </select>
+            @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+              <p class="field-error">{{ getErrorMessage('programId') }}</p>
+            }
+          </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Admission Date</mat-label>
-              <input matInput formControlName="admissionDate" type="date" />
-              @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
-                <mat-error>{{ getErrorMessage('admissionDate') }}</mat-error>
+          <div class="field-group">
+            <label for="stu-semester" class="field-label">Semester</label>
+            <input
+              id="stu-semester"
+              type="number"
+              class="field-input"
+              formControlName="semester"
+              min="1"
+              max="12"
+              [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
+            />
+            @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+              <p class="field-error">{{ getErrorMessage('semester') }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-batch" class="field-label">Lab Batch</label>
+            <input
+              id="stu-batch"
+              class="field-input"
+              formControlName="labBatch"
+              placeholder="e.g. Batch A"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field-group">
+            <label for="stu-status" class="field-label">Status</label>
+            <select id="stu-status" class="field-select" formControlName="status">
+              @for (s of statusOptions; track s) {
+                <option [value]="s">{{ s }}</option>
               }
-            </mat-form-field>
+            </select>
+          </div>
+        </div>
+
+        <!-- ── Personal Details ────────────────────────────── -->
+        <hr class="form-section-divider" />
+        <p class="form-section-title">Personal Details</p>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-dob" class="field-label">Date of Birth</label>
+            <input
+              id="stu-dob"
+              type="date"
+              class="field-input"
+              formControlName="dateOfBirth"
+            />
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>First Name</mat-label>
-              <input matInput formControlName="firstName" placeholder="First name" />
-              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-                <mat-error>{{ getErrorMessage('firstName') }}</mat-error>
+          <div class="field-group">
+            <label for="stu-gender" class="field-label">Gender</label>
+            <select id="stu-gender" class="field-select" formControlName="gender">
+              <option value="">— Select —</option>
+              @for (g of genderOptions; track g) {
+                <option [value]="g">{{ g }}</option>
               }
-            </mat-form-field>
+            </select>
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Last Name</mat-label>
-              <input matInput formControlName="lastName" placeholder="Last name" />
-              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-                <mat-error>{{ getErrorMessage('lastName') }}</mat-error>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-nationality" class="field-label">Nationality</label>
+            <input id="stu-nationality" class="field-input" formControlName="nationality" autocomplete="off" />
+          </div>
+
+          <div class="field-group">
+            <label for="stu-religion" class="field-label">Religion</label>
+            <input id="stu-religion" class="field-input" formControlName="religion" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-community" class="field-label">Community Category</label>
+            <select id="stu-community" class="field-select" formControlName="communityCategory">
+              <option value="">— Select —</option>
+              @for (c of communityOptions; track c) {
+                <option [value]="c">{{ c }}</option>
               }
-            </mat-form-field>
+            </select>
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Email</mat-label>
-              <input matInput formControlName="email" type="email" placeholder="student@example.com" />
-              @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                <mat-error>{{ getErrorMessage('email') }}</mat-error>
-              }
-            </mat-form-field>
+          <div class="field-group">
+            <label for="stu-caste" class="field-label">Caste</label>
+            <input id="stu-caste" class="field-input" formControlName="caste" autocomplete="off" />
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Phone</mat-label>
-              <input matInput formControlName="phone" placeholder="+91 9876543210" />
-            </mat-form-field>
+        <div class="field-group">
+          <label for="stu-blood" class="field-label">Blood Group</label>
+          <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
+            <option value="">— Select —</option>
+            @for (bg of bloodGroupOptions; track bg) {
+              <option [value]="bg">{{ bg }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- ── Family Details ──────────────────────────────── -->
+        <hr class="form-section-divider" />
+        <p class="form-section-title">Family Details</p>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-father" class="field-label">Father's Name</label>
+            <input id="stu-father" class="field-input" formControlName="fatherName" autocomplete="off" />
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Program</mat-label>
-              <mat-select formControlName="programId">
-                @for (program of programs(); track program.id) {
-                  <mat-option [value]="program.id">{{ program.name }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-                <mat-error>{{ getErrorMessage('programId') }}</mat-error>
-              }
-            </mat-form-field>
+          <div class="field-group">
+            <label for="stu-mother" class="field-label">Mother's Name</label>
+            <input id="stu-mother" class="field-input" formControlName="motherName" autocomplete="off" />
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Semester</mat-label>
-              <input matInput formControlName="semester" type="number" min="1" max="12" />
-              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                <mat-error>{{ getErrorMessage('semester') }}</mat-error>
-              }
-            </mat-form-field>
+        <div class="field-group">
+          <label for="stu-parent-mobile" class="field-label">Parent Mobile</label>
+          <input
+            id="stu-parent-mobile"
+            class="field-input field-input--narrow"
+            formControlName="parentMobile"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- ── Address ─────────────────────────────────────── -->
+        <hr class="form-section-divider" />
+        <p class="form-section-title">Address</p>
+
+        <div class="field-group">
+          <label for="stu-postal" class="field-label">Postal Address</label>
+          <textarea
+            id="stu-postal"
+            class="field-textarea"
+            formControlName="postalAddress"
+            rows="2"
+            placeholder="Door/Flat No., Building Name"
+          ></textarea>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-street" class="field-label">Street</label>
+            <input id="stu-street" class="field-input" formControlName="street" autocomplete="off" />
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Lab Batch</mat-label>
-              <input matInput formControlName="labBatch" placeholder="e.g. Batch A" />
-            </mat-form-field>
+          <div class="field-group">
+            <label for="stu-city" class="field-label">City</label>
+            <input id="stu-city" class="field-input" formControlName="city" autocomplete="off" />
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Status</mat-label>
-              <mat-select formControlName="status">
-                @for (s of statusOptions; track s) {
-                  <mat-option [value]="s">{{ s }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="stu-district" class="field-label">District</label>
+            <input id="stu-district" class="field-input" formControlName="district" autocomplete="off" />
           </div>
 
-          <mat-divider class="section-divider"></mat-divider>
-          <h3 class="section-title">Personal Details</h3>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Date of Birth</mat-label>
-              <input matInput formControlName="dateOfBirth" type="date" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Gender</mat-label>
-              <mat-select formControlName="gender">
-                @for (g of genderOptions; track g) {
-                  <mat-option [value]="g">{{ g }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+          <div class="field-group">
+            <label for="stu-state" class="field-label">State</label>
+            <input id="stu-state" class="field-input" formControlName="state" autocomplete="off" />
           </div>
+        </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Nationality</mat-label>
-              <input matInput formControlName="nationality" />
-            </mat-form-field>
+        <div class="field-group">
+          <label for="stu-pincode" class="field-label">Pincode</label>
+          <input
+            id="stu-pincode"
+            class="field-input field-input--narrow"
+            formControlName="pincode"
+            autocomplete="postal-code"
+          />
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Religion</mat-label>
-              <input matInput formControlName="religion" />
-            </mat-form-field>
-          </div>
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/students">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Student' : 'Create Student' }}
+            }
+          </button>
+        </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Community Category</mat-label>
-              <mat-select formControlName="communityCategory">
-                @for (c of communityOptions; track c) {
-                  <mat-option [value]="c">{{ c }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Caste</mat-label>
-              <input matInput formControlName="caste" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Blood Group</mat-label>
-              <mat-select formControlName="bloodGroup">
-                @for (bg of bloodGroupOptions; track bg) {
-                  <mat-option [value]="bg">{{ bg }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-
-          <mat-divider class="section-divider"></mat-divider>
-          <h3 class="section-title">Family Details</h3>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Father's Name</mat-label>
-              <input matInput formControlName="fatherName" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Mother's Name</mat-label>
-              <input matInput formControlName="motherName" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Parent Mobile</mat-label>
-              <input matInput formControlName="parentMobile" />
-            </mat-form-field>
-          </div>
-
-          <mat-divider class="section-divider"></mat-divider>
-          <h3 class="section-title">Address</h3>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Postal Address</mat-label>
-            <textarea matInput formControlName="postalAddress" rows="2"></textarea>
-          </mat-form-field>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Street</mat-label>
-              <input matInput formControlName="street" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>City</mat-label>
-              <input matInput formControlName="city" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>District</mat-label>
-              <input matInput formControlName="district" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>State</mat-label>
-              <input matInput formControlName="state" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Pincode</mat-label>
-              <input matInput formControlName="pincode" />
-            </mat-form-field>
-          </div>
-
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/students">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+      </form>
+    </div>
   }
 </div>

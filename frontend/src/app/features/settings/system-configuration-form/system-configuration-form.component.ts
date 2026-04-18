@@ -1,12 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -17,9 +13,8 @@ import { SystemConfigurationRequest } from '../settings.model';
   selector: 'app-system-configuration-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatSlideToggleModule,
+    RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    MatSnackBarModule, MatSlideToggleModule,
   ],
   templateUrl: './system-configuration-form.component.html',
   styleUrl: './system-configuration-form.component.scss',

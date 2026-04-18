@@ -1,84 +1,98 @@
-<div class="course-form-page">
-  <!-- Page Header -->
-  <div class="form-page-header">
-    <button class="back-btn" routerLink="/courses">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/courses" class="back-btn" aria-label="Back to courses">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <div class="form-page-header__text">
-      <nav class="breadcrumb">
-        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
-        <span class="breadcrumb__sep">/</span>
-        <a routerLink="/courses" class="breadcrumb__link">Courses</a>
-        <span class="breadcrumb__sep">/</span>
-        <span class="breadcrumb__current">{{ isEditMode() ? 'Edit' : 'New' }}</span>
-      </nav>
+    <div>
       <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the course details below.' : 'Fill in the details below to register a new course.' }}
+      </p>
     </div>
   </div>
 
   @if (loading()) {
     <div class="loading-container">
-      <mat-spinner diameter="40"></mat-spinner>
+      <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="course-form">
-        <div class="form-section">
-          <h3 class="form-section__title">Basic Information</h3>
-          <div class="form-grid">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Course Name</mat-label>
-              <input matInput formControlName="name" placeholder="Enter course name" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
-                <mat-error>{{ getErrorMessage('name') }}</mat-error>
-              }
-            </mat-form-field>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-            <div class="form-row-2">
-              <mat-form-field appearance="outline">
-                <mat-label>Course Code</mat-label>
-                <input matInput formControlName="code" placeholder="e.g. CS101" />
-                <mat-hint>Short identifier</mat-hint>
-                @if (form.get('code')?.invalid && form.get('code')?.touched) {
-                  <mat-error>{{ getErrorMessage('code') }}</mat-error>
-                }
-              </mat-form-field>
+        <div class="field-group">
+          <label for="course-name" class="field-label">Course Name</label>
+          <input
+            id="course-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., Bachelor of Computer Science"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">{{ getErrorMessage('name') }}</p>
+          }
+        </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Specialization</mat-label>
-                <input
-                  matInput
-                  formControlName="specialization"
-                  placeholder="e.g. Obs Gyn"
-                />
-                <mat-hint>Optional specialization</mat-hint>
-              </mat-form-field>
-            </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="course-code" class="field-label">Course Code</label>
+            <input
+              id="course-code"
+              class="field-input"
+              formControlName="code"
+              placeholder="e.g., CS101"
+              autocomplete="off"
+              [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+            />
+            <p class="field-hint">Short identifier</p>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <p class="field-error">{{ getErrorMessage('code') }}</p>
+            }
+          </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Program</mat-label>
-              <mat-select formControlName="programId">
-                @for (program of programs(); track program.id) {
-                  <mat-option [value]="program.id">{{ program.name }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-                <mat-error>{{ getErrorMessage('programId') }}</mat-error>
-              }
-            </mat-form-field>
+          <div class="field-group">
+            <label for="course-specialization" class="field-label">Specialization</label>
+            <input
+              id="course-specialization"
+              class="field-input"
+              formControlName="specialization"
+              placeholder="e.g., Obs Gyn"
+              autocomplete="off"
+            />
+            <p class="field-hint">Optional specialization</p>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button class="btn-secondary" type="button" routerLink="/courses">Cancel</button>
-          <button class="btn-primary" type="submit" [disabled]="saving()">
+        <div class="field-group">
+          <label for="course-program" class="field-label">Program</label>
+          <select
+            id="course-program"
+            class="field-select"
+            formControlName="programId"
+            [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched"
+          >
+            <option [ngValue]="null" disabled>Select a program</option>
+            @for (program of programs(); track program.id) {
+              <option [ngValue]="program.id">{{ program.name }}</option>
+            }
+          </select>
+          @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+            <p class="field-error">{{ getErrorMessage('programId') }}</p>
+          }
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/courses">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {
-              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
             } @else {
               {{ isEditMode() ? 'Update Course' : 'Create Course' }}
             }
           </button>
         </div>
+
       </form>
     </div>
   }

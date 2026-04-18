@@ -1,9 +1,14 @@
-<div class="lab-form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/labs" class="back-button">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/labs" class="back-btn" aria-label="Back to labs">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the lab details below.' : 'Fill in the details below to register a new lab.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -11,96 +16,133 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="lab-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter lab name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <mat-error>{{ getErrorMessage('name') }}</mat-error>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="lab-name" class="field-label">Name</label>
+          <input
+            id="lab-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., Computer Lab A"
+            autocomplete="off"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">{{ getErrorMessage('name') }}</p>
+          }
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="lab-type" class="field-label">Lab Type</label>
+            <select
+              id="lab-type"
+              class="field-select"
+              formControlName="labType"
+              [class.field-select--error]="form.get('labType')?.invalid && form.get('labType')?.touched"
+            >
+              <option value="" disabled>Select lab type</option>
+              @for (type of labTypes; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+            @if (form.get('labType')?.invalid && form.get('labType')?.touched) {
+              <p class="field-error">{{ getErrorMessage('labType') }}</p>
             }
-          </mat-form-field>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Lab Type</mat-label>
-              <mat-select formControlName="labType">
-                @for (type of labTypes; track type.value) {
-                  <mat-option [value]="type.value">{{ type.label }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('labType')?.invalid && form.get('labType')?.touched) {
-                <mat-error>{{ getErrorMessage('labType') }}</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Department</mat-label>
-              <mat-select formControlName="departmentId">
-                @for (dept of departments(); track dept.id) {
-                  <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-                <mat-error>{{ getErrorMessage('departmentId') }}</mat-error>
-              }
-            </mat-form-field>
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Building</mat-label>
-              <input matInput formControlName="building" placeholder="Enter building name" />
-              @if (form.get('building')?.invalid && form.get('building')?.touched) {
-                <mat-error>{{ getErrorMessage('building') }}</mat-error>
+          <div class="field-group">
+            <label for="lab-dept" class="field-label">Department</label>
+            <select
+              id="lab-dept"
+              class="field-select"
+              formControlName="departmentId"
+              [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched"
+            >
+              <option value="" disabled>Select department</option>
+              @for (dept of departments(); track dept.id) {
+                <option [value]="dept.id">{{ dept.name }}</option>
               }
-            </mat-form-field>
+            </select>
+            @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
+              <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
+            }
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Room Number</mat-label>
-              <input matInput formControlName="roomNumber" placeholder="Enter room number" />
-              @if (form.get('roomNumber')?.invalid && form.get('roomNumber')?.touched) {
-                <mat-error>{{ getErrorMessage('roomNumber') }}</mat-error>
-              }
-            </mat-form-field>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="lab-building" class="field-label">Building</label>
+            <input
+              id="lab-building"
+              class="field-input"
+              formControlName="building"
+              placeholder="e.g., Block A"
+              autocomplete="off"
+            />
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Capacity</mat-label>
-              <input matInput type="number" formControlName="capacity" placeholder="Enter capacity" />
-              <mat-hint>Number of workstations/seats</mat-hint>
-              @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
-                <mat-error>{{ getErrorMessage('capacity') }}</mat-error>
-              }
-            </mat-form-field>
+          <div class="field-group">
+            <label for="lab-room" class="field-label">Room Number</label>
+            <input
+              id="lab-room"
+              class="field-input"
+              formControlName="roomNumber"
+              placeholder="e.g., 101"
+              autocomplete="off"
+            />
+          </div>
+        </div>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Status</mat-label>
-              <mat-select formControlName="status">
-                @for (status of labStatuses; track status.value) {
-                  <mat-option [value]="status.value">{{ status.label }}</mat-option>
-                }
-              </mat-select>
-              @if (form.get('status')?.invalid && form.get('status')?.touched) {
-                <mat-error>{{ getErrorMessage('status') }}</mat-error>
-              }
-            </mat-form-field>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="lab-capacity" class="field-label">Capacity</label>
+            <input
+              id="lab-capacity"
+              type="number"
+              class="field-input"
+              formControlName="capacity"
+              placeholder="e.g., 30"
+              [class.field-input--error]="form.get('capacity')?.invalid && form.get('capacity')?.touched"
+            />
+            <p class="field-hint">Number of workstations / seats</p>
+            @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
+              <p class="field-error">{{ getErrorMessage('capacity') }}</p>
+            }
           </div>
 
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/labs">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
+          <div class="field-group">
+            <label for="lab-status" class="field-label">Status</label>
+            <select
+              id="lab-status"
+              class="field-select"
+              formControlName="status"
+              [class.field-select--error]="form.get('status')?.invalid && form.get('status')?.touched"
+            >
+              @for (status of labStatuses; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
               }
-            </button>
+            </select>
+            @if (form.get('status')?.invalid && form.get('status')?.touched) {
+              <p class="field-error">{{ getErrorMessage('status') }}</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/labs">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Lab' : 'Create Lab' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>
