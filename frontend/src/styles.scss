@@ -1434,6 +1434,39 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Narrow modifier for select (same as input) ────
+.field-select--narrow {
+  max-width: 160px;
+}
+
+// ── Form section divider ──────────────────────────
+.form-section-divider {
+  border: none;
+  border-top: 1px solid var(--cms-border-light);
+  margin: 8px 0 20px;
+}
+
+// ── Form section title ────────────────────────────
+.form-section-title {
+  margin: 0 0 16px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+// ── Two-column field row ──────────────────────────
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
