@@ -34,7 +34,7 @@
             </mat-form-field>
             @if (courses().length > 0) {
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Course</mat-label>
+                <mat-label>Course *</mat-label>
                 <mat-select formControlName="courseId" (selectionChange)="onCourseChange($event.value)">
                   <mat-option [value]="null">— None —</mat-option>
                   @for (c of courses(); track c.id) { <mat-option [value]="c.id">{{ c.name }} ({{ c.code }})</mat-option> }
@@ -50,6 +50,17 @@
                 }
               </mat-select>
             </mat-form-field>
+            <!-- Read-only fee total — auto-loaded from fee structure after course selection -->
+            @if (form.get('courseId')?.value && totalFees() > 0) {
+              <div class="fee-amount-display">
+                <span class="fee-amount-label">
+                  Total Fee
+                  @if (form.get('studentType')?.value === 'DAY_SCHOLAR') { <span class="fee-type-hint">(Day Scholar)</span> }
+                  @else if (form.get('studentType')?.value === 'HOSTELER') { <span class="fee-type-hint">(Hosteler)</span> }
+                </span>
+                <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
+            }
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Enquiry Date</mat-label>
               <input matInput [matDatepicker]="picker" formControlName="enquiryDate" [max]="maxDate" />
@@ -86,10 +97,6 @@
               <mat-label>Remarks</mat-label>
               <textarea matInput formControlName="remarks" rows="3"></textarea>
             </mat-form-field>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Fee Discussed Amount (₹)</mat-label>
-              <input matInput type="number" formControlName="feeDiscussedAmount" min="0" />
-            </mat-form-field>
             <div class="form-actions">
               <button mat-stroked-button type="button" routerLink="/enquiries">Cancel</button>
               <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
@@ -100,8 +107,8 @@
         </mat-card-content>
       </mat-card>
 
-      <!-- Fee Structure Panel — shows when a program is selected -->
-      @if (selectedProgram()) {
+      <!-- Fee Structure Panel — shows when a program + course are selected and fee data loaded -->
+      @if (selectedProgram() && form.get('courseId')?.value) {
         <mat-card appearance="outlined" class="fee-card">
           <mat-card-header>
             <mat-icon mat-card-avatar class="fee-icon">account_balance</mat-icon>
@@ -120,7 +127,7 @@
                 <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
               </div>
             } @else {
-              <p class="no-fee-hint">No fee structures configured for this program.</p>
+              <p class="no-fee-hint">No fee structures configured for this course.</p>
             }
           </mat-card-content>
         </mat-card>

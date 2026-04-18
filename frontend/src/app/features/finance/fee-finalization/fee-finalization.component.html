@@ -96,6 +96,12 @@
                   <span class="summary-value commission-value">{{ selectedEnquiry()!.referralCommissionAmount | currency:'INR':'₹':'1.0-0' }}</span>
                 </div>
               }
+              @if (selectedEnquiry()!.studentType) {
+                <div class="summary-row">
+                  <span class="summary-label">Student Type</span>
+                  <span class="summary-value">{{ selectedEnquiry()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}</span>
+                </div>
+              }
               @if (selectedEnquiry()!.feeGuidelineTotal) {
                 <div class="summary-row">
                   <span class="summary-label">Guideline Fee (from structure)</span>
@@ -106,7 +112,8 @@
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Total Fee (₹)</mat-label>
-              <input matInput type="number" formControlName="totalFee" min="0" />
+              <input matInput type="number" formControlName="totalFee" min="0" readonly />
+              <mat-hint>Pre-populated from fee structure — not editable</mat-hint>
               @if (form.get('totalFee')?.invalid && form.get('totalFee')?.touched) {
                 <mat-error>Total fee is required</mat-error>
               }
@@ -115,6 +122,9 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Discount Amount (₹)</mat-label>
               <input matInput type="number" formControlName="discountAmount" min="0" />
+              @if (form.hasError('discountExceedsTotal')) {
+                <mat-error>Discount cannot exceed the total fee</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">

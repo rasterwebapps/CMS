@@ -44,7 +44,20 @@ This applies to:
 
 ### Business Rule
 
-The fee structure is defined **per program (or course) per academic year**. Since fees may vary from year to year, every fee structure entry must be scoped to a specific academic year. When viewing or calculating fees, the system must always reference the fee structure for the **current academic year** associated with the selected program.
+The fee structure is defined **per course per academic year**. Since fees may vary from year to year, every fee structure entry must be scoped to a specific academic year. When viewing or calculating fees, the system must always reference the fee structure for the **current academic year** associated with the selected course.
+
+### Fee Type Classification
+
+All 8 fee types are grouped into two categories displayed on the fee structure screen:
+
+| Category | Fee Types | Included in Course Total |
+|---|---|---|
+| **Generic** | TUITION, LAB_FEE, LIBRARY_FEE, EXAMINATION_FEE, MISCELLANEOUS, LATE_FEE | ✅ Yes |
+| **Additional** | HOSTEL_FEE, TRANSPORT_FEE | ❌ No (shown separately) |
+
+- The **Course Total (Generic)** shown on the fee structure screen **excludes** HOSTEL_FEE and TRANSPORT_FEE.
+- The **Additional Fees Total** (HOSTEL_FEE + TRANSPORT_FEE) is shown separately below the course total.
+- This separation allows enquiry and finalization screens to pick the relevant additional fee based on the student's accommodation type.
 
 ### Key Points
 
@@ -119,16 +132,18 @@ FeeStructureYearAmount:
 
 ### Business Rule
 
-When the front office selects a **program** and **course** on the enquiry screen, the system must display the **fee for that program + course in the current academic year** as a guideline panel on the side. Only the **total fee** is shown — no year-wise breakdown or fee type split-up. The total fee shown depends on the **student type** selected.
+When the front office selects a **program** and then a **course** on the enquiry screen, the system must automatically load and display the **fee for that course in the current academic year** as a read-only guideline. The total fee shown depends on the **student type** selected.
 
 ### Key Points
 
-1. The fee guideline panel is **read-only** on the enquiry screen — it is for reference only.
-2. **Only the total fee is displayed** — no year-wise breakdown or individual fee type amounts.
-3. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **program and course**.
-4. If no fee structure exists for the selected program+course in the current academic year, the panel shows a message: "No fee structure defined for this program."
-5. The chosen/displayed guideline total is **saved with the enquiry record** for use during fee finalization (BR-6).
-6. **Flow**: Select Program → Select Course → Select Student Type → Fee total auto-loads.
+1. The fee guideline is **read-only** on the enquiry screen — it cannot be manually edited by the user.
+2. **Flow**: Select Program → Select Course → (optionally) Select Student Type → Fee total auto-loads.
+   - Courses shown in the dropdown are filtered to only the courses belonging to the selected program.
+   - Fees are only loaded **after a course is selected** (selecting a program alone does not load fees).
+3. **Only the total fee is displayed** — no year-wise breakdown or individual fee type amounts.
+4. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **course**.
+5. If no fee structure exists for the selected course, a message is shown: "No fee structures configured for this course."
+6. The total fee is saved with the enquiry record as `feeGuidelineTotal` for use during fee finalization (BR-6).
 
 ### Student Type Fee Rules (BR-12)
 
@@ -136,13 +151,14 @@ The total fee displayed depends on the **student type** chosen on the enquiry fo
 
 | Student Type | Fee Types Included |
 |---|---|
-| **Day Scholar** | TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + **TRANSPORT_FEE** + MISCELLANEOUS + LATE_FEE |
-| **Hosteler** | TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + **HOSTEL_FEE** + MISCELLANEOUS + LATE_FEE |
-| **Not Specified** | All fee types included |
+| **Day Scholar** | Generic fees (TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + MISCELLANEOUS + LATE_FEE) + **TRANSPORT_FEE** |
+| **Hosteler** | Generic fees (TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + MISCELLANEOUS + LATE_FEE) + **HOSTEL_FEE** |
+| **Not Specified** | Generic fees only (HOSTEL_FEE and TRANSPORT_FEE are excluded) |
 
 - HOSTEL_FEE is included **only for Hostelers**.
 - TRANSPORT_FEE is included **only for Day Scholars**.
-- All other fees are common for all student types.
+- Generic fees are always included regardless of student type.
+- When student type changes, the fee total updates automatically.
 
 ### Screen Layout
 
@@ -156,6 +172,7 @@ The total fee displayed depends on the **student type** chosen on the enquiry fo
 │ Program: [▼ Select Program]     │ Total Course Fee             │
 │ Course: [▼ Select Course]       │ (Hosteler)                   │
 │ Student Type: [▼ Hosteler]      │ ₹4,20,000                   │
+│ Total Fee: ₹4,20,000 (read-only)│                              │
 │ Referral Type: [▼ Select]       │                              │
 │ Agent: [▼ Select] (if agent)    │                              │
 │ Remarks: [___________]          │                              │
@@ -252,7 +269,7 @@ Final Fee = Total Program Fee (from fee structure) + Commission Amount (from ref
 
 ### Business Rule
 
-The enquiry screen is used by the **front office** to capture initial data. Once the enquiry is submitted and the student expresses interest in joining (status = INTERESTED), the **admin** reviews and finalizes the fee structure on the **Fee Finalization Screen**. The guideline values from the enquiry are presented to the admin, who can modify them.
+The enquiry screen is used by the **front office** to capture initial data. Once the enquiry is submitted and the student expresses interest in joining (status = INTERESTED), the **admin** reviews and finalizes the fee structure on the **Fee Finalization Screen**. The guideline values from the enquiry are pre-populated; the admin may only apply a **discount** — fees cannot be increased above the guideline.
 
 ### Key Points
 
@@ -260,14 +277,13 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 2. All guideline values chosen by the front office are **saved with the enquiry**.
 3. The **Fee Finalization Screen** shows a list of enquiries in **INTERESTED** status.
 4. The admin selects an enquiry to finalize, and the form is pre-populated with:
-   - Proposed fee from enquiry's `finalCalculatedFee`
-   - Guideline fee from fee structure lookup (`feeGuidelineTotal`)
-   - Year-wise breakdown from enquiry's `yearWiseFees`
+   - Total fee from enquiry's `finalCalculatedFee` (or `feeGuidelineTotal`) — **read-only, not editable**
+   - Student type context (Day Scholar / Hosteler)
    - Commission info (if referral type has commission)
 5. The admin can:
-   - **Increase** the fee amount (e.g., special program charges)
-   - **Provide a discount** (reduce the fee)
-   - **Modify year-wise fee distribution**
+   - **Provide a discount** (reduce the fee) by entering a discount amount and reason
+   - **Cannot increase** the fee above the pre-loaded total
+   - The discount amount must not exceed the total fee (validated)
 6. The admin's finalized values are saved separately (not overwriting the original enquiry values) for audit purposes.
 7. Upon finalization, the enquiry status automatically transitions to **FEES_FINALIZED**.
 8. The `assignedTo` field is **not used** in this workflow.
@@ -281,13 +297,14 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 | `referralTypeId` | Referral Type Master | Selected referral type |
 | `referralAdditionalAmount` | Referral Type | Pre-filled from guideline, may be edited |
 | `finalCalculatedFee` | Computed | feeGuidelineTotal + referralAdditionalAmount |
+| `studentType` | Front office input | DAY_SCHOLAR or HOSTELER |
 
 ### Data to Capture in Finalization
 
 | Field | Source | Description |
 |-------|--------|-------------|
-| `finalizedTotalFee` | Admin input | Admin's final fee amount |
-| `discountAmount` | Admin input | Discount applied (if any) |
+| `finalizedTotalFee` | Pre-populated from enquiry | Admin's confirmed fee (read-only — cannot be increased) |
+| `discountAmount` | Admin input | Discount applied (if any, must not exceed total fee) |
 | `discountReason` | Admin input | Reason for discount |
 | `netFee` | Computed | finalizedTotalFee - discountAmount |
 | `yearWiseFees` | Admin input | Year-wise distribution of net fee |
