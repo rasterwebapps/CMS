@@ -62,6 +62,15 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly selectedProgramDuration = signal(0);
   private readonly _courseSelected = signal(false);
 
+  /** Existing grouped fee structures for the selected academic year + program combination,
+   *  used to disable course options that already have a fee structure. */
+  private readonly _existingGroups = signal<{ courseId: number | null }[]>([]);
+
+  /** Set of courseIds that already have a fee structure for the current academic year + program. */
+  protected readonly existingCourseIds = computed(
+    () => new Set(this._existingGroups().map((g) => g.courseId).filter((id): id is number => id !== null)),
+  );
+
   /** Show fee items only after a course is selected (create mode) or always in edit mode.
    *  Fallback: also show when a program is selected but the program has no courses. */
   protected readonly showFeeItems = computed(
@@ -290,7 +299,7 @@ export class FeeStructureFormComponent implements OnInit {
             for (const item of group.items) {
               const newGroup = this.fb.group({
                 feeType: [item.feeType, Validators.required],
-                amount: [item.amount, [Validators.required, Validators.min(0)]],
+                amount: [item.amount, [Validators.min(0)]],
                 description: [item.description || ''],
                 yearAmounts: this.fb.array([]),
               });
@@ -300,7 +309,7 @@ export class FeeStructureFormComponent implements OnInit {
                   ya.push(this.fb.group({
                     yearNumber: [y.yearNumber],
                     yearLabel: [y.yearLabel],
-                    amount: [y.amount, [Validators.required, Validators.min(0)]],
+                    amount: [y.amount, [Validators.min(0)]],
                   }));
                 }
               }
@@ -314,14 +323,14 @@ export class FeeStructureFormComponent implements OnInit {
             if (!existingTypes.has(ft)) {
               const newGroup = this.fb.group({
                 feeType: [ft, Validators.required],
-                amount: [0, [Validators.required, Validators.min(0)]],
+                amount: [0, [Validators.min(0)]],
                 description: [''],
                 yearAmounts: this.fb.array([]),
               });
               if (duration > 1) {
                 const ya = newGroup.get('yearAmounts') as FormArray;
                 for (let i = 1; i <= duration; i++) {
-                  ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.required, Validators.min(0)]] }));
+                  ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.min(0)]] }));
                 }
               }
               this.feeItems.push(newGroup);
@@ -345,10 +354,20 @@ export class FeeStructureFormComponent implements OnInit {
 
   // ── Program/course helpers ─────────────────────────────────────────────────
 
+  protected onBulkAcademicYearChange(yearId: number): void {
+    this.bulkForm.patchValue({ programId: null, courseId: null });
+    this.courses.set([]);
+    this._courseSelected.set(false);
+    this._existingGroups.set([]);
+    this.selectedProgramDuration.set(0);
+    this.clearAllItemYearAmounts();
+  }
+
   protected onBulkProgramChange(programId: number): void {
     this.bulkForm.patchValue({ courseId: null });
     this.courses.set([]);
     this._courseSelected.set(false);
+    this._existingGroups.set([]);
     this.clearAllItemYearAmounts();
 
     if (programId) {
@@ -360,6 +379,14 @@ export class FeeStructureFormComponent implements OnInit {
       this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
         next: (data) => this.courses.set(data),
       });
+
+      // Load existing fee structures to prevent duplicate course selection
+      const academicYearId = this.bulkForm.get('academicYearId')?.value as number | null;
+      if (academicYearId) {
+        this.financeService
+          .getGroupedFeeStructures({ programId, academicYearId })
+          .subscribe({ next: (groups) => this._existingGroups.set(groups) });
+      }
     } else {
       this.selectedProgramDuration.set(0);
     }
@@ -367,6 +394,17 @@ export class FeeStructureFormComponent implements OnInit {
 
   protected onBulkCourseChange(courseId: number): void {
     this._courseSelected.set(!!courseId);
+    // Reset all fee amounts when a different course is selected
+    this.clearAllItemYearAmounts();
+    const duration = this.selectedProgramDuration();
+    if (duration > 1) {
+      this.rebuildAllItemYearAmounts(duration);
+    }
+    this._grandTotalVersion.update((v) => v + 1);
+  }
+
+  protected isCourseDisabled(courseId: number): boolean {
+    return this.existingCourseIds().has(courseId);
   }
 
   private clearAllItemYearAmounts(): void {
@@ -390,7 +428,7 @@ export class FeeStructureFormComponent implements OnInit {
       ya.push(this.fb.group({
         yearNumber: [i],
         yearLabel: [`Year ${i}`],
-        amount: [0, [Validators.required, Validators.min(0)]],
+        amount: [0, [Validators.min(0)]],
       }));
     }
   }
@@ -412,7 +450,7 @@ export class FeeStructureFormComponent implements OnInit {
   private addItemWithType(feeType: string): void {
     const newGroup = this.fb.group({
       feeType: [feeType, Validators.required],
-      amount: [0, [Validators.required, Validators.min(0)]],
+      amount: [0, [Validators.min(0)]],
       description: [''],
       yearAmounts: this.fb.array([]),
     });
@@ -436,7 +474,7 @@ export class FeeStructureFormComponent implements OnInit {
       return;
     }
     const bv = this.bulkForm.value;
-    // Filter out items with zero amount (optional fee types not filled in)
+    // Treat blank/null amounts as 0 and filter out items where the total is zero
     const nonZeroItems = (bv.items as {
       feeType: string;
       amount: number;
@@ -449,8 +487,18 @@ export class FeeStructureFormComponent implements OnInit {
       return Number(item.amount) > 0;
     });
 
-    if (nonZeroItems.length === 0) {
-      this.snackBar.open('Enter an amount for at least one fee type', 'Close', { duration: 3000 });
+    // The grand total across all generic fee types must be > 0
+    const totalFee = nonZeroItems
+      .filter((item) => this.genericFeeTypes.includes(item.feeType))
+      .reduce((sum, item) => {
+        if (item.yearAmounts && item.yearAmounts.length > 0) {
+          return sum + item.yearAmounts.reduce((s, ya) => s + (Number(ya.amount) || 0), 0);
+        }
+        return sum + (Number(item.amount) || 0);
+      }, 0);
+
+    if (totalFee === 0) {
+      this.snackBar.open('Total course fee must be greater than zero', 'Close', { duration: 3000 });
       return;
     }
 
