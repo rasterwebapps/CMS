@@ -45,13 +45,12 @@
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Program *</mat-label>
             <mat-select formControlName="programId"
-                        [disabled]="!bulkForm.get('academicYearId')?.value"
                         (selectionChange)="onBulkProgramChange($event.value)">
               @for (p of programs(); track p.id) {
                 <mat-option [value]="p.id">{{ p.name }}</mat-option>
               }
             </mat-select>
-            @if (!bulkForm.get('academicYearId')?.value) {
+            @if (!isEditMode() && !bulkForm.get('academicYearId')?.value) {
               <mat-hint>Select an academic year first</mat-hint>
             }
             @if (bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched) {
@@ -62,7 +61,6 @@
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Course</mat-label>
             <mat-select formControlName="courseId"
-                        [disabled]="!bulkForm.get('programId')?.value || courses().length === 0"
                         (selectionChange)="onBulkCourseChange($event.value)">
               @for (c of courses(); track c.id) {
                 <mat-option [value]="c.id" [disabled]="isCourseDisabled(c.id)">
@@ -70,9 +68,9 @@
                 </mat-option>
               }
             </mat-select>
-            @if (!bulkForm.get('programId')?.value) {
+            @if (!isEditMode() && !bulkForm.get('programId')?.value) {
               <mat-hint>Select a program first</mat-hint>
-            } @else if (courses().length === 0 && bulkForm.get('programId')?.value) {
+            } @else if (!isEditMode() && courses().length === 0 && bulkForm.get('programId')?.value) {
               <mat-hint>No courses for this program</mat-hint>
             }
           </mat-form-field>
