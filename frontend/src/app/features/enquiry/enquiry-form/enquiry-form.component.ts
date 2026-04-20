@@ -254,11 +254,11 @@ export class EnquiryFormComponent implements OnInit {
     this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
   }
 
-  protected onAgentChange(agentId: number): void {
+  protected onAgentChange(agentId: number | null): void {
     const rt = this.selectedReferralType();
     if (!rt?.isSystemDefined) return;
 
-    if (!agentId) {
+    if (agentId === null || agentId === undefined) {
       this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
       return;
     }
