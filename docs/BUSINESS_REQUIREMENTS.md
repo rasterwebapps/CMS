@@ -183,7 +183,7 @@ The total fee displayed depends on the **student type** chosen on the enquiry fo
 ### Roles
 
 - **ROLE_ADMIN** — can access enquiry form with fee guideline
-- Front office users (mapped to ROLE_ADMIN or a future ROLE_FRONT_OFFICE)
+- **ROLE_FRONT_OFFICE** — can access enquiry form with fee guideline
 
 ---
 
@@ -313,7 +313,7 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 
 ### Roles
 
-- **ROLE_ADMIN** — can finalize fees
+- **ROLE_ADMIN** — can finalize fees (exclusive; finalization is a management action)
 
 ---
 
@@ -346,6 +346,7 @@ After admin finalization (BR-6), the finalized fee data is presented to the **ac
 ### Roles
 
 - **ROLE_ADMIN** — can collect payments and view all payment data
+- **ROLE_CASHIER** — can collect fee payments from enquiry prospects
 
 ---
 
@@ -434,7 +435,7 @@ After fees are paid (fully or partially), the student must submit required docum
 ### Roles
 
 - **ROLE_ADMIN** — can verify documents and track submission status
-- Front office — can record document submission
+- **ROLE_FRONT_OFFICE** — can record document submission on behalf of prospects
 
 ---
 

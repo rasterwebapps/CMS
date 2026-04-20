@@ -9,6 +9,11 @@ import {
   FeeFinalizationResponse,
   EnquiryDocument,
   EnquiryDocumentRequest,
+  EnquiryPaymentRequest,
+  EnquiryPaymentResponse,
+  EnquiryStatusHistoryResponse,
+  EnquiryConversionRequest,
+  EnquiryConversionPrefillResponse,
 } from './enquiry.model';
 
 @Injectable({
@@ -74,5 +79,29 @@ export class EnquiryService {
 
   deleteDocument(enquiryId: number, documentId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${enquiryId}/documents/${documentId}`);
+  }
+
+  collectPayment(enquiryId: number, request: EnquiryPaymentRequest): Observable<EnquiryPaymentResponse> {
+    return this.http.post<EnquiryPaymentResponse>(`${this.baseUrl}/${enquiryId}/payments`, request);
+  }
+
+  getPayments(enquiryId: number): Observable<EnquiryPaymentResponse[]> {
+    return this.http.get<EnquiryPaymentResponse[]>(`${this.baseUrl}/${enquiryId}/payments`);
+  }
+
+  getStatusHistory(enquiryId: number): Observable<EnquiryStatusHistoryResponse[]> {
+    return this.http.get<EnquiryStatusHistoryResponse[]>(`${this.baseUrl}/${enquiryId}/status-history`);
+  }
+
+  submitDocuments(enquiryId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${enquiryId}/submit-documents`, {});
+  }
+
+  getConversionPrefill(enquiryId: number): Observable<EnquiryConversionPrefillResponse> {
+    return this.http.get<EnquiryConversionPrefillResponse>(`${this.baseUrl}/${enquiryId}/conversion-prefill`);
+  }
+
+  convertEnquiry(enquiryId: number, request: EnquiryConversionRequest): Observable<Enquiry> {
+    return this.http.post<Enquiry>(`${this.baseUrl}/${enquiryId}/convert`, request);
   }
 }

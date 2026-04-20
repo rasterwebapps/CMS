@@ -1,0 +1,194 @@
+<div class="form-container">
+  <div class="header">
+    <button mat-icon-button (click)="back()"><mat-icon>arrow_back</mat-icon></button>
+    @if (admission()) {
+      <h2 class="page-title">Admission — {{ admission()!.studentName }}</h2>
+    } @else {
+      <h2 class="page-title">Admission Detail</h2>
+    }
+    <div class="header-actions">
+      <button mat-stroked-button (click)="edit()"><mat-icon>edit</mat-icon> Edit</button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+  } @else if (admission()) {
+    <mat-tab-group animationDuration="200ms">
+      <!-- Application Tab -->
+      <mat-tab label="Application">
+        <div class="tab-content">
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Student</span>
+                  <span class="detail-value">{{ admission()!.studentName }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Application Date</span>
+                  <span class="detail-value">{{ admission()!.applicationDate }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Academic Year</span>
+                  <span class="detail-value">{{ admission()!.academicYearFrom }}–{{ admission()!.academicYearTo }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Status</span>
+                  <mat-chip>{{ admission()!.status }}</mat-chip>
+                </div>
+                @if (admission()!.declarationPlace) {
+                  <div class="detail-item">
+                    <span class="detail-label">Declaration Place</span>
+                    <span class="detail-value">{{ admission()!.declarationPlace }}</span>
+                  </div>
+                }
+                @if (admission()!.declarationDate) {
+                  <div class="detail-item">
+                    <span class="detail-label">Declaration Date</span>
+                    <span class="detail-value">{{ admission()!.declarationDate }}</span>
+                  </div>
+                }
+                <div class="detail-item">
+                  <span class="detail-label">Parent Consent</span>
+                  <span class="detail-value">{{ admission()!.parentConsentGiven ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Applicant Consent</span>
+                  <span class="detail-value">{{ admission()!.applicantConsentGiven ? 'Yes' : 'No' }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Qualifications Tab -->
+      <mat-tab label="Qualifications ({{ qualifications().length }})">
+        <div class="tab-content">
+          <div class="tab-actions">
+            <button mat-flat-button color="primary" [routerLink]="['/admissions', admission()!.id, 'edit']">
+              <mat-icon>add</mat-icon> Manage Qualifications
+            </button>
+          </div>
+          @if (qualifications().length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-state__icon-mat">school</mat-icon>
+              <p class="empty-state__text">No qualifications recorded</p>
+            </div>
+          } @else {
+            <div class="table-wrapper">
+              <table mat-table [dataSource]="qualifications()" class="modern-table">
+                <ng-container matColumnDef="type">
+                  <th mat-header-cell *matHeaderCellDef>Type</th>
+                  <td mat-cell *matCellDef="let row">{{ row.qualificationType }}</td>
+                </ng-container>
+                <ng-container matColumnDef="school">
+                  <th mat-header-cell *matHeaderCellDef>Institution</th>
+                  <td mat-cell *matCellDef="let row">{{ row.schoolName || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="subject">
+                  <th mat-header-cell *matHeaderCellDef>Major Subject</th>
+                  <td mat-cell *matCellDef="let row">{{ row.majorSubject || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="marks">
+                  <th mat-header-cell *matHeaderCellDef>Total Marks</th>
+                  <td mat-cell *matCellDef="let row">{{ row.totalMarks ?? '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="percentage">
+                  <th mat-header-cell *matHeaderCellDef>Percentage</th>
+                  <td mat-cell *matCellDef="let row">{{ row.percentage != null ? (row.percentage + '%') : '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="passing">
+                  <th mat-header-cell *matHeaderCellDef>Year of Passing</th>
+                  <td mat-cell *matCellDef="let row">{{ row.monthAndYearOfPassing || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="board">
+                  <th mat-header-cell *matHeaderCellDef>University/Board</th>
+                  <td mat-cell *matCellDef="let row">{{ row.universityOrBoard || '—' }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="qualColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: qualColumns" class="table-row"></tr>
+              </table>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- Documents Tab -->
+      <mat-tab label="Documents">
+        <div class="tab-content">
+          @if (documents().length === 0 && getChecklistEntries().length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-state__icon-mat">folder_open</mat-icon>
+              <p class="empty-state__text">No documents on record</p>
+            </div>
+          } @else {
+            <!-- Checklist -->
+            @if (getChecklistEntries().length > 0) {
+              <h3 class="section-title">Document Checklist</h3>
+              <div class="table-wrapper">
+                <table mat-table [dataSource]="getChecklistEntries()" class="modern-table">
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Document Type</th>
+                    <td mat-cell *matCellDef="let row">{{ row.type }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <td mat-cell *matCellDef="let row">
+                      <mat-chip>{{ row.status }}</mat-chip>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="['type','status']"></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['type','status']" class="table-row"></tr>
+                </table>
+              </div>
+            }
+
+            <!-- Individual Documents -->
+            @if (documents().length > 0) {
+              <h3 class="section-title">Documents</h3>
+              <div class="table-wrapper">
+                <table mat-table [dataSource]="documents()" class="modern-table">
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row">{{ row.documentType }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Verification Status</th>
+                    <td mat-cell *matCellDef="let row">
+                      <mat-chip>{{ row.verificationStatus }}</mat-chip>
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="verifiedBy">
+                    <th mat-header-cell *matHeaderCellDef>Verified By</th>
+                    <td mat-cell *matCellDef="let row">{{ row.verifiedBy || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="row-actions">
+                        <button class="btn-small btn-secondary" (click)="uploadPlaceholder()">
+                          <mat-icon>upload</mat-icon> Upload
+                        </button>
+                        <mat-form-field appearance="outline" class="verify-select">
+                          <mat-select [value]="row.verificationStatus" (valueChange)="verifyDocument(row, $event)">
+                            @for (s of verificationStatuses; track s) {
+                              <mat-option [value]="s">{{ s }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: docColumns" class="table-row"></tr>
+                </table>
+              </div>
+            }
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

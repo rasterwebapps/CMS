@@ -35,7 +35,7 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "roll_number", nullable = false, unique = true)
+    @Column(name = "roll_number", unique = true)
     private String rollNumber;
 
     @Column(name = "first_name", nullable = false)

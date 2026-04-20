@@ -86,6 +86,7 @@ export class App {
       icon: 'how_to_reg',
       items: [
         { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
+        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions' },
         { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN'] },
         {
           label: 'Referral Types',
@@ -95,6 +96,7 @@ export class App {
         },
         { label: 'Faculty', icon: 'groups', route: '/faculty' },
         { label: 'Students', icon: 'person', route: '/students' },
+        { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },
       ],
     },
     {

@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record StudentRequest(
-    @NotBlank(message = "Roll number is required")
     @Size(max = 50, message = "Roll number must not exceed 50 characters")
     String rollNumber,
 

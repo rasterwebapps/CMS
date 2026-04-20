@@ -218,6 +218,124 @@ class StudentServiceTest {
         verify(studentRepository, never()).deleteById(any());
     }
 
+    @Test
+    void shouldCreateStudentWithoutRollNumber() {
+        StudentRequest request = new StudentRequest(
+            null, "John", "Doe", "john@college.edu", "1234567890",
+            1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
+            null, null, null, null, null, null, null, null,
+            null, null, null, null
+        );
+
+        Student savedStudent = createStudent(1L, null, "John", "Doe", "john@college.edu");
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
+
+        StudentResponse response = studentService.create(request);
+
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.rollNumber()).isNull();
+    }
+
+    @Test
+    void shouldAssignRollNumber() {
+        Student student = createStudent(1L, null, "John", "Doe", "john@college.edu");
+        Student updated = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepository.existsByRollNumber("CS2024001")).thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenReturn(updated);
+
+        StudentResponse response = studentService.assignRollNumber(1L, "CS2024001");
+
+        assertThat(response.rollNumber()).isEqualTo("CS2024001");
+        verify(studentRepository).save(any(Student.class));
+    }
+
+    @Test
+    void shouldRejectRollNumberAssignmentIfAlreadySet() {
+        Student student = createStudent(1L, "EXISTING001", "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        assertThatThrownBy(() -> studentService.assignRollNumber(1L, "CS2024001"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Student already has a roll number");
+    }
+
+    @Test
+    void shouldRejectDuplicateRollNumber() {
+        Student student = createStudent(1L, null, "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepository.existsByRollNumber("CS2024001")).thenReturn(true);
+
+        assertThatThrownBy(() -> studentService.assignRollNumber(1L, "CS2024001"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Roll number already in use");
+    }
+
+    @Test
+    void shouldBulkAssignRollNumbers() {
+        Student student1 = createStudent(1L, null, "John", "Doe", "john@college.edu");
+        Student student2 = createStudent(2L, null, "Jane", "Smith", "jane@college.edu");
+        Student updated1 = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        Student updated2 = createStudent(2L, "CS2024002", "Jane", "Smith", "jane@college.edu");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.findById(2L)).thenReturn(Optional.of(student2));
+        when(studentRepository.existsByRollNumber("CS2024001")).thenReturn(false);
+        when(studentRepository.existsByRollNumber("CS2024002")).thenReturn(false);
+        when(studentRepository.save(student1)).thenReturn(updated1);
+        when(studentRepository.save(student2)).thenReturn(updated2);
+
+        List<com.cms.dto.StudentResponse> responses = studentService.bulkAssignRollNumbers(List.of(
+            new com.cms.dto.BulkRollNumberItem(1L, "CS2024001"),
+            new com.cms.dto.BulkRollNumberItem(2L, "CS2024002")
+        ));
+
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).rollNumber()).isEqualTo("CS2024001");
+        assertThat(responses.get(1).rollNumber()).isEqualTo("CS2024002");
+    }
+
+    @Test
+    void shouldFindStudentsWithoutRollNumber() {
+        Student student = createStudent(1L, null, "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findByRollNumberIsNull()).thenReturn(List.of(student));
+
+        List<StudentResponse> responses = studentService.findStudentsWithoutRollNumber(null, null);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).rollNumber()).isNull();
+    }
+
+    @Test
+    void shouldFindStudentsWithoutRollNumberByCourse() {
+        Student student = createStudent(1L, null, "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findByCourseIdAndRollNumberIsNull(5L)).thenReturn(List.of(student));
+
+        List<StudentResponse> responses = studentService.findStudentsWithoutRollNumber(5L, null);
+
+        assertThat(responses).hasSize(1);
+        verify(studentRepository).findByCourseIdAndRollNumberIsNull(5L);
+    }
+
+    @Test
+    void shouldFindStudentsWithoutRollNumberByProgram() {
+        Student student = createStudent(1L, null, "John", "Doe", "john@college.edu");
+
+        when(studentRepository.findByProgramIdAndRollNumberIsNull(1L)).thenReturn(List.of(student));
+
+        List<StudentResponse> responses = studentService.findStudentsWithoutRollNumber(null, 1L);
+
+        assertThat(responses).hasSize(1);
+        verify(studentRepository).findByProgramIdAndRollNumberIsNull(1L);
+    }
+
     private Student createStudent(Long id, String rollNumber, String firstName, String lastName, String email) {
         Student student = new Student(
             rollNumber, firstName, lastName, email,

@@ -62,7 +62,6 @@ class EnquiryDocumentServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(documentRepository.save(any(EnquiryDocument.class))).thenReturn(saved);
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
 
         EnquiryDocumentResponse response = documentService.addDocument(1L, request);
 
@@ -72,7 +71,7 @@ class EnquiryDocumentServiceTest {
     }
 
     @Test
-    void shouldAutoUpdateStatusToDocumentsSubmitted() {
+    void shouldNotAutoUpdateStatusToDocumentsSubmitted() {
         testEnquiry.setStatus(EnquiryStatus.FEES_PAID);
 
         EnquiryDocumentRequest request = new EnquiryDocumentRequest(
@@ -84,11 +83,11 @@ class EnquiryDocumentServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(documentRepository.save(any(EnquiryDocument.class))).thenReturn(saved);
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
 
         documentService.addDocument(1L, request);
 
-        verify(enquiryRepository).save(any(Enquiry.class));
+        // Auto-transition was removed; enquiryRepository.save should never be called
+        verify(enquiryRepository, never()).save(any(Enquiry.class));
     }
 
     @Test
@@ -195,6 +194,50 @@ class EnquiryDocumentServiceTest {
             .hasMessage("Document not found with id: 999");
 
         verify(documentRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldReturnAllSubmittedWhenMandatoryDocsPresent() {
+        testEnquiry.setStatus(EnquiryStatus.FEES_PAID);
+
+        EnquiryDocument doc1 = createDocument(1L, testEnquiry, com.cms.model.enums.DocumentType.TENTH_MARKSHEET);
+        doc1.setStatus(DocumentVerificationStatus.UPLOADED);
+        EnquiryDocument doc2 = createDocument(2L, testEnquiry, com.cms.model.enums.DocumentType.TWELFTH_MARKSHEET);
+        doc2.setStatus(DocumentVerificationStatus.VERIFIED);
+        EnquiryDocument doc3 = createDocument(3L, testEnquiry, com.cms.model.enums.DocumentType.TRANSFER_CERTIFICATE);
+        doc3.setStatus(DocumentVerificationStatus.UPLOADED);
+        EnquiryDocument doc4 = createDocument(4L, testEnquiry, com.cms.model.enums.DocumentType.AADHAR_CARD);
+        doc4.setStatus(DocumentVerificationStatus.UPLOADED);
+        EnquiryDocument doc5 = createDocument(5L, testEnquiry, com.cms.model.enums.DocumentType.PASSPORT_PHOTO);
+        doc5.setStatus(DocumentVerificationStatus.UPLOADED);
+
+        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of(doc1, doc2, doc3, doc4, doc5));
+
+        com.cms.dto.MissingDocumentsResponse response = documentService.allMandatoryDocumentsSubmitted(1L);
+
+        assertThat(response.allSubmitted()).isTrue();
+        assertThat(response.missingDocumentTypes()).isEmpty();
+    }
+
+    @Test
+    void shouldReturnMissingDocsWhenSomeMandatoryDocsAbsent() {
+        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of());
+
+        com.cms.dto.MissingDocumentsResponse response = documentService.allMandatoryDocumentsSubmitted(1L);
+
+        assertThat(response.allSubmitted()).isFalse();
+        assertThat(response.missingDocumentTypes()).hasSize(5);
+    }
+
+    @Test
+    void shouldThrowWhenEnquiryNotFoundOnMandatoryCheck() {
+        when(enquiryRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> documentService.allMandatoryDocumentsSubmitted(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Enquiry not found with id: 999");
     }
 
     private EnquiryDocument createDocument(Long id, Enquiry enquiry, DocumentType type) {

@@ -13,7 +13,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
-import { Enquiry } from '../../enquiry/enquiry.model';
+import { Enquiry, EnquiryPaymentRequest } from '../../enquiry/enquiry.model';
 
 interface YearFee {
   yearNumber: number;
@@ -78,9 +78,11 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   private loadFinalizedEnquiries(): void {
     this.loading.set(true);
-    this.enquiryService.getByStatus('FEES_FINALIZED').subscribe({
+    this.enquiryService.getEnquiries().subscribe({
       next: (data) => {
-        this.dataSource.data = data;
+        this.dataSource.data = data.filter(
+          (e) => e.status === 'FEES_FINALIZED' || e.status === 'PARTIALLY_PAID',
+        );
         this.loading.set(false);
       },
       error: () => {
@@ -127,19 +129,21 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     if (!enquiry) return;
 
     const v = this.form.value;
-    const netFee = enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0;
-    const newStatus = v.amount >= netFee ? 'FEES_PAID' : 'PARTIALLY_PAID';
+    const paymentRequest: EnquiryPaymentRequest = {
+      amountPaid: v.amount,
+      paymentDate: v.paymentDate,
+      paymentMode: v.paymentMode,
+      transactionReference: v.transactionReference || undefined,
+      remarks: v.remarks || undefined,
+    };
 
     this.saving.set(true);
-    // TODO: When an enquiry payment entity is added, persist payment details
-    // (amount, date, mode, reference, remarks) before updating status.
-    // Currently only the status transition is tracked.
-    this.enquiryService.updateStatus(enquiry.id, newStatus).subscribe({
-      next: () => {
+    this.enquiryService.collectPayment(enquiry.id, paymentRequest).subscribe({
+      next: (response) => {
         this.snackBar.open(
-          newStatus === 'FEES_PAID' ? 'Full payment collected' : 'Partial payment collected',
+          `Payment collected — Receipt: ${response.receiptNumber}`,
           'Close',
-          { duration: 3000 },
+          { duration: 5000 },
         );
         this.selectedEnquiry.set(null);
         this.loadFinalizedEnquiries();

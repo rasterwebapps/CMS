@@ -8,14 +8,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.EnquiryConversionPrefillResponse;
+import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
+import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
+import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
@@ -23,6 +27,7 @@ import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -37,19 +42,22 @@ public class EnquiryService {
     private final StudentRepository studentRepository;
     private final ReferralTypeRepository referralTypeRepository;
     private final CourseRepository courseRepository;
+    private final EnquiryStatusHistoryRepository statusHistoryRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
                            AgentRepository agentRepository,
                            StudentRepository studentRepository,
                            ReferralTypeRepository referralTypeRepository,
-                           CourseRepository courseRepository) {
+                           CourseRepository courseRepository,
+                           EnquiryStatusHistoryRepository statusHistoryRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
         this.studentRepository = studentRepository;
         this.referralTypeRepository = referralTypeRepository;
         this.courseRepository = courseRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
     @Transactional
@@ -92,6 +100,7 @@ public class EnquiryService {
         enquiry.setStudentType(request.studentType());
 
         Enquiry saved = enquiryRepository.save(enquiry);
+        recordHistory(saved, null, saved.getStatus(), "system", null);
         return toResponse(saved);
     }
 
@@ -190,6 +199,7 @@ public class EnquiryService {
         BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
         BigDecimal netFee = request.totalFee().subtract(discount);
 
+        EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setFinalizedTotalFee(request.totalFee());
         enquiry.setFinalizedDiscountAmount(discount);
         enquiry.setFinalizedDiscountReason(request.discountReason());
@@ -203,6 +213,7 @@ public class EnquiryService {
         }
 
         Enquiry saved = enquiryRepository.save(enquiry);
+        recordHistory(saved, oldStatus, EnquiryStatus.FEES_FINALIZED, adminUsername, null);
 
         return new FeeFinalizationResponse(
             saved.getId(),
@@ -234,10 +245,12 @@ public class EnquiryService {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
+        EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(EnquiryStatus.CONVERTED);
         enquiry.setConvertedStudentId(student.getId());
 
         Enquiry saved = enquiryRepository.save(enquiry);
+        recordHistory(saved, oldStatus, EnquiryStatus.CONVERTED, "system", null);
         return toResponse(saved);
     }
 
@@ -257,8 +270,10 @@ public class EnquiryService {
     public EnquiryResponse updateStatus(Long id, EnquiryStatus status) {
         Enquiry enquiry = enquiryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
+        EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(status);
         Enquiry saved = enquiryRepository.save(enquiry);
+        recordHistory(saved, oldStatus, status, "system", null);
         return toResponse(saved);
     }
 
@@ -268,6 +283,98 @@ public class EnquiryService {
             throw new ResourceNotFoundException("Enquiry not found with id: " + id);
         }
         enquiryRepository.deleteById(id);
+    }
+
+    @Transactional
+    public EnquiryResponse convertToStudentWithData(Long enquiryId, EnquiryConversionRequest request, String performedBy) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
+
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
+            throw new IllegalStateException(
+                "Enquiry must be in DOCUMENTS_SUBMITTED status to convert. Current: " + enquiry.getStatus()
+            );
+        }
+
+        if (studentRepository.existsByEmail(request.email())) {
+            throw new IllegalStateException("A student with this email already exists: " + request.email());
+        }
+
+        Program program = enquiry.getProgram();
+        if (program == null) {
+            throw new IllegalStateException("Enquiry must have a program to convert to student");
+        }
+
+        Student student = new Student(
+            null,
+            request.firstName(),
+            request.lastName(),
+            request.email(),
+            program,
+            request.semester(),
+            request.admissionDate(),
+            com.cms.model.enums.StudentStatus.ACTIVE
+        );
+        student.setPhone(request.phone());
+        if (enquiry.getCourse() != null) {
+            student.setCourse(enquiry.getCourse());
+        }
+
+        Student savedStudent = studentRepository.save(student);
+
+        EnquiryStatus oldStatus = enquiry.getStatus();
+        enquiry.setStatus(EnquiryStatus.CONVERTED);
+        enquiry.setConvertedStudentId(savedStudent.getId());
+        Enquiry saved = enquiryRepository.save(enquiry);
+
+        recordHistory(saved, oldStatus, EnquiryStatus.CONVERTED, performedBy,
+            "Converted to student ID: " + savedStudent.getId());
+
+        return toResponse(saved);
+    }
+
+    public EnquiryConversionPrefillResponse getConversionPrefill(Long enquiryId) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
+
+        String fullName = enquiry.getName() != null ? enquiry.getName().trim() : "";
+        int spaceIdx = fullName.indexOf(' ');
+        String firstName = spaceIdx > 0 ? fullName.substring(0, spaceIdx) : fullName;
+        String lastName = spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "";
+
+        return new EnquiryConversionPrefillResponse(
+            firstName,
+            lastName,
+            enquiry.getEmail(),
+            enquiry.getPhone(),
+            enquiry.getProgram() != null ? enquiry.getProgram().getId() : null,
+            enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
+            enquiry.getCourse() != null ? enquiry.getCourse().getId() : null,
+            enquiry.getCourse() != null ? enquiry.getCourse().getName() : null,
+            1
+        );
+    }
+
+    public List<EnquiryStatusHistoryResponse> getStatusHistory(Long enquiryId) {
+        if (!enquiryRepository.existsById(enquiryId)) {
+            throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
+        }
+        return statusHistoryRepository.findByEnquiryIdOrderByChangedAtAsc(enquiryId).stream()
+            .map(h -> new EnquiryStatusHistoryResponse(
+                h.getId(),
+                h.getEnquiry().getId(),
+                h.getFromStatus() != null ? h.getFromStatus().name() : null,
+                h.getToStatus().name(),
+                h.getChangedBy(),
+                h.getChangedAt(),
+                h.getRemarks()
+            ))
+            .toList();
+    }
+
+    private void recordHistory(Enquiry enquiry, EnquiryStatus from, EnquiryStatus to,
+                                String changedBy, String remarks) {
+        statusHistoryRepository.save(new EnquiryStatusHistory(enquiry, from, to, changedBy, remarks));
     }
 
     private EnquiryResponse toResponse(Enquiry e) {

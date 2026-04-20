@@ -87,3 +87,70 @@ export interface EnquiryDocumentRequest {
   status?: string;
   remarks?: string;
 }
+
+export interface EnquiryPaymentRequest {
+  amountPaid: number;
+  paymentDate: string;
+  paymentMode: string;
+  transactionReference?: string;
+  remarks?: string;
+}
+
+export interface EnquiryPaymentResponse {
+  id: number;
+  enquiryId: number;
+  enquiryName: string;
+  amountPaid: number;
+  paymentDate: string;
+  paymentMode: string;
+  transactionReference: string | null;
+  remarks: string | null;
+  receiptNumber: string;
+  collectedBy: string | null;
+  newStatus: string;
+  createdAt: string;
+}
+
+export interface EnquiryStatusHistoryResponse {
+  id: number;
+  enquiryId: number;
+  fromStatus: string | null;
+  toStatus: string;
+  changedBy: string;
+  changedAt: string;
+  remarks: string | null;
+}
+
+export interface EnquirySummaryResponse {
+  enquiry: Enquiry;
+  totalAmountPaid: number;
+  outstandingAmount: number;
+  documentCount: number;
+  documentTypes: string[];
+}
+
+export interface MissingDocumentsResponse {
+  allSubmitted: boolean;
+  missingDocumentTypes: string[];
+}
+
+export interface EnquiryConversionRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  semester: number;
+  admissionDate: string;
+}
+
+export interface EnquiryConversionPrefillResponse {
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  programId: number | null;
+  programName: string | null;
+  courseId: number | null;
+  courseName: string | null;
+  suggestedSemester: number;
+}

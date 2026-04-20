@@ -1,11 +1,13 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AddressRequest;
+import com.cms.dto.BulkRollNumberItem;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -143,7 +145,10 @@ public class StudentService {
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
-        student.setRollNumber(request.rollNumber());
+        // Only update rollNumber if provided (non-null) to avoid accidentally clearing it
+        if (request.rollNumber() != null) {
+            student.setRollNumber(request.rollNumber());
+        }
         student.setFirstName(request.firstName());
         student.setLastName(request.lastName());
         student.setEmail(request.email());
@@ -205,6 +210,45 @@ public class StudentService {
             throw new ResourceNotFoundException("Student not found with id: " + id);
         }
         studentRepository.deleteById(id);
+    }
+
+    @Transactional
+    public StudentResponse assignRollNumber(Long studentId, String rollNumber) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        if (student.getRollNumber() != null) {
+            throw new IllegalStateException("Student already has a roll number: " + student.getRollNumber());
+        }
+        if (studentRepository.existsByRollNumber(rollNumber)) {
+            throw new IllegalStateException("Roll number already in use: " + rollNumber);
+        }
+        student.setRollNumber(rollNumber);
+        return toResponse(studentRepository.save(student));
+    }
+
+    @Transactional
+    public List<StudentResponse> bulkAssignRollNumbers(List<BulkRollNumberItem> assignments) {
+        List<StudentResponse> results = new ArrayList<>();
+        for (BulkRollNumberItem item : assignments) {
+            results.add(assignRollNumber(item.studentId(), item.rollNumber()));
+        }
+        return results;
+    }
+
+    public List<StudentResponse> findStudentsWithoutRollNumber(Long courseId, Long programId) {
+        if (courseId != null) {
+            return studentRepository.findByCourseIdAndRollNumberIsNull(courseId).stream()
+                .map(this::toResponse)
+                .toList();
+        }
+        if (programId != null) {
+            return studentRepository.findByProgramIdAndRollNumberIsNull(programId).stream()
+                .map(this::toResponse)
+                .toList();
+        }
+        return studentRepository.findByRollNumberIsNull().stream()
+            .map(this::toResponse)
+            .toList();
     }
 
     private Address toAddress(AddressRequest request) {

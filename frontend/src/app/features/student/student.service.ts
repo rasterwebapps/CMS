@@ -15,6 +15,23 @@ export class StudentService {
     return this.http.get<Student[]>(this.baseUrl);
   }
 
+  getStudentsWithoutRollNumber(courseId?: number, programId?: number): Observable<Student[]> {
+    let url = `${this.baseUrl}/without-roll-number`;
+    const params: string[] = [];
+    if (programId) params.push(`programId=${programId}`);
+    if (courseId) params.push(`courseId=${courseId}`);
+    if (params.length) url += `?${params.join('&')}`;
+    return this.http.get<Student[]>(url);
+  }
+
+  assignRollNumber(id: number, rollNumber: string): Observable<Student> {
+    return this.http.patch<Student>(`${this.baseUrl}/${id}/roll-number`, { rollNumber });
+  }
+
+  bulkAssignRollNumbers(assignments: { studentId: number; rollNumber: string }[]): Observable<Student[]> {
+    return this.http.post<Student[]>(`${this.baseUrl}/bulk-assign-roll-numbers`, { assignments });
+  }
+
   getAllByProgram(programId: number): Observable<Student[]> {
     return this.http.get<Student[]>(`${this.baseUrl}?programId=${programId}`);
   }
