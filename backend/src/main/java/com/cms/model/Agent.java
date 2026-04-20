@@ -37,6 +37,9 @@ public class Agent {
     @Column(name = "allotted_seats")
     private Integer allottedSeats;
 
+    @Column(name = "commission_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal commissionAmount;
+
     @Column(name = "is_active")
     private Boolean isActive;
 
@@ -114,6 +117,14 @@ public class Agent {
 
     public void setAllottedSeats(Integer allottedSeats) {
         this.allottedSeats = allottedSeats;
+    }
+
+    public java.math.BigDecimal getCommissionAmount() {
+        return commissionAmount;
+    }
+
+    public void setCommissionAmount(java.math.BigDecimal commissionAmount) {
+        this.commissionAmount = commissionAmount;
     }
 
     public Boolean getIsActive() {

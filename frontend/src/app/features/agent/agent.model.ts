@@ -6,6 +6,7 @@ export interface Agent {
   area: string;
   locality: string;
   allottedSeats: number | null;
+  commissionAmount: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -18,6 +19,7 @@ export interface AgentRequest {
   area?: string;
   locality?: string;
   allottedSeats?: number | null;
+  commissionAmount?: number | null;
   isActive?: boolean;
 }
 

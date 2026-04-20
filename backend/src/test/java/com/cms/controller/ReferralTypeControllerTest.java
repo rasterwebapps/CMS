@@ -158,6 +158,6 @@ class ReferralTypeControllerTest {
 
     private ReferralTypeResponse createResponse(Long id, String name, String code, BigDecimal commissionAmount) {
         Instant now = Instant.now();
-        return new ReferralTypeResponse(id, name, code, commissionAmount, true, name + " description", true, now, now);
+        return new ReferralTypeResponse(id, name, code, commissionAmount, true, name + " description", true, false, now, now);
     }
 }

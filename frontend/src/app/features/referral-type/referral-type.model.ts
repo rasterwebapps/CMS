@@ -6,6 +6,7 @@ export interface ReferralType {
   hasCommission: boolean;
   description: string;
   isActive: boolean;
+  isSystemDefined: boolean;
   createdAt: string;
   updatedAt: string;
 }

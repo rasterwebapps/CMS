@@ -17,6 +17,11 @@
     </div>
   } @else {
     <div class="entry-form-card">
+      @if (isSystemDefined()) {
+        <div class="field-hint" style="margin-bottom: 1rem; color: var(--cms-warning, #b45309);">
+          <strong>System-defined type:</strong> The code and commission toggle cannot be changed. You may update the name, commission amount, and description.
+        </div>
+      }
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
         <div class="field-row">

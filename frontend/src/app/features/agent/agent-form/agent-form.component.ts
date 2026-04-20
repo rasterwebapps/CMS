@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AgentService } from '../agent.service';
 import { AgentRequest } from '../agent.model';
+import { ReferralTypeService } from '../../referral-type/referral-type.service';
 
 @Component({
   selector: 'app-agent-form',
@@ -24,6 +25,7 @@ export class AgentFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly agentService = inject(AgentService);
+  private readonly referralTypeService = inject(ReferralTypeService);
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly loading = signal(false);
@@ -40,6 +42,7 @@ export class AgentFormComponent implements OnInit {
     area: [''],
     locality: [''],
     allottedSeats: [null as number | null],
+    commissionAmount: [null as number | null, [Validators.min(0)]],
     isActive: [true],
   });
 
@@ -52,10 +55,27 @@ export class AgentFormComponent implements OnInit {
       this.loading.set(true);
       this.agentService.getAgentById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ name: item.name, phone: item.phone, email: item.email, area: item.area, locality: item.locality, allottedSeats: item.allottedSeats, isActive: item.isActive });
+          this.form.patchValue({
+            name: item.name, phone: item.phone, email: item.email,
+            area: item.area, locality: item.locality,
+            allottedSeats: item.allottedSeats,
+            commissionAmount: item.commissionAmount,
+            isActive: item.isActive,
+          });
           this.loading.set(false);
         },
         error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/agents']); },
+      });
+    } else {
+      // Pre-fill commission from the system-defined referral type
+      this.referralTypeService.getActiveReferralTypes().subscribe({
+        next: (types) => {
+          const systemType = types.find((t) => t.isSystemDefined);
+          if (systemType?.hasCommission && systemType.commissionAmount) {
+            this.form.patchValue({ commissionAmount: systemType.commissionAmount });
+          }
+        },
+        error: () => {},
       });
     }
   }
@@ -63,7 +83,16 @@ export class AgentFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const v = this.form.value;
-    const request: AgentRequest = { name: v.name.trim(), phone: v.phone || undefined, email: v.email || undefined, area: v.area || undefined, locality: v.locality || undefined, allottedSeats: v.allottedSeats ?? undefined, isActive: v.isActive };
+    const request: AgentRequest = {
+      name: v.name.trim(),
+      phone: v.phone || undefined,
+      email: v.email || undefined,
+      area: v.area || undefined,
+      locality: v.locality || undefined,
+      allottedSeats: v.allottedSeats ?? undefined,
+      commissionAmount: v.commissionAmount ?? undefined,
+      isActive: v.isActive,
+    };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.agentService.updateAgent(this.itemId!, request) : this.agentService.createAgent(request);
     op$.subscribe({

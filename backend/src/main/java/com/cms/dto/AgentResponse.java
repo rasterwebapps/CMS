@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record AgentResponse(
@@ -10,6 +11,7 @@ public record AgentResponse(
     String area,
     String locality,
     Integer allottedSeats,
+    BigDecimal commissionAmount,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

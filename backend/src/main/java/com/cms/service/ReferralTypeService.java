@@ -66,18 +66,26 @@ public class ReferralTypeService {
             throw new IllegalArgumentException(
                 "A referral type with the name '" + request.name() + "' already exists");
         }
-        if (referralTypeRepository.existsByCodeAndIdNot(request.code(), id)) {
+
+        boolean isSystemDefined = Boolean.TRUE.equals(referralType.getIsSystemDefined());
+
+        if (!isSystemDefined && referralTypeRepository.existsByCodeAndIdNot(request.code(), id)) {
             throw new IllegalArgumentException(
                 "A referral type with the code '" + request.code() + "' already exists");
         }
 
         referralType.setName(request.name());
-        referralType.setCode(request.code());
         referralType.setCommissionAmount(request.commissionAmount());
         referralType.setDescription(request.description());
 
-        if (request.hasCommission() != null) {
-            referralType.setHasCommission(request.hasCommission());
+        if (!isSystemDefined) {
+            referralType.setCode(request.code());
+            if (request.hasCommission() != null) {
+                referralType.setHasCommission(request.hasCommission());
+            }
+        } else if (Boolean.FALSE.equals(request.hasCommission())) {
+            throw new IllegalArgumentException(
+                "Cannot disable commission for a system-defined referral type");
         }
 
         if (request.isActive() != null) {
@@ -90,8 +98,10 @@ public class ReferralTypeService {
 
     @Transactional
     public void delete(Long id) {
-        if (!referralTypeRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Referral type not found with id: " + id);
+        ReferralType referralType = referralTypeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + id));
+        if (Boolean.TRUE.equals(referralType.getIsSystemDefined())) {
+            throw new IllegalStateException("System-defined referral types cannot be deleted");
         }
         referralTypeRepository.deleteById(id);
     }
@@ -100,6 +110,7 @@ public class ReferralTypeService {
         return new ReferralTypeResponse(
             rt.getId(), rt.getName(), rt.getCode(), rt.getCommissionAmount(),
             rt.getHasCommission(), rt.getDescription(), rt.getIsActive(),
+            Boolean.TRUE.equals(rt.getIsSystemDefined()),
             rt.getCreatedAt(), rt.getUpdatedAt()
         );
     }

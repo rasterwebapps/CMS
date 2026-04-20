@@ -39,10 +39,10 @@ class AgentServiceTest {
     @Test
     void shouldCreateAgent() {
         AgentRequest request = new AgentRequest(
-            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true
         );
 
-        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
+        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
@@ -57,12 +57,29 @@ class AgentServiceTest {
     }
 
     @Test
-    void shouldCreateAgentWithDefaultIsActive() {
+    void shouldCreateAgentWithCommissionAmount() {
+        java.math.BigDecimal commission = new java.math.BigDecimal("10000.00");
         AgentRequest request = new AgentRequest(
-            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, commission, true
         );
 
-        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
+        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, commission, true);
+
+        when(agentRepository.save(any(Agent.class))).thenReturn(saved);
+
+        AgentResponse response = agentService.create(request);
+
+        assertThat(response.commissionAmount()).isEqualTo(commission);
+        verify(agentRepository).save(any(Agent.class));
+    }
+
+    @Test
+    void shouldCreateAgentWithDefaultIsActive() {
+        AgentRequest request = new AgentRequest(
+            "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, null
+        );
+
+        Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, true);
 
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
@@ -73,7 +90,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindAllAgents() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, true);
 
         when(agentRepository.findAll()).thenReturn(List.of(agent));
 
@@ -86,7 +103,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindById() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, true);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(agent));
 
@@ -110,7 +127,7 @@ class AgentServiceTest {
 
     @Test
     void shouldFindActiveAgents() {
-        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, true);
+        Agent agent = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, true);
 
         when(agentRepository.findByIsActiveTrue()).thenReturn(List.of(agent));
 
@@ -122,13 +139,13 @@ class AgentServiceTest {
 
     @Test
     void shouldUpdateAgent() {
-        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
+        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
         AgentRequest updateRequest = new AgentRequest(
-            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false
+            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, new java.math.BigDecimal("12000.00"), false
         );
 
-        Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, false);
+        Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, new java.math.BigDecimal("12000.00"), false);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(agentRepository.existsByNameAndIdNot("Jane Agent", 1L)).thenReturn(false);
@@ -138,6 +155,7 @@ class AgentServiceTest {
 
         assertThat(response.name()).isEqualTo("Jane Agent");
         assertThat(response.allottedSeats()).isEqualTo(100);
+        assertThat(response.commissionAmount()).isEqualTo(new java.math.BigDecimal("12000.00"));
         assertThat(response.isActive()).isFalse();
         verify(agentRepository).findById(1L);
         verify(agentRepository).save(any(Agent.class));
@@ -145,10 +163,10 @@ class AgentServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingWithDuplicateName() {
-        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, true);
+        Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
         AgentRequest updateRequest = new AgentRequest(
-            "Existing Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, true
+            "Existing Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, null, true
         );
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -164,7 +182,7 @@ class AgentServiceTest {
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
         AgentRequest request = new AgentRequest(
-            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", null, true
+            "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", null, null, true
         );
 
         when(agentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -198,10 +216,12 @@ class AgentServiceTest {
     }
 
     private Agent createAgent(Long id, String name, String phone, String email,
-                               String area, String locality, Integer allottedSeats, Boolean isActive) {
+                               String area, String locality, Integer allottedSeats,
+                               java.math.BigDecimal commissionAmount, Boolean isActive) {
         Agent agent = new Agent(name, phone, email, area, locality, isActive);
         agent.setId(id);
         agent.setAllottedSeats(allottedSeats);
+        agent.setCommissionAmount(commissionAmount);
         Instant now = Instant.now();
         agent.setCreatedAt(now);
         agent.setUpdatedAt(now);
