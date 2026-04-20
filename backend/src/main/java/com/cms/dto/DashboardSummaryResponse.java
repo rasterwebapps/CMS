@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -20,6 +21,9 @@ public record DashboardSummaryResponse(
     Map<String, Long> equipmentByStatus,
     Map<String, Long> maintenanceByStatus,
     Map<String, Long> studentsByStatus,
-    Map<String, Long> attendanceByStatus
+    Map<String, Long> attendanceByStatus,
+    Map<String, Long> enquiryFunnel,
+    BigDecimal feeCollectedThisMonth,
+    BigDecimal feeOutstanding
 ) {}
 

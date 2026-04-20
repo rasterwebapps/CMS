@@ -1,9 +1,11 @@
 package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -13,9 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DashboardSummaryResponse;
+import com.cms.dto.DashboardTrendsResponse;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.SubjectRepository;
 import com.cms.repository.DepartmentRepository;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.FacultyRepository;
@@ -24,6 +28,7 @@ import com.cms.repository.LabRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.SubjectRepository;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
@@ -39,6 +44,8 @@ class DashboardServiceTest {
     @Mock private FeePaymentRepository feePaymentRepository;
     @Mock private MaintenanceRequestRepository maintenanceRequestRepository;
     @Mock private AttendanceRepository attendanceRepository;
+    @Mock private EnquiryRepository enquiryRepository;
+    @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
 
     private DashboardService dashboardService;
 
@@ -48,7 +55,8 @@ class DashboardServiceTest {
             studentRepository, facultyRepository, departmentRepository,
             subjectRepository, programRepository, labRepository,
             equipmentRepository, examinationRepository, feePaymentRepository,
-            maintenanceRequestRepository, attendanceRepository
+            maintenanceRequestRepository, attendanceRepository,
+            enquiryRepository, enquiryPaymentRepository
         );
     }
 
@@ -69,6 +77,10 @@ class DashboardServiceTest {
         when(maintenanceRequestRepository.findAll()).thenReturn(List.of());
         when(studentRepository.findAll()).thenReturn(List.of());
         when(attendanceRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
+        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(List.of());
 
         DashboardSummaryResponse response = dashboardService.getSummary();
 
@@ -87,6 +99,7 @@ class DashboardServiceTest {
         assertThat(response.maintenanceByStatus()).isEmpty();
         assertThat(response.studentsByStatus()).isEmpty();
         assertThat(response.attendanceByStatus()).isEmpty();
+        assertThat(response.enquiryFunnel()).isEmpty();
         verify(studentRepository).count();
         verify(facultyRepository).count();
         verify(departmentRepository).count();
@@ -109,12 +122,28 @@ class DashboardServiceTest {
         when(maintenanceRequestRepository.findAll()).thenReturn(List.of());
         when(studentRepository.findAll()).thenReturn(List.of());
         when(attendanceRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
+        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(List.of());
 
         DashboardSummaryResponse response = dashboardService.getSummary();
 
         assertThat(response.totalStudents()).isZero();
         assertThat(response.totalFaculty()).isZero();
         assertThat(response.totalDepartments()).isZero();
+    }
+
+    @Test
+    void shouldReturnTrendsWithSixMonths() {
+        when(studentRepository.findAll()).thenReturn(List.of());
+        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(List.of());
+
+        DashboardTrendsResponse trends = dashboardService.getTrends();
+
+        assertThat(trends.enrolmentTrend()).hasSize(6);
+        assertThat(trends.feeCollectionTrend()).hasSize(6);
     }
 }
 
