@@ -1,4 +1,4 @@
-<mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()">
+<mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
   <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-header">
       <img src="assets/images/logo-icon.png" alt="SKS College" class="app-logo-img"
@@ -10,6 +10,26 @@
         <span class="app-name">SKS CMS</span>
       }
     </div>
+
+    @if (!sidenavCollapsed()) {
+      <div class="sidenav-search">
+        <mat-icon class="sidenav-search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="sidenav-search-input"
+          placeholder="Find menu..."
+          [value]="menuSearch()"
+          (input)="onMenuSearchInput($event)"
+          aria-label="Search navigation menu"
+        />
+        @if (menuSearch()) {
+          <button mat-icon-button class="sidenav-search-clear" (click)="menuSearch.set('')" matTooltip="Clear">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+    }
+
     <div class="sidenav-nav">
       @for (entry of filteredNavEntries(); track entry.label) {
         @if (isNavGroup(entry)) {
@@ -74,40 +94,63 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <mat-toolbar class="app-toolbar">
-      <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation">
-        <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
-      </button>
-      <span class="toolbar-title">SKS College of Nursing</span>
-      <span class="toolbar-spacer"></span>
-
-      <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn">
-        <mat-icon>notifications_none</mat-icon>
-      </button>
-
-      <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
-        <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
-
-      <app-theme-picker />
-
-      <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
-        <div class="avatar-circle">
-          <mat-icon>person</mat-icon>
-        </div>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <div class="user-menu-header" mat-menu-item disabled>
-          <mat-icon>badge</mat-icon>
-          <span>{{ authService.username() }}</span>
-        </div>
-        <mat-divider></mat-divider>
-        <button mat-menu-item (click)="logout()">
-          <mat-icon>logout</mat-icon>
-          <span>Logout</span>
+    @if (focusMode()) {
+      <div class="focus-header">
+        <button mat-icon-button (click)="navigateBack()" class="back-btn" matTooltip="Back">
+          <mat-icon>arrow_back</mat-icon>
         </button>
-      </mat-menu>
-    </mat-toolbar>
+        <span class="focus-title">{{ focusModeTitle() }}</span>
+        <span class="toolbar-spacer"></span>
+      </div>
+    } @else {
+      <mat-toolbar class="app-toolbar">
+        <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation">
+          <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
+        </button>
+        <span class="toolbar-title">SKS College of Nursing</span>
+        <span class="toolbar-spacer"></span>
+
+        <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn">
+          <mat-icon>notifications_none</mat-icon>
+        </button>
+
+        <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
+          <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
+
+        <app-theme-picker />
+
+        <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
+          <div class="avatar-circle">
+            <mat-icon>person</mat-icon>
+          </div>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div class="user-menu-header" mat-menu-item disabled>
+            <mat-icon>badge</mat-icon>
+            <span>{{ authService.username() }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Logout</span>
+          </button>
+        </mat-menu>
+      </mat-toolbar>
+    }
+
+    @if (breadcrumbs().length > 1) {
+      <nav class="breadcrumb-bar" aria-label="Breadcrumb">
+        @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
+          @if (last) {
+            <span class="breadcrumb-item breadcrumb-current">{{ crumb.label }}</span>
+          } @else {
+            <a [routerLink]="crumb.route" class="breadcrumb-item">{{ crumb.label }}</a>
+            <mat-icon class="breadcrumb-sep">chevron_right</mat-icon>
+          }
+        }
+      </nav>
+    }
 
     <main class="app-content">
       <router-outlet />
