@@ -21,6 +21,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-enquiry-list',
@@ -37,6 +38,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 })
 export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -150,6 +152,40 @@ export class EnquiryListComponent implements OnInit {
 
   protected convert(item: Enquiry): void {
     void this.router.navigate(['/students/new'], { queryParams: { fromEnquiry: item.id } });
+  }
+
+  protected canFinalizeFee(item: Enquiry): boolean {
+    return item.status === 'INTERESTED' && this.authService.isAdmin();
+  }
+
+  protected canCollectPayment(item: Enquiry): boolean {
+    return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
+      (this.authService.isAdmin() || this.authService.isFrontOffice());
+  }
+
+  protected canSubmitDocuments(item: Enquiry): boolean {
+    return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
+      (this.authService.isAdmin() || this.authService.isFrontOffice());
+  }
+
+  protected finalizeFee(item: Enquiry): void {
+    void this.router.navigate(['/student-fees/finalize'], { queryParams: { enquiryId: item.id } });
+  }
+
+  protected collectPayment(item: Enquiry): void {
+    void this.router.navigate(['/student-fees/collect-payment'], { queryParams: { enquiryId: item.id } });
+  }
+
+  protected submitDocuments(item: Enquiry): void {
+    this.enquiryService.submitDocuments(item.id).subscribe({
+      next: () => {
+        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
+        this.load();
+      },
+      error: () => {
+        this.snackBar.open('Failed to submit documents', 'Close', { duration: 3000 });
+      },
+    });
   }
 
   protected edit(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'edit']); }

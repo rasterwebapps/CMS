@@ -1053,6 +1053,21 @@ app-root {
     background: var(--cms-success-light);
     color: var(--cms-success);
   }
+
+  &--primary:hover {
+    background: var(--cms-primary-light);
+    color: var(--cms-primary);
+  }
+
+  &--success:hover {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+
+  &--info:hover {
+    background: var(--cms-info-light);
+    color: var(--cms-info);
+  }
 }
 
 // ── Empty State ──────────────────────────────────
