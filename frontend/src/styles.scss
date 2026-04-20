@@ -104,10 +104,10 @@
   --cms-shadow-card-hover: 0 12px 28px -5px rgb(0 0 0 / 0.12), 0 4px 12px -6px rgb(0 0 0 / 0.06);
 
   // ─── Radius ───
-  --cms-radius-sm: 8px;
-  --cms-radius-md: 12px;
-  --cms-radius-lg: 16px;
-  --cms-radius-xl: 20px;
+  --cms-radius-sm: 5px;
+  --cms-radius-md: 8px;
+  --cms-radius-lg: 10px;
+  --cms-radius-xl: 14px;
   --cms-radius-full: 9999px;
 
   // ─── Transitions ───
@@ -284,8 +284,8 @@ app-root {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 3px;
+  height: 3px;
 }
 
 ::-webkit-scrollbar-track {
@@ -307,8 +307,8 @@ app-root {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 12px;
-  border-radius: var(--cms-radius-full);
+  padding: 3px 10px;
+  border-radius: var(--cms-radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.5;
@@ -342,6 +342,10 @@ app-root {
   &--cyan {
     background-color: var(--cms-badge-cyan-bg);
     color: var(--cms-badge-cyan-text);
+  }
+  &--primary {
+    background-color: var(--cms-primary-light);
+    color: var(--cms-primary);
   }
 }
 
@@ -901,10 +905,10 @@ app-root {
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--cms-badge-violet-text);
-  background: var(--cms-badge-violet-bg);
-  padding: 3px 10px;
-  border-radius: 6px;
+  color: var(--cms-primary);
+  background: var(--cms-primary-light);
+  padding: 3px 8px;
+  border-radius: var(--cms-radius-sm);
   letter-spacing: 0.01em;
 }
 
@@ -1102,6 +1106,27 @@ app-root {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  background: var(--cms-primary-light);
+}
+
+.mat-mdc-paginator {
+  background: transparent !important;
+  color: var(--cms-primary) !important;
+
+  .mat-mdc-paginator-range-label,
+  .mat-mdc-paginator-page-size-label,
+  .mat-mdc-select-value {
+    color: var(--cms-primary) !important;
+  }
+
+  .mat-mdc-icon-button {
+    color: var(--cms-primary) !important;
+
+    &:disabled {
+      color: var(--cms-text-muted) !important;
+      opacity: 0.5;
+    }
+  }
 }
 
 // ── Mobile: always show actions on touch devices ──

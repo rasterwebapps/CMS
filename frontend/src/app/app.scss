@@ -84,10 +84,10 @@
     flex-shrink: 0;
 
     .app-logo-img {
-      width: 36px;
-      height: 36px;
+      width: auto;
+      height: 40px;
       object-fit: contain;
-      border-radius: 10px;
+      border-radius: 8px;
       box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-30);
       flex-shrink: 0;
     }
@@ -172,11 +172,11 @@
   }
 
   mat-nav-list {
-    padding: 6px 10px;
+    padding: 4px 0;
 
     a[mat-list-item] {
       border-radius: var(--cms-radius-sm) !important;
-      margin-bottom: 1px;
+      margin: 1px 10px;
       transition: var(--cms-transition);
       height: 40px !important;
 
@@ -218,7 +218,7 @@
 
     // Ultra-thin phantom scrollbar — visible only on hover
     &::-webkit-scrollbar {
-      width: 4px;
+      width: 2px;
     }
     &::-webkit-scrollbar-thumb {
       background: transparent;
@@ -341,7 +341,7 @@
     padding-bottom: 4px;
 
     a[mat-list-item] {
-      padding-left: 32px;
+      padding-left: 36px !important;
     }
   }
 }
@@ -497,17 +497,6 @@
   color: var(--cms-text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #059669);
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
-  }
 }
 
 .toolbar-spacer {
@@ -523,12 +512,32 @@
 }
 
 .toolbar-avatar-btn {
-  margin-left: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px !important;
-  border-radius: var(--cms-radius-full) !important;
+  padding: 4px 10px 4px 4px;
+  margin-left: 4px;
+  background: transparent;
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-full);
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  &:hover {
+    background: var(--cms-bg-hover);
+    border-color: var(--cms-primary);
+  }
+}
+
+.toolbar-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 }
 
 .toolbar-username {
@@ -536,13 +545,9 @@
   font-weight: 600;
   color: var(--cms-text-primary);
   white-space: nowrap;
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
 }
 
 .avatar-circle {

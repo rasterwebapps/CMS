@@ -25,12 +25,14 @@
 
     <app-theme-picker />
 
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
+    <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
       <div class="avatar-circle">
         <mat-icon>person</mat-icon>
       </div>
       @if (authService.username()) {
-        <span class="toolbar-username">{{ authService.username() }}</span>
+        <div class="toolbar-user-info">
+          <span class="toolbar-username">{{ authService.username() }}</span>
+        </div>
       }
     </button>
     <mat-menu #userMenu="matMenu">
