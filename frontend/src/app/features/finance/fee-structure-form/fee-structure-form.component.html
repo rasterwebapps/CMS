@@ -1,16 +1,5 @@
 <div class="form-container">
 
-  <!-- ── Page Header ─────────────────────────────────────────────── -->
-  <div class="page-header">
-    <button mat-icon-button class="back-btn" routerLink="/fee-structures" matTooltip="Back to Fee Structures">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div class="page-header__content">
-      <h2 class="page-title">{{ pageTitle() }}</h2>
-      <p class="page-subtitle">Configure year-wise fee amounts for each fee category</p>
-    </div>
-  </div>
-
   @if (loading()) {
     <div class="loading-container">
       <mat-spinner diameter="48"></mat-spinner>

@@ -40,8 +40,6 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 }
 
 // Routes that activate focus mode (collapse global toolbar to maximise vertical space)
-// Note: enquiry form routes are intentionally excluded — they keep the regular
-// toolbar and sidebar visible so users can navigate without losing context.
 const FOCUS_MODE_PATTERNS: RegExp[] = [
   /\/admissions\/new$/,
   /\/admissions\/[^/]+\/edit$/,
@@ -50,6 +48,11 @@ const FOCUS_MODE_PATTERNS: RegExp[] = [
   /\/student-fees\/finalize$/,
   /\/student-fees\/collect-payment$/,
   /\/fee-payments\/new$/,
+  /\/fee-structures\/new$/,
+  /\/fee-structures\/edit(\?.*)?$/,
+  /\/enquiries\/new$/,
+  /\/enquiries\/[^/]+\/edit$/,
+  /\/enquiries\/[^/]+\/convert$/,
 ];
 
 const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
@@ -60,6 +63,11 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
   { pattern: /\/student-fees\/finalize$/, title: 'Fee Finalization' },
   { pattern: /\/student-fees\/collect-payment$/, title: 'Collect Payment' },
   { pattern: /\/fee-payments\/new$/, title: 'New Fee Payment' },
+  { pattern: /\/fee-structures\/new$/, title: 'New Fee Structure' },
+  { pattern: /\/fee-structures\/edit(\?.*)?$/, title: 'Edit Fee Structure' },
+  { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
+  { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
+  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Convert Enquiry to Student' },
 ];
 
 // Human-readable labels for URL path segments used in breadcrumbs

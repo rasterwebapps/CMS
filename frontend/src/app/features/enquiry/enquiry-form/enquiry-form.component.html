@@ -1,16 +1,4 @@
 <div class="enquiry-form-page">
-  <div class="entry-form-header">
-    <button mat-icon-button routerLink="/enquiries" class="back-btn" aria-label="Back to enquiries">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
-      <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the enquiry details below.' : 'Fill in the prospective student details to log a new enquiry.' }}
-      </p>
-    </div>
-  </div>
-
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {

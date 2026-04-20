@@ -1,9 +1,4 @@
 <div class="convert-page">
-  <div class="convert-header">
-    <button mat-icon-button [routerLink]="['/enquiries', enquiry()?.id]"><mat-icon>arrow_back</mat-icon></button>
-    <h1>Convert Enquiry to Student</h1>
-  </div>
-
   @if (loading()) {
     <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
   } @else {
