@@ -166,14 +166,73 @@ export class ThemeService {
 
   // ─── CSS Variable Injection ────────────────────────────────────────────────
 
+  /**
+   * Injects the full palette as `--color-primary-{shade}` variables AND
+   * derives all semantic brand tokens (--cms-primary, gradients, alpha helpers)
+   * so the entire design system responds to the chosen primary colour.
+   *
+   * ThemeService sets these as inline styles on <html>, which win over any
+   * class-based CSS-variable rules in the stylesheets.
+   */
   private injectPaletteVariables(palette: Record<Shade, string>): void {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
     const root = document.documentElement;
+
+    // Raw palette shades (used by Tailwind utilities and component SCSS)
     (Object.entries(palette) as [string, string][]).forEach(([shade, hex]) => {
       root.style.setProperty(`--color-primary-${shade}`, hex);
     });
+
+    // Derive semantic brand tokens from the palette so every hardcoded
+    // colour reference that was replaced by a CSS variable now follows
+    // the user's chosen primary colour.
+    const [r, g, b] = this.hexToRgb(palette[500]);
+    const rgba = (alpha: number): string => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+    // Core brand tokens
+    root.style.setProperty('--cms-primary', palette[500]);
+    root.style.setProperty('--cms-primary-hover', palette[600]);
+    root.style.setProperty('--cms-primary-light', palette[50]);
+    root.style.setProperty('--cms-border-hover', palette[300]);
+    root.style.setProperty('--cms-sidenav-active-text', palette[300]);
+
+    // Opacity variants used for rings, hover backgrounds, shadows
+    root.style.setProperty('--cms-primary-ring', rgba(0.3));
+    root.style.setProperty('--cms-bg-hover', rgba(0.04));
+    root.style.setProperty('--cms-sidenav-active-bg', rgba(0.15));
+
+    // Composed shadow token (full box-shadow string)
+    root.style.setProperty('--cms-shadow-colored', `0 4px 14px -3px ${rgba(0.25)}`);
+
+    // Standalone alpha colour values for use inside gradient() and box-shadow()
+    root.style.setProperty('--cms-primary-alpha-3', rgba(0.03));
+    root.style.setProperty('--cms-primary-alpha-5', rgba(0.05));
+    root.style.setProperty('--cms-primary-alpha-8', rgba(0.08));
+    root.style.setProperty('--cms-primary-alpha-15', rgba(0.15));
+    root.style.setProperty('--cms-primary-alpha-18', rgba(0.18));
+    root.style.setProperty('--cms-primary-alpha-20', rgba(0.20));
+    root.style.setProperty('--cms-primary-alpha-25', rgba(0.25));
+    root.style.setProperty('--cms-primary-alpha-30', rgba(0.30));
+    root.style.setProperty('--cms-primary-alpha-35', rgba(0.35));
+    root.style.setProperty('--cms-primary-alpha-40', rgba(0.40));
+    root.style.setProperty('--cms-primary-alpha-50', rgba(0.50));
+    root.style.setProperty('--cms-primary-alpha-55', rgba(0.55));
+
+    // Gradient tokens (replace all hardcoded indigo gradients in SCSS)
+    root.style.setProperty(
+      '--cms-gradient-brand',
+      `linear-gradient(135deg, ${palette[400]} 0%, ${palette[700]} 100%)`,
+    );
+    root.style.setProperty(
+      '--cms-gradient-brand-hover',
+      `linear-gradient(135deg, ${palette[600]} 0%, ${palette[800]} 100%)`,
+    );
+    root.style.setProperty(
+      '--cms-gradient-toolbar',
+      `linear-gradient(135deg, ${palette[500]} 0%, ${palette[300]} 100%)`,
+    );
   }
 
   // ─── Persistence ─────────────────────────────────────────────────────────

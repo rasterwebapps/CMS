@@ -6,13 +6,13 @@
 // Welcome Banner
 // ──────────────────────────────────────────────────
 .welcome-banner {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--cms-primary) 0%, var(--color-primary-400) 40%, var(--color-primary-300) 100%);
   border-radius: var(--cms-radius-xl);
   padding: 32px 36px;
   margin-bottom: 28px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px -8px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 32px -8px var(--cms-primary-alpha-35);
 }
 
 .welcome-content {
@@ -133,8 +133,8 @@
 
   // ─── Color variants ───
   &[data-color="indigo"] {
-    &::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
-    .metric-icon-wrap { background: linear-gradient(135deg, #6366f1, #818cf8); }
+    &::before { background: linear-gradient(90deg, var(--cms-primary), var(--color-primary-400)); }
+    .metric-icon-wrap { background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400)); }
   }
   &[data-color="emerald"] {
     &::before { background: linear-gradient(90deg, #10b981, #34d399); }

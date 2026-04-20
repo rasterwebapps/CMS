@@ -188,14 +188,14 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
+      background: linear-gradient(90deg, var(--cms-primary-alpha-20) 0%, transparent 100%);
     }
 
     &--additional {
       color: var(--cms-primary);
 
       &::after {
-        background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
+        background: linear-gradient(90deg, var(--cms-primary-alpha-20) 0%, transparent 100%);
       }
     }
   }
@@ -217,7 +217,7 @@
   // Hover state for data rows
   &:not(.fee-grid__row--header):not(.fee-grid__row--total) {
     &:hover {
-      background: rgba(99, 102, 241, 0.03);
+      background: var(--cms-primary-alpha-3);
     }
     &:hover .note-btn {
       opacity: 1;
@@ -226,7 +226,7 @@
 
   &--additional-type:not(.fee-grid__row--total) {
     &:hover {
-      background: rgba(99, 102, 241, 0.03);
+      background: var(--cms-primary-alpha-3);
     }
   }
 
@@ -239,7 +239,7 @@
   }
 
   &--header-additional {
-    border-bottom-color: rgba(99, 102, 241, 0.25);
+    border-bottom-color: var(--cms-primary-alpha-25);
   }
 
   // Totals / ledger row
@@ -253,7 +253,7 @@
 
   &--total-additional {
     background: rgba(248, 250, 252, 0.7);
-    border-top-color: rgba(99, 102, 241, 0.18);
+    border-top-color: var(--cms-primary-alpha-18);
   }
 }
 
@@ -402,11 +402,11 @@
   &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   -moz-appearance: textfield;
 
-  &:hover { background: rgba(99, 102, 241, 0.05); }
+  &:hover { background: var(--cms-primary-alpha-5); }
 
   &:focus {
     background: #fff;
-    box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.38);
+    box-shadow: 0 0 0 2.5px var(--cms-primary-alpha-35);
   }
 
   // Zero / empty value — muted
@@ -417,7 +417,7 @@
 
   // Additional fee type variant focus ring
   &--additional:focus {
-    box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.38);
+    box-shadow: 0 0 0 2.5px var(--cms-primary-alpha-35);
   }
 }
 
@@ -464,10 +464,10 @@
   align-items: center;
   gap: 8px;
   padding: 2px 12px 8px 36px; // left-indent aligns with label text
-  background: rgba(99, 102, 241, 0.02);
+  background: var(--cms-primary-alpha-3);
   border-radius: 0 0 5px 5px;
 
-  &--additional { background: rgba(99, 102, 241, 0.02); }
+  &--additional { background: var(--cms-primary-alpha-3); }
 }
 
 .note-row-icon {
@@ -532,7 +532,7 @@
   transition: box-shadow 0.2s ease, transform 0.15s ease;
 
   &:hover:not([disabled]) {
-    box-shadow: 0 6px 22px -4px rgba(99, 102, 241, 0.55) !important;
+    box-shadow: 0 6px 22px -4px var(--cms-primary-alpha-55) !important;
     transform: translateY(-1px);
   }
 

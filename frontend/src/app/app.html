@@ -1,6 +1,6 @@
 @if (!focusMode()) {
   <mat-toolbar class="app-toolbar">
-    <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation" class="toolbar-logo-btn">
+    <button mat-icon-button [routerLink]="'/dashboard'" matTooltip="Home" class="toolbar-logo-btn">
       @if (!toolbarLogoError()) {
         <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
           (error)="toolbarLogoError.set(true)" />
@@ -27,6 +27,9 @@
       <div class="avatar-circle">
         <mat-icon>person</mat-icon>
       </div>
+      @if (authService.username()) {
+        <span class="toolbar-username">{{ authService.username() }}</span>
+      }
     </button>
     <mat-menu #userMenu="matMenu">
       <div class="user-menu-header" mat-menu-item disabled>
@@ -53,6 +56,10 @@
       @if (!sidenavCollapsed()) {
         <span class="app-name">SKS CMS</span>
       }
+      <button mat-icon-button (click)="toggleSidenav()" class="sidenav-toggle-btn"
+        [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+        <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
+      </button>
     </div>
 
     @if (!sidenavCollapsed()) {

@@ -45,7 +45,7 @@
     width: 3px;
     height: 16px;
     border-radius: 2px;
-    background: linear-gradient(180deg, #6366f1, #a78bfa);
+    background: linear-gradient(180deg, var(--cms-primary), var(--color-primary-300));
   }
 }
 
