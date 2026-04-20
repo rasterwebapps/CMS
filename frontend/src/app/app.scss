@@ -1,5 +1,7 @@
 .app-container {
-  height: 100%;
+  // Use full viewport height so the sidenav fills the screen and content
+  // scrolls independently within mat-sidenav-content.
+  height: 100vh;
 
   // When sidenav is collapsed, override the content margin
   &.sidenav-collapsed {
@@ -10,6 +12,8 @@
 
   .mat-sidenav-content {
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    // Allow mat-sidenav-content to be the scroll container
+    overflow-y: auto;
   }
 }
 
@@ -332,6 +336,39 @@
 }
 
 // ──────────────────────────────────────────────────
+// Toolbar Logo Button (replaces hamburger icon)
+// ──────────────────────────────────────────────────
+.toolbar-logo-btn {
+  margin-left: -4px;
+  flex-shrink: 0;
+
+  .toolbar-logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 6px;
+    display: block;
+  }
+
+  .toolbar-logo-fallback {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #ffffff;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────
 // Toolbar
 // ──────────────────────────────────────────────────
 .app-toolbar {
@@ -508,22 +545,5 @@
 // Main Content Area — Full Width
 // ──────────────────────────────────────────────────
 .app-content {
-  min-height: calc(100vh - 56px);
   background-color: var(--cms-bg-shell);
-
-  // Ultra-thin phantom scrollbar — visible only on hover
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 2px;
-    transition: background 0.2s;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &:hover::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-  }
 }

@@ -268,9 +268,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+// Ensure the Angular root host fills the full viewport height
+// so mat-sidenav-container can inherit height: 100% correctly.
+app-root {
+  display: block;
+  height: 100%;
+}
+
 // ──────────────────────────────────────────────────
-// Scrollbar
+// Scrollbar — slim & themed (Webkit + Firefox)
 // ──────────────────────────────────────────────────
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
