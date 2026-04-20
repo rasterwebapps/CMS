@@ -1,7 +1,34 @@
+.app-toolbar {
+  // Toolbar lives outside mat-sidenav-container so it spans the full viewport width.
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  color: var(--cms-text-primary) !important;
+  height: 56px;
+
+  button {
+    color: var(--cms-text-secondary);
+    transition: var(--cms-transition);
+
+    &:hover {
+      color: var(--cms-primary);
+      background: var(--cms-bg-hover);
+    }
+  }
+}
+
 .app-container {
-  // Use full viewport height so the sidenav fills the screen and content
-  // scrolls independently within mat-sidenav-content.
-  height: 100vh;
+  // Fill the remaining viewport below the fixed toolbar (56 px).
+  // In focus-mode the outer toolbar is hidden, so the container
+  // reclaims the full viewport height.
+  height: calc(100vh - 56px);
+
+  &.focus-mode {
+    height: 100vh;
+  }
 
   // When sidenav is collapsed, override the content margin
   &.sidenav-collapsed {
@@ -364,30 +391,6 @@
       width: 18px;
       height: 18px;
       color: #ffffff;
-    }
-  }
-}
-
-// ──────────────────────────────────────────────────
-// Toolbar
-// ──────────────────────────────────────────────────
-.app-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  color: var(--cms-text-primary) !important;
-  height: 56px;
-
-  button {
-    color: var(--cms-text-secondary);
-    transition: var(--cms-transition);
-
-    &:hover {
-      color: var(--cms-primary);
-      background: var(--cms-bg-hover);
     }
   }
 }

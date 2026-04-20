@@ -190,6 +190,8 @@ export class EnquiryListComponent implements OnInit {
 
   protected edit(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'edit']); }
 
+  protected view(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id]); }
+
   protected delete(item: Enquiry): void {
     this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Delete Enquiry', message: `Delete enquiry for "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
