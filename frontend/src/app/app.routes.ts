@@ -209,6 +209,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'students/roll-numbers',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/student/roll-number-assignment/roll-number-assignment.component').then(
+        (m) => m.RollNumberAssignmentComponent
+      ),
+  },
+  {
     path: 'students/:id',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -566,6 +574,54 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/enquiry/enquiry-form/enquiry-form.component').then(
         (m) => m.EnquiryFormComponent
+      ),
+  },
+  {
+    path: 'enquiries/:id/convert',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/enquiry-convert/enquiry-convert.component').then(
+        (m) => m.EnquiryConvertComponent
+      ),
+  },
+  {
+    path: 'enquiries/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/enquiry-detail/enquiry-detail.component').then(
+        (m) => m.EnquiryDetailComponent
+      ),
+  },
+  {
+    path: 'admissions',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admission/admission-list/admission-list.component').then(
+        (m) => m.AdmissionListComponent
+      ),
+  },
+  {
+    path: 'admissions/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admission/admission-form/admission-form.component').then(
+        (m) => m.AdmissionFormComponent
+      ),
+  },
+  {
+    path: 'admissions/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admission/admission-form/admission-form.component').then(
+        (m) => m.AdmissionFormComponent
+      ),
+  },
+  {
+    path: 'admissions/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admission/admission-detail/admission-detail.component').then(
+        (m) => m.AdmissionDetailComponent
       ),
   },
   {

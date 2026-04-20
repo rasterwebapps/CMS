@@ -1,0 +1,94 @@
+<div class="convert-page">
+  <div class="convert-header">
+    <button mat-icon-button [routerLink]="['/enquiries', enquiry()?.id]"><mat-icon>arrow_back</mat-icon></button>
+    <h1>Convert Enquiry to Student</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else {
+    <div class="convert-layout">
+      <!-- Left: Enquiry Summary -->
+      <mat-card appearance="outlined" class="summary-card">
+        <mat-card-header><mat-card-title>Enquiry Summary</mat-card-title></mat-card-header>
+        <mat-card-content>
+          @if (enquiry()) {
+            <div class="info-list">
+              <div class="info-row"><span class="label">Name</span><span>{{ enquiry()!.name }}</span></div>
+              <div class="info-row"><span class="label">Email</span><span>{{ enquiry()!.email || '—' }}</span></div>
+              <div class="info-row"><span class="label">Phone</span><span>{{ enquiry()!.phone || '—' }}</span></div>
+              <div class="info-row"><span class="label">Program</span><span>{{ enquiry()!.programName }}</span></div>
+              <div class="info-row"><span class="label">Course</span><span>{{ enquiry()!.courseName || '—' }}</span></div>
+              <div class="info-row"><span class="label">Status</span><span>{{ enquiry()!.status }}</span></div>
+              <div class="info-row"><span class="label">Net Fee</span><span>{{ enquiry()!.finalizedNetFee ?? '—' }}</span></div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Right: Student Creation Form -->
+      <div class="entry-form-card">
+        <h2 class="form-title">Student Details</h2>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="field-group">
+            <label class="field-label">First Name *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="firstName" />
+              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                <mat-error>First name is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Last Name *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="lastName" />
+              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                <mat-error>Last name is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Email *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="email" formControlName="email" />
+              @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                <mat-error>Valid email is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Phone</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="phone" />
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Semester *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="semester" min="1" />
+              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+                <mat-error>Semester is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Admission Date *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="date" formControlName="admissionDate" />
+              @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                <mat-error>Admission date is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="form-footer">
+            <button mat-stroked-button type="button" class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Convert to Student }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

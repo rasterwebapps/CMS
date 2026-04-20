@@ -1,0 +1,146 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/admissions"><mat-icon>arrow_back</mat-icon></button>
+    <h1>{{ isEdit() ? 'Edit Admission' : 'New Admission' }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else {
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="field-group">
+          <label class="field-label">Student *</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-select formControlName="studentId">
+              @for (s of students(); track s.id) {
+                <mat-option [value]="s.id">{{ s.fullName }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
+              <mat-error>Student is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Academic Year From *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="academicYearFrom" />
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Academic Year To *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="academicYearTo" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Application Date *</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input matInput type="date" formControlName="applicationDate" />
+          </mat-form-field>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Status</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-select formControlName="status">
+              @for (s of statuses; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Declaration Place</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="declarationPlace" />
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Declaration Date</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="date" formControlName="declarationDate" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="consent-row">
+          <mat-checkbox formControlName="parentConsentGiven">Parent Consent Given</mat-checkbox>
+          <mat-checkbox formControlName="applicantConsentGiven">Applicant Consent Given</mat-checkbox>
+        </div>
+
+        <!-- Qualifications Sub-form -->
+        @if (!isEdit()) {
+          <div class="qualifications-section">
+            <div class="section-header">
+              <h3>Academic Qualifications</h3>
+              <button mat-stroked-button type="button" (click)="addQualification()">
+                <mat-icon>add</mat-icon> Add
+              </button>
+            </div>
+            @if (qualifications.length > 0) {
+              <table mat-table [dataSource]="qualifications.controls" class="qual-table">
+                <ng-container matColumnDef="qualificationType">
+                  <th mat-header-cell *matHeaderCellDef>Type</th>
+                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table-field">
+                      <mat-select formControlName="qualificationType">
+                        @for (t of qualificationTypes; track t) { <mat-option [value]="t">{{ t }}</mat-option> }
+                      </mat-select>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="schoolName">
+                  <th mat-header-cell *matHeaderCellDef>School/Institute</th>
+                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table-field">
+                      <input matInput formControlName="schoolName" />
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="percentage">
+                  <th mat-header-cell *matHeaderCellDef>Percentage</th>
+                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table-field-sm">
+                      <input matInput type="number" formControlName="percentage" />
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="monthAndYearOfPassing">
+                  <th mat-header-cell *matHeaderCellDef>Month & Year</th>
+                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="table-field-sm">
+                      <input matInput placeholder="MM/YYYY" formControlName="monthAndYearOfPassing" />
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let row; let i = index">
+                    <button mat-icon-button color="warn" type="button" (click)="removeQualification(i)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="qualColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: qualColumns"></tr>
+              </table>
+            }
+          </div>
+        }
+
+        <div class="form-footer">
+          <button mat-stroked-button type="button" class="btn-cancel" routerLink="/admissions">Cancel</button>
+          <button mat-flat-button color="primary" type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Save }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</div>
