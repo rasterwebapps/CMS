@@ -16,11 +16,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { EquipmentService } from '../equipment.service';
 import { Equipment } from '../equipment.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-equipment-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,

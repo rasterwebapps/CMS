@@ -20,6 +20,7 @@ import { FinanceService } from '../finance.service';
 import { GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { environment } from '../../../../environments';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface Program { id: number; name: string; }
 interface Course { id: number; name: string; }
@@ -29,6 +30,7 @@ interface AcademicYear { id: number; name: string; }
   selector: 'app-fee-structure-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     DecimalPipe, RouterLink, FormsModule, ReactiveFormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatSelectModule,

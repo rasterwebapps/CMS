@@ -15,11 +15,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdmissionService } from '../admission.service';
 import { AdmissionResponse, ADMISSION_STATUSES } from '../admission.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-admission-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,

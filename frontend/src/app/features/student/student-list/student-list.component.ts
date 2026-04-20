@@ -18,11 +18,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-student-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     NgClass,
     RouterLink,
     FormsModule,

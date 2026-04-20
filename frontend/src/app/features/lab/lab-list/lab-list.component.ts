@@ -21,11 +21,13 @@ import { Lab, LabType, LabStatus, LAB_TYPES, LAB_STATUSES } from '../lab.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-lab-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     CommonModule,
     RouterLink,
     FormsModule,

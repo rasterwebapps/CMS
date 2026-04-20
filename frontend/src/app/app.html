@@ -155,19 +155,6 @@
       </div>
     }
 
-    @if (!focusMode() && breadcrumbs().length > 1) {
-      <nav class="breadcrumb-bar" aria-label="Breadcrumb">
-        @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
-          @if (last) {
-            <span class="breadcrumb-item breadcrumb-current">{{ crumb.label }}</span>
-          } @else {
-            <a [routerLink]="crumb.route" class="breadcrumb-item">{{ crumb.label }}</a>
-            <mat-icon class="breadcrumb-sep">chevron_right</mat-icon>
-          }
-        }
-      </nav>
-    }
-
     <main class="app-content">
       <router-outlet />
     </main>

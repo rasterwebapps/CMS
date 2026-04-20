@@ -30,11 +30,6 @@ interface NavGroup {
 
 type NavEntry = NavItem | NavGroup;
 
-interface Breadcrumb {
-  label: string;
-  route?: string;
-}
-
 function isNavGroup(entry: NavEntry): entry is NavGroup {
   return 'items' in entry;
 }
@@ -69,46 +64,6 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
   { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
   { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Convert Enquiry to Student' },
 ];
-
-// Human-readable labels for URL path segments used in breadcrumbs
-const SEGMENT_LABELS: Record<string, string> = {
-  dashboard: 'Dashboard',
-  departments: 'Departments',
-  programs: 'Programs',
-  courses: 'Courses',
-  'academic-years': 'Academic Years',
-  semesters: 'Semesters',
-  'academic-calendar': 'Academic Calendar',
-  labs: 'Labs',
-  'fee-structures': 'Fee Structures',
-  equipment: 'Equipment',
-  settings: 'Settings',
-  enquiries: 'Enquiries',
-  admissions: 'Admissions',
-  agents: 'Agents',
-  'referral-types': 'Referral Types',
-  faculty: 'Faculty',
-  students: 'Students',
-  attendance: 'Attendance',
-  examinations: 'Examinations',
-  'exam-results': 'Exam Results',
-  syllabi: 'Syllabi',
-  experiments: 'Experiments',
-  'curriculum-mappings': 'CO/PO Mapping',
-  'lab-schedules': 'Lab Schedules',
-  reports: 'Reports',
-  'student-fees': 'Student Fees',
-  'fee-payments': 'Fee Payments',
-  inventory: 'Inventory',
-  maintenance: 'Maintenance',
-  new: 'New',
-  edit: 'Edit',
-  'roll-numbers': 'Roll Number Assignment',
-  finalize: 'Fee Finalization',
-  'collect-payment': 'Collect Payment',
-  convert: 'Convert to Student',
-  mark: 'Mark Attendance',
-};
 
 @Component({
   selector: 'app-root',
@@ -161,28 +116,6 @@ export class App {
     const url = this.currentUrl() ?? '';
     const match = FOCUS_MODE_TITLES.find((t) => t.pattern.test(url));
     return match?.title ?? 'Form';
-  });
-
-  protected readonly breadcrumbs = computed((): Breadcrumb[] => {
-    const url = this.currentUrl() ?? '';
-    const path = url.split('?')[0];
-    const segments = path.split('/').filter((s) => s);
-    if (segments.length === 0) return [];
-
-    const crumbs: Breadcrumb[] = [{ label: 'Home', route: '/dashboard' }];
-    let accumulated = '';
-    const isId = (s: string) => /^(\d+|[0-9a-f-]{36})$/i.test(s);
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      // Skip numeric IDs (e.g. /students/123/edit → skip 123)
-      if (isId(segment)) continue;
-      accumulated += '/' + segment;
-      const label = SEGMENT_LABELS[segment] ?? segment;
-      const nextIsId = i + 1 < segments.length && isId(segments[i + 1]);
-      const isLast = i === segments.length - 1 || (i === segments.length - 2 && nextIsId);
-      crumbs.push({ label, route: isLast ? undefined : accumulated });
-    }
-    return crumbs;
   });
 
   private readonly navEntries: NavEntry[] = [

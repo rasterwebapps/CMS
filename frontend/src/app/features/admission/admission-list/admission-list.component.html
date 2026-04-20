@@ -1,13 +1,9 @@
 <div class="list-page">
-  <div class="page-header">
-    <div class="page-header__left">
-      <h1 class="page-title">Admissions</h1>
-      <p class="page-subtitle">Manage student admission applications</p>
-    </div>
-    <button class="btn-primary" routerLink="/admissions/new">
-      <mat-icon>add</mat-icon> New Admission
-    </button>
-  </div>
+  <app-page-header title="Admissions" subtitle="Manage student admission applications">
+    <button actions class="btn-primary" routerLink="/admissions/new">
+          <mat-icon>add</mat-icon> New Admission
+        </button>
+  </app-page-header>
 
   <div class="command-bar">
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">

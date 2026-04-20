@@ -16,11 +16,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurriculumService } from '../curriculum.service';
 import { Experiment } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-experiment-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,
