@@ -23,14 +23,13 @@
   border: none;
   background: transparent;
   border-radius: var(--cms-radius-sm);
-  color: var(--cms-toolbar-text);
+  color: var(--cms-text-muted);
   cursor: pointer;
   transition: var(--cms-transition);
-  opacity: 0.7;
 
   &:hover {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--cms-primary);
+    background: var(--cms-bg-hover);
   }
 
   mat-icon {
@@ -45,24 +44,24 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 99px;
+  background: var(--cms-bg-muted);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
   padding: 0 12px;
   height: 36px;
   transition: var(--cms-transition);
 
   &:focus-within {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    background: var(--cms-bg-card);
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
   }
 
   &__icon {
     font-size: 16px !important;
     width: 16px !important;
     height: 16px !important;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--cms-text-muted);
     flex-shrink: 0;
   }
 
@@ -72,12 +71,12 @@
     background: transparent;
     outline: none;
     font-size: 0.875rem;
-    color: #ffffff;
+    color: var(--cms-text-primary);
     min-width: 0;
     font-family: inherit;
 
     &::placeholder {
-      color: rgba(255, 255, 255, 0.6);
+      color: var(--cms-text-muted);
     }
   }
 
@@ -88,7 +87,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--cms-text-muted);
     padding: 0;
     flex-shrink: 0;
     border-radius: 50%;
@@ -97,8 +96,8 @@
     transition: var(--cms-transition);
 
     &:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.1);
+      color: var(--cms-text-primary);
+      background: var(--cms-bg-hover);
     }
 
     mat-icon {
@@ -111,8 +110,8 @@
   &__spinner {
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #ffffff;
+    border: 2px solid var(--cms-border-default);
+    border-top-color: var(--cms-primary);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     flex-shrink: 0;
