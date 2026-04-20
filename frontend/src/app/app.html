@@ -1,3 +1,47 @@
+@if (!focusMode()) {
+  <mat-toolbar class="app-toolbar">
+    <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation" class="toolbar-logo-btn">
+      @if (!toolbarLogoError()) {
+        <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
+          (error)="toolbarLogoError.set(true)" />
+      } @else {
+        <div class="toolbar-logo-fallback">
+          <mat-icon>school</mat-icon>
+        </div>
+      }
+    </button>
+    <span class="toolbar-title">SKS College of Nursing</span>
+    <span class="toolbar-spacer"></span>
+
+    <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn">
+      <mat-icon>notifications_none</mat-icon>
+    </button>
+
+    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
+      <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+
+    <app-theme-picker />
+
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
+      <div class="avatar-circle">
+        <mat-icon>person</mat-icon>
+      </div>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="user-menu-header" mat-menu-item disabled>
+        <mat-icon>badge</mat-icon>
+        <span>{{ authService.username() }}</span>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+}
+
 <mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
   <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-header">
@@ -102,51 +146,9 @@
         <span class="focus-title">{{ focusModeTitle() }}</span>
         <span class="toolbar-spacer"></span>
       </div>
-    } @else {
-      <mat-toolbar class="app-toolbar">
-        <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation" class="toolbar-logo-btn">
-          @if (!toolbarLogoError()) {
-            <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
-              (error)="toolbarLogoError.set(true)" />
-          } @else {
-            <div class="toolbar-logo-fallback">
-              <mat-icon>school</mat-icon>
-            </div>
-          }
-        </button>
-        <span class="toolbar-title">SKS College of Nursing</span>
-        <span class="toolbar-spacer"></span>
-
-        <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn">
-          <mat-icon>notifications_none</mat-icon>
-        </button>
-
-        <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
-          <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-        </button>
-
-        <app-theme-picker />
-
-        <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
-          <div class="avatar-circle">
-            <mat-icon>person</mat-icon>
-          </div>
-        </button>
-        <mat-menu #userMenu="matMenu">
-          <div class="user-menu-header" mat-menu-item disabled>
-            <mat-icon>badge</mat-icon>
-            <span>{{ authService.username() }}</span>
-          </div>
-          <mat-divider></mat-divider>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            <span>Logout</span>
-          </button>
-        </mat-menu>
-      </mat-toolbar>
     }
 
-    @if (breadcrumbs().length > 1) {
+    @if (!focusMode() && breadcrumbs().length > 1) {
       <nav class="breadcrumb-bar" aria-label="Breadcrumb">
         @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
           @if (last) {
