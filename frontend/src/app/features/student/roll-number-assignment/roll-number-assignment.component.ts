@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +25,6 @@ interface RollAssignment {
   selector: 'app-roll-number-assignment',
   standalone: true,
   imports: [
-    RouterLink,
     FormsModule,
     MatCardModule,
     MatButtonModule,
