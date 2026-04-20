@@ -34,6 +34,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.service.EnquiryDocumentService;
+import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -55,6 +56,9 @@ class EnquiryControllerTest {
 
     @MockitoBean
     private EnquiryPaymentRepository enquiryPaymentRepository;
+
+    @MockitoBean
+    private EnquiryPaymentService enquiryPaymentService;
 
     @Test
     void shouldCreateEnquiry() throws Exception {

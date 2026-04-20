@@ -14,6 +14,7 @@ import {
   EnquiryStatusHistoryResponse,
   EnquiryConversionRequest,
   EnquiryConversionPrefillResponse,
+  EnquiryYearWiseFeeStatusResponse,
 } from './enquiry.model';
 
 @Injectable({
@@ -103,5 +104,11 @@ export class EnquiryService {
 
   convertEnquiry(enquiryId: number, request: EnquiryConversionRequest): Observable<Enquiry> {
     return this.http.post<Enquiry>(`${this.baseUrl}/${enquiryId}/convert`, request);
+  }
+
+  getYearWiseFeeStatus(enquiryId: number): Observable<EnquiryYearWiseFeeStatusResponse> {
+    return this.http.get<EnquiryYearWiseFeeStatusResponse>(
+      `${this.baseUrl}/${enquiryId}/year-wise-fee-status`,
+    );
   }
 }

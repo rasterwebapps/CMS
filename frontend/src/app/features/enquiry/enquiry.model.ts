@@ -154,3 +154,18 @@ export interface EnquiryConversionPrefillResponse {
   courseName: string | null;
   suggestedSemester: number;
 }
+
+export interface YearFeeStatus {
+  yearNumber: number;
+  allocatedFee: number;
+  paidAmount: number;
+  outstanding: number;
+}
+
+export interface EnquiryYearWiseFeeStatusResponse {
+  enquiryId: number;
+  totalFee: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  yearBreakdown: YearFeeStatus[];
+}

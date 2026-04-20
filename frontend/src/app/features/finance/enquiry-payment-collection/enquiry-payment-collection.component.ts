@@ -13,12 +13,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
-import { Enquiry, EnquiryPaymentRequest } from '../../enquiry/enquiry.model';
-
-interface YearFee {
-  yearNumber: number;
-  amount: number;
-}
+import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
@@ -51,9 +46,9 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
-  protected readonly yearFees = signal<YearFee[]>([]);
+  protected readonly yearWiseFeeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
 
-  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD'];
+  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
 
   protected readonly displayedColumns = [
     'name',
@@ -111,29 +106,32 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   protected selectEnquiry(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
+    this.yearWiseFeeStatus.set(null);
 
-    // Pre-fill payment amount with net fee
     this.form.patchValue({
-      amount: enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0,
       paymentDate: new Date().toISOString().split('T')[0],
     });
 
-    // Parse year-wise fees
-    if (enquiry.yearWiseFees) {
-      try {
-        const parsed = JSON.parse(enquiry.yearWiseFees) as YearFee[];
-        this.yearFees.set(parsed);
-      } catch {
-        this.yearFees.set([]);
-      }
-    } else {
-      this.yearFees.set([]);
-    }
+    this.enquiryService.getYearWiseFeeStatus(enquiry.id).subscribe({
+      next: (status) => {
+        this.yearWiseFeeStatus.set(status);
+        // Pre-fill with outstanding amount
+        if (!this.form.get('amount')?.value) {
+          this.form.patchValue({ amount: status.totalOutstanding > 0 ? status.totalOutstanding : null });
+        }
+      },
+      error: () => {
+        // Fall back to net fee if status endpoint fails
+        this.form.patchValue({
+          amount: enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0,
+        });
+      },
+    });
   }
 
   protected backToList(): void {
     this.selectedEnquiry.set(null);
-    this.yearFees.set([]);
+    this.yearWiseFeeStatus.set(null);
     this.form.reset();
   }
 
@@ -162,8 +160,19 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
           'Close',
           { duration: 5000 },
         );
-        this.selectedEnquiry.set(null);
-        this.loadFinalizedEnquiries();
+        // Refresh year-wise fee status after payment
+        this.enquiryService.getYearWiseFeeStatus(enquiry.id).subscribe({
+          next: (status) => this.yearWiseFeeStatus.set(status),
+          error: () => {},
+        });
+        // Refresh enquiry to get updated status
+        this.enquiryService.getEnquiryById(enquiry.id).subscribe({
+          next: (updated) => {
+            this.selectedEnquiry.set(updated);
+            this.form.patchValue({ amount: null });
+          },
+          error: () => {},
+        });
         this.saving.set(false);
       },
       error: () => {

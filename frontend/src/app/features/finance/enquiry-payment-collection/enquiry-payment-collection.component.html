@@ -69,7 +69,7 @@
   } @else {
     <!-- Payment Form -->
     <div class="payment-layout">
-      <!-- Enquiry Summary -->
+      <!-- Fee Summary Card -->
       <mat-card appearance="outlined" class="summary-card">
         <mat-card-content>
           <h3 class="section-title">Fee Summary</h3>
@@ -104,16 +104,37 @@
             </div>
           </div>
 
-          @if (yearFees().length > 0) {
-            <h3 class="section-title">Year-wise Breakdown</h3>
-            <div class="fee-year-grid">
-              @for (yf of yearFees(); track yf.yearNumber) {
-                <div class="fee-year-box">
-                  <div class="fee-year-label">Year {{ yf.yearNumber }}</div>
-                  <div class="fee-year-amount">{{ yf.amount | currency:'INR':'₹':'1.0-0' }}</div>
+          <!-- Year-wise Fee Status -->
+          @if (yearWiseFeeStatus(); as feeStatus) {
+            @if (feeStatus.yearBreakdown.length > 0) {
+              <h3 class="section-title">Year-wise Fee Status</h3>
+              <div class="year-status-table">
+                <div class="year-status-header">
+                  <span>Year</span>
+                  <span>Fee</span>
+                  <span>Paid</span>
+                  <span>Outstanding</span>
                 </div>
-              }
-            </div>
+                @for (yf of feeStatus.yearBreakdown; track yf.yearNumber) {
+                  <div class="year-status-row" [class.year-status-row--paid]="yf.outstanding === 0" [class.year-status-row--partial]="yf.paidAmount > 0 && yf.outstanding > 0">
+                    <span class="year-label">Year {{ yf.yearNumber }}</span>
+                    <span class="year-fee">{{ yf.allocatedFee | currency:'INR':'₹':'1.0-0' }}</span>
+                    <span class="year-paid">{{ yf.paidAmount | currency:'INR':'₹':'1.0-0' }}</span>
+                    <span class="year-outstanding" [class.outstanding-zero]="yf.outstanding === 0">
+                      {{ yf.outstanding | currency:'INR':'₹':'1.0-0' }}
+                    </span>
+                  </div>
+                }
+                <div class="year-status-footer">
+                  <span>Total</span>
+                  <span>{{ feeStatus.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-paid">{{ feeStatus.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-outstanding" [class.outstanding-zero]="feeStatus.totalOutstanding === 0">
+                    {{ feeStatus.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
+                  </span>
+                </div>
+              </div>
+            }
           }
         </mat-card-content>
       </mat-card>
@@ -126,6 +147,7 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Amount (₹)</mat-label>
               <input matInput type="number" formControlName="amount" min="1" />
+              <mat-hint>Enter any amount from ₹1 to full outstanding balance</mat-hint>
               @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
                 <mat-error>Valid amount is required</mat-error>
               }

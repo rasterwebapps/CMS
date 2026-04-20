@@ -271,3 +271,106 @@
 - Message "No enquiries in FEES_FINALIZED status" is displayed with an icon
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FIN-016: Year-wise fee status displayed in Collect Payment screen
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry exists with status FEES_FINALIZED and year-wise fee breakdown set (e.g., 3-year course with ₹30,000/₹40,000/₹30,000 per year)
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment`
+2. Click "Collect" next to the fee-finalized enquiry
+3. Observe the "Fee Summary" panel on the left side
+
+**Expected Result:**
+- Fee Summary shows: Total Fee, Discount (if any), Net Fee Payable
+- A "Year-wise Fee Status" table appears below the summary
+- Table columns: Year | Fee | Paid | Outstanding
+- Initial state: Paid = ₹0, Outstanding = full year fee for each year
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-017: Year-wise outstanding updated after partial payment
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry exists in FEES_FINALIZED status with 3-year fee breakdown: Year 1 = ₹30,000, Year 2 = ₹40,000, Year 3 = ₹30,000
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment` and select the enquiry
+2. Enter amount ₹50,000 (more than Year 1, partial Year 2)
+3. Select payment mode, enter date
+4. Click "Collect Payment"
+5. Verify the year-wise table refreshes
+
+**Expected Result:**
+- Year 1: Fee ₹30,000 | Paid ₹30,000 | Outstanding ₹0 (shown in green)
+- Year 2: Fee ₹40,000 | Paid ₹20,000 | Outstanding ₹20,000
+- Year 3: Fee ₹30,000 | Paid ₹0 | Outstanding ₹30,000
+- Total Paid = ₹50,000 | Total Outstanding = ₹50,000
+- Enquiry status changes to PARTIALLY_PAID
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-018: Year-wise fee status shows fully paid state
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry exists in PARTIALLY_PAID status with remaining outstanding amount
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment` and select the enquiry
+2. Enter the exact outstanding amount
+3. Click "Collect Payment"
+
+**Expected Result:**
+- All year rows show Outstanding = ₹0 (shown in green)
+- Total Outstanding = ₹0
+- Enquiry status changes to FEES_PAID
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-019: Amount field pre-filled with total outstanding
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry in FEES_FINALIZED status is selected for payment collection
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment`
+2. Click "Collect" for a fee-finalized enquiry
+3. Check the Amount field in the Payment Details form
+
+**Expected Result:**
+- Amount field is pre-filled with the total outstanding amount
+- User can freely change this amount to any value from 1 to the full outstanding
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-020: Year-wise fee status — no year breakdown
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry in FEES_FINALIZED status that has no year-wise fee data
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment` and select the enquiry
+2. Observe the Fee Summary panel
+
+**Expected Result:**
+- Fee Summary shows Total Fee, Discount, Net Fee Payable as usual
+- Year-wise Fee Status table is NOT shown (no breakdown available)
+- Payment form is still functional for free-form amount entry
+
+**Status:** NOT TESTED
