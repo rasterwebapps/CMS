@@ -66,7 +66,7 @@ public class StudentFeeController {
     }
 
     @PostMapping("/{studentId}/collect")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CASHIER')")
     public ResponseEntity<CollectPaymentResponse> collectPayment(
             @PathVariable Long studentId,
             @Valid @RequestBody CollectPaymentRequest request) {

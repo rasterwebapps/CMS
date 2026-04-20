@@ -1,23 +1,35 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
+import com.cms.dto.MissingDocumentsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
+import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
-import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class EnquiryDocumentService {
+
+    private static final Set<DocumentType> MANDATORY_DOCUMENTS = Set.of(
+        DocumentType.TENTH_MARKSHEET,
+        DocumentType.TWELFTH_MARKSHEET,
+        DocumentType.TRANSFER_CERTIFICATE,
+        DocumentType.AADHAR_CARD,
+        DocumentType.PASSPORT_PHOTO
+    );
 
     private final EnquiryDocumentRepository documentRepository;
     private final EnquiryRepository enquiryRepository;
@@ -41,14 +53,30 @@ public class EnquiryDocumentService {
 
         EnquiryDocument saved = documentRepository.save(document);
 
-        // Auto-update enquiry status to DOCUMENTS_SUBMITTED if applicable
-        if (enquiry.getStatus() == EnquiryStatus.FEES_PAID
-            || enquiry.getStatus() == EnquiryStatus.PARTIALLY_PAID) {
-            enquiry.setStatus(EnquiryStatus.DOCUMENTS_SUBMITTED);
-            enquiryRepository.save(enquiry);
+        return toResponse(saved);
+    }
+
+    public MissingDocumentsResponse allMandatoryDocumentsSubmitted(Long enquiryId) {
+        if (!enquiryRepository.existsById(enquiryId)) {
+            throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
         }
 
-        return toResponse(saved);
+        List<EnquiryDocument> documents = documentRepository.findByEnquiryId(enquiryId);
+
+        Set<DocumentType> submittedTypes = documents.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.UPLOADED
+                || d.getStatus() == DocumentVerificationStatus.VERIFIED)
+            .map(EnquiryDocument::getDocumentType)
+            .collect(Collectors.toSet());
+
+        List<String> missing = new ArrayList<>();
+        for (DocumentType mandatory : MANDATORY_DOCUMENTS) {
+            if (!submittedTypes.contains(mandatory)) {
+                missing.add(mandatory.name());
+            }
+        }
+
+        return new MissingDocumentsResponse(missing.isEmpty(), missing);
     }
 
     public List<EnquiryDocumentResponse> findByEnquiryId(Long enquiryId) {
@@ -97,3 +125,4 @@ public class EnquiryDocumentService {
         );
     }
 }
+

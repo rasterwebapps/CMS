@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,11 +20,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.EnquiryConversionPrefillResponse;
+import com.cms.dto.EnquiryConversionRequest;
+import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
+import com.cms.dto.EnquirySummaryResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
+import com.cms.dto.MissingDocumentsResponse;
+import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryService;
 
 import jakarta.validation.Valid;
@@ -33,13 +42,19 @@ import jakarta.validation.Valid;
 public class EnquiryController {
 
     private final EnquiryService enquiryService;
+    private final EnquiryDocumentService enquiryDocumentService;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
 
-    public EnquiryController(EnquiryService enquiryService) {
+    public EnquiryController(EnquiryService enquiryService,
+                              EnquiryDocumentService enquiryDocumentService,
+                              EnquiryPaymentRepository enquiryPaymentRepository) {
         this.enquiryService = enquiryService;
+        this.enquiryDocumentService = enquiryDocumentService;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> create(@Valid @RequestBody EnquiryRequest request) {
         EnquiryResponse response = enquiryService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -72,8 +87,26 @@ public class EnquiryController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<EnquirySummaryResponse> getSummary(@PathVariable Long id) {
+        EnquiryResponse enquiry = enquiryService.findById(id);
+        BigDecimal totalPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(id);
+        BigDecimal outstanding = null;
+        if (enquiry.finalizedNetFee() != null) {
+            outstanding = enquiry.finalizedNetFee().subtract(totalPaid);
+        }
+        List<EnquiryDocumentResponse> docs = enquiryDocumentService.findByEnquiryId(id);
+        List<String> docTypes = docs.stream().map(d -> d.documentType().name()).toList();
+        return ResponseEntity.ok(new EnquirySummaryResponse(enquiry, totalPaid, outstanding, docs.size(), docTypes));
+    }
+
+    @GetMapping("/{id}/status-history")
+    public ResponseEntity<List<EnquiryStatusHistoryResponse>> getStatusHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(enquiryService.getStatusHistory(id));
+    }
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody EnquiryRequest request) {
@@ -82,7 +115,7 @@ public class EnquiryController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam EnquiryStatus status) {
@@ -101,6 +134,17 @@ public class EnquiryController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/submit-documents")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<?> submitDocuments(@PathVariable Long id) {
+        MissingDocumentsResponse missingResponse = enquiryDocumentService.allMandatoryDocumentsSubmitted(id);
+        if (!missingResponse.allSubmitted()) {
+            return ResponseEntity.badRequest().body(missingResponse);
+        }
+        EnquiryResponse response = enquiryService.updateStatus(id, EnquiryStatus.DOCUMENTS_SUBMITTED);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}/convert")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<EnquiryResponse> convertToStudent(
@@ -108,6 +152,23 @@ public class EnquiryController {
             @RequestParam Long studentId) {
         EnquiryResponse response = enquiryService.convertToStudent(id, studentId);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/convert")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<EnquiryResponse> convertToStudentWithData(
+            @PathVariable Long id,
+            @Valid @RequestBody EnquiryConversionRequest request,
+            Principal principal) {
+        String performedBy = principal != null ? principal.getName() : "admin";
+        EnquiryResponse response = enquiryService.convertToStudentWithData(id, request, performedBy);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/conversion-prefill")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<EnquiryConversionPrefillResponse> getConversionPrefill(@PathVariable Long id) {
+        return ResponseEntity.ok(enquiryService.getConversionPrefill(id));
     }
 
     @DeleteMapping("/{id}")

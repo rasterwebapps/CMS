@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.EnquiryConversionPrefillResponse;
+import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -32,6 +34,7 @@ import com.cms.model.enums.StudentType;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -51,6 +54,8 @@ class EnquiryServiceTest {
     private ReferralTypeRepository referralTypeRepository;
     @Mock
     private CourseRepository courseRepository;
+    @Mock
+    private EnquiryStatusHistoryRepository statusHistoryRepository;
 
     private EnquiryService enquiryService;
 
@@ -60,7 +65,7 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository, statusHistoryRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -826,5 +831,156 @@ class EnquiryServiceTest {
         EnquiryResponse response = enquiryService.create(request);
 
         assertThat(response.studentType()).isEqualTo(StudentType.DAY_SCHOLAR);
+    }
+
+    @Test
+    void shouldRecordHistoryOnCreate() {
+        EnquiryRequest request = new EnquiryRequest(
+            "Ravi Kumar", "ravi@email.com", "9876543210", null, null,
+            LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
+            null, null, null, null, null, null, null, null
+        );
+
+        Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(saved);
+
+        enquiryService.create(request);
+
+        verify(statusHistoryRepository).save(any());
+    }
+
+    @Test
+    void shouldConvertToStudentWithData() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+        );
+
+        Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
+            testProgram, 1, LocalDate.of(2024, 7, 1), com.cms.model.enums.StudentStatus.ACTIVE);
+        savedStudent.setId(10L);
+        savedStudent.setCreatedAt(Instant.now());
+        savedStudent.setUpdatedAt(Instant.now());
+
+        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
+        converted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
+
+        EnquiryResponse response = enquiryService.convertToStudentWithData(1L, request, "admin");
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThat(response.convertedStudentId()).isEqualTo(10L);
+        verify(statusHistoryRepository).save(any());
+    }
+
+    @Test
+    void shouldGetConversionPrefill() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        EnquiryConversionPrefillResponse prefill = enquiryService.getConversionPrefill(1L);
+
+        assertThat(prefill.firstName()).isEqualTo("Ravi");
+        assertThat(prefill.lastName()).isEqualTo("Kumar");
+        assertThat(prefill.email()).isEqualTo("ravi@email.com");
+        assertThat(prefill.programId()).isEqualTo(1L);
+        assertThat(prefill.suggestedSemester()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectConversionWhenNotDocumentsSubmitted() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+    }
+
+    @Test
+    void shouldRejectConversionWhenEmailAlreadyExists() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.existsByEmail("existing@college.edu")).thenReturn(true);
+
+        assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("email already exists");
+    }
+
+    @Test
+    void shouldRejectConversionWhenNoProgramOnEnquiry() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
+
+        assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("must have a program");
+    }
+
+    @Test
+    void shouldGetStatusHistory() {
+        com.cms.model.EnquiryStatusHistory history = new com.cms.model.EnquiryStatusHistory();
+        history.setId(1L);
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        history.setEnquiry(enquiry);
+        history.setFromStatus(null);
+        history.setToStatus(com.cms.model.enums.EnquiryStatus.ENQUIRED);
+        history.setChangedBy("system");
+        history.setChangedAt(java.time.Instant.now());
+
+        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        when(statusHistoryRepository.findByEnquiryIdOrderByChangedAtAsc(1L)).thenReturn(List.of(history));
+
+        List<com.cms.dto.EnquiryStatusHistoryResponse> responses = enquiryService.getStatusHistory(1L);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).toStatus()).isEqualTo("ENQUIRED");
+        assertThat(responses.get(0).changedBy()).isEqualTo("system");
+    }
+
+    @Test
+    void shouldGetConversionPrefillWithSingleWordName() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        EnquiryConversionPrefillResponse prefill = enquiryService.getConversionPrefill(1L);
+
+        assertThat(prefill.firstName()).isEqualTo("Ravi");
+        assertThat(prefill.lastName()).isEqualTo("");
     }
 }

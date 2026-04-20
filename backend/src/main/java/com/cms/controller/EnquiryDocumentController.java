@@ -31,7 +31,7 @@ public class EnquiryDocumentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryDocumentResponse> addDocument(
             @PathVariable Long enquiryId,
             @Valid @RequestBody EnquiryDocumentRequest request) {
@@ -46,7 +46,7 @@ public class EnquiryDocumentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryDocumentResponse> updateDocument(
             @PathVariable Long enquiryId,
             @PathVariable Long id,
@@ -56,7 +56,7 @@ public class EnquiryDocumentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<Void> deleteDocument(@PathVariable Long enquiryId, @PathVariable Long id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();

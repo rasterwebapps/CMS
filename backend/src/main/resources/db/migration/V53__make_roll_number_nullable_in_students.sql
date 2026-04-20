@@ -1,0 +1,1 @@
+ALTER TABLE students ALTER COLUMN roll_number DROP NOT NULL;

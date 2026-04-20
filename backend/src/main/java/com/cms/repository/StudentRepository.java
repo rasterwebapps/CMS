@@ -26,5 +26,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     List<Student> findByLabBatch(String labBatch);
 
+    List<Student> findByRollNumberIsNull();
+
+    List<Student> findByCourseIdAndRollNumberIsNull(Long courseId);
+
+    List<Student> findByProgramIdAndRollNumberIsNull(Long programId);
+
     List<Student> findByRollNumberContainingIgnoreCase(String rollNumber);
 }

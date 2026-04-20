@@ -70,18 +70,22 @@ class StudentControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenRollNumberIsBlank() throws Exception {
+    void shouldAllowNullRollNumberOnCreate() throws Exception {
         StudentRequest request = new StudentRequest(
-            "", "John", "Doe", "john@college.edu", "1234567890",
+            null, "John", "Doe", "john@college.edu", "1234567890",
             1L, null, null, 1, LocalDate.of(2024, 6, 1), null, null,
             null, null, null, null, null, null, null, null,
             null, null, null, null
         );
 
+        StudentResponse response = createStudentResponse(1L, null, "John", "Doe");
+
+        when(studentService.create(any(StudentRequest.class))).thenReturn(response);
+
         mockMvc.perform(post("/students")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isCreated());
     }
 
     @Test
