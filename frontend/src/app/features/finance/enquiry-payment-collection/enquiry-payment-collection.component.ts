@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -43,6 +43,7 @@ interface YearFee {
 })
 export class EnquiryPaymentCollectionComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly snackBar = inject(MatSnackBar);
@@ -73,7 +74,23 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadFinalizedEnquiries();
+    const enquiryId = this.route.snapshot.queryParamMap.get('enquiryId');
+    if (enquiryId) {
+      this.loading.set(true);
+      this.enquiryService.getEnquiryById(Number(enquiryId)).subscribe({
+        next: (enquiry) => {
+          this.dataSource.data = [enquiry];
+          this.selectEnquiry(enquiry);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+          this.loadFinalizedEnquiries();
+        },
+      });
+    } else {
+      this.loadFinalizedEnquiries();
+    }
   }
 
   private loadFinalizedEnquiries(): void {

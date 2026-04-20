@@ -284,8 +284,8 @@ export const routes: Routes = [
     path: 'fee-payments',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/finance/fee-payment-list/fee-payment-list.component').then(
-        (m) => m.FeePaymentListComponent
+      import('./features/finance/enquiry-payment-collection/enquiry-payment-collection.component').then(
+        (m) => m.EnquiryPaymentCollectionComponent
       ),
   },
   {

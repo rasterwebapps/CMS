@@ -240,7 +240,7 @@ export class App {
       icon: 'account_balance_wallet',
       items: [
         { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees' },
-        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments' },
+        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         {
           label: 'Fee Finalization',
           icon: 'lock',

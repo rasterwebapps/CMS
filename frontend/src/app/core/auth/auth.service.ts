@@ -25,6 +25,7 @@ export class AuthService {
   readonly isLabIncharge = computed(() => this._roles().includes('ROLE_LAB_INCHARGE'));
   readonly isTechnician = computed(() => this._roles().includes('ROLE_TECHNICIAN'));
   readonly isParent = computed(() => this._roles().includes('ROLE_PARENT'));
+  readonly isFrontOffice = computed(() => this._roles().includes('ROLE_FRONT_OFFICE'));
 
   async init(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) {
