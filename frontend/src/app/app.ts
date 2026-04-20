@@ -130,6 +130,7 @@ export class App {
   protected readonly darkTheme = signal(false);
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
   protected readonly menuSearch = signal('');
+  protected readonly toolbarLogoError = signal(false);
   protected readonly isNavGroup = isNavGroup;
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
