@@ -14,6 +14,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { AuthService } from './core/auth/auth.service';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
+import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 
 interface NavItem {
   label: string;
@@ -81,6 +82,7 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
     MatExpansionModule,
     MatDivider,
     ThemePickerComponent,
+    GlobalSearchComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
