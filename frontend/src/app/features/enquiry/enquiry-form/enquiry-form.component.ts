@@ -138,6 +138,9 @@ export class EnquiryFormComponent implements OnInit {
           if (item.referralTypeId) {
             this.onReferralTypeChange(item.referralTypeId);
           }
+          if (item.agentId) {
+            this.onAgentChange(item.agentId);
+          }
           if (item.programId) {
             const program = this.programs().find((p) => p.id === item.programId) ?? null;
             this.selectedProgram.set(program);
@@ -229,7 +232,7 @@ export class EnquiryFormComponent implements OnInit {
     const rtId = this.form.get('referralTypeId')?.value;
     if (!rtId) return false;
     const rt = this.referralTypes().find((r) => r.id === rtId);
-    return rt?.code === 'AGENT_REFERRAL';
+    return rt?.isSystemDefined === true;
   }
 
   protected selectedReferralType(): ReferralType | undefined {
@@ -241,10 +244,29 @@ export class EnquiryFormComponent implements OnInit {
   protected onReferralTypeChange(referralTypeId: number): void {
     if (!referralTypeId) {
       this.referralAdditionalAmount.set(0);
+      this.form.patchValue({ agentId: null });
       return;
     }
     const rt = this.referralTypes().find((r) => r.id === referralTypeId);
+    if (!rt?.isSystemDefined) {
+      this.form.patchValue({ agentId: null });
+    }
     this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
+  }
+
+  protected onAgentChange(agentId: number | null): void {
+    const rt = this.selectedReferralType();
+    if (!rt?.isSystemDefined) return;
+
+    if (agentId === null || agentId === undefined) {
+      this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
+      return;
+    }
+    const agent = this.agents().find((a) => a.id === agentId);
+    const commission = agent?.commissionAmount != null && agent.commissionAmount > 0
+      ? agent.commissionAmount
+      : (rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
+    this.referralAdditionalAmount.set(commission);
   }
 
   protected onSubmit(): void {

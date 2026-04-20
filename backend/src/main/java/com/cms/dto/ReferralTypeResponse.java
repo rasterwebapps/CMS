@@ -11,6 +11,7 @@ public record ReferralTypeResponse(
     Boolean hasCommission,
     String description,
     Boolean isActive,
+    Boolean isSystemDefined,
     Instant createdAt,
     Instant updatedAt
 ) {}

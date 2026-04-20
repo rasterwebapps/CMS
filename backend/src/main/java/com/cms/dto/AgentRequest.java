@@ -2,6 +2,8 @@ package com.cms.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
+import java.math.BigDecimal;
+
 public record AgentRequest(
     @NotBlank(message = "Name is required")
     String name,
@@ -15,6 +17,8 @@ public record AgentRequest(
     String locality,
 
     Integer allottedSeats,
+
+    BigDecimal commissionAmount,
 
     Boolean isActive
 ) {}

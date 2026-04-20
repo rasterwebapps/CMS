@@ -172,7 +172,12 @@
           @if (isAgentReferral()) {
             <div class="field-group">
               <label for="enq-agent" class="field-label">Agent</label>
-              <select id="enq-agent" class="field-select" formControlName="agentId">
+              <select
+                id="enq-agent"
+                class="field-select"
+                formControlName="agentId"
+                (change)="onAgentChange(form.get('agentId')?.value)"
+              >
                 <option [ngValue]="null">— None —</option>
                 @for (a of agents(); track a.id) {
                   <option [ngValue]="a.id">{{ a.name }}</option>

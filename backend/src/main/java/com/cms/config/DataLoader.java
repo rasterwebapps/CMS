@@ -558,7 +558,9 @@ public class DataLoader implements CommandLineRunner {
         referralTypeRepository.save(new ReferralType("Walk-In",        "WALK_IN",       new BigDecimal("0"),     false, "Direct walk-in enquiry",        true));
         referralTypeRepository.save(new ReferralType("Phone",          "PHONE",         new BigDecimal("0"),     false, "Phone enquiry",                  true));
         referralTypeRepository.save(new ReferralType("Online",         "ONLINE",        new BigDecimal("0"),     false, "Online enquiry",                 true));
-        referralTypeRepository.save(new ReferralType("Agent Referral", "AGENT_REFERRAL",new BigDecimal("5000"),  true,  "Referred by external agent",     true));
+        ReferralType agentReferralType = new ReferralType("Agent Referral", "AGENT_REFERRAL",new BigDecimal("5000"),  true,  "Referred by external agent",     true);
+        agentReferralType.setIsSystemDefined(true);
+        referralTypeRepository.save(agentReferralType);
         referralTypeRepository.save(new ReferralType("Staff",          "STAFF",         new BigDecimal("2000"),  true,  "Referred by staff member",       true));
         referralTypeRepository.save(new ReferralType("Alumni",         "ALUMNI",        new BigDecimal("1000"),  true,  "Referred by alumni",             true));
         referralTypeRepository.save(new ReferralType("Parent",         "PARENT",        new BigDecimal("0"),     false, "Referred by parent",             true));

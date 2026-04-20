@@ -55,6 +55,7 @@ class ReferralTypeServiceTest {
         assertThat(response.code()).isEqualTo("STAFF");
         assertThat(response.commissionAmount()).isEqualTo(new BigDecimal("5000.00"));
         assertThat(response.hasCommission()).isTrue();
+        assertThat(response.isSystemDefined()).isFalse();
         verify(referralTypeRepository).save(any(ReferralType.class));
     }
 
@@ -204,7 +205,8 @@ class ReferralTypeServiceTest {
 
     @Test
     void shouldDelete() {
-        when(referralTypeRepository.existsById(1L)).thenReturn(true);
+        ReferralType rt = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(rt));
 
         referralTypeService.delete(1L);
 
@@ -213,13 +215,66 @@ class ReferralTypeServiceTest {
 
     @Test
     void shouldThrowWhenDeletingNonExistent() {
-        when(referralTypeRepository.existsById(999L)).thenReturn(false);
+        when(referralTypeRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> referralTypeService.delete(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Referral type not found with id: 999");
 
         verify(referralTypeRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldThrowWhenDeletingSystemDefined() {
+        ReferralType rt = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"));
+        rt.setIsSystemDefined(true);
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(rt));
+
+        assertThatThrownBy(() -> referralTypeService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("System-defined referral types cannot be deleted");
+
+        verify(referralTypeRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldThrowWhenDisablingCommissionOnSystemDefined() {
+        ReferralType existing = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"));
+        existing.setIsSystemDefined(true);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"), false, null, true
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameAndIdNot("Agent Referral", 1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> referralTypeService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot disable commission for a system-defined referral type");
+
+        verify(referralTypeRepository, never()).save(any(ReferralType.class));
+    }
+
+    @Test
+    void shouldPreserveCodeWhenUpdatingSystemDefined() {
+        ReferralType existing = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"));
+        existing.setIsSystemDefined(true);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Agent / Consultant", "CHANGED_CODE", new BigDecimal("12000.00"), true, null, true
+        );
+
+        ReferralType updated = createReferralType(1L, "Agent / Consultant", "AGENT_REFERRAL", new BigDecimal("12000.00"));
+        updated.setIsSystemDefined(true);
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameAndIdNot("Agent / Consultant", 1L)).thenReturn(false);
+        when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(updated);
+
+        ReferralTypeResponse response = referralTypeService.update(1L, request);
+
+        assertThat(response.name()).isEqualTo("Agent / Consultant");
+        assertThat(response.code()).isEqualTo("AGENT_REFERRAL");
+        assertThat(response.isSystemDefined()).isTrue();
     }
 
     private ReferralType createReferralType(Long id, String name, String code, BigDecimal commissionAmount) {

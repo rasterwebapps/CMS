@@ -35,6 +35,7 @@ export class ReferralTypeFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Referral Type');
+  protected readonly isSystemDefined = signal(false);
 
   private itemId: number | null = null;
 
@@ -56,6 +57,7 @@ export class ReferralTypeFormComponent implements OnInit {
       this.loading.set(true);
       this.referralTypeService.getReferralTypeById(this.itemId).subscribe({
         next: (item) => {
+          this.isSystemDefined.set(item.isSystemDefined ?? false);
           this.form.patchValue({
             name: item.name,
             code: item.code,
@@ -64,6 +66,10 @@ export class ReferralTypeFormComponent implements OnInit {
             description: item.description,
             isActive: item.isActive,
           });
+          if (item.isSystemDefined) {
+            this.form.get('code')?.disable();
+            this.form.get('hasCommission')?.disable();
+          }
           this.loading.set(false);
         },
         error: () => {
@@ -79,7 +85,7 @@ export class ReferralTypeFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     const request: ReferralTypeRequest = {
       name: v.name.trim(),
       code: v.code.trim(),

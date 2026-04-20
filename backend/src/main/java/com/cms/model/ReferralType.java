@@ -41,6 +41,9 @@ public class ReferralType {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Column(name = "is_system_defined", nullable = false)
+    private Boolean isSystemDefined = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -116,6 +119,14 @@ public class ReferralType {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Boolean getIsSystemDefined() {
+        return isSystemDefined;
+    }
+
+    public void setIsSystemDefined(Boolean isSystemDefined) {
+        this.isSystemDefined = isSystemDefined;
     }
 
     public Instant getCreatedAt() {
