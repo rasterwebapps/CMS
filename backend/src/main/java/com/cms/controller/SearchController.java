@@ -25,6 +25,8 @@ import com.cms.repository.StudentRepository;
 @RequestMapping("/search")
 public class SearchController {
 
+    private static final int MIN_QUERY_LENGTH = 2;
+
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
     private final EnquiryRepository enquiryRepository;
@@ -46,7 +48,7 @@ public class SearchController {
             @RequestParam(name = "q", defaultValue = "") String q,
             @RequestParam(name = "limit", defaultValue = "10") int limit) {
 
-        if (q == null || q.trim().length() < 2) {
+        if (q == null || q.trim().length() < MIN_QUERY_LENGTH) {
             return ResponseEntity.ok(new SearchResponse(List.of()));
         }
 
