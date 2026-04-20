@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -190,6 +191,37 @@ class EnquiryControllerTest {
             .andExpect(jsonPath("$.convertedStudentId").value(10));
 
         verify(enquiryService).convertToStudent(1L, 10L);
+    }
+
+    @Test
+    void shouldConvertToStudentWithData() throws Exception {
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1,
+            LocalDate.of(2024, 7, 1), 2024, 2025, LocalDate.of(2024, 7, 1), true, true
+        );
+
+        EnquiryResponse response = new EnquiryResponse(
+            1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
+            1L, "Walk In", null, false,
+            EnquiryStatus.ADMITTED,
+            null, null, "Admitted", new BigDecimal("50000.00"),
+            null, null, null, null, null,
+            null, null, null, null, null, null,
+            10L, Instant.now(), Instant.now()
+        );
+
+        when(enquiryService.convertToStudentWithData(eq(1L), any(EnquiryConversionRequest.class), any()))
+            .thenReturn(response);
+
+        mockMvc.perform(post("/enquiries/1/convert")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("ADMITTED"))
+            .andExpect(jsonPath("$.convertedStudentId").value(10));
+
+        verify(enquiryService).convertToStudentWithData(eq(1L), any(EnquiryConversionRequest.class), any());
     }
 
     @Test

@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { EnquiryService } from '../enquiry.service';
@@ -22,6 +23,7 @@ import { Enquiry, EnquiryConversionPrefillResponse } from '../enquiry.model';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
   ],
@@ -47,6 +49,11 @@ export class EnquiryConvertComponent implements OnInit {
     phone: [''],
     semester: [1, [Validators.required, Validators.min(1)]],
     admissionDate: ['', Validators.required],
+    academicYearFrom: [null, Validators.required],
+    academicYearTo: [null, Validators.required],
+    applicationDate: ['', Validators.required],
+    parentConsentGiven: [false],
+    applicantConsentGiven: [false],
   });
 
   ngOnInit(): void {
@@ -66,6 +73,9 @@ export class EnquiryConvertComponent implements OnInit {
           phone: p.phone ?? '',
           semester: p.suggestedSemester,
           admissionDate: new Date().toISOString().split('T')[0],
+          academicYearFrom: p.suggestedAcademicYearFrom,
+          academicYearTo: p.suggestedAcademicYearTo,
+          applicationDate: p.suggestedApplicationDate,
         });
         this.loading.set(false);
       },
@@ -83,11 +93,11 @@ export class EnquiryConvertComponent implements OnInit {
     this.saving.set(true);
     this.enquiryService.convertEnquiry(id, this.form.value).subscribe({
       next: () => {
-        this.snackBar.open('Student created successfully', 'Close', { duration: 3000 });
+        this.snackBar.open('Admission created and student enrolled successfully', 'Close', { duration: 4000 });
         void this.router.navigate(['/students']);
       },
       error: () => {
-        this.snackBar.open('Conversion failed', 'Close', { duration: 3000 });
+        this.snackBar.open('Failed to create admission', 'Close', { duration: 3000 });
         this.saving.set(false);
       },
     });

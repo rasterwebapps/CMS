@@ -67,7 +67,7 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
   { pattern: /\/fee-structures\/edit(\?.*)?$/, title: 'Edit Fee Structure' },
   { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
   { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Convert Enquiry to Student' },
+  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Create Admission' },
 ];
 
 // Human-readable labels for URL path segments used in breadcrumbs
@@ -106,7 +106,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'roll-numbers': 'Roll Number Assignment',
   finalize: 'Fee Finalization',
   'collect-payment': 'Collect Payment',
-  convert: 'Convert to Student',
+  convert: 'Create Admission',
   mark: 'Mark Attendance',
 };
 

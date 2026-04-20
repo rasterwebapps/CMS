@@ -141,6 +141,11 @@ export interface EnquiryConversionRequest {
   phone?: string;
   semester: number;
   admissionDate: string;
+  academicYearFrom: number;
+  academicYearTo: number;
+  applicationDate: string;
+  parentConsentGiven?: boolean;
+  applicantConsentGiven?: boolean;
 }
 
 export interface EnquiryConversionPrefillResponse {
@@ -153,6 +158,9 @@ export interface EnquiryConversionPrefillResponse {
   courseId: number | null;
   courseName: string | null;
   suggestedSemester: number;
+  suggestedAcademicYearFrom: number;
+  suggestedAcademicYearTo: number;
+  suggestedApplicationDate: string;
 }
 
 export interface YearFeeStatus {

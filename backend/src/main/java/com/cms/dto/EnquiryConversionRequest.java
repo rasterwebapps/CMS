@@ -12,5 +12,10 @@ public record EnquiryConversionRequest(
     @Email String email,
     String phone,
     @NotNull Integer semester,
-    @NotNull LocalDate admissionDate
+    @NotNull LocalDate admissionDate,
+    @NotNull Integer academicYearFrom,
+    @NotNull Integer academicYearTo,
+    @NotNull LocalDate applicationDate,
+    Boolean parentConsentGiven,
+    Boolean applicantConsentGiven
 ) {}

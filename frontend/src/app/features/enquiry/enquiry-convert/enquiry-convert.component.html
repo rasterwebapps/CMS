@@ -21,10 +21,13 @@
         </mat-card-content>
       </mat-card>
 
-      <!-- Right: Student Creation Form -->
+      <!-- Right: Admission + Student Creation Form -->
       <div class="entry-form-card">
-        <h2 class="form-title">Student Details</h2>
+        <h2 class="form-title">Create Admission &amp; Enrol Student</h2>
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <h3 class="section-heading">Student Details</h3>
+
           <div class="field-group">
             <label class="field-label">First Name *</label>
             <mat-form-field appearance="outline" class="full-width">
@@ -76,10 +79,47 @@
               }
             </mat-form-field>
           </div>
+
+          <h3 class="section-heading">Admission Details</h3>
+
+          <div class="field-group">
+            <label class="field-label">Academic Year From *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="academicYearFrom" />
+              @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
+                <mat-error>Academic year from is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Academic Year To *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="academicYearTo" />
+              @if (form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched) {
+                <mat-error>Academic year to is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Application Date *</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="date" formControlName="applicationDate" />
+              @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
+                <mat-error>Application date is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+          <div class="field-group">
+            <mat-checkbox formControlName="parentConsentGiven">Parent / Guardian consent given</mat-checkbox>
+          </div>
+          <div class="field-group">
+            <mat-checkbox formControlName="applicantConsentGiven">Applicant consent given</mat-checkbox>
+          </div>
+
           <div class="form-footer">
             <button mat-stroked-button type="button" class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</button>
             <button mat-flat-button color="primary" type="submit" class="btn-submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Convert to Student }
+              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Create Admission }
             </button>
           </div>
         </form>
