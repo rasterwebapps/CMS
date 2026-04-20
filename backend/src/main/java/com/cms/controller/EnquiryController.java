@@ -141,7 +141,7 @@ public class EnquiryController {
         if (!missingResponse.allSubmitted()) {
             return ResponseEntity.badRequest().body(missingResponse);
         }
-        EnquiryResponse response = enquiryService.updateStatus(id, EnquiryStatus.DOCUMENTS_SUBMITTED);
+        EnquiryResponse response = enquiryService.submitDocuments(id);
         return ResponseEntity.ok(response);
     }
 
