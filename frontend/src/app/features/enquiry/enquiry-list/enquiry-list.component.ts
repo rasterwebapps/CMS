@@ -53,7 +53,7 @@ export class EnquiryListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly statusFilter = signal('');
-  protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
+  protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED'];
 
   /** Date range filter — defaults to current month */
   protected dateFrom: Date;
@@ -105,7 +105,7 @@ export class EnquiryListComponent implements OnInit {
       case 'FEES_PAID': return 'primary';
       case 'PARTIALLY_PAID': return 'accent';
       case 'DOCUMENTS_SUBMITTED': return 'primary';
-      case 'CONVERTED': return 'primary';
+      case 'ADMITTED': return 'primary';
       case 'CLOSED': return '';
       default: return '';
     }
@@ -121,14 +121,14 @@ export class EnquiryListComponent implements OnInit {
       case 'FEES_PAID': return [];
       case 'PARTIALLY_PAID': return [];
       case 'DOCUMENTS_SUBMITTED': return [];
-      case 'CONVERTED': return [];
+      case 'ADMITTED': return [];
       case 'CLOSED': return ['ENQUIRED'];
       default: return [];
     }
   }
 
   protected canChangeStatus(item: Enquiry): boolean {
-    return item.status !== 'CONVERTED' && this.getNextStatuses(item.status).length > 0;
+    return item.status !== 'ADMITTED' && item.status !== 'CONVERTED' && this.getNextStatuses(item.status).length > 0;
   }
 
   protected onStatusUpdate(item: Enquiry, newStatus: string): void {
@@ -153,7 +153,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected convert(item: Enquiry): void {
-    void this.router.navigate(['/students/new'], { queryParams: { fromEnquiry: item.id } });
+    void this.router.navigate(['/enquiries', item.id, 'convert']);
   }
 
   protected canFinalizeFee(item: Enquiry): boolean {

@@ -8,6 +8,7 @@ public enum EnquiryStatus {
     FEES_PAID,
     PARTIALLY_PAID,
     DOCUMENTS_SUBMITTED,
+    ADMITTED,
     CONVERTED,
     CLOSED
 }

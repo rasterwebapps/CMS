@@ -25,12 +25,14 @@ import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
+import com.cms.model.Admission;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
@@ -56,6 +58,8 @@ class EnquiryServiceTest {
     private CourseRepository courseRepository;
     @Mock
     private EnquiryStatusHistoryRepository statusHistoryRepository;
+    @Mock
+    private AdmissionRepository admissionRepository;
 
     private EnquiryService enquiryService;
 
@@ -65,7 +69,7 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository, statusHistoryRepository);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -527,7 +531,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenFinalizingFeesWithWrongStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
@@ -931,7 +935,8 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
-            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            2024, 2025, LocalDate.of(2024, 7, 1), true, true
         );
 
         Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
@@ -940,19 +945,21 @@ class EnquiryServiceTest {
         savedStudent.setCreatedAt(Instant.now());
         savedStudent.setUpdatedAt(Instant.now());
 
-        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
-        converted.setConvertedStudentId(10L);
+        Enquiry admitted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
+        admitted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
+        when(admissionRepository.save(any(Admission.class))).thenReturn(new Admission());
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(admitted);
 
         EnquiryResponse response = enquiryService.convertToStudentWithData(1L, request, "admin");
 
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.ADMITTED);
         assertThat(response.convertedStudentId()).isEqualTo(10L);
+        verify(admissionRepository).save(any(Admission.class));
         verify(statusHistoryRepository).save(any());
     }
 
@@ -970,6 +977,9 @@ class EnquiryServiceTest {
         assertThat(prefill.email()).isEqualTo("ravi@email.com");
         assertThat(prefill.programId()).isEqualTo(1L);
         assertThat(prefill.suggestedSemester()).isEqualTo(1);
+        assertThat(prefill.suggestedAcademicYearFrom()).isEqualTo(LocalDate.now().getYear());
+        assertThat(prefill.suggestedAcademicYearTo()).isEqualTo(LocalDate.now().getYear() + 1);
+        assertThat(prefill.suggestedApplicationDate()).isEqualTo(LocalDate.now());
     }
 
     @Test
@@ -978,7 +988,8 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
-            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -994,7 +1005,8 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
-            "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+            "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1011,7 +1023,8 @@ class EnquiryServiceTest {
             null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
-            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1)
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));

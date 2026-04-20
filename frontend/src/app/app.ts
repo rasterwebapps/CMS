@@ -63,7 +63,7 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
   { pattern: /\/fee-structures\/edit(\?.*)?$/, title: 'Edit Fee Structure' },
   { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
   { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Convert Enquiry to Student' },
+  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Create Admission' },
 ];
 
 @Component({

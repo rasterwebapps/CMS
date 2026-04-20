@@ -20,6 +20,7 @@ import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Admission;
 import com.cms.model.Agent;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
@@ -27,7 +28,9 @@ import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
+import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
@@ -58,6 +61,7 @@ public class EnquiryService {
     private final ReferralTypeRepository referralTypeRepository;
     private final CourseRepository courseRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
+    private final AdmissionRepository admissionRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -65,7 +69,8 @@ public class EnquiryService {
                            StudentRepository studentRepository,
                            ReferralTypeRepository referralTypeRepository,
                            CourseRepository courseRepository,
-                           EnquiryStatusHistoryRepository statusHistoryRepository) {
+                           EnquiryStatusHistoryRepository statusHistoryRepository,
+                           AdmissionRepository admissionRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -73,6 +78,7 @@ public class EnquiryService {
         this.referralTypeRepository = referralTypeRepository;
         this.courseRepository = courseRepository;
         this.statusHistoryRepository = statusHistoryRepository;
+        this.admissionRepository = admissionRepository;
     }
 
     @Transactional
@@ -355,13 +361,24 @@ public class EnquiryService {
 
         Student savedStudent = studentRepository.save(student);
 
+        Admission admission = new Admission(
+            savedStudent,
+            request.academicYearFrom(),
+            request.academicYearTo(),
+            request.applicationDate(),
+            AdmissionStatus.APPROVED
+        );
+        admission.setParentConsentGiven(request.parentConsentGiven());
+        admission.setApplicantConsentGiven(request.applicantConsentGiven());
+        admissionRepository.save(admission);
+
         EnquiryStatus oldStatus = enquiry.getStatus();
-        enquiry.setStatus(EnquiryStatus.CONVERTED);
+        enquiry.setStatus(EnquiryStatus.ADMITTED);
         enquiry.setConvertedStudentId(savedStudent.getId());
         Enquiry saved = enquiryRepository.save(enquiry);
 
-        recordHistory(saved, oldStatus, EnquiryStatus.CONVERTED, performedBy,
-            "Converted to student ID: " + savedStudent.getId());
+        recordHistory(saved, oldStatus, EnquiryStatus.ADMITTED, performedBy,
+            "Admitted: student ID " + savedStudent.getId() + ", admission created");
 
         return toResponse(saved);
     }
@@ -375,6 +392,8 @@ public class EnquiryService {
         String firstName = spaceIdx > 0 ? fullName.substring(0, spaceIdx) : fullName;
         String lastName = spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "";
 
+        int currentYear = LocalDate.now().getYear();
+
         return new EnquiryConversionPrefillResponse(
             firstName,
             lastName,
@@ -384,7 +403,10 @@ public class EnquiryService {
             enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
             enquiry.getCourse() != null ? enquiry.getCourse().getId() : null,
             enquiry.getCourse() != null ? enquiry.getCourse().getName() : null,
-            1
+            1,
+            currentYear,
+            currentYear + 1,
+            LocalDate.now()
         );
     }
 
