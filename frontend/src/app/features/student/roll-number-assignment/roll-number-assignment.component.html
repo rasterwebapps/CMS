@@ -1,8 +1,8 @@
 <div class="list-page">
   <app-page-header title="Roll Number Assignment" subtitle="Assign roll numbers to students">
     <button actions mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
-          @if (saving()) { <mat-spinner diameter="18"></mat-spinner> } @else { Save All }
-        </button>
+      @if (saving()) { <mat-spinner diameter="18"></mat-spinner> } @else { Save All }
+    </button>
   </app-page-header>
 
   <div class="filters-row">
