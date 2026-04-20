@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -120,7 +121,8 @@ public class EnquiryPaymentService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        BigDecimal totalPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId);
+        BigDecimal totalPaid = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
+            .orElse(BigDecimal.ZERO);
 
         List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
         yearEntries.sort(Comparator.comparingInt(YearWiseFeeEntry::yearNumber));

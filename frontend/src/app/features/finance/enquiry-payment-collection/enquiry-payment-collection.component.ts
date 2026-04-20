@@ -163,6 +163,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
         // Refresh year-wise fee status after payment
         this.enquiryService.getYearWiseFeeStatus(enquiry.id).subscribe({
           next: (status) => this.yearWiseFeeStatus.set(status),
+          error: () => {},
         });
         // Refresh enquiry to get updated status
         this.enquiryService.getEnquiryById(enquiry.id).subscribe({
@@ -170,6 +171,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
             this.selectedEnquiry.set(updated);
             this.form.patchValue({ amount: null });
           },
+          error: () => {},
         });
         this.saving.set(false);
       },
