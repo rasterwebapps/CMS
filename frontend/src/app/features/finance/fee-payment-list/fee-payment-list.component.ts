@@ -17,11 +17,13 @@ import { FinanceService } from '../finance.service';
 import { FeePayment } from '../finance.model';
 import { DecimalPipe } from '@angular/common';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-fee-payment-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,

@@ -1,13 +1,9 @@
 <div class="list-page">
-  <div class="page-header">
-    <div class="page-header__left">
-      <h1 class="page-title">Roll Number Assignment</h1>
-      <p class="page-subtitle">Assign roll numbers to students</p>
-    </div>
-    <button mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
+  <app-page-header title="Roll Number Assignment" subtitle="Assign roll numbers to students">
+    <button actions mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
       @if (saving()) { <mat-spinner diameter="18"></mat-spinner> } @else { Save All }
     </button>
-  </div>
+  </app-page-header>
 
   <div class="filters-row">
     <mat-form-field appearance="outline" subscriptSizing="dynamic">

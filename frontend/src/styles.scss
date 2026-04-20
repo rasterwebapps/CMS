@@ -407,18 +407,18 @@ app-root {
 // Primary filled button (mat-flat-button)
 .mat-mdc-unelevated-button.mat-primary,
 .mat-mdc-raised-button.mat-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%) !important;
+  background: var(--cms-gradient-brand) !important;
   color: #ffffff !important;
   border-radius: var(--cms-radius-sm) !important;
   font-weight: 600 !important;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: var(--cms-shadow-colored) !important;
   transition: var(--cms-transition) !important;
   border: none !important;
 
   &:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%) !important;
-    box-shadow: 0 6px 20px -4px rgba(99, 102, 241, 0.5) !important;
+    background: var(--cms-gradient-brand-hover) !important;
+    box-shadow: 0 6px 20px -4px var(--cms-primary-alpha-50) !important;
     transform: translateY(-1px);
   }
 
@@ -476,11 +476,11 @@ app-root {
 
 // FAB buttons
 .mat-mdc-fab, .mat-mdc-mini-fab {
-  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%) !important;
-  box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.4) !important;
+  background: var(--cms-gradient-brand) !important;
+  box-shadow: var(--cms-shadow-colored) !important;
 
   &:hover {
-    box-shadow: 0 6px 20px -4px rgba(99, 102, 241, 0.5) !important;
+    box-shadow: 0 6px 20px -4px var(--cms-primary-alpha-50) !important;
   }
 }
 
@@ -662,7 +662,7 @@ app-root {
   &:hover {
     background: var(--cms-primary-hover);
     box-shadow:
-      0 4px 12px -2px rgba(79, 70, 229, 0.4),
+      0 4px 12px -2px var(--cms-primary-alpha-40),
       inset 0 1px 0 rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
   }
@@ -1413,13 +1413,13 @@ app-root {
   font-family: inherit;
   cursor: pointer;
   transition: var(--cms-transition);
-  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px var(--cms-primary-alpha-30), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   letter-spacing: -0.01em;
   white-space: nowrap;
 
   &:hover:not(:disabled) {
     background: var(--cms-primary-hover);
-    box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px -2px var(--cms-primary-alpha-40), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
   }
 

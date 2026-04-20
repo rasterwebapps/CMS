@@ -21,11 +21,13 @@ import { Faculty, FacultyStatus, FACULTY_STATUS_OPTIONS } from '../faculty.model
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-faculty-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     TitleCasePipe,

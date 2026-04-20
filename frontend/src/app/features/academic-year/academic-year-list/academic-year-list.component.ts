@@ -18,11 +18,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-academic-year-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     DatePipe,
     FormsModule,

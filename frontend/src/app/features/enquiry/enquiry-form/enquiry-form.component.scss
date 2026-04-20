@@ -26,8 +26,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: var(--cms-primary-light, #e8f5e9);
-  border: 1.5px solid var(--cms-primary, #1976d2);
+  background: var(--cms-primary-light);
+  border: 1.5px solid var(--cms-primary);
   border-radius: 10px;
   margin: 4px 0 8px;
 }
@@ -35,7 +35,7 @@
 .fee-amount-label {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: var(--cms-primary, #1976d2);
+  color: var(--cms-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -44,14 +44,14 @@
 .fee-amount-value {
   font-size: 1.2rem;
   font-weight: 800;
-  color: var(--cms-primary, #1976d2);
+  color: var(--cms-primary);
   letter-spacing: -0.02em;
 }
 
 .fee-type-hint {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--cms-primary, #1976d2);
+  color: var(--cms-primary);
   opacity: 0.7;
 }
 
