@@ -92,16 +92,14 @@
       flex-shrink: 0;
     }
 
-    .app-name {
-      font-size: 1.2rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--color-primary-200) 0%, var(--color-primary-300) 50%, var(--color-primary-400) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      white-space: nowrap;
+    // Full horizontal product logo (expanded state)
+    .app-logo-full {
+      height: 52px;
+      width: auto;
       flex: 1;
+      min-width: 0;
+      object-fit: contain;
+      object-position: left center;
     }
 
     .sidenav-toggle-btn {
@@ -230,6 +228,59 @@
     }
     &:hover::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  // ─── Sidenav Footer — Powered by RasterWebApps ───
+  .sidenav-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--cms-sidenav-border);
+    background: rgba(0, 0, 0, 0.12);
+
+    .sidenav-footer-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.28);
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .sidenav-footer-logo {
+      height: 18px;
+      width: auto;
+      opacity: 0.55;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.85;
+      }
+    }
+
+    // Collapsed state — show a single "R" glyph
+    .sidenav-footer-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+    }
+
+    .sidenav-footer-r {
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: rgba(165, 180, 252, 0.45);
+      letter-spacing: 0;
+      transition: color 0.2s;
+
+      &:hover {
+        color: rgba(165, 180, 252, 0.8);
+      }
     }
   }
 }

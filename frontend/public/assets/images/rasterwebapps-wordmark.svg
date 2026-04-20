@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 28">
+  <defs>
+    <linearGradient id="r-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Stylised "R" lettermark (14×18 at x=0,y=5) -->
+  <!-- Vertical stem -->
+  <rect x="0" y="5" width="3" height="18" rx="1.5" fill="url(#r-grad)"/>
+  <!-- Top bowl -->
+  <path d="M3,5 Q14,5 14,11 Q14,17 3,17" fill="none" stroke="url(#r-grad)" stroke-width="3" stroke-linecap="round"/>
+  <!-- Leg -->
+  <line x1="3" y1="17" x2="14" y2="23" stroke="url(#r-grad)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- "RasterWebApps" wordmark -->
+  <text
+    x="20" y="20"
+    font-family="Inter, system-ui, -apple-system, sans-serif"
+    font-size="13"
+    font-weight="600"
+    letter-spacing="-0.01em"
+    fill="rgba(255,255,255,0.75)"
+  >RasterWebApps</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="cap-body" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.78"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="200" height="200" rx="44" fill="url(#bg)"/>
+  <!-- Subtle top-left highlight -->
+  <ellipse cx="68" cy="52" rx="80" ry="48" fill="rgba(255,255,255,0.07)"/>
+
+  <!-- ── Graduation cap ── -->
+
+  <!-- Cap body (cylinder) — drawn first so the board overlaps it -->
+  <path d="M74,82 L74,130 A26,11 0 0 0 126,130 L126,82" fill="url(#cap-body)"/>
+  <!-- Cap top ellipse (3-D depth) -->
+  <ellipse cx="100" cy="82" rx="26" ry="9" fill="rgba(255,255,255,0.93)"/>
+
+  <!-- Board (diamond / rhombus) — sits on top of the cap -->
+  <polygon points="100,58 146,82 100,106 54,82" fill="#ffffff"/>
+
+  <!-- Board centre seal dot -->
+  <circle cx="100" cy="82" r="7" fill="rgba(79,70,229,0.50)"/>
+  <circle cx="100" cy="82" r="3.5" fill="#ffffff" opacity="0.92"/>
+
+  <!-- Tassel cord from right corner of board -->
+  <line x1="146" y1="82" x2="150" y2="124" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity="0.85"/>
+  <!-- Tassel end ball -->
+  <circle cx="150" cy="128" r="6" fill="#ffffff" opacity="0.85"/>
+  <!-- Tassel threads -->
+  <line x1="147" y1="132" x2="142" y2="149" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" opacity="0.55"/>
+  <line x1="150" y1="134" x2="150" y2="151" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" opacity="0.55"/>
+  <line x1="153" y1="132" x2="158" y2="149" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" opacity="0.55"/>
+</svg>
