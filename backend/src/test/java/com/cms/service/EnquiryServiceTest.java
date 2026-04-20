@@ -412,7 +412,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
-        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED);
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED, "admin");
 
         assertThat(response.status()).isEqualTo(EnquiryStatus.INTERESTED);
         verify(enquiryRepository).save(any(Enquiry.class));
@@ -422,7 +422,7 @@ class EnquiryServiceTest {
     void shouldThrowWhenUpdatingStatusOfNonExistent() {
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.INTERESTED))
+        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.INTERESTED, "admin"))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
 
@@ -436,7 +436,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
-        assertThatThrownBy(() -> enquiryService.updateStatus(1L, EnquiryStatus.FEES_FINALIZED))
+        assertThatThrownBy(() -> enquiryService.updateStatus(1L, EnquiryStatus.FEES_FINALIZED, "admin"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Cannot manually transition from INTERESTED to FEES_FINALIZED");
 
@@ -454,7 +454,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
-        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED);
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED, "admin");
 
         assertThat(response.status()).isEqualTo(EnquiryStatus.NOT_INTERESTED);
     }
@@ -470,7 +470,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
-        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED);
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED, "admin");
 
         assertThat(response.status()).isEqualTo(EnquiryStatus.NOT_INTERESTED);
     }

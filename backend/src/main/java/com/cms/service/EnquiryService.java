@@ -277,7 +277,7 @@ public class EnquiryService {
     }
 
     @Transactional
-    public EnquiryResponse updateStatus(Long id, EnquiryStatus status) {
+    public EnquiryResponse updateStatus(Long id, EnquiryStatus status, String changedBy) {
         Enquiry enquiry = enquiryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
         Set<EnquiryStatus> allowed = ALLOWED_MANUAL_TRANSITIONS.getOrDefault(enquiry.getStatus(), Set.of());
@@ -289,7 +289,7 @@ public class EnquiryService {
         EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(status);
         Enquiry saved = enquiryRepository.save(enquiry);
-        recordHistory(saved, oldStatus, status, "system", null);
+        recordHistory(saved, oldStatus, status, changedBy, null);
         return toResponse(saved);
     }
 

@@ -118,8 +118,10 @@ public class EnquiryController {
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> updateStatus(
             @PathVariable Long id,
-            @RequestParam EnquiryStatus status) {
-        EnquiryResponse response = enquiryService.updateStatus(id, status);
+            @RequestParam EnquiryStatus status,
+            Principal principal) {
+        String changedBy = principal != null ? principal.getName() : "system";
+        EnquiryResponse response = enquiryService.updateStatus(id, status, changedBy);
         return ResponseEntity.ok(response);
     }
 

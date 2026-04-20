@@ -248,24 +248,24 @@ class EnquiryControllerTest {
     void shouldUpdateStatus() throws Exception {
         EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.INTERESTED);
 
-        when(enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED)).thenReturn(response);
+        when(enquiryService.updateStatus(eq(1L), eq(EnquiryStatus.INTERESTED), any(String.class))).thenReturn(response);
 
         mockMvc.perform(patch("/enquiries/1/status").param("status", "INTERESTED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("INTERESTED"));
 
-        verify(enquiryService).updateStatus(1L, EnquiryStatus.INTERESTED);
+        verify(enquiryService).updateStatus(eq(1L), eq(EnquiryStatus.INTERESTED), any(String.class));
     }
 
     @Test
     void shouldReturnNotFoundWhenUpdatingStatusForNonExistent() throws Exception {
-        when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class)))
+        when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class), any(String.class)))
             .thenThrow(new ResourceNotFoundException("Enquiry not found with id: 999"));
 
         mockMvc.perform(patch("/enquiries/999/status").param("status", "INTERESTED"))
             .andExpect(status().isNotFound());
 
-        verify(enquiryService).updateStatus(999L, EnquiryStatus.INTERESTED);
+        verify(enquiryService).updateStatus(eq(999L), eq(EnquiryStatus.INTERESTED), any(String.class));
     }
 
     @Test
