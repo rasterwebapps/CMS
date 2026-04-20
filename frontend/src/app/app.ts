@@ -40,10 +40,9 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 }
 
 // Routes that activate focus mode (collapse global toolbar to maximise vertical space)
+// Note: enquiry form routes are intentionally excluded — they keep the regular
+// toolbar and sidebar visible so users can navigate without losing context.
 const FOCUS_MODE_PATTERNS: RegExp[] = [
-  /\/enquiries\/new$/,
-  /\/enquiries\/[^/]+\/edit$/,
-  /\/enquiries\/[^/]+\/convert$/,
   /\/admissions\/new$/,
   /\/admissions\/[^/]+\/edit$/,
   /\/students\/new$/,
@@ -54,9 +53,6 @@ const FOCUS_MODE_PATTERNS: RegExp[] = [
 ];
 
 const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
-  { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Convert to Student' },
   { pattern: /\/admissions\/new$/, title: 'New Admission' },
   { pattern: /\/admissions\/[^/]+\/edit$/, title: 'Edit Admission' },
   { pattern: /\/students\/new$/, title: 'New Student Registration' },
@@ -134,6 +130,7 @@ export class App {
   protected readonly darkTheme = signal(false);
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
   protected readonly menuSearch = signal('');
+  protected readonly toolbarLogoError = signal(false);
   protected readonly isNavGroup = isNavGroup;
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';

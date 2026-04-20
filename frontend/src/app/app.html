@@ -104,8 +104,15 @@
       </div>
     } @else {
       <mat-toolbar class="app-toolbar">
-        <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation">
-          <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
+        <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation" class="toolbar-logo-btn">
+          @if (!toolbarLogoError()) {
+            <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
+              (error)="toolbarLogoError.set(true)" />
+          } @else {
+            <div class="toolbar-logo-fallback">
+              <mat-icon>school</mat-icon>
+            </div>
+          }
         </button>
         <span class="toolbar-title">SKS College of Nursing</span>
         <span class="toolbar-spacer"></span>
