@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -247,24 +248,24 @@ class EnquiryControllerTest {
     void shouldUpdateStatus() throws Exception {
         EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.INTERESTED);
 
-        when(enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED)).thenReturn(response);
+        when(enquiryService.updateStatus(eq(1L), eq(EnquiryStatus.INTERESTED), any(String.class))).thenReturn(response);
 
         mockMvc.perform(patch("/enquiries/1/status").param("status", "INTERESTED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("INTERESTED"));
 
-        verify(enquiryService).updateStatus(1L, EnquiryStatus.INTERESTED);
+        verify(enquiryService).updateStatus(eq(1L), eq(EnquiryStatus.INTERESTED), any(String.class));
     }
 
     @Test
     void shouldReturnNotFoundWhenUpdatingStatusForNonExistent() throws Exception {
-        when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class)))
+        when(enquiryService.updateStatus(eq(999L), any(EnquiryStatus.class), any(String.class)))
             .thenThrow(new ResourceNotFoundException("Enquiry not found with id: 999"));
 
         mockMvc.perform(patch("/enquiries/999/status").param("status", "INTERESTED"))
             .andExpect(status().isNotFound());
 
-        verify(enquiryService).updateStatus(999L, EnquiryStatus.INTERESTED);
+        verify(enquiryService).updateStatus(eq(999L), eq(EnquiryStatus.INTERESTED), any(String.class));
     }
 
     @Test
@@ -289,6 +290,32 @@ class EnquiryControllerTest {
             .andExpect(jsonPath("$.status").value("FEES_FINALIZED"));
 
         verify(enquiryService).finalizeFees(eq(1L), any(com.cms.dto.FeeFinalizationRequest.class), any(String.class));
+    }
+
+    @Test
+    void shouldSubmitDocuments() throws Exception {
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryDocumentService.allMandatoryDocumentsSubmitted(1L))
+            .thenReturn(new com.cms.dto.MissingDocumentsResponse(true, List.of()));
+        when(enquiryService.submitDocuments(1L)).thenReturn(response);
+
+        mockMvc.perform(post("/enquiries/1/submit-documents"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("DOCUMENTS_SUBMITTED"));
+
+        verify(enquiryService).submitDocuments(1L);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenMandatoryDocumentsMissing() throws Exception {
+        when(enquiryDocumentService.allMandatoryDocumentsSubmitted(1L))
+            .thenReturn(new com.cms.dto.MissingDocumentsResponse(false, List.of("IDENTITY_PROOF")));
+
+        mockMvc.perform(post("/enquiries/1/submit-documents"))
+            .andExpect(status().isBadRequest());
+
+        verify(enquiryService, never()).submitDocuments(any());
     }
 
     private EnquiryResponse createResponse(Long id, String name, EnquiryStatus status) {

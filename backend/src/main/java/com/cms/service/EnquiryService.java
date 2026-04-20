@@ -3,7 +3,11 @@ package com.cms.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,17 @@ import com.cms.repository.StudentRepository;
 @Service
 @Transactional(readOnly = true)
 public class EnquiryService {
+
+    private static final Map<EnquiryStatus, Set<EnquiryStatus>> ALLOWED_MANUAL_TRANSITIONS;
+
+    static {
+        Map<EnquiryStatus, Set<EnquiryStatus>> map = new EnumMap<>(EnquiryStatus.class);
+        map.put(EnquiryStatus.ENQUIRED,       EnumSet.of(EnquiryStatus.INTERESTED, EnquiryStatus.NOT_INTERESTED));
+        map.put(EnquiryStatus.NOT_INTERESTED, EnumSet.of(EnquiryStatus.INTERESTED));
+        map.put(EnquiryStatus.FEES_FINALIZED, EnumSet.of(EnquiryStatus.NOT_INTERESTED));
+        map.put(EnquiryStatus.CLOSED,         EnumSet.of(EnquiryStatus.ENQUIRED));
+        ALLOWED_MANUAL_TRANSITIONS = Map.copyOf(map);
+    }
 
     private final EnquiryRepository enquiryRepository;
     private final ProgramRepository programRepository;
@@ -189,10 +204,9 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.INTERESTED
-            && enquiry.getStatus() != EnquiryStatus.ENQUIRED) {
+        if (enquiry.getStatus() != EnquiryStatus.INTERESTED) {
             throw new IllegalStateException(
-                "Enquiry must be in ENQUIRED or INTERESTED status to finalize fees. Current status: " + enquiry.getStatus()
+                "Enquiry must be in INTERESTED status to finalize fees. Current status: " + enquiry.getStatus()
             );
         }
 
@@ -232,13 +246,9 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED
-            && enquiry.getStatus() != EnquiryStatus.FEES_PAID
-            && enquiry.getStatus() != EnquiryStatus.PARTIALLY_PAID
-            && enquiry.getStatus() != EnquiryStatus.INTERESTED
-            && enquiry.getStatus() != EnquiryStatus.FEES_FINALIZED) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
             throw new IllegalStateException(
-                "Enquiry must be in an eligible status to convert. Current status: " + enquiry.getStatus()
+                "Enquiry must be in DOCUMENTS_SUBMITTED status to convert. Current status: " + enquiry.getStatus()
             );
         }
 
@@ -267,13 +277,36 @@ public class EnquiryService {
     }
 
     @Transactional
-    public EnquiryResponse updateStatus(Long id, EnquiryStatus status) {
+    public EnquiryResponse updateStatus(Long id, EnquiryStatus status, String changedBy) {
         Enquiry enquiry = enquiryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
+        Set<EnquiryStatus> allowed = ALLOWED_MANUAL_TRANSITIONS.getOrDefault(enquiry.getStatus(), Set.of());
+        if (!allowed.contains(status)) {
+            throw new IllegalStateException(
+                "Cannot manually transition from " + enquiry.getStatus() + " to " + status
+            );
+        }
         EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(status);
         Enquiry saved = enquiryRepository.save(enquiry);
-        recordHistory(saved, oldStatus, status, "system", null);
+        recordHistory(saved, oldStatus, status, changedBy, null);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public EnquiryResponse submitDocuments(Long id) {
+        Enquiry enquiry = enquiryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
+        if (enquiry.getStatus() != EnquiryStatus.FEES_PAID
+            && enquiry.getStatus() != EnquiryStatus.PARTIALLY_PAID) {
+            throw new IllegalStateException(
+                "Enquiry must be in FEES_PAID or PARTIALLY_PAID status to submit documents. Current status: " + enquiry.getStatus()
+            );
+        }
+        EnquiryStatus oldStatus = enquiry.getStatus();
+        enquiry.setStatus(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        Enquiry saved = enquiryRepository.save(enquiry);
+        recordHistory(saved, oldStatus, EnquiryStatus.DOCUMENTS_SUBMITTED, "system", null);
         return toResponse(saved);
     }
 

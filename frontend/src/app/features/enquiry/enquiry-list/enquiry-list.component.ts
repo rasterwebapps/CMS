@@ -107,15 +107,15 @@ export class EnquiryListComponent implements OnInit {
     }
   }
 
-  /** Returns the list of allowed next statuses for the given current status. */
+  /** Returns the list of allowed next statuses for the given current status (manual transitions only). */
   protected getNextStatuses(currentStatus: string): string[] {
     switch (currentStatus) {
-      case 'ENQUIRED': return ['INTERESTED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'INTERESTED': return ['FEES_FINALIZED', 'NOT_INTERESTED', 'CLOSED'];
-      case 'NOT_INTERESTED': return ['INTERESTED', 'CLOSED'];
-      case 'FEES_FINALIZED': return ['FEES_PAID', 'PARTIALLY_PAID', 'CLOSED'];
-      case 'FEES_PAID': return ['DOCUMENTS_SUBMITTED'];
-      case 'PARTIALLY_PAID': return ['FEES_PAID', 'DOCUMENTS_SUBMITTED'];
+      case 'ENQUIRED': return ['INTERESTED', 'NOT_INTERESTED'];
+      case 'INTERESTED': return [];
+      case 'NOT_INTERESTED': return ['INTERESTED'];
+      case 'FEES_FINALIZED': return ['NOT_INTERESTED'];
+      case 'FEES_PAID': return [];
+      case 'PARTIALLY_PAID': return [];
       case 'DOCUMENTS_SUBMITTED': return [];
       case 'CONVERTED': return [];
       case 'CLOSED': return ['ENQUIRED'];
@@ -145,11 +145,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canConvert(item: Enquiry): boolean {
-    return item.status === 'DOCUMENTS_SUBMITTED'
-      || item.status === 'FEES_PAID'
-      || item.status === 'PARTIALLY_PAID'
-      || item.status === 'INTERESTED'
-      || item.status === 'FEES_FINALIZED';
+    return item.status === 'DOCUMENTS_SUBMITTED';
   }
 
   protected convert(item: Enquiry): void {

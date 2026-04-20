@@ -285,7 +285,7 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudent() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         Student student = new Student();
         student.setId(10L);
@@ -305,24 +305,15 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldConvertToStudentWhenFeeDiscussed() {
+    void shouldThrowWhenConvertingFromFeesFinalizedStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_FINALIZED);
 
-        Student student = new Student();
-        student.setId(10L);
-
-        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
-        converted.setConvertedStudentId(10L);
-
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
 
-        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
-
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_SUBMITTED");
     }
 
     @Test
@@ -334,7 +325,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Enquiry must be in an eligible status to convert");
+            .hasMessageContaining("DOCUMENTS_SUBMITTED");
     }
 
     @Test
@@ -349,7 +340,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenStudentNotFoundOnConvert() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
@@ -421,7 +412,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
 
-        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED);
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.INTERESTED, "admin");
 
         assertThat(response.status()).isEqualTo(EnquiryStatus.INTERESTED);
         verify(enquiryRepository).save(any(Enquiry.class));
@@ -431,11 +422,57 @@ class EnquiryServiceTest {
     void shouldThrowWhenUpdatingStatusOfNonExistent() {
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.INTERESTED))
+        assertThatThrownBy(() -> enquiryService.updateStatus(999L, EnquiryStatus.INTERESTED, "admin"))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
 
         verify(enquiryRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenManualTransitionIsNotAllowed() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.updateStatus(1L, EnquiryStatus.FEES_FINALIZED, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot manually transition from INTERESTED to FEES_FINALIZED");
+
+        verify(enquiryRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAllowManualTransitionFromEnquiredToNotInterested() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.NOT_INTERESTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED, "admin");
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.NOT_INTERESTED);
+    }
+
+    @Test
+    void shouldAllowManualTransitionFromFeesFinalizedToNotInterested() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_FINALIZED);
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.NOT_INTERESTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.updateStatus(1L, EnquiryStatus.NOT_INTERESTED, "admin");
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.NOT_INTERESTED);
     }
 
     private Enquiry createEnquiry(Long id, String name, String email, String phone,
@@ -472,7 +509,7 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldFinalizeFeesFromEnquiredStatus() {
+    void shouldThrowWhenFinalizingFeesFromEnquiredStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
@@ -481,12 +518,10 @@ class EnquiryServiceTest {
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
-        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
-
-        assertThat(response.finalizedNetFee()).isEqualTo(new BigDecimal("50000.00"));
-        assertThat(response.finalizedDiscountAmount()).isEqualTo(BigDecimal.ZERO);
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("INTERESTED status to finalize fees");
     }
 
     @Test
@@ -502,7 +537,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Enquiry must be in ENQUIRED or INTERESTED status");
+            .hasMessageContaining("INTERESTED status to finalize fees");
     }
 
     @Test
@@ -514,6 +549,62 @@ class EnquiryServiceTest {
         );
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(999L, request, "admin"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Enquiry not found with id: 999");
+    }
+
+    @Test
+    void shouldSubmitDocumentsFromFeesPaidStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.submitDocuments(1L);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        verify(enquiryRepository).save(any(Enquiry.class));
+    }
+
+    @Test
+    void shouldSubmitDocumentsFromPartiallyPaidStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.PARTIALLY_PAID);
+
+        Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);
+
+        EnquiryResponse response = enquiryService.submitDocuments(1L);
+
+        assertThat(response.status()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED);
+    }
+
+    @Test
+    void shouldThrowWhenSubmittingDocumentsWithWrongStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.submitDocuments(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("FEES_PAID or PARTIALLY_PAID status to submit documents");
+
+        verify(enquiryRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenSubmittingDocumentsForNonExistent() {
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enquiryService.submitDocuments(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
     }
@@ -583,45 +674,27 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldConvertFromFeesPaidStatus() {
+    void shouldThrowWhenConvertingFromFeesPaidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
 
-        Student student = new Student();
-        student.setId(10L);
-
-        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
-        converted.setConvertedStudentId(10L);
-
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
 
-        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
-
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_SUBMITTED");
     }
 
     @Test
-    void shouldConvertFromPartiallyPaidStatus() {
+    void shouldThrowWhenConvertingFromPartiallyPaidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.PARTIALLY_PAID);
 
-        Student student = new Student();
-        student.setId(10L);
-
-        Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
-        converted.setConvertedStudentId(10L);
-
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
-        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
-        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
 
-        EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
-
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_SUBMITTED");
     }
 
     @Test
