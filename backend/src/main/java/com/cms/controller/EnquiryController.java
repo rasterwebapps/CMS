@@ -26,6 +26,7 @@ import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquirySummaryResponse;
+import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.dto.MissingDocumentsResponse;
@@ -33,6 +34,7 @@ import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.service.EnquiryDocumentService;
+import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 
 import jakarta.validation.Valid;
@@ -44,13 +46,16 @@ public class EnquiryController {
     private final EnquiryService enquiryService;
     private final EnquiryDocumentService enquiryDocumentService;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final EnquiryPaymentService enquiryPaymentService;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
-                              EnquiryPaymentRepository enquiryPaymentRepository) {
+                              EnquiryPaymentRepository enquiryPaymentRepository,
+                              EnquiryPaymentService enquiryPaymentService) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.enquiryPaymentService = enquiryPaymentService;
     }
 
     @PostMapping
@@ -98,6 +103,11 @@ public class EnquiryController {
         List<EnquiryDocumentResponse> docs = enquiryDocumentService.findByEnquiryId(id);
         List<String> docTypes = docs.stream().map(d -> d.documentType().name()).toList();
         return ResponseEntity.ok(new EnquirySummaryResponse(enquiry, totalPaid, outstanding, docs.size(), docTypes));
+    }
+
+    @GetMapping("/{id}/year-wise-fee-status")
+    public ResponseEntity<EnquiryYearWiseFeeStatusResponse> getYearWiseFeeStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(enquiryPaymentService.getYearWiseFeeStatus(id));
     }
 
     @GetMapping("/{id}/status-history")

@@ -2,6 +2,8 @@ package com.cms.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.dto.EnquiryPaymentResponse;
+import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
+import com.cms.dto.EnquiryYearWiseFeeStatusResponse.YearFeeStatus;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
@@ -18,21 +22,29 @@ import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
 public class EnquiryPaymentService {
 
+    private static final TypeReference<List<YearWiseFeeEntry>> YEAR_FEES_TYPE =
+        new TypeReference<>() {};
+
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
+    private final ObjectMapper objectMapper;
 
     public EnquiryPaymentService(EnquiryPaymentRepository enquiryPaymentRepository,
                                   EnquiryRepository enquiryRepository,
-                                  EnquiryStatusHistoryRepository statusHistoryRepository) {
+                                  EnquiryStatusHistoryRepository statusHistoryRepository,
+                                  ObjectMapper objectMapper) {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -104,6 +116,45 @@ public class EnquiryPaymentService {
         return toResponse(payment, null);
     }
 
+    public EnquiryYearWiseFeeStatusResponse getYearWiseFeeStatus(Long enquiryId) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
+
+        BigDecimal totalPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId);
+
+        List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
+        yearEntries.sort(Comparator.comparingInt(YearWiseFeeEntry::yearNumber));
+
+        BigDecimal totalFee = yearEntries.stream()
+            .map(YearWiseFeeEntry::amount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Waterfall allocation: fill year 1 first, then year 2, etc.
+        BigDecimal remaining = totalPaid;
+        List<YearFeeStatus> breakdown = new ArrayList<>();
+        for (YearWiseFeeEntry entry : yearEntries) {
+            BigDecimal allocated = entry.amount();
+            BigDecimal paid = remaining.min(allocated);
+            BigDecimal outstanding = allocated.subtract(paid);
+            breakdown.add(new YearFeeStatus(entry.yearNumber(), allocated, paid, outstanding));
+            remaining = remaining.subtract(paid);
+        }
+
+        BigDecimal totalOutstanding = totalFee.subtract(totalPaid.min(totalFee));
+        return new EnquiryYearWiseFeeStatusResponse(enquiryId, totalFee, totalPaid, totalOutstanding, breakdown);
+    }
+
+    private List<YearWiseFeeEntry> parseYearWiseFees(String yearWiseFeesJson) {
+        if (yearWiseFeesJson == null || yearWiseFeesJson.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(yearWiseFeesJson, YEAR_FEES_TYPE);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
     private EnquiryPaymentResponse toResponse(EnquiryPayment payment, EnquiryStatus newStatus) {
         return new EnquiryPaymentResponse(
             payment.getId(),
@@ -120,4 +171,6 @@ public class EnquiryPaymentService {
             payment.getCreatedAt()
         );
     }
+
+    record YearWiseFeeEntry(int yearNumber, BigDecimal amount) {}
 }

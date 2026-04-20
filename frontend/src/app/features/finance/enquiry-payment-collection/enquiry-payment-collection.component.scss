@@ -78,17 +78,61 @@
 .summary-value { font-size: 0.875rem; font-weight: 600; }
 .discount-value { color: var(--cms-success); }
 
-.fee-year-grid {
-  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+// Year-wise fee status table
+.year-status-table {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  font-size: 0.8125rem;
 }
-.fee-year-box {
-  flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
-  border: 1px solid var(--cms-border-default); border-radius: 8px;
+
+.year-status-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  background: var(--cms-bg-muted);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+  border-bottom: 1px solid var(--cms-border-default);
 }
-.fee-year-label {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--cms-text-muted); margin-bottom: 4px;
+
+.year-status-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cms-border-light);
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--cms-bg-muted); }
+
+  &--paid {
+    .year-label { color: var(--cms-success); font-weight: 600; }
+  }
+
+  &--partial {
+    .year-label { color: var(--cms-warning, #f59e0b); font-weight: 600; }
+  }
 }
-.fee-year-amount {
-  font-size: 1rem; font-weight: 600; color: var(--cms-primary);
+
+.year-label { font-weight: 600; }
+.year-fee { color: var(--cms-text-default); }
+.year-paid { color: var(--cms-success); font-weight: 600; }
+.year-outstanding { color: var(--cms-danger, #ef4444); font-weight: 600; }
+
+.year-status-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding: 10px 12px;
+  background: var(--cms-bg-muted);
+  font-weight: 700;
+  border-top: 2px solid var(--cms-border-default);
 }
+
+.total-paid { color: var(--cms-success); }
+.total-outstanding { color: var(--cms-danger, #ef4444); }
+.outstanding-zero { color: var(--cms-success) !important; }
