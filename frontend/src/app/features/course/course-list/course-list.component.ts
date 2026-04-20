@@ -17,11 +17,13 @@ import { Course } from '../course.model';
 import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-course-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,

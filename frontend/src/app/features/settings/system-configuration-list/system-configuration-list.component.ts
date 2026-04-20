@@ -17,11 +17,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { SettingsService } from '../settings.service';
 import { SystemConfiguration } from '../settings.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-system-configuration-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule, MatChipsModule,

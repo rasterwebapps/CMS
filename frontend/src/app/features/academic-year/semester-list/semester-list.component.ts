@@ -18,11 +18,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-semester-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     DatePipe,
     FormsModule,

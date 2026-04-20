@@ -1,6 +1,6 @@
 @if (!focusMode()) {
   <mat-toolbar class="app-toolbar">
-    <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle navigation" class="toolbar-logo-btn">
+    <button mat-icon-button [routerLink]="'/dashboard'" matTooltip="Home" class="toolbar-logo-btn">
       @if (!toolbarLogoError()) {
         <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
           (error)="toolbarLogoError.set(true)" />
@@ -12,6 +12,8 @@
     </button>
     <span class="toolbar-title">SKS College of Nursing</span>
     <span class="toolbar-spacer"></span>
+
+    <app-global-search />
 
     <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn">
       <mat-icon>notifications_none</mat-icon>
@@ -27,6 +29,9 @@
       <div class="avatar-circle">
         <mat-icon>person</mat-icon>
       </div>
+      @if (authService.username()) {
+        <span class="toolbar-username">{{ authService.username() }}</span>
+      }
     </button>
     <mat-menu #userMenu="matMenu">
       <div class="user-menu-header" mat-menu-item disabled>
@@ -53,6 +58,10 @@
       @if (!sidenavCollapsed()) {
         <span class="app-name">SKS CMS</span>
       }
+      <button mat-icon-button (click)="toggleSidenav()" class="sidenav-toggle-btn"
+        [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+        <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
+      </button>
     </div>
 
     @if (!sidenavCollapsed()) {
@@ -146,19 +155,6 @@
         <span class="focus-title">{{ focusModeTitle() }}</span>
         <span class="toolbar-spacer"></span>
       </div>
-    }
-
-    @if (!focusMode() && breadcrumbs().length > 1) {
-      <nav class="breadcrumb-bar" aria-label="Breadcrumb">
-        @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
-          @if (last) {
-            <span class="breadcrumb-item breadcrumb-current">{{ crumb.label }}</span>
-          } @else {
-            <a [routerLink]="crumb.route" class="breadcrumb-item">{{ crumb.label }}</a>
-            <mat-icon class="breadcrumb-sep">chevron_right</mat-icon>
-          }
-        }
-      </nav>
     }
 
     <main class="app-content">

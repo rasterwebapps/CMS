@@ -18,11 +18,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { ReferralTypeService } from '../referral-type.service';
 import { ReferralType } from '../referral-type.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-referral-type-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     CurrencyPipe,

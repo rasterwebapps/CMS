@@ -17,11 +17,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { AgentService } from '../agent.service';
 import { Agent } from '../agent.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-agent-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule, MatChipsModule,

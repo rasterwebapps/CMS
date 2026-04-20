@@ -1,10 +1,5 @@
 <div class="list-page">
-  <div class="page-header">
-    <div class="page-header__left">
-      <h1 class="page-title">Welcome, {{ username() }}</h1>
-      <p class="page-subtitle">College Management System — Overview &amp; Quick Stats</p>
-    </div>
-  </div>
+  <app-page-header title="Welcome, {{ username() }}" subtitle="College Management System — Overview &amp; Quick Stats" />
 
   <div class="dashboard-grid">
     @for (card of cards; track card.title) {

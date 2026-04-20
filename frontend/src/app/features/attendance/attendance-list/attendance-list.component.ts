@@ -17,11 +17,13 @@ import { RouterLink } from '@angular/router';
 import { AttendanceService } from '../attendance.service';
 import { Attendance } from '../attendance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,

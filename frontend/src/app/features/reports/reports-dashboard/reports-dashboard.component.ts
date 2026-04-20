@@ -6,11 +6,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { KeyValuePipe } from '@angular/common';
 import { ReportsService } from '../reports.service';
 import { LabUtilizationReport, AttendanceAnalyticsReport } from '../reports.model';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-reports-dashboard',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     MatCardModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, KeyValuePipe,
   ],
   templateUrl: './reports-dashboard.component.html',

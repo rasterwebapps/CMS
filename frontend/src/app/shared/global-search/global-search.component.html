@@ -1,0 +1,56 @@
+<div class="gs-wrapper" [class.gs-wrapper--expanded]="expanded()">
+  @if (!expanded()) {
+    <button class="gs-trigger" (click)="open()" aria-label="Open search (Ctrl+K)" matTooltip="Search (Ctrl+K)">
+      <mat-icon>search</mat-icon>
+    </button>
+  } @else {
+    <div class="gs-pill" role="search">
+      <mat-icon class="gs-pill__icon">search</mat-icon>
+      <input
+        #searchInput
+        class="gs-pill__input"
+        type="text"
+        placeholder="Search students, faculty, enquiries…"
+        aria-label="Global search"
+        autocomplete="off"
+        (input)="onInput($event)"
+        (focus)="onFocus()"
+        (keydown)="onKeyDown($event)"
+      />
+      @if (loading()) {
+        <span class="gs-pill__spinner"></span>
+      }
+      <button class="gs-pill__close" (click)="close()" aria-label="Close search">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    @if (results().length > 0) {
+      <div class="gs-dropdown" role="listbox" aria-label="Search results">
+        @for (item of results(); track item.route; let i = $index) {
+          <button
+            class="gs-result"
+            role="option"
+            [class.gs-result--active]="activeIndex() === i"
+            (click)="navigate(item)"
+            (mouseenter)="activeIndex.set(i)">
+            <div class="gs-result__icon">
+              <mat-icon>{{ typeIcon(item.type) }}</mat-icon>
+            </div>
+            <div class="gs-result__body">
+              <span class="gs-result__label">{{ item.label }}</span>
+              @if (item.sublabel) {
+                <span class="gs-result__sub">{{ item.sublabel }}</span>
+              }
+            </div>
+            <span class="gs-result__type">{{ item.type | lowercase }}</span>
+          </button>
+        }
+      </div>
+    } @else if (!loading() && query().length >= 2) {
+      <div class="gs-dropdown gs-dropdown--empty">
+        <span class="gs-empty">No results for "{{ query() }}"</span>
+      </div>
+    }
+  }
+</div>

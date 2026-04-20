@@ -16,11 +16,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabScheduleService } from '../lab-schedule.service';
 import { LabSchedule } from '../lab-schedule.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-lab-schedule-list',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,

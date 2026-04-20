@@ -15,6 +15,7 @@ import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
 import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface RollAssignment {
   student: Student;
@@ -25,6 +26,7 @@ interface RollAssignment {
   selector: 'app-roll-number-assignment',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     FormsModule,
     MatCardModule,
     MatButtonModule,
