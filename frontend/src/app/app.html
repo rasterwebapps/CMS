@@ -51,22 +51,19 @@
 
 <mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
   <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
-    <div class="sidenav-header">
+    <div class="sidenav-header" (click)="toggleSidenav()"
+      [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'" matTooltipPosition="right">
       @if (sidenavCollapsed()) {
-        <!-- Collapsed: icon mark only -->
-        <img src="assets/images/cms-icon.svg" alt="CMS" class="app-logo-img"
+        <!-- Collapsed: badge icon only -->
+        <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="app-logo-img"
           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
         <div class="app-logo-fallback" style="display:none">
           <mat-icon class="app-logo">school</mat-icon>
         </div>
       } @else {
-        <!-- Expanded: full horizontal product logo -->
-        <img src="assets/images/cms-logo.svg" alt="CMS — College Management" class="app-logo-full"/>
+        <!-- Expanded: full horizontal SKS logo -->
+        <img src="assets/images/sks-logo-full.svg" alt="SKS College of Nursing" class="app-logo-full"/>
       }
-      <button mat-icon-button (click)="toggleSidenav()" class="sidenav-toggle-btn"
-        [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
-        <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
-      </button>
     </div>
 
     @if (!sidenavCollapsed()) {

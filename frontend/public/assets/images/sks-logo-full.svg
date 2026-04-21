@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160">
+  <!-- Badge group (left side) -->
+  <g transform="translate(10, 0)">
+    <!-- Outer circle background -->
+    <circle cx="80" cy="80" r="76" fill="#1a2a5e" stroke="#4a6fa5" stroke-width="1.5"/>
+
+    <!-- Inner dividing cross lines -->
+    <line x1="80" y1="20" x2="80" y2="140" stroke="white" stroke-width="1.2" opacity="0.7"/>
+    <line x1="20" y1="80" x2="140" y2="80" stroke="white" stroke-width="1.2" opacity="0.7"/>
+
+    <!-- Center small circle with ESTD. 1993 -->
+    <circle cx="80" cy="80" r="18" fill="#1a2a5e" stroke="white" stroke-width="1.2"/>
+    <text x="80" y="77" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="white">ESTD.</text>
+    <text x="80" y="86" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.5" font-weight="bold" fill="white">1993</text>
+
+    <!-- Top-left quadrant: Heart -->
+    <path d="M 55 55 C 50 48 40 48 40 57 C 40 63 47 69 55 75 C 63 69 70 63 70 57 C 70 48 60 48 55 55 Z" fill="white" opacity="0.9"/>
+
+    <!-- Top-right quadrant: Caduceus/medical staff (simplified) -->
+    <line x1="105" y1="35" x2="105" y2="72" stroke="white" stroke-width="2"/>
+    <path d="M 97 43 C 97 37 113 37 113 43 C 113 49 97 49 97 55 C 97 61 113 61 113 55" fill="none" stroke="white" stroke-width="1.5"/>
+    <circle cx="105" cy="33" r="3.5" fill="white" opacity="0.9"/>
+
+    <!-- Bottom-left quadrant: Flame -->
+    <path d="M 55 122 C 44 112 42 100 49 93 C 47 103 53 107 55 100 C 57 107 63 103 61 93 C 68 100 66 112 55 122 Z" fill="white" opacity="0.9"/>
+
+    <!-- Bottom-right quadrant: Graduation cap -->
+    <polygon points="105,93 88,102 105,111 122,102" fill="white" opacity="0.9"/>
+    <rect x="98" y="102" width="14" height="8" rx="1.5" fill="white" opacity="0.9"/>
+    <line x1="122" y1="102" x2="122" y2="111" stroke="white" stroke-width="1.5"/>
+    <circle cx="122" cy="113" r="2.5" fill="white" opacity="0.9"/>
+
+    <!-- Circular text: SKS COLLEGE OF NURSING (top arc) -->
+    <path id="topArcFull" d="M 8,80 A 72,72 0 0,1 152,80" fill="none"/>
+    <text font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" letter-spacing="1.5">
+      <textPath href="#topArcFull" startOffset="6%">SKS COLLEGE OF NURSING</textPath>
+    </text>
+
+    <!-- Circular text: VS EDUCATIONAL TRUST, SALEM (bottom arc) -->
+    <path id="bottomArcFull" d="M 8,80 A 72,72 0 0,0 152,80" fill="none"/>
+    <text font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="white" letter-spacing="0.8">
+      <textPath href="#bottomArcFull" startOffset="5%">VS EDUCATIONAL TRUST, SALEM</textPath>
+    </text>
+
+    <!-- Yellow stars -->
+    <polygon points="10,80 13,73 16,80 9,75 17,75" fill="#FFD700"/>
+    <polygon points="150,80 153,73 156,80 149,75 157,75" fill="#FFD700"/>
+  </g>
+
+  <!-- SKS text (right side) -->
+  <text x="185" y="95" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900" fill="#CC0000" letter-spacing="-2">SKS</text>
+
+  <!-- COLLEGE OF NURSING text -->
+  <text x="187" y="128" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#1a2a5e" letter-spacing="1">COLLEGE OF NURSING</text>
+</svg>

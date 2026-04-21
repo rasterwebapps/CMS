@@ -61,12 +61,7 @@
     width: 68px !important;
 
     .sidenav-header {
-      justify-content: center;
       padding: 16px 0;
-
-      .sidenav-toggle-btn {
-        margin-left: 0;
-      }
     }
 
     .sidenav-nav {
@@ -77,11 +72,18 @@
   .sidenav-header {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     padding: 20px 20px 18px;
     border-bottom: 1px solid var(--cms-sidenav-border);
     background: linear-gradient(135deg, var(--cms-primary-alpha-8) 0%, transparent 100%);
     flex-shrink: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: linear-gradient(135deg, var(--cms-sidenav-hover) 0%, transparent 100%);
+    }
 
     .app-logo-img {
       width: auto;
@@ -100,20 +102,6 @@
       min-width: 0;
       object-fit: contain;
       object-position: left center;
-    }
-
-    .sidenav-toggle-btn {
-      flex-shrink: 0;
-      margin-left: auto;
-      color: var(--cms-sidenav-text);
-      opacity: 0.6;
-      transition: var(--cms-transition);
-
-      &:hover {
-        opacity: 1;
-        color: var(--cms-sidenav-text-bright);
-        background: var(--cms-sidenav-hover) !important;
-      }
     }
   }
 
