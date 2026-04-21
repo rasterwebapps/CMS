@@ -2,7 +2,7 @@
   <mat-toolbar class="app-toolbar">
     <button mat-icon-button [routerLink]="'/dashboard'" matTooltip="Home" class="toolbar-logo-btn">
       @if (!toolbarLogoError()) {
-        <img src="assets/images/logo-icon.png" alt="SKS College" class="toolbar-logo-img"
+        <img src="assets/images/cms-icon.svg" alt="CMS" class="toolbar-logo-img"
           (error)="toolbarLogoError.set(true)" />
       } @else {
         <div class="toolbar-logo-fallback">
@@ -52,13 +52,16 @@
 <mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
   <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-header">
-      <img src="assets/images/logo-icon.png" alt="SKS College" class="app-logo-img"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-      <div class="app-logo-fallback" style="display:none">
-        <mat-icon class="app-logo">school</mat-icon>
-      </div>
-      @if (!sidenavCollapsed()) {
-        <span class="app-name">SKS CMS</span>
+      @if (sidenavCollapsed()) {
+        <!-- Collapsed: icon mark only -->
+        <img src="assets/images/cms-icon.svg" alt="CMS" class="app-logo-img"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+        <div class="app-logo-fallback" style="display:none">
+          <mat-icon class="app-logo">school</mat-icon>
+        </div>
+      } @else {
+        <!-- Expanded: full horizontal product logo -->
+        <img src="assets/images/cms-logo.svg" alt="CMS — College Management" class="app-logo-full"/>
       }
       <button mat-icon-button (click)="toggleSidenav()" class="sidenav-toggle-btn"
         [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
@@ -144,6 +147,18 @@
             </mat-nav-list>
           }
         }
+      }
+    </div>
+
+    <!-- Sidenav footer — Powered by RasterWebApps -->
+    <div class="sidenav-footer">
+      @if (!sidenavCollapsed()) {
+        <span class="sidenav-footer-label">Powered by</span>
+        <img src="assets/images/rasterwebapps-wordmark.svg" alt="RasterWebApps" class="sidenav-footer-logo"/>
+      } @else {
+        <div class="sidenav-footer-icon" matTooltip="Powered by RasterWebApps" matTooltipPosition="right">
+          <span class="sidenav-footer-r">R</span>
+        </div>
       }
     </div>
   </mat-sidenav>
