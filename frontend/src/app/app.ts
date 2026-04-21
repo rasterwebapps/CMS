@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
+import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from './core/auth/auth.service';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
@@ -81,6 +82,7 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
     MatTooltipModule,
     MatExpansionModule,
     MatDivider,
+    MatBadgeModule,
     ThemePickerComponent,
     GlobalSearchComponent,
   ],
@@ -96,6 +98,8 @@ export class App {
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
   protected readonly menuSearch = signal('');
   protected readonly toolbarLogoError = signal(false);
+  protected readonly sidenavLogoError = signal(false);
+  protected readonly notificationCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
@@ -118,6 +122,30 @@ export class App {
     const url = this.currentUrl() ?? '';
     const match = FOCUS_MODE_TITLES.find((t) => t.pattern.test(url));
     return match?.title ?? 'Form';
+  });
+
+  private readonly CMS_ROLE_NAMES: Record<string, string> = {
+    ROLE_ADMIN: 'Admin',
+    ROLE_FACULTY: 'Faculty',
+    ROLE_STUDENT: 'Student',
+    ROLE_LAB_INCHARGE: 'Lab Incharge',
+    ROLE_TECHNICIAN: 'Technician',
+    ROLE_PARENT: 'Parent',
+    ROLE_FRONT_OFFICE: 'Front Office',
+  };
+
+  protected readonly primaryRole = computed(() => {
+    const priority = [
+      'ROLE_ADMIN',
+      'ROLE_FACULTY',
+      'ROLE_LAB_INCHARGE',
+      'ROLE_TECHNICIAN',
+      'ROLE_FRONT_OFFICE',
+      'ROLE_STUDENT',
+      'ROLE_PARENT',
+    ];
+    const role = priority.find((r) => this.authService.roles().includes(r));
+    return role ? (this.CMS_ROLE_NAMES[role] ?? '') : '';
   });
 
   private readonly navEntries: NavEntry[] = [

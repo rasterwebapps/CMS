@@ -69,31 +69,130 @@
     }
   }
 
-  .sidenav-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--cms-border-default);
-    background: var(--cms-logo-bg);
+  // ─── Sidebar Brand / Institution Identity Header ───
+  .sidenav-brand-header {
     flex-shrink: 0;
-    cursor: pointer;
-    transition: background 0.2s;
+    border-bottom: 1px solid var(--cms-sidenav-border);
 
-    &:hover {
-      background: var(--cms-border-light);
+    .sidenav-brand-expanded {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px 10px 14px;
+      min-height: 56px;
+
+      .sidenav-brand-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3px;
+        object-fit: contain;
+      }
+
+      .sidenav-brand-logo-fallback {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #ffffff;
+        }
+      }
+
+      .sidenav-brand-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+
+        .sidenav-brand-name {
+          font-size: 0.8125rem;
+          font-weight: 700;
+          color: var(--cms-sidenav-text-bright);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.2;
+        }
+
+        .sidenav-brand-sub {
+          font-size: 0.6875rem;
+          font-weight: 400;
+          color: var(--cms-sidenav-group-text);
+          white-space: nowrap;
+          line-height: 1.2;
+        }
+      }
+
+      .sidenav-collapse-btn {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        flex-shrink: 0;
+        color: var(--cms-sidenav-group-text) !important;
+        transition: var(--cms-transition) !important;
+
+        &:hover {
+          color: var(--cms-sidenav-text-bright) !important;
+          background: var(--cms-sidenav-hover) !important;
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
     }
 
-    .sidenav-toggle-icon {
-      color: var(--cms-sidenav-group-text);
-      font-size: 22px;
-      width: 22px;
-      height: 22px;
-      transition: var(--cms-transition);
-    }
+    .sidenav-brand-collapsed {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+      cursor: pointer;
+      transition: background 0.2s;
 
-    &:hover .sidenav-toggle-icon {
-      color: var(--cms-sidenav-text-bright);
+      &:hover {
+        background: var(--cms-sidenav-hover);
+      }
+
+      .sidenav-brand-logo-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3px;
+        object-fit: contain;
+      }
+
+      .sidenav-brand-logo-fallback-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: #ffffff;
+        }
+      }
     }
   }
 
@@ -416,24 +515,31 @@
 }
 
 // ──────────────────────────────────────────────────
-// Toolbar Logo Button (replaces hamburger icon)
+// Toolbar Brand (Raster CMS product identity)
 // ──────────────────────────────────────────────────
-.toolbar-logo-btn {
-  margin-left: -4px;
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--cms-radius-md);
+  transition: var(--cms-transition);
   flex-shrink: 0;
-  background: var(--cms-logo-bg) !important;
-  border-radius: 8px !important;
-  padding: 2px !important;
 
-  .toolbar-logo-img {
-    width: 32px;
-    height: 32px;
+  &:hover {
+    background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
+  }
+
+  .toolbar-brand-icon {
+    width: 28px;
+    height: 28px;
     object-fit: contain;
     border-radius: 6px;
     display: block;
   }
 
-  .toolbar-logo-fallback {
+  .toolbar-brand-fallback {
     width: 28px;
     height: 28px;
     border-radius: 6px;
@@ -448,6 +554,14 @@
       height: 18px;
       color: #ffffff;
     }
+  }
+
+  .toolbar-brand-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--cms-toolbar-text, var(--cms-text-primary));
+    white-space: nowrap;
   }
 }
 
@@ -528,18 +642,18 @@
   }
 }
 
-.toolbar-title {
-  margin-left: 12px;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--cms-toolbar-text, var(--cms-text-primary));
-  display: flex;
-  align-items: center;
-}
-
 .toolbar-spacer {
   flex: 1;
+}
+
+.toolbar-user-role {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-menu-header {
@@ -557,14 +671,14 @@
   padding: 4px 10px 4px 4px;
   margin-left: 4px;
   background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid var(--cms-toolbar-avatar-border, var(--cms-border-default));
   border-radius: var(--cms-radius-full);
   cursor: pointer;
   transition: var(--cms-transition);
 
   &:hover {
     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: var(--cms-toolbar-avatar-hover-border, var(--cms-primary));
   }
 }
 
