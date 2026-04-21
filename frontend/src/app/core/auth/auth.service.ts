@@ -82,6 +82,26 @@ export class AuthService {
     return this.keycloak?.token;
   }
 
+  /**
+   * Returns a valid access token, refreshing it first if it expires within 30 seconds.
+   * If the refresh fails (e.g. the refresh token has also expired), the user is
+   * redirected to the Keycloak login page and `undefined` is returned.
+   */
+  async getValidToken(): Promise<string | undefined> {
+    if (!this.keycloak) {
+      return undefined;
+    }
+    try {
+      await this.keycloak.updateToken(30);
+      this.updateState();
+      return this.keycloak.token;
+    } catch (err) {
+      console.error('Failed to refresh Keycloak token — redirecting to login', err);
+      await this.login();
+      return undefined;
+    }
+  }
+
   hasRole(role: string): boolean {
     return this._roles().includes(role);
   }
