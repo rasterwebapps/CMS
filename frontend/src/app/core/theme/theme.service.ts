@@ -24,6 +24,9 @@ export const COLOR_SWATCHES: ColorSwatch[] = [
   { id: 'emerald', name: 'Emerald', hex: '#10b981' },
   { id: 'rose', name: 'Rose', hex: '#f43f5e' },
   { id: 'pink', name: 'Pink', hex: '#ec4899' },
+  { id: 'azure', name: 'Azure', hex: '#3B9EFF' },
+  { id: 'vermillion', name: 'Vermillion', hex: '#FF5C3A' },
+  { id: 'gold', name: 'Gold', hex: '#F59E0B' },
 ];
 
 const DEFAULT_SWATCH = COLOR_SWATCHES[0];
@@ -88,6 +91,21 @@ const TAILWIND_PALETTES: Record<string, Record<Shade, string>> = {
     50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
     400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d',
     800: '#9d174d', 900: '#831843', 950: '#500724',
+  },
+  azure: {
+    50: '#eff8ff', 100: '#dbeeff', 200: '#b8ddff', 300: '#85c5ff',
+    400: '#52a8ff', 500: '#3B9EFF', 600: '#1a6fcc', 700: '#1558a3',
+    800: '#154580', 900: '#173869', 950: '#112440',
+  },
+  vermillion: {
+    50: '#fff3f0', 100: '#ffe4dd', 200: '#ffccbf', 300: '#ffaa94',
+    400: '#ff7d5c', 500: '#FF5C3A', 600: '#cc3a1f', 700: '#a32e18',
+    800: '#842718', 900: '#6d2418', 950: '#3c0f09',
+  },
+  gold: {
+    50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+    400: '#fbbf24', 500: '#F59E0B', 600: '#d97706', 700: '#b45309',
+    800: '#92400e', 900: '#78350f', 950: '#451a03',
   },
 };
 
@@ -226,6 +244,8 @@ export class ThemeService {
 
     // Core brand tokens
     root.style.setProperty('--cms-primary', primaryHex);
+    // Update --cms-primary-rgb so rgba() usages in SCSS work correctly
+    root.style.setProperty('--cms-primary-rgb', `${r}, ${g}, ${b}`);
     root.style.setProperty('--cms-primary-hover', palette[shades.hover]);
     root.style.setProperty('--cms-primary-light', palette[50]);
     root.style.setProperty('--cms-border-hover', palette[300]);
