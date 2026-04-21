@@ -11,9 +11,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
-import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
+import { Enquiry, EnquiryPaymentRequest, EnquiryPaymentResponse, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
@@ -22,6 +22,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   standalone: true,
   imports: [
     CurrencyPipe,
+    DatePipe,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -50,6 +51,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly yearWiseFeeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
+  protected readonly lastPaymentResponse = signal<EnquiryPaymentResponse | null>(null);
 
   protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
 
@@ -158,30 +160,17 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     this.saving.set(true);
     this.enquiryService.collectPayment(enquiry.id, paymentRequest).subscribe({
       next: (response) => {
-        this.snackBar.open(
-          `Payment collected — Receipt: ${response.receiptNumber}`,
-          'Close',
-          { duration: 5000 },
-        );
-        // Refresh year-wise fee status after payment
-        this.enquiryService.getYearWiseFeeStatus(enquiry.id).subscribe({
-          next: (status) => this.yearWiseFeeStatus.set(status),
-          error: () => {},
-        });
-        // Refresh enquiry to get updated status
-        this.enquiryService.getEnquiryById(enquiry.id).subscribe({
-          next: (updated) => {
-            this.selectedEnquiry.set(updated);
-            this.form.patchValue({ amount: null });
-          },
-          error: () => {},
-        });
         this.saving.set(false);
+        this.lastPaymentResponse.set(response);
       },
       error: () => {
         this.snackBar.open('Failed to collect payment', 'Close', { duration: 3000 });
         this.saving.set(false);
       },
     });
+  }
+
+  protected doneWithReceipt(): void {
+    void this.router.navigate(['/enquiries']);
   }
 }

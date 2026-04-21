@@ -197,8 +197,15 @@ export class EnquiryListComponent implements OnInit {
         this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
         this.load();
       },
-      error: () => {
-        this.snackBar.open('Failed to submit documents', 'Close', { duration: 3000 });
+      error: (err) => {
+        if (err.status === 400 && err.error?.missingDocumentTypes?.length > 0) {
+          const missing = (err.error.missingDocumentTypes as string[])
+            .map((d) => d.replace(/_/g, ' '))
+            .join(', ');
+          this.snackBar.open(`Missing documents: ${missing}`, 'Close', { duration: 7000 });
+        } else {
+          this.snackBar.open('Failed to submit documents', 'Close', { duration: 3000 });
+        }
       },
     });
   }
