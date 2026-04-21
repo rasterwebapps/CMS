@@ -1,5 +1,6 @@
-@if (!focusMode()) {
-  <mat-toolbar class="app-toolbar">
+<mat-toolbar class="app-toolbar">
+  <!-- Left section: stable brand area whose width mirrors the sidenav -->
+  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed()">
     <a [routerLink]="'/dashboard'" class="toolbar-brand">
       @if (!toolbarLogoError()) {
         <img src="assets/images/cms-icon.svg" alt="College Management System" class="toolbar-brand-icon"
@@ -11,61 +12,65 @@
       }
       <span class="toolbar-brand-name">College Management System</span>
     </a>
-    <span class="toolbar-spacer"></span>
-
-    <app-global-search />
-
-    <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
-      [matBadge]="notificationCount()"
-      [matBadgeHidden]="notificationCount() === 0"
-      matBadgeColor="warn"
-      matBadgeSize="small">
-      <mat-icon>notifications_none</mat-icon>
-    </button>
-
-    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
-      <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-    </button>
-
-    <app-theme-picker />
-
-    <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
-      <div class="avatar-circle">
-        <mat-icon>person</mat-icon>
-      </div>
-      @if (authService.username()) {
-        <div class="toolbar-user-info">
-          <span class="toolbar-username">{{ authService.username() }}</span>
-          @if (primaryRole()) {
-            <span class="toolbar-user-role">{{ primaryRole() }}</span>
-          }
-        </div>
-      }
-    </button>
-    <mat-menu #userMenu="matMenu">
-      <div class="user-menu-header" mat-menu-item disabled>
-        <mat-icon>badge</mat-icon>
-        <span>{{ authService.username() }}</span>
-      </div>
-      <mat-divider></mat-divider>
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
-    </mat-menu>
-  </mat-toolbar>
-} @else {
-  <div class="focus-header">
-    <button mat-icon-button (click)="navigateBack()" class="back-btn" matTooltip="Back">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <span class="focus-title">{{ focusModeTitle() }}</span>
-    <span class="toolbar-spacer"></span>
   </div>
-}
 
-<mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed() && !focusMode()" [class.focus-mode]="focusMode()">
-  <mat-sidenav mode="side" [opened]="!focusMode()" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
+  <!-- Right section: normal toolbar items OR focus-mode back-button + title -->
+  <div class="toolbar-right">
+    @if (focusMode()) {
+      <button mat-icon-button (click)="navigateBack()" class="toolbar-action-btn back-btn" matTooltip="Back">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <span class="focus-title">{{ focusModeTitle() }}</span>
+      <span class="toolbar-spacer"></span>
+    } @else {
+      <span class="toolbar-spacer"></span>
+
+      <app-global-search />
+
+      <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
+        [matBadge]="notificationCount()"
+        [matBadgeHidden]="notificationCount() === 0"
+        matBadgeColor="warn"
+        matBadgeSize="small">
+        <mat-icon>notifications_none</mat-icon>
+      </button>
+
+      <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
+        <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
+      <app-theme-picker />
+
+      <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
+        <div class="avatar-circle">
+          <mat-icon>person</mat-icon>
+        </div>
+        @if (authService.username()) {
+          <div class="toolbar-user-info">
+            <span class="toolbar-username">{{ authService.username() }}</span>
+            @if (primaryRole()) {
+              <span class="toolbar-user-role">{{ primaryRole() }}</span>
+            }
+          </div>
+        }
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <div class="user-menu-header" mat-menu-item disabled>
+          <mat-icon>badge</mat-icon>
+          <span>{{ authService.username() }}</span>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          <span>Logout</span>
+        </button>
+      </mat-menu>
+    }
+  </div>
+</mat-toolbar>
+
+<mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()">
+  <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-brand-header">
       @if (!sidenavCollapsed()) {
         <div class="sidenav-brand-expanded">
