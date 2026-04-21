@@ -3,19 +3,19 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--cms-toolbar-bg, #ffffff) !important;
+  border-bottom: 1px solid var(--cms-toolbar-border, #e5e7eb);
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  color: var(--cms-text-primary) !important;
+  color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
   height: 56px;
 
   button {
-    color: var(--cms-text-secondary);
+    color: var(--cms-toolbar-btn-color, var(--cms-text-secondary));
     transition: var(--cms-transition);
 
     &:hover {
-      color: var(--cms-primary);
-      background: var(--cms-bg-hover);
+      color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
+      background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
     }
   }
 }
@@ -165,6 +165,7 @@
       margin: 1px 10px;
       transition: var(--cms-transition);
       height: 40px !important;
+      justify-content: flex-start !important;
 
       mat-icon[matListItemIcon] {
         color: var(--cms-sidenav-group-text);
@@ -179,6 +180,7 @@
         font-weight: 500;
         color: var(--cms-sidenav-text);
         transition: var(--cms-transition);
+        text-align: left;
       }
 
       &:hover {
@@ -345,6 +347,7 @@
     mat-panel-title {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       color: var(--cms-sidenav-text) !important;
       font-size: 0.8125rem;
       font-weight: 600;
@@ -465,17 +468,17 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #ffffff;
+  background: var(--cms-toolbar-bg, #ffffff);
   border-bottom: 2px solid var(--cms-primary);
   box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-8);
 
   .back-btn {
-    color: var(--cms-text-secondary);
+    color: var(--cms-toolbar-btn-color, var(--cms-text-secondary));
     transition: var(--cms-transition);
 
     &:hover {
-      color: var(--cms-primary);
-      background: var(--cms-bg-hover);
+      color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
+      background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
     }
   }
 
@@ -484,7 +487,7 @@
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    color: var(--cms-text-primary);
+    color: var(--cms-toolbar-text, var(--cms-text-primary));
   }
 }
 
@@ -533,7 +536,7 @@
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--cms-text-primary);
+  color: var(--cms-toolbar-text, var(--cms-text-primary));
   display: flex;
   align-items: center;
 }
@@ -557,14 +560,14 @@
   padding: 4px 10px 4px 4px;
   margin-left: 4px;
   background: transparent;
-  border: 1.5px solid var(--cms-border-default);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   border-radius: var(--cms-radius-full);
   cursor: pointer;
   transition: var(--cms-transition);
 
   &:hover {
-    background: var(--cms-bg-hover);
-    border-color: var(--cms-primary);
+    background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
+    border-color: rgba(255, 255, 255, 0.5);
   }
 }
 
@@ -582,7 +585,7 @@
 .toolbar-username {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--cms-text-primary);
+  color: var(--cms-toolbar-text, var(--cms-text-primary));
   white-space: nowrap;
   max-width: 140px;
   overflow: hidden;

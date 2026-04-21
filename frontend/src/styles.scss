@@ -125,6 +125,14 @@
   --cms-sidenav-active-text: #a5b4fc;
   --cms-sidenav-border: rgba(255, 255, 255, 0.06);
   --cms-sidenav-group-text: #64748b;
+
+  // ─── Toolbar ───
+  --cms-toolbar-bg: #ffffff;
+  --cms-toolbar-text: var(--cms-text-primary);
+  --cms-toolbar-border: #e5e7eb;
+  --cms-toolbar-btn-color: var(--cms-text-secondary);
+  --cms-toolbar-btn-hover-bg: var(--cms-bg-hover);
+  --cms-toolbar-btn-hover-color: var(--cms-primary);
 }
 
 html {
@@ -197,6 +205,14 @@ html {
     --cms-warning-light: rgba(245, 158, 11, 0.12);
     --cms-danger-light: rgba(239, 68, 68, 0.12);
     --cms-info-light: rgba(59, 130, 246, 0.12);
+
+    // ─── Toolbar dark override: primary background + white text ───
+    --cms-toolbar-bg: var(--cms-primary);
+    --cms-toolbar-text: #ffffff;
+    --cms-toolbar-border: transparent;
+    --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
+    --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
+    --cms-toolbar-btn-hover-color: #ffffff;
   }
 }
 
@@ -250,6 +266,14 @@ html.dark-theme {
   --cms-warning-light: rgba(245, 158, 11, 0.12);
   --cms-danger-light: rgba(239, 68, 68, 0.12);
   --cms-info-light: rgba(59, 130, 246, 0.12);
+
+  // ─── Toolbar dark override: primary background + white text ───
+  --cms-toolbar-bg: var(--cms-primary);
+  --cms-toolbar-text: #ffffff;
+  --cms-toolbar-border: transparent;
+  --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
+  --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
+  --cms-toolbar-btn-hover-color: #ffffff;
 }
 
 // ──────────────────────────────────────────────────
@@ -1101,30 +1125,41 @@ app-root {
 
 // ── Pagination ───────────────────────────────────
 .pagination-wrapper {
-  padding: 8px 16px;
+  padding: 4px 8px;
   border-top: 1px solid var(--cms-border-light);
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  background: var(--cms-primary-light);
+  background: var(--cms-bg-card);
 }
 
 .mat-mdc-paginator {
   background: transparent !important;
-  color: var(--cms-primary) !important;
+  color: var(--cms-text-secondary) !important;
 
   .mat-mdc-paginator-range-label,
-  .mat-mdc-paginator-page-size-label,
+  .mat-mdc-paginator-page-size-label {
+    color: var(--cms-text-secondary) !important;
+    font-size: 0.8125rem;
+  }
+
   .mat-mdc-select-value {
     color: var(--cms-primary) !important;
+    font-weight: 600;
   }
 
   .mat-mdc-icon-button {
-    color: var(--cms-primary) !important;
+    color: var(--cms-text-secondary) !important;
+    transition: var(--cms-transition) !important;
+
+    &:hover:not(:disabled) {
+      color: var(--cms-primary) !important;
+      background: var(--cms-bg-hover) !important;
+    }
 
     &:disabled {
       color: var(--cms-text-muted) !important;
-      opacity: 0.5;
+      opacity: 0.4;
     }
   }
 }
