@@ -666,14 +666,14 @@
   padding: 4px 10px 4px 4px;
   margin-left: 4px;
   background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid var(--cms-toolbar-avatar-border, var(--cms-border-default));
   border-radius: var(--cms-radius-full);
   cursor: pointer;
   transition: var(--cms-transition);
 
   &:hover {
     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
   }
 }
 
