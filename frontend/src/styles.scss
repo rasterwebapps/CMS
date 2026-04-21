@@ -194,6 +194,19 @@ html {
       )
     );
 
+    // ── M3 primary token bridge (dark media query) ───────────────────────
+    // mat.theme() re-stamps --mat-sys-primary with the violet palette value.
+    // Redirect all primary system tokens back to the dynamic CMS variables so
+    // Angular Material components follow the user's chosen accent colour in dark mode.
+    --mat-sys-primary: var(--cms-primary);
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: var(--color-primary-100);
+    --mat-sys-on-primary-container: var(--color-primary-900);
+    --mat-sys-primary-fixed: var(--color-primary-100);
+    --mat-sys-primary-fixed-dim: var(--color-primary-200);
+    --mat-sys-on-primary-fixed: var(--color-primary-900);
+    --mat-sys-on-primary-fixed-variant: var(--color-primary-700);
+
     --cms-bg-shell: #0c0f1a;
     --cms-bg-card: #151926;
     --cms-bg-hover: rgba(99, 102, 241, 0.1);
@@ -259,6 +272,19 @@ html {
       density: 0,
     )
   );
+
+  // ── M3 primary token bridge (dark) ──────────────────────────────────────
+  // mat.theme() re-stamps --mat-sys-primary with the violet palette value.
+  // Redirect all primary system tokens back to the dynamic CMS variables so
+  // Angular Material components follow the user's chosen accent colour in dark mode.
+  --mat-sys-primary: var(--cms-primary);
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: var(--color-primary-100);
+  --mat-sys-on-primary-container: var(--color-primary-900);
+  --mat-sys-primary-fixed: var(--color-primary-100);
+  --mat-sys-primary-fixed-dim: var(--color-primary-200);
+  --mat-sys-on-primary-fixed: var(--color-primary-900);
+  --mat-sys-on-primary-fixed-variant: var(--color-primary-700);
 
   --cms-bg-shell: #0c0f1a;
   --cms-bg-card: #151926;
