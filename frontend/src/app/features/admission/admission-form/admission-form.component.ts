@@ -15,6 +15,8 @@ import { AdmissionService } from '../admission.service';
 import { ADMISSION_STATUSES, QUALIFICATION_TYPES } from '../admission.model';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-admission-form',
@@ -32,6 +34,7 @@ import { Student } from '../../student/student.model';
     MatTableModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    PageHeaderComponent,
   ],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
@@ -43,6 +46,7 @@ export class AdmissionFormComponent implements OnInit {
   private readonly admissionService = inject(AdmissionService);
   private readonly studentService = inject(StudentService);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly students = signal<Student[]>([]);
   protected readonly loading = signal(false);

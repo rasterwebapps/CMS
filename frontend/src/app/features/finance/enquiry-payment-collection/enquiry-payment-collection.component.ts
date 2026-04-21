@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -14,13 +14,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
   standalone: true,
   imports: [
     CurrencyPipe,
-    RouterLink,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -32,6 +33,7 @@ import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from
     MatSnackBarModule,
     MatTableModule,
     MatTooltipModule,
+    PageHeaderComponent,
   ],
   templateUrl: './enquiry-payment-collection.component.html',
   styleUrl: './enquiry-payment-collection.component.scss',
@@ -42,6 +44,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

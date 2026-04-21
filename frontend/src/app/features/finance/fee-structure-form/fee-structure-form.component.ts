@@ -12,6 +12,8 @@ import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { BulkFeeStructureRequest, FeeStructureItemRequest } from '../finance.model';
 import { environment } from '../../../../environments';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface Program {
   id: number;
@@ -36,6 +38,7 @@ interface AcademicYear {
     RouterLink, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
     MatTooltipModule, DecimalPipe,
+    PageHeaderComponent,
   ],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',
@@ -47,6 +50,7 @@ export class FeeStructureFormComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

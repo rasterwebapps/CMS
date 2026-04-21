@@ -1,15 +1,10 @@
 <div class="entry-form-page">
-  <div class="entry-form-header">
-    <button mat-icon-button routerLink="/students" class="back-btn" aria-label="Back to students">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
-      <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the student record below.' : 'Fill in the details below to register a new student.' }}
-      </p>
-    </div>
-  </div>
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header
+      [title]="pageTitle()"
+      [subtitle]="isEditMode() ? 'Update the student record below.' : 'Fill in the details below to register a new student.'"
+    />
+  }
 
   @if (loading()) {
     <div class="loading-container">

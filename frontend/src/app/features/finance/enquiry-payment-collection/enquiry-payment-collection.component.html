@@ -1,13 +1,7 @@
 <div class="form-container">
-  <div class="header">
-    @if (selectedEnquiry()) {
-      <button mat-icon-button (click)="backToList()"><mat-icon>arrow_back</mat-icon></button>
-      <h2 class="page-title">Collect Payment — {{ selectedEnquiry()!.name }}</h2>
-    } @else {
-      <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
-      <h2 class="page-title">Payment Collection</h2>
-    }
-  </div>
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header title="Collect Payment" subtitle="Select a fee-finalised enquiry to collect payment." />
+  }
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>

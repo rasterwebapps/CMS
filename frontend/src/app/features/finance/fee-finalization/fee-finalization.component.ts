@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -15,6 +15,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface YearFee {
   yearNumber: number;
@@ -27,7 +29,6 @@ interface YearFee {
   imports: [
     CurrencyPipe,
     DecimalPipe,
-    RouterLink,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -40,6 +41,7 @@ interface YearFee {
     MatPaginatorModule,
     MatChipsModule,
     MatTooltipModule,
+    PageHeaderComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',
@@ -50,6 +52,7 @@ export class FeeFinalizationComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
