@@ -1604,6 +1604,15 @@ app-root {
     color: var(--cms-text-primary) !important;
   }
 
+  .toolbar-logo-btn {
+    background: #ffffff !important;
+  }
+
+  .app-sidenav .sidenav-header {
+    background: #ffffff !important;
+    border-bottom-color: #e5e7eb !important;
+  }
+
   .mat-mdc-card {
     background-color: var(--cms-bg-card) !important;
     border-color: var(--cms-border-default) !important;
