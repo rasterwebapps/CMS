@@ -454,8 +454,8 @@ app-root {
     color: #ffffff;
   }
   &--info {
-    background-color: #2563eb;
-    color: #ffffff;
+    background-color: var(--cms-badge-blue-bg);
+    color: var(--cms-badge-blue-text);
   }
   &--accent {
     background-color: var(--cms-primary);
