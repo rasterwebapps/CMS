@@ -158,6 +158,25 @@ html {
 }
 
 // ──────────────────────────────────────────────────
+// Angular Material ↔ CMS Dynamic Theme Bridge
+// mat.theme() above hardcodes mat.$violet-palette as the Material primary.
+// The overrides below redirect M3 system color tokens to the user's chosen
+// accent color managed by ThemeService, so Angular Material components
+// (tabs, progress spinners, checkboxes, sliders, form fields …) follow the
+// theme rather than always rendering in violet/purple.
+// ──────────────────────────────────────────────────
+html {
+  --mat-sys-primary: var(--cms-primary);
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: var(--color-primary-100);
+  --mat-sys-on-primary-container: var(--color-primary-900);
+  --mat-sys-primary-fixed: var(--color-primary-100);
+  --mat-sys-primary-fixed-dim: var(--color-primary-200);
+  --mat-sys-on-primary-fixed: var(--color-primary-900);
+  --mat-sys-on-primary-fixed-variant: var(--color-primary-700);
+}
+
+// ──────────────────────────────────────────────────
 // Dark Theme
 // ──────────────────────────────────────────────────
 @media (prefers-color-scheme: dark) {
