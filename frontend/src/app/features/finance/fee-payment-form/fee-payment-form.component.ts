@@ -13,6 +13,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FinanceService } from '../finance.service';
 import { FeePaymentRequest } from '../finance.model';
 import { environment } from '../../../../environments/environment';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-fee-payment-form',
@@ -20,6 +22,7 @@ import { environment } from '../../../../environments/environment';
   imports: [
     RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
     MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
+    PageHeaderComponent,
   ],
   templateUrl: './fee-payment-form.component.html',
   styleUrl: './fee-payment-form.component.scss',
@@ -30,6 +33,7 @@ export class FeePaymentFormComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

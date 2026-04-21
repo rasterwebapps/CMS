@@ -1,4 +1,10 @@
 <div class="entry-form-page">
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header
+      [title]="isEdit() ? 'Edit Admission' : 'New Admission'"
+      [subtitle]="isEdit() ? 'Update the admission record below.' : 'Fill in the details below to create a new admission record.'"
+    />
+  }
   @if (loading()) {
     <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
   } @else {

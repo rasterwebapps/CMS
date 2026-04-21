@@ -1,8 +1,6 @@
 import { Component, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { filter, map } from 'rxjs';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
@@ -14,6 +12,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from './core/auth/auth.service';
+import { LayoutService } from './core/layout/layout.service';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 
@@ -36,36 +35,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   return 'items' in entry;
 }
 
-// Routes that activate focus mode (collapse global toolbar to maximise vertical space)
-const FOCUS_MODE_PATTERNS: RegExp[] = [
-  /\/admissions\/new$/,
-  /\/admissions\/[^/]+\/edit$/,
-  /\/students\/new$/,
-  /\/students\/[^/]+\/edit$/,
-  /\/student-fees\/finalize$/,
-  /\/student-fees\/collect-payment$/,
-  /\/fee-payments\/new$/,
-  /\/fee-structures\/new$/,
-  /\/fee-structures\/edit(\?.*)?$/,
-  /\/enquiries\/new$/,
-  /\/enquiries\/[^/]+\/edit$/,
-  /\/enquiries\/[^/]+\/convert$/,
-];
 
-const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
-  { pattern: /\/admissions\/new$/, title: 'New Admission' },
-  { pattern: /\/admissions\/[^/]+\/edit$/, title: 'Edit Admission' },
-  { pattern: /\/students\/new$/, title: 'New Student Registration' },
-  { pattern: /\/students\/[^/]+\/edit$/, title: 'Edit Student' },
-  { pattern: /\/student-fees\/finalize$/, title: 'Fee Finalization' },
-  { pattern: /\/student-fees\/collect-payment$/, title: 'Collect Payment' },
-  { pattern: /\/fee-payments\/new$/, title: 'New Fee Payment' },
-  { pattern: /\/fee-structures\/new$/, title: 'New Fee Structure' },
-  { pattern: /\/fee-structures\/edit(\?.*)?$/, title: 'Edit Fee Structure' },
-  { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
-  { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Create Admission' },
-];
 
 @Component({
   selector: 'app-root',
@@ -91,6 +61,7 @@ const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
 })
 export class App {
   protected readonly authService = inject(AuthService);
+  private readonly layoutService = inject(LayoutService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
 
@@ -105,24 +76,8 @@ export class App {
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
   private static readonly COLLAPSED_KEY = 'cms_sidenav_collapsed';
 
-  private readonly currentUrl = toSignal(
-    this.router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map((e) => e.urlAfterRedirects),
-    ),
-    { initialValue: this.router.url },
-  );
-
-  protected readonly focusMode = computed(() => {
-    const url = this.currentUrl() ?? '';
-    return FOCUS_MODE_PATTERNS.some((p) => p.test(url));
-  });
-
-  protected readonly focusModeTitle = computed(() => {
-    const url = this.currentUrl() ?? '';
-    const match = FOCUS_MODE_TITLES.find((t) => t.pattern.test(url));
-    return match?.title ?? 'Form';
-  });
+  protected readonly focusMode = this.layoutService.isFocusMode;
+  protected readonly focusModeTitle = this.layoutService.focusModeTitle;
 
   private readonly CMS_ROLE_NAMES: Record<string, string> = {
     ROLE_ADMIN: 'Admin',

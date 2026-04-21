@@ -9,6 +9,8 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
 import { StudentRequest } from '../student.model';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface Program {
   id: number;
@@ -25,6 +27,7 @@ interface Program {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    PageHeaderComponent,
   ],
   templateUrl: './student-form.component.html',
   styleUrl: './student-form.component.scss',
@@ -36,6 +39,7 @@ export class StudentFormComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

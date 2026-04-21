@@ -1,8 +1,7 @@
 <div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/fee-payments"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
-  </div>
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header [title]="pageTitle()" subtitle="Fill in the payment details below." />
+  }
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {

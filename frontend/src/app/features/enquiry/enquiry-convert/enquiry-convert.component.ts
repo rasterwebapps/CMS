@@ -11,6 +11,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse } from '../enquiry.model';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -26,6 +28,7 @@ import { Enquiry, EnquiryConversionPrefillResponse } from '../enquiry.model';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    PageHeaderComponent,
   ],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
@@ -36,6 +39,7 @@ export class EnquiryConvertComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly enquiryService = inject(EnquiryService);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly prefill = signal<EnquiryConversionPrefillResponse | null>(null);

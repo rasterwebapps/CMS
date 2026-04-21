@@ -1,13 +1,7 @@
 <div class="form-container">
-  <div class="header">
-    @if (selectedEnquiry()) {
-      <button mat-icon-button (click)="backToList()"><mat-icon>arrow_back</mat-icon></button>
-      <h2 class="page-title">Finalize Fee — {{ selectedEnquiry()!.name }}</h2>
-    } @else {
-      <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
-      <h2 class="page-title">Fee Finalization</h2>
-    }
-  </div>
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header title="Fee Finalization" subtitle="Select an enquiry to finalize fees." />
+  }
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>

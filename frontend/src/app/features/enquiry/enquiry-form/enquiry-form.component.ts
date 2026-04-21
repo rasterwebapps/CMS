@@ -14,6 +14,8 @@ import { AgentService } from '../../agent/agent.service';
 import { ReferralType } from '../../referral-type/referral-type.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { environment } from '../../../../environments';
+import { LayoutService } from '../../../core/layout/layout.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface ProgramInfo {
   id: number;
@@ -51,6 +53,7 @@ interface FeeStructureInfo {
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatSnackBarModule, CurrencyPipe,
+    PageHeaderComponent,
   ],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
@@ -64,6 +67,7 @@ export class EnquiryFormComponent implements OnInit {
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
+  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
