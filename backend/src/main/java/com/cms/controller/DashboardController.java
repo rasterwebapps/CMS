@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.service.DashboardService;
 
 /**
@@ -24,15 +25,21 @@ public class DashboardController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<DashboardSummaryResponse> getSummary() {
         return ResponseEntity.ok(dashboardService.getSummary());
     }
 
     @GetMapping("/trends")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<DashboardTrendsResponse> getTrends() {
         return ResponseEntity.ok(dashboardService.getTrends());
+    }
+
+    @GetMapping("/front-office")
+    @PreAuthorize("hasRole('ROLE_FRONT_OFFICE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<FrontOfficeDashboardResponse> getFrontOfficeDashboard() {
+        return ResponseEntity.ok(dashboardService.getFrontOfficeDashboard());
     }
 }
 

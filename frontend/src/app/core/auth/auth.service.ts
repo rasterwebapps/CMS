@@ -27,6 +27,23 @@ export class AuthService {
   readonly isParent = computed(() => this._roles().includes('ROLE_PARENT'));
   readonly isFrontOffice = computed(() => this._roles().includes('ROLE_FRONT_OFFICE'));
 
+  /**
+   * Returns all dashboard-relevant roles the user holds, sorted by priority order.
+   * Used by the dashboard shell to determine which role-based dashboard(s) to render.
+   */
+  readonly dashboardRoles = computed(() => {
+    const priority = [
+      'ROLE_ADMIN',
+      'ROLE_FACULTY',
+      'ROLE_LAB_INCHARGE',
+      'ROLE_TECHNICIAN',
+      'ROLE_FRONT_OFFICE',
+      'ROLE_STUDENT',
+      'ROLE_PARENT',
+    ];
+    return priority.filter((r) => this._roles().includes(r));
+  });
+
   async init(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) {
       return false;

@@ -1,0 +1,27 @@
+<div
+  class="kpi-card"
+  [attr.data-color]="colorVariant()"
+  [class.kpi-card--danger]="danger()"
+  [style.animation-delay]="animationDelay()"
+>
+  <div class="kpi-top-bar"></div>
+  <div class="kpi-body">
+    <div class="kpi-icon-wrap">
+      <mat-icon>{{ icon() }}</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-value">{{ value() }}</span>
+      <span class="kpi-title">{{ title() }}</span>
+      @if (subtitle()) {
+        <span class="kpi-subtitle">{{ subtitle() }}</span>
+      }
+      @if (trend(); as t) {
+        <span class="kpi-trend" [attr.data-dir]="t.direction">
+          @if (t.direction === 'up') { ↑ }
+          @else if (t.direction === 'down') { ↓ }
+          {{ t.label }}
+        </span>
+      }
+    </div>
+  </div>
+</div>

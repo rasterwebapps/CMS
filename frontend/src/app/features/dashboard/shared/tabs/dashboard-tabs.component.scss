@@ -1,0 +1,72 @@
+.dash-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 32px 0;
+  background: var(--cms-bg-card);
+  border-bottom: 1px solid var(--cms-border-default);
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+
+.dash-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: none;
+  position: relative;
+  bottom: -1px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  &:hover:not(.dash-tab--active) {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-secondary);
+  }
+
+  &--active {
+    color: var(--tab-color, var(--cms-primary));
+    background: var(--cms-bg-page, #fff);
+    border-color: var(--cms-border-default);
+    border-bottom-color: transparent;
+
+    &::after {
+      background: var(--tab-color, var(--cms-primary));
+    }
+
+    .dash-tab__icon {
+      color: var(--tab-color, var(--cms-primary));
+    }
+  }
+}
+
+.dash-tab__icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  font-variation-settings: 'FILL' 0;
+  transition: color 0.2s ease;
+}
+
+.dash-tab__label {
+  white-space: nowrap;
+}

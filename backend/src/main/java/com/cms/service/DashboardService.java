@@ -1,9 +1,11 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,12 +17,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.FrontOfficeDashboardResponse;
+import com.cms.dto.FrontOfficeEnquiryItem;
 import com.cms.model.Attendance;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.Equipment;
 import com.cms.model.FeePayment;
 import com.cms.model.MaintenanceRequest;
 import com.cms.model.Student;
+import com.cms.model.enums.AdmissionStatus;
+import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.EnquiryPaymentRepository;
@@ -55,6 +62,7 @@ public class DashboardService {
     private final AttendanceRepository attendanceRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final AdmissionRepository admissionRepository;
 
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
@@ -68,7 +76,8 @@ public class DashboardService {
                             MaintenanceRequestRepository maintenanceRequestRepository,
                             AttendanceRepository attendanceRepository,
                             EnquiryRepository enquiryRepository,
-                            EnquiryPaymentRepository enquiryPaymentRepository) {
+                            EnquiryPaymentRepository enquiryPaymentRepository,
+                            AdmissionRepository admissionRepository) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.departmentRepository = departmentRepository;
@@ -82,6 +91,7 @@ public class DashboardService {
         this.attendanceRepository = attendanceRepository;
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.admissionRepository = admissionRepository;
     }
 
     /**
@@ -220,6 +230,90 @@ public class DashboardService {
 
         BigDecimal outstanding = totalFinalized.subtract(totalPaid);
         return outstanding.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstanding;
+    }
+
+    /**
+     * Collects Front Office-specific KPI data for the front office dashboard.
+     */
+    public FrontOfficeDashboardResponse getFrontOfficeDashboard() {
+        LocalDate today = LocalDate.now();
+
+        // Today's enquiries
+        List<com.cms.model.Enquiry> todayEnquiries =
+            enquiryRepository.findByEnquiryDateBetween(today, today);
+        long todayEnquiryCount = todayEnquiries.size();
+
+        // Total enquiry count
+        long totalEnquiryCount = enquiryRepository.count();
+
+        // Pending admissions: all admissions not APPROVED or REJECTED
+        long pendingAdmissionsCount = admissionRepository.findAll().stream()
+            .filter(a -> a.getStatus() != AdmissionStatus.APPROVED
+                      && a.getStatus() != AdmissionStatus.REJECTED)
+            .count();
+
+        // Fee collected today from enquiry payments
+        BigDecimal feeCollectedToday = enquiryPaymentRepository.findByPaymentDate(today).stream()
+            .map(EnquiryPayment::getAmountPaid)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Conversions this week (ISO week: Monday–Sunday)
+        LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd   = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        long conversionsThisWeek = enquiryRepository
+            .findByEnquiryDateBetweenAndStatus(weekStart, weekEnd, EnquiryStatus.CONVERTED)
+            .size();
+
+        // Conversion rate
+        double conversionRate = (double) conversionsThisWeek / Math.max(totalEnquiryCount, 1) * 100;
+
+        // Enquiry funnel (reuse existing logic)
+        Map<String, Long> enquiryFunnel = buildEnquiryFunnelMap();
+
+        // Today's enquiries (up to 10), mapped to lightweight items
+        List<FrontOfficeEnquiryItem> todaysEnquiries = todayEnquiries.stream()
+            .limit(10)
+            .map(e -> new FrontOfficeEnquiryItem(
+                e.getId(),
+                e.getName(),
+                e.getProgram() != null ? e.getProgram().getName() : null,
+                e.getReferralType() != null ? e.getReferralType().getName() : null,
+                e.getStatus().name(),
+                e.getEnquiryDate()
+            ))
+            .toList();
+
+        // Pending action items (human-readable strings)
+        List<String> pendingActionItems = buildPendingActionItems(pendingAdmissionsCount, feeCollectedToday);
+
+        return new FrontOfficeDashboardResponse(
+            todayEnquiryCount,
+            totalEnquiryCount,
+            pendingAdmissionsCount,
+            feeCollectedToday,
+            conversionsThisWeek,
+            conversionRate,
+            enquiryFunnel,
+            todaysEnquiries,
+            pendingActionItems
+        );
+    }
+
+    private List<String> buildPendingActionItems(long pendingAdmissionsCount, BigDecimal feeCollectedToday) {
+        List<String> items = new ArrayList<>();
+        if (pendingAdmissionsCount > 0) {
+            items.add(pendingAdmissionsCount + " admission" + (pendingAdmissionsCount > 1 ? "s" : "") + " pending review");
+        }
+        Map<String, Long> funnel = buildEnquiryFunnelMap();
+        long docsSubmitted = funnel.getOrDefault(EnquiryStatus.DOCUMENTS_SUBMITTED.name(), 0L);
+        if (docsSubmitted > 0) {
+            items.add(docsSubmitted + " application" + (docsSubmitted > 1 ? "s" : "") + " with documents submitted — awaiting conversion");
+        }
+        long feesFinalized = funnel.getOrDefault(EnquiryStatus.FEES_FINALIZED.name(), 0L);
+        if (feesFinalized > 0) {
+            items.add(feesFinalized + " enquir" + (feesFinalized > 1 ? "ies" : "y") + " with fees finalized — awaiting payment");
+        }
+        return items;
     }
 }
 

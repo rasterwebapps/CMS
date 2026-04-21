@@ -1,0 +1,136 @@
+@use 'sass:list';
+@use '../../dashboard-tokens' as *;
+
+// ── Color map ──────────────────────────────────────
+$kpi-colors: (
+  'indigo': (#6366f1, #818cf8),
+  'emerald': (#10b981, #34d399),
+  'amber': (#f59e0b, #fbbf24),
+  'teal': (#14b8a6, #2dd4bf),
+  'violet': (#8b5cf6, #a78bfa),
+  'cyan': (#06b6d4, #22d3ee),
+  'orange': (#f97316, #fb923c),
+  'rose': (#f43f5e, #fb7185),
+  'sky': (#0ea5e9, #38bdf8),
+  'pink': (#ec4899, #f472b6),
+);
+
+.kpi-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  overflow: hidden;
+  position: relative;
+  animation: dashCardEnter 0.4s ease both;
+  transition: var(--cms-transition);
+  cursor: default;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--cms-shadow-lg);
+  }
+
+  &--danger {
+    animation: dashPulse 2s ease-in-out infinite;
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  // Generate color variants
+  @each $name, $colors in $kpi-colors {
+    $c1: list.nth($colors, 1);
+    $c2: list.nth($colors, 2);
+
+    &[data-color='#{$name}'] {
+      .kpi-top-bar {
+        background: linear-gradient(90deg, #{$c1}, #{$c2});
+      }
+      .kpi-icon-wrap {
+        background: linear-gradient(135deg, #{$c1}, #{$c2});
+      }
+    }
+  }
+}
+
+.kpi-top-bar {
+  height: 3px;
+  width: 100%;
+}
+
+.kpi-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px 18px;
+}
+
+.kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--cms-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.15);
+
+  mat-icon {
+    color: #fff;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.kpi-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.kpi-title {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-subtitle {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin-top: 1px;
+}
+
+.kpi-trend {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+
+  &[data-dir='up'] {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+  }
+
+  &[data-dir='down'] {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+  }
+
+  &[data-dir='neutral'] {
+    background: var(--cms-bg-muted);
+    color: var(--cms-text-muted);
+  }
+}

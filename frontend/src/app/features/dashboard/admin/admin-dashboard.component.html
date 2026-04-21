@@ -1,0 +1,423 @@
+<div class="admin-dashboard">
+
+  <!-- ── Hero Banner ──────────────────────────────── -->
+  <div class="admin-hero">
+    <div class="admin-hero__content">
+      <div class="admin-hero__text">
+        <p class="admin-hero__live">
+          <span class="live-dot"></span>
+          LIVE &bull; {{ summary()?.totalStudents ?? 0 }} students enrolled
+        </p>
+        <h2 class="admin-hero__greeting">Welcome back, {{ authService.username() || 'Admin' }}! 👋</h2>
+        <p class="admin-hero__subtitle">Here's your college overview for today.</p>
+        <a routerLink="/reports" class="admin-hero__btn">
+          <mat-icon>summarize</mat-icon>
+          Generate Report →
+        </a>
+      </div>
+      <div class="admin-hero__deco">
+        <div class="deco-circle deco-1"></div>
+        <div class="deco-circle deco-2"></div>
+        <div class="deco-circle deco-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI Row ───────────────────────────────────── -->
+  @if (loading()) {
+    <div class="admin-kpi-grid">
+      @for (n of [1,2,3,4,5]; track n) {
+        <div class="kpi-skeleton">
+          <div class="skeleton skeleton-icon"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-val"></div>
+            <div class="skeleton skeleton-lbl"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="admin-kpi-grid">
+      @for (card of kpiCards(); track card.title) {
+        <app-dashboard-kpi-card
+          [title]="card.title"
+          [value]="card.value"
+          [icon]="card.icon"
+          [colorVariant]="card.color"
+          [subtitle]="card.subtitle"
+          [animationDelay]="card.delay"
+        />
+      }
+    </div>
+  }
+
+  <!-- ── Quick Actions ─────────────────────────────── -->
+  <div class="admin-quick-actions">
+    <a routerLink="/students/new" class="quick-btn quick-btn--indigo">
+      <mat-icon>person_add</mat-icon>
+      Enrol Student
+    </a>
+    <a routerLink="/reports" class="quick-btn quick-btn--violet">
+      <mat-icon>assignment</mat-icon>
+      View Reports
+    </a>
+    <a routerLink="/student-fees" class="quick-btn quick-btn--teal">
+      <mat-icon>credit_card</mat-icon>
+      Fee Waiver
+    </a>
+    <a routerLink="/settings" class="quick-btn quick-btn--amber">
+      <mat-icon>settings</mat-icon>
+      Settings
+    </a>
+  </div>
+
+  <!-- ── Two-column: Admission Trend + Pending Approvals ── -->
+  @if (loading()) {
+    <div class="admin-two-col admin-two-col--60-40">
+      <div class="widget-skeleton" style="height: 220px"></div>
+      <div class="widget-skeleton" style="height: 220px"></div>
+    </div>
+  } @else {
+    <div class="admin-two-col admin-two-col--60-40">
+
+      <!-- Admission Trend bar chart -->
+      @if (trendsLoading()) {
+        <div class="widget-skeleton" style="height: 220px"></div>
+      } @else if (trends(); as t) {
+        <mat-card appearance="outlined" class="widget-card">
+          <div class="widget-header">
+            <div class="widget-icon-wrap">
+              <mat-icon>show_chart</mat-icon>
+            </div>
+            <h3 class="widget-title">Admission Trend</h3>
+          </div>
+          <mat-card-content>
+            <div class="bar-chart">
+              @for (point of t.enrolmentTrend; track point.month; let last = $last) {
+                <div class="bar-col">
+                  <div class="bar-wrap">
+                    <div
+                      class="bar"
+                      [class.bar--highlight]="last"
+                      [class.bar--primary]="!last"
+                      [style.height.%]="trendBarHeight(point.value, maxTrendValue(t.enrolmentTrend))"
+                      [attr.title]="point.value + ' students'"
+                    ></div>
+                  </div>
+                  <span class="bar-label">{{ point.month.split(' ')[0] }}</span>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Pending Approvals panel -->
+      @if (summary(); as s) {
+        <mat-card appearance="outlined" class="widget-card">
+          <div class="widget-header">
+            <div class="widget-icon-wrap widget-icon-amber">
+              <mat-icon>pending_actions</mat-icon>
+            </div>
+            <h3 class="widget-title">Pending Approvals</h3>
+          </div>
+          <mat-card-content>
+            @if (pendingApprovals().length === 0) {
+              <div class="all-clear">
+                <mat-icon>check_circle</mat-icon>
+                All clear — nothing pending
+              </div>
+            } @else {
+              <div class="approvals-list">
+                @for (item of pendingApprovals(); track item.message) {
+                  <div class="approval-row">
+                    <span class="approval-dot" [attr.data-severity]="item.severity"></span>
+                    <span class="approval-msg">{{ item.message }}</span>
+                    <a [routerLink]="item.link" class="approval-link">Review →</a>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+
+  <!-- ── Two-column: Lab Utilization + Fee Overview ── -->
+  @if (!loading() && summary(); as s) {
+    <div class="admin-two-col admin-two-col--50-50">
+
+      <!-- Lab Utilization -->
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap widget-icon-violet">
+            <mat-icon>science</mat-icon>
+          </div>
+          <h3 class="widget-title">Equipment Status</h3>
+        </div>
+        <mat-card-content>
+          <div class="funnel-list">
+            @for (entry of equipmentStatusEntries(); track entry.status) {
+              <div class="funnel-row">
+                <span class="funnel-label">{{ formatStatus(entry.status) }}</span>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" [attr.data-eq-color]="equipmentStatusColor(entry.status)" [style.width.%]="entry.pct"></div>
+                </div>
+                <span class="funnel-count">{{ entry.count }}</span>
+              </div>
+            }
+            @empty {
+              <p class="empty-hint">No equipment data.</p>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Fee Overview -->
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap widget-icon-teal">
+            <mat-icon>account_balance_wallet</mat-icon>
+          </div>
+          <h3 class="widget-title">Fee Overview</h3>
+        </div>
+        <mat-card-content>
+          <div class="fee-overview-grid">
+            <div class="fee-kpi">
+              <span class="fee-kpi__label">Collected this month</span>
+              <span class="fee-kpi__value fee-kpi__value--green">₹{{ s.feeCollectedThisMonth | number }}</span>
+            </div>
+            <div class="fee-kpi">
+              <span class="fee-kpi__label">Total outstanding</span>
+              <span class="fee-kpi__value fee-kpi__value--amber">₹{{ s.feeOutstanding | number }}</span>
+            </div>
+            <div class="fee-kpi">
+              <span class="fee-kpi__label">Labs</span>
+              <span class="fee-kpi__value">{{ s.totalLabs }}</span>
+            </div>
+            <div class="fee-kpi">
+              <span class="fee-kpi__label">Equipment</span>
+              <span class="fee-kpi__value">{{ s.totalEquipment }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- ── Breakdown Analytics ───────────────────────── -->
+  @if (!loading() && summary(); as s) {
+    <h3 class="section-title">
+      <mat-icon class="section-icon">insights</mat-icon>
+      Breakdown Analytics
+    </h3>
+    <div class="breakdown-grid">
+      <mat-card appearance="outlined" class="breakdown-card">
+        <div class="breakdown-header">
+          <div class="breakdown-icon-wrap breakdown-blue">
+            <mat-icon>precision_manufacturing</mat-icon>
+          </div>
+          <h4 class="breakdown-title">Equipment by Status</h4>
+        </div>
+        <mat-card-content>
+          <div class="status-list">
+            @for (entry of s.equipmentByStatus | keyvalue; track entry.key) {
+              <div class="status-row">
+                <div class="status-label-wrap">
+                  <span class="status-dot status-dot-blue"></span>
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                </div>
+                <span class="status-value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty { <p class="empty-hint">No equipment data</p> }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="breakdown-card">
+        <div class="breakdown-header">
+          <div class="breakdown-icon-wrap breakdown-amber">
+            <mat-icon>build</mat-icon>
+          </div>
+          <h4 class="breakdown-title">Maintenance by Status</h4>
+        </div>
+        <mat-card-content>
+          <div class="status-list">
+            @for (entry of s.maintenanceByStatus | keyvalue; track entry.key) {
+              <div class="status-row">
+                <div class="status-label-wrap">
+                  <span class="status-dot status-dot-amber"></span>
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                </div>
+                <span class="status-value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty { <p class="empty-hint">No maintenance data</p> }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="breakdown-card">
+        <div class="breakdown-header">
+          <div class="breakdown-icon-wrap breakdown-emerald">
+            <mat-icon>school</mat-icon>
+          </div>
+          <h4 class="breakdown-title">Students by Status</h4>
+        </div>
+        <mat-card-content>
+          <div class="status-list">
+            @for (entry of s.studentsByStatus | keyvalue; track entry.key) {
+              <div class="status-row">
+                <div class="status-label-wrap">
+                  <span class="status-dot status-dot-emerald"></span>
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                </div>
+                <span class="status-value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty { <p class="empty-hint">No student data</p> }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="breakdown-card">
+        <div class="breakdown-header">
+          <div class="breakdown-icon-wrap breakdown-violet">
+            <mat-icon>fact_check</mat-icon>
+          </div>
+          <h4 class="breakdown-title">Attendance by Status</h4>
+        </div>
+        <mat-card-content>
+          <div class="status-list">
+            @for (entry of s.attendanceByStatus | keyvalue; track entry.key) {
+              <div class="status-row">
+                <div class="status-label-wrap">
+                  <span class="status-dot status-dot-violet"></span>
+                  <span class="status-label">{{ formatStatus(entry.key) }}</span>
+                </div>
+                <span class="status-value">{{ entry.value }}</span>
+              </div>
+            }
+            @empty { <p class="empty-hint">No attendance data</p> }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- ── 6-Month Trend Charts ─────────────────────── -->
+  @if (trendsLoading()) {
+    <div class="trends-section">
+      <div class="skeleton skeleton-section-title"></div>
+      <div class="trends-grid">
+        <div class="widget-skeleton" style="height: 220px"></div>
+        <div class="widget-skeleton" style="height: 220px"></div>
+      </div>
+    </div>
+  } @else if (trends(); as t) {
+    <h3 class="section-title">
+      <mat-icon class="section-icon">trending_up</mat-icon>
+      6-Month Trends
+    </h3>
+    <div class="trends-grid">
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap">
+            <mat-icon>school</mat-icon>
+          </div>
+          <h3 class="widget-title">Student Enrolments</h3>
+        </div>
+        <mat-card-content>
+          @if (t.enrolmentTrend.length === 0) {
+            <p class="empty-hint">No enrolment data.</p>
+          } @else {
+            <div class="bar-chart">
+              @for (point of t.enrolmentTrend; track point.month) {
+                <div class="bar-col">
+                  <div class="bar-wrap">
+                    <div class="bar bar--primary"
+                         [style.height.%]="trendBarHeight(point.value, maxTrendValue(t.enrolmentTrend))"
+                         [attr.title]="point.value + ' students'">
+                    </div>
+                  </div>
+                  <span class="bar-label">{{ point.month.split(' ')[0] }}</span>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap widget-icon-teal">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <h3 class="widget-title">Fee Collections</h3>
+        </div>
+        <mat-card-content>
+          @if (t.feeCollectionTrend.length === 0) {
+            <p class="empty-hint">No fee collection data.</p>
+          } @else {
+            <div class="bar-chart">
+              @for (point of t.feeCollectionTrend; track point.month) {
+                <div class="bar-col">
+                  <div class="bar-wrap">
+                    <div class="bar bar--teal"
+                         [style.height.%]="trendBarHeight(point.value, maxTrendValue(t.feeCollectionTrend))"
+                         [attr.title]="'₹' + point.value">
+                    </div>
+                  </div>
+                  <span class="bar-label">{{ point.month.split(' ')[0] }}</span>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- ── Enquiry Funnel ────────────────────────────── -->
+  @if (!loading() && funnelEntries().length > 0) {
+    <mat-card appearance="outlined" class="widget-card" style="margin-bottom: 28px;">
+      <div class="widget-header">
+        <div class="widget-icon-wrap">
+          <mat-icon>contact_mail</mat-icon>
+        </div>
+        <h3 class="widget-title">Enquiry Funnel</h3>
+      </div>
+      <mat-card-content>
+        <div class="funnel-list">
+          @for (entry of funnelEntries(); track entry.status) {
+            <div class="funnel-row">
+              <span class="funnel-label">{{ formatStatus(entry.status) }}</span>
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar funnel-bar--brand" [style.width.%]="entry.pct"></div>
+              </div>
+              <span class="funnel-count">{{ entry.count }}</span>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ── Academic Calendar Strip ──────────────────── -->
+  <h3 class="section-title">
+    <mat-icon class="section-icon">event</mat-icon>
+    Academic Calendar
+  </h3>
+  <!-- TODO: Replace with live academic calendar API -->
+  <div class="admin-calendar-strip">
+    @for (pill of calendarPills; track pill.label) {
+      <div class="admin-calendar-pill" [attr.data-color]="pill.color">
+        <span class="pill-date">{{ pill.date }}</span>
+        <span class="pill-label">{{ pill.label }}</span>
+      </div>
+    }
+  </div>
+
+</div>
