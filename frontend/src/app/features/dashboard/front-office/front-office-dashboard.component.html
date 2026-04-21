@@ -1,11 +1,11 @@
 <div class="fo-dashboard">
 
   <!-- ── Hero Banner ──────────────────────────────── -->
-  <div class="fo-hero">
+  <div class="fo-hero anim-rise">
     <div class="fo-hero__content">
       <div class="fo-hero__text">
         <p class="fo-hero__eyebrow">📋 Admissions Desk</p>
-        <h2 class="fo-hero__greeting">{{ authService.username() || 'Front Office' }} &bull; {{ today }}</h2>
+        <h2 class="fo-hero__greeting font-display">{{ authService.username() || 'Front Office' }} &bull; {{ today }}</h2>
         <p class="fo-hero__stats">
           Today: {{ foData()?.todayEnquiryCount ?? 0 }} enquiries &nbsp;&bull;&nbsp;
           ₹{{ (foData()?.feeCollectedToday ?? 0) | number }} collected &nbsp;&bull;&nbsp;

@@ -2,9 +2,9 @@
 // Role colour palettes
 // ──────────────────────────────────────────────────
 :root {
-  --dash-admin-primary: #6366f1;
+  --dash-admin-primary: var(--cms-primary, #6366f1);
   --dash-admin-accent: #f59e0b;
-  --dash-fo-primary: #0284c7;
+  --dash-fo-primary: var(--cms-primary, #0284c7);
   --dash-fo-accent: #65a30d;
 }
 

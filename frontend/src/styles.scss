@@ -1296,7 +1296,7 @@ app-root {
 
 // ── Cell Styles ──────────────────────────────────
 .cell-code {
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-family: var(--cms-font-mono);
   font-size: 0.8125rem;
   font-weight: 500;
   color: #ffffff;
@@ -1327,14 +1327,18 @@ app-root {
 
 .cell-currency {
   color: var(--cms-primary);
+  font-family: var(--cms-font-mono);
   font-weight: 600;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .cell-number {
+  font-family: var(--cms-font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 // ── Status Badge ─────────────────────────────────
@@ -2215,3 +2219,55 @@ html.dark-theme body::after {
   margin-left: 2px;
 }
 
+
+// ── Phase 4: List/Explorer Page Entry Animations ─────
+// Auto-applies to all list pages without component changes
+.list-page {
+  animation: cms-rise-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// Content card hover improvements using Phase 1 tokens
+.content-card {
+  &:hover {
+    border-color: var(--cms-line-strong);
+  }
+}
+
+// ── Phase 5: Form/Data Entry Screen Enhancements ──────
+// Apply font-ui to form labels globally (both Phase 1 and legacy labels)
+.field-label,
+.form-field-label {
+  font-family: var(--cms-font-ui);
+}
+
+// btn-submit enhanced glow using --cms-primary-rgb
+.btn-submit {
+  &:not(:disabled) {
+    box-shadow:
+      var(--cms-shadow-sm),
+      0 4px 20px rgba(var(--cms-primary-rgb), 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+    &:hover {
+      box-shadow:
+        var(--cms-shadow-md),
+        0 6px 28px rgba(var(--cms-primary-rgb), 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+// Entry form page animation
+.entry-form-page {
+  animation: cms-rise-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// ── Phase 6: Theme Consistency — numeric value utilities ──
+// Apply font-mono to all numeric stat values automatically
+.kpi-value,
+.fee-kpi__value,
+.stat-value {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}

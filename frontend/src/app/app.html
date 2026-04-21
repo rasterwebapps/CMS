@@ -10,7 +10,14 @@
           <mat-icon>developer_board</mat-icon>
         </div>
       }
-      <span class="toolbar-brand-name">College Management System</span>
+      @if (!sidenavCollapsed()) {
+        <div class="toolbar-brand-text-block">
+          <span class="toolbar-brand-name">College Management System</span>
+          @if (currentSectionLabel()) {
+            <span class="toolbar-brand-section">{{ currentSectionLabel() }}</span>
+          }
+        </div>
+      }
     </a>
   </div>
 
@@ -24,6 +31,12 @@
       <span class="toolbar-spacer"></span>
     } @else {
       <span class="toolbar-spacer"></span>
+
+      <!-- Live indicator chip -->
+      <div class="toolbar-live-chip">
+        <span class="toolbar-live-dot"></span>
+        <span class="toolbar-live-label">Live</span>
+      </div>
 
       <app-global-search />
 
@@ -160,7 +173,10 @@
               </mat-expansion-panel-header>
               <mat-nav-list dense>
                 @for (item of entry.items; track item.route) {
-                  <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+                  <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link"
+                     [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
+                     [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
+                     matBadgeColor="warn" matBadgeSize="small">
                     <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
                   </a>
