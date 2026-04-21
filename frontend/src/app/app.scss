@@ -75,14 +75,14 @@
     justify-content: center;
     gap: 12px;
     padding: 20px 20px 18px;
-    border-bottom: 1px solid var(--cms-sidenav-border);
-    background: linear-gradient(135deg, var(--cms-primary-alpha-8) 0%, transparent 100%);
+    border-bottom: 1px solid var(--cms-border-default);
+    background: var(--cms-logo-bg);
     flex-shrink: 0;
     cursor: pointer;
     transition: background 0.2s;
 
     &:hover {
-      background: linear-gradient(135deg, var(--cms-sidenav-hover) 0%, transparent 100%);
+      background: var(--cms-border-light);
     }
 
     .app-logo-img {
@@ -424,6 +424,9 @@
 .toolbar-logo-btn {
   margin-left: -4px;
   flex-shrink: 0;
+  background: var(--cms-logo-bg) !important;
+  border-radius: 8px !important;
+  padding: 2px !important;
 
   .toolbar-logo-img {
     width: 28px;

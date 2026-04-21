@@ -79,6 +79,9 @@
   --cms-border-default: #e5e7eb;
   --cms-border-light: #f3f4f6;
 
+  // ─── Logo background — always white regardless of theme ───
+  --cms-logo-bg: #ffffff;
+
   // ─── Badges / Pills ───
   --cms-badge-blue-bg: #eff6ff;
   --cms-badge-blue-text: #1d4ed8;
@@ -1602,6 +1605,15 @@ app-root {
     background: var(--cms-bg-card) !important;
     border-bottom-color: var(--cms-border-default) !important;
     color: var(--cms-text-primary) !important;
+  }
+
+  .toolbar-logo-btn {
+    background: var(--cms-logo-bg) !important;
+  }
+
+  .app-sidenav .sidenav-header {
+    background: var(--cms-logo-bg) !important;
+    border-bottom-color: var(--cms-border-default) !important;
   }
 
   .mat-mdc-card {
