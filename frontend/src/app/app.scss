@@ -479,9 +479,74 @@
   }
 }
 
-.top-level-item {
-  font-size: 0.8125rem;
-  font-weight: 600;
+// ──────────────────────────────────────────────────
+// Top-Level Standalone Nav Items (Dashboard, Reports)
+// Match expansion panel header layout for consistent alignment
+// ──────────────────────────────────────────────────
+.top-level-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  height: 44px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  .top-level-icon {
+    margin-right: 10px;
+    color: var(--cms-sidenav-group-text);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    transition: var(--cms-transition);
+  }
+
+  .top-level-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--cms-sidenav-text);
+    transition: var(--cms-transition);
+  }
+
+  &:hover {
+    background: var(--cms-sidenav-hover);
+
+    .top-level-icon {
+      color: var(--cms-sidenav-text);
+    }
+
+    .top-level-label {
+      color: var(--cms-sidenav-text-bright);
+    }
+  }
+
+  &.top-level-active {
+    background: var(--cms-sidenav-active-bg);
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
+      border-radius: 0 3px 3px 0;
+    }
+
+    .top-level-icon {
+      color: var(--cms-sidenav-active-text) !important;
+    }
+
+    .top-level-label {
+      color: var(--cms-sidenav-text-bright) !important;
+      font-weight: 600;
+    }
+  }
 }
 
 // ──────────────────────────────────────────────────
@@ -671,14 +736,13 @@
   padding: 4px 10px 4px 4px;
   margin-left: 4px;
   background: transparent;
-  border: 1.5px solid var(--cms-toolbar-avatar-border, var(--cms-border-default));
-  border-radius: var(--cms-radius-full);
+  border: none;
+  border-radius: var(--cms-radius-md);
   cursor: pointer;
   transition: var(--cms-transition);
 
   &:hover {
     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
-    border-color: var(--cms-toolbar-avatar-hover-border, var(--cms-primary));
   }
 }
 
