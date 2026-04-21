@@ -85,20 +85,20 @@
   --cms-logo-bg: #ffffff;
 
   // ─── Badges / Pills ───
-  --cms-badge-blue-bg: #eff6ff;
-  --cms-badge-blue-text: #1d4ed8;
-  --cms-badge-gray-bg: #f1f5f9;
-  --cms-badge-gray-text: #334155;
-  --cms-badge-green-bg: #ecfdf5;
-  --cms-badge-green-text: #047857;
-  --cms-badge-amber-bg: #fffbeb;
-  --cms-badge-amber-text: #b45309;
-  --cms-badge-red-bg: #fef2f2;
-  --cms-badge-red-text: #b91c1c;
-  --cms-badge-violet-bg: #f5f3ff;
-  --cms-badge-violet-text: #6d28d9;
-  --cms-badge-cyan-bg: #ecfeff;
-  --cms-badge-cyan-text: #0e7490;
+  --cms-badge-blue-bg: #1d4ed8;
+  --cms-badge-blue-text: #ffffff;
+  --cms-badge-gray-bg: #475569;
+  --cms-badge-gray-text: #ffffff;
+  --cms-badge-green-bg: #047857;
+  --cms-badge-green-text: #ffffff;
+  --cms-badge-amber-bg: #b45309;
+  --cms-badge-amber-text: #ffffff;
+  --cms-badge-red-bg: #b91c1c;
+  --cms-badge-red-text: #ffffff;
+  --cms-badge-violet-bg: #6d28d9;
+  --cms-badge-violet-text: #ffffff;
+  --cms-badge-cyan-bg: #0e7490;
+  --cms-badge-cyan-text: #ffffff;
 
   // ─── Elevation ───
   --cms-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
@@ -186,20 +186,20 @@ html {
     --cms-text-table-header: #94a3b8;
     --cms-border-default: #1e293b;
     --cms-border-light: #1a1f35;
-    --cms-badge-blue-bg: rgba(59, 130, 246, 0.15);
-    --cms-badge-blue-text: #93c5fd;
-    --cms-badge-gray-bg: rgba(148, 163, 184, 0.12);
-    --cms-badge-gray-text: #cbd5e1;
-    --cms-badge-green-bg: rgba(16, 185, 129, 0.15);
-    --cms-badge-green-text: #6ee7b7;
-    --cms-badge-amber-bg: rgba(245, 158, 11, 0.15);
-    --cms-badge-amber-text: #fcd34d;
-    --cms-badge-red-bg: rgba(239, 68, 68, 0.15);
-    --cms-badge-red-text: #fca5a5;
-    --cms-badge-violet-bg: rgba(139, 92, 246, 0.15);
-    --cms-badge-violet-text: #c4b5fd;
-    --cms-badge-cyan-bg: rgba(6, 182, 212, 0.15);
-    --cms-badge-cyan-text: #67e8f9;
+    --cms-badge-blue-bg: #2563eb;
+    --cms-badge-blue-text: #ffffff;
+    --cms-badge-gray-bg: #64748b;
+    --cms-badge-gray-text: #ffffff;
+    --cms-badge-green-bg: #059669;
+    --cms-badge-green-text: #ffffff;
+    --cms-badge-amber-bg: #d97706;
+    --cms-badge-amber-text: #ffffff;
+    --cms-badge-red-bg: #dc2626;
+    --cms-badge-red-text: #ffffff;
+    --cms-badge-violet-bg: #7c3aed;
+    --cms-badge-violet-text: #ffffff;
+    --cms-badge-cyan-bg: #0891b2;
+    --cms-badge-cyan-text: #ffffff;
     --cms-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
     --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
     --cms-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.5);
@@ -252,20 +252,20 @@ html {
   --cms-text-table-header: #94a3b8;
   --cms-border-default: #1e293b;
   --cms-border-light: #1a1f35;
-  --cms-badge-blue-bg: rgba(59, 130, 246, 0.15);
-  --cms-badge-blue-text: #93c5fd;
-  --cms-badge-gray-bg: rgba(148, 163, 184, 0.12);
-  --cms-badge-gray-text: #cbd5e1;
-  --cms-badge-green-bg: rgba(16, 185, 129, 0.15);
-  --cms-badge-green-text: #6ee7b7;
-  --cms-badge-amber-bg: rgba(245, 158, 11, 0.15);
-  --cms-badge-amber-text: #fcd34d;
-  --cms-badge-red-bg: rgba(239, 68, 68, 0.15);
-  --cms-badge-red-text: #fca5a5;
-  --cms-badge-violet-bg: rgba(139, 92, 246, 0.15);
-  --cms-badge-violet-text: #c4b5fd;
-  --cms-badge-cyan-bg: rgba(6, 182, 212, 0.15);
-  --cms-badge-cyan-text: #67e8f9;
+  --cms-badge-blue-bg: #2563eb;
+  --cms-badge-blue-text: #ffffff;
+  --cms-badge-gray-bg: #64748b;
+  --cms-badge-gray-text: #ffffff;
+  --cms-badge-green-bg: #059669;
+  --cms-badge-green-text: #ffffff;
+  --cms-badge-amber-bg: #d97706;
+  --cms-badge-amber-text: #ffffff;
+  --cms-badge-red-bg: #dc2626;
+  --cms-badge-red-text: #ffffff;
+  --cms-badge-violet-bg: #7c3aed;
+  --cms-badge-violet-text: #ffffff;
+  --cms-badge-cyan-bg: #0891b2;
+  --cms-badge-cyan-text: #ffffff;
   --cms-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
   --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
   --cms-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.5);
@@ -450,8 +450,16 @@ app-root {
     color: var(--cms-badge-cyan-text);
   }
   &--primary {
-    background-color: var(--cms-primary-light);
-    color: var(--cms-primary);
+    background-color: var(--cms-primary);
+    color: #ffffff;
+  }
+  &--info {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+  &--accent {
+    background-color: var(--cms-primary);
+    color: #ffffff;
   }
 }
 
@@ -1011,8 +1019,8 @@ app-root {
   font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--cms-primary);
-  background: var(--cms-primary-light);
+  color: #ffffff;
+  background: var(--cms-primary);
   padding: 3px 8px;
   border-radius: var(--cms-radius-sm);
   letter-spacing: 0.01em;
@@ -1032,7 +1040,7 @@ app-root {
 }
 
 .cell-date {
-  color: var(--cms-primary);
+  color: var(--cms-text-secondary);
   font-weight: 500;
   font-size: 0.8125rem;
 }
@@ -1072,41 +1080,41 @@ app-root {
 
 .status-active,
 .status-yes {
-  background-color: var(--cms-badge-green-bg);
-  color: var(--cms-badge-green-text);
-  &::before { background: var(--cms-badge-green-text); }
+  background-color: #ffffff;
+  color: #15803d;
+  &::before { background: #15803d; }
 }
 
 .status-inactive,
 .status-no {
-  background-color: var(--cms-badge-red-bg);
-  color: var(--cms-badge-red-text);
-  &::before { background: var(--cms-badge-red-text); }
+  background-color: #ffffff;
+  color: #dc2626;
+  &::before { background: #dc2626; }
 }
 
 .status-graduated,
 .status-completed {
-  background-color: var(--cms-badge-blue-bg);
-  color: var(--cms-badge-blue-text);
-  &::before { background: var(--cms-badge-blue-text); }
+  background-color: #ffffff;
+  color: #1d4ed8;
+  &::before { background: #1d4ed8; }
 }
 
 .status-dropped,
 .status-warning,
 .status-pending {
-  background-color: var(--cms-badge-amber-bg);
-  color: var(--cms-badge-amber-text);
-  &::before { background: var(--cms-badge-amber-text); }
+  background-color: #ffffff;
+  color: #d97706;
+  &::before { background: #d97706; }
 }
 
 .status-maintenance {
-  background-color: var(--cms-badge-cyan-bg);
-  color: var(--cms-badge-cyan-text);
-  &::before { background: var(--cms-badge-cyan-text); }
+  background-color: #ffffff;
+  color: #0891b2;
+  &::before { background: #0891b2; }
 }
 
 .status-current {
-  background-color: var(--cms-primary-light);
+  background-color: #ffffff;
   color: var(--cms-primary);
   &::before { background: var(--cms-primary); }
 }
@@ -1263,7 +1271,7 @@ app-root {
 
 // ── Current / Highlighted Row ────────────────────
 .current-row {
-  background-color: var(--cms-badge-violet-bg);
+  background-color: rgba(139, 92, 246, 0.08);
 
   &:hover {
     background-color: rgba(139, 92, 246, 0.08) !important;
