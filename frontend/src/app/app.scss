@@ -98,10 +98,8 @@
     .app-logo-full {
       height: 52px;
       width: auto;
-      flex: 1;
-      min-width: 0;
+      max-width: 100%;
       object-fit: contain;
-      object-position: left center;
     }
   }
 
