@@ -22,18 +22,21 @@
 
 .app-container {
   // Fill the remaining viewport below the fixed toolbar (56 px).
-  // In focus-mode the outer toolbar is hidden, so the container
-  // reclaims the full viewport height.
+  // Focus mode also gets this same height since the focus-header is now
+  // rendered outside the container (same level as .app-toolbar).
   height: calc(100vh - 56px);
-
-  &.focus-mode {
-    height: 100vh;
-  }
 
   // When sidenav is collapsed, override the content margin
   &.sidenav-collapsed {
     .mat-sidenav-content {
       margin-left: 68px !important;
+    }
+  }
+
+  // In focus mode the sidenav is closed — ensure content fills full width
+  &.focus-mode {
+    .mat-sidenav-content {
+      margin-left: 0 !important;
     }
   }
 
@@ -450,6 +453,8 @@
 
 // ──────────────────────────────────────────────────
 // Focus Mode Header (replaces toolbar on form screens)
+// Rendered outside mat-sidenav-container so it spans
+// the full viewport width — same level as .app-toolbar.
 // ──────────────────────────────────────────────────
 .focus-header {
   display: flex;
@@ -459,7 +464,7 @@
   flex-shrink: 0;
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 100;
   background: var(--cms-toolbar-bg, #ffffff);
   border-bottom: 2px solid var(--cms-primary);
   box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-8);

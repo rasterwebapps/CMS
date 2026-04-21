@@ -88,7 +88,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f8 100%);
+  background: linear-gradient(135deg, var(--cms-primary-light) 0%, var(--cms-bg-card) 100%);
   border-bottom: 1px solid var(--cms-border-light);
   font-size: 0.72rem;
   font-weight: 700;
@@ -100,7 +100,7 @@
     font-size: 15px;
     width: 15px;
     height: 15px;
-    color: var(--cms-primary);
+    color: var(--cms-text-muted);
   }
 }
 
@@ -127,7 +127,7 @@
 
 .fee-panel__header {
   padding: 16px 24px 14px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f1f3f8 100%);
+  background: linear-gradient(135deg, var(--cms-primary-light) 0%, var(--cms-bg-card) 100%);
   border-bottom: 1px solid var(--cms-border-light);
 }
 
@@ -139,7 +139,7 @@
 }
 
 .fee-panel__icon {
-  color: var(--cms-primary);
+  color: var(--cms-text-secondary);
   font-size: 20px;
   width: 20px;
   height: 20px;
@@ -176,7 +176,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--cms-primary);
+    color: var(--cms-text-secondary);
 
     mat-icon {
       font-size: 14px;
@@ -188,14 +188,14 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, var(--cms-primary-alpha-20) 0%, transparent 100%);
+      background: linear-gradient(90deg, var(--cms-border-default) 0%, transparent 100%);
     }
 
     &--additional {
-      color: var(--cms-primary);
+      color: var(--cms-text-secondary);
 
       &::after {
-        background: linear-gradient(90deg, var(--cms-primary-alpha-20) 0%, transparent 100%);
+        background: linear-gradient(90deg, var(--cms-border-default) 0%, transparent 100%);
       }
     }
   }
@@ -334,7 +334,7 @@
     justify-content: flex-end;
     padding-right: 8px;
 
-    &-additional { color: var(--cms-primary); }
+    &-additional { color: var(--cms-text-secondary); }
   }
 
   // Total-row grand total cell

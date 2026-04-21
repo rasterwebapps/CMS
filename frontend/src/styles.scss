@@ -156,70 +156,11 @@ html {
 // ──────────────────────────────────────────────────
 // Dark Theme
 // ──────────────────────────────────────────────────
-@media (prefers-color-scheme: dark) {
-  html.dark-theme,
-  html:not(.light-theme) {
-    @include mat.theme(
-      (
-        color: (
-          primary: mat.$violet-palette,
-          tertiary: mat.$cyan-palette,
-          theme-type: dark,
-        ),
-        typography: Roboto,
-        density: 0,
-      )
-    );
 
-    --cms-bg-shell: #0c0f1a;
-    --cms-bg-card: #151926;
-    --cms-bg-hover: rgba(99, 102, 241, 0.1);
-    --cms-bg-muted: #1e2235;
-    --cms-bg-subtle: #12162a;
-    --cms-text-primary: #f1f5f9;
-    --cms-text-secondary: #94a3b8;
-    --cms-text-muted: #64748b;
-    --cms-text-table-header: #94a3b8;
-    --cms-border-default: #1e293b;
-    --cms-border-light: #1a1f35;
-    --cms-badge-blue-bg: rgba(59, 130, 246, 0.15);
-    --cms-badge-blue-text: #93c5fd;
-    --cms-badge-gray-bg: rgba(148, 163, 184, 0.12);
-    --cms-badge-gray-text: #cbd5e1;
-    --cms-badge-green-bg: rgba(16, 185, 129, 0.15);
-    --cms-badge-green-text: #6ee7b7;
-    --cms-badge-amber-bg: rgba(245, 158, 11, 0.15);
-    --cms-badge-amber-text: #fcd34d;
-    --cms-badge-red-bg: rgba(239, 68, 68, 0.15);
-    --cms-badge-red-text: #fca5a5;
-    --cms-badge-violet-bg: rgba(139, 92, 246, 0.15);
-    --cms-badge-violet-text: #c4b5fd;
-    --cms-badge-cyan-bg: rgba(6, 182, 212, 0.15);
-    --cms-badge-cyan-text: #67e8f9;
-    --cms-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
-    --cms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-    --cms-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.5);
-    --cms-shadow-xl: 0 20px 40px -8px rgb(0 0 0 / 0.6);
-    --cms-shadow-colored: 0 4px 14px -3px rgba(99, 102, 241, 0.35);
-    --cms-shadow-card-hover: 0 12px 28px -5px rgb(0 0 0 / 0.5);
-    --cms-sidenav-bg: #070a14;
-    --cms-sidenav-border: rgba(255, 255, 255, 0.04);
-    --cms-success-light: rgba(16, 185, 129, 0.12);
-    --cms-warning-light: rgba(245, 158, 11, 0.12);
-    --cms-danger-light: rgba(239, 68, 68, 0.12);
-    --cms-info-light: rgba(59, 130, 246, 0.12);
-
-    // ─── Toolbar dark override: primary background + white text ───
-    --cms-toolbar-bg: var(--cms-primary);
-    --cms-toolbar-text: #ffffff;
-    --cms-toolbar-border: transparent;
-    --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
-    --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
-    --cms-toolbar-btn-hover-color: #ffffff;
-  }
-}
-
-html.dark-theme {
+// Shared mixin — single source of truth for all dark-mode token overrides.
+// Applied in both the prefers-color-scheme media query and the explicit
+// html.dark-theme class so they can never drift out of sync.
+@mixin dark-theme-tokens {
   @include mat.theme(
     (
       color: (
@@ -270,13 +211,28 @@ html.dark-theme {
   --cms-danger-light: rgba(239, 68, 68, 0.12);
   --cms-info-light: rgba(59, 130, 246, 0.12);
 
-  // ─── Toolbar dark override: primary background + white text ───
-  --cms-toolbar-bg: var(--cms-primary);
+  // ─── Toolbar dark override ───────────────────────────────────────────────
+  // Use palette[900] (the deep dark shade) rather than --cms-primary (palette[500]).
+  // Full-saturation 500 as a toolbar background looks like an error/alert state
+  // — especially for warm or bright accent colours. The 900 shade gives a rich,
+  // dark, tonal surface that still reflects the chosen accent hue.
+  --cms-toolbar-bg: var(--color-primary-900);
   --cms-toolbar-text: #ffffff;
   --cms-toolbar-border: transparent;
   --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
   --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
   --cms-toolbar-btn-hover-color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.dark-theme,
+  html:not(.light-theme) {
+    @include dark-theme-tokens;
+  }
+}
+
+html.dark-theme {
+  @include dark-theme-tokens;
 }
 
 // ──────────────────────────────────────────────────

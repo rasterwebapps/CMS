@@ -47,10 +47,18 @@
       </button>
     </mat-menu>
   </mat-toolbar>
+} @else {
+  <div class="focus-header">
+    <button mat-icon-button (click)="navigateBack()" class="back-btn" matTooltip="Back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="focus-title">{{ focusModeTitle() }}</span>
+    <span class="toolbar-spacer"></span>
+  </div>
 }
 
 <mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
-  <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
+  <mat-sidenav mode="side" [opened]="!focusMode()" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-header" (click)="toggleSidenav()"
       [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'" matTooltipPosition="right">
       <mat-icon class="sidenav-toggle-icon">{{ sidenavCollapsed() ? 'menu' : 'chevron_left' }}</mat-icon>
@@ -151,16 +159,6 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    @if (focusMode()) {
-      <div class="focus-header">
-        <button mat-icon-button (click)="navigateBack()" class="back-btn" matTooltip="Back">
-          <mat-icon>arrow_back</mat-icon>
-        </button>
-        <span class="focus-title">{{ focusModeTitle() }}</span>
-        <span class="toolbar-spacer"></span>
-      </div>
-    }
-
     <main class="app-content">
       <router-outlet />
     </main>
