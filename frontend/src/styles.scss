@@ -926,13 +926,13 @@ app-root {
 }
 
 .cell-date {
-  color: var(--cms-info);
+  color: var(--cms-primary);
   font-weight: 500;
   font-size: 0.8125rem;
 }
 
 .cell-currency {
-  color: var(--cms-success);
+  color: var(--cms-primary);
   font-weight: 600;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
@@ -1000,9 +1000,9 @@ app-root {
 }
 
 .status-current {
-  background-color: var(--cms-badge-violet-bg);
-  color: var(--cms-badge-violet-text);
-  &::before { background: var(--cms-badge-violet-text); }
+  background-color: var(--cms-primary-light);
+  color: var(--cms-primary);
+  &::before { background: var(--cms-primary); }
 }
 
 // ── Row Actions – Hidden until hover ─────────────
