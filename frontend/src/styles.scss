@@ -46,6 +46,8 @@
   --cms-primary-hover: #4f46e5;
   --cms-primary-light: #eef2ff;
   --cms-primary-ring: rgba(99, 102, 241, 0.3);
+  --cms-primary-alpha-8: rgba(99, 102, 241, 0.08);
+  --cms-primary-alpha-30: rgba(99, 102, 241, 0.30);
   --cms-border-hover: #a5b4fc;
 
   // ─── Accent Gradient Palette ───
@@ -136,6 +138,8 @@
   --cms-toolbar-btn-color: var(--cms-text-secondary);
   --cms-toolbar-btn-hover-bg: var(--cms-bg-hover);
   --cms-toolbar-btn-hover-color: var(--cms-primary);
+  --cms-toolbar-avatar-border: var(--cms-border-default);
+  --cms-toolbar-avatar-hover-border: var(--cms-primary);
 }
 
 html {
@@ -216,6 +220,8 @@ html {
     --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
     --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
     --cms-toolbar-btn-hover-color: #ffffff;
+    --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
+    --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
   }
 }
 
@@ -277,6 +283,56 @@ html.dark-theme {
   --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
   --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
   --cms-toolbar-btn-hover-color: #ffffff;
+  --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
+  --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
+}
+
+// ──────────────────────────────────────────────────
+// Global Search — dark toolbar context overrides
+// In dark mode the toolbar uses the primary colour as its background.
+// The default pill background (--cms-bg-muted: #1e2235) creates a jarring
+// dark blob on the coloured toolbar.  Override with a translucent-white
+// style so the pill integrates with the toolbar instead of fighting it.
+// ──────────────────────────────────────────────────
+@mixin gs-pill-dark-toolbar {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+
+  &:focus-within {
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+  }
+
+  .gs-pill__icon { color: rgba(255, 255, 255, 0.65); }
+
+  .gs-pill__input {
+    color: rgba(255, 255, 255, 0.9);
+    &::placeholder { color: rgba(255, 255, 255, 0.45); }
+  }
+
+  .gs-pill__spinner {
+    border-color: rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.85);
+  }
+
+  .gs-pill__close {
+    color: rgba(255, 255, 255, 0.65);
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+html.dark-theme .app-toolbar app-global-search .gs-pill {
+  @include gs-pill-dark-toolbar;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) .app-toolbar app-global-search .gs-pill {
+    @include gs-pill-dark-toolbar;
+  }
 }
 
 // ──────────────────────────────────────────────────
