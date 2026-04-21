@@ -5,6 +5,61 @@
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+  } @else if (lastPaymentResponse(); as receipt) {
+    <!-- Receipt Preview -->
+    <div class="receipt-wrapper">
+      <mat-card appearance="outlined" class="receipt-card">
+        <mat-card-content>
+          <div class="receipt-success-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <h2 class="receipt-title">Payment Successful</h2>
+          <p class="receipt-subtitle">Receipt No: <strong>{{ receipt.receiptNumber }}</strong></p>
+
+          <div class="receipt-body">
+            <div class="receipt-row">
+              <span class="receipt-label">Student Name</span>
+              <span class="receipt-value">{{ receipt.enquiryName }}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Amount Paid</span>
+              <span class="receipt-value receipt-amount">{{ receipt.amountPaid | currency:'INR':'₹':'1.0-0' }}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Payment Date</span>
+              <span class="receipt-value">{{ receipt.paymentDate | date:'dd MMM yyyy' }}</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Payment Mode</span>
+              <span class="receipt-value">{{ receipt.paymentMode }}</span>
+            </div>
+            @if (receipt.transactionReference) {
+              <div class="receipt-row">
+                <span class="receipt-label">Transaction Ref</span>
+                <span class="receipt-value">{{ receipt.transactionReference }}</span>
+              </div>
+            }
+            @if (receipt.remarks) {
+              <div class="receipt-row">
+                <span class="receipt-label">Remarks</span>
+                <span class="receipt-value">{{ receipt.remarks }}</span>
+              </div>
+            }
+            <div class="receipt-row">
+              <span class="receipt-label">New Status</span>
+              <span class="receipt-value receipt-status">{{ receipt.newStatus }}</span>
+            </div>
+          </div>
+
+          <div class="receipt-actions">
+            <button mat-flat-button color="primary" (click)="doneWithReceipt()">
+              <mat-icon>arrow_back</mat-icon>
+              Back to Enquiries
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
   } @else if (!selectedEnquiry()) {
     <!-- Enquiry List -->
     <p class="page-subtitle">Select a fee-finalized enquiry to collect payment.</p>
