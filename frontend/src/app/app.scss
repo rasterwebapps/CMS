@@ -8,6 +8,7 @@
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
   color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
   height: 56px;
+  padding: 0 !important; // let child sections handle their own padding
 
   button {
     color: var(--cms-toolbar-btn-color, var(--cms-text-secondary));
@@ -17,6 +18,63 @@
       color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
       background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
     }
+  }
+}
+
+// ──────────────────────────────────────────────────
+// Toolbar split: left (stable brand) / right (context)
+// ──────────────────────────────────────────────────
+.toolbar-left {
+  // Width mirrors the sidenav so the brand aligns visually with the sidebar
+  width: var(--cms-sidenav-width); // 272px
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.collapsed {
+    width: 68px;
+    justify-content: center;
+    padding: 0 4px;
+
+    // Hide the brand name in icon-rail mode
+    .toolbar-brand-name {
+      display: none;
+    }
+
+    .toolbar-brand {
+      padding: 4px;
+    }
+  }
+}
+
+.toolbar-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 100%;
+
+  // Focus-mode items inside the right section
+  .back-btn {
+    flex-shrink: 0;
+  }
+
+  .focus-title {
+    margin-left: 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--cms-toolbar-text, var(--cms-text-primary));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -620,43 +678,6 @@
     letter-spacing: -0.02em;
     color: var(--cms-toolbar-text, var(--cms-text-primary));
     white-space: nowrap;
-  }
-}
-
-// ──────────────────────────────────────────────────
-// Focus Mode Header (replaces toolbar on form screens)
-// Rendered outside mat-sidenav-container so it spans
-// the full viewport width — same level as .app-toolbar.
-// ──────────────────────────────────────────────────
-.focus-header {
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  height: 56px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--cms-toolbar-bg, #ffffff);
-  border-bottom: 2px solid var(--cms-primary);
-  box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-8);
-
-  .back-btn {
-    color: var(--cms-toolbar-btn-color, var(--cms-text-secondary));
-    transition: var(--cms-transition);
-
-    &:hover {
-      color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
-      background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
-    }
-  }
-
-  .focus-title {
-    margin-left: 4px;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--cms-toolbar-text, var(--cms-text-primary));
   }
 }
 
