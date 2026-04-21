@@ -225,7 +225,10 @@ html {
   }
 }
 
-html.dark-theme {
+// Shared mixin — single source of truth for all dark-mode token overrides.
+// Applied in both the prefers-color-scheme media query and the explicit
+// html.dark-theme class so they can never drift out of sync.
+@mixin dark-theme-tokens {
   @include mat.theme(
     (
       color: (
@@ -276,8 +279,12 @@ html.dark-theme {
   --cms-danger-light: rgba(239, 68, 68, 0.12);
   --cms-info-light: rgba(59, 130, 246, 0.12);
 
-  // ─── Toolbar dark override: primary background + white text ───
-  --cms-toolbar-bg: var(--cms-primary);
+  // ─── Toolbar dark override ───────────────────────────────────────────────
+  // Use palette[900] (the deep dark shade) rather than --cms-primary (palette[500]).
+  // Full-saturation 500 as a toolbar background looks like an error/alert state
+  // — especially for warm or bright accent colours. The 900 shade gives a rich,
+  // dark, tonal surface that still reflects the chosen accent hue.
+  --cms-toolbar-bg: var(--color-primary-900);
   --cms-toolbar-text: #ffffff;
   --cms-toolbar-border: transparent;
   --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
@@ -333,6 +340,17 @@ html.dark-theme .app-toolbar app-global-search .gs-pill {
   html:not(.light-theme) .app-toolbar app-global-search .gs-pill {
     @include gs-pill-dark-toolbar;
   }
+}
+
+@media (prefers-color-scheme: dark) {
+  html.dark-theme,
+  html:not(.light-theme) {
+    @include dark-theme-tokens;
+  }
+}
+
+html.dark-theme {
+  @include dark-theme-tokens;
 }
 
 // ──────────────────────────────────────────────────

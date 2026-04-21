@@ -38,14 +38,18 @@
   margin: 8px 0 16px;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--cms-primary);
+  // Use secondary text rather than full primary so section headings
+  // don't visually compete with CTAs and financial totals.
+  color: var(--cms-text-secondary);
 
   &::before {
     content: '';
     width: 3px;
     height: 16px;
     border-radius: 2px;
-    background: linear-gradient(180deg, var(--cms-primary), var(--color-primary-300));
+    // Neutral border colour — neutral marker doesn't shout at the same
+    // volume as the brand colour on every single heading.
+    background: var(--cms-border-default);
   }
 }
 
