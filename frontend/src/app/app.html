@@ -2,14 +2,14 @@
   <mat-toolbar class="app-toolbar">
     <a [routerLink]="'/dashboard'" class="toolbar-brand">
       @if (!toolbarLogoError()) {
-        <img src="assets/images/cms-icon.svg" alt="Raster CMS" class="toolbar-brand-icon"
+        <img src="assets/images/cms-icon.svg" alt="College Management System" class="toolbar-brand-icon"
           (error)="toolbarLogoError.set(true)" />
       } @else {
         <div class="toolbar-brand-fallback">
           <mat-icon>developer_board</mat-icon>
         </div>
       }
-      <span class="toolbar-brand-name">Raster CMS</span>
+      <span class="toolbar-brand-name">College Management System</span>
     </a>
     <span class="toolbar-spacer"></span>
 
@@ -181,13 +181,13 @@
       }
     </div>
 
-    <!-- Sidenav footer — Powered by RasterWebApps -->
+    <!-- Sidenav footer — Powered by Raster -->
     <div class="sidenav-footer">
       @if (!sidenavCollapsed()) {
         <span class="sidenav-footer-label">Powered by</span>
-        <img src="assets/images/rasterwebapps-wordmark.svg" alt="RasterWebApps" class="sidenav-footer-logo"/>
+        <img src="assets/images/raster-wordmark.svg" alt="Raster" class="sidenav-footer-logo"/>
       } @else {
-        <div class="sidenav-footer-icon" matTooltip="Powered by RasterWebApps" matTooltipPosition="right">
+        <div class="sidenav-footer-icon" matTooltip="Powered by Raster" matTooltipPosition="right">
           <span class="sidenav-footer-r">R</span>
         </div>
       }
