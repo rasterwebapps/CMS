@@ -264,7 +264,8 @@ public class DashboardService {
             .findByEnquiryDateBetweenAndStatus(weekStart, weekEnd, EnquiryStatus.CONVERTED)
             .size();
 
-        // Conversion rate
+        // Conversion rate: conversions this week relative to all-time enquiries (per spec).
+        // This shows what fraction of the total pipeline converted this week.
         double conversionRate = (double) conversionsThisWeek / Math.max(totalEnquiryCount, 1) * 100;
 
         // Enquiry funnel (reuse existing logic)
@@ -302,18 +303,22 @@ public class DashboardService {
     private List<String> buildPendingActionItems(long pendingAdmissionsCount, BigDecimal feeCollectedToday) {
         List<String> items = new ArrayList<>();
         if (pendingAdmissionsCount > 0) {
-            items.add(pendingAdmissionsCount + " admission" + (pendingAdmissionsCount > 1 ? "s" : "") + " pending review");
+            items.add(pendingAdmissionsCount + " " + pluralize(pendingAdmissionsCount, "admission", "admissions") + " pending review");
         }
         Map<String, Long> funnel = buildEnquiryFunnelMap();
         long docsSubmitted = funnel.getOrDefault(EnquiryStatus.DOCUMENTS_SUBMITTED.name(), 0L);
         if (docsSubmitted > 0) {
-            items.add(docsSubmitted + " application" + (docsSubmitted > 1 ? "s" : "") + " with documents submitted — awaiting conversion");
+            items.add(docsSubmitted + " " + pluralize(docsSubmitted, "application", "applications") + " with documents submitted — awaiting conversion");
         }
         long feesFinalized = funnel.getOrDefault(EnquiryStatus.FEES_FINALIZED.name(), 0L);
         if (feesFinalized > 0) {
-            items.add(feesFinalized + " enquir" + (feesFinalized > 1 ? "ies" : "y") + " with fees finalized — awaiting payment");
+            items.add(feesFinalized + " " + pluralize(feesFinalized, "enquiry", "enquiries") + " with fees finalized — awaiting payment");
         }
         return items;
+    }
+
+    private static String pluralize(long count, String singular, String plural) {
+        return count == 1 ? singular : plural;
     }
 }
 

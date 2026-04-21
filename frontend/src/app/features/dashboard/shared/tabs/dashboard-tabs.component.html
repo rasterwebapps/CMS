@@ -1,6 +1,7 @@
 <div class="dash-tabs" role="tablist" aria-label="Dashboard view">
   @for (tab of tabs(); track tab.role; let i = $index) {
     <button
+      #tabBtn
       class="dash-tab"
       role="tab"
       [attr.aria-selected]="tab.role === activeRole()"

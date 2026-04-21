@@ -25,6 +25,10 @@ $kpi-colors: (
   transition: var(--cms-transition);
   cursor: default;
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
   &:hover {
     transform: translateY(-4px);
     box-shadow: var(--cms-shadow-lg);
@@ -33,6 +37,11 @@ $kpi-colors: (
   &--danger {
     animation: dashPulse 2s ease-in-out infinite;
     border-color: rgba(239, 68, 68, 0.5);
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      border-color: rgba(239, 68, 68, 0.5);
+    }
   }
 
   // Generate color variants
