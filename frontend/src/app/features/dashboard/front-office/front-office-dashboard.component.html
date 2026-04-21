@@ -1,0 +1,173 @@
+<div class="fo-dashboard">
+
+  <!-- ── Hero Banner ──────────────────────────────── -->
+  <div class="fo-hero">
+    <div class="fo-hero__content">
+      <div class="fo-hero__text">
+        <p class="fo-hero__eyebrow">📋 Admissions Desk</p>
+        <h2 class="fo-hero__greeting">{{ authService.username() || 'Front Office' }} &bull; {{ today }}</h2>
+        <p class="fo-hero__stats">
+          Today: {{ foData()?.todayEnquiryCount ?? 0 }} enquiries &nbsp;&bull;&nbsp;
+          ₹{{ (foData()?.feeCollectedToday ?? 0) | number }} collected &nbsp;&bull;&nbsp;
+          {{ foData()?.pendingActionItems?.length ?? 0 }} item{{ (foData()?.pendingActionItems?.length ?? 0) !== 1 ? 's' : '' }} need attention
+        </p>
+      </div>
+      <div class="fo-hero__deco">
+        <div class="deco-circle deco-1"></div>
+        <div class="deco-circle deco-2"></div>
+        <div class="deco-circle deco-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA Quick Actions ─────────────────────────── -->
+  @if (loading()) {
+    <div class="fo-cta-row">
+      @for (n of [1,2,3]; track n) {
+        <div class="cta-skeleton"></div>
+      }
+    </div>
+  } @else {
+    <div class="fo-cta-row">
+      <a routerLink="/enquiries/new" class="fo-cta fo-cta--sky">
+        <mat-icon>add</mat-icon>
+        New Enquiry
+      </a>
+      <a routerLink="/admissions/new" class="fo-cta fo-cta--lime">
+        <mat-icon>person_add</mat-icon>
+        New Admission
+      </a>
+      <a routerLink="/fee-payments/new" class="fo-cta fo-cta--teal">
+        <mat-icon>payments</mat-icon>
+        Collect Payment
+      </a>
+    </div>
+  }
+
+  <!-- ── KPI Row ───────────────────────────────────── -->
+  @if (loading()) {
+    <div class="fo-kpi-grid">
+      @for (n of [1,2,3,4,5]; track n) {
+        <div class="kpi-skeleton">
+          <div class="skeleton skeleton-icon"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-val"></div>
+            <div class="skeleton skeleton-lbl"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="fo-kpi-grid">
+      @for (card of kpiCards(); track card.title) {
+        <app-dashboard-kpi-card
+          [title]="card.title"
+          [value]="card.value"
+          [icon]="card.icon"
+          [colorVariant]="card.color"
+          [subtitle]="card.subtitle"
+          [animationDelay]="card.delay"
+        />
+      }
+    </div>
+  }
+
+  <!-- ── Two-column: Enquiries + Pending Actions ───── -->
+  @if (loading()) {
+    <div class="fo-two-col">
+      <div class="widget-skeleton" style="height: 280px"></div>
+      <div class="widget-skeleton" style="height: 280px"></div>
+    </div>
+  } @else if (foData(); as d) {
+    <div class="fo-two-col">
+
+      <!-- Today's Enquiries -->
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap">
+            <mat-icon>today</mat-icon>
+          </div>
+          <h3 class="widget-title">Today's Enquiries</h3>
+        </div>
+        <mat-card-content>
+          @if (d.todaysEnquiries.length === 0) {
+            <p class="empty-hint">No enquiries today yet 🎉</p>
+          } @else {
+            <div class="fo-enquiry-list">
+              @for (item of d.todaysEnquiries; track item.id) {
+                <div class="fo-enquiry-row">
+                  <span class="fo-status-dot" [attr.data-status]="item.status"></span>
+                  <div class="fo-enquiry-info">
+                    <span class="fo-enquiry-name">{{ item.name }}</span>
+                    <span class="fo-enquiry-meta">{{ item.programName ?? '—' }} &bull; {{ item.referralTypeName ?? '—' }}</span>
+                  </div>
+                  <span class="fo-status-chip" [attr.data-status]="item.status">{{ formatStatus(item.status) }}</span>
+                  <a [routerLink]="['/enquiries', item.id]" class="fo-view-btn">View</a>
+                </div>
+              }
+            </div>
+            <div class="fo-enquiry-footer">
+              <a routerLink="/enquiries" class="fo-all-link">View All Enquiries →</a>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Pending Actions -->
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap widget-icon-amber">
+            <mat-icon>task_alt</mat-icon>
+          </div>
+          <h3 class="widget-title">Pending Actions</h3>
+        </div>
+        <mat-card-content>
+          @if (d.pendingActionItems.length === 0) {
+            <div class="all-clear">
+              <mat-icon>check_circle</mat-icon>
+              All clear — nothing pending
+            </div>
+          } @else {
+            <div class="pending-list">
+              @for (item of d.pendingActionItems; track item; let i = $index) {
+                <div class="pending-row">
+                  <span class="pending-dot pending-dot--{{ i === 0 ? 'red' : 'amber' }}"></span>
+                  <span class="pending-msg">{{ item }}</span>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- ── Enquiry Funnel ────────────────────────────── -->
+  @if (!loading() && funnelEntries().length > 0) {
+    <div class="fo-funnel-section">
+      <mat-card appearance="outlined" class="widget-card">
+        <div class="widget-header">
+          <div class="widget-icon-wrap widget-icon-sky">
+            <mat-icon>stacked_bar_chart</mat-icon>
+          </div>
+          <h3 class="widget-title">📊 Admission Funnel — All Time</h3>
+        </div>
+        <mat-card-content>
+          <div class="funnel-list">
+            @for (entry of funnelEntries(); track entry.status) {
+              <div class="funnel-row">
+                <span class="funnel-label">{{ formatStatus(entry.status) }}</span>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" [style.width.%]="entry.pct"></div>
+                </div>
+                <span class="funnel-count">{{ entry.count }}</span>
+                <span class="funnel-pct">{{ entry.pct }}%</span>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+</div>

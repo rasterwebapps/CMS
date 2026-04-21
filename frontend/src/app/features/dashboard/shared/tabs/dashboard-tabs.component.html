@@ -1,0 +1,18 @@
+<div class="dash-tabs" role="tablist" aria-label="Dashboard view">
+  @for (tab of tabs(); track tab.role; let i = $index) {
+    <button
+      #tabBtn
+      class="dash-tab"
+      role="tab"
+      [attr.aria-selected]="tab.role === activeRole()"
+      [class.dash-tab--active]="tab.role === activeRole()"
+      [style.--tab-color]="tab.color"
+      (click)="selectTab(tab.role)"
+      (keydown)="onKeydown($event, i)"
+      [attr.tabindex]="tab.role === activeRole() ? 0 : -1"
+    >
+      <span class="dash-tab__icon material-symbols-outlined">{{ tab.icon }}</span>
+      <span class="dash-tab__label">{{ tab.label }}</span>
+    </button>
+  }
+</div>

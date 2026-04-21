@@ -20,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.FrontOfficeDashboardResponse;
+import com.cms.dto.FrontOfficeEnquiryItem;
 import com.cms.service.DashboardService;
 
 @WebMvcTest(controllers = DashboardController.class)
@@ -82,6 +84,31 @@ class DashboardControllerTest {
             .andExpect(jsonPath("$.feeCollectionTrend[0].value").value(25000));
 
         verify(dashboardService).getTrends();
+    }
+
+    @Test
+    void shouldGetFrontOfficeDashboard() throws Exception {
+        FrontOfficeDashboardResponse response = new FrontOfficeDashboardResponse(
+            3L, 50L, 5L, BigDecimal.valueOf(12000), 4L, 8.0,
+            Map.of("ENQUIRED", 10L, "CONVERTED", 4L),
+            List.of(new FrontOfficeEnquiryItem(1L, "John Doe", "B.Sc Nursing", "Walk-in", "ENQUIRED", java.time.LocalDate.now())),
+            List.of("5 admissions pending review")
+        );
+
+        when(dashboardService.getFrontOfficeDashboard()).thenReturn(response);
+
+        mockMvc.perform(get("/dashboard/front-office"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.todayEnquiryCount").value(3))
+            .andExpect(jsonPath("$.totalEnquiryCount").value(50))
+            .andExpect(jsonPath("$.pendingAdmissionsCount").value(5))
+            .andExpect(jsonPath("$.feeCollectedToday").value(12000))
+            .andExpect(jsonPath("$.conversionsThisWeek").value(4))
+            .andExpect(jsonPath("$.conversionRate").value(8.0))
+            .andExpect(jsonPath("$.todaysEnquiries[0].name").value("John Doe"))
+            .andExpect(jsonPath("$.pendingActionItems[0]").value("5 admissions pending review"));
+
+        verify(dashboardService).getFrontOfficeDashboard();
     }
 }
 

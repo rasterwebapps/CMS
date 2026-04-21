@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,6 +17,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.FrontOfficeDashboardResponse;
+import com.cms.model.Enquiry;
+import com.cms.model.EnquiryPayment;
+import com.cms.model.Program;
+import com.cms.model.ReferralType;
+import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.EnquiryPaymentRepository;
@@ -46,6 +54,7 @@ class DashboardServiceTest {
     @Mock private AttendanceRepository attendanceRepository;
     @Mock private EnquiryRepository enquiryRepository;
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock private AdmissionRepository admissionRepository;
 
     private DashboardService dashboardService;
 
@@ -56,7 +65,7 @@ class DashboardServiceTest {
             subjectRepository, programRepository, labRepository,
             equipmentRepository, examinationRepository, feePaymentRepository,
             maintenanceRequestRepository, attendanceRepository,
-            enquiryRepository, enquiryPaymentRepository
+            enquiryRepository, enquiryPaymentRepository, admissionRepository
         );
     }
 
@@ -144,6 +153,63 @@ class DashboardServiceTest {
 
         assertThat(trends.enrolmentTrend()).hasSize(6);
         assertThat(trends.feeCollectionTrend()).hasSize(6);
+    }
+
+    @Test
+    void shouldReturnFrontOfficeDashboardWithTodayEnquiryCount() {
+        LocalDate today = LocalDate.now();
+        Enquiry todayEnquiry = new Enquiry("Alice", "alice@test.com", "9999999999", null, today, null, EnquiryStatus.ENQUIRED);
+
+        when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of(todayEnquiry));
+        when(enquiryRepository.count()).thenReturn(5L);
+        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
+        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll()).thenReturn(List.of(todayEnquiry));
+
+        FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
+
+        assertThat(response.todayEnquiryCount()).isEqualTo(1L);
+        assertThat(response.totalEnquiryCount()).isEqualTo(5L);
+        assertThat(response.pendingAdmissionsCount()).isZero();
+        assertThat(response.feeCollectedToday()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.todaysEnquiries()).hasSize(1);
+        assertThat(response.todaysEnquiries().get(0).name()).isEqualTo("Alice");
+    }
+
+    @Test
+    void shouldReturnZeroConversionRateWhenNoEnquiries() {
+        LocalDate today = LocalDate.now();
+
+        when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of());
+        when(enquiryRepository.count()).thenReturn(0L);
+        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
+        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll()).thenReturn(List.of());
+
+        FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
+
+        assertThat(response.conversionRate()).isZero();
+    }
+
+    @Test
+    void shouldSumOnlyTodayPaymentsForFeeCollectedToday() {
+        LocalDate today = LocalDate.now();
+        EnquiryPayment todayPayment = new EnquiryPayment();
+        todayPayment.setAmountPaid(BigDecimal.valueOf(5000));
+        todayPayment.setPaymentDate(today);
+
+        when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of());
+        when(enquiryRepository.count()).thenReturn(0L);
+        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of(todayPayment));
+        when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll()).thenReturn(List.of());
+
+        FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
+
+        assertThat(response.feeCollectedToday()).isEqualByComparingTo(BigDecimal.valueOf(5000));
     }
 }
 
