@@ -91,6 +91,18 @@ const TAILWIND_PALETTES: Record<string, Record<Shade, string>> = {
   },
 };
 
+/** Angle used in all brand linear-gradients — ensures a consistent direction. */
+const GRADIENT_ANGLE = 135;
+
+/**
+ * The two interactive shade pairs used when applying --cms-primary.
+ *  - NORMAL pair: palette[500] as primary, palette[600] as hover.
+ *  - LIGHT pair: palette[700] as primary (contrast-safe), palette[800] as hover.
+ * "Light" means the 500 is too luminous for white text to meet WCAG AA.
+ */
+const PRIMARY_SHADE_NORMAL: { primary: Shade; hover: Shade } = { primary: 500, hover: 600 };
+const PRIMARY_SHADE_LIGHT: { primary: Shade; hover: Shade } = { primary: 700, hover: 800 };
+
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly platformId = inject(PLATFORM_ID);
@@ -204,16 +216,17 @@ export class ThemeService {
     // ─── Contrast-safe primary ────────────────────────────────────────────
     // Use palette[500] unless it is too light for WCAG AA white-text contrast,
     // in which case shift to palette[700].
-    const primaryShade: Shade = this.failsWhiteTextContrast(palette[500]) ? 700 : 500;
-    const primaryHoverShade: Shade = primaryShade === 500 ? 600 : 800;
-    const primaryHex = palette[primaryShade];
+    const shades = this.failsWhiteTextContrast(palette[500])
+      ? PRIMARY_SHADE_LIGHT
+      : PRIMARY_SHADE_NORMAL;
+    const primaryHex = palette[shades.primary];
 
     const [r, g, b] = this.hexToRgb(primaryHex);
     const rgba = (alpha: number): string => `rgba(${r}, ${g}, ${b}, ${alpha})`;
 
     // Core brand tokens
     root.style.setProperty('--cms-primary', primaryHex);
-    root.style.setProperty('--cms-primary-hover', palette[primaryHoverShade]);
+    root.style.setProperty('--cms-primary-hover', palette[shades.hover]);
     root.style.setProperty('--cms-primary-light', palette[50]);
     root.style.setProperty('--cms-border-hover', palette[300]);
     root.style.setProperty('--cms-sidenav-active-text', palette[300]);
@@ -244,17 +257,17 @@ export class ThemeService {
     // Brand gradient: dark → medium (gives depth; avoids "faded" look)
     root.style.setProperty(
       '--cms-gradient-brand',
-      `linear-gradient(135deg, ${palette[400]} 0%, ${palette[700]} 100%)`,
+      `linear-gradient(${GRADIENT_ANGLE}deg, ${palette[400]} 0%, ${palette[700]} 100%)`,
     );
     root.style.setProperty(
       '--cms-gradient-brand-hover',
-      `linear-gradient(135deg, ${palette[600]} 0%, ${palette[800]} 100%)`,
+      `linear-gradient(${GRADIENT_ANGLE}deg, ${palette[600]} 0%, ${palette[800]} 100%)`,
     );
     // Toolbar gradient: dark → medium so the header has natural depth, not a
     // faded candy-stripe (previously was 500→300 which looked washed-out).
     root.style.setProperty(
       '--cms-gradient-toolbar',
-      `linear-gradient(135deg, ${palette[700]} 0%, ${palette[500]} 100%)`,
+      `linear-gradient(${GRADIENT_ANGLE}deg, ${palette[700]} 0%, ${palette[500]} 100%)`,
     );
   }
 
