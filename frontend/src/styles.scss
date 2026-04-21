@@ -2084,6 +2084,10 @@ html.dark-theme {
 }
 
 // ── Ambient Glow Blobs — dark mode only ──────────────
+// Two separate implementations are intentional:
+// 1. html.dark-theme (explicit class set by ThemeService's toggleTheme())
+// 2. @media (prefers-color-scheme: dark) (system preference, no explicit class)
+// Both must exist so globs activate in either scenario.
 html.dark-theme body::before,
 html.dark-theme body::after {
   content: '';
