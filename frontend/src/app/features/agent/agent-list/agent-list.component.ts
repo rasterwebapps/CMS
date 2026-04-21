@@ -37,8 +37,12 @@ export class AgentListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['name', 'phone', 'email', 'area', 'allottedSeats', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Agent>([]);
@@ -77,8 +81,6 @@ export class AgentListComponent implements OnInit {
     this.agentService.getAgents().subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },

@@ -47,8 +47,12 @@ export class ProgramListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['code', 'name', 'durationYears', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
@@ -114,8 +118,6 @@ export class ProgramListComponent implements OnInit {
     this.programService.getAll().subscribe({
       next: (programs) => {
         this.dataSource.data = programs;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.applyFilters();
         this.loading.set(false);
       },

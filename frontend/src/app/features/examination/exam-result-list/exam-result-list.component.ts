@@ -29,8 +29,12 @@ export class ExamResultListComponent implements OnInit {
   private readonly examinationService = inject(ExaminationService);
   private readonly snackBar = inject(MatSnackBar);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['studentRollNumber', 'studentName', 'marksObtained', 'grade', 'status'];
   protected readonly dataSource = new MatTableDataSource<ExamResult>([]);
@@ -69,8 +73,6 @@ export class ExamResultListComponent implements OnInit {
     this.examinationService.getResults(examId).subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load results', 'Close', { duration: 3000 }); this.loading.set(false); },

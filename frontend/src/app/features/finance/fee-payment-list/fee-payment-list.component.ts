@@ -37,8 +37,12 @@ export class FeePaymentListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['studentName', 'feeStructureName', 'amountPaid', 'paymentDate', 'paymentMethod', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<FeePayment>([]);
@@ -75,8 +79,6 @@ export class FeePaymentListComponent implements OnInit {
     this.financeService.getPayments().subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },

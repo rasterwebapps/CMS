@@ -45,8 +45,21 @@ export class EnquiryListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private _sort?: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    this._sort = value;
+    if (value) {
+      this.dataSource.sort = value;
+      if (!value.active) {
+        value.active = 'enquiryDate';
+        value.direction = 'asc';
+        value.sortChange.emit({ active: 'enquiryDate', direction: 'asc' });
+      }
+    }
+  }
 
   protected readonly displayedColumns = ['name', 'phone', 'programName', 'studentType', 'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
@@ -221,15 +234,6 @@ export class EnquiryListComponent implements OnInit {
     this.enquiryService.getEnquiriesByDateRange(fromStr, toStr, status || undefined).subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        setTimeout(() => {
-          this.dataSource.paginator = this.paginator;
-          this.dataSource.sort = this.sort;
-          if (this.sort && !this.sort.active) {
-            this.sort.active = 'enquiryDate';
-            this.sort.direction = 'asc';
-            this.sort.sortChange.emit({ active: 'enquiryDate', direction: 'asc' });
-          }
-        });
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },

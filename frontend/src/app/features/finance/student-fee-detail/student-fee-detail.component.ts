@@ -35,8 +35,12 @@ export class StudentFeeDetailComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.receiptDataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.receiptDataSource.sort = value;
+  }
 
   protected readonly loading = signal(false);
   protected readonly allocation = signal<StudentFeeAllocation | null>(null);
@@ -91,8 +95,6 @@ export class StudentFeeDetailComponent implements OnInit {
     this.financeService.getReceipts(this.studentId).subscribe({
       next: (data) => {
         this.receiptDataSource.data = data;
-        this.receiptDataSource.paginator = this.paginator;
-        this.receiptDataSource.sort = this.sort;
       },
     });
   }
