@@ -159,9 +159,9 @@ html {
 
 // ──────────────────────────────────────────────────
 // Angular Material ↔ CMS Dynamic Theme Bridge
-// mat.theme() above hard-codes mat.$violet-palette as the Material primary.
-// The overrides below redirect M3 system colour tokens to the user's chosen
-// accent colour managed by ThemeService, so Angular Material components
+// mat.theme() above hardcodes mat.$violet-palette as the Material primary.
+// The overrides below redirect M3 system color tokens to the user's chosen
+// accent color managed by ThemeService, so Angular Material components
 // (tabs, progress spinners, checkboxes, sliders, form fields …) follow the
 // theme rather than always rendering in violet/purple.
 // ──────────────────────────────────────────────────
