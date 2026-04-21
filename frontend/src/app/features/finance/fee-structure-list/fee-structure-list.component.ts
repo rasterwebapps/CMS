@@ -48,8 +48,12 @@ export class FeeStructureListComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeCount', 'totalAmount', 'actions'];
   protected readonly dataSource = new MatTableDataSource<GroupedFeeStructure>([]);
@@ -133,8 +137,6 @@ export class FeeStructureListComponent implements OnInit {
     this.financeService.getGroupedFeeStructures(params).subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading.set(false);
       },
       error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },

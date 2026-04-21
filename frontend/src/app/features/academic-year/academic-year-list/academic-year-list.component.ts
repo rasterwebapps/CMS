@@ -51,8 +51,12 @@ export class AcademicYearListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly displayedColumns = ['name', 'startDate', 'endDate', 'isCurrent', 'actions'];
   protected readonly dataSource = new MatTableDataSource<AcademicYear>([]);
@@ -122,8 +126,6 @@ export class AcademicYearListComponent implements OnInit {
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (academicYears) => {
         this.dataSource.data = academicYears;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
         this.loading.set(false);
       },
       error: () => {

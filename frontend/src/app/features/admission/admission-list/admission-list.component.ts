@@ -45,7 +45,9 @@ export class AdmissionListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
 
   protected readonly statuses = ADMISSION_STATUSES;
   protected readonly displayedColumns = ['studentName', 'applicationDate', 'academicYear', 'status', 'actions'];
@@ -66,7 +68,6 @@ export class AdmissionListComponent implements OnInit {
     this.admissionService.getAll().subscribe({
       next: (data) => {
         this.dataSource.data = data;
-        setTimeout(() => { this.dataSource.paginator = this.paginator; });
         this.applyStatusFilter();
         this.loading.set(false);
       },
