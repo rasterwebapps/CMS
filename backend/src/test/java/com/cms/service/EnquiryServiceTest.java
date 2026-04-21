@@ -356,7 +356,10 @@ class EnquiryServiceTest {
 
     @Test
     void shouldDeleteEnquiry() {
-        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
         enquiryService.delete(1L);
 
@@ -365,13 +368,46 @@ class EnquiryServiceTest {
 
     @Test
     void shouldThrowWhenDeletingNonExistent() {
-        when(enquiryRepository.existsById(999L)).thenReturn(false);
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> enquiryService.delete(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
 
         verify(enquiryRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldThrowWhenDeletingEnquiryBeyondEnquiredStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("ENQUIRED status")
+            .hasMessageContaining("INTERESTED");
+
+        verify(enquiryRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldFindDocumentPending() {
+        Enquiry feesPaid = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
+        Enquiry partiallyPaid = createEnquiry(2L, "Priya Singh", "priya@email.com", "8765432109",
+            testProgram, LocalDate.of(2024, 6, 20), testReferralType, EnquiryStatus.PARTIALLY_PAID);
+
+        when(enquiryRepository.findByStatusIn(
+            List.of(EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID)
+        )).thenReturn(List.of(feesPaid, partiallyPaid));
+
+        List<EnquiryResponse> responses = enquiryService.findDocumentPending();
+
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).status()).isEqualTo(EnquiryStatus.FEES_PAID);
+        assertThat(responses.get(1).status()).isEqualTo(EnquiryStatus.PARTIALLY_PAID);
     }
 
     @Test

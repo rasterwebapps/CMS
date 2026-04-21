@@ -1066,3 +1066,159 @@
 
 **Status:** NOT TESTED
 
+---
+
+## TC-ENQ-DEL-RESTRICT-001: Delete is blocked for enquiries beyond ENQUIRED status
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An enquiry exists in INTERESTED status
+
+**Steps:**
+1. Send `DELETE /api/v1/enquiries/{id}` for an enquiry in INTERESTED status
+2. Verify the response status
+
+**Expected Result:**
+- Response is `409 Conflict`
+- Error message contains "ENQUIRED status"
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DEL-RESTRICT-002: Delete button is hidden for non-ENQUIRED enquiries in the UI
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- The Enquiries list page is open
+
+**Steps:**
+1. Navigate to `/enquiries`
+2. Find a row with status INTERESTED, FEES_FINALIZED, PARTIALLY_PAID, FEES_PAID, or any other non-ENQUIRED status
+3. Observe the action buttons for that row
+
+**Expected Result:**
+- No delete (trash) button is visible for non-ENQUIRED rows
+- Delete button is only visible for rows in ENQUIRED status
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DEL-RESTRICT-003: Delete succeeds for ENQUIRED status
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An enquiry exists in ENQUIRED status
+
+**Steps:**
+1. Send `DELETE /api/v1/enquiries/{id}` for the ENQUIRED enquiry
+2. Verify the response status
+
+**Expected Result:**
+- Response is `204 No Content`
+- Enquiry is removed from the list
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-STATUS-NOT-INT-001: Mark NOT_INTERESTED from FEES_FINALIZED status
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An enquiry exists in FEES_FINALIZED status (fees finalised, no payment yet)
+
+**Steps:**
+1. Navigate to `/enquiries`
+2. Find the row with FEES_FINALIZED status
+3. Click the status badge — a dropdown should appear
+4. Select **NOT_INTERESTED**
+5. Observe the result
+
+**Expected Result:**
+- Status updates to NOT_INTERESTED successfully
+- Snackbar shows "Status updated to NOT_INTERESTED"
+- The status badge in the row reflects the change
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DOC-SUBMIT-SCREEN-001: Document Submission screen shows all eligible enquiries
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- At least one enquiry exists in FEES_PAID or PARTIALLY_PAID status
+
+**Steps:**
+1. Navigate to `/enquiries/document-submission`
+2. Observe the list
+
+**Expected Result:**
+- All enquiries in FEES_PAID and PARTIALLY_PAID status are listed
+- No date filter is applied — all such enquiries appear regardless of date
+- Columns: Name, Program, Course, Status, Net Fee, Enquiry Date
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DOC-SUBMIT-SCREEN-002: Submit documents from the Document Submission screen
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An enquiry exists in FEES_PAID or PARTIALLY_PAID status
+- All mandatory documents have been uploaded for the enquiry
+
+**Steps:**
+1. Navigate to `/enquiries/document-submission`
+2. Find the target enquiry row
+3. Click the **Submit Documents** (upload icon) button for the row
+4. Observe the result
+
+**Expected Result:**
+- Documents are submitted successfully
+- Snackbar shows "Documents submitted successfully"
+- The enquiry status changes to DOCUMENTS_SUBMITTED
+- The row disappears from the list (since it is no longer in FEES_PAID/PARTIALLY_PAID)
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DOC-SUBMIT-SCREEN-003: Submit documents fails when mandatory documents are missing
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An enquiry exists in FEES_PAID or PARTIALLY_PAID status
+- NOT all mandatory documents have been uploaded
+
+**Steps:**
+1. Navigate to `/enquiries/document-submission`
+2. Find the target enquiry row
+3. Click the **Submit Documents** button
+
+**Expected Result:**
+- Action fails with an error message indicating which mandatory documents are missing
+- Enquiry status remains unchanged
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-DOC-SUBMIT-SCREEN-004: Document Submission nav item visible for ADMIN and FRONT_OFFICE
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+
+**Steps:**
+1. Open the application
+2. Expand the "Admission Management" group in the sidebar
+
+**Expected Result:**
+- "Document Submission" navigation item is visible
+
+**Status:** NOT TESTED
+
+

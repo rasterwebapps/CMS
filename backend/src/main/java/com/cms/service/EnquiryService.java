@@ -318,10 +318,20 @@ public class EnquiryService {
 
     @Transactional
     public void delete(Long id) {
-        if (!enquiryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Enquiry not found with id: " + id);
+        Enquiry enquiry = enquiryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
+        if (enquiry.getStatus() != EnquiryStatus.ENQUIRED) {
+            throw new IllegalStateException(
+                "Enquiry can only be deleted when in ENQUIRED status. Current status: " + enquiry.getStatus()
+            );
         }
         enquiryRepository.deleteById(id);
+    }
+
+    public List<EnquiryResponse> findDocumentPending() {
+        return enquiryRepository.findByStatusIn(
+            List.of(EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID)
+        ).stream().map(this::toResponse).toList();
     }
 
     @Transactional

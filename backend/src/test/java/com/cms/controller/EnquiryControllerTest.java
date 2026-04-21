@@ -228,6 +228,33 @@ class EnquiryControllerTest {
     }
 
     @Test
+    void shouldReturnConflictWhenDeletingEnquiryBeyondEnquiredStatus() throws Exception {
+        doThrow(new IllegalStateException("Enquiry can only be deleted when in ENQUIRED status. Current status: INTERESTED"))
+            .when(enquiryService).delete(1L);
+
+        mockMvc.perform(delete("/enquiries/1"))
+            .andExpect(status().isConflict());
+
+        verify(enquiryService).delete(1L);
+    }
+
+    @Test
+    void shouldFindDocumentPending() throws Exception {
+        EnquiryResponse feesPaid = createResponse(1L, "Ravi Kumar", EnquiryStatus.FEES_PAID);
+        EnquiryResponse partiallyPaid = createResponse(2L, "Priya Singh", EnquiryStatus.PARTIALLY_PAID);
+
+        when(enquiryService.findDocumentPending()).thenReturn(List.of(feesPaid, partiallyPaid));
+
+        mockMvc.perform(get("/enquiries/document-pending"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].status").value("FEES_PAID"))
+            .andExpect(jsonPath("$[1].status").value("PARTIALLY_PAID"));
+
+        verify(enquiryService).findDocumentPending();
+    }
+
+    @Test
     void shouldDeleteEnquiry() throws Exception {
         doNothing().when(enquiryService).delete(1L);
 

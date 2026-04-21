@@ -60,6 +60,12 @@ public class EnquiryController {
         this.enquiryPaymentService = enquiryPaymentService;
     }
 
+    @GetMapping("/document-pending")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<List<EnquiryResponse>> findDocumentPending() {
+        return ResponseEntity.ok(enquiryService.findDocumentPending());
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> create(@Valid @RequestBody EnquiryRequest request) {
