@@ -65,7 +65,7 @@
 }
 
 <mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()" [class.focus-mode]="focusMode()">
-  <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
+  <mat-sidenav mode="side" [opened]="!focusMode()" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-brand-header">
       @if (!sidenavCollapsed()) {
         <div class="sidenav-brand-expanded">
