@@ -139,6 +139,7 @@
   --cms-toolbar-btn-hover-bg: var(--cms-bg-hover);
   --cms-toolbar-btn-hover-color: var(--cms-primary);
   --cms-toolbar-avatar-border: var(--cms-border-default);
+  --cms-toolbar-avatar-hover-border: var(--cms-primary);
 }
 
 html {
@@ -220,6 +221,7 @@ html {
     --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
     --cms-toolbar-btn-hover-color: #ffffff;
     --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
+    --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
   }
 }
 
@@ -282,6 +284,7 @@ html.dark-theme {
   --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
   --cms-toolbar-btn-hover-color: #ffffff;
   --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
+  --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
 }
 
 // ──────────────────────────────────────────────────

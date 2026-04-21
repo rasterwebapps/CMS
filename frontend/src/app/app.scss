@@ -673,7 +673,7 @@
 
   &:hover {
     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
-    border-color: var(--cms-toolbar-btn-hover-color, var(--cms-primary));
+    border-color: var(--cms-toolbar-avatar-hover-border, var(--cms-primary));
   }
 }
 
