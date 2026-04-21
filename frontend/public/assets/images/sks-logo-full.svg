@@ -51,5 +51,5 @@
   <text x="185" y="95" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900" fill="#CC0000" letter-spacing="-2">SKS</text>
 
   <!-- COLLEGE OF NURSING text -->
-  <text x="187" y="128" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#1a2a5e" letter-spacing="1">COLLEGE OF NURSING</text>
+  <text x="187" y="128" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="rgba(255,255,255,0.75)" letter-spacing="1">COLLEGE OF NURSING</text>
 </svg>
