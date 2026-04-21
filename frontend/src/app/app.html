@@ -172,12 +172,10 @@
               </a>
             </div>
           } @else {
-            <mat-nav-list dense>
-              <a mat-list-item [routerLink]="entry.route" routerLinkActive="active-link" class="top-level-item">
-                <mat-icon matListItemIcon>{{ entry.icon }}</mat-icon>
-                <span matListItemTitle>{{ entry.label }}</span>
-              </a>
-            </mat-nav-list>
+            <a [routerLink]="entry.route" routerLinkActive="top-level-active" class="top-level-nav-item">
+              <mat-icon class="top-level-icon">{{ entry.icon }}</mat-icon>
+              <span class="top-level-label">{{ entry.label }}</span>
+            </a>
           }
         }
       }

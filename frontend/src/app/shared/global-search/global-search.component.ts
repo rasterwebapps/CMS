@@ -46,7 +46,6 @@ export class GlobalSearchComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
-  protected readonly expanded = signal(false);
   protected readonly loading = signal(false);
   protected readonly results = signal<SearchResultItem[]>([]);
   protected readonly activeIndex = signal(-1);
@@ -91,17 +90,7 @@ export class GlobalSearchComponent implements OnDestroy {
     this.search$.next(q);
   }
 
-  protected onFocus(): void {
-    this.expanded.set(true);
-  }
-
-  protected open(): void {
-    this.expanded.set(true);
-    setTimeout(() => this.searchInput?.nativeElement.focus(), 50);
-  }
-
   protected close(): void {
-    this.expanded.set(false);
     this.results.set([]);
     this.activeIndex.set(-1);
     this.query.set('');
@@ -139,14 +128,14 @@ export class GlobalSearchComponent implements OnDestroy {
   onGlobalKeyDown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
       event.preventDefault();
-      this.open();
+      this.searchInput?.nativeElement.focus();
     }
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const el = event.target as HTMLElement;
-    if (this.expanded() && !el.closest('app-global-search')) {
+    if ((this.results().length > 0 || this.query().length > 0) && !el.closest('app-global-search')) {
       this.close();
     }
   }

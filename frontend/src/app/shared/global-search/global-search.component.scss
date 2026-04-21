@@ -1,42 +1,15 @@
 :host {
   display: flex;
   align-items: center;
+  flex: 0 1 420px;
+  min-width: 180px;
 }
 
 .gs-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-
-  &--expanded {
-    flex: 1;
-    max-width: 460px;
-  }
-}
-
-.gs-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  border-radius: var(--cms-radius-sm);
-  color: var(--cms-text-muted);
-  cursor: pointer;
-  transition: var(--cms-transition);
-
-  &:hover {
-    color: var(--cms-primary);
-    background: var(--cms-bg-hover);
-  }
-
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-  }
+  width: 100%;
 }
 
 .gs-pill {
