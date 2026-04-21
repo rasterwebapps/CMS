@@ -374,3 +374,33 @@
 - Payment form is still functional for free-form amount entry
 
 **Status:** NOT TESTED
+
+---
+
+## TC-PAY-008: Payment collection API endpoint works correctly
+
+**Preconditions:**
+- User is authenticated with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- An enquiry exists with status FEES_FINALIZED
+
+**Steps:**
+1. Send POST to `/api/v1/enquiries/{id}/payments` with body:
+   ```json
+   {
+     "amountPaid": 25000,
+     "paymentDate": "2024-07-01",
+     "paymentMode": "CASH",
+     "transactionReference": "TXN001",
+     "remarks": "First instalment"
+   }
+   ```
+2. Verify response status is 201 Created
+3. Verify response includes `receiptNumber`, `newStatus`, `enquiryId`, `amountPaid`
+4. Send GET to `/api/v1/enquiries/{id}/payments`
+5. Verify the payment appears in the list
+
+**Expected Result:**
+- 201 response with receipt number and updated status
+- GET returns the collected payment in the list
+
+**Status:** NOT TESTED

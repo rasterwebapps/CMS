@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.EnquiryDocumentResponse;
+import com.cms.dto.EnquiryPaymentRequest;
+import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquirySummaryResponse;
@@ -181,6 +183,23 @@ public class EnquiryController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<EnquiryConversionPrefillResponse> getConversionPrefill(@PathVariable Long id) {
         return ResponseEntity.ok(enquiryService.getConversionPrefill(id));
+    }
+
+    @PostMapping("/{id}/payments")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<EnquiryPaymentResponse> collectPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody EnquiryPaymentRequest request,
+            Principal principal) {
+        String collectedBy = principal != null ? principal.getName() : "system";
+        EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(id, request, collectedBy);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/payments")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<List<EnquiryPaymentResponse>> getPayments(@PathVariable Long id) {
+        return ResponseEntity.ok(enquiryPaymentService.getPaymentsByEnquiryId(id));
     }
 
     @DeleteMapping("/{id}")

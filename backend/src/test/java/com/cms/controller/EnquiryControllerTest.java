@@ -29,10 +29,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.EnquiryConversionRequest;
+import com.cms.dto.EnquiryPaymentRequest;
+import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.PaymentMode;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryPaymentService;
@@ -352,6 +355,67 @@ class EnquiryControllerTest {
             .andExpect(status().isBadRequest());
 
         verify(enquiryService, never()).submitDocuments(any());
+    }
+
+    @Test
+    void shouldCollectPayment() throws Exception {
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new java.math.BigDecimal("25000.00"),
+            LocalDate.of(2024, 7, 1),
+            PaymentMode.CASH,
+            null,
+            "First instalment"
+        );
+
+        EnquiryPaymentResponse response = new EnquiryPaymentResponse(
+            1L, 1L, "Ravi Kumar",
+            new java.math.BigDecimal("25000.00"),
+            LocalDate.of(2024, 7, 1),
+            PaymentMode.CASH,
+            null,
+            "First instalment",
+            "RCP-20240701-ABCD1234",
+            "system",
+            "PARTIALLY_PAID",
+            Instant.now()
+        );
+
+        when(enquiryPaymentService.collectPayment(eq(1L), any(EnquiryPaymentRequest.class), any(String.class)))
+            .thenReturn(response);
+
+        mockMvc.perform(post("/enquiries/1/payments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.receiptNumber").value("RCP-20240701-ABCD1234"))
+            .andExpect(jsonPath("$.newStatus").value("PARTIALLY_PAID"));
+
+        verify(enquiryPaymentService).collectPayment(eq(1L), any(EnquiryPaymentRequest.class), any(String.class));
+    }
+
+    @Test
+    void shouldGetPayments() throws Exception {
+        EnquiryPaymentResponse response = new EnquiryPaymentResponse(
+            1L, 1L, "Ravi Kumar",
+            new java.math.BigDecimal("25000.00"),
+            LocalDate.of(2024, 7, 1),
+            PaymentMode.UPI,
+            "TXN123",
+            null,
+            "RCP-20240701-ABCD1234",
+            "system",
+            null,
+            Instant.now()
+        );
+
+        when(enquiryPaymentService.getPaymentsByEnquiryId(1L)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/enquiries/1/payments"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].receiptNumber").value("RCP-20240701-ABCD1234"));
+
+        verify(enquiryPaymentService).getPaymentsByEnquiryId(1L);
     }
 
     private EnquiryResponse createResponse(Long id, String name, EnquiryStatus status) {
