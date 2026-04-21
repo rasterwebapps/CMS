@@ -1,6 +1,6 @@
-import { Injectable, inject, computed } from '@angular/core';
+import { Injectable, inject, computed, DestroyRef } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 
 // Routes that activate focus mode (collapse global toolbar to maximise vertical space)
@@ -37,11 +37,13 @@ export const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
       map((e) => e.urlAfterRedirects),
+      takeUntilDestroyed(this.destroyRef),
     ),
     { initialValue: this.router.url },
   );
