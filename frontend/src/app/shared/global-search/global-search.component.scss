@@ -17,15 +17,15 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  background: var(--cms-bg-muted);
-  border: 1.5px solid var(--cms-border-default);
+  background: var(--cms-toolbar-search-bg, var(--cms-bg-muted));
+  border: 1.5px solid var(--cms-toolbar-search-border, var(--cms-border-default));
   border-radius: var(--cms-radius-sm);
   padding: 0 12px;
   height: 36px;
   transition: var(--cms-transition);
 
   &:focus-within {
-    background: var(--cms-bg-card);
+    background: var(--cms-toolbar-search-focus-bg, var(--cms-bg-card));
     border-color: var(--cms-primary);
     box-shadow: 0 0 0 3px var(--cms-primary-ring);
   }
@@ -34,7 +34,7 @@
     font-size: 16px !important;
     width: 16px !important;
     height: 16px !important;
-    color: var(--cms-text-muted);
+    color: var(--cms-toolbar-search-icon, var(--cms-text-muted));
     flex-shrink: 0;
   }
 
@@ -44,12 +44,12 @@
     background: transparent;
     outline: none;
     font-size: 0.875rem;
-    color: var(--cms-text-primary);
+    color: var(--cms-toolbar-search-text, var(--cms-text-primary));
     min-width: 0;
     font-family: inherit;
 
     &::placeholder {
-      color: var(--cms-text-muted);
+      color: var(--cms-toolbar-search-placeholder, var(--cms-text-muted));
     }
   }
 
@@ -60,7 +60,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--cms-text-muted);
+    color: var(--cms-toolbar-search-icon, var(--cms-text-muted));
     padding: 0;
     flex-shrink: 0;
     border-radius: 50%;
@@ -69,8 +69,8 @@
     transition: var(--cms-transition);
 
     &:hover {
-      color: var(--cms-text-primary);
-      background: var(--cms-bg-hover);
+      color: var(--cms-toolbar-search-text, var(--cms-text-primary));
+      background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
     }
 
     mat-icon {
