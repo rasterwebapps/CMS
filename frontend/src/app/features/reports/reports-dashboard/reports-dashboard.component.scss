@@ -11,7 +11,9 @@
   letter-spacing: -0.02em;
 
   svg {
-    color: var(--cms-primary);
+    // Decorative icon — uses muted text rather than full primary so it
+    // doesn't add to visual noise alongside the heading text.
+    color: var(--cms-text-muted);
     flex-shrink: 0;
   }
 }

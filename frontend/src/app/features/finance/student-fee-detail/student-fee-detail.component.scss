@@ -29,10 +29,12 @@
   font-weight: 500;
   text-transform: uppercase;
 }
-.status-paid { background-color: #e8f5e9; color: #2e7d32; }
-.status-partial { background-color: #fff3e0; color: #e65100; }
-.status-overdue { background-color: #fbe9e7; color: #c62828; }
-.status-pending { background-color: #e3f2fd; color: #1565c0; }
+// Use global CMS badge tokens so colours respond correctly in dark mode
+// and remain semantically correct regardless of the chosen accent colour.
+.status-paid    { background-color: var(--cms-badge-green-bg);  color: var(--cms-badge-green-text); }
+.status-partial { background-color: var(--cms-badge-amber-bg);  color: var(--cms-badge-amber-text); }
+.status-overdue { background-color: var(--cms-badge-red-bg);    color: var(--cms-badge-red-text); }
+.status-pending { background-color: var(--cms-badge-blue-bg);   color: var(--cms-badge-blue-text); }
 
 .table-container { overflow-x: auto; }
 .data-table { width: 100%; }
