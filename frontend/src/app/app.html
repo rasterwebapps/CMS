@@ -2,7 +2,7 @@
   <mat-toolbar class="app-toolbar">
     <button mat-icon-button [routerLink]="'/dashboard'" matTooltip="Home" class="toolbar-logo-btn">
       @if (!toolbarLogoError()) {
-        <img src="assets/images/cms-icon.svg" alt="CMS" class="toolbar-logo-img"
+        <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-logo-img"
           (error)="toolbarLogoError.set(true)" />
       } @else {
         <div class="toolbar-logo-fallback">
@@ -53,17 +53,7 @@
   <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
     <div class="sidenav-header" (click)="toggleSidenav()"
       [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'" matTooltipPosition="right">
-      @if (sidenavCollapsed()) {
-        <!-- Collapsed: badge icon only -->
-        <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="app-logo-img"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-        <div class="app-logo-fallback" style="display:none">
-          <mat-icon class="app-logo">school</mat-icon>
-        </div>
-      } @else {
-        <!-- Expanded: full horizontal SKS logo -->
-        <img src="assets/images/sks-logo-full.svg" alt="SKS College of Nursing" class="app-logo-full"/>
-      }
+      <mat-icon class="sidenav-toggle-icon">{{ sidenavCollapsed() ? 'menu' : 'chevron_left' }}</mat-icon>
     </div>
 
     @if (!sidenavCollapsed()) {

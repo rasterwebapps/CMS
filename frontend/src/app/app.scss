@@ -60,10 +60,6 @@
   &.collapsed {
     width: 68px !important;
 
-    .sidenav-header {
-      padding: 16px 0;
-    }
-
     .sidenav-nav {
       padding: 8px 0;
     }
@@ -73,8 +69,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 20px 20px 18px;
+    padding: 14px 0;
     border-bottom: 1px solid var(--cms-border-default);
     background: var(--cms-logo-bg);
     flex-shrink: 0;
@@ -85,21 +80,16 @@
       background: var(--cms-border-light);
     }
 
-    .app-logo-img {
-      width: auto;
-      height: 40px;
-      object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-30);
-      flex-shrink: 0;
+    .sidenav-toggle-icon {
+      color: var(--cms-sidenav-group-text);
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      transition: var(--cms-transition);
     }
 
-    // Full horizontal product logo (expanded state)
-    .app-logo-full {
-      height: 52px;
-      width: auto;
-      max-width: 100%;
-      object-fit: contain;
+    &:hover .sidenav-toggle-icon {
+      color: var(--cms-sidenav-text-bright);
     }
   }
 
@@ -432,8 +422,8 @@
   padding: 2px !important;
 
   .toolbar-logo-img {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     object-fit: contain;
     border-radius: 6px;
     display: block;
@@ -608,25 +598,6 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
-  }
-}
-
-.app-logo-fallback {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px 0 var(--cms-primary-alpha-30);
-  flex-shrink: 0;
-
-  .app-logo {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
-    color: #ffffff;
   }
 }
 
