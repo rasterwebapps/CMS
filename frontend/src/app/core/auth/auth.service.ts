@@ -82,6 +82,20 @@ export class AuthService {
     return this.keycloak?.token;
   }
 
+  async getValidToken(): Promise<string | undefined> {
+    if (!this.keycloak) {
+      return undefined;
+    }
+    try {
+      await this.keycloak.updateToken(30);
+      this.updateState();
+      return this.keycloak.token;
+    } catch {
+      await this.login();
+      return undefined;
+    }
+  }
+
   hasRole(role: string): boolean {
     return this._roles().includes(role);
   }
