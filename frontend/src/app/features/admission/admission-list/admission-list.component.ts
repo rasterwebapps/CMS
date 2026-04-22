@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -46,7 +46,18 @@ export class AdmissionListComponent implements OnInit {
   }
 
   protected readonly statuses = ADMISSION_STATUSES;
-  protected readonly displayedColumns = ['studentName', 'applicationDate', 'academicYear', 'status', 'actions'];
+  // ── Column visibility ────────────────────────────────────────────────────
+  protected readonly ALL_COLS = ['studentName', 'applicationDate', 'academicYear', 'status', 'actions'];
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    studentName: 'Student',
+    applicationDate: 'Application Date',
+    academicYear: 'Academic Year',
+    status: 'Status',
+    actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'admission-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<AdmissionResponse>([]);
   protected readonly loading = signal(false);
   protected selectedStatus = '';
@@ -58,6 +69,25 @@ export class AdmissionListComponent implements OnInit {
   protected onStatusChange(): void {
     this.applyStatusFilter();
   }
+
+  private _loadColPrefs(): Set<string> {
+    try {
+      const s = localStorage.getItem(this.COLS_KEY);
+      if (s) return new Set<string>(JSON.parse(s) as string[]);
+    } catch { /* empty */ }
+    return new Set<string>(this.ALL_COLS);
+  }
+
+  protected toggleColumn(col: string): void {
+    this._visibleCols.update(s => {
+      const next = new Set(s);
+      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private load(): void {
     this.loading.set(true);

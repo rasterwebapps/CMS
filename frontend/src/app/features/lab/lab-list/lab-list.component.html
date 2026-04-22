@@ -7,51 +7,83 @@
   </app-page-header>
 
   <div class="command-bar">
-    <div class="search-bar" role="search">
-      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input
-        class="search-bar__input"
-        [value]="searchValue()"
-        (input)="applyFilter($event)"
-        placeholder="Search labs..."
-        type="text"
-        aria-label="Search labs"
-      />
-      @if (searchValue()) {
-        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+    <div class="command-bar__left">
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          [value]="searchValue()"
+          (input)="applyFilter($event)"
+          placeholder="Search labs..."
+          type="text"
+          aria-label="Search labs"
+        />
+        @if (searchValue()) {
+          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        }
+      </div>
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">
+          @if (dataSource.filteredData.length < dataSource.data.length) {
+            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
+          } @else {
+            {{ dataSource.data.length }}
+          }
+          labs
+        </span>
       }
     </div>
+    <div class="command-bar__right">
+      <div class="filter-pill-group">
+        <select class="filter-select" [value]="selectedDepartment()" (change)="onDepartmentChange(+$any($event.target).value || null)" aria-label="Filter by department">
+          <option [ngValue]="null">All Departments</option>
+          @for (dept of departments(); track dept.id) {
+            <option [value]="dept.id">{{ dept.name }}</option>
+          }
+        </select>
 
-    <div class="filter-pill-group">
-      <select class="filter-select" [value]="selectedDepartment()" (change)="onDepartmentChange(+$any($event.target).value || null)" aria-label="Filter by department">
-        <option [ngValue]="null">All Departments</option>
-        @for (dept of departments(); track dept.id) {
-          <option [value]="dept.id">{{ dept.name }}</option>
+        <select class="filter-select" [value]="selectedType()" (change)="onTypeChange($any($event.target).value || null)" aria-label="Filter by type">
+          <option [ngValue]="null">All Types</option>
+          @for (type of labTypes; track type.value) {
+            <option [value]="type.value">{{ type.label }}</option>
+          }
+        </select>
+
+        <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange($any($event.target).value || null)" aria-label="Filter by status">
+          <option [ngValue]="null">All Statuses</option>
+          @for (status of labStatuses; track status.value) {
+            <option [value]="status.value">{{ status.label }}</option>
+          }
+        </select>
+
+        @if (selectedDepartment() || selectedType() || selectedStatus() || searchValue()) {
+          <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Clear Filters
+          </button>
         }
-      </select>
-
-      <select class="filter-select" [value]="selectedType()" (change)="onTypeChange($any($event.target).value || null)" aria-label="Filter by type">
-        <option [ngValue]="null">All Types</option>
-        @for (type of labTypes; track type.value) {
-          <option [value]="type.value">{{ type.label }}</option>
-        }
-      </select>
-
-      <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange($any($event.target).value || null)" aria-label="Filter by status">
-        <option [ngValue]="null">All Statuses</option>
-        @for (status of labStatuses; track status.value) {
-          <option [value]="status.value">{{ status.label }}</option>
-        }
-      </select>
-
-      @if (selectedDepartment() || selectedType() || selectedStatus() || searchValue()) {
-        <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Clear Filters
-        </button>
-      }
+      </div>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
     </div>
   </div>
 
@@ -120,11 +152,11 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
               <div class="empty-state__content">
                 <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 @if (searchValue() || selectedDepartment() || selectedType() || selectedStatus()) {

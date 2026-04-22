@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -51,13 +51,18 @@ export class CourseListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = [
-    'code',
-    'name',
-    'specialization',
-    'program',
-    'actions',
-  ];
+  // ── Column visibility ────────────────────────────────────────────────────
+  protected readonly ALL_COLS = ['code', 'name', 'specialization', 'program', 'actions'];
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    code: 'Code',
+    name: 'Name',
+    specialization: 'Specialization',
+    program: 'Program',
+    actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'course-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Course>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -105,6 +110,25 @@ export class CourseListComponent implements OnInit {
       }
     });
   }
+
+  private _loadColPrefs(): Set<string> {
+    try {
+      const s = localStorage.getItem(this.COLS_KEY);
+      if (s) return new Set<string>(JSON.parse(s) as string[]);
+    } catch { /* empty */ }
+    return new Set<string>(this.ALL_COLS);
+  }
+
+  protected toggleColumn(col: string): void {
+    this._visibleCols.update(s => {
+      const next = new Set(s);
+      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(course: Course): void {
     this.loading.set(true);

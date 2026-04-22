@@ -7,21 +7,54 @@
   </app-page-header>
 
   <div class="command-bar">
-    <div class="search-bar" role="search">
-      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input
-        class="search-bar__input"
-        [value]="searchValue()"
-        (input)="applyFilter($event)"
-        placeholder="Search examinations..."
-        type="text"
-        aria-label="Search examinations"
-      />
-      @if (searchValue()) {
-        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+    <div class="command-bar__left">
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          [value]="searchValue()"
+          (input)="applyFilter($event)"
+          placeholder="Search examinations..."
+          type="text"
+          aria-label="Search examinations"
+        />
+        @if (searchValue()) {
+          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        }
+      </div>
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">
+          @if (dataSource.filteredData.length < dataSource.data.length) {
+            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
+          } @else {
+            {{ dataSource.data.length }}
+          }
+          examinations
+        </span>
       }
+    </div>
+    <div class="command-bar__right">
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
     </div>
   </div>
 
@@ -87,11 +120,11 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
               <div class="empty-state__content">
                 <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 @if (searchValue()) {

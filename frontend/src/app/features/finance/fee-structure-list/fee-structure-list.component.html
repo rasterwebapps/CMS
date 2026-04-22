@@ -6,35 +6,60 @@
     </button>
   </app-page-header>
 
-  <!-- Filters -->
   <div class="command-bar" [formGroup]="filterForm">
-    <div class="filter-pill-group">
-      <select class="filter-select" formControlName="academicYearId" (change)="applyFilters()" aria-label="Filter by academic year">
-        <option [ngValue]="null">All Academic Years</option>
-        @for (ay of academicYears(); track ay.id) {
-          <option [ngValue]="ay.id">{{ ay.name }}</option>
-        }
-      </select>
-
-      <select class="filter-select" formControlName="programId" (change)="onProgramFilterChange(filterForm.get('programId')?.value)" aria-label="Filter by program">
-        <option [ngValue]="null">All Programs</option>
-        @for (p of programs(); track p.id) {
-          <option [ngValue]="p.id">{{ p.name }}</option>
-        }
-      </select>
-
-      @if (courses().length > 0) {
-        <select class="filter-select" formControlName="courseId" (change)="applyFilters()" aria-label="Filter by course">
-          <option [ngValue]="null">All Courses</option>
-          @for (c of courses(); track c.id) {
-            <option [ngValue]="c.id">{{ c.name }}</option>
+    <div class="command-bar__left">
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} fee structures</span>
+      }
+    </div>
+    <div class="command-bar__right">
+      <div class="filter-pill-group">
+        <select class="filter-select" formControlName="academicYearId" (change)="applyFilters()" aria-label="Filter by academic year">
+          <option [ngValue]="null">All Academic Years</option>
+          @for (ay of academicYears(); track ay.id) {
+            <option [ngValue]="ay.id">{{ ay.name }}</option>
           }
         </select>
-      }
 
-      <button class="btn-clear-filters" type="button" (click)="clearFilters()" aria-label="Clear filters">
-        Clear Filters
-      </button>
+        <select class="filter-select" formControlName="programId" (change)="onProgramFilterChange(filterForm.get('programId')?.value)" aria-label="Filter by program">
+          <option [ngValue]="null">All Programs</option>
+          @for (p of programs(); track p.id) {
+            <option [ngValue]="p.id">{{ p.name }}</option>
+          }
+        </select>
+
+        @if (courses().length > 0) {
+          <select class="filter-select" formControlName="courseId" (change)="applyFilters()" aria-label="Filter by course">
+            <option [ngValue]="null">All Courses</option>
+            @for (c of courses(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        }
+
+        <button class="btn-clear-filters" type="button" (click)="clearFilters()" aria-label="Clear filters">
+          Clear Filters
+        </button>
+      </div>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
     </div>
   </div>
 
@@ -89,11 +114,11 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
               <div class="empty-state__content">
                 <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <p class="empty-state__text">No fee structures available</p>
