@@ -4,9 +4,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProgramService } from '../program.service';
 import { ProgramRequest } from '../program.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-program-form',
@@ -16,9 +16,7 @@ import { ProgramRequest } from '../program.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './program-form.component.html',
   styleUrl: './program-form.component.scss',
 })
@@ -27,7 +25,7 @@ export class ProgramFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly programService = inject(ProgramService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -75,13 +73,13 @@ export class ProgramFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Program updated successfully'
           : 'Program created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/programs']);
       },
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update program' : 'Failed to create program');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -135,7 +133,7 @@ export class ProgramFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load program', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load program');
         void this.router.navigate(['/programs']);
       },
     });

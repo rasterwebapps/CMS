@@ -4,19 +4,18 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AgentService } from '../agent.service';
 import { AgentRequest } from '../agent.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-agent-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatSlideToggleModule,
-  ],
+    MatProgressSpinnerModule, MatSlideToggleModule],
   templateUrl: './agent-form.component.html',
   styleUrl: './agent-form.component.scss',
 })
@@ -26,7 +25,7 @@ export class AgentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly agentService = inject(AgentService);
   private readonly referralTypeService = inject(ReferralTypeService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -64,7 +63,7 @@ export class AgentFormComponent implements OnInit {
           });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/agents']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/agents']); },
       });
     } else {
       // Pre-fill commission from the system-defined referral type
@@ -96,8 +95,8 @@ export class AgentFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.agentService.updateAgent(this.itemId!, request) : this.agentService.createAgent(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/agents']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/agents']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

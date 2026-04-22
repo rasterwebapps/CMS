@@ -4,9 +4,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, SemesterRequest } from '../academic-year.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-semester-form',
@@ -16,9 +16,7 @@ import { AcademicYear, SemesterRequest } from '../academic-year.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './semester-form.component.html',
   styleUrl: './semester-form.component.scss',
 })
@@ -27,7 +25,7 @@ export class SemesterFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -83,14 +81,14 @@ export class SemesterFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Semester updated successfully'
           : 'Semester created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/semesters']);
       },
       error: () => {
         const message = this.isEditMode()
           ? 'Failed to update semester'
           : 'Failed to create semester';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -130,7 +128,7 @@ export class SemesterFormComponent implements OnInit {
         this.academicYears.set(academicYears);
       },
       error: () => {
-        this.snackBar.open('Failed to load academic years', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load academic years');
       },
     });
   }
@@ -151,7 +149,7 @@ export class SemesterFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load semester', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load semester');
         void this.router.navigate(['/semesters']);
       },
     });

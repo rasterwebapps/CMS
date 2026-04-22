@@ -4,13 +4,13 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',
@@ -22,17 +22,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatPaginatorModule,
     MatSortModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './department-list.component.html',
   styleUrl: './department-list.component.scss',
 })
 export class DepartmentListComponent implements OnInit {
   private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -120,15 +118,11 @@ export class DepartmentListComponent implements OnInit {
     this.loading.set(true);
     this.departmentService.delete(department.id).subscribe({
       next: () => {
-        this.snackBar.open('Department deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Department deleted successfully');
         this.loadDepartments();
       },
       error: () => {
-        this.snackBar.open('Failed to delete department', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete department');
         this.loading.set(false);
       },
     });
@@ -142,9 +136,7 @@ export class DepartmentListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load departments');
         this.loading.set(false);
       },
     });

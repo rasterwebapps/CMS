@@ -7,7 +7,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CourseService } from '../course.service';
@@ -16,6 +15,7 @@ import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-course-list',
@@ -30,10 +30,8 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './course-list.component.html',
   styleUrl: './course-list.component.scss',
 })
@@ -41,7 +39,7 @@ export class CourseListComponent implements OnInit {
   private readonly courseService = inject(CourseService);
   private readonly programService = inject(ProgramService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -134,15 +132,11 @@ export class CourseListComponent implements OnInit {
     this.loading.set(true);
     this.courseService.delete(course.id).subscribe({
       next: () => {
-        this.snackBar.open('Course deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Course deleted successfully');
         this.loadCourses();
       },
       error: () => {
-        this.snackBar.open('Failed to delete course', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete course');
         this.loading.set(false);
       },
     });
@@ -154,9 +148,7 @@ export class CourseListComponent implements OnInit {
         this.programs.set(programs);
       },
       error: () => {
-        this.snackBar.open('Failed to load programs', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load programs');
       },
     });
   }
@@ -176,9 +168,7 @@ export class CourseListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load courses', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load courses');
         this.loading.set(false);
       },
     });

@@ -4,12 +4,12 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-academic-calendar',
@@ -20,15 +20,13 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',
 })
 export class AcademicCalendarComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly currentAcademicYear = signal<AcademicYear | null>(null);
@@ -63,7 +61,7 @@ export class AcademicCalendarComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load semesters', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load semesters');
         this.loading.set(false);
       },
     });

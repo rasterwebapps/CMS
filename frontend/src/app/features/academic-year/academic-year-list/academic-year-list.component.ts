@@ -8,7 +8,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
@@ -16,6 +15,7 @@ import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-academic-year-list',
@@ -31,18 +31,16 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
     MatTooltipModule,
-    MatChipsModule,
-  ],
+    MatChipsModule],
   templateUrl: './academic-year-list.component.html',
   styleUrl: './academic-year-list.component.scss',
 })
 export class AcademicYearListComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -131,15 +129,11 @@ export class AcademicYearListComponent implements OnInit {
     this.loading.set(true);
     this.academicYearService.deleteAcademicYear(academicYear.id).subscribe({
       next: () => {
-        this.snackBar.open('Academic year deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Academic year deleted successfully');
         this.loadAcademicYears();
       },
       error: () => {
-        this.snackBar.open('Failed to delete academic year', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete academic year');
         this.loading.set(false);
       },
     });
@@ -153,9 +147,7 @@ export class AcademicYearListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load academic years', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load academic years');
         this.loading.set(false);
       },
     });

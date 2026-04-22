@@ -5,20 +5,18 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FinanceService } from '../finance.service';
 import { FeePaymentRequest } from '../finance.model';
 import { environment } from '../../../../environments/environment';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-fee-payment-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule, MatProgressSpinnerModule, MatSnackBarModule,
-    PageHeaderComponent,
-  ],
+    RouterLink, ReactiveFormsModule, MatProgressSpinnerModule, PageHeaderComponent],
   templateUrl: './fee-payment-form.component.html',
   styleUrl: './fee-payment-form.component.scss',
 })
@@ -27,7 +25,7 @@ export class FeePaymentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly financeService = inject(FinanceService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -52,11 +50,11 @@ export class FeePaymentFormComponent implements OnInit {
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/students`).subscribe({
       next: (data) => this.students.set(data),
-      error: () => this.snackBar.open('Failed to load students', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load students'),
     });
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/fee-structures`).subscribe({
       next: (data) => this.feeStructures.set(data),
-      error: () => this.snackBar.open('Failed to load fee structures', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load fee structures'),
     });
   }
 
@@ -66,8 +64,8 @@ export class FeePaymentFormComponent implements OnInit {
     const request: FeePaymentRequest = { studentId: v.studentId, feeStructureId: v.feeStructureId, amountPaid: v.amountPaid, paymentDate: v.paymentDate, paymentMethod: v.paymentMethod, transactionId: v.transactionId || undefined, status: v.status };
     this.saving.set(true);
     this.financeService.createPayment(request).subscribe({
-      next: () => { this.snackBar.open('Payment recorded', 'Close', { duration: 3000 }); void this.router.navigate(['/fee-payments']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success('Payment recorded'); void this.router.navigate(['/fee-payments']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

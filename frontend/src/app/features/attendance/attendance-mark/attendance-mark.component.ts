@@ -3,13 +3,13 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { AttendanceService } from '../attendance.service';
 import { BulkAttendanceRequest } from '../attendance.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface Course {
   id: number;
@@ -31,10 +31,8 @@ interface StudentAttendanceRow {
     ReactiveFormsModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatRadioModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './attendance-mark.component.html',
   styleUrl: './attendance-mark.component.scss',
 })
@@ -43,7 +41,7 @@ export class AttendanceMarkComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly attendanceService = inject(AttendanceService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly courses = signal<Course[]>([]);
   protected readonly students = signal<StudentAttendanceRow[]>([]);
@@ -73,7 +71,7 @@ export class AttendanceMarkComponent implements OnInit {
       return;
     }
     if (this.students().length === 0) {
-      this.snackBar.open('No students to mark attendance for', 'Close', { duration: 3000 });
+      this.toast.warning('No students to mark attendance for');
       return;
     }
 
@@ -90,11 +88,11 @@ export class AttendanceMarkComponent implements OnInit {
     this.saving.set(true);
     this.attendanceService.markBulk(request).subscribe({
       next: () => {
-        this.snackBar.open('Attendance marked successfully', 'Close', { duration: 3000 });
+        this.toast.success('Attendance marked successfully');
         void this.router.navigate(['/attendance']);
       },
       error: () => {
-        this.snackBar.open('Failed to mark attendance', 'Close', { duration: 3000 });
+        this.toast.error('Failed to mark attendance');
         this.saving.set(false);
       },
     });
@@ -113,7 +111,7 @@ export class AttendanceMarkComponent implements OnInit {
   private loadCourses(): void {
     this.http.get<Course[]>(`${environment.apiUrl}/courses`).subscribe({
       next: (courses) => this.courses.set(courses),
-      error: () => this.snackBar.open('Failed to load courses', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load courses'),
     });
   }
 
@@ -153,7 +151,7 @@ export class AttendanceMarkComponent implements OnInit {
                 this.loadingStudents.set(false);
               },
               error: () => {
-                this.snackBar.open('Failed to load students', 'Close', { duration: 3000 });
+                this.toast.error('Failed to load students');
                 this.loadingStudents.set(false);
               },
             });

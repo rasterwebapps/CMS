@@ -5,11 +5,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse } from '../enquiry.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -21,9 +21,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
 })
@@ -32,7 +30,7 @@ export class EnquiryConvertComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly enquiryService = inject(EnquiryService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
@@ -78,7 +76,7 @@ export class EnquiryConvertComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load prefill data', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load prefill data');
         this.loading.set(false);
       },
     });
@@ -91,11 +89,11 @@ export class EnquiryConvertComponent implements OnInit {
     this.saving.set(true);
     this.enquiryService.convertEnquiry(id, this.form.value).subscribe({
       next: () => {
-        this.snackBar.open('Admission created and student enrolled successfully', 'Close', { duration: 4000 });
+        this.toast.success('Admission created and student enrolled successfully');
         void this.router.navigate(['/students']);
       },
       error: () => {
-        this.snackBar.open('Failed to create admission', 'Close', { duration: 3000 });
+        this.toast.error('Failed to create admission');
         this.saving.set(false);
       },
     });

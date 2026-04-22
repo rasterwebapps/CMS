@@ -6,29 +6,27 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-fee-explorer',
   standalone: true,
   imports: [
     DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatTooltipModule, PageHeaderComponent, CmsStatusBadgeComponent,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, PageHeaderComponent, CmsStatusBadgeComponent],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
 })
 export class FeeExplorerComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -39,8 +37,7 @@ export class FeeExplorerComponent implements OnInit {
 
   protected readonly displayedColumns = [
     'rollNumber', 'studentName', 'programName', 'totalFee',
-    'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions',
-  ];
+    'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions'];
   protected readonly dataSource = new MatTableDataSource<StudentFeeSummary>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -77,7 +74,7 @@ export class FeeExplorerComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load student fees', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load student fees');
         this.loading.set(false);
       },
     });

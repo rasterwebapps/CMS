@@ -7,7 +7,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
@@ -16,6 +15,7 @@ import { Enquiry } from '../enquiry.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-enquiry-list',
@@ -24,9 +24,8 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-    MatMenuModule,
-  ],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
+    MatMenuModule],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
 })
@@ -34,7 +33,7 @@ export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   private _sort?: MatSort;
@@ -61,8 +60,7 @@ export class EnquiryListComponent implements OnInit {
   // ── Column visibility ────────────────────────────────────────────────────
   protected readonly ALL_COLS = [
     'name', 'phone', 'programName', 'studentType',
-    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions',
-  ];
+    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     name: 'Name', phone: 'Phone', programName: 'Program', studentType: 'Type',
     enquiryDate: 'Date', referralTypeName: 'Referral', status: 'Status',
@@ -187,10 +185,10 @@ export class EnquiryListComponent implements OnInit {
           data[idx] = { ...data[idx], status: updated.status };
           this.dataSource.data = [...data];
         }
-        this.snackBar.open(`Status updated to ${updated.status}`, 'Close', { duration: 3000 });
+        this.toast.success(`Status updated to ${updated.status}`);
       },
       error: () => {
-        this.snackBar.open('Failed to update status', 'Close', { duration: 3000 });
+        this.toast.error('Failed to update status');
       },
     });
   }
@@ -246,8 +244,8 @@ export class EnquiryListComponent implements OnInit {
   private doDelete(item: Enquiry): void {
     this.loading.set(true);
     this.enquiryService.deleteEnquiry(item.id).subscribe({
-      next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
-      error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
+      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
 
@@ -256,8 +254,7 @@ export class EnquiryListComponent implements OnInit {
     const headers = ['Name', 'Phone', 'Program', 'Type', 'Date', 'Referral', 'Status', 'Agent'];
     const cells = rows.map(e => [
       e.name, e.phone ?? '', e.programName ?? '', e.studentType ?? '',
-      e.enquiryDate, e.referralTypeName ?? '', e.status, e.agentName ?? '',
-    ]);
+      e.enquiryDate, e.referralTypeName ?? '', e.status, e.agentName ?? '']);
     const csv = [headers, ...cells]
       .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -286,7 +283,7 @@ export class EnquiryListComponent implements OnInit {
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }
 }

@@ -4,11 +4,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { LabService } from '../lab.service';
 import { LabRequest, LAB_TYPES, LAB_STATUSES } from '../lab.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-lab-form',
@@ -18,9 +18,7 @@ import { Department } from '../../department/department.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './lab-form.component.html',
   styleUrl: './lab-form.component.scss',
 })
@@ -30,7 +28,7 @@ export class LabFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly labService = inject(LabService);
   private readonly departmentService = inject(DepartmentService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -90,12 +88,12 @@ export class LabFormComponent implements OnInit {
     operation$.subscribe({
       next: () => {
         const message = this.isEditMode() ? 'Lab updated successfully' : 'Lab created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/labs']);
       },
       error: () => {
         const message = this.isEditMode() ? 'Failed to update lab' : 'Failed to create lab';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -143,7 +141,7 @@ export class LabFormComponent implements OnInit {
         this.departments.set(departments);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load departments');
       },
     });
   }
@@ -166,7 +164,7 @@ export class LabFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load lab', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load lab');
         void this.router.navigate(['/labs']);
       },
     });

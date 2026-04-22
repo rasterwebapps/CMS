@@ -5,18 +5,17 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { InventoryService } from '../inventory.service';
 import { InventoryItemRequest } from '../inventory.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-inventory-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './inventory-form.component.html',
   styleUrl: './inventory-form.component.scss',
 })
@@ -26,7 +25,7 @@ export class InventoryFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly inventoryService = inject(InventoryService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -35,11 +34,9 @@ export class InventoryFormComponent implements OnInit {
   protected readonly labs = signal<{ id: number; name: string }[]>([]);
 
   protected readonly categories = [
-    'CONSUMABLE', 'CHEMICAL', 'GLASSWARE', 'TOOL', 'ELECTRONIC_COMPONENT', 'STATIONERY', 'OTHER',
-  ];
+    'CONSUMABLE', 'CHEMICAL', 'GLASSWARE', 'TOOL', 'ELECTRONIC_COMPONENT', 'STATIONERY', 'OTHER'];
   protected readonly units = [
-    'PIECES', 'LITERS', 'KILOGRAMS', 'METERS', 'BOXES', 'PACKETS', 'SETS',
-  ];
+    'PIECES', 'LITERS', 'KILOGRAMS', 'METERS', 'BOXES', 'PACKETS', 'SETS'];
 
   private itemId: number | null = null;
 
@@ -78,7 +75,7 @@ export class InventoryFormComponent implements OnInit {
           });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/inventory']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/inventory']); },
       });
     }
   }
@@ -99,8 +96,8 @@ export class InventoryFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.inventoryService.update(this.itemId!, request) : this.inventoryService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/inventory']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/inventory']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

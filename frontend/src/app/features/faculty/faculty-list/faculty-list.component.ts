@@ -8,7 +8,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
@@ -18,6 +17,7 @@ import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-faculty-list',
@@ -33,11 +33,9 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
     MatTooltipModule,
-    MatChipsModule,
-  ],
+    MatChipsModule],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',
 })
@@ -45,7 +43,7 @@ export class FacultyListComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -176,15 +174,11 @@ export class FacultyListComponent implements OnInit {
     this.loading.set(true);
     this.facultyService.delete(faculty.id).subscribe({
       next: () => {
-        this.snackBar.open('Faculty deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Faculty deleted successfully');
         this.loadFaculty();
       },
       error: () => {
-        this.snackBar.open('Failed to delete faculty', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete faculty');
         this.loading.set(false);
       },
     });
@@ -196,9 +190,7 @@ export class FacultyListComponent implements OnInit {
         this.departments.set(departments);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load departments');
       },
     });
   }
@@ -224,9 +216,7 @@ export class FacultyListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load faculty', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load faculty');
         this.loading.set(false);
       },
     });
