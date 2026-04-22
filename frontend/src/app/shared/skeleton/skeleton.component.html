@@ -1,0 +1,15 @@
+@if (circle) {
+  <span
+    class="skeleton skeleton--circle"
+    role="presentation"
+    aria-hidden="true"
+    [style.width]="height"
+    [style.height]="height"
+  ></span>
+} @else {
+  <span class="skeleton-lines" role="presentation" aria-hidden="true">
+    @for (n of lineItems; track n) {
+      <span class="skeleton skeleton--line" [style.height]="height"></span>
+    }
+  </span>
+}

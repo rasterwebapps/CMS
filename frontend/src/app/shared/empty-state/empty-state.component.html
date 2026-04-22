@@ -1,0 +1,12 @@
+<div class="empty-state" role="status">
+  <mat-icon class="empty-state__icon" aria-hidden="true">{{ icon }}</mat-icon>
+  <p class="empty-state__title">{{ title }}</p>
+  @if (subtitle) {
+    <p class="empty-state__subtitle">{{ subtitle }}</p>
+  }
+  @if (actionLabel) {
+    <button class="btn-primary empty-state__action" type="button" (click)="actionClick.emit()">
+      {{ actionLabel }}
+    </button>
+  }
+</div>

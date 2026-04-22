@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+// ── Skeleton table mimics the grid layout of mat-table ────────────────────
+.cms-skeleton-table {
+  padding: 0 4px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--cms-border-default);
+    opacity: 0.6;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--cms-border-subtle, var(--cms-border-default));
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__cell {
+    flex: 1;
+    min-width: 0;
+
+    &--actions {
+      flex: 0 0 90px;
+    }
+  }
+}
+
+// ── Responsive horizontal scroll ──────────────────────────────────────────
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
