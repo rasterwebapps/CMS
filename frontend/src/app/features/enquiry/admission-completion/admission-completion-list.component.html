@@ -1,0 +1,126 @@
+<app-page-header
+  title="Admission Completion"
+  subtitle="Enquiries with documents submitted — choose one to complete admission"
+/>
+
+<div class="command-bar">
+  <div class="command-bar__left">
+    @if (!loading()) {
+      <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} enquiries</span>
+    }
+  </div>
+  <div class="command-bar__right">
+    <details class="col-toggle">
+      <summary class="btn-toolbar" aria-label="Toggle columns">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Columns
+      </summary>
+      <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+        @for (col of ALL_COLS; track col) {
+          <label class="col-toggle__item">
+            <input
+              type="checkbox"
+              class="col-toggle__checkbox"
+              [checked]="isColumnVisible(col)"
+              (change)="toggleColumn(col)"
+            />
+            {{ COLUMN_LABELS[col] }}
+          </label>
+        }
+      </div>
+    </details>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <div class="list-page-container">
+    @if (dataSource.data.length === 0) {
+      <div class="empty-state">
+        <mat-icon class="empty-state__icon-mat">how_to_reg</mat-icon>
+        <p class="empty-state__text">No enquiries pending admission completion</p>
+        <p class="empty-state__hint">Enquiries in DOCUMENTS_SUBMITTED status will appear here</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" class="modern-table">
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.name }}</span>
+              @if (row.phone) {
+                <span class="cell-sub">{{ row.phone }}</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="programName">
+            <th mat-header-cell *matHeaderCellDef>Program</th>
+            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="courseName">
+            <th mat-header-cell *matHeaderCellDef>Course</th>
+            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="status-badge status-active">{{ row.status }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="finalizedNetFee">
+            <th mat-header-cell *matHeaderCellDef>Net Fee</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.finalizedNetFee) {
+                <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+              } @else {
+                <span>—</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="enquiryDate">
+            <th mat-header-cell *matHeaderCellDef>Enquiry Date</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.enquiryDate }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button
+                  class="action-btn"
+                  matTooltip="View enquiry"
+                  (click)="viewEnquiry(row)"
+                  aria-label="View enquiry"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                @if (isAdminOrFrontOffice()) {
+                  <button
+                    class="action-btn action-btn--primary"
+                    matTooltip="Complete admission"
+                    (click)="completeAdmission(row)"
+                    aria-label="Complete admission"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+        </table>
+      </div>
+    }
+  </div>
+}

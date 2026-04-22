@@ -196,7 +196,8 @@ class EnquiryControllerTest {
     void shouldConvertToStudentWithData() throws Exception {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1,
-            LocalDate.of(2024, 7, 1), 2024, 2025, LocalDate.of(2024, 7, 1), true, true
+            LocalDate.of(2024, 7, 1), 2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         EnquiryResponse response = new EnquiryResponse(
@@ -248,6 +249,20 @@ class EnquiryControllerTest {
             .andExpect(jsonPath("$[1].status").value("PARTIALLY_PAID"));
 
         verify(enquiryService).findDocumentPending();
+    }
+
+    @Test
+    void shouldFindAdmissionPending() throws Exception {
+        EnquiryResponse docsSubmitted = createResponse(1L, "Ravi Kumar", EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryService.findAdmissionPending()).thenReturn(List.of(docsSubmitted));
+
+        mockMvc.perform(get("/enquiries/admission-pending"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].status").value("DOCUMENTS_SUBMITTED"));
+
+        verify(enquiryService).findAdmissionPending();
     }
 
     @Test

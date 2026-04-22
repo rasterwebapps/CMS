@@ -1,0 +1,21 @@
+// Admission Completion List — uses global list-page classes from styles.scss
+
+.cell-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary, #6b7280);
+  margin-top: 2px;
+}
+
+.action-btn--primary {
+  color: var(--color-primary-600, #4f46e5);
+
+  &:hover:not([disabled]) {
+    background-color: color-mix(in srgb, var(--color-primary-600, #4f46e5) 10%, transparent);
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

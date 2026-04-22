@@ -153,6 +153,131 @@
             </div>
           </div>
 
+          <h3 class="section-heading">Personal Information</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-dob" class="field-label">Date of Birth</label>
+              <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth" />
+            </div>
+            <div class="field-group">
+              <label for="conv-gender" class="field-label">Gender</label>
+              <select id="conv-gender" class="field-input" formControlName="gender">
+                <option value="">—</option>
+                @for (g of genderOptions; track g) {
+                  <option [value]="g">{{ g }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="conv-aadhar" class="field-label">Aadhar Number</label>
+              <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" />
+            </div>
+          </div>
+
+          <h3 class="section-heading">Demographics</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-nationality" class="field-label">Nationality</label>
+              <input id="conv-nationality" class="field-input" formControlName="nationality" />
+            </div>
+            <div class="field-group">
+              <label for="conv-religion" class="field-label">Religion</label>
+              <input id="conv-religion" class="field-input" formControlName="religion" />
+            </div>
+            <div class="field-group">
+              <label for="conv-community" class="field-label">Community Category</label>
+              <select id="conv-community" class="field-input" formControlName="communityCategory">
+                <option value="">—</option>
+                @for (c of communityOptions; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-caste" class="field-label">Caste</label>
+              <input id="conv-caste" class="field-input" formControlName="caste" />
+            </div>
+            <div class="field-group">
+              <label for="conv-blood" class="field-label">Blood Group</label>
+              <select id="conv-blood" class="field-input" formControlName="bloodGroup">
+                <option value="">—</option>
+                @for (b of bloodGroupOptions; track b) {
+                  <option [value]="b">{{ b }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <h3 class="section-heading">Family Information</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-father" class="field-label">Father's Name</label>
+              <input id="conv-father" class="field-input" formControlName="fatherName" />
+            </div>
+            <div class="field-group">
+              <label for="conv-mother" class="field-label">Mother's Name</label>
+              <input id="conv-mother" class="field-input" formControlName="motherName" />
+            </div>
+            <div class="field-group">
+              <label for="conv-parent-mobile" class="field-label">Parent Mobile</label>
+              <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" />
+            </div>
+          </div>
+
+          <h3 class="section-heading">Address</h3>
+
+          <div formGroupName="address">
+            <div class="form-row">
+              <div class="field-group" style="flex: 1 1 100%;">
+                <label for="conv-postal" class="field-label">Postal Address</label>
+                <input id="conv-postal" class="field-input" formControlName="postalAddress" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label for="conv-street" class="field-label">Street</label>
+                <input id="conv-street" class="field-input" formControlName="street" />
+              </div>
+              <div class="field-group">
+                <label for="conv-city" class="field-label">City</label>
+                <input id="conv-city" class="field-input" formControlName="city" />
+              </div>
+              <div class="field-group">
+                <label for="conv-district" class="field-label">District</label>
+                <input id="conv-district" class="field-input" formControlName="district" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label for="conv-state" class="field-label">State</label>
+                <input id="conv-state" class="field-input" formControlName="state" />
+              </div>
+              <div class="field-group">
+                <label for="conv-pincode" class="field-label">Pincode</label>
+                <input id="conv-pincode" class="field-input" formControlName="pincode" />
+              </div>
+            </div>
+          </div>
+
+          <h3 class="section-heading">Declaration</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-decl-place" class="field-label">Declaration Place</label>
+              <input id="conv-decl-place" class="field-input" formControlName="declarationPlace" />
+            </div>
+            <div class="field-group">
+              <label for="conv-decl-date" class="field-label">Declaration Date</label>
+              <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate" />
+            </div>
+          </div>
+
           <div class="consent-row">
             <mat-checkbox formControlName="parentConsentGiven">Parent / Guardian consent given</mat-checkbox>
             <mat-checkbox formControlName="applicantConsentGiven">Applicant consent given</mat-checkbox>

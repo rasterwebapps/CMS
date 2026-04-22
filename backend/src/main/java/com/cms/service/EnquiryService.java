@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
+import com.cms.dto.AddressRequest;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
@@ -334,6 +335,12 @@ public class EnquiryService {
         ).stream().map(this::toResponse).toList();
     }
 
+    public List<EnquiryResponse> findAdmissionPending() {
+        return enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_SUBMITTED).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
     @Transactional
     public EnquiryResponse convertToStudentWithData(Long enquiryId, EnquiryConversionRequest request, String performedBy) {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
@@ -369,6 +376,36 @@ public class EnquiryService {
             student.setCourse(enquiry.getCourse());
         }
 
+        // Personal information
+        student.setDateOfBirth(request.dateOfBirth());
+        student.setGender(request.gender());
+        student.setAadharNumber(request.aadharNumber());
+
+        // Demographics
+        student.setNationality(request.nationality());
+        student.setReligion(request.religion());
+        student.setCommunityCategory(request.communityCategory());
+        student.setCaste(request.caste());
+        student.setBloodGroup(request.bloodGroup());
+
+        // Family information
+        student.setFatherName(request.fatherName());
+        student.setMotherName(request.motherName());
+        student.setParentMobile(request.parentMobile());
+
+        // Address
+        if (request.address() != null) {
+            AddressRequest addr = request.address();
+            student.setAddress(new com.cms.model.Address(
+                addr.postalAddress(),
+                addr.street(),
+                addr.city(),
+                addr.district(),
+                addr.state(),
+                addr.pincode()
+            ));
+        }
+
         Student savedStudent = studentRepository.save(student);
 
         Admission admission = new Admission(
@@ -380,6 +417,8 @@ public class EnquiryService {
         );
         admission.setParentConsentGiven(request.parentConsentGiven());
         admission.setApplicantConsentGiven(request.applicantConsentGiven());
+        admission.setDeclarationPlace(request.declarationPlace());
+        admission.setDeclarationDate(request.declarationDate());
         admissionRepository.save(admission);
 
         EnquiryStatus oldStatus = enquiry.getStatus();

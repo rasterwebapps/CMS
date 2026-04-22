@@ -146,6 +146,42 @@ export interface EnquiryConversionRequest {
   applicationDate: string;
   parentConsentGiven?: boolean;
   applicantConsentGiven?: boolean;
+
+  // Student personal information
+  dateOfBirth?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  aadharNumber?: string | null;
+
+  // Student demographics
+  nationality?: string | null;
+  religion?: string | null;
+  communityCategory?: 'SC' | 'ST' | 'BC' | 'MBC' | 'DNC' | 'OC' | 'OTHERS' | null;
+  caste?: string | null;
+  bloodGroup?:
+    | 'A_POSITIVE' | 'A_NEGATIVE'
+    | 'B_POSITIVE' | 'B_NEGATIVE'
+    | 'O_POSITIVE' | 'O_NEGATIVE'
+    | 'AB_POSITIVE' | 'AB_NEGATIVE'
+    | null;
+
+  // Student family information
+  fatherName?: string | null;
+  motherName?: string | null;
+  parentMobile?: string | null;
+
+  // Student address
+  address?: {
+    postalAddress?: string | null;
+    street?: string | null;
+    city?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+  } | null;
+
+  // Admission declaration
+  declarationPlace?: string | null;
+  declarationDate?: string | null;
 }
 
 export interface EnquiryConversionPrefillResponse {
