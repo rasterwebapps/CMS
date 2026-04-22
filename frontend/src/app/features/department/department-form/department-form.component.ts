@@ -37,6 +37,9 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
+  /** How long to display the green success state before navigating away. */
+  private static readonly SUCCESS_STATE_DURATION_MS = 600;
+
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
@@ -86,7 +89,7 @@ export class DepartmentFormComponent implements OnInit {
         this.succeeded.set(true);
         setTimeout(() => {
           void this.router.navigate(['/departments']);
-        }, 600);
+        }, DepartmentFormComponent.SUCCESS_STATE_DURATION_MS);
       },
       error: (err) => {
         const message = err?.error?.message

@@ -339,9 +339,14 @@ export class App implements OnInit {
     window.history.back();
   }
 
-  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding. */
+  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding.
+   *  Prefer the route's static config path so dynamic params (e.g. `:id`) don't
+   *  re-trigger the transition when the same component stays mounted. */
   protected getRouteAnimationData(outlet: RouterOutlet): unknown {
-    return outlet?.activatedRouteData?.['animation'] ?? outlet?.activatedRoute?.snapshot?.url?.join('/') ?? '';
+    if (!outlet?.isActivated) return '';
+    const data = outlet.activatedRouteData?.['animation'];
+    if (data) return data;
+    return outlet.activatedRoute?.snapshot?.routeConfig?.path ?? '';
   }
 
   protected async logout(): Promise<void> {

@@ -4,7 +4,7 @@
   position: fixed;
   top: 80px; // Sit below the toolbar
   right: 20px;
-  z-index: 1100; // Above mat-dialog backdrop (1000) but below confirm dialog (1050+)
+  z-index: 1100; // Above mat-dialog scrim (1000) so toasts remain visible while a dialog is open
   display: flex;
   flex-direction: column;
   gap: 10px;

@@ -68,7 +68,7 @@ export class CsvExporterService {
   }
 
   private readKey<T>(row: T, key: keyof T | string): unknown {
-    if (row === null || row === undefined) return '';
+    if (row === null || row === undefined) return undefined;
     return (row as Record<string, unknown>)[key as string];
   }
 

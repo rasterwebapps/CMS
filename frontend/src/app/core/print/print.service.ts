@@ -79,7 +79,10 @@ export class PrintService {
       window.setTimeout(() => iframe.remove(), 1000);
     };
 
+    let printed = false;
     const triggerPrint = (): void => {
+      if (printed) return;
+      printed = true;
       try {
         const win = iframe.contentWindow;
         if (!win) {
@@ -98,6 +101,7 @@ export class PrintService {
     } else {
       iframe.addEventListener('load', triggerPrint, { once: true });
       // Safety net if the load event doesn't fire (e.g. about:blank race).
+      // The `printed` flag prevents a duplicate call when the load event also fires.
       window.setTimeout(triggerPrint, 500);
     }
     return true;
