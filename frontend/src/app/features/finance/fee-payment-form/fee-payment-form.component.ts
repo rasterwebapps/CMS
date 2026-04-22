@@ -16,6 +16,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   selector: 'app-fee-payment-form',
   standalone: true,
   imports: [
+    RouterLink, ReactiveFormsModule, MatProgressSpinnerModule, MatSnackBarModule,
     PageHeaderComponent,
   ],
   templateUrl: './fee-payment-form.component.html',

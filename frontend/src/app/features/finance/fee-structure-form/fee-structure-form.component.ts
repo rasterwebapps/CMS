@@ -4,7 +4,6 @@ import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -36,7 +35,7 @@ interface AcademicYear {
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
     MatTooltipModule, DecimalPipe,
     PageHeaderComponent,
   ],

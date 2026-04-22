@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
@@ -10,6 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import {
   Enquiry,
   EnquiryDocument,
@@ -23,15 +24,15 @@ import {
   imports: [
     RouterLink,
     MatTabsModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatTableModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatChipsModule,
     CurrencyPipe,
     DatePipe,
+    PageHeaderComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',

@@ -2349,3 +2349,151 @@ html.dark-theme body::after {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+
+// ── Detail Page Utilities ─────────────────────────
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--cms-space-md) var(--cms-space-xl);
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--cms-text-primary);
+}
+
+.section-divider {
+  height: 1px;
+  background: var(--cms-border-subtle, var(--cms-border-default));
+  margin: var(--cms-space-xl) 0;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--cms-space-xl);
+  @media (max-width: 960px) { grid-template-columns: 1fr; }
+}
+
+// ── Stat Cards ─────────────────────────────────────
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--cms-space-md);
+  margin-bottom: var(--cms-space-xl);
+}
+
+.stat-card {
+  background: var(--cms-surface);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  padding: var(--cms-space-md) var(--cms-space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &--accent { border-color: var(--cms-error, #ef4444); }
+
+  .stat-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cms-text-muted);
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    font-family: var(--cms-font-mono);
+
+    &.penalty { color: var(--cms-error, #ef4444); }
+  }
+}
+
+.text-muted {
+  color: var(--cms-text-muted);
+  font-weight: 400;
+}
+
+// ── Card header row (title + action inline) ────────
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--cms-space-md);
+}
+
+// ── Section header (title + action inline) ─────────
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--cms-space-xl) 0 var(--cms-space-md);
+
+  .section-title { margin: 0; }
+}
+
+// ── Year header (icon + text + badge) ─────────────
+.current-year-header {
+  display: flex;
+  align-items: center;
+  gap: var(--cms-space-md);
+
+  .year-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--cms-radius-sm);
+    background: var(--cms-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .current-year-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+
+  .current-year-dates {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    color: var(--cms-text-muted);
+  }
+}
+
+// ── Student summary in fee detail ─────────────────
+.student-summary {
+  margin-bottom: var(--cms-space-lg);
+
+  h3 { margin: 0 0 4px; font-size: 1.125rem; font-weight: 700; }
+
+  .student-meta {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--cms-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--cms-space-sm);
+  }
+}

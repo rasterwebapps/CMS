@@ -12,6 +12,7 @@ import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-fee-explorer',
@@ -19,7 +20,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   imports: [
     DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatTooltipModule, PageHeaderComponent,
+    MatTooltipModule, PageHeaderComponent, CmsStatusBadgeComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',

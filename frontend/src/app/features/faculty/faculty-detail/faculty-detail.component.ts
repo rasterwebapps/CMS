@@ -1,7 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
@@ -11,20 +10,20 @@ import { MatDividerModule } from '@angular/material/divider';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, DESIGNATION_OPTIONS, FACULTY_STATUS_OPTIONS } from '../faculty.model';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-faculty-detail',
   standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatDividerModule,
+    PageHeaderComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',

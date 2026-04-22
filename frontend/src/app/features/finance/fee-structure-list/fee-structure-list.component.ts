@@ -1,16 +1,12 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -31,10 +27,9 @@ interface AcademicYear { id: number; name: string; }
   standalone: true,
   imports: [
     PageHeaderComponent,
-    DecimalPipe, RouterLink, FormsModule, ReactiveFormsModule,
+    DecimalPipe, RouterLink, ReactiveFormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatInputModule, MatFormFieldModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatCardModule,
+    MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
   ],
   templateUrl: './fee-structure-list.component.html',

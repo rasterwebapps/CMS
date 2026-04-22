@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -53,11 +53,46 @@ export class EnquiryListComponent implements OnInit {
     }
   }
 
-  protected readonly displayedColumns = ['name', 'phone', 'programName', 'studentType', 'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly statusFilter = signal('');
+
+  // ── Column visibility ────────────────────────────────────────────────────
+  protected readonly ALL_COLS = [
+    'name', 'phone', 'programName', 'studentType',
+    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions',
+  ];
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    name: 'Name', phone: 'Phone', programName: 'Program', studentType: 'Type',
+    enquiryDate: 'Date', referralTypeName: 'Referral', status: 'Status',
+    agentName: 'Agent', actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'enquiry-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+
+  private _loadColPrefs(): Set<string> {
+    try {
+      const s = localStorage.getItem(this.COLS_KEY);
+      if (s) return new Set<string>(JSON.parse(s) as string[]);
+    } catch { /* empty */ }
+    return new Set<string>(this.ALL_COLS);
+  }
+
+  protected toggleColumn(col: string): void {
+    this._visibleCols.update(s => {
+      const next = new Set(s);
+      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
+
+  // ── Search debounce ──────────────────────────────────────────────────────
+  private _searchTimer: ReturnType<typeof setTimeout> | null = null;
   protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED'];
 
   /** Date range filter — defaults to current month (YYYY-MM-DD strings for native date inputs) */
@@ -77,11 +112,18 @@ export class EnquiryListComponent implements OnInit {
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      this.dataSource.filter = value.trim().toLowerCase();
+      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    }, 300);
   }
 
-  protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
+  protected clearFilter(): void {
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    this.searchValue.set('');
+    this.dataSource.filter = '';
+  }
 
   protected onStatusFilterChange(status: string): void {
     this.statusFilter.set(status);
@@ -222,6 +264,26 @@ export class EnquiryListComponent implements OnInit {
       next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
       error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
     });
+  }
+
+  protected exportCsv(): void {
+    const rows = this.dataSource.filteredData;
+    const headers = ['Name', 'Phone', 'Program', 'Type', 'Date', 'Referral', 'Status', 'Agent'];
+    const cells = rows.map(e => [
+      e.name, e.phone ?? '', e.programName ?? '', e.studentType ?? '',
+      e.enquiryDate, e.referralTypeName ?? '', e.status, e.agentName ?? '',
+    ]);
+    const csv = [headers, ...cells]
+      .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   private toDateString(d: Date): string {

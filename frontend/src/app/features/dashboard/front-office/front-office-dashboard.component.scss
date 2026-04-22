@@ -136,8 +136,11 @@
 
 // ── Widget Card base ──────────────────────────────────
 .widget-card {
-  border-radius: var(--cms-radius-lg) !important;
-  border-color: var(--cms-border-default) !important;
+  padding: 0;
+}
+
+.widget-card__body {
+  padding: 4px 20px 20px;
 }
 
 .widget-header {

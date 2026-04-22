@@ -2,7 +2,6 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -17,7 +16,6 @@ import { DashboardKpiCardComponent } from '../shared/kpi-card/dashboard-kpi-card
   imports: [
     RouterLink,
     DecimalPipe,
-    MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,

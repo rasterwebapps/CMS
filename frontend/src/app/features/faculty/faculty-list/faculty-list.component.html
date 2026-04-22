@@ -25,14 +25,14 @@
     </div>
 
     <div class="filter-pill-group">
-      <select class="filter-select" [value]="selectedDepartmentId()" (change)="onDepartmentChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by department">
+      <select class="filter-select" [value]="selectedDepartmentId()" (change)="onDepartmentChange(+$any($event.target).value || null)" aria-label="Filter by department">
         <option [ngValue]="null">All Departments</option>
         @for (dept of departments(); track dept.id) {
           <option [value]="dept.id">{{ dept.name }}</option>
         }
       </select>
 
-      <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange(($event.target as HTMLSelectElement).value || null)" aria-label="Filter by status">
+      <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange($any($event.target).value || null)" aria-label="Filter by status">
         <option [ngValue]="null">All Statuses</option>
         @for (status of statusOptions; track status.value) {
           <option [value]="status.value">{{ status.label }}</option>

@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ExaminationService } from '../examination.service';
 import { ExamResult, Examination } from '../examination.model';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-exam-result-list',
@@ -14,6 +15,7 @@ import { ExamResult, Examination } from '../examination.model';
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',

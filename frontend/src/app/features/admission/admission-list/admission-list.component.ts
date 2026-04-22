@@ -13,12 +13,14 @@ import { AdmissionService } from '../admission.service';
 import { AdmissionResponse, ADMISSION_STATUSES } from '../admission.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-admission-list',
   standalone: true,
   imports: [
     PageHeaderComponent,
+    CmsStatusBadgeComponent,
     RouterLink,
     FormsModule,
     MatTableModule,

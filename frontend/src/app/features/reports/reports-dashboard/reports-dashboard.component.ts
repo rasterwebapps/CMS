@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -13,7 +12,10 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   standalone: true,
   imports: [
     PageHeaderComponent,
-    MatCardModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, KeyValuePipe,
+    KeyValuePipe,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
   ],
   templateUrl: './reports-dashboard.component.html',
   styleUrl: './reports-dashboard.component.scss',

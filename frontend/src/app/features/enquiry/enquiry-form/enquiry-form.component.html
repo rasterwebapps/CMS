@@ -14,181 +14,209 @@
       <div class="entry-form-card">
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-          <div class="field-group">
-            <label for="enq-name" class="field-label">Name</label>
-            <input
-              id="enq-name"
-              class="field-input"
-              formControlName="name"
-              placeholder="Student's full name"
-              autocomplete="name"
-              [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-            />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <p class="field-error">Name is required</p>
+          <!-- Section: Contact Information -->
+          <div class="form-section">
+            <p class="form-section-title">Contact Information</p>
+
+            <div class="field-group">
+              <label for="enq-name" class="field-label">
+                Name <span class="field-required" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="enq-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="Student's full name"
+                autocomplete="name"
+                required
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">Name is required</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="enq-email" class="field-label">Email</label>
+                <input
+                  id="enq-email"
+                  type="email"
+                  class="field-input"
+                  formControlName="email"
+                  placeholder="student@example.com"
+                  autocomplete="email"
+                />
+              </div>
+
+              <div class="field-group">
+                <label for="enq-phone" class="field-label">Phone</label>
+                <input
+                  id="enq-phone"
+                  class="field-input"
+                  formControlName="phone"
+                  placeholder="+91 9876543210"
+                  autocomplete="tel"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Program & Course -->
+          <div class="form-section">
+            <p class="form-section-title">Program &amp; Course</p>
+
+            <div class="field-group">
+              <label for="enq-program" class="field-label">Program</label>
+              <select
+                id="enq-program"
+                class="field-select"
+                formControlName="programId"
+                (change)="onProgramChange(form.get('programId')?.value)"
+              >
+                <option [ngValue]="null">— None —</option>
+                @for (p of programs(); track p.id) {
+                  <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option>
+                }
+              </select>
+            </div>
+
+            @if (courses().length > 0) {
+              <div class="field-group">
+                <label for="enq-course" class="field-label">Course</label>
+                <select
+                  id="enq-course"
+                  class="field-select"
+                  formControlName="courseId"
+                  (change)="onCourseChange(form.get('courseId')?.value)"
+                >
+                  <option [ngValue]="null">— None —</option>
+                  @for (c of courses(); track c.id) {
+                    <option [ngValue]="c.id">{{ c.name }} ({{ c.code }})</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <div class="field-group">
+              <label for="enq-student-type" class="field-label">Student Type</label>
+              <select
+                id="enq-student-type"
+                class="field-select"
+                formControlName="studentType"
+                (change)="onStudentTypeChange()"
+              >
+                <option [ngValue]="null">— Not Specified —</option>
+                @for (st of studentTypeOptions; track st.value) {
+                  <option [value]="st.value">{{ st.label }}</option>
+                }
+              </select>
+            </div>
+
+            @if (form.get('courseId')?.value && totalFees() > 0) {
+              <div class="fee-amount-display">
+                <span class="fee-amount-label">
+                  Total Fee
+                  @if (form.get('studentType')?.value === 'DAY_SCHOLAR') {
+                    <span class="fee-type-hint">(Day Scholar)</span>
+                  } @else if (form.get('studentType')?.value === 'HOSTELER') {
+                    <span class="fee-type-hint">(Hosteler)</span>
+                  }
+                </span>
+                <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
             }
           </div>
 
-          <div class="field-row">
-            <div class="field-group">
-              <label for="enq-email" class="field-label">Email</label>
-              <input
-                id="enq-email"
-                type="email"
-                class="field-input"
-                formControlName="email"
-                placeholder="student@example.com"
-                autocomplete="email"
-              />
+          <!-- Section: Enquiry Details -->
+          <div class="form-section">
+            <p class="form-section-title">Enquiry Details</p>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="enq-date" class="field-label">
+                  Enquiry Date <span class="field-required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="enq-date"
+                  type="date"
+                  class="field-input"
+                  formControlName="enquiryDate"
+                  [attr.max]="maxDateStr"
+                  required
+                  [class.field-input--error]="form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched"
+                />
+                @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) {
+                  <p class="field-error">Enquiry date is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="enq-referral" class="field-label">
+                  Referral Type <span class="field-required" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="enq-referral"
+                  class="field-select"
+                  formControlName="referralTypeId"
+                  (change)="onReferralTypeChange(form.get('referralTypeId')?.value)"
+                  required
+                  [class.field-select--error]="form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched"
+                >
+                  <option [ngValue]="null" disabled>Select referral type</option>
+                  @for (rt of referralTypes(); track rt.id) {
+                    <option [ngValue]="rt.id">{{ rt.name }}</option>
+                  }
+                </select>
+                @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) {
+                  <p class="field-error">Referral type is required</p>
+                }
+              </div>
             </div>
 
-            <div class="field-group">
-              <label for="enq-phone" class="field-label">Phone</label>
-              <input
-                id="enq-phone"
-                class="field-input"
-                formControlName="phone"
-                placeholder="+91 9876543210"
-                autocomplete="tel"
-              />
-            </div>
+            @if (isAgentReferral()) {
+              <div class="field-group">
+                <label for="enq-agent" class="field-label">Agent</label>
+                <select
+                  id="enq-agent"
+                  class="field-select"
+                  formControlName="agentId"
+                  (change)="onAgentChange(form.get('agentId')?.value)"
+                >
+                  <option [ngValue]="null">— None —</option>
+                  @for (a of agents(); track a.id) {
+                    <option [ngValue]="a.id">{{ a.name }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            @if (isEditMode()) {
+              <div class="field-group">
+                <label for="enq-status" class="field-label">Status</label>
+                <select id="enq-status" class="field-select" formControlName="status">
+                  @for (s of statusOptions; track s) {
+                    <option [value]="s">{{ s }}</option>
+                  }
+                </select>
+              </div>
+            }
           </div>
 
-          <div class="field-group">
-            <label for="enq-program" class="field-label">Program</label>
-            <select
-              id="enq-program"
-              class="field-select"
-              formControlName="programId"
-              (change)="onProgramChange(form.get('programId')?.value)"
-            >
-              <option [ngValue]="null">— None —</option>
-              @for (p of programs(); track p.id) {
-                <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option>
-              }
-            </select>
-          </div>
-
-          @if (courses().length > 0) {
-            <div class="field-group">
-              <label for="enq-course" class="field-label">Course</label>
-              <select
-                id="enq-course"
-                class="field-select"
-                formControlName="courseId"
-                (change)="onCourseChange(form.get('courseId')?.value)"
-              >
-                <option [ngValue]="null">— None —</option>
-                @for (c of courses(); track c.id) {
-                  <option [ngValue]="c.id">{{ c.name }} ({{ c.code }})</option>
-                }
-              </select>
-            </div>
-          }
-
-          <div class="field-group">
-            <label for="enq-student-type" class="field-label">Student Type</label>
-            <select
-              id="enq-student-type"
-              class="field-select"
-              formControlName="studentType"
-              (change)="onStudentTypeChange()"
-            >
-              <option [ngValue]="null">— Not Specified —</option>
-              @for (st of studentTypeOptions; track st.value) {
-                <option [value]="st.value">{{ st.label }}</option>
-              }
-            </select>
-          </div>
-
-          <!-- Read-only fee total — auto-loaded after course + student type selection -->
-          @if (form.get('courseId')?.value && totalFees() > 0) {
-            <div class="fee-amount-display">
-              <span class="fee-amount-label">
-                Total Fee
-                @if (form.get('studentType')?.value === 'DAY_SCHOLAR') {
-                  <span class="fee-type-hint">(Day Scholar)</span>
-                } @else if (form.get('studentType')?.value === 'HOSTELER') {
-                  <span class="fee-type-hint">(Hosteler)</span>
-                }
-              </span>
-              <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-          }
-
-          <div class="field-row">
-            <div class="field-group">
-              <label for="enq-date" class="field-label">Enquiry Date</label>
-              <input
-                id="enq-date"
-                type="date"
-                class="field-input"
-                formControlName="enquiryDate"
-                [attr.max]="maxDateStr"
-                [class.field-input--error]="form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched"
-              />
-              @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) {
-                <p class="field-error">Enquiry date is required</p>
-              }
-            </div>
+          <!-- Section: Notes -->
+          <div class="form-section">
+            <p class="form-section-title">Notes</p>
 
             <div class="field-group">
-              <label for="enq-referral" class="field-label">Referral Type</label>
-              <select
-                id="enq-referral"
-                class="field-select"
-                formControlName="referralTypeId"
-                (change)="onReferralTypeChange(form.get('referralTypeId')?.value)"
-                [class.field-select--error]="form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched"
-              >
-                <option [ngValue]="null" disabled>Select referral type</option>
-                @for (rt of referralTypes(); track rt.id) {
-                  <option [ngValue]="rt.id">{{ rt.name }}</option>
-                }
-              </select>
-              @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) {
-                <p class="field-error">Referral type is required</p>
-              }
+              <label for="enq-remarks" class="field-label">Remarks</label>
+              <textarea
+                id="enq-remarks"
+                class="field-textarea"
+                formControlName="remarks"
+                rows="3"
+                placeholder="Any additional notes about this enquiry"
+              ></textarea>
             </div>
-          </div>
-
-          @if (isEditMode()) {
-            <div class="field-group">
-              <label for="enq-status" class="field-label">Status</label>
-              <select id="enq-status" class="field-select" formControlName="status">
-                @for (s of statusOptions; track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            </div>
-          }
-
-          @if (isAgentReferral()) {
-            <div class="field-group">
-              <label for="enq-agent" class="field-label">Agent</label>
-              <select
-                id="enq-agent"
-                class="field-select"
-                formControlName="agentId"
-                (change)="onAgentChange(form.get('agentId')?.value)"
-              >
-                <option [ngValue]="null">— None —</option>
-                @for (a of agents(); track a.id) {
-                  <option [ngValue]="a.id">{{ a.name }}</option>
-                }
-              </select>
-            </div>
-          }
-
-          <div class="field-group">
-            <label for="enq-remarks" class="field-label">Remarks</label>
-            <textarea
-              id="enq-remarks"
-              class="field-textarea"
-              formControlName="remarks"
-              rows="3"
-              placeholder="Any additional notes"
-            ></textarea>
           </div>
 
           <div class="form-footer">

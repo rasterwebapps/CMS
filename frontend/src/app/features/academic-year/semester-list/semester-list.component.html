@@ -25,7 +25,7 @@
     </div>
 
     <div class="filter-pill-group">
-      <select class="filter-select" [value]="selectedAcademicYearId()" (change)="onAcademicYearChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by academic year">
+      <select class="filter-select" [value]="selectedAcademicYearId()" (change)="onAcademicYearChange(+$any($event.target).value || null)" aria-label="Filter by academic year">
         <option [ngValue]="null">All Academic Years</option>
         @for (academicYear of academicYears(); track academicYear.id) {
           <option [value]="academicYear.id">{{ academicYear.name }}</option>

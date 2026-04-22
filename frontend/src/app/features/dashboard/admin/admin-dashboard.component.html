@@ -84,14 +84,14 @@
       @if (trendsLoading()) {
         <div class="widget-skeleton" style="height: 220px"></div>
       } @else if (trends(); as t) {
-        <mat-card appearance="outlined" class="widget-card">
+        <div class="content-card widget-card">
           <div class="widget-header">
             <div class="widget-icon-wrap">
               <mat-icon>show_chart</mat-icon>
             </div>
             <h3 class="widget-title">Admission Trend</h3>
           </div>
-          <mat-card-content>
+          <div class="widget-card__body">
             <div class="bar-chart">
               @for (point of t.enrolmentTrend; track point.month; let last = $last) {
                 <div class="bar-col">
@@ -108,20 +108,20 @@
                 </div>
               }
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </div>
       }
 
       <!-- Pending Approvals panel -->
       @if (summary(); as s) {
-        <mat-card appearance="outlined" class="widget-card">
+        <div class="content-card widget-card">
           <div class="widget-header">
             <div class="widget-icon-wrap widget-icon-amber">
               <mat-icon>pending_actions</mat-icon>
             </div>
             <h3 class="widget-title">Pending Approvals</h3>
           </div>
-          <mat-card-content>
+          <div class="widget-card__body">
             @if (pendingApprovals().length === 0) {
               <div class="all-clear">
                 <mat-icon>check_circle</mat-icon>
@@ -142,8 +142,8 @@
                 }
               </div>
             }
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </div>
       }
     </div>
   }
@@ -153,14 +153,14 @@
     <div class="admin-two-col admin-two-col--50-50">
 
       <!-- Lab Utilization -->
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap widget-icon-violet">
             <mat-icon>science</mat-icon>
           </div>
           <h3 class="widget-title">Equipment Status</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="funnel-list">
             @for (entry of equipmentStatusEntries(); track entry.status) {
               <div class="funnel-row">
@@ -175,18 +175,18 @@
               <p class="empty-hint">No equipment data.</p>
             }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
       <!-- Fee Overview -->
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap widget-icon-teal">
             <mat-icon>account_balance_wallet</mat-icon>
           </div>
           <h3 class="widget-title">Fee Overview</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="fee-overview-grid">
             <div class="fee-kpi">
               <span class="fee-kpi__label">Collected this month</span>
@@ -205,8 +205,8 @@
               <span class="fee-kpi__value font-mono">{{ s.totalEquipment }}</span>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   }
 
@@ -217,14 +217,14 @@
       Breakdown Analytics
     </h3>
     <div class="breakdown-grid">
-      <mat-card appearance="outlined" class="breakdown-card">
+      <div class="content-card breakdown-card">
         <div class="breakdown-header">
           <div class="breakdown-icon-wrap breakdown-blue">
             <mat-icon>precision_manufacturing</mat-icon>
           </div>
           <h4 class="breakdown-title">Equipment by Status</h4>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="status-list">
             @for (entry of s.equipmentByStatus | keyvalue; track entry.key) {
               <div class="status-row">
@@ -237,17 +237,17 @@
             }
             @empty { <p class="empty-hint">No equipment data</p> }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
-      <mat-card appearance="outlined" class="breakdown-card">
+      <div class="content-card breakdown-card">
         <div class="breakdown-header">
           <div class="breakdown-icon-wrap breakdown-amber">
             <mat-icon>build</mat-icon>
           </div>
           <h4 class="breakdown-title">Maintenance by Status</h4>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="status-list">
             @for (entry of s.maintenanceByStatus | keyvalue; track entry.key) {
               <div class="status-row">
@@ -260,17 +260,17 @@
             }
             @empty { <p class="empty-hint">No maintenance data</p> }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
-      <mat-card appearance="outlined" class="breakdown-card">
+      <div class="content-card breakdown-card">
         <div class="breakdown-header">
           <div class="breakdown-icon-wrap breakdown-emerald">
             <mat-icon>school</mat-icon>
           </div>
           <h4 class="breakdown-title">Students by Status</h4>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="status-list">
             @for (entry of s.studentsByStatus | keyvalue; track entry.key) {
               <div class="status-row">
@@ -283,17 +283,17 @@
             }
             @empty { <p class="empty-hint">No student data</p> }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
-      <mat-card appearance="outlined" class="breakdown-card">
+      <div class="content-card breakdown-card">
         <div class="breakdown-header">
           <div class="breakdown-icon-wrap breakdown-violet">
             <mat-icon>fact_check</mat-icon>
           </div>
           <h4 class="breakdown-title">Attendance by Status</h4>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="status-list">
             @for (entry of s.attendanceByStatus | keyvalue; track entry.key) {
               <div class="status-row">
@@ -306,8 +306,8 @@
             }
             @empty { <p class="empty-hint">No attendance data</p> }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   }
 
@@ -326,14 +326,14 @@
       6-Month Trends
     </h3>
     <div class="trends-grid">
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap">
             <mat-icon>school</mat-icon>
           </div>
           <h3 class="widget-title">Student Enrolments</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           @if (t.enrolmentTrend.length === 0) {
             <p class="empty-hint">No enrolment data.</p>
           } @else {
@@ -351,17 +351,17 @@
               }
             </div>
           }
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap widget-icon-teal">
             <mat-icon>payments</mat-icon>
           </div>
           <h3 class="widget-title">Fee Collections</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           @if (t.feeCollectionTrend.length === 0) {
             <p class="empty-hint">No fee collection data.</p>
           } @else {
@@ -379,21 +379,21 @@
               }
             </div>
           }
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   }
 
   <!-- ── Enquiry Funnel ────────────────────────────── -->
   @if (!loading() && funnelEntries().length > 0) {
-    <mat-card appearance="outlined" class="widget-card" style="margin-bottom: 28px;">
+    <div class="content-card widget-card" style="margin-bottom: 28px;">
       <div class="widget-header">
         <div class="widget-icon-wrap">
           <mat-icon>contact_mail</mat-icon>
         </div>
         <h3 class="widget-title">Enquiry Funnel</h3>
       </div>
-      <mat-card-content>
+      <div class="widget-card__body">
         <div class="funnel-list">
           @for (entry of funnelEntries(); track entry.status) {
             <div class="funnel-row">
@@ -405,8 +405,8 @@
             </div>
           }
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </div>
   }
 
   <!-- ── Academic Calendar Strip ──────────────────── -->

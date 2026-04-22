@@ -1,64 +1,55 @@
-<div class="academic-calendar-container">
-  <div class="header">
-    <h2 class="page-title">Academic Calendar</h2>
-    <div class="header-actions">
-      <button mat-stroked-button routerLink="/academic-years">
-        <mat-icon>calendar_month</mat-icon>
-        Manage Academic Years
-      </button>
-      <button mat-stroked-button routerLink="/semesters">
-        <mat-icon>date_range</mat-icon>
-        Manage Semesters
-      </button>
+<div class="list-page">
+  <app-page-header title="Academic Calendar" subtitle="Current academic year and semester timeline">
+    <div actions class="header-actions">
+      <a class="btn-secondary" routerLink="/academic-years">
+        <mat-icon>calendar_month</mat-icon> Manage Academic Years
+      </a>
+      <a class="btn-secondary" routerLink="/semesters">
+        <mat-icon>date_range</mat-icon> Manage Semesters
+      </a>
     </div>
-  </div>
+  </app-page-header>
 
   @if (loading()) {
     <div class="loading-container">
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else if (hasError()) {
-    <mat-card appearance="outlined" class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon class="error-icon">calendar_today</mat-icon>
-          <h3>No Current Academic Year</h3>
-          <p>There is no current academic year set. Please create an academic year and mark it as current.</p>
-          <button mat-flat-button color="primary" routerLink="/academic-years/new">
-            Create Academic Year
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
+    <div class="content-card error-card">
+      <div class="error-content">
+        <mat-icon class="error-icon">calendar_today</mat-icon>
+        <h3>No Current Academic Year</h3>
+        <p>There is no current academic year set. Please create an academic year and mark it as current.</p>
+        <a class="btn-primary" routerLink="/academic-years/new">Create Academic Year</a>
+      </div>
+    </div>
   } @else {
-    <mat-card appearance="outlined" class="current-year-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar class="year-icon">school</mat-icon>
-        <mat-card-title>{{ currentAcademicYear()?.name }}</mat-card-title>
-        <mat-card-subtitle>
-          {{ currentAcademicYear()?.startDate | date: 'mediumDate' }} —
-          {{ currentAcademicYear()?.endDate | date: 'mediumDate' }}
-        </mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-chip class="current-chip" highlighted>Current Academic Year</mat-chip>
-      </mat-card-content>
-    </mat-card>
+    <div class="content-card current-year-card">
+      <div class="current-year-header">
+        <div class="year-icon-wrap">
+          <mat-icon>school</mat-icon>
+        </div>
+        <div>
+          <h3 class="current-year-title">{{ currentAcademicYear()?.name }}</h3>
+          <p class="current-year-dates">
+            {{ currentAcademicYear()?.startDate | date: 'mediumDate' }} —
+            {{ currentAcademicYear()?.endDate | date: 'mediumDate' }}
+          </p>
+        </div>
+        <span class="cms-badge cms-badge--blue">Current Academic Year</span>
+      </div>
+    </div>
 
     <h3 class="section-title">Semesters</h3>
 
     @if (semesters().length === 0) {
-      <mat-card appearance="outlined" class="empty-card">
-        <mat-card-content>
-          <div class="empty-content">
-            <mat-icon class="empty-icon">event_note</mat-icon>
-            <p>No semesters found for this academic year.</p>
-            <button mat-flat-button color="primary" routerLink="/semesters/new">
-              Add Semester
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
+      <div class="content-card">
+        <div class="empty-state__content">
+          <mat-icon class="empty-state__icon-mat">event_note</mat-icon>
+          <p class="empty-state__text">No semesters found for this academic year.</p>
+          <a class="btn-primary" routerLink="/semesters/new">Add Semester</a>
+        </div>
+      </div>
     } @else {
       <div class="semester-timeline">
         @for (semester of semesters(); track semester.id; let i = $index) {
@@ -77,41 +68,35 @@
                 <div class="marker-line"></div>
               }
             </div>
-            <mat-card appearance="outlined" class="semester-card" [class]="getSemesterStatus(semester)">
-              <mat-card-header>
-                <mat-card-title>{{ semester.name }}</mat-card-title>
-                <mat-card-subtitle>Semester {{ semester.semesterNumber }}</mat-card-subtitle>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="semester-dates">
-                  <div class="date-item">
-                    <mat-icon>event</mat-icon>
-                    <span>
-                      <strong>Start:</strong> {{ semester.startDate | date: 'mediumDate' }}
-                    </span>
-                  </div>
-                  <div class="date-item">
-                    <mat-icon>event</mat-icon>
-                    <span>
-                      <strong>End:</strong> {{ semester.endDate | date: 'mediumDate' }}
-                    </span>
-                  </div>
+            <div class="content-card semester-card" [class]="getSemesterStatus(semester)">
+              <div class="semester-card-header">
+                <h4 class="semester-name">{{ semester.name }}</h4>
+                <span class="semester-number">Semester {{ semester.semesterNumber }}</span>
+              </div>
+              <div class="semester-dates">
+                <div class="date-item">
+                  <mat-icon>event</mat-icon>
+                  <span><strong>Start:</strong> {{ semester.startDate | date: 'mediumDate' }}</span>
                 </div>
-                <mat-chip class="status-chip" [class]="getSemesterStatus(semester)">
-                  @switch (getSemesterStatus(semester)) {
-                    @case ('completed') {
-                      Completed
-                    }
-                    @case ('current') {
-                      In Progress
-                    }
-                    @case ('upcoming') {
-                      Upcoming
-                    }
+                <div class="date-item">
+                  <mat-icon>event</mat-icon>
+                  <span><strong>End:</strong> {{ semester.endDate | date: 'mediumDate' }}</span>
+                </div>
+              </div>
+              <div class="semester-status">
+                @switch (getSemesterStatus(semester)) {
+                  @case ('completed') {
+                    <span class="cms-badge cms-badge--gray">Completed</span>
                   }
-                </mat-chip>
-              </mat-card-content>
-            </mat-card>
+                  @case ('current') {
+                    <span class="cms-badge cms-badge--blue">In Progress</span>
+                  }
+                  @case ('upcoming') {
+                    <span class="cms-badge cms-badge--amber">Upcoming</span>
+                  }
+                }
+              </div>
+            </div>
           </div>
         }
       </div>

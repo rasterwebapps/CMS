@@ -3,7 +3,7 @@
     <h2 class="page-title">Exam Results</h2>
   </div>
   <div class="command-bar">
-    <select class="filter-select" (change)="onExaminationChange(+($event.target as HTMLSelectElement).value)" aria-label="Select examination">
+    <select class="filter-select" (change)="onExaminationChange(+$any($event.target).value)" aria-label="Select examination">
       <option value="" disabled>Select Examination</option>
       @for (exam of examinations(); track exam.id) {
         <option [value]="exam.id">{{ exam.name }}</option>
@@ -47,7 +47,7 @@
               </ng-container>
               <ng-container matColumnDef="status">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-                <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+                <td mat-cell *matCellDef="let row"><cms-status-badge [status]="row.status"></cms-status-badge></td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>

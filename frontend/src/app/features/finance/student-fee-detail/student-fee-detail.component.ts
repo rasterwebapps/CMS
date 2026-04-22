@@ -5,7 +5,6 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
@@ -17,14 +16,17 @@ import {
   StudentFeeAllocation, SemesterFeeDetail, PenaltyResponse, Receipt,
 } from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
     DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatChipsModule, MatDialogModule, MatTooltipModule,
+    MatIconModule, MatProgressSpinnerModule, MatButtonModule,
+    MatSnackBarModule, MatDialogModule, MatTooltipModule,
+    PageHeaderComponent, CmsStatusBadgeComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',

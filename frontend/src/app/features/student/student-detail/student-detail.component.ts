@@ -2,12 +2,13 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-student-detail',
@@ -16,10 +17,10 @@ import { Student } from '../student.model';
     RouterLink,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDividerModule,
+    PageHeaderComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',

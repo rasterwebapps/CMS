@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -10,6 +9,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-academic-calendar',
@@ -17,13 +17,11 @@ import { AcademicYear, Semester } from '../academic-year.model';
   imports: [
     DatePipe,
     RouterLink,
-    MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatChipsModule,
-    MatDividerModule,
+    PageHeaderComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',

@@ -120,3 +120,21 @@
   font-weight: 500;
   padding: 16px 0;
 }
+
+// ── Form sections ──────────────────────────────────────────────────────────
+.form-section {
+  & + & {
+    margin-top: 8px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cms-border-light);
+  }
+}
+
+.form-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--cms-text-muted);
+  margin: 0 0 14px;
+}

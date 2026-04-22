@@ -28,7 +28,7 @@
     </div>
 
     <div class="filter-pill-group">
-      <select class="filter-select" [value]="selectedProgramId()" (change)="onProgramFilterChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by program">
+      <select class="filter-select" [value]="selectedProgramId()" (change)="onProgramFilterChange(+$any($event.target).value || null)" aria-label="Filter by program">
         <option [ngValue]="null">All Programs</option>
         @for (program of programs(); track program.id) {
           <option [value]="program.id">{{ program.name }}</option>

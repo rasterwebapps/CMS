@@ -1,79 +1,66 @@
-<div class="faculty-detail-container">
+<div class="list-page">
   @if (loading()) {
-    <div class="loading-spinner">
+    <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (faculty()) {
-    <div class="header">
-      <button mat-icon-button routerLink="/faculty">
-        <mat-icon>arrow_back</mat-icon>
-      </button>
-      <h1>{{ faculty()!.fullName }}</h1>
-      @if (authService.isAdmin()) {
-        <button mat-raised-button color="primary" (click)="editFaculty()">
-          <mat-icon>edit</mat-icon>
-          Edit
-        </button>
-      }
-    </div>
+    <app-page-header [title]="faculty()!.fullName" subtitle="Faculty profile and details">
+      <div actions>
+        @if (authService.isAdmin()) {
+          <button class="btn-primary" (click)="editFaculty()">
+            <mat-icon>edit</mat-icon> Edit
+          </button>
+        }
+      </div>
+    </app-page-header>
 
     <div class="content-grid">
-      <mat-card class="info-card">
-        <mat-card-header>
-          <mat-card-title>Basic Information</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">Employee Code</span>
-              <span class="value">{{ faculty()!.employeeCode }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Email</span>
-              <span class="value">{{ faculty()!.email }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Phone</span>
-              <span class="value">{{ faculty()!.phone || '—' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Department</span>
-              <span class="value">{{ faculty()!.departmentName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Designation</span>
-              <span class="value">{{ getDesignationLabel(faculty()!.designation) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Status</span>
-              <mat-chip [highlighted]="faculty()!.status === 'ACTIVE'" [color]="getStatusColor(faculty()!.status)">
-                {{ getStatusLabel(faculty()!.status) }}
-              </mat-chip>
-            </div>
-            <div class="info-item">
-              <span class="label">Joining Date</span>
-              <span class="value">{{ formatDate(faculty()!.joiningDate) }}</span>
-            </div>
+      <div class="content-card info-card">
+        <h3 class="section-title">Basic Information</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Employee Code</span>
+            <span class="detail-value">{{ faculty()!.employeeCode }}</span>
           </div>
-        </mat-card-content>
-      </mat-card>
+          <div class="detail-item">
+            <span class="detail-label">Email</span>
+            <span class="detail-value">{{ faculty()!.email }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Phone</span>
+            <span class="detail-value">{{ faculty()!.phone || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Department</span>
+            <span class="detail-value">{{ faculty()!.departmentName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Designation</span>
+            <span class="detail-value">{{ getDesignationLabel(faculty()!.designation) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Joining Date</span>
+            <span class="detail-value">{{ formatDate(faculty()!.joiningDate) }}</span>
+          </div>
+        </div>
+      </div>
 
-      <mat-card class="info-card">
-        <mat-card-header>
-          <mat-card-title>Professional Information</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="info-section">
-            <h4>Specialization</h4>
-            <p>{{ faculty()!.specialization || 'Not specified' }}</p>
-          </div>
-          <mat-divider></mat-divider>
-          <div class="info-section">
-            <h4>Lab Expertise</h4>
-            <p>{{ faculty()!.labExpertise || 'Not specified' }}</p>
-          </div>
-        </mat-card-content>
-      </mat-card>
+      <div class="content-card info-card">
+        <h3 class="section-title">Professional Information</h3>
+        <div class="detail-item">
+          <span class="detail-label">Specialization</span>
+          <span class="detail-value">{{ faculty()!.specialization || 'Not specified' }}</span>
+        </div>
+        <div class="section-divider"></div>
+        <div class="detail-item">
+          <span class="detail-label">Lab Expertise</span>
+          <span class="detail-value">{{ faculty()!.labExpertise || 'Not specified' }}</span>
+        </div>
+      </div>
     </div>
   } @else {
     <p>Faculty not found</p>

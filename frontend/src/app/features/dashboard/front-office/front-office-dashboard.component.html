@@ -82,14 +82,14 @@
     <div class="fo-two-col">
 
       <!-- Today's Enquiries -->
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap">
             <mat-icon>today</mat-icon>
           </div>
           <h3 class="widget-title">Today's Enquiries</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           @if (d.todaysEnquiries.length === 0) {
             <p class="empty-hint">No enquiries today yet 🎉</p>
           } @else {
@@ -110,18 +110,18 @@
               <a routerLink="/enquiries" class="fo-all-link">View All Enquiries →</a>
             </div>
           }
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
       <!-- Pending Actions -->
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap widget-icon-amber">
             <mat-icon>task_alt</mat-icon>
           </div>
           <h3 class="widget-title">Pending Actions</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           @if (d.pendingActionItems.length === 0) {
             <div class="all-clear">
               <mat-icon>check_circle</mat-icon>
@@ -137,22 +137,22 @@
               }
             </div>
           }
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   }
 
   <!-- ── Enquiry Funnel ────────────────────────────── -->
   @if (!loading() && funnelEntries().length > 0) {
     <div class="fo-funnel-section">
-      <mat-card appearance="outlined" class="widget-card">
+      <div class="content-card widget-card">
         <div class="widget-header">
           <div class="widget-icon-wrap widget-icon-sky">
             <mat-icon>stacked_bar_chart</mat-icon>
           </div>
           <h3 class="widget-title">📊 Admission Funnel — All Time</h3>
         </div>
-        <mat-card-content>
+        <div class="widget-card__body">
           <div class="funnel-list">
             @for (entry of funnelEntries(); track entry.status) {
               <div class="funnel-row">
@@ -165,8 +165,8 @@
               </div>
             }
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   }
 

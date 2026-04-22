@@ -1,119 +1,112 @@
-<div class="detail-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/student-fees"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">Student Fee Details</h2>
-  </div>
+<div class="list-page">
+  <app-page-header title="Student Fee Details" subtitle="Fee allocation, semester breakdown, and payment receipts">
+    <a actions class="btn-secondary" routerLink="/student-fees">
+      <mat-icon>arrow_back</mat-icon> Back
+    </a>
+  </app-page-header>
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else if (allocation(); as alloc) {
-    <div class="student-info">
-      <h3>{{ alloc.studentName }} ({{ alloc.rollNumber }})</h3>
-      <p>Program: {{ alloc.programName }} &bull; Status: {{ alloc.status }}</p>
+    <div class="content-card student-summary">
+      <h3>{{ alloc.studentName }} <span class="text-muted">({{ alloc.rollNumber }})</span></h3>
+      <p class="student-meta">{{ alloc.programName }} &bull; <cms-status-badge [status]="alloc.status"></cms-status-badge></p>
     </div>
 
-    <div class="summary-cards">
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Total Fee</div>
-          <div class="summary-value">₹{{ alloc.totalFee | number }}</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Net Fee</div>
-          <div class="summary-value">₹{{ alloc.netFee | number }}</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Discount</div>
-          <div class="summary-value">₹{{ alloc.discountAmount | number }}</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Penalty</div>
-          <div class="summary-value penalty">₹{{ penalties()?.totalPenalty ?? 0 | number }}</div>
-        </mat-card-content>
-      </mat-card>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Fee</span>
+        <span class="stat-value">₹{{ alloc.totalFee | number }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Net Fee</span>
+        <span class="stat-value">₹{{ alloc.netFee | number }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Discount</span>
+        <span class="stat-value">₹{{ alloc.discountAmount | number }}</span>
+      </div>
+      <div class="stat-card stat-card--accent">
+        <span class="stat-label">Penalty</span>
+        <span class="stat-value penalty">₹{{ penalties()?.totalPenalty ?? 0 | number }}</span>
+      </div>
     </div>
 
     <div class="section-header">
-      <h3>Semester Breakdown</h3>
-      <button mat-flat-button color="primary" (click)="openCollectPaymentDialog()">
+      <h3 class="section-title">Semester Breakdown</h3>
+      <button class="btn-primary" (click)="openCollectPaymentDialog()">
         <mat-icon>payment</mat-icon> Collect Payment
       </button>
     </div>
 
     <div class="semester-grid">
       @for (sem of alloc.semesterFees; track sem.id) {
-        <mat-card appearance="outlined" class="semester-card">
-          <mat-card-header>
-            <mat-card-title>Year {{ sem.yearNumber }} — {{ sem.semesterLabel }}</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="semester-detail">
-              <span>Amount:</span><span>₹{{ sem.amount | number }}</span>
-            </div>
-            <div class="semester-detail">
-              <span>Due Date:</span><span>{{ sem.dueDate }}</span>
-            </div>
-            <div class="semester-detail">
-              <span>Paid:</span><span>₹{{ sem.amountPaid | number }}</span>
-            </div>
-            <div class="semester-detail">
-              <span>Pending:</span><span>₹{{ sem.pendingAmount | number }}</span>
-            </div>
-            <div class="semester-detail">
-              <span>Penalty:</span><span>₹{{ sem.penaltyAmount | number }}</span>
-            </div>
-            <div class="semester-status">
-              <span class="status-badge" [class]="getStatusClass(sem.paymentStatus)">{{ sem.paymentStatus }}</span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <div class="semester-card">
+          <h4 class="semester-card__title">Year {{ sem.yearNumber }} — {{ sem.semesterLabel }}</h4>
+          <div class="semester-detail">
+            <span>Amount</span><span>₹{{ sem.amount | number }}</span>
+          </div>
+          <div class="semester-detail">
+            <span>Due Date</span><span>{{ sem.dueDate }}</span>
+          </div>
+          <div class="semester-detail">
+            <span>Paid</span><span>₹{{ sem.amountPaid | number }}</span>
+          </div>
+          <div class="semester-detail">
+            <span>Pending</span><span>₹{{ sem.pendingAmount | number }}</span>
+          </div>
+          <div class="semester-detail">
+            <span>Penalty</span><span>₹{{ sem.penaltyAmount | number }}</span>
+          </div>
+          <div class="semester-status">
+            <cms-status-badge [status]="sem.paymentStatus"></cms-status-badge>
+          </div>
+        </div>
       }
     </div>
 
     <h3 class="section-title">Payment Receipts</h3>
-    <mat-card appearance="outlined">
-      <mat-card-content>
-        <div class="table-container">
-          <table mat-table [dataSource]="receiptDataSource" matSort class="data-table">
-            <ng-container matColumnDef="receiptNumber">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt #</th>
-              <td mat-cell *matCellDef="let row">{{ row.receiptNumber }}</td>
-            </ng-container>
-            <ng-container matColumnDef="semesterLabel">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
-              <td mat-cell *matCellDef="let row">{{ row.semesterLabel }}</td>
-            </ng-container>
-            <ng-container matColumnDef="amountPaid">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount (₹)</th>
-              <td mat-cell *matCellDef="let row">{{ row.amountPaid | number }}</td>
-            </ng-container>
-            <ng-container matColumnDef="paymentDate">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
-              <td mat-cell *matCellDef="let row">{{ row.paymentDate }}</td>
-            </ng-container>
-            <ng-container matColumnDef="paymentMode">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Mode</th>
-              <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
-            </ng-container>
-            <ng-container matColumnDef="transactionReference">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Transaction Ref</th>
-              <td mat-cell *matCellDef="let row">{{ row.transactionReference || '—' }}</td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="receiptColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: receiptColumns"></tr>
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="receiptColumns.length">No receipts found</td>
-            </tr>
-          </table>
-        </div>
+    <div class="content-card">
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="receiptDataSource" matSort class="modern-table">
+          <ng-container matColumnDef="receiptNumber">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt #</th>
+            <td mat-cell *matCellDef="let row">{{ row.receiptNumber }}</td>
+          </ng-container>
+          <ng-container matColumnDef="semesterLabel">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
+            <td mat-cell *matCellDef="let row">{{ row.semesterLabel }}</td>
+          </ng-container>
+          <ng-container matColumnDef="amountPaid">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount (₹)</th>
+            <td mat-cell *matCellDef="let row">{{ row.amountPaid | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="paymentDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let row">{{ row.paymentDate }}</td>
+          </ng-container>
+          <ng-container matColumnDef="paymentMode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Mode</th>
+            <td mat-cell *matCellDef="let row">{{ row.paymentMode }}</td>
+          </ng-container>
+          <ng-container matColumnDef="transactionReference">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Transaction Ref</th>
+            <td mat-cell *matCellDef="let row">{{ row.transactionReference || '—' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="receiptColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: receiptColumns" class="table-row"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="receiptColumns.length">
+              <div class="empty-state__content">
+                <p class="empty-state__text">No receipts found</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="pagination-wrapper">
         <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </div>
   }
 </div>
