@@ -222,7 +222,9 @@ export class DocumentCollectionComponent implements OnInit {
 
   protected onRemarksBlur(row: ChecklistRow): void {
     if (!row.document) return; // Nothing persisted yet — remarks will be sent on first save.
-    if ((row.document.remarks ?? '') === (row.remarks?.trim() ?? '')) return;
+    const persisted = (row.document.remarks ?? '').trim();
+    const current = (row.remarks ?? '').trim();
+    if (persisted === current) return;
     this.saveRow(row, row.status);
   }
 
