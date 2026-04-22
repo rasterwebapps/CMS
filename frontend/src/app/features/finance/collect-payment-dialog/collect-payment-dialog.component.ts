@@ -1,9 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -14,8 +11,8 @@ import { CollectPaymentRequest } from '../finance.model';
   selector: 'app-collect-payment-dialog',
   standalone: true,
   imports: [
-    ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
+    ReactiveFormsModule, MatDialogModule,
+    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
   ],
   templateUrl: './collect-payment-dialog.component.html',
   styleUrl: './collect-payment-dialog.component.scss',

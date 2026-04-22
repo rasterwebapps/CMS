@@ -1,14 +1,8 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ExaminationService } from '../examination.service';
@@ -18,9 +12,8 @@ import { ExamResult, Examination } from '../examination.model';
   selector: 'app-exam-result-list',
   standalone: true,
   imports: [
-    FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatInputModule, MatFormFieldModule, MatSelectModule, MatButtonModule, MatIconModule,
-    MatCardModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
   ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',

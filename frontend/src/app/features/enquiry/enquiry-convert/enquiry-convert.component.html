@@ -10,22 +10,20 @@
   } @else {
     <div class="convert-layout">
       <!-- Left: Enquiry Summary -->
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-header><mat-card-title>Enquiry Summary</mat-card-title></mat-card-header>
-        <mat-card-content>
-          @if (enquiry()) {
-            <div class="info-list">
-              <div class="info-row"><span class="label">Name</span><span>{{ enquiry()!.name }}</span></div>
-              <div class="info-row"><span class="label">Email</span><span>{{ enquiry()!.email || '—' }}</span></div>
-              <div class="info-row"><span class="label">Phone</span><span>{{ enquiry()!.phone || '—' }}</span></div>
-              <div class="info-row"><span class="label">Program</span><span>{{ enquiry()!.programName }}</span></div>
-              <div class="info-row"><span class="label">Course</span><span>{{ enquiry()!.courseName || '—' }}</span></div>
-              <div class="info-row"><span class="label">Status</span><span>{{ enquiry()!.status }}</span></div>
-              <div class="info-row"><span class="label">Net Fee</span><span>{{ enquiry()!.finalizedNetFee ?? '—' }}</span></div>
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
+      <div class="summary-card">
+        <p class="summary-card__heading">Enquiry Summary</p>
+        @if (enquiry()) {
+          <div class="info-list">
+            <div class="info-row"><span class="label">Name</span><span>{{ enquiry()!.name }}</span></div>
+            <div class="info-row"><span class="label">Email</span><span>{{ enquiry()!.email || '—' }}</span></div>
+            <div class="info-row"><span class="label">Phone</span><span>{{ enquiry()!.phone || '—' }}</span></div>
+            <div class="info-row"><span class="label">Program</span><span>{{ enquiry()!.programName }}</span></div>
+            <div class="info-row"><span class="label">Course</span><span>{{ enquiry()!.courseName || '—' }}</span></div>
+            <div class="info-row"><span class="label">Status</span><span>{{ enquiry()!.status }}</span></div>
+            <div class="info-row"><span class="label">Net Fee</span><span>{{ enquiry()!.finalizedNetFee ?? '—' }}</span></div>
+          </div>
+        }
+      </div>
 
       <!-- Right: Admission + Student Creation Form -->
       <div class="entry-form-card">
@@ -34,100 +32,143 @@
 
           <h3 class="section-heading">Student Details</h3>
 
-          <div class="field-group">
-            <label class="field-label">First Name *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput formControlName="firstName" />
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
+              <input
+                id="conv-first-name"
+                class="field-input"
+                formControlName="firstName"
+                [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+              />
               @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-                <mat-error>First name is required</mat-error>
+                <p class="field-error">First name is required</p>
               }
-            </mat-form-field>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Last Name *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput formControlName="lastName" />
+            </div>
+            <div class="field-group">
+              <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
+              <input
+                id="conv-last-name"
+                class="field-input"
+                formControlName="lastName"
+                [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+              />
               @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-                <mat-error>Last name is required</mat-error>
+                <p class="field-error">Last name is required</p>
               }
-            </mat-form-field>
+            </div>
           </div>
-          <div class="field-group">
-            <label class="field-label">Email *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="email" formControlName="email" />
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
+              <input
+                id="conv-email"
+                class="field-input"
+                type="email"
+                formControlName="email"
+                [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
+              />
               @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                <mat-error>Valid email is required</mat-error>
+                <p class="field-error">Valid email is required</p>
               }
-            </mat-form-field>
+            </div>
+            <div class="field-group">
+              <label for="conv-phone" class="field-label">Phone</label>
+              <input id="conv-phone" class="field-input" formControlName="phone" />
+            </div>
           </div>
-          <div class="field-group">
-            <label class="field-label">Phone</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput formControlName="phone" />
-            </mat-form-field>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Semester *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="number" formControlName="semester" min="1" />
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-semester" class="field-label">Semester <span class="field-required">*</span></label>
+              <input
+                id="conv-semester"
+                class="field-input"
+                type="number"
+                formControlName="semester"
+                min="1"
+                [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
+              />
               @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                <mat-error>Semester is required</mat-error>
+                <p class="field-error">Semester is required</p>
               }
-            </mat-form-field>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Admission Date *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="date" formControlName="admissionDate" />
+            </div>
+            <div class="field-group">
+              <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
+              <input
+                id="conv-adm-date"
+                class="field-input"
+                type="date"
+                formControlName="admissionDate"
+                [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched"
+              />
               @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
-                <mat-error>Admission date is required</mat-error>
+                <p class="field-error">Admission date is required</p>
               }
-            </mat-form-field>
+            </div>
           </div>
 
           <h3 class="section-heading">Admission Details</h3>
 
-          <div class="field-group">
-            <label class="field-label">Academic Year From *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="number" formControlName="academicYearFrom" />
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
+              <input
+                id="conv-year-from"
+                class="field-input"
+                type="number"
+                formControlName="academicYearFrom"
+                [class.field-input--error]="form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched"
+              />
               @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
-                <mat-error>Academic year from is required</mat-error>
+                <p class="field-error">Academic year from is required</p>
               }
-            </mat-form-field>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Academic Year To *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="number" formControlName="academicYearTo" />
+            </div>
+            <div class="field-group">
+              <label for="conv-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
+              <input
+                id="conv-year-to"
+                class="field-input"
+                type="number"
+                formControlName="academicYearTo"
+                [class.field-input--error]="form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched"
+              />
               @if (form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched) {
-                <mat-error>Academic year to is required</mat-error>
+                <p class="field-error">Academic year to is required</p>
               }
-            </mat-form-field>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Application Date *</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input matInput type="date" formControlName="applicationDate" />
+            </div>
+            <div class="field-group">
+              <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+              <input
+                id="conv-app-date"
+                class="field-input"
+                type="date"
+                formControlName="applicationDate"
+                [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched"
+              />
               @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
-                <mat-error>Application date is required</mat-error>
+                <p class="field-error">Application date is required</p>
               }
-            </mat-form-field>
+            </div>
           </div>
-          <div class="field-group">
+
+          <div class="consent-row">
             <mat-checkbox formControlName="parentConsentGiven">Parent / Guardian consent given</mat-checkbox>
-          </div>
-          <div class="field-group">
             <mat-checkbox formControlName="applicantConsentGiven">Applicant consent given</mat-checkbox>
           </div>
 
           <div class="form-footer">
-            <button mat-stroked-button type="button" class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" class="btn-submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Create Admission }
+            <button type="button" class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                Create Admission
+              }
             </button>
           </div>
+
         </form>
       </div>
     </div>

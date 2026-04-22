@@ -18,9 +18,8 @@
       <!-- Application Tab -->
       <mat-tab label="Application">
         <div class="tab-content">
-          <mat-card appearance="outlined">
-            <mat-card-content>
-              <div class="detail-grid">
+          <div class="content-card">
+            <div class="detail-grid">
                 <div class="detail-item">
                   <span class="detail-label">Student</span>
                   <span class="detail-value">{{ admission()!.studentName }}</span>
@@ -58,8 +57,7 @@
                   <span class="detail-value">{{ admission()!.applicantConsentGiven ? 'Yes' : 'No' }}</span>
                 </div>
               </div>
-            </mat-card-content>
-          </mat-card>
+          </div>
         </div>
       </mat-tab>
 
@@ -171,13 +169,11 @@
                         <button class="btn-small btn-secondary" (click)="uploadPlaceholder()">
                           <mat-icon>upload</mat-icon> Upload
                         </button>
-                        <mat-form-field appearance="outline" class="verify-select">
-                          <mat-select [value]="row.verificationStatus" (valueChange)="verifyDocument(row, $event)">
-                            @for (s of verificationStatuses; track s) {
-                              <mat-option [value]="s">{{ s }}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
+                        <select class="field-select--inline" [value]="row.verificationStatus" (change)="verifyDocument(row, ($event.target as HTMLSelectElement).value)">
+                          @for (s of verificationStatuses; track s) {
+                            <option [value]="s">{{ s }}</option>
+                          }
+                        </select>
                       </div>
                     </td>
                   </ng-container>

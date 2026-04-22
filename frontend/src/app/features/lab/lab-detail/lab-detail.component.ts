@@ -1,46 +1,32 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabService } from '../lab.service';
 import { Lab, LabInChargeAssignment, LabInChargeAssignmentRequest, LabInChargeRole } from '../lab.model';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-lab-detail',
   standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatTableModule,
     MatChipsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    PageHeaderComponent,
   ],
   templateUrl: './lab-detail.component.html',
   styleUrl: './lab-detail.component.scss',
@@ -50,7 +36,6 @@ export class LabDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly labService = inject(LabService);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   protected readonly authService = inject(AuthService);
 
@@ -66,7 +51,7 @@ export class LabDetailComponent implements OnInit {
     assigneeId: [null, [Validators.required, Validators.min(1)]],
     assigneeName: ['', [Validators.required, Validators.minLength(2)]],
     role: ['', Validators.required],
-    assignedDate: [new Date(), Validators.required],
+    assignedDate: [new Date().toISOString().split('T')[0], Validators.required],
   });
 
   ngOnInit(): void {
@@ -130,7 +115,7 @@ export class LabDetailComponent implements OnInit {
   protected toggleAssignmentForm(): void {
     this.showAssignmentForm.update((v) => !v);
     if (!this.showAssignmentForm()) {
-      this.assignmentForm.reset({ assignedDate: new Date() });
+      this.assignmentForm.reset({ assignedDate: new Date().toISOString().split('T')[0] });
     }
   }
 
@@ -144,7 +129,7 @@ export class LabDetailComponent implements OnInit {
       assigneeId: formValue.assigneeId,
       assigneeName: formValue.assigneeName,
       role: formValue.role,
-      assignedDate: this.formatDate(formValue.assignedDate),
+      assignedDate: formValue.assignedDate,
     };
 
     this.labService.assignInCharge(this.lab()!.id, request).subscribe({
@@ -173,10 +158,6 @@ export class LabDetailComponent implements OnInit {
         this.snackBar.open('Error removing assignment', 'Close', { duration: 3000 });
       },
     });
-  }
-
-  protected formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
   }
 
   protected formatDisplayDate(dateString: string): string {

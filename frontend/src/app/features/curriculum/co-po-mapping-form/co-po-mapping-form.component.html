@@ -1,80 +1,126 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/curriculum-mappings">
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/curriculum-mappings" class="back-btn" aria-label="Back to mappings">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the CO-PO mapping details below.' : 'Map an experiment to its course or program outcome.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Experiment</mat-label>
-            <mat-select formControlName="experimentId">
-              @for (exp of experiments(); track exp.id) {
-                <mat-option [value]="exp.id"
-                  >{{ exp.name }} (#{{ exp.experimentNumber }})</mat-option
-                >
-              }
-            </mat-select>
-            @if (form.get('experimentId')?.invalid && form.get('experimentId')?.touched) {
-              <mat-error>Required</mat-error>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="copo-experiment" class="field-label">Experiment <span class="field-required">*</span></label>
+          <select
+            id="copo-experiment"
+            class="field-select"
+            formControlName="experimentId"
+            [class.field-input--error]="form.get('experimentId')?.invalid && form.get('experimentId')?.touched"
+          >
+            <option [ngValue]="null" disabled>Select an experiment</option>
+            @for (exp of experiments(); track exp.id) {
+              <option [ngValue]="exp.id">{{ exp.name }} (#{{ exp.experimentNumber }})</option>
             }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Outcome Type</mat-label>
-            <mat-select formControlName="outcomeType">
+          </select>
+          @if (form.get('experimentId')?.invalid && form.get('experimentId')?.touched) {
+            <p class="field-error">Experiment is required</p>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="copo-type" class="field-label">Outcome Type <span class="field-required">*</span></label>
+            <select
+              id="copo-type"
+              class="field-select"
+              formControlName="outcomeType"
+              [class.field-input--error]="form.get('outcomeType')?.invalid && form.get('outcomeType')?.touched"
+            >
+              <option value="" disabled>Select type</option>
               @for (type of outcomeTypes; track type) {
-                <mat-option [value]="type">{{ type }}</mat-option>
+                <option [value]="type">{{ type }}</option>
               }
-            </mat-select>
+            </select>
             @if (form.get('outcomeType')?.invalid && form.get('outcomeType')?.touched) {
-              <mat-error>Required</mat-error>
+              <p class="field-error">Outcome type is required</p>
             }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Outcome Code</mat-label>
-            <input matInput formControlName="outcomeCode" />
-            @if (form.get('outcomeCode')?.invalid && form.get('outcomeCode')?.touched) {
-              <mat-error>Required</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Outcome Description</mat-label>
-            <textarea matInput formControlName="outcomeDescription" rows="3"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Mapping Level</mat-label>
-            <mat-select formControlName="mappingLevel">
-              @for (level of mappingLevels; track level) {
-                <mat-option [value]="level">{{ level }}</mat-option>
-              }
-            </mat-select>
-            @if (form.get('mappingLevel')?.invalid && form.get('mappingLevel')?.touched) {
-              <mat-error>Required</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Justification</mat-label>
-            <textarea matInput formControlName="justification" rows="3"></textarea>
-          </mat-form-field>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/curriculum-mappings">
-              Cancel
-            </button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update' : 'Create' }}
-              }
-            </button>
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field-group">
+            <label for="copo-level" class="field-label">Mapping Level <span class="field-required">*</span></label>
+            <select
+              id="copo-level"
+              class="field-select"
+              formControlName="mappingLevel"
+              [class.field-input--error]="form.get('mappingLevel')?.invalid && form.get('mappingLevel')?.touched"
+            >
+              <option value="" disabled>Select level</option>
+              @for (level of mappingLevels; track level) {
+                <option [value]="level">{{ level }}</option>
+              }
+            </select>
+            @if (form.get('mappingLevel')?.invalid && form.get('mappingLevel')?.touched) {
+              <p class="field-error">Mapping level is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="copo-code" class="field-label">Outcome Code <span class="field-required">*</span></label>
+          <input
+            id="copo-code"
+            class="field-input field-input--narrow"
+            formControlName="outcomeCode"
+            placeholder="e.g., CO1, PO3"
+            [class.field-input--error]="form.get('outcomeCode')?.invalid && form.get('outcomeCode')?.touched"
+          />
+          @if (form.get('outcomeCode')?.invalid && form.get('outcomeCode')?.touched) {
+            <p class="field-error">Outcome code is required</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="copo-description" class="field-label">Outcome Description</label>
+          <textarea
+            id="copo-description"
+            class="field-textarea"
+            formControlName="outcomeDescription"
+            rows="3"
+            placeholder="Describe the outcome"
+          ></textarea>
+        </div>
+
+        <div class="field-group">
+          <label for="copo-justification" class="field-label">Justification</label>
+          <textarea
+            id="copo-justification"
+            class="field-textarea"
+            formControlName="justification"
+            rows="3"
+            placeholder="Explain the mapping justification"
+          ></textarea>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/curriculum-mappings">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Mapping' : 'Create Mapping' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

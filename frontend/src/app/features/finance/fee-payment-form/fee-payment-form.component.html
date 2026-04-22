@@ -1,63 +1,100 @@
-<div class="form-container">
+<div class="entry-form-page">
   @if (!layoutService.isFocusMode()) {
     <app-page-header [title]="pageTitle()" subtitle="Fill in the payment details below." />
   }
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Student</mat-label>
-            <mat-select formControlName="studentId">
-              @for (s of students(); track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
-            </mat-select>
-            @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Fee Structure</mat-label>
-            <mat-select formControlName="feeStructureId">
-              @for (fs of feeStructures(); track fs.id) { <mat-option [value]="fs.id">{{ fs.name }}</mat-option> }
-            </mat-select>
-            @if (form.get('feeStructureId')?.invalid && form.get('feeStructureId')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Amount Paid (₹)</mat-label>
-            <input matInput type="number" formControlName="amountPaid" min="0" />
-            @if (form.get('amountPaid')?.invalid && form.get('amountPaid')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Payment Date</mat-label>
-            <input matInput type="date" formControlName="paymentDate" />
-            @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Payment Method</mat-label>
-            <mat-select formControlName="paymentMethod">
-              @for (method of paymentMethods; track method) { <mat-option [value]="method">{{ method }}</mat-option> }
-            </mat-select>
-            @if (form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Transaction ID</mat-label>
-            <input matInput formControlName="transactionId" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Status</mat-label>
-            <mat-select formControlName="status">
-              @for (s of statuses; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
-            </mat-select>
-            @if (form.get('status')?.invalid && form.get('status')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/fee-payments">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Create }
-            </button>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="fp-student" class="field-label">Student <span class="field-required">*</span></label>
+          <select id="fp-student" class="field-select" formControlName="studentId" [class.field-input--error]="form.get('studentId')?.invalid && form.get('studentId')?.touched">
+            <option [ngValue]="null" disabled>Select a student</option>
+            @for (s of students(); track s.id) {
+              <option [ngValue]="s.id">{{ s.name }}</option>
+            }
+          </select>
+          @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
+            <p class="field-error">Student is required</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="fp-fee-structure" class="field-label">Fee Structure <span class="field-required">*</span></label>
+          <select id="fp-fee-structure" class="field-select" formControlName="feeStructureId" [class.field-input--error]="form.get('feeStructureId')?.invalid && form.get('feeStructureId')?.touched">
+            <option [ngValue]="null" disabled>Select fee structure</option>
+            @for (fs of feeStructures(); track fs.id) {
+              <option [ngValue]="fs.id">{{ fs.name }}</option>
+            }
+          </select>
+          @if (form.get('feeStructureId')?.invalid && form.get('feeStructureId')?.touched) {
+            <p class="field-error">Fee structure is required</p>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="fp-amount" class="field-label">Amount Paid (₹) <span class="field-required">*</span></label>
+            <input id="fp-amount" class="field-input" type="number" formControlName="amountPaid" min="0" placeholder="0" [class.field-input--error]="form.get('amountPaid')?.invalid && form.get('amountPaid')?.touched" />
+            @if (form.get('amountPaid')?.invalid && form.get('amountPaid')?.touched) {
+              <p class="field-error">Amount is required</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+          <div class="field-group">
+            <label for="fp-date" class="field-label">Payment Date <span class="field-required">*</span></label>
+            <input id="fp-date" class="field-input" type="date" formControlName="paymentDate" [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched" />
+            @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+              <p class="field-error">Payment date is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="fp-method" class="field-label">Payment Method <span class="field-required">*</span></label>
+            <select id="fp-method" class="field-select" formControlName="paymentMethod" [class.field-input--error]="form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched">
+              <option value="" disabled>Select method</option>
+              @for (method of paymentMethods; track method) {
+                <option [value]="method">{{ method }}</option>
+              }
+            </select>
+            @if (form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched) {
+              <p class="field-error">Payment method is required</p>
+            }
+          </div>
+          <div class="field-group">
+            <label for="fp-status" class="field-label">Status <span class="field-required">*</span></label>
+            <select id="fp-status" class="field-select" formControlName="status" [class.field-input--error]="form.get('status')?.invalid && form.get('status')?.touched">
+              <option value="" disabled>Select status</option>
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+            @if (form.get('status')?.invalid && form.get('status')?.touched) {
+              <p class="field-error">Status is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="fp-txn" class="field-label">Transaction ID</label>
+          <input id="fp-txn" class="field-input" formControlName="transactionId" placeholder="UTR / Cheque No." />
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/fee-payments">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              Create
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

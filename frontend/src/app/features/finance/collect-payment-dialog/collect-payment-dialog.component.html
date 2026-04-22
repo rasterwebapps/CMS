@@ -1,48 +1,74 @@
 <h2 mat-dialog-title>Collect Payment</h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="dialog-form">
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Amount (₹)</mat-label>
-      <input matInput type="number" formControlName="amount" min="1" />
+
+    <div class="field-group">
+      <label for="cpd-amount" class="field-label">Amount (₹) <span class="field-required">*</span></label>
+      <input
+        id="cpd-amount"
+        class="field-input"
+        type="number"
+        formControlName="amount"
+        min="1"
+        placeholder="0"
+        [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched"
+      />
       @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-        <mat-error>Valid amount is required</mat-error>
+        <p class="field-error">Valid amount is required</p>
       }
-    </mat-form-field>
+    </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Payment Date</mat-label>
-      <input matInput type="date" formControlName="paymentDate" />
+    <div class="field-group">
+      <label for="cpd-date" class="field-label">Payment Date <span class="field-required">*</span></label>
+      <input
+        id="cpd-date"
+        class="field-input"
+        type="date"
+        formControlName="paymentDate"
+        [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched"
+      />
       @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
-        <mat-error>Payment date is required</mat-error>
+        <p class="field-error">Payment date is required</p>
       }
-    </mat-form-field>
+    </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Payment Mode</mat-label>
-      <mat-select formControlName="paymentMode">
+    <div class="field-group">
+      <label for="cpd-mode" class="field-label">Payment Mode <span class="field-required">*</span></label>
+      <select
+        id="cpd-mode"
+        class="field-select"
+        formControlName="paymentMode"
+        [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched"
+      >
+        <option value="" disabled>Select mode</option>
         @for (mode of paymentModes; track mode) {
-          <mat-option [value]="mode">{{ mode }}</mat-option>
+          <option [value]="mode">{{ mode }}</option>
         }
-      </mat-select>
+      </select>
       @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
-        <mat-error>Payment mode is required</mat-error>
+        <p class="field-error">Payment mode is required</p>
       }
-    </mat-form-field>
+    </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Transaction Reference</mat-label>
-      <input matInput formControlName="transactionReference" />
-    </mat-form-field>
+    <div class="field-group">
+      <label for="cpd-ref" class="field-label">Transaction Reference</label>
+      <input id="cpd-ref" class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No." />
+    </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Remarks</mat-label>
-      <textarea matInput formControlName="remarks" rows="3"></textarea>
-    </mat-form-field>
+    <div class="field-group">
+      <label for="cpd-remarks" class="field-label">Remarks</label>
+      <textarea id="cpd-remarks" class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
+    </div>
+
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-stroked-button (click)="onCancel()">Cancel</button>
   <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="saving">
-    @if (saving) { <mat-spinner diameter="20"></mat-spinner> } @else { Pay }
+    @if (saving) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    } @else {
+      Pay
+    }
   </button>
 </mat-dialog-actions>

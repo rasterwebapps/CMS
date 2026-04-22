@@ -25,18 +25,12 @@
     </div>
 
     <div class="filter-pill-group">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Academic Year</mat-label>
-        <mat-select
-          [value]="selectedAcademicYearId()"
-          (selectionChange)="onAcademicYearChange($event.value)"
-        >
-          <mat-option [value]="null">All Academic Years</mat-option>
-          @for (academicYear of academicYears(); track academicYear.id) {
-            <mat-option [value]="academicYear.id">{{ academicYear.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <select class="filter-select" [value]="selectedAcademicYearId()" (change)="onAcademicYearChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by academic year">
+        <option [ngValue]="null">All Academic Years</option>
+        @for (academicYear of academicYears(); track academicYear.id) {
+          <option [value]="academicYear.id">{{ academicYear.name }}</option>
+        }
+      </select>
     </div>
   </div>
 

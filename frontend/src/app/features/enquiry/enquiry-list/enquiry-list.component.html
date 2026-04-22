@@ -25,29 +25,22 @@
     </div>
 
     <div class="filter-pill-group">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Status</mat-label>
-        <mat-select [value]="statusFilter()" (selectionChange)="onStatusFilterChange($event.value)">
-          <mat-option value="">All</mat-option>
-          @for (s of statuses; track s) {
-            <mat-option [value]="s">{{ s }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <select class="filter-select" [value]="statusFilter()" (change)="onStatusFilterChange(($event.target as HTMLSelectElement).value)" aria-label="Filter by status">
+        <option value="">All Statuses</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill filter-pill--date">
-        <mat-label>From Date</mat-label>
-        <input matInput [matDatepicker]="fromPicker" [(ngModel)]="dateFrom" (dateChange)="onDateRangeChange()" />
-        <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
-        <mat-datepicker #fromPicker></mat-datepicker>
-      </mat-form-field>
+      <label class="filter-date-label">
+        From
+        <input class="filter-date-input" type="date" [(ngModel)]="dateFrom" (change)="onDateRangeChange()" aria-label="From date" />
+      </label>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill filter-pill--date">
-        <mat-label>To Date</mat-label>
-        <input matInput [matDatepicker]="toPicker" [(ngModel)]="dateTo" (dateChange)="onDateRangeChange()" />
-        <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
-        <mat-datepicker #toPicker></mat-datepicker>
-      </mat-form-field>
+      <label class="filter-date-label">
+        To
+        <input class="filter-date-input" type="date" [(ngModel)]="dateTo" (change)="onDateRangeChange()" aria-label="To date" />
+      </label>
 
       @if (statusFilter() || searchValue()) {
         <button class="btn-clear-filters" (click)="clearDateFilter()" aria-label="Reset filters">

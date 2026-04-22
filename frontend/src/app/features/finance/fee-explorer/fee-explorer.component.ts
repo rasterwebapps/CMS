@@ -1,28 +1,25 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-fee-explorer',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+    DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatTooltipModule, PageHeaderComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',

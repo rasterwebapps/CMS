@@ -5,26 +5,22 @@
     </button>
   </app-page-header>
 
-  <div class="filters-row">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Program</mat-label>
-      <mat-select [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()">
-        <mat-option [value]="null">All Programs</mat-option>
+  <div class="command-bar">
+    <div class="filter-pill-group">
+      <select class="filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()" aria-label="Filter by program">
+        <option [ngValue]="null">All Programs</option>
         @for (p of programs(); track p.id) {
-          <mat-option [value]="p.id">{{ p.name }}</mat-option>
+          <option [ngValue]="p.id">{{ p.name }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Course</mat-label>
-      <mat-select [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()">
-        <mat-option [value]="null">All Courses</mat-option>
+      <select class="filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()" aria-label="Filter by course">
+        <option [ngValue]="null">All Courses</option>
         @for (c of courses(); track c.id) {
-          <mat-option [value]="c.id">{{ c.name }}</mat-option>
+          <option [ngValue]="c.id">{{ c.name }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
+    </div>
   </div>
 
   <div class="content-card">

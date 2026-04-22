@@ -2,28 +2,28 @@
   <div class="header">
     <h2 class="page-title">Exam Results</h2>
   </div>
-  <mat-form-field appearance="outline" class="exam-select">
-    <mat-label>Select Examination</mat-label>
-    <mat-select (selectionChange)="onExaminationChange($event.value)">
+  <div class="command-bar">
+    <select class="filter-select" (change)="onExaminationChange(+($event.target as HTMLSelectElement).value)" aria-label="Select examination">
+      <option value="" disabled>Select Examination</option>
       @for (exam of examinations(); track exam.id) {
-        <mat-option [value]="exam.id">{{ exam.name }}</mat-option>
+        <option [value]="exam.id">{{ exam.name }}</option>
       }
-    </mat-select>
-  </mat-form-field>
+    </select>
+  </div>
+
   @if (selectedExamId()) {
-    <mat-card appearance="outlined">
-      <mat-card-content>
-        <div class="table-controls">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search</mat-label>
-            <input matInput [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search..." />
-            @if (searchValue()) {
-              <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
-            } @else {
-              <mat-icon matSuffix>search</mat-icon>
-            }
-          </mat-form-field>
+    <div class="content-card">
+      <div class="table-controls">
+        <div class="search-bar" role="search">
+          <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)" placeholder="Search results..." aria-label="Search results" />
+          @if (searchValue()) {
+            <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
         </div>
+      </div>
         @if (loading()) {
           <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
         } @else {
@@ -58,7 +58,6 @@
           </div>
           <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
         }
-      </mat-card-content>
-    </mat-card>
+    </div>
   }
 </div>

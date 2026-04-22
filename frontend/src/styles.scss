@@ -439,7 +439,7 @@ body {
   color-scheme: light dark;
   background-color: var(--cms-bg-shell);
   color: var(--cms-text-primary);
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--cms-font-ui);
   font-size: 0.875rem;
   line-height: 1.6;
   margin: 0;
@@ -1095,6 +1095,51 @@ app-root {
 
 .filter-pill--date {
   width: 160px;
+}
+
+// Native select used as a filter pill in list command bars
+.filter-select {
+  height: 36px;
+  padding: 0 var(--cms-space-md);
+  background: var(--cms-surface);
+  border: 1.5px solid var(--cms-border);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  min-width: 140px;
+
+  &:hover { border-color: var(--cms-text-secondary); }
+  &:focus { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
+}
+
+// Native date input label wrapper for list filter bars
+.filter-date-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.filter-date-input {
+  height: 36px;
+  padding: 0 var(--cms-space-sm);
+  background: var(--cms-surface);
+  border: 1.5px solid var(--cms-border);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  width: 148px;
+  transition: var(--cms-transition);
+
+  &:hover { border-color: var(--cms-text-secondary); }
+  &:focus { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
 }
 
 .btn-clear-filters {
@@ -1830,6 +1875,26 @@ app-root {
   border-top: 1px solid var(--cms-border-light);
 }
 
+// Side-by-side field layout within a form card
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cms-space-lg);
+}
+
+// Required field asterisk
+.field-required {
+  color: var(--cms-error, #ef4444);
+  margin-left: 2px;
+}
+
+// Wraps a mat-checkbox so it aligns with field-group spacing
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  padding: var(--cms-space-xs) 0;
+}
+
 // ── Submit / Primary Action Button ───────────────
 .btn-submit {
   display: inline-flex;
@@ -1914,6 +1979,19 @@ app-root {
 // ── Narrow modifier for select (same as input) ────
 .field-select--narrow {
   max-width: 160px;
+}
+
+// Compact inputs for use inside table cells (inline editing)
+.field-input--inline,
+.field-select--inline {
+  height: 32px;
+  padding: 0 var(--cms-space-sm);
+  font-size: 0.8125rem;
+  min-width: 80px;
+}
+
+.field-input--narrow {
+  max-width: 140px;
 }
 
 // ──────────────────────────────────────────────────

@@ -25,31 +25,19 @@
     </div>
 
     <div class="filter-pill-group">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Department</mat-label>
-        <mat-select
-          [value]="selectedDepartmentId()"
-          (selectionChange)="onDepartmentChange($event.value)"
-        >
-          <mat-option [value]="null">All Departments</mat-option>
-          @for (dept of departments(); track dept.id) {
-            <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <select class="filter-select" [value]="selectedDepartmentId()" (change)="onDepartmentChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by department">
+        <option [ngValue]="null">All Departments</option>
+        @for (dept of departments(); track dept.id) {
+          <option [value]="dept.id">{{ dept.name }}</option>
+        }
+      </select>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Status</mat-label>
-        <mat-select
-          [value]="selectedStatus()"
-          (selectionChange)="onStatusChange($event.value)"
-        >
-          <mat-option [value]="null">All Statuses</mat-option>
-          @for (status of statusOptions; track status.value) {
-            <mat-option [value]="status.value">{{ status.label }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange(($event.target as HTMLSelectElement).value || null)" aria-label="Filter by status">
+        <option [ngValue]="null">All Statuses</option>
+        @for (status of statusOptions; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
 
       @if (selectedDepartmentId() || selectedStatus() || searchValue()) {
         <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">

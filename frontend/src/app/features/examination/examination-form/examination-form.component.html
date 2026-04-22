@@ -1,62 +1,113 @@
-<div class="form-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/examinations"><mat-icon>arrow_back</mat-icon></button>
-    <h2 class="page-title">{{ pageTitle() }}</h2>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/examinations" class="back-btn" aria-label="Back to examinations">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the examination details below.' : 'Fill in the details to schedule a new examination.' }}
+      </p>
+    </div>
   </div>
+
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <mat-card appearance="outlined" class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) { <mat-error>Name is required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Course</mat-label>
-            <mat-select formControlName="courseId">
-              @for (c of courses(); track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }
-            </mat-select>
-            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Exam Type</mat-label>
-            <mat-select formControlName="examType">
-              <mat-option value="THEORY">Theory</mat-option>
-              <mat-option value="PRACTICAL">Practical</mat-option>
-              <mat-option value="VIVA">Viva</mat-option>
-            </mat-select>
-            @if (form.get('examType')?.invalid && form.get('examType')?.touched) { <mat-error>Required</mat-error> }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Date</mat-label>
-            <input matInput type="date" formControlName="date" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Duration (mins)</mat-label>
-            <input matInput type="number" formControlName="duration" min="1" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Max Marks</mat-label>
-            <input matInput type="number" formControlName="maxMarks" min="0" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Semester</mat-label>
-            <mat-select formControlName="semesterId">
-              <mat-option [value]="null">None</mat-option>
-              @for (s of semesters(); track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
-            </mat-select>
-          </mat-form-field>
-          <div class="form-actions">
-            <button mat-stroked-button type="button" routerLink="/examinations">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ isEditMode() ? 'Update' : 'Create' }} }
-            </button>
+    <div class="entry-form-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field-group">
+          <label for="ex-name" class="field-label">Name <span class="field-required">*</span></label>
+          <input
+            id="ex-name"
+            class="field-input"
+            formControlName="name"
+            placeholder="e.g., Mid-Semester Theory Exam"
+            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="field-error">Name is required</p>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="ex-course" class="field-label">Course <span class="field-required">*</span></label>
+            <select
+              id="ex-course"
+              class="field-select"
+              formControlName="courseId"
+              [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched"
+            >
+              <option [ngValue]="null" disabled>Select a course</option>
+              @for (c of courses(); track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+              <p class="field-error">Course is required</p>
+            }
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field-group">
+            <label for="ex-type" class="field-label">Exam Type <span class="field-required">*</span></label>
+            <select
+              id="ex-type"
+              class="field-select"
+              formControlName="examType"
+              [class.field-input--error]="form.get('examType')?.invalid && form.get('examType')?.touched"
+            >
+              <option value="" disabled>Select type</option>
+              <option value="THEORY">Theory</option>
+              <option value="PRACTICAL">Practical</option>
+              <option value="VIVA">Viva</option>
+            </select>
+            @if (form.get('examType')?.invalid && form.get('examType')?.touched) {
+              <p class="field-error">Exam type is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label for="ex-date" class="field-label">Date</label>
+            <input id="ex-date" class="field-input" type="date" formControlName="date" />
+          </div>
+
+          <div class="field-group">
+            <label for="ex-duration" class="field-label">Duration (minutes)</label>
+            <input id="ex-duration" class="field-input" type="number" formControlName="duration" min="1" placeholder="e.g., 180" />
+          </div>
+
+          <div class="field-group">
+            <label for="ex-marks" class="field-label">Max Marks</label>
+            <input id="ex-marks" class="field-input" type="number" formControlName="maxMarks" min="0" placeholder="e.g., 100" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="ex-semester" class="field-label">Semester</label>
+          <select id="ex-semester" class="field-select" formControlName="semesterId">
+            <option [ngValue]="null">None</option>
+            @for (s of semesters(); track s.id) {
+              <option [ngValue]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" routerLink="/examinations">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Examination' : 'Schedule Examination' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
   }
 </div>

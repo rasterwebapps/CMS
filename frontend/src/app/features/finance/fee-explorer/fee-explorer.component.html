@@ -1,77 +1,85 @@
-<div class="list-container">
-  <div class="header">
-    <h2 class="page-title">Student Fees</h2>
-    <button mat-flat-button color="primary" routerLink="/student-fees/finalize">
+<div class="list-page">
+  <app-page-header title="Student Fees" subtitle="View fee allocations and payment status">
+    <a actions class="btn-primary" routerLink="/student-fees/finalize">
       <mat-icon>add</mat-icon> Finalize Fee
-    </button>
-  </div>
-  <mat-card appearance="outlined">
-    <mat-card-content>
-      <div class="table-controls">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search by roll number or program</mat-label>
-          <input matInput [value]="searchValue()" (input)="applyFilter($event)" (keyup.enter)="searchFromApi()" placeholder="Search..." />
-          @if (searchValue()) {
-            <button matSuffix mat-icon-button (click)="clearFilter()"><mat-icon>close</mat-icon></button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
-          }
-        </mat-form-field>
+    </a>
+  </app-page-header>
+
+  <div class="content-card">
+    <div class="table-controls">
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)" (keyup.enter)="searchFromApi()" placeholder="Search by roll number or program..." aria-label="Search student fees" />
+        @if (searchValue()) {
+          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
       </div>
-      @if (loading()) {
-        <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="data-table">
-            <ng-container matColumnDef="rollNumber">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
-              <td mat-cell *matCellDef="let row">{{ row.rollNumber }}</td>
-            </ng-container>
-            <ng-container matColumnDef="studentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
-              <td mat-cell *matCellDef="let row">{{ row.studentName }}</td>
-            </ng-container>
-            <ng-container matColumnDef="programName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-              <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
-            </ng-container>
-            <ng-container matColumnDef="totalFee">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee (₹)</th>
-              <td mat-cell *matCellDef="let row">{{ row.totalFee | number }}</td>
-            </ng-container>
-            <ng-container matColumnDef="totalPaid">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Paid (₹)</th>
-              <td mat-cell *matCellDef="let row">{{ row.totalPaid | number }}</td>
-            </ng-container>
-            <ng-container matColumnDef="totalPending">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Pending (₹)</th>
-              <td mat-cell *matCellDef="let row">{{ row.totalPending | number }}</td>
-            </ng-container>
-            <ng-container matColumnDef="totalPenalty">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Penalty (₹)</th>
-              <td mat-cell *matCellDef="let row">{{ row.totalPenalty | number }}</td>
-            </ng-container>
-            <ng-container matColumnDef="allocationStatus">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let row">{{ row.allocationStatus }}</td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let row">
-                <button mat-icon-button matTooltip="View Details" (click)="viewDetails(row)">
+    </div>
+
+    @if (loading()) {
+      <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="rollNumber">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
+            <td mat-cell *matCellDef="let row">{{ row.rollNumber }}</td>
+          </ng-container>
+          <ng-container matColumnDef="studentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
+            <td mat-cell *matCellDef="let row">{{ row.studentName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="programName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+            <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalFee">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee (₹)</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalFee | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalPaid">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Paid (₹)</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalPaid | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalPending">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Pending (₹)</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalPending | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="totalPenalty">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Penalty (₹)</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalPenalty | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="allocationStatus">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let row">{{ row.allocationStatus }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button class="action-btn" mat-icon-button matTooltip="View Details" (click)="viewDetails(row)" aria-label="View fee details">
                   <mat-icon>visibility</mat-icon>
                 </button>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
-            </tr>
-          </table>
-        </div>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state__content">
+                <p class="empty-state__text">No student fee data available</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="pagination-wrapper">
         <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+    }
+  </div>
 </div>

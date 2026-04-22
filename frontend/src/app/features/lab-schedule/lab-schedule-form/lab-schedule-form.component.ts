@@ -2,13 +2,9 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { LabScheduleService } from '../lab-schedule.service';
@@ -19,9 +15,8 @@ import { environment } from '../../../../environments/environment';
   selector: 'app-lab-schedule-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatCheckboxModule, MatButtonModule, MatIconModule, MatCardModule, MatProgressSpinnerModule,
-    MatSnackBarModule,
+    RouterLink, ReactiveFormsModule,
+    MatCheckboxModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
   ],
   templateUrl: './lab-schedule-form.component.html',
   styleUrl: './lab-schedule-form.component.scss',

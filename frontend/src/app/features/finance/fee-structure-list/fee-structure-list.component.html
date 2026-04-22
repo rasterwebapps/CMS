@@ -8,41 +8,34 @@
 
   <!-- Filters -->
   <div class="command-bar" [formGroup]="filterForm">
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Academic Year</mat-label>
-      <mat-select formControlName="academicYearId" (selectionChange)="applyFilters()">
-        <mat-option [value]="null">All</mat-option>
+    <div class="filter-pill-group">
+      <select class="filter-select" formControlName="academicYearId" (change)="applyFilters()" aria-label="Filter by academic year">
+        <option [ngValue]="null">All Academic Years</option>
         @for (ay of academicYears(); track ay.id) {
-          <mat-option [value]="ay.id">{{ ay.name }}</mat-option>
+          <option [ngValue]="ay.id">{{ ay.name }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
 
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Program</mat-label>
-      <mat-select formControlName="programId" (selectionChange)="onProgramFilterChange($event.value)">
-        <mat-option [value]="null">All</mat-option>
+      <select class="filter-select" formControlName="programId" (change)="onProgramFilterChange(filterForm.get('programId')?.value)" aria-label="Filter by program">
+        <option [ngValue]="null">All Programs</option>
         @for (p of programs(); track p.id) {
-          <mat-option [value]="p.id">{{ p.name }}</mat-option>
+          <option [ngValue]="p.id">{{ p.name }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
 
-    @if (courses().length > 0) {
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Course</mat-label>
-        <mat-select formControlName="courseId" (selectionChange)="applyFilters()">
-          <mat-option [value]="null">All</mat-option>
+      @if (courses().length > 0) {
+        <select class="filter-select" formControlName="courseId" (change)="applyFilters()" aria-label="Filter by course">
+          <option [ngValue]="null">All Courses</option>
           @for (c of courses(); track c.id) {
-            <mat-option [value]="c.id">{{ c.name }}</mat-option>
+            <option [ngValue]="c.id">{{ c.name }}</option>
           }
-        </mat-select>
-      </mat-form-field>
-    }
+        </select>
+      }
 
-    <button class="btn-secondary" type="button" (click)="clearFilters()" aria-label="Clear filters">
-      Clear Filters
-    </button>
+      <button class="btn-clear-filters" type="button" (click)="clearFilters()" aria-label="Clear filters">
+        Clear Filters
+      </button>
+    </div>
   </div>
 
   <div class="content-card">

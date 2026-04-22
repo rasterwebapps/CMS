@@ -1,15 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { AdmissionService } from '../admission.service';
 import {
@@ -25,15 +22,12 @@ import {
     RouterLink,
     FormsModule,
     MatTabsModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
     MatChipsModule,
     MatSnackBarModule,
-    MatSelectModule,
-    MatFormFieldModule,
   ],
   templateUrl: './admission-detail.component.html',
   styleUrl: './admission-detail.component.scss',

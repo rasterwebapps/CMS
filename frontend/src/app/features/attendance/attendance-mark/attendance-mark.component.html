@@ -1,94 +1,84 @@
-<div class="attendance-mark-container">
-  <div class="header">
-    <button mat-icon-button routerLink="/attendance" class="back-button">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <h2 class="page-title">Mark Attendance</h2>
-  </div>
+<div class="list-page">
+  <app-page-header title="Mark Attendance" subtitle="Select a course and date to mark attendance">
+  </app-page-header>
 
-  <mat-card appearance="outlined" class="form-card">
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Course</mat-label>
-            <mat-select formControlName="courseId">
-              @for (course of courses(); track course.id) {
-                <mat-option [value]="course.id">{{ course.name }}</mat-option>
-              }
-            </mat-select>
-            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-              <mat-error>Course is required</mat-error>
+  <div class="entry-form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <div class="field-group">
+          <label for="am-course" class="field-label">Course <span class="field-required">*</span></label>
+          <select id="am-course" class="field-select" formControlName="courseId" [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+            <option [ngValue]="null" disabled>Select a course</option>
+            @for (course of courses(); track course.id) {
+              <option [value]="course.id">{{ course.name }}</option>
             }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Date</mat-label>
-            <input matInput formControlName="date" type="date" />
-            @if (form.get('date')?.invalid && form.get('date')?.touched) {
-              <mat-error>Date is required</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Type</mat-label>
-            <mat-select formControlName="type">
-              @for (t of typeOptions; track t) {
-                <mat-option [value]="t">{{ t }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          </select>
+          @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+            <p class="field-error">Course is required</p>
+          }
         </div>
 
-        @if (loadingStudents()) {
-          <div class="loading-container">
-            <mat-spinner diameter="36"></mat-spinner>
-          </div>
-        } @else if (students().length > 0) {
-          <div class="bulk-actions">
-            <span class="bulk-label">Mark All:</span>
-            <button mat-stroked-button type="button" (click)="setAllStatus('PRESENT')">Present</button>
-            <button mat-stroked-button type="button" (click)="setAllStatus('ABSENT')">Absent</button>
-          </div>
+        <div class="field-group">
+          <label for="am-date" class="field-label">Date <span class="field-required">*</span></label>
+          <input id="am-date" class="field-input" type="date" formControlName="date" [class.field-input--error]="form.get('date')?.invalid && form.get('date')?.touched" />
+          @if (form.get('date')?.invalid && form.get('date')?.touched) {
+            <p class="field-error">Date is required</p>
+          }
+        </div>
 
-          <div class="student-list">
-            @for (student of students(); track student.studentId) {
-              <div class="student-row">
-                <div class="student-info">
-                  <span class="student-roll">{{ student.rollNumber }}</span>
-                  <span class="student-name">{{ student.studentName }}</span>
-                </div>
-                <mat-radio-group
-                  [value]="student.status"
-                  (change)="setStudentStatus(student.studentId, $event.value)"
-                  class="status-radio-group"
-                >
-                  <mat-radio-button value="PRESENT" class="radio-present">Present</mat-radio-button>
-                  <mat-radio-button value="ABSENT" class="radio-absent">Absent</mat-radio-button>
-                </mat-radio-group>
+        <div class="field-group">
+          <label for="am-type" class="field-label">Type <span class="field-required">*</span></label>
+          <select id="am-type" class="field-select" formControlName="type">
+            @for (t of typeOptions; track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (loadingStudents()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36"></mat-spinner>
+        </div>
+      } @else if (students().length > 0) {
+        <div class="bulk-actions">
+          <span class="bulk-label">Mark All:</span>
+          <button mat-stroked-button type="button" (click)="setAllStatus('PRESENT')">Present</button>
+          <button mat-stroked-button type="button" (click)="setAllStatus('ABSENT')">Absent</button>
+        </div>
+
+        <div class="student-list">
+          @for (student of students(); track student.studentId) {
+            <div class="student-row">
+              <div class="student-info">
+                <span class="student-roll">{{ student.rollNumber }}</span>
+                <span class="student-name">{{ student.studentName }}</span>
               </div>
-            }
-          </div>
-        } @else if (form.get('courseId')?.value) {
-          <p class="no-students">No students found for this course.</p>
-        }
-
-        <div class="form-actions">
-          <button mat-stroked-button type="button" routerLink="/attendance">Cancel</button>
-          <button
-            mat-flat-button
-            color="primary"
-            type="submit"
-            [disabled]="saving() || students().length === 0"
-          >
-            @if (saving()) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              Submit Attendance
-            }
-          </button>
+              <mat-radio-group
+                [value]="student.status"
+                (change)="setStudentStatus(student.studentId, $event.value)"
+                class="status-radio-group"
+              >
+                <mat-radio-button value="PRESENT" class="radio-present">Present</mat-radio-button>
+                <mat-radio-button value="ABSENT" class="radio-absent">Absent</mat-radio-button>
+              </mat-radio-group>
+            </div>
+          }
         </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+      } @else if (form.get('courseId')?.value) {
+        <p class="no-students">No students found for this course.</p>
+      }
+
+      <div class="form-footer">
+        <button type="button" class="btn-cancel" routerLink="/attendance">Cancel</button>
+        <button type="submit" class="btn-submit" [disabled]="saving() || students().length === 0">
+          @if (saving()) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          } @else {
+            Submit Attendance
+          }
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

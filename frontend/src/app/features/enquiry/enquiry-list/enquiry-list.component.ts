@@ -4,19 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatMenuModule } from '@angular/material/menu';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
@@ -30,9 +23,8 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   imports: [
     PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatInputModule, MatFormFieldModule, MatButtonModule, MatIconModule, MatCardModule,
+    MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-    MatChipsModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule,
     MatMenuModule,
   ],
   templateUrl: './enquiry-list.component.html',
@@ -68,14 +60,14 @@ export class EnquiryListComponent implements OnInit {
   protected readonly statusFilter = signal('');
   protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED'];
 
-  /** Date range filter — defaults to current month */
-  protected dateFrom: Date;
-  protected dateTo: Date;
+  /** Date range filter — defaults to current month (YYYY-MM-DD strings for native date inputs) */
+  protected dateFrom: string;
+  protected dateTo: string;
 
   constructor() {
     const now = new Date();
-    this.dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    this.dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.dateTo = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   }
 
   ngOnInit(): void {
@@ -104,8 +96,8 @@ export class EnquiryListComponent implements OnInit {
 
   protected clearDateFilter(): void {
     const now = new Date();
-    this.dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    this.dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.dateTo = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
     this.load();
   }
 
@@ -232,14 +224,14 @@ export class EnquiryListComponent implements OnInit {
     });
   }
 
-  private formatDate(d: Date): string {
+  private toDateString(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   private load(): void {
     this.loading.set(true);
-    const fromStr = this.formatDate(this.dateFrom);
-    const toStr = this.formatDate(this.dateTo);
+    const fromStr = this.dateFrom;
+    const toStr = this.dateTo;
     const status = this.statusFilter();
 
     this.enquiryService.getEnquiriesByDateRange(fromStr, toStr, status || undefined).subscribe({

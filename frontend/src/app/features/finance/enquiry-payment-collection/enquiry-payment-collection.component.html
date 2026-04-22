@@ -8,8 +8,7 @@
   } @else if (lastPaymentResponse(); as receipt) {
     <!-- Receipt Preview -->
     <div class="receipt-wrapper">
-      <mat-card appearance="outlined" class="receipt-card">
-        <mat-card-content>
+      <div class="receipt-card">
           <div class="receipt-success-icon">
             <mat-icon>check_circle</mat-icon>
           </div>
@@ -52,13 +51,12 @@
           </div>
 
           <div class="receipt-actions">
-            <button mat-flat-button color="primary" (click)="doneWithReceipt()">
+            <button class="btn-submit" (click)="doneWithReceipt()">
               <mat-icon>arrow_back</mat-icon>
               Back to Enquiries
             </button>
           </div>
-        </mat-card-content>
-      </mat-card>
+      </div>
     </div>
   } @else if (!selectedEnquiry()) {
     <!-- Enquiry List -->
@@ -119,8 +117,7 @@
     <!-- Payment Form -->
     <div class="payment-layout">
       <!-- Fee Summary Card -->
-      <mat-card appearance="outlined" class="summary-card">
-        <mat-card-content>
+      <div class="summary-card">
           <h3 class="section-title">Fee Summary</h3>
           <div class="enquiry-summary">
             <div class="summary-row">
@@ -185,62 +182,66 @@
               </div>
             }
           }
-        </mat-card-content>
-      </mat-card>
+      </div>
 
       <!-- Payment Form -->
-      <mat-card appearance="outlined" class="form-card">
-        <mat-card-content>
+      <div class="entry-form-card">
           <h3 class="section-title">Payment Details</h3>
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Amount (₹)</mat-label>
-              <input matInput type="number" formControlName="amount" min="1" />
-              <mat-hint>Enter any amount from ₹1 to full outstanding balance</mat-hint>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+            <div class="field-group">
+              <label for="epc-amount" class="field-label">Amount (₹) <span class="field-required">*</span></label>
+              <input id="epc-amount" class="field-input" type="number" formControlName="amount" min="1" placeholder="0" [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
+              <p class="field-hint">Enter any amount from ₹1 to full outstanding balance</p>
               @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-                <mat-error>Valid amount is required</mat-error>
+                <p class="field-error">Valid amount is required</p>
               }
-            </mat-form-field>
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Payment Date</mat-label>
-              <input matInput type="date" formControlName="paymentDate" />
-              @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
-                <mat-error>Payment date is required</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Payment Mode</mat-label>
-              <mat-select formControlName="paymentMode">
-                @for (mode of paymentModes; track mode) {
-                  <mat-option [value]="mode">{{ mode }}</mat-option>
+            <div class="form-row">
+              <div class="field-group">
+                <label for="epc-date" class="field-label">Payment Date <span class="field-required">*</span></label>
+                <input id="epc-date" class="field-input" type="date" formControlName="paymentDate" [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched" />
+                @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+                  <p class="field-error">Payment date is required</p>
                 }
-              </mat-select>
-              @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
-                <mat-error>Payment mode is required</mat-error>
-              }
-            </mat-form-field>
+              </div>
+              <div class="field-group">
+                <label for="epc-mode" class="field-label">Payment Mode <span class="field-required">*</span></label>
+                <select id="epc-mode" class="field-select" formControlName="paymentMode" [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched">
+                  <option value="" disabled>Select mode</option>
+                  @for (mode of paymentModes; track mode) {
+                    <option [value]="mode">{{ mode }}</option>
+                  }
+                </select>
+                @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
+                  <p class="field-error">Payment mode is required</p>
+                }
+              </div>
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Transaction Reference</mat-label>
-              <input matInput formControlName="transactionReference" />
-            </mat-form-field>
+            <div class="field-group">
+              <label for="epc-ref" class="field-label">Transaction Reference</label>
+              <input id="epc-ref" class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No." />
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Remarks</mat-label>
-              <textarea matInput formControlName="remarks" rows="3"></textarea>
-            </mat-form-field>
+            <div class="field-group">
+              <label for="epc-remarks" class="field-label">Remarks</label>
+              <textarea id="epc-remarks" class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
+            </div>
 
-            <div class="form-actions">
-              <button mat-stroked-button type="button" (click)="backToList()">Cancel</button>
-              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-                @if (saving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Collect Payment }
+            <div class="form-footer">
+              <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
+              <button type="submit" class="btn-submit" [disabled]="saving()">
+                @if (saving()) {
+                  <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                } @else {
+                  Collect Payment
+                }
               </button>
             </div>
           </form>
-        </mat-card-content>
-      </mat-card>
+      </div>
     </div>
   }
 </div>

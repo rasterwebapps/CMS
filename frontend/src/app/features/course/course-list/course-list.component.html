@@ -28,18 +28,12 @@
     </div>
 
     <div class="filter-pill-group">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-pill">
-        <mat-label>Program</mat-label>
-        <mat-select
-          [value]="selectedProgramId()"
-          (selectionChange)="onProgramFilterChange($event.value)"
-        >
-          <mat-option [value]="null">All Programs</mat-option>
-          @for (program of programs(); track program.id) {
-            <mat-option [value]="program.id">{{ program.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <select class="filter-select" [value]="selectedProgramId()" (change)="onProgramFilterChange(+($event.target as HTMLSelectElement).value || null)" aria-label="Filter by program">
+        <option [ngValue]="null">All Programs</option>
+        @for (program of programs(); track program.id) {
+          <option [value]="program.id">{{ program.name }}</option>
+        }
+      </select>
     </div>
   </div>
 
