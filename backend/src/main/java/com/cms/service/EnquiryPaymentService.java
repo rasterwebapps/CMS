@@ -97,6 +97,11 @@ public class EnquiryPaymentService {
         return toResponse(saved, newStatus);
     }
 
+    public BigDecimal getTotalAmountPaid(Long enquiryId) {
+        return Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
+            .orElse(BigDecimal.ZERO);
+    }
+
     public List<EnquiryPaymentResponse> getPaymentsByEnquiryId(Long enquiryId) {
         if (!enquiryRepository.existsById(enquiryId)) {
             throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);

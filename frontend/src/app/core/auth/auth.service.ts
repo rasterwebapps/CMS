@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import Keycloak from 'keycloak-js';
+import { environment } from '../../../environments';
 
 @Injectable({
   providedIn: 'root',
@@ -49,11 +50,7 @@ export class AuthService {
       return false;
     }
 
-    this.keycloak = new Keycloak({
-      url: 'http://localhost:8280',
-      realm: 'cms',
-      clientId: 'cms-frontend',
-    });
+    this.keycloak = new Keycloak(environment.keycloak);
 
     try {
       const authenticated = await this.keycloak.init({

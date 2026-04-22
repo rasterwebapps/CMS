@@ -273,6 +273,24 @@ class EnquiryPaymentServiceTest {
             .hasMessage("Enquiry not found with id: 999");
     }
 
+    @Test
+    void getTotalAmountPaid_returnsSum() {
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("75000.00"));
+
+        BigDecimal result = enquiryPaymentService.getTotalAmountPaid(1L);
+
+        assertThat(result).isEqualByComparingTo("75000.00");
+    }
+
+    @Test
+    void getTotalAmountPaid_returnsZeroWhenNoPayments() {
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(null);
+
+        BigDecimal result = enquiryPaymentService.getTotalAmountPaid(1L);
+
+        assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
     private EnquiryPayment createPayment(Long id, Enquiry enquiry, BigDecimal amount, String receiptNumber) {
         EnquiryPayment payment = new EnquiryPayment(
             enquiry, amount, LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null, receiptNumber, "cashier"

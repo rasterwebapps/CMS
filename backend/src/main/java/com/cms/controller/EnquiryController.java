@@ -34,7 +34,6 @@ import com.cms.dto.FeeFinalizationResponse;
 import com.cms.dto.MissingDocumentsResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.model.enums.EnquiryStatus;
-import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
@@ -47,16 +46,13 @@ public class EnquiryController {
 
     private final EnquiryService enquiryService;
     private final EnquiryDocumentService enquiryDocumentService;
-    private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final EnquiryPaymentService enquiryPaymentService;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
-                              EnquiryPaymentRepository enquiryPaymentRepository,
                               EnquiryPaymentService enquiryPaymentService) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
-        this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryPaymentService = enquiryPaymentService;
     }
 
@@ -103,7 +99,7 @@ public class EnquiryController {
     @GetMapping("/{id}/summary")
     public ResponseEntity<EnquirySummaryResponse> getSummary(@PathVariable Long id) {
         EnquiryResponse enquiry = enquiryService.findById(id);
-        BigDecimal totalPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(id);
+        BigDecimal totalPaid = enquiryPaymentService.getTotalAmountPaid(id);
         BigDecimal outstanding = null;
         if (enquiry.finalizedNetFee() != null) {
             outstanding = enquiry.finalizedNetFee().subtract(totalPaid);

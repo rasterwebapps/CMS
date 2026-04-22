@@ -36,7 +36,6 @@ import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.PaymentMode;
-import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
@@ -57,9 +56,6 @@ class EnquiryControllerTest {
 
     @MockitoBean
     private EnquiryDocumentService enquiryDocumentService;
-
-    @MockitoBean
-    private EnquiryPaymentRepository enquiryPaymentRepository;
 
     @MockitoBean
     private EnquiryPaymentService enquiryPaymentService;
