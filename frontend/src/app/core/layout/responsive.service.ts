@@ -31,9 +31,9 @@ export class ResponsiveService {
       else this._viewport.set('desktop');
     };
 
-    // Modern browsers
-    mobileMql.addEventListener?.('change', update);
-    tabletMql.addEventListener?.('change', update);
+    // matchMedia in modern browsers (Angular 21 supports only evergreen).
+    mobileMql.addEventListener('change', update);
+    tabletMql.addEventListener('change', update);
   }
 
   private computeInitial(): Viewport {

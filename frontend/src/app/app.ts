@@ -96,10 +96,6 @@ export class App implements OnInit {
   protected readonly enquiryBadgeCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
 
-  /** Convenience: `true` when the visual sidenav should appear in expanded form. */
-  protected readonly sidenavExpanded = computed(
-    () => !this.sidenavCollapsed() || this.hoverExpanded(),
-  );
   /** True only when the rail is unpinned AND not currently hover-expanded. */
   protected readonly sidenavRail = computed(
     () => this.sidenavCollapsed() && !this.hoverExpanded(),
