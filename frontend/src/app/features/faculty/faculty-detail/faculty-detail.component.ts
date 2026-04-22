@@ -1,29 +1,28 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
+import { DatePipe } from '@angular/common';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, DESIGNATION_OPTIONS, FACULTY_STATUS_OPTIONS } from '../faculty.model';
 import { AuthService } from '../../../core/auth/auth.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-faculty-detail',
   standalone: true,
   imports: [
     RouterLink,
+    MatTabsModule,
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule,
-    PageHeaderComponent,
+    DatePipe,
     CmsStatusBadgeComponent,
+    CmsSkeletonComponent,
   ],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
@@ -37,6 +36,18 @@ export class FacultyDetailComponent implements OnInit {
 
   protected readonly faculty = signal<Faculty | null>(null);
   protected readonly loading = signal(true);
+
+  /** First + last initial of the faculty's full name. */
+  protected readonly initials = computed(() => {
+    const name = this.faculty()?.fullName?.trim();
+    if (!name) return '';
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '';
+    if (words.length === 1) return (words[0][0] || '').toUpperCase();
+    const first = words[0][0] || '';
+    const last = words[words.length - 1][0] || '';
+    return (first + last).toUpperCase();
+  });
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -81,10 +92,6 @@ export class FacultyDetailComponent implements OnInit {
   protected getStatusLabel(status: FacultyStatus): string {
     const option = FACULTY_STATUS_OPTIONS.find((o) => o.value === status);
     return option ? option.label : status;
-  }
-
-  protected formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
   }
 
   protected editFaculty(): void {

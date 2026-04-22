@@ -1,86 +1,69 @@
-.student-detail-container {
-  padding: 24px 32px;
+// Student Profile — hero + tabs. Layout primitives live in styles.scss
+// (.detail-page, .profile-hero*, .profile-stat*, .detail-grid). This file
+// only adds component-scoped tweaks.
+
+.tab-content {
+  padding: 16px 0;
 }
 
-.header {
+.profile-subsection {
+  margin-top: 24px;
+}
+
+// Skeleton for the loading state
+.profile-skeleton {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px 32px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
 }
 
-.back-button {
-  margin-left: -8px;
-  color: var(--cms-text-secondary);
-  transition: var(--cms-transition);
-  &:hover { color: var(--cms-primary); }
-}
-
-.page-title {
-  margin: 0;
+.profile-skeleton__body {
   flex: 1;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.loading-container {
+.profile-skeleton__chips {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 64px;
-}
+  flex-wrap: wrap;
+  gap: 12px;
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 16px;
-  font-size: 1rem;
-  font-weight: 700;
-  // Use secondary text rather than full primary so section headings
-  // don't visually compete with CTAs and financial totals.
-  color: var(--cms-text-secondary);
-
-  &::before {
-    content: '';
-    width: 3px;
-    height: 16px;
-    border-radius: 2px;
-    // Neutral border colour — neutral marker doesn't shout at the same
-    // volume as the brand colour on every single heading.
-    background: var(--cms-border-default);
+  cms-skeleton {
+    flex: 1 1 140px;
+    min-width: 140px;
   }
 }
 
-.section-divider {
-  margin: 24px 0 16px;
-  border-color: var(--cms-border-light);
-}
+// ── mat-tab visual upgrade (Phase 3 §7) ────────────────────────────
+// Component-scoped overrides — see enquiry-detail.component.scss for the
+// shared rationale.
+::ng-deep .detail-tabs {
+  .mat-mdc-tab-header {
+    box-shadow: none;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px 24px;
-}
+  .mat-mdc-tab .mdc-tab__text-label {
+    font-family: var(--cms-font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
 
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 0;
-}
+  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: var(--cms-primary);
+    font-weight: 600;
+  }
 
-.detail-label {
-  font-size: 0.6875rem;
-  color: var(--cms-text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
+  .mat-mdc-tab-body-wrapper {
+    padding-top: 0;
+  }
 
-.detail-value {
-  font-size: 0.875rem;
-  color: var(--cms-text-primary);
-  font-weight: 500;
+  .mdc-tab-indicator__content--underline {
+    border-color: var(--cms-primary);
+  }
 }
