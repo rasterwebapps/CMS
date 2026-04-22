@@ -249,7 +249,7 @@ export class ThemeService {
     root.style.setProperty('--cms-primary-hover', palette[shades.hover]);
     root.style.setProperty('--cms-primary-light', palette[50]);
     root.style.setProperty('--cms-border-hover', palette[300]);
-    root.style.setProperty('--cms-sidenav-active-text', palette[300]);
+    root.style.setProperty('--cms-sidenav-active-text', primaryHex);
 
     // Opacity variants used for rings, hover backgrounds, shadows
     root.style.setProperty('--cms-primary-ring', rgba(0.3));
