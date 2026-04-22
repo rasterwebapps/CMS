@@ -2989,3 +2989,33 @@ html.dark-theme body::after {
   font-variant-numeric: tabular-nums;
 }
 
+// ── Detail-screen mat-tab overrides ─────────────────────────────────
+// Scoped via the `.detail-tabs` custom class (applied only on the
+// detail/profile screens) so this is effectively component-scoped: it
+// will not bleed into dialogs or other places that use mat-tab-group.
+.detail-tabs {
+  .mat-mdc-tab-header {
+    box-shadow: none;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  .mat-mdc-tab .mdc-tab__text-label {
+    font-family: var(--cms-font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: var(--cms-primary);
+    font-weight: 600;
+  }
+
+  .mat-mdc-tab-body-wrapper {
+    padding-top: 0;
+  }
+
+  .mdc-tab-indicator__content--underline {
+    border-color: var(--cms-primary);
+  }
+}
+

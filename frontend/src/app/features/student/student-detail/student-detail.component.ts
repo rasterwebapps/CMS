@@ -8,6 +8,7 @@ import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-student-detail',
@@ -34,16 +35,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly loading = signal(false);
 
   /** First + last initial of the student's full name. */
-  protected readonly initials = computed(() => {
-    const name = this.student()?.fullName?.trim();
-    if (!name) return '';
-    const words = name.split(/\s+/).filter(Boolean);
-    if (words.length === 0) return '';
-    if (words.length === 1) return (words[0][0] || '').toUpperCase();
-    const first = words[0][0] || '';
-    const last = words[words.length - 1][0] || '';
-    return (first + last).toUpperCase();
-  });
+  protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');

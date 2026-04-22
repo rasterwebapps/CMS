@@ -39,31 +39,4 @@
   padding: 20px;
 }
 
-// ── mat-tab visual upgrade (Phase 3 §7) ────────────────────────────
-// Component-scoped overrides — do NOT lift to styles.scss to avoid
-// affecting dialogs and other tab contexts.
-::ng-deep .detail-tabs {
-  .mat-mdc-tab-header {
-    box-shadow: none;
-    border-bottom: 1px solid var(--cms-border-default);
-  }
-
-  .mat-mdc-tab .mdc-tab__text-label {
-    font-family: var(--cms-font-ui);
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
-    color: var(--cms-primary);
-    font-weight: 600;
-  }
-
-  .mat-mdc-tab-body-wrapper {
-    padding-top: 0;
-  }
-
-  .mdc-tab-indicator__content--underline {
-    border-color: var(--cms-primary);
-  }
-}
+// mat-tab visual upgrade lives in styles.scss under .detail-tabs (Phase 3 §7).

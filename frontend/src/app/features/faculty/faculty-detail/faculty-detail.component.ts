@@ -10,6 +10,7 @@ import { Faculty, FacultyStatus, DESIGNATION_OPTIONS, FACULTY_STATUS_OPTIONS } f
 import { AuthService } from '../../../core/auth/auth.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-faculty-detail',
@@ -38,16 +39,7 @@ export class FacultyDetailComponent implements OnInit {
   protected readonly loading = signal(true);
 
   /** First + last initial of the faculty's full name. */
-  protected readonly initials = computed(() => {
-    const name = this.faculty()?.fullName?.trim();
-    if (!name) return '';
-    const words = name.split(/\s+/).filter(Boolean);
-    if (words.length === 0) return '';
-    if (words.length === 1) return (words[0][0] || '').toUpperCase();
-    const first = words[0][0] || '';
-    const last = words[words.length - 1][0] || '';
-    return (first + last).toUpperCase();
-  });
+  protected readonly initials = computed(() => computeInitials(this.faculty()?.fullName));
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
