@@ -1,0 +1,122 @@
+Phase 2 — Screen-by-Screen Instructions
+
+List Screen Checklist
+
+TypeScript (*-list.component.ts)
+
+Add computed to the @angular/core import.
+Replace protected readonly displayedColumns = [...] with: protected readonly ALL_COLS = ['col1', 'col2', ..., 'actions'];
+protected readonly COLUMN_LABELS: Record<string, string> = {
+col1: 'Label 1', col2: 'Label 2', ..., actions: 'Actions',
+};
+
+private readonly COLS_KEY = '<screen>-list-cols'; // unique per screen
+
+private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+protected readonly displayedColumns = computed(() =>
+this.ALL_COLS.filter(c => this._visibleCols().has(c))
+);
+
+private _loadColPrefs(): Set<string> {
+try {
+const s = localStorage.getItem(this.COLS_KEY);
+if (s) return new Set<string>(JSON.parse(s) as string[]); } catch { /* empty */ }
+return new Set<string>(this.ALL_COLS); }
+
+protected toggleColumn(col: string): void {
+this._visibleCols.update(s => { const next = new Set(s);
+if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); } localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+return next;
+});
+}
+
+protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
+3. Debounce the search: private _searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+protected applyFilter(event: Event): void { const value = (event.target as HTMLInputElement).value;
+this.searchValue.set(value);
+if (this._searchTimer) clearTimeout(this._searchTimer); this._searchTimer = setTimeout(() => {
+this.dataSource.filter = value.trim().toLowerCase();
+if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+}, 300);
+}
+
+protected clearFilter(): void { if (this._searchTimer) clearTimeout(this._searchTimer);
+this.searchValue.set('');
+this.dataSource.filter = ''; } 4. Add CSV export (adapt field names per screen):
+protected exportCsv(): void { const rows = this.dataSource.filteredData;
+const headers = ['Col1', 'Col2', ...];
+const cells = rows.map(r => [r.field1, r.field2 ?? '', ...]);
+const csv = [headers, ...cells]
+.map(r => r.map(c => "${String(c).replace(/"/g, '""')}").join(','))
+.join('\n');
+const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); const a = document.createElement('a');
+a.href = url;
+a.download = <screen>-${new Date().toISOString().slice(0, 10)}.csv;
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+URL.revokeObjectURL(url); }
+
+HTML (*-list.component.html)
+
+Split the command-bar div into command-bar__left and command-bar__right: - __left: search bar + count badge
+- __right: filter selects + Columns toggle + Export button
+Add the count badge inside command-bar__left:
+@if (!loading()) {
+<span class="count-badge" aria-live="polite">
+@if (dataSource.filteredData.length < dataSource.data.length) {
+{{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
+} @else {
+{{ dataSource.data.length }}
+}
+records
+</span> }
+Add the Columns toggle and Export button inside command-bar__right:
+<details class="col-toggle"> <summary class="btn-toolbar">Columns</summary> <div class="col-toggle__panel" (click)="$event.stopPropagation()"> @for (col of ALL_COLS; track col) { <label class="col-toggle__item"> <input type="checkbox" class="col-toggle__checkbox" [checked]="isColumnVisible(col)" (change)="toggleColumn(col)" /> {{ COLUMN_LABELS[col] }} </label> } </div> </details>
+<button class="btn-toolbar" (click)="exportCsv()" aria-label="Export to CSV">
+Export </button>
+8. Change all displayedColumns references in the template to displayedColumns(): - *matHeaderRowDef="displayedColumns()"
+- *matRowDef="... columns: displayedColumns()"
+- [attr.colspan]="displayedColumns().length"
+9. Make rows clickable — add to <tr mat-row>:
+class="table-row table-row--clickable" (click)="navigateToDetail(row)"
+9. The navigateToDetail method should call router.navigate(['/route', row.id]).
+10. Stop propagation on all in-cell interactive elements. On every <td> containing buttons or menus:
+
+<td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
+SCSS (*-list.component.scss)
+
+Copy the SCSS blocks from enquiry-list.component.scss for: - .command-bar, .command-bar__left, .command-bar__right
+- .count-badge - .btn-toolbar
+- .col-toggle, .col-toggle__panel, .col-toggle__item, .col-toggle__checkbox
+- .table-row--clickable
+These are screen-specific overrides — the global styles.scss .command-bar still handles the base layout.
+
+Entry Form Checklist
+
+HTML (*-form.component.html)
+
+Wrap related field-group elements in <div class="form-section">.
+Add a section label above each group:
+<p class="form-section-title">Section Name</p> 2. Typical groupings: Contact Information | Program / Role | Details | Notes. 3. On every required field's label, add the required indicator: <label class="field-label"> Field Name <span class="field-required" aria-hidden="true">*</span> </label> 3. And add the required attribute to the <input> or <select>.
+SCSS (*-form.component.scss)
+
+Add:
+.form-section { & + & {
+margin-top: 8px;
+padding-top: 20px; border-top: 1px solid var(--cms-border-light); }
+}
+.form-section-title {
+font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em;
+color: var(--cms-text-muted); margin: 0 0 14px;
+}
+
+The same 14 steps apply verbatim to every other list+form pair. The only things that change per screen are: COLS_KEY string, ALL_COLS / COLUMN_LABELS arrays, exportCsv field mappings, the detail route in navigateToDetail, and the form section groupings.
+
+Screens to convert:
+Admission List, Student List
+Faculty List, Department List, Course List, Program List
+Lab List, Lab Schedule List
+Inventory List, Equipment List
+Examination List, Exam Result List
+Maintenance List, Fee Structure List
+Syllabus List, Co-PO Mapping List
