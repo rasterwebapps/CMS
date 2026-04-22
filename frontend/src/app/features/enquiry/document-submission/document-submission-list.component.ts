@@ -35,7 +35,6 @@ export class DocumentSubmissionListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly loading = signal(true);
-  protected readonly submitting = signal<number | null>(null);
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
   // ── Column visibility ────────────────────────────────────────────────────
@@ -98,20 +97,7 @@ export class DocumentSubmissionListComponent implements OnInit {
     void this.router.navigate(['/enquiries', item.id]);
   }
 
-  protected submitDocuments(item: Enquiry): void {
-    this.submitting.set(item.id);
-    this.enquiryService.submitDocuments(item.id).subscribe({
-      next: () => {
-        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
-        this.submitting.set(null);
-        this.load();
-      },
-      error: (err) => {
-        const message =
-          err?.error?.message ?? err?.error?.missingDocumentTypes?.join(', ') ?? 'Failed to submit documents';
-        this.snackBar.open(message, 'Close', { duration: 5000 });
-        this.submitting.set(null);
-      },
-    });
+  protected collectDocuments(item: Enquiry): void {
+    void this.router.navigate(['/enquiries/document-submission', item.id]);
   }
 }

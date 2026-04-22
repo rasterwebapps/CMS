@@ -82,6 +82,17 @@ export class EnquiryService {
     return this.http.post<EnquiryDocument>(`${this.baseUrl}/${enquiryId}/documents`, request);
   }
 
+  updateDocument(
+    enquiryId: number,
+    documentId: number,
+    request: EnquiryDocumentRequest,
+  ): Observable<EnquiryDocument> {
+    return this.http.put<EnquiryDocument>(
+      `${this.baseUrl}/${enquiryId}/documents/${documentId}`,
+      request,
+    );
+  }
+
   deleteDocument(enquiryId: number, documentId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${enquiryId}/documents/${documentId}`);
   }
