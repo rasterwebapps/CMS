@@ -1,6 +1,7 @@
-import { Component, inject, signal, computed, PLATFORM_ID } from '@angular/core';
+import { Component, inject, signal, computed, PLATFORM_ID, OnInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
@@ -12,9 +13,11 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from './core/auth/auth.service';
+import { BreadcrumbService } from './core/breadcrumb/breadcrumb.service';
 import { LayoutService } from './core/layout/layout.service';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
+import { environment } from '../environments';
 
 interface NavItem {
   label: string;
@@ -59,11 +62,13 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {
+export class App implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly layoutService = inject(LayoutService);
+  private readonly breadcrumbService = inject(BreadcrumbService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
 
   protected readonly darkTheme = signal(false);
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
@@ -71,7 +76,16 @@ export class App {
   protected readonly toolbarLogoError = signal(false);
   protected readonly sidenavLogoError = signal(false);
   protected readonly notificationCount = signal(0);
+  protected readonly enquiryBadgeCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
+
+  /** Current top-level section label derived from BreadcrumbService for the toolbar sub-label. */
+  protected readonly currentSectionLabel = computed(() => {
+    const crumbs = this.breadcrumbService.breadcrumbs();
+    if (!crumbs || crumbs.length === 0) return '';
+    // First crumb is the top-level section (e.g., "Dashboard", "Enquiries")
+    return crumbs[0].label ?? '';
+  });
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
   private static readonly COLLAPSED_KEY = 'cms_sidenav_collapsed';
@@ -254,6 +268,23 @@ export class App {
       } catch {
         // Ignore storage errors
       }
+    }
+  }
+
+  ngOnInit(): void {
+    // Fetch enquiry badge count for admin users from the dashboard summary endpoint.
+    // This avoids a separate API call by reusing the enquiry funnel data.
+    if (isPlatformBrowser(this.platformId) && this.authService.isAdmin()) {
+      this.http
+        .get<{ enquiryFunnel?: Record<string, number> }>(`${environment.apiUrl}/dashboard/summary`)
+        .subscribe({
+          next: (data) => {
+            const enquired = data.enquiryFunnel?.['ENQUIRED'] ?? 0;
+            const interested = data.enquiryFunnel?.['INTERESTED'] ?? 0;
+            this.enquiryBadgeCount.set(enquired + interested);
+          },
+          error: () => { /* silently ignore badge fetch errors */ },
+        });
     }
   }
 

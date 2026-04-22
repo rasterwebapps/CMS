@@ -1,5 +1,5 @@
 <div
-  class="kpi-card"
+  class="kpi-card anim-rise"
   [attr.data-color]="colorVariant()"
   [class.kpi-card--danger]="danger()"
   [style.animation-delay]="animationDelay()"
@@ -10,7 +10,7 @@
       <mat-icon>{{ icon() }}</mat-icon>
     </div>
     <div class="kpi-info">
-      <span class="kpi-value">{{ value() }}</span>
+      <span class="kpi-value font-mono">{{ value() }}</span>
       <span class="kpi-title">{{ title() }}</span>
       @if (subtitle()) {
         <span class="kpi-subtitle">{{ subtitle() }}</span>

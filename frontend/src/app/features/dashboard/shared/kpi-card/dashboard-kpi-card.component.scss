@@ -21,13 +21,9 @@ $kpi-colors: (
   border-radius: var(--cms-radius-lg);
   overflow: hidden;
   position: relative;
-  animation: dashCardEnter 0.4s ease both;
+  // Uses global .anim-rise from styles.scss (set in HTML template)
   transition: var(--cms-transition);
   cursor: default;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 
   &:hover {
     transform: translateY(-4px);

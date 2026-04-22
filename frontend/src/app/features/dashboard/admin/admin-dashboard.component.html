@@ -1,14 +1,14 @@
 <div class="admin-dashboard">
 
   <!-- ── Hero Banner ──────────────────────────────── -->
-  <div class="admin-hero">
+  <div class="admin-hero anim-rise">
     <div class="admin-hero__content">
       <div class="admin-hero__text">
         <p class="admin-hero__live">
           <span class="live-dot"></span>
           LIVE &bull; {{ summary()?.totalStudents ?? 0 }} students enrolled
         </p>
-        <h2 class="admin-hero__greeting">Welcome back, {{ authService.username() || 'Admin' }}! 👋</h2>
+        <h2 class="admin-hero__greeting font-display">Welcome back, {{ authService.username() || 'Admin' }}! 👋</h2>
         <p class="admin-hero__subtitle">Here's your college overview for today.</p>
         <a routerLink="/reports" class="admin-hero__btn">
           <mat-icon>summarize</mat-icon>
@@ -38,7 +38,7 @@
     </div>
   } @else {
     <div class="admin-kpi-grid">
-      @for (card of kpiCards(); track card.title) {
+      @for (card of kpiCards(); track card.title; let i = $index) {
         <app-dashboard-kpi-card
           [title]="card.title"
           [value]="card.value"
@@ -131,7 +131,11 @@
               <div class="approvals-list">
                 @for (item of pendingApprovals(); track item.message) {
                   <div class="approval-row">
-                    <span class="approval-dot" [attr.data-severity]="item.severity"></span>
+                    <span class="cms-badge"
+                      [class.cms-badge--soft-red]="item.severity === 'red'"
+                      [class.cms-badge--soft-amber]="item.severity === 'amber'"
+                      [class.cms-badge--soft-accent]="item.severity === 'blue'">
+                    </span>
                     <span class="approval-msg">{{ item.message }}</span>
                     <a [routerLink]="item.link" class="approval-link">Review →</a>
                   </div>
@@ -186,19 +190,19 @@
           <div class="fee-overview-grid">
             <div class="fee-kpi">
               <span class="fee-kpi__label">Collected this month</span>
-              <span class="fee-kpi__value fee-kpi__value--green">₹{{ s.feeCollectedThisMonth | number }}</span>
+              <span class="fee-kpi__value fee-kpi__value--green font-mono">₹{{ s.feeCollectedThisMonth | number }}</span>
             </div>
             <div class="fee-kpi">
               <span class="fee-kpi__label">Total outstanding</span>
-              <span class="fee-kpi__value fee-kpi__value--amber">₹{{ s.feeOutstanding | number }}</span>
+              <span class="fee-kpi__value fee-kpi__value--amber font-mono">₹{{ s.feeOutstanding | number }}</span>
             </div>
             <div class="fee-kpi">
               <span class="fee-kpi__label">Labs</span>
-              <span class="fee-kpi__value">{{ s.totalLabs }}</span>
+              <span class="fee-kpi__value font-mono">{{ s.totalLabs }}</span>
             </div>
             <div class="fee-kpi">
               <span class="fee-kpi__label">Equipment</span>
-              <span class="fee-kpi__value">{{ s.totalEquipment }}</span>
+              <span class="fee-kpi__value font-mono">{{ s.totalEquipment }}</span>
             </div>
           </div>
         </mat-card-content>

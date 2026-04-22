@@ -131,6 +131,19 @@
   --cms-sidenav-border: rgba(255, 255, 255, 0.06);
   --cms-sidenav-group-text: #64748b;
 
+  // ─── Typography ───
+  --cms-font-ui:      'Sora', 'Inter', system-ui, sans-serif;
+  --cms-font-display: 'Instrument Serif', serif;
+  --cms-font-mono:    'JetBrains Mono', monospace;
+
+  // ─── Additional Surface Tokens (from HTML prototype) ───
+  --cms-bg-surface-2:   #F0F2FA;
+  --cms-bg-surface-3:   #E8EBF5;
+  --cms-line:           rgba(0, 0, 0, 0.07);
+  --cms-line-strong:    rgba(0, 0, 0, 0.12);
+  --cms-glow-opacity:   0.12;
+  --cms-primary-rgb:    99, 102, 241;   /* updated dynamically by ThemeService */
+
   // ─── Toolbar ───
   --cms-toolbar-bg: var(--cms-gradient-toolbar);
   --cms-toolbar-text: #ffffff;
@@ -261,6 +274,13 @@ html {
     --cms-toolbar-btn-hover-color: #ffffff;
     --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
     --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
+
+    // ─── Additional Surface Tokens (dark) ─────────────────────────────────
+    --cms-bg-surface-2:   #1D2333;
+    --cms-bg-surface-3:   #252D40;
+    --cms-line:           rgba(255, 255, 255, 0.06);
+    --cms-line-strong:    rgba(255, 255, 255, 0.10);
+    --cms-glow-opacity:   0.18;
   }
 }
 
@@ -344,6 +364,13 @@ html {
   --cms-toolbar-btn-hover-color: #ffffff;
   --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
   --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
+
+  // ─── Additional Surface Tokens (dark) ───────────────────────────────────
+  --cms-bg-surface-2:   #1D2333;
+  --cms-bg-surface-3:   #252D40;
+  --cms-line:           rgba(255, 255, 255, 0.06);
+  --cms-line-strong:    rgba(255, 255, 255, 0.10);
+  --cms-glow-opacity:   0.18;
 }
 
 // ──────────────────────────────────────────────────
@@ -426,11 +453,34 @@ body {
 app-root {
   display: block;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 // Remove Angular Material's default border-radius on the sidenav/drawer panel
 .mat-drawer.app-sidenav {
   border-radius: 0 !important;
+}
+
+// ──────────────────────────────────────────────────
+// Typography Utility Classes
+// ──────────────────────────────────────────────────
+.font-display {
+  font-family: var(--cms-font-display);
+  font-style: normal;
+}
+.font-display-italic {
+  font-family: var(--cms-font-display);
+  font-style: italic;
+  color: var(--cms-primary);
+}
+.font-mono {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.font-ui {
+  font-family: var(--cms-font-ui);
 }
 
 // ──────────────────────────────────────────────────
@@ -513,6 +563,24 @@ app-root {
     background-color: var(--cms-primary);
     color: #ffffff;
   }
+
+  // ─── Soft / translucent variants (coloured text on light tinted background) ───
+  &--soft-green  { background: rgba(34, 197, 94, 0.12);               color: #22C55E; }
+  &--soft-amber  { background: rgba(245, 158, 11, 0.12);              color: #F59E0B; }
+  &--soft-red    { background: rgba(239, 68, 68, 0.12);               color: #EF4444; }
+  &--soft-purple { background: rgba(167, 139, 250, 0.12);             color: #A78BFA; }
+  &--soft-accent { background: rgba(var(--cms-primary-rgb), 0.12);    color: var(--cms-primary); }
+  &--soft-up {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22C55E;
+    &::before { content: '↑ '; }
+  }
+  &--soft-down {
+    background: rgba(239, 68, 68, 0.12);
+    color: #EF4444;
+    &::before { content: '↓ '; }
+  }
+  &--soft-warn { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
 }
 
 // ──────────────────────────────────────────────────
@@ -820,6 +888,7 @@ app-root {
   transition: var(--cms-transition);
   box-shadow:
     var(--cms-shadow-sm),
+    0 4px 24px rgba(var(--cms-primary-rgb), 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
   white-space: nowrap;
   letter-spacing: -0.01em;
@@ -834,7 +903,7 @@ app-root {
     box-shadow:
       0 4px 12px -2px var(--cms-primary-alpha-40),
       inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   &:active {
@@ -845,6 +914,67 @@ app-root {
   &:focus-visible {
     outline: 2px solid var(--cms-primary);
     outline-offset: 2px;
+  }
+}
+
+// ── Ghost Button ─────────────────────────────────
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--cms-text-secondary);
+  border: 1px solid var(--cms-line-strong);
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  white-space: nowrap;
+  font-family: inherit;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--cms-bg-hover);
+    color: var(--cms-text-primary);
+    border-color: var(--cms-border-hover);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+}
+
+// ── Icon Action Button ────────────────────────────
+.btn-icon-action {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--cms-radius-lg);
+  background: var(--cms-bg-surface-2);
+  border: 1px solid var(--cms-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  flex-shrink: 0;
+  color: var(--cms-text-secondary);
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    color: var(--cms-primary);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -1005,6 +1135,104 @@ app-root {
   flex-direction: column;
 }
 
+// ── CMS Card Anatomy ──────────────────────────────────
+// Base card — use instead of .content-card on new screens
+.cms-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-xl);
+  overflow: hidden;
+  transition: var(--cms-transition);
+
+  &:hover {
+    border-color: var(--cms-line-strong);
+    box-shadow: var(--cms-shadow-card-hover);
+  }
+}
+
+// Accent top-edge stripe variants (3px coloured border-top)
+.cms-card--accent-top::before,
+.cms-card--green-top::before,
+.cms-card--amber-top::before,
+.cms-card--red-top::before,
+.cms-card--purple-top::before {
+  content: '';
+  display: block;
+  height: 3px;
+  border-radius: var(--cms-radius-xl) var(--cms-radius-xl) 0 0;
+}
+.cms-card--accent-top::before {
+  background: var(--cms-primary);
+  box-shadow: 0 0 16px rgba(var(--cms-primary-rgb), 0.4);
+}
+.cms-card--green-top::before  { background: #22C55E; }
+.cms-card--amber-top::before  { background: #F59E0B; }
+.cms-card--red-top::before    { background: #EF4444; }
+.cms-card--purple-top::before { background: #A78BFA; }
+
+// Card layout sections
+.cms-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cms-line);
+}
+
+.cms-card__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.cms-card__header-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--cms-transition);
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}
+
+.cms-card__action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cms-primary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  transition: opacity 0.18s;
+  padding: 0;
+
+  &:hover { opacity: 0.7; }
+}
+
+.cms-card__body {
+  padding: 20px;
+}
+
+// Stats grid layouts
+.cms-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+
+  &--sm { grid-template-columns: repeat(3, 1fr); }
+  &--4  { grid-template-columns: repeat(4, 1fr); }
+}
+
 // ── Loading ──────────────────────────────────────
 .loading-container {
   display: flex;
@@ -1068,7 +1296,7 @@ app-root {
 
 // ── Cell Styles ──────────────────────────────────
 .cell-code {
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-family: var(--cms-font-mono);
   font-size: 0.8125rem;
   font-weight: 500;
   color: #ffffff;
@@ -1099,14 +1327,18 @@ app-root {
 
 .cell-currency {
   color: var(--cms-primary);
+  font-family: var(--cms-font-mono);
   font-weight: 600;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .cell-number {
+  font-family: var(--cms-font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 // ── Status Badge ─────────────────────────────────
@@ -1855,3 +2087,187 @@ html.dark-theme {
   color: var(--cms-text-muted);
 }
 
+// ── Ambient Glow Blobs — dark mode only ──────────────
+// Two separate implementations are intentional:
+// 1. html.dark-theme (explicit class set by ThemeService's toggleTheme())
+// 2. @media (prefers-color-scheme: dark) (system preference, no explicit class)
+// Both must exist so globs activate in either scenario.
+html.dark-theme body::before,
+html.dark-theme body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.5s ease;
+}
+
+html.dark-theme body::before {
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--cms-primary-rgb), var(--cms-glow-opacity)) 0%,
+    transparent 70%
+  );
+  top: -200px;
+  right: -200px;
+}
+
+html.dark-theme body::after {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--cms-primary-rgb), calc(var(--cms-glow-opacity) * 0.5)) 0%,
+    transparent 70%
+  );
+  bottom: -100px;
+  left: 100px;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) body::before,
+  html:not(.light-theme) body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.5s ease;
+  }
+
+  html:not(.light-theme) body::before {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(
+      circle,
+      rgba(var(--cms-primary-rgb), var(--cms-glow-opacity)) 0%,
+      transparent 70%
+    );
+    top: -200px;
+    right: -200px;
+  }
+
+  html:not(.light-theme) body::after {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle,
+      rgba(var(--cms-primary-rgb), calc(var(--cms-glow-opacity) * 0.5)) 0%,
+      transparent 70%
+    );
+    bottom: -100px;
+    left: 100px;
+  }
+}
+
+// ── Animations ────────────────────────────────────────
+@keyframes cms-rise-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cms-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes cms-drop-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cms-live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+// Animation utility classes
+.anim-rise {
+  animation: cms-rise-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.anim-fade {
+  animation: cms-fade-in 0.3s ease both;
+}
+.anim-drop {
+  animation: cms-drop-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// Staggered delay variants for grid children
+.anim-rise--d1 { animation-delay: 0.06s; }
+.anim-rise--d2 { animation-delay: 0.12s; }
+.anim-rise--d3 { animation-delay: 0.18s; }
+.anim-rise--d4 { animation-delay: 0.24s; }
+.anim-rise--d5 { animation-delay: 0.30s; }
+.anim-rise--d6 { animation-delay: 0.36s; }
+
+// ── Form Field Label Standard ─────────────────────────
+.form-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+  margin-bottom: 6px;
+}
+
+.required-star {
+  color: var(--cms-danger);
+  margin-left: 2px;
+}
+
+
+// ── Phase 4: List/Explorer Page Entry Animations ─────
+// Auto-applies to all list pages without component changes
+.list-page {
+  animation: cms-rise-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// Content card hover improvements using Phase 1 tokens
+.content-card {
+  &:hover {
+    border-color: var(--cms-line-strong);
+  }
+}
+
+// ── Phase 5: Form/Data Entry Screen Enhancements ──────
+// Apply font-ui to form labels globally (both Phase 1 and legacy labels)
+.field-label,
+.form-field-label {
+  font-family: var(--cms-font-ui);
+}
+
+// btn-submit enhanced glow using --cms-primary-rgb
+.btn-submit {
+  &:not(:disabled) {
+    box-shadow:
+      var(--cms-shadow-sm),
+      0 4px 20px rgba(var(--cms-primary-rgb), 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+    &:hover {
+      box-shadow:
+        var(--cms-shadow-md),
+        0 6px 28px rgba(var(--cms-primary-rgb), 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+// Entry form page animation
+.entry-form-page {
+  animation: cms-rise-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// ── Phase 6: Theme Consistency — numeric value utilities ──
+// Apply font-mono to all numeric stat values automatically
+.kpi-value,
+.fee-kpi__value,
+.stat-value {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
