@@ -122,14 +122,18 @@
 
   // ─── Sidenav ───
   --cms-sidenav-width: 272px;
-  --cms-sidenav-bg: #0f172a;
-  --cms-sidenav-text: #cbd5e1;
-  --cms-sidenav-text-bright: #f1f5f9;
-  --cms-sidenav-hover: rgba(255, 255, 255, 0.08);
-  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.15);
-  --cms-sidenav-active-text: #a5b4fc;
-  --cms-sidenav-border: rgba(255, 255, 255, 0.06);
-  --cms-sidenav-group-text: #64748b;
+  --cms-sidenav-bg: #ffffff;
+  --cms-sidenav-text: #475569;
+  --cms-sidenav-text-bright: #1e293b;
+  --cms-sidenav-hover: rgba(0, 0, 0, 0.04);
+  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.08);
+  --cms-sidenav-active-text: #6366f1;
+  --cms-sidenav-border: rgba(0, 0, 0, 0.08);
+  --cms-sidenav-group-text: #94a3b8;
+  --cms-sidenav-search-bg: rgba(0, 0, 0, 0.02);
+  --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.02);
+  --cms-sidenav-footer-text: #94a3b8;
+  --cms-sidenav-scrollbar-thumb: rgba(0, 0, 0, 0.12);
 
   // ─── Typography ───
   --cms-font-ui:      'Sora', 'Inter', system-ui, sans-serif;
@@ -259,7 +263,17 @@ html {
     --cms-shadow-colored: 0 4px 14px -3px rgba(99, 102, 241, 0.35);
     --cms-shadow-card-hover: 0 12px 28px -5px rgb(0 0 0 / 0.5);
     --cms-sidenav-bg: #070a14;
+    --cms-sidenav-text: #cbd5e1;
+    --cms-sidenav-text-bright: #f1f5f9;
+    --cms-sidenav-hover: rgba(255, 255, 255, 0.08);
+    --cms-sidenav-active-bg: rgba(99, 102, 241, 0.15);
+    --cms-sidenav-active-text: #a5b4fc;
     --cms-sidenav-border: rgba(255, 255, 255, 0.04);
+    --cms-sidenav-group-text: #64748b;
+    --cms-sidenav-search-bg: rgba(255, 255, 255, 0.03);
+    --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.12);
+    --cms-sidenav-footer-text: rgba(255, 255, 255, 0.28);
+    --cms-sidenav-scrollbar-thumb: rgba(255, 255, 255, 0.2);
     --cms-success-light: rgba(16, 185, 129, 0.12);
     --cms-warning-light: rgba(245, 158, 11, 0.12);
     --cms-danger-light: rgba(239, 68, 68, 0.12);
@@ -345,7 +359,17 @@ html {
   --cms-shadow-colored: 0 4px 14px -3px rgba(99, 102, 241, 0.35);
   --cms-shadow-card-hover: 0 12px 28px -5px rgb(0 0 0 / 0.5);
   --cms-sidenav-bg: #070a14;
+  --cms-sidenav-text: #cbd5e1;
+  --cms-sidenav-text-bright: #f1f5f9;
+  --cms-sidenav-hover: rgba(255, 255, 255, 0.08);
+  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.15);
+  --cms-sidenav-active-text: #a5b4fc;
   --cms-sidenav-border: rgba(255, 255, 255, 0.04);
+  --cms-sidenav-group-text: #64748b;
+  --cms-sidenav-search-bg: rgba(255, 255, 255, 0.03);
+  --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.12);
+  --cms-sidenav-footer-text: rgba(255, 255, 255, 0.28);
+  --cms-sidenav-scrollbar-thumb: rgba(255, 255, 255, 0.2);
   --cms-success-light: rgba(16, 185, 129, 0.12);
   --cms-warning-light: rgba(245, 158, 11, 0.12);
   --cms-danger-light: rgba(239, 68, 68, 0.12);
