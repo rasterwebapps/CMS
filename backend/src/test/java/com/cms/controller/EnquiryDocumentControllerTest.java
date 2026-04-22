@@ -194,7 +194,9 @@ class EnquiryDocumentControllerTest {
 
         mockMvc.perform(get("/enquiries/1/documents/7/download"))
             .andExpect(status().isOk())
-            // Quote characters in the ASCII fallback must be replaced.
+            // Quote characters in the ASCII fallback must be replaced with underscores.
+            .andExpect(header().string("Content-Disposition",
+                org.hamcrest.Matchers.containsString("weird _name_.pdf")))
             .andExpect(header().string("Content-Disposition",
                 org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("\"name\""))));
     }
