@@ -44,6 +44,10 @@ export class EnquiryService {
     return this.http.get<Enquiry[]>(`${this.baseUrl}?status=${status}`);
   }
 
+  getDocumentPending(): Observable<Enquiry[]> {
+    return this.http.get<Enquiry[]>(`${this.baseUrl}/document-pending`);
+  }
+
   createEnquiry(request: EnquiryRequest): Observable<Enquiry> {
     return this.http.post<Enquiry>(this.baseUrl, request);
   }

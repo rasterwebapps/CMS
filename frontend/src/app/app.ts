@@ -134,6 +134,7 @@ export class App {
       icon: 'how_to_reg',
       items: [
         { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
+        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         { label: 'Admissions', icon: 'assignment_ind', route: '/admissions' },
         { label: 'Students', icon: 'person', route: '/students' },
         { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },

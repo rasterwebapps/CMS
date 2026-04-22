@@ -1,6 +1,7 @@
 package com.cms.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,8 @@ import com.cms.model.enums.EnquiryStatus;
 public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
     List<Enquiry> findByStatus(EnquiryStatus status);
+
+    List<Enquiry> findByStatusIn(Collection<EnquiryStatus> statuses);
 
     List<Enquiry> findByReferralTypeId(Long referralTypeId);
 

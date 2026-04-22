@@ -1,0 +1,106 @@
+<app-page-header
+  title="Document Submission"
+  subtitle="Enquiries awaiting document submission (FEES_PAID or PARTIALLY_PAID)"
+/>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <div class="list-page-container">
+    @if (dataSource.data.length === 0) {
+      <div class="empty-state">
+        <mat-icon class="empty-state__icon-mat">upload_file</mat-icon>
+        <p class="empty-state__text">No enquiries pending document submission</p>
+        <p class="empty-state__hint">Enquiries in FEES_PAID or PARTIALLY_PAID status will appear here</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" class="modern-table">
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.name }}</span>
+              @if (row.phone) {
+                <span class="cell-sub">{{ row.phone }}</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="programName">
+            <th mat-header-cell *matHeaderCellDef>Program</th>
+            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="courseName">
+            <th mat-header-cell *matHeaderCellDef>Course</th>
+            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span
+                class="status-badge"
+                [class.status-active]="row.status === 'FEES_PAID'"
+                [class.status-pending]="row.status === 'PARTIALLY_PAID'"
+              >{{ row.status }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="finalizedNetFee">
+            <th mat-header-cell *matHeaderCellDef>Net Fee</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.finalizedNetFee) {
+                <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+              } @else {
+                <span>—</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="enquiryDate">
+            <th mat-header-cell *matHeaderCellDef>Enquiry Date</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.enquiryDate }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button
+                  class="action-btn"
+                  matTooltip="View enquiry"
+                  (click)="viewEnquiry(row)"
+                  aria-label="View enquiry"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                @if (isAdminOrFrontOffice()) {
+                  <button
+                    class="action-btn action-btn--primary"
+                    matTooltip="Submit documents"
+                    [disabled]="submitting() === row.id"
+                    (click)="submitDocuments(row)"
+                    aria-label="Submit documents"
+                  >
+                    @if (submitting() === row.id) {
+                      <mat-spinner diameter="14"></mat-spinner>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    }
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        </table>
+      </div>
+    }
+  </div>
+}
