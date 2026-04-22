@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  gap: 8px;
+  text-align: center;
+}
+
+.empty-state__icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--cms-text-muted);
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.empty-state__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+}
+
+.empty-state__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--cms-text-muted);
+  max-width: 360px;
+}
+
+.empty-state__action {
+  margin-top: 16px;
+}
