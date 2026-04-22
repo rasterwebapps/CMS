@@ -1,0 +1,82 @@
+:host {
+  display: block;
+}
+
+.ks-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 4px 8px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__title {
+    margin: 0;
+    font-family: var(--cms-font-display, var(--cms-font-ui));
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--cms-text-muted);
+    line-height: 1.5;
+  }
+
+  &__close {
+    color: var(--cms-text-muted);
+  }
+}
+
+.ks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--cms-line);
+}
+
+.ks-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--cms-line);
+  font-size: 0.875rem;
+
+  &__desc {
+    color: var(--cms-text-primary);
+  }
+
+  &__keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 6px;
+  font-family: var(--cms-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-surface-2, var(--cms-bg-muted));
+  border: 1px solid var(--cms-line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  line-height: 1.2;
+}

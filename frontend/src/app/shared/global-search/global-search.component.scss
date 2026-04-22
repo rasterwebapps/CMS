@@ -195,3 +195,54 @@
     flex-shrink: 0;
   }
 }
+
+// ─── Phase 5 (3.5): Mobile — collapse pill to icon-only until focused ───
+@media (max-width: 767px) {
+  :host {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .gs-pill {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+    transition: width 0.2s ease;
+
+    &__input {
+      width: 0;
+      padding: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &__close {
+      display: none;
+    }
+
+    &:focus-within {
+      width: 70vw;
+      max-width: 320px;
+      padding: 0 12px;
+      justify-content: flex-start;
+
+      .gs-pill__input {
+        width: auto;
+        flex: 1;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .gs-pill__close {
+        display: flex;
+      }
+    }
+  }
+
+  .gs-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 8px;
+    right: 8px;
+  }
+}
