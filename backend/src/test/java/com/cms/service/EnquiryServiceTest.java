@@ -411,6 +411,20 @@ class EnquiryServiceTest {
     }
 
     @Test
+    void shouldFindAdmissionPending() {
+        Enquiry docsSubmitted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_SUBMITTED))
+            .thenReturn(List.of(docsSubmitted));
+
+        List<EnquiryResponse> responses = enquiryService.findAdmissionPending();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).status()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED);
+    }
+
+    @Test
     void shouldFindByDateRange() {
         LocalDate from = LocalDate.of(2024, 6, 1);
         LocalDate to = LocalDate.of(2024, 6, 30);
@@ -972,7 +986,8 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), true, true
+            2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
@@ -997,6 +1012,83 @@ class EnquiryServiceTest {
         assertThat(response.convertedStudentId()).isEqualTo(10L);
         verify(admissionRepository).save(any(Admission.class));
         verify(statusHistoryRepository).save(any());
+    }
+
+    @Test
+    void shouldConvertToStudentWithFullStudentAndAdmissionData() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        com.cms.dto.AddressRequest address = new com.cms.dto.AddressRequest(
+            "Door 12", "MG Road", "Salem", "Salem", "TN", "636001"
+        );
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            LocalDate.of(2005, 5, 10),
+            com.cms.model.enums.Gender.MALE,
+            "1234-5678-9012",
+            "Indian",
+            "Hindu",
+            com.cms.model.enums.CommunityCategory.BC,
+            "Vanniyar",
+            com.cms.model.enums.BloodGroup.O_POSITIVE,
+            "Kumar S",
+            "Latha K",
+            "9000000001",
+            address,
+            "Salem",
+            LocalDate.of(2024, 7, 1)
+        );
+
+        Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
+            testProgram, 1, LocalDate.of(2024, 7, 1), com.cms.model.enums.StudentStatus.ACTIVE);
+        savedStudent.setId(10L);
+
+        Enquiry admitted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
+        admitted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> {
+            Student s = inv.getArgument(0);
+            s.setId(10L);
+            return s;
+        });
+        when(admissionRepository.save(any(Admission.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(admitted);
+
+        enquiryService.convertToStudentWithData(1L, request, "admin");
+
+        org.mockito.ArgumentCaptor<Student> studentCaptor = org.mockito.ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(studentCaptor.capture());
+        Student persistedStudent = studentCaptor.getValue();
+        assertThat(persistedStudent.getDateOfBirth()).isEqualTo(LocalDate.of(2005, 5, 10));
+        assertThat(persistedStudent.getGender()).isEqualTo(com.cms.model.enums.Gender.MALE);
+        assertThat(persistedStudent.getAadharNumber()).isEqualTo("1234-5678-9012");
+        assertThat(persistedStudent.getNationality()).isEqualTo("Indian");
+        assertThat(persistedStudent.getReligion()).isEqualTo("Hindu");
+        assertThat(persistedStudent.getCommunityCategory()).isEqualTo(com.cms.model.enums.CommunityCategory.BC);
+        assertThat(persistedStudent.getCaste()).isEqualTo("Vanniyar");
+        assertThat(persistedStudent.getBloodGroup()).isEqualTo(com.cms.model.enums.BloodGroup.O_POSITIVE);
+        assertThat(persistedStudent.getFatherName()).isEqualTo("Kumar S");
+        assertThat(persistedStudent.getMotherName()).isEqualTo("Latha K");
+        assertThat(persistedStudent.getParentMobile()).isEqualTo("9000000001");
+        assertThat(persistedStudent.getAddress()).isNotNull();
+        assertThat(persistedStudent.getAddress().getCity()).isEqualTo("Salem");
+        assertThat(persistedStudent.getAddress().getPincode()).isEqualTo("636001");
+
+        org.mockito.ArgumentCaptor<Admission> admissionCaptor = org.mockito.ArgumentCaptor.forClass(Admission.class);
+        verify(admissionRepository).save(admissionCaptor.capture());
+        Admission persistedAdmission = admissionCaptor.getValue();
+        assertThat(persistedAdmission.getDeclarationPlace()).isEqualTo("Salem");
+        assertThat(persistedAdmission.getDeclarationDate()).isEqualTo(LocalDate.of(2024, 7, 1));
+        assertThat(persistedAdmission.getParentConsentGiven()).isTrue();
+        assertThat(persistedAdmission.getApplicantConsentGiven()).isTrue();
+        assertThat(persistedAdmission.getAcademicYearFrom()).isEqualTo(2024);
+        assertThat(persistedAdmission.getAcademicYearTo()).isEqualTo(2025);
     }
 
     @Test
@@ -1025,7 +1117,8 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1042,7 +1135,8 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1060,7 +1154,8 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null
+            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
