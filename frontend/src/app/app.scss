@@ -856,3 +856,11 @@
 .app-content {
   background-color: var(--cms-bg-shell);
 }
+
+// Wrapper that hosts the route fade-slide transition. We use `position: relative`
+// so that the absolutely-positioned :enter / :leave overlays align cleanly.
+.route-anim-container {
+  position: relative;
+  display: block;
+  min-height: 1px;
+}

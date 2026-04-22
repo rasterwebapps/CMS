@@ -42,3 +42,49 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+// ── Toolbar above the table (export button etc.) ──────────────────────────
+.cms-table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 4px;
+}
+
+.cms-table-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--cms-bg-card, #ffffff);
+  color: var(--cms-text-secondary);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  font-family: var(--cms-font-ui);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--cms-primary);
+    border-color: var(--cms-primary);
+    background: var(--cms-bg-muted, rgba(0, 0, 0, 0.02));
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+}

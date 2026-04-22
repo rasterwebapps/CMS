@@ -15,8 +15,10 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from './core/auth/auth.service';
 import { BreadcrumbService } from './core/breadcrumb/breadcrumb.service';
 import { LayoutService } from './core/layout/layout.service';
+import { routeFadeSlide } from './core/animations/route.animations';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
+import { ToastHostComponent } from './core/toast/toast-host.component';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -58,9 +60,11 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatBadgeModule,
     ThemePickerComponent,
     GlobalSearchComponent,
+    ToastHostComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  animations: [routeFadeSlide],
 })
 export class App implements OnInit {
   protected readonly authService = inject(AuthService);
@@ -333,6 +337,11 @@ export class App implements OnInit {
 
   protected navigateBack(): void {
     window.history.back();
+  }
+
+  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding. */
+  protected getRouteAnimationData(outlet: RouterOutlet): unknown {
+    return outlet?.activatedRouteData?.['animation'] ?? outlet?.activatedRoute?.snapshot?.url?.join('/') ?? '';
   }
 
   protected async logout(): Promise<void> {

@@ -77,12 +77,13 @@
 
         <div class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Department' : 'Create Department' }}
-            }
+          <button
+            type="submit"
+            class="btn-submit"
+            [appLoadingButton]="saving()"
+            [class.is-success]="succeeded()"
+          >
+            {{ isEditMode() ? 'Update Department' : 'Create Department' }}
           </button>
         </div>
 

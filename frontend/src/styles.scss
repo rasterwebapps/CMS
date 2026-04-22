@@ -120,6 +120,15 @@
   --cms-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --cms-transition-spring: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  // ─── Animation durations & easings (Phase 6) ───
+  // Used by Angular animation triggers and SCSS keyframe consumers alike.
+  --cms-duration-sm: 120ms;
+  --cms-duration-md: 200ms;
+  --cms-duration-lg: 320ms;
+  --cms-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --cms-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --cms-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   // ─── Sidenav ───
   --cms-sidenav-width: 272px;
   --cms-sidenav-bg: #ffffff;
@@ -3041,5 +3050,160 @@ html.dark-theme body::after {
   .mdc-tab-indicator__content--underline {
     border-color: var(--cms-primary);
   }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase 6 — Polish & Micro-interactions
+// ════════════════════════════════════════════════════════════════
+
+// ── Animated inline form errors ──────────────────────────────
+// Animate the existing .field-error so newly-revealed validation
+// messages slide in rather than popping. Pure-CSS — no template change.
+.field-error {
+  animation: cms-drop-in var(--cms-duration-sm) var(--cms-ease-out) both;
+}
+
+// ── Submit button loading & success states ───────────────────
+// Used by the LoadingButtonDirective (`[appLoadingButton]`). The
+// `.is-loading` modifier swaps the label for a CSS-only spinner;
+// `.is-success` shows a brief green checkmark before navigation.
+.btn-submit {
+  position: relative;
+
+  &.is-loading {
+    color: transparent !important;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #ffffff;
+      animation: cms-btn-spin 0.6s linear infinite;
+    }
+  }
+
+  &.is-success {
+    background: var(--cms-success) !important;
+    color: transparent !important;
+    pointer-events: none;
+    box-shadow: 0 4px 14px -3px rgba(16, 185, 129, 0.45) !important;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 9px;
+      margin: -7px 0 0 -9px;
+      border-left: 2px solid #ffffff;
+      border-bottom: 2px solid #ffffff;
+      transform: rotate(-45deg);
+      animation: cms-btn-check var(--cms-duration-md) var(--cms-ease-out) both;
+    }
+  }
+}
+
+@keyframes cms-btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cms-btn-check {
+  from { opacity: 0; transform: rotate(-45deg) scale(0.4); }
+  to   { opacity: 1; transform: rotate(-45deg) scale(1); }
+}
+
+// ── Dialog panel — scale + fade entrance ─────────────────────
+// Applied via MAT_DIALOG_DEFAULT_OPTIONS panelClass = 'cms-dialog-panel'.
+.cms-dialog-panel .mat-mdc-dialog-container .mdc-dialog__surface {
+  animation: cms-drop-in var(--cms-duration-md) var(--cms-ease-out) both;
+}
+
+// ── Print-only & no-print utility classes ────────────────────
+.print-only { display: none !important; }
+.no-print { /* visible on screen by default */ }
+
+// ── Print stylesheet ─────────────────────────────────────────
+// Hides app chrome and forces a clean monochrome layout. Used both
+// for browser printing and for "Save as PDF" via PrintService.
+@media print {
+  // Reset shell colors to pure white/black so receipts print cleanly
+  :root {
+    --cms-bg-page: #ffffff;
+    --cms-bg-shell: #ffffff;
+    --cms-bg-card: #ffffff;
+    --cms-bg-muted: #ffffff;
+    --cms-text-primary: #000000;
+    --cms-text-secondary: #000000;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  // Hide chrome that doesn't belong on a printed page
+  .app-toolbar,
+  mat-toolbar.app-toolbar,
+  mat-sidenav,
+  .mat-drawer,
+  .toolbar-left,
+  .toolbar-right,
+  .sidenav-brand-header,
+  .sidenav-nav,
+  .sidenav-footer,
+  .sidenav-search,
+  app-toast-host,
+  .cms-toast-host,
+  .command-bar .right,
+  .form-footer,
+  .row-actions,
+  .btn-submit,
+  .btn-cancel,
+  .btn-ghost,
+  .btn-icon-action,
+  app-page-header .actions,
+  app-global-search,
+  app-theme-picker,
+  .no-print {
+    display: none !important;
+  }
+
+  // Re-enable print-only nodes
+  .print-only { display: block !important; }
+
+  // Remove gradients, glows, shadows
+  body::before,
+  body::after { display: none !important; }
+
+  .app-content,
+  .mat-sidenav-container,
+  .mat-sidenav-content {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  // Ensure tables print full-width with visible borders
+  table { width: 100% !important; }
+  .modern-table th,
+  .modern-table td {
+    border-bottom: 1px solid #ccc !important;
+    color: #000 !important;
+  }
+
+  // Avoid awkward page breaks inside cards / receipts
+  .cms-card,
+  .entry-form-card,
+  .content-card,
+  .stat-card { break-inside: avoid; }
 }
 

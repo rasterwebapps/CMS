@@ -1,0 +1,134 @@
+// ─── Toast host container ─────────────────────────────────────
+// Fixed top-right stack used by ToastService.
+.cms-toast-host {
+  position: fixed;
+  top: 80px; // Sit below the toolbar
+  right: 20px;
+  z-index: 1100; // Above mat-dialog backdrop (1000) but below confirm dialog (1050+)
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none; // Children re-enable so the empty host never blocks clicks
+  max-width: min(420px, calc(100vw - 40px));
+}
+
+// ─── Single toast card ────────────────────────────────────────
+.cms-toast {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px 14px 16px;
+  background: var(--cms-surface, var(--cms-bg-card, #ffffff));
+  border: 1px solid var(--cms-border-default);
+  border-left: 4px solid var(--cms-info);
+  border-radius: var(--cms-radius-md);
+  box-shadow: var(--cms-shadow-lg);
+  font-family: var(--cms-font-ui);
+  color: var(--cms-text-primary);
+  overflow: hidden;
+  animation: cms-drop-in var(--cms-duration-md, 200ms) var(--cms-ease-out, cubic-bezier(0.4, 0, 0.2, 1)) both;
+
+  // Type-specific accent colour on the left border + icon
+  &--success {
+    border-left-color: var(--cms-success);
+    .cms-toast__icon { color: var(--cms-success); }
+    .cms-toast__progress::before { background: var(--cms-success); }
+  }
+  &--error {
+    border-left-color: var(--cms-danger);
+    .cms-toast__icon { color: var(--cms-danger); }
+    .cms-toast__progress::before { background: var(--cms-danger); }
+  }
+  &--warning {
+    border-left-color: var(--cms-warning);
+    .cms-toast__icon { color: var(--cms-warning); }
+    .cms-toast__progress::before { background: var(--cms-warning); }
+  }
+  &--info {
+    border-left-color: var(--cms-info);
+    .cms-toast__icon { color: var(--cms-info); }
+    .cms-toast__progress::before { background: var(--cms-info); }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    margin-top: 1px;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__message {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--cms-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--cms-radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: var(--cms-bg-muted, rgba(0, 0, 0, 0.05));
+      color: var(--cms-text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--cms-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  // Drain progress bar — width animates from 100% → 0% over the toast's lifetime
+  &__progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: transparent;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      display: block;
+      height: 100%;
+      width: 100%;
+      transform-origin: left center;
+      animation: cms-toast-drain var(--cms-toast-duration, 3000ms) linear forwards;
+    }
+  }
+}
+
+@keyframes cms-toast-drain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@media print {
+  .cms-toast-host { display: none !important; }
+}

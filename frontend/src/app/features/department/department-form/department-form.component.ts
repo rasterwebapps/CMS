@@ -4,7 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ToastService } from '../../../core/toast/toast.service';
+import { LoadingButtonDirective } from '../../../shared/directives/loading-button.directive';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 
@@ -17,7 +18,7 @@ import { DepartmentRequest } from '../department.model';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
+    LoadingButtonDirective,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
@@ -27,10 +28,12 @@ export class DepartmentFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly departmentService = inject(DepartmentService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  /** Brief success state on the submit button before navigation (~600ms). */
+  protected readonly succeeded = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
@@ -77,13 +80,18 @@ export class DepartmentFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Department updated successfully'
           : 'Department created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
-        void this.router.navigate(['/departments']);
+        this.toast.success(message);
+        // Show the brief success state on the submit button, then navigate.
+        this.saving.set(false);
+        this.succeeded.set(true);
+        setTimeout(() => {
+          void this.router.navigate(['/departments']);
+        }, 600);
       },
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update department' : 'Failed to create department');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -131,7 +139,7 @@ export class DepartmentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load department', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load department');
         void this.router.navigate(['/departments']);
       },
     });
