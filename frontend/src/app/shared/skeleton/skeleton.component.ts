@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
 
 /**
  * Renders a CSS shimmer placeholder while content loads.
@@ -13,9 +13,14 @@ import { Component, Input, OnChanges } from '@angular/core';
   templateUrl: './skeleton.component.html',
   styleUrl: './skeleton.component.scss',
 })
-export class CmsSkeletonComponent implements OnChanges {
+export class CmsSkeletonComponent {
+  private readonly _lines = signal(1);
+
   /** Number of shimmer lines to render (ignored when circle=true). */
-  @Input() lines = 1;
+  @Input()
+  set lines(value: number) {
+    this._lines.set(value);
+  }
 
   /** Height of each line (or diameter of the circle). */
   @Input() height = '16px';
@@ -23,9 +28,7 @@ export class CmsSkeletonComponent implements OnChanges {
   /** When true, renders a single circular shimmer instead of lines. */
   @Input() circle = false;
 
-  protected lineItems: number[] = [0];
-
-  ngOnChanges(): void {
-    this.lineItems = Array.from({ length: Math.max(1, this.lines) }, (_, i) => i);
-  }
+  protected readonly lineItems = computed(() =>
+    Array.from({ length: Math.max(1, this._lines()) }, (_, i) => i),
+  );
 }
