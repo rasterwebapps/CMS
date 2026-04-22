@@ -240,6 +240,159 @@ class EnquiryDocumentServiceTest {
             .hasMessage("Enquiry not found with id: 999");
     }
 
+    @Test
+    void shouldUploadFileAndCreateNewDocumentWhenNoneExists() {
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of());
+        when(documentRepository.save(any(EnquiryDocument.class))).thenAnswer(inv -> {
+            EnquiryDocument d = inv.getArgument(0);
+            d.setId(42L);
+            d.setCreatedAt(Instant.now());
+            d.setUpdatedAt(Instant.now());
+            return d;
+        });
+
+        org.springframework.mock.web.MockMultipartFile file =
+            new org.springframework.mock.web.MockMultipartFile(
+                "file", "scan.pdf", "application/pdf", "PDF-CONTENT".getBytes()
+            );
+
+        EnquiryDocumentResponse response = documentService.uploadFile(
+            1L, DocumentType.TENTH_MARKSHEET, "note", file
+        );
+
+        assertThat(response.id()).isEqualTo(42L);
+        assertThat(response.fileName()).isEqualTo("scan.pdf");
+        assertThat(response.contentType()).isEqualTo("application/pdf");
+        assertThat(response.fileSize()).isEqualTo(11L);
+        assertThat(response.hasFile()).isTrue();
+        assertThat(response.status()).isEqualTo(DocumentVerificationStatus.UPLOADED);
+        assertThat(response.remarks()).isEqualTo("note");
+    }
+
+    @Test
+    void shouldUploadFileAndReplaceExistingDocumentOfSameType() {
+        EnquiryDocument existing = createDocument(7L, testEnquiry, DocumentType.TENTH_MARKSHEET);
+        existing.setRemarks("old remarks");
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of(existing));
+        when(documentRepository.save(any(EnquiryDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        org.springframework.mock.web.MockMultipartFile file =
+            new org.springframework.mock.web.MockMultipartFile(
+                "file", "/uploads/new.png", "image/png", new byte[]{1, 2, 3}
+            );
+
+        // remarks=null means existing remarks should be preserved
+        EnquiryDocumentResponse response = documentService.uploadFile(
+            1L, DocumentType.TENTH_MARKSHEET, null, file
+        );
+
+        assertThat(response.id()).isEqualTo(7L);
+        // Path components stripped from file name.
+        assertThat(response.fileName()).isEqualTo("new.png");
+        assertThat(response.contentType()).isEqualTo("image/png");
+        assertThat(response.fileSize()).isEqualTo(3L);
+        assertThat(response.status()).isEqualTo(DocumentVerificationStatus.UPLOADED);
+        assertThat(response.remarks()).isEqualTo("old remarks");
+    }
+
+    @Test
+    void shouldRejectEmptyFileOnUpload() {
+        org.springframework.mock.web.MockMultipartFile empty =
+            new org.springframework.mock.web.MockMultipartFile(
+                "file", "empty.pdf", "application/pdf", new byte[0]
+            );
+        assertThatThrownBy(() ->
+            documentService.uploadFile(1L, DocumentType.TENTH_MARKSHEET, null, empty))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldRejectNullDocumentTypeOnUpload() {
+        org.springframework.mock.web.MockMultipartFile file =
+            new org.springframework.mock.web.MockMultipartFile(
+                "file", "scan.pdf", "application/pdf", "X".getBytes()
+            );
+        assertThatThrownBy(() ->
+            documentService.uploadFile(1L, null, null, file))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldRejectOversizedFileOnUpload() {
+        // Build a "large" file by mocking getSize() rather than allocating real memory.
+        org.springframework.web.multipart.MultipartFile huge =
+            org.mockito.Mockito.mock(org.springframework.web.multipart.MultipartFile.class);
+        when(huge.isEmpty()).thenReturn(false);
+        when(huge.getSize()).thenReturn(EnquiryDocumentService.MAX_FILE_SIZE_BYTES + 1);
+
+        assertThatThrownBy(() ->
+            documentService.uploadFile(1L, DocumentType.TENTH_MARKSHEET, null, huge))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("maximum");
+    }
+
+    @Test
+    void shouldThrowWhenEnquiryNotFoundOnUpload() {
+        org.springframework.mock.web.MockMultipartFile file =
+            new org.springframework.mock.web.MockMultipartFile(
+                "file", "scan.pdf", "application/pdf", "X".getBytes()
+            );
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            documentService.uploadFile(999L, DocumentType.TENTH_MARKSHEET, null, file))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldDownloadFile() {
+        EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
+        doc.setFileName("scan.pdf");
+        doc.setContentType("application/pdf");
+        doc.setFileData("PDF".getBytes());
+        when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
+
+        com.cms.dto.DocumentFileDownload download = documentService.getFileForDownload(5L);
+
+        assertThat(download.fileName()).isEqualTo("scan.pdf");
+        assertThat(download.contentType()).isEqualTo("application/pdf");
+        assertThat(download.data()).isEqualTo("PDF".getBytes());
+    }
+
+    @Test
+    void shouldDownloadFileWithFallbackMetadataWhenMissing() {
+        EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
+        doc.setFileData("PDF".getBytes());
+        // fileName and contentType intentionally null
+        when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
+
+        com.cms.dto.DocumentFileDownload download = documentService.getFileForDownload(5L);
+
+        assertThat(download.fileName()).isEqualTo("TENTH_MARKSHEET");
+        assertThat(download.contentType()).isEqualTo("application/octet-stream");
+    }
+
+    @Test
+    void shouldThrowWhenDownloadingDocumentWithoutFile() {
+        EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
+        // No file data set
+        when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
+
+        assertThatThrownBy(() -> documentService.getFileForDownload(5L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("No file");
+    }
+
+    @Test
+    void shouldThrowWhenDownloadingNonExistentDocument() {
+        when(documentRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentService.getFileForDownload(999L))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
     private EnquiryDocument createDocument(Long id, Enquiry enquiry, DocumentType type) {
         EnquiryDocument doc = new EnquiryDocument(enquiry, type, DocumentVerificationStatus.NOT_UPLOADED);
         doc.setId(id);

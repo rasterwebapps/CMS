@@ -14,5 +14,10 @@ public record EnquiryDocumentResponse(
     String verifiedBy,
     Instant verifiedAt,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String fileName,
+    String contentType,
+    Long fileSize,
+    Instant uploadedAt,
+    boolean hasFile
 ) {}

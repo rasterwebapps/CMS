@@ -4,6 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
@@ -26,6 +27,7 @@ import {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
+    MatTooltipModule,
     MatSnackBarModule,
     CurrencyPipe,
     DatePipe,
@@ -49,7 +51,13 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly historyColumns = ['changedAt', 'fromStatus', 'toStatus', 'changedBy', 'remarks'];
+  protected readonly historyColumns = [
+    'changedAt',
+    'fromStatus',
+    'toStatus',
+    'changedBy',
+    'remarks',
+  ];
 
   // Quick-stat computed signals (Phase 3 §2.3 / §2.8)
   protected readonly daysActive = computed(() => {
@@ -79,7 +87,9 @@ export class EnquiryDetailComponent implements OnInit {
         this.loading.set(false);
         this.enquiryService.getDocuments(id).subscribe({ next: (d) => this.documents.set(d) });
         this.enquiryService.getPayments(id).subscribe({ next: (p) => this.payments.set(p) });
-        this.enquiryService.getStatusHistory(id).subscribe({ next: (h) => this.statusHistory.set(h) });
+        this.enquiryService
+          .getStatusHistory(id)
+          .subscribe({ next: (h) => this.statusHistory.set(h) });
       },
       error: () => {
         this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
@@ -147,5 +157,41 @@ export class EnquiryDetailComponent implements OnInit {
       default:
         return 'doc-row__icon--pending';
     }
+  }
+
+  /** Opens the stored document binary in a new tab for inline viewing. */
+  protected viewDocumentFile(d: EnquiryDocument): void {
+    if (!d.hasFile) return;
+    this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          this.triggerDownload(blob, d.fileName ?? d.documentType);
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      },
+      error: () => this.snackBar.open('Failed to load document', 'Close', { duration: 3000 }),
+    });
+  }
+
+  /** Downloads the stored document binary to the user's device. */
+  protected downloadDocumentFile(d: EnquiryDocument): void {
+    if (!d.hasFile) return;
+    this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
+      next: (blob) => this.triggerDownload(blob, d.fileName ?? d.documentType),
+      error: () => this.snackBar.open('Failed to download document', 'Close', { duration: 3000 }),
+    });
+  }
+
+  private triggerDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }
