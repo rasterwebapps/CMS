@@ -1,26 +1,26 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-student-detail',
   standalone: true,
   imports: [
     RouterLink,
+    MatTabsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
-    PageHeaderComponent,
     CmsStatusBadgeComponent,
+    CmsSkeletonComponent,
   ],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
@@ -33,6 +33,9 @@ export class StudentDetailComponent implements OnInit {
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
+
+  /** First + last initial of the student's full name. */
+  protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');

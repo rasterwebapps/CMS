@@ -2628,3 +2628,418 @@ html.dark-theme body::after {
   flex-shrink: 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3 — Detail / Profile screen primitives
+// Shared across enquiry-detail, student-detail, faculty-detail.
+// Token mapping: phase3.md uses --cms-border / --cms-bg-tint /
+// --cms-primary-alpha-16; this codebase has --cms-border-default,
+// --cms-bg-surface-2, --cms-primary-alpha-8/30 — so equivalents are used.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 1.1 Split-pane detail layout ----------------------------------------------
+.detail-page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: calc(100vh - 64px);
+  animation: cms-rise-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
+}
+
+.detail-split {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-areas: 'sidebar main';
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'sidebar' 'main';
+  }
+}
+
+.detail-split__sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-right: 4px;
+
+  @media (max-width: 900px) {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+.detail-split__main {
+  grid-area: main;
+  min-width: 0;
+}
+
+// Sidebar quick-stats list (label on top + value below)
+.detail-sidebar__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+}
+
+.detail-sidebar__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-sidebar__stat-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+}
+
+.detail-sidebar__stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-sidebar__section {
+  padding: 16px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+}
+
+.detail-sidebar__section-title {
+  margin: 0 0 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+}
+
+// 1.2 Profile hero block ----------------------------------------------------
+.profile-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px 32px 24px;
+  border-bottom: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+  flex-wrap: wrap;
+}
+
+.profile-hero__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.16);
+  color: var(--cms-primary);
+  font-family: var(--cms-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-hero__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-hero__name {
+  margin: 0;
+  font-family: var(--cms-font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--cms-text-primary);
+}
+
+.profile-hero__meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-hero__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-hero__stats {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.profile-stat {
+  padding: 10px 16px;
+  background: var(--cms-bg-surface-2);
+  border-radius: var(--cms-radius-md);
+  border: 1px solid var(--cms-border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.profile-stat__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cms-text-primary);
+  line-height: 1.2;
+}
+
+.profile-stat__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+}
+
+// 1.3 Status timeline -------------------------------------------------------
+.status-timeline {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.status-timeline__item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 14px;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+
+  // Vertical connector line — drawn from this item's dot down to next
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 14px;
+    bottom: 0;
+    width: 2px;
+    background: var(--cms-border-default);
+  }
+}
+
+.status-timeline__dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  z-index: 1;
+
+  &--active {
+    background: var(--cms-primary);
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.16);
+  }
+}
+
+.status-timeline__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.status-timeline__label {
+  font-family: var(--cms-font-display);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--cms-text-primary);
+  line-height: 1.3;
+}
+
+.status-timeline__date {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+// 1.4 Receipt card ----------------------------------------------------------
+.receipt-card {
+  border: 1px solid var(--cms-border-default);
+  border-left: 4px solid var(--cms-primary);
+  border-radius: var(--cms-radius-md);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  background: var(--cms-bg-card);
+  transition: var(--cms-transition);
+
+  &:hover {
+    border-color: var(--cms-line-strong);
+    border-left-color: var(--cms-primary);
+  }
+
+  &--cash    { border-left-color: var(--cms-success); }
+  &--online  { border-left-color: var(--cms-primary); }
+  &--cheque  { border-left-color: var(--cms-warning); }
+}
+
+.receipt-card__number {
+  font-family: var(--cms-font-mono);
+  font-size: 0.875rem;
+  color: var(--cms-text-muted);
+  align-self: center;
+}
+
+.receipt-card__amount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cms-text-primary);
+  text-align: right;
+  align-self: center;
+}
+
+.receipt-card__meta {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.receipt-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// 1.5 Document checklist row ------------------------------------------------
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.doc-row__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &--verified {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+  &--rejected {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+  }
+  &--pending {
+    background: var(--cms-warning-light);
+    color: var(--cms-warning);
+  }
+}
+
+.doc-row__name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--cms-text-primary);
+  min-width: 0;
+}
+
+.doc-row__meta {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+.doc-row-list {
+  display: flex;
+  flex-direction: column;
+}
+
+// Code values (roll number, employee code, receipt number, IDs)
+.code-value {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Detail-screen mat-tab overrides ─────────────────────────────────
+// Scoped via the `.detail-tabs` custom class (applied only on the
+// detail/profile screens) so this is effectively component-scoped: it
+// will not bleed into dialogs or other places that use mat-tab-group.
+.detail-tabs {
+  .mat-mdc-tab-header {
+    box-shadow: none;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  .mat-mdc-tab .mdc-tab__text-label {
+    font-family: var(--cms-font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: var(--cms-primary);
+    font-weight: 600;
+  }
+
+  .mat-mdc-tab-body-wrapper {
+    padding-top: 0;
+  }
+
+  .mdc-tab-indicator__content--underline {
+    border-color: var(--cms-primary);
+  }
+}
+

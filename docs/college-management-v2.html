@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="azure">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKS College of Nursing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ACCENT PALETTES — each is a single hue
+   that floods the entire UI atmosphere
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* AZURE — electric cerulean */
+[data-accent="azure"] {
+  --a:       #3B9EFF;
+  --a-rgb:   59,158,255;
+  --a-deep:  #1A6FCC;
+  --a-sat:   #0D4F9E;
+}
+/* EMERALD — deep forest */
+[data-accent="emerald"] {
+  --a:       #10C980;
+  --a-rgb:   16,201,128;
+  --a-deep:  #0A8F5A;
+  --a-sat:   #065C3A;
+}
+/* VERMILLION — bold coral-red */
+[data-accent="vermillion"] {
+  --a:       #FF5C3A;
+  --a-rgb:   255,92,58;
+  --a-deep:  #CC3A1F;
+  --a-sat:   #8F2210;
+}
+/* VIOLET — deep amethyst */
+[data-accent="violet"] {
+  --a:       #8B5CF6;
+  --a-rgb:   139,92,246;
+  --a-deep:  #6030D4;
+  --a-sat:   #3D1A99;
+}
+/* GOLD — warm amber */
+[data-accent="gold"] {
+  --a:       #F59E0B;
+  --a-rgb:   245,158,11;
+  --a-deep:  #C47B05;
+  --a-sat:   #8A5302;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DARK THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="dark"] {
+  --bg0:         #070910;
+  --bg1:         #0E1117;
+  --bg2:         #161B26;
+  --bg3:         #1D2333;
+  --bg4:         #252D40;
+  --line:        rgba(255,255,255,0.06);
+  --line2:       rgba(255,255,255,0.10);
+  --t1:          #F0F2F8;
+  --t2:          #8A93AA;
+  --t3:          #4A5068;
+  --t4:          #2E3450;
+  --invert-btn:  rgba(255,255,255,0.06);
+  --invert-btn-h:rgba(255,255,255,0.10);
+  --shadow:      rgba(0,0,0,0.6);
+  --glow:        0.18;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LIGHT THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] {
+  --bg0:         #F4F6FC;
+  --bg1:         #FFFFFF;
+  --bg2:         #F0F2FA;
+  --bg3:         #E8EBF5;
+  --bg4:         #DDE1EF;
+  --line:        rgba(0,0,0,0.07);
+  --line2:       rgba(0,0,0,0.12);
+  --t1:          #0D1020;
+  --t2:          #4A5270;
+  --t3:          #9099B8;
+  --t4:          #C5CADC;
+  --invert-btn:  rgba(0,0,0,0.05);
+  --invert-btn-h:rgba(0,0,0,0.09);
+  --shadow:      rgba(60,80,140,0.10);
+  --glow:        0.12;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg0);
+  color: var(--t1);
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease, color 0.35s ease;
+  overflow: hidden;
+}
+
+/* Ambient glow blob — moves with accent color */
+body::before {
+  content: '';
+  position: fixed;
+  width: 700px; height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--a-rgb), var(--glow)) 0%, transparent 70%);
+  top: -200px; right: -200px;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.5s ease;
+}
+body::after {
+  content: '';
+  position: fixed;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--a-rgb), calc(var(--glow) * 0.5)) 0%, transparent 70%);
+  bottom: -100px; left: 100px;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.5s ease;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SIDEBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sidebar {
+  width: 240px;
+  background: var(--bg1);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+  position: relative;
+  z-index: 20;
+}
+.sidebar.collapsed { width: 68px; }
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 22px 18px 20px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--a);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(var(--a-rgb), 0.4);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%);
+}
+.brand-mark svg { width: 18px; height: 18px; z-index: 1; }
+.brand-text-wrap { overflow: hidden; min-width: 0; }
+.brand-name {
+  font-size: 13.5px; font-weight: 700;
+  color: var(--t1);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.brand-sub { font-size: 10.5px; color: var(--t3); white-space: nowrap; margin-top: 1px; }
+
+/* Toggle */
+.sb-toggle {
+  position: absolute;
+  top: 24px; right: -13px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 30;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.sb-toggle:hover {
+  background: var(--a);
+  border-color: var(--a);
+  box-shadow: 0 0 0 4px rgba(var(--a-rgb), 0.15);
+}
+.sb-toggle:hover svg path { stroke: #fff; }
+.sb-toggle svg { transition: transform 0.3s; }
+.sidebar.collapsed .sb-toggle svg { transform: rotate(180deg); }
+
+/* Nav */
+.nav-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 0; }
+.nav-scroll::-webkit-scrollbar { width: 3px; }
+.nav-scroll::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
+
+.nav-group-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 14px 20px 5px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.sidebar.collapsed .nav-group-label { opacity: 0; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 14px;
+  margin: 1px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  position: relative;
+  white-space: nowrap;
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: none;
+  user-select: none;
+}
+.nav-item:hover { background: var(--invert-btn); color: var(--t1); }
+.nav-item.active {
+  background: rgba(var(--a-rgb), 0.12);
+  color: var(--a);
+  font-weight: 600;
+}
+.nav-item.active .ni { color: var(--a); }
+.ni {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  color: var(--t3);
+  transition: color 0.18s;
+}
+.nav-item:hover .ni { color: var(--t1); }
+.nl { transition: opacity 0.2s, transform 0.2s; }
+.sidebar.collapsed .nl { opacity: 0; transform: translateX(-6px); pointer-events: none; }
+
+.nav-pill {
+  margin-left: auto;
+  font-size: 10px; font-weight: 700;
+  background: rgba(var(--a-rgb), 0.15);
+  color: var(--a);
+  padding: 2px 7px; border-radius: 20px;
+  transition: opacity 0.2s;
+}
+.sidebar.collapsed .nav-pill { opacity: 0; }
+
+/* Sidebar footer */
+.sb-foot {
+  border-top: 1px solid var(--line);
+  padding: 14px 10px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.user-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.user-card:hover { background: var(--invert-btn); }
+.ava {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--a);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(var(--a-rgb), 0.2);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.user-info { overflow: hidden; }
+.u-name { font-size: 12.5px; font-weight: 600; color: var(--t1); white-space: nowrap; }
+.u-role { font-size: 10px; color: var(--t3); white-space: nowrap; }
+.sidebar.collapsed .user-info { opacity: 0; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOPBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.topbar {
+  height: 62px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 14px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--t2);
+}
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
+  animation: livepulse 2s infinite;
+}
+@keyframes livepulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+.tb-title {
+  font-size: 15px; font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -0.02em;
+}
+.tb-sep { color: var(--t4); font-size: 18px; font-weight: 200; }
+.tb-sub { font-size: 12px; color: var(--t3); }
+
+.tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+.search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search:focus-within {
+  border-color: var(--a);
+  box-shadow: 0 0 0 3px rgba(var(--a-rgb), 0.12);
+}
+.search input {
+  background: none; border: none; outline: none;
+  font-family: 'Sora', sans-serif;
+  font-size: 12.5px; color: var(--t1); width: 180px;
+}
+.search input::placeholder { color: var(--t3); }
+.search svg { color: var(--t3); flex-shrink: 0; }
+
+/* Theme toggle */
+.theme-toggle {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: rgba(var(--a-rgb), 0.12); border-color: rgba(var(--a-rgb), 0.3); }
+.theme-toggle svg { color: var(--t2); }
+
+/* Color picker trigger */
+.palette-trigger {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--t2);
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+  user-select: none;
+}
+.palette-trigger:hover { background: var(--invert-btn-h); border-color: var(--line2); }
+.palette-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--a);
+  box-shadow: 0 0 8px rgba(var(--a-rgb), 0.5);
+  transition: background 0.3s, box-shadow 0.3s;
+  flex-shrink: 0;
+}
+
+/* Palette dropdown */
+.palette-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  padding: 20px;
+  width: 280px;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 20px 60px var(--shadow), 0 0 0 1px var(--line);
+  animation: dropIn 0.2s cubic-bezier(0.4,0,0.2,1) both;
+}
+.palette-panel.open { display: block; }
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pp-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--t3); margin-bottom: 14px; }
+.pp-palettes { display: flex; flex-direction: column; gap: 8px; }
+.pp-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s;
+  border: 1.5px solid transparent;
+}
+.pp-option:hover { background: var(--invert-btn); }
+.pp-option.selected { border-color: var(--a); background: rgba(var(--a-rgb), 0.08); }
+.pp-swatch { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; }
+.pp-info { flex: 1; }
+.pp-name { font-size: 13px; font-weight: 600; color: var(--t1); }
+.pp-desc { font-size: 11px; color: var(--t3); margin-top: 1px; }
+.pp-check { width: 18px; height: 18px; border-radius: 50%; background: var(--a); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.18s; }
+.pp-option.selected .pp-check { opacity: 1; }
+
+/* Notif + avatar */
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: rgba(var(--a-rgb), 0.1); border-color: rgba(var(--a-rgb), 0.25); }
+.icon-btn svg { color: var(--t2); }
+.n-dot {
+  position: absolute; top: 8px; right: 8px;
+  width: 6px; height: 6px;
+  background: #FF5C3A;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg1);
+}
+.tb-ava {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(var(--a-rgb), 0.2);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PAGE TABS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.page-tabs {
+  display: flex; gap: 2px;
+  padding: 0 28px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.ptab {
+  font-size: 12.5px; font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer; border: none;
+  background: none; color: var(--t3);
+  font-family: 'Sora', sans-serif;
+  transition: color 0.18s;
+  position: relative;
+  white-space: nowrap;
+}
+.ptab::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 16px; right: 16px;
+  height: 2px; border-radius: 2px 2px 0 0;
+  background: var(--a);
+  transform: scaleX(0);
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+}
+.ptab:hover { color: var(--t2); }
+.ptab.active { color: var(--a); font-weight: 600; }
+.ptab.active::after { transform: scaleX(1); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CONTENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px 40px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.content::-webkit-scrollbar { width: 5px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 10px; }
+
+.page { display: none; flex-direction: column; gap: 22px; }
+.page.active { display: flex; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HERO BANNER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.hero {
+  border-radius: 18px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  padding: 30px 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  animation: riseUp 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(var(--a-rgb), 0.07) 0%, transparent 60%);
+  transition: background 0.4s;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--a) 40%, rgba(var(--a-rgb),0.3) 100%);
+  transition: background 0.4s;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.hero-tag {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--a);
+  background: rgba(var(--a-rgb), 0.12);
+  padding: 4px 10px; border-radius: 20px;
+  transition: background 0.3s, color 0.3s;
+}
+.hero-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px;
+  color: var(--t1);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.hero-title em { font-style: italic; color: var(--a); }
+.hero-sub { font-size: 13px; color: var(--t2); }
+.hero-actions { display: flex; gap: 10px; position: relative; z-index: 1; }
+
+/* Hero visual */
+.hero-ring {
+  position: absolute; right: -60px; top: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--a-rgb), 0.12);
+  pointer-events: none;
+  transition: border-color 0.3s;
+}
+.hero-ring-2 {
+  position: absolute; right: 20px; top: -20px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--a-rgb), 0.2);
+  pointer-events: none;
+  transition: border-color 0.3s;
+}
+.hero-ring-3 {
+  position: absolute; right: 65px; top: 25px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: rgba(var(--a-rgb), 0.08);
+  pointer-events: none;
+  transition: background 0.3s;
+}
+
+/* Buttons */
+.btn-p {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--a);
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 600;
+  padding: 10px 20px; border-radius: 10px;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 24px rgba(var(--a-rgb), 0.35);
+  transition: transform 0.18s, box-shadow 0.18s, background 0.3s;
+}
+.btn-p:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(var(--a-rgb), 0.45); }
+.btn-p:active { transform: translateY(0); }
+.btn-g {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent;
+  color: var(--t2);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 10px 20px; border-radius: 10px;
+  border: 1px solid var(--line2);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.btn-g:hover { background: var(--invert-btn); color: var(--t1); border-color: var(--line2); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STAT CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+
+.sc {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  animation: riseUp 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+.sc:hover { transform: translateY(-3px); border-color: var(--line2); box-shadow: 0 12px 40px var(--shadow); }
+.sc:nth-child(1) { animation-delay: 0.06s; }
+.sc:nth-child(2) { animation-delay: 0.12s; }
+.sc:nth-child(3) { animation-delay: 0.18s; }
+.sc:nth-child(4) { animation-delay: 0.24s; }
+.sc:nth-child(5) { animation-delay: 0.30s; }
+
+/* accent top edge */
+.sc::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+  transition: background 0.3s;
+}
+.sc.c-accent::before { background: var(--a); box-shadow: 0 0 16px rgba(var(--a-rgb), 0.4); }
+.sc.c-green::before  { background: #22C55E; }
+.sc.c-amber::before  { background: #F59E0B; }
+.sc.c-red::before    { background: #EF4444; }
+.sc.c-purple::before { background: #A78BFA; }
+
+.sc-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.sc.c-accent .sc-icon { background: rgba(var(--a-rgb), 0.12); }
+.sc.c-green  .sc-icon { background: rgba(34,197,94,0.12); }
+.sc.c-amber  .sc-icon { background: rgba(245,158,11,0.12); }
+.sc.c-red    .sc-icon { background: rgba(239,68,68,0.12); }
+.sc.c-purple .sc-icon { background: rgba(167,139,250,0.12); }
+
+.sc.c-accent .sc-icon svg { color: var(--a); }
+.sc.c-green  .sc-icon svg { color: #22C55E; }
+.sc.c-amber  .sc-icon svg { color: #F59E0B; }
+.sc.c-red    .sc-icon svg { color: #EF4444; }
+.sc.c-purple .sc-icon svg { color: #A78BFA; }
+
+.sc-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 500;
+  color: var(--t1);
+  line-height: 1;
+  margin-bottom: 5px;
+  letter-spacing: -0.03em;
+}
+.sc-label { font-size: 12px; color: var(--t2); font-weight: 500; }
+.sc-meta { font-size: 10.5px; color: var(--t3); margin-top: 2px; }
+.sc-badge {
+  position: absolute; top: 16px; right: 16px;
+  font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 20px;
+}
+.badge-up   { background: rgba(34,197,94,0.12);  color: #22C55E; }
+.badge-down { background: rgba(239,68,68,0.12);  color: #EF4444; }
+.badge-warn { background: rgba(245,158,11,0.12); color: #F59E0B; }
+.badge-info { background: rgba(var(--a-rgb),0.12); color: var(--a); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   QUICK ACTIONS ROW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.qa-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.qa-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 10px;
+  font-family: 'Sora', sans-serif; font-size: 12.5px; font-weight: 500;
+  background: var(--bg2); border: 1px solid var(--line);
+  color: var(--t2); cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s;
+}
+.qa-btn:hover { background: rgba(var(--a-rgb),0.1); color: var(--a); border-color: rgba(var(--a-rgb),0.3); transform: translateY(-1px); }
+.qa-btn svg { width: 15px; height: 15px; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.grid-2 { display: grid; grid-template-columns: 1.65fr 1fr; gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: riseUp 0.5s cubic-bezier(0.4,0,0.2,1) both;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--line2); }
+.card-h {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.card-ht {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 600; color: var(--t1);
+}
+.card-hico {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.3s;
+}
+.card-action {
+  font-size: 12px; color: var(--a); font-weight: 600;
+  cursor: pointer; background: none; border: none;
+  font-family: 'Sora', sans-serif;
+  transition: opacity 0.18s;
+}
+.card-action:hover { opacity: 0.7; }
+.card-b { padding: 20px; }
+
+/* chart */
+.chart-area { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+.bar-grp { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.bar {
+  width: 100%; border-radius: 5px 5px 0 0;
+  transition: height 0.7s cubic-bezier(0.4,0,0.2,1), filter 0.2s;
+  cursor: pointer;
+}
+.bar:hover { filter: brightness(1.25); }
+.bar.hi { background: var(--a); box-shadow: 0 0 12px rgba(var(--a-rgb), 0.3); }
+.bar.lo { background: var(--bg4); }
+.bar-xl { font-size: 10px; color: var(--t3); }
+.chart-axis-row { display: flex; gap: 6px; margin-top: 10px; }
+.chart-axis-row span { flex: 1; text-align: center; font-size: 10px; color: var(--t3); }
+
+/* approvals */
+.ap-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ap-item:last-child { border-bottom: none; padding-bottom: 0; }
+.ap-bullet { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.ap-title { font-size: 13px; font-weight: 600; color: var(--t1); }
+.ap-sub { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.ap-amt { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; margin-left: auto; white-space: nowrap; padding-left: 10px; }
+
+/* equipment */
+.eq-item { margin-bottom: 14px; }
+.eq-item:last-child { margin-bottom: 0; }
+.eq-meta { display: flex; justify-content: space-between; margin-bottom: 7px; }
+.eq-name { font-size: 12.5px; color: var(--t2); font-weight: 500; }
+.eq-count { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--t3); }
+.prog { height: 5px; background: var(--bg4); border-radius: 10px; overflow: hidden; }
+.prog-f { height: 100%; border-radius: 10px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+/* fee items */
+.fee-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 14px;
+  background: var(--bg3);
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  margin-bottom: 8px;
+  transition: background 0.18s;
+}
+.fee-item:last-child { margin-bottom: 0; }
+.fee-item:hover { background: var(--bg4); }
+.fee-name { font-size: 13px; color: var(--t2); font-weight: 500; }
+.fee-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; }
+.fee-val.col { color: #22C55E; }
+.fee-val.out { color: #EF4444; }
+.fee-val.neu { color: var(--t3); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead tr { border-bottom: 1px solid var(--line); }
+.tbl th {
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--t3); padding: 11px 16px; text-align: left;
+}
+.tbl tbody tr {
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.tbl tbody tr:hover { background: var(--invert-btn); }
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl td { padding: 13px 16px; font-size: 13px; color: var(--t2); }
+.tbl td.tp { color: var(--t1); font-weight: 600; }
+.tbl td.ta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--a); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+}
+.badge.b-a  { background: rgba(var(--a-rgb),0.12);  color: var(--a); }
+.badge.b-g  { background: rgba(34,197,94,0.12);  color: #22C55E; }
+.badge.b-w  { background: rgba(245,158,11,0.12); color: #F59E0B; }
+.badge.b-r  { background: rgba(239,68,68,0.12);  color: #EF4444; }
+.badge.b-p  { background: rgba(167,139,250,0.12); color: #A78BFA; }
+
+.tbl-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--t3);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FORM / NEW FEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.page-hdr {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.pg-title { font-family: 'Instrument Serif', serif; font-size: 26px; color: var(--t1); letter-spacing: -0.02em; margin-bottom: 3px; }
+.pg-sub { font-size: 12.5px; color: var(--t3); }
+
+.back-btn {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--bg3); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.18s, border-color 0.18s;
+  flex-shrink: 0;
+}
+.back-btn:hover { background: rgba(var(--a-rgb),0.12); border-color: rgba(var(--a-rgb),0.3); }
+
+.form-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+.form-g { display: flex; flex-direction: column; gap: 6px; }
+.form-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t3); }
+.form-lbl span { color: #EF4444; }
+.form-ctrl {
+  background: var(--bg3); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 14px;
+  font-family: 'Sora', sans-serif; font-size: 13px; color: var(--t1);
+  outline: none; appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.form-ctrl:focus { border-color: var(--a); box-shadow: 0 0 0 3px rgba(var(--a-rgb),0.12); }
+select.form-ctrl option { background: var(--bg2); }
+
+.fee-section-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 10px;
+}
+.fee-section-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+.fee-tbl { width: 100%; border-collapse: collapse; }
+.fee-tbl th {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--t3);
+  padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line);
+}
+.fee-tbl th:first-child { text-align: left; }
+.fee-tbl td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.fee-tbl tr:hover td { background: var(--invert-btn); }
+.fee-type-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--t2); }
+.ft-dot { width: 6px; height: 6px; border-radius: 50%; }
+.fee-inp {
+  width: 100%; background: var(--bg3); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--t1);
+  text-align: right; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fee-inp:focus { border-color: var(--a); box-shadow: 0 0 0 2px rgba(var(--a-rgb),0.12); }
+.fee-inp[readonly] { opacity: 0.5; cursor: default; }
+.fee-total-row td {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+}
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 18px; border-top: 1px solid var(--line); margin-top: 4px; }
+
+/* filter row */
+.filter-row { display: flex; gap: 10px; align-items: center; }
+.filter-sel {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 14px;
+  font-family: 'Sora', sans-serif; font-size: 13px; color: var(--t2);
+  outline: none; appearance: none; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.filter-sel:hover, .filter-sel:focus { border-color: var(--a); color: var(--t1); }
+.clear-btn { font-size: 12px; color: var(--t3); cursor: pointer; background: none; border: none; font-family: 'Sora', sans-serif; }
+.clear-btn:hover { color: var(--a); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ANIMATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@keyframes riseUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════ -->
+<aside class="sidebar" id="sb">
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 18 18" fill="none">
+        <path d="M9 2L2 6v6l7 4 7-4V6L9 2z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="9" cy="9" r="2.2" fill="#fff" opacity=".9"/>
+      </svg>
+    </div>
+    <div class="brand-text-wrap">
+      <div class="brand-name">SKS College</div>
+      <div class="brand-sub">of Nursing</div>
+    </div>
+  </div>
+  <!-- Toggle -->
+  <button class="sb-toggle" onclick="toggleSB()" title="Collapse sidebar">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M8 2L4 6l4 4" stroke="var(--t2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div class="nav-scroll">
+    <div class="nav-group-label">Overview</div>
+    <div class="nav-item active" onclick="navTo(this,'dashboard')">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="10" y="2" width="6" height="6" rx="1.5" fill="currentColor" opacity=".45"/><rect x="2" y="10" width="6" height="6" rx="1.5" fill="currentColor" opacity=".45"/><rect x="10" y="10" width="6" height="6" rx="1.5" fill="currentColor" opacity=".25"/></svg>
+      <span class="nl">Dashboard</span>
+    </div>
+
+    <div class="nav-group-label">Configuration</div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h8M3 13h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Departments</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 16c0-3.314 3.134-5.5 7-5.5s7 2.186 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Programs</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><rect x="3" y="3" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 9h6M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Courses</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M9 5v4.5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Semesters</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 4V2M12 4V2M2 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Academic Calendar</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><path d="M3 15V7l6-5 6 5v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="6" y="10" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="nl">Labs</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,'feestructures')">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><path d="M9 2v2M9 14v2M4.22 4.22l1.42 1.42M12.36 12.36l1.42 1.42M2 9h2M14 9h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Fee Structures</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="5" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/></svg>
+      <span class="nl">Equipment</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 16c0-3.314 3.134-5.5 7-5.5s7 2.186 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Faculty</span>
+    </div>
+
+    <div class="nav-group-label">Admissions</div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><path d="M2 5h14M2 9h10M2 13h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Enquiries</span>
+      <span class="nav-pill">3</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><path d="M11 2H5a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7l-4-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <span class="nl">Admissions</span>
+    </div>
+    <div class="nav-item" onclick="navTo(this,null)">
+      <svg class="ni" viewBox="0 0 18 18" fill="none"><circle cx="6" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="7" r="3" stroke="currentColor" stroke-width="1.5" opacity=".5"/><path d="M1 16c0-2.761 2.239-5 5-5h2c2.761 0 5 2.239 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="nl">Students</span>
+    </div>
+  </div>
+
+  <div class="sb-foot">
+    <div class="user-card">
+      <div class="ava">A</div>
+      <div class="user-info">
+        <div class="u-name">Admin</div>
+        <div class="u-role">Super Administrator</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="live-badge">
+      <div class="pulse-dot"></div>
+      Live
+    </div>
+    <div class="tb-sep">|</div>
+    <span class="tb-title" id="tb-title">Dashboard</span>
+    <span class="tb-sub">· 2025–26</span>
+
+    <div class="tb-right">
+
+      <!-- Search -->
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search students, enquiries...">
+      </div>
+
+      <!-- Theme toggle -->
+      <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">
+        <svg id="theme-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.7 3.7L4.7 4.7M11.3 11.3l1 1M3.7 12.3l1-1M11.3 4.7l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Palette picker -->
+      <div style="position:relative;" id="palette-wrap">
+        <div class="palette-trigger" onclick="togglePalette()" id="pal-trig">
+          <div class="palette-dot" id="pal-dot"></div>
+          <span id="pal-name">Azure</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="palette-panel" id="pal-panel">
+          <div class="pp-title">Choose Accent</div>
+          <div class="pp-palettes">
+            <div class="pp-option selected" onclick="setAccent('azure','Azure','#3B9EFF','Electric Cerulean',this)">
+              <div class="pp-swatch" style="background:#3B9EFF;box-shadow:0 4px 14px rgba(59,158,255,0.4);"></div>
+              <div class="pp-info"><div class="pp-name">Azure</div><div class="pp-desc">Electric cerulean</div></div>
+              <div class="pp-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+            <div class="pp-option" onclick="setAccent('emerald','Emerald','#10C980','Deep forest',this)">
+              <div class="pp-swatch" style="background:#10C980;box-shadow:0 4px 14px rgba(16,201,128,0.4);"></div>
+              <div class="pp-info"><div class="pp-name">Emerald</div><div class="pp-desc">Deep forest</div></div>
+              <div class="pp-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+            <div class="pp-option" onclick="setAccent('vermillion','Vermillion','#FF5C3A','Bold coral-red',this)">
+              <div class="pp-swatch" style="background:#FF5C3A;box-shadow:0 4px 14px rgba(255,92,58,0.4);"></div>
+              <div class="pp-info"><div class="pp-name">Vermillion</div><div class="pp-desc">Bold coral-red</div></div>
+              <div class="pp-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+            <div class="pp-option" onclick="setAccent('violet','Violet','#8B5CF6','Deep amethyst',this)">
+              <div class="pp-swatch" style="background:#8B5CF6;box-shadow:0 4px 14px rgba(139,92,246,0.4);"></div>
+              <div class="pp-info"><div class="pp-name">Violet</div><div class="pp-desc">Deep amethyst</div></div>
+              <div class="pp-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+            <div class="pp-option" onclick="setAccent('gold','Gold','#F59E0B','Warm amber',this)">
+              <div class="pp-swatch" style="background:#F59E0B;box-shadow:0 4px 14px rgba(245,158,11,0.4);"></div>
+              <div class="pp-info"><div class="pp-name">Gold</div><div class="pp-desc">Warm amber</div></div>
+              <div class="pp-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v2L2 11h12l-1-2V7a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 13a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <div class="n-dot"></div>
+      </div>
+      <div class="tb-ava">A</div>
+    </div>
+  </div>
+
+  <!-- PAGE TABS -->
+  <div class="page-tabs">
+    <button class="ptab active" onclick="switchPage('dashboard',this)">Dashboard</button>
+    <button class="ptab" onclick="switchPage('feestructures',this)">Fee Structures</button>
+    <button class="ptab" onclick="switchPage('newfee',this)">New Fee Structure</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ════════════════════ DASHBOARD ══════════════════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-ring"></div>
+        <div class="hero-ring-2"></div>
+        <div class="hero-ring-3"></div>
+        <div class="hero-content">
+          <div class="hero-eyebrow">
+            <div class="hero-tag">Academic Year 2025–26</div>
+            <div class="live-badge"><div class="pulse-dot"></div>10 students enrolled</div>
+          </div>
+          <div class="hero-title">Welcome back, <em>Admin</em></div>
+          <div class="hero-sub">Here's your college overview for today — all systems nominal.</div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-g">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h4M5 5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            View Reports
+          </button>
+          <button class="btn-p">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v9M3 7l4 4 4-4M1 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Generate Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="sc c-accent">
+          <div class="sc-badge badge-info">+2 this month</div>
+          <div class="sc-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 16c0-3.314 3.134-5.5 7-5.5s7 2.186 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="sc-val">10</div>
+          <div class="sc-label">Total Students</div>
+          <div class="sc-meta">Enrolled</div>
+        </div>
+        <div class="sc c-green">
+          <div class="sc-badge badge-up">Active</div>
+          <div class="sc-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/><path d="M1 15c0-2.761 2.239-4.5 5-4.5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 15c0-2.761 1.343-4.5 3-4.5s3 1.739 3 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="sc-val">8</div>
+          <div class="sc-label">Active Faculty</div>
+          <div class="sc-meta">Staff members</div>
+        </div>
+        <div class="sc c-purple">
+          <div class="sc-badge" style="background:rgba(167,139,250,0.12);color:#A78BFA;">All active</div>
+          <div class="sc-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15V7l6-5 6 5v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="6" y="10" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <div class="sc-val">4</div>
+          <div class="sc-label">Labs</div>
+          <div class="sc-meta">Utilization</div>
+        </div>
+        <div class="sc c-amber">
+          <div class="sc-badge badge-warn">This month</div>
+          <div class="sc-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M9 6v3.5l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="sc-val">₹0</div>
+          <div class="sc-label">Fee Collected</div>
+          <div class="sc-meta">This month</div>
+        </div>
+        <div class="sc c-red">
+          <div class="sc-badge badge-down">Overdue</div>
+          <div class="sc-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v6M9 12.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <div class="sc-val">₹19.3L</div>
+          <div class="sc-label">Outstanding</div>
+          <div class="sc-meta">Pending collection</div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="qa-row">
+        <button class="qa-btn"><svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M3 7.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Enrol Student</button>
+        <button class="qa-btn"><svg viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h5M5 5h3M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>View Reports</button>
+        <button class="qa-btn"><svg viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 5v2.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Fee Waiver</button>
+        <button class="qa-btn"><svg viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 1v1.5M7.5 12v1.5M1 7.5h1.5M12 7.5h1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Settings</button>
+        <button class="qa-btn"><svg viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5l1.6 4.9h5.1L10 9.8l1.6 4.9L7.5 12 3.4 14.7 5 9.8 1 6.4h5.1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>Agents</button>
+      </div>
+
+      <!-- Charts + Approvals -->
+      <div class="grid-2">
+        <div class="card" style="animation-delay:0.1s">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico" style="background:rgba(var(--a-rgb),0.12)">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 12L5 7.5l3 3 3.5-5 2.5-2" stroke="var(--a)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              Admission Trend
+            </div>
+            <button class="card-action">View all →</button>
+          </div>
+          <div class="card-b">
+            <div class="chart-area">
+              <div class="bar-grp"><div class="bar lo" style="height:28%"></div></div>
+              <div class="bar-grp"><div class="bar lo" style="height:42%"></div></div>
+              <div class="bar-grp"><div class="bar hi" style="height:62%"></div></div>
+              <div class="bar-grp"><div class="bar lo" style="height:38%"></div></div>
+              <div class="bar-grp"><div class="bar hi" style="height:78%"></div></div>
+              <div class="bar-grp"><div class="bar hi" style="height:55%"></div></div>
+              <div class="bar-grp"><div class="bar hi" style="height:92%"></div></div>
+            </div>
+            <div class="chart-axis-row">
+              <span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="animation-delay:0.15s">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico" style="background:rgba(239,68,68,0.12)">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2v4M7.5 10v1" stroke="#EF4444" stroke-width="1.8" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="6" stroke="#EF4444" stroke-width="1.5"/></svg>
+              </div>
+              Pending Approvals
+            </div>
+            <button class="card-action">Review →</button>
+          </div>
+          <div class="card-b">
+            <div class="ap-item">
+              <div class="ap-bullet" style="background:#EF4444;box-shadow:0 0 6px #EF4444"></div>
+              <div><div class="ap-title">Outstanding Fee Balance</div><div class="ap-sub">10 students · Immediate review required</div></div>
+              <div class="ap-amt" style="color:#EF4444">₹19,32,500</div>
+            </div>
+            <div class="ap-item">
+              <div class="ap-bullet" style="background:#F59E0B;box-shadow:0 0 6px rgba(245,158,11,0.5)"></div>
+              <div><div class="ap-title">Fee Waiver Applications</div><div class="ap-sub">2 pending · Merit-based review</div></div>
+              <div class="ap-amt" style="color:#F59E0B">2</div>
+            </div>
+            <div class="ap-item">
+              <div class="ap-bullet" style="background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),0.5)"></div>
+              <div><div class="ap-title">New Enrolment Requests</div><div class="ap-sub">3 applications · 2025–26 intake</div></div>
+              <div class="ap-amt" style="color:var(--a)">3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipment + Fee -->
+      <div class="grid-2">
+        <div class="card" style="animation-delay:0.2s">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico" style="background:rgba(167,139,250,0.12)">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="4" width="4" height="7" rx="1.5" stroke="#A78BFA" stroke-width="1.5"/><rect x="8" y="4" width="4" height="7" rx="1.5" stroke="#A78BFA" stroke-width="1.5" opacity=".5"/></svg>
+              </div>
+              Equipment Status
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="eq-item">
+              <div class="eq-meta"><span class="eq-name">Available</span><span class="eq-count">3 units</span></div>
+              <div class="prog"><div class="prog-f" style="width:60%;background:#22C55E"></div></div>
+            </div>
+            <div class="eq-item">
+              <div class="eq-meta"><span class="eq-name">In Use</span><span class="eq-count">1 unit</span></div>
+              <div class="prog"><div class="prog-f" style="width:20%;background:var(--a)"></div></div>
+            </div>
+            <div class="eq-item">
+              <div class="eq-meta"><span class="eq-name">Under Maintenance</span><span class="eq-count">1 unit</span></div>
+              <div class="prog"><div class="prog-f" style="width:20%;background:#F59E0B"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="animation-delay:0.25s">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico" style="background:rgba(34,197,94,0.12)">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="#22C55E" stroke-width="1.5"/><path d="M5 7.5l2 2 3-3" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              Fee Overview
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="fee-item"><span class="fee-name">Collected this month</span><span class="fee-val col">₹0</span></div>
+            <div class="fee-item"><span class="fee-name">Total outstanding</span><span class="fee-val out">₹19,32,500</span></div>
+            <div class="fee-item"><span class="fee-name">Labs fee</span><span class="fee-val neu">—</span></div>
+            <div class="fee-item"><span class="fee-name">Equipment fee</span><span class="fee-val neu">—</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <!-- ════════════════════ FEE STRUCTURES ══════════════════════ -->
+    <div class="page" id="page-feestructures">
+      <div class="page-hdr">
+        <div>
+          <div class="pg-title">Fee Structures</div>
+          <div class="pg-sub">Define and manage fee schedules for programs and courses</div>
+        </div>
+        <button class="btn-p" onclick="switchPage('newfee'); document.querySelectorAll('.ptab')[2].classList.add('active'); document.querySelectorAll('.ptab').forEach((t,i)=>{if(i!==2)t.classList.remove('active');})">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add Fee Structure
+        </button>
+      </div>
+
+      <div class="filter-row">
+        <select class="filter-sel"><option>Academic Year</option><option>2025-2026</option><option>2024-2025</option></select>
+        <select class="filter-sel"><option>Program</option><option>Bachelor</option><option>Master</option><option>Diploma</option></select>
+        <button class="clear-btn">Clear Filters</button>
+      </div>
+
+      <div class="card" style="animation-delay:0.05s">
+        <table class="tbl">
+          <thead><tr>
+            <th>Program</th><th>Course</th><th>Academic Year</th><th>Fee Types</th><th>Total Fee</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="tp">Bachelor</td><td>B.Sc Nursing – Generalist</td><td>2025–2026</td><td><span class="badge b-a">4 types</span></td><td class="ta">₹3,47,000</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+            <tr><td class="tp">Bachelor</td><td>B.Sc Nursing – Generalist</td><td>2024–2025</td><td><span class="badge b-p">2 types</span></td><td class="ta">₹4,65,000</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+            <tr><td class="tp">Master</td><td>M.Sc Nursing – Adult Health</td><td>2025–2026</td><td><span class="badge b-g">8 types</span></td><td class="ta">₹7,40,500</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+            <tr><td class="tp">Bachelor</td><td style="color:var(--t3)">—</td><td>2024–2025</td><td><span class="badge b-a">2 types</span></td><td class="ta">₹1,07,000</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+            <tr><td class="tp">Master</td><td style="color:var(--t3)">—</td><td>2024–2025</td><td><span class="badge b-w">1 type</span></td><td class="ta">₹45,000</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+            <tr><td class="tp">Diploma</td><td style="color:var(--t3)">—</td><td>2024–2025</td><td><span class="badge b-w">1 type</span></td><td class="ta">₹65,000</td><td style="text-align:right;color:var(--t3);cursor:pointer;font-size:18px;letter-spacing:2px;">⋯</td></tr>
+          </tbody>
+        </table>
+        <div class="tbl-foot">
+          <span>Items per page: <select class="filter-sel" style="padding:3px 10px;margin-left:6px;font-size:11px;"><option>10</option><option>25</option><option>50</option></select></span>
+          <span>1 – 6 of 6</span>
+        </div>
+      </div>
+    </div><!-- /feestructures -->
+
+    <!-- ════════════════════ NEW FEE STRUCTURE ══════════════════════ -->
+    <div class="page" id="page-newfee">
+      <div class="page-hdr">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <button class="back-btn" onclick="switchPage('feestructures'); document.querySelectorAll('.ptab').forEach((t,i)=>{t.classList.toggle('active',i===1);})">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L5 7l4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div>
+            <div class="pg-title">New Fee Structure</div>
+            <div class="pg-sub">Configure per-year fees for a program and course combination</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="animation-delay:0.05s">
+        <div class="card-b">
+          <div class="form-row">
+            <div class="form-g">
+              <label class="form-lbl">Academic Year <span>*</span></label>
+              <select class="form-ctrl"><option>2024-2025</option><option>2025-2026</option></select>
+            </div>
+            <div class="form-g">
+              <label class="form-lbl">Program <span>*</span></label>
+              <select class="form-ctrl"><option>Master</option><option>Bachelor</option><option>Diploma</option></select>
+            </div>
+            <div class="form-g">
+              <label class="form-lbl">Course</label>
+              <select class="form-ctrl"><option>M.Sc Nursing – Adult Health</option><option>B.Sc Nursing – Generalist</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="animation-delay:0.1s">
+        <div class="card-h">
+          <div class="card-ht">
+            <div class="card-hico" style="background:rgba(var(--a-rgb),0.12)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1.5" y="3.5" width="12" height="9" rx="1.5" stroke="var(--a)" stroke-width="1.5"/><path d="M5 3.5V2M10 3.5V2" stroke="var(--a)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            Fee Schedule
+          </div>
+          <span style="font-size:11px;color:var(--t3);">Leave zero to exclude</span>
+        </div>
+        <div class="card-b">
+
+          <!-- Course fees -->
+          <div class="fee-section-head">
+            <div class="fee-section-dot" style="background:var(--a)"></div>
+            Course Fees
+          </div>
+          <table class="fee-tbl">
+            <thead><tr><th style="width:38%;">Fee Type</th><th>Year 1</th><th>Year 2</th><th>Total</th></tr></thead>
+            <tbody id="course-body">
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:var(--a)"></div>Tuition Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#F59E0B"></div>Lab Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#22C55E"></div>Library Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#A78BFA"></div>Examination Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:var(--t3)"></div>Miscellaneous</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#EF4444"></div>Late Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr class="fee-total-row"><td style="font-size:12px;font-weight:700;color:var(--t1);font-family:'Sora',sans-serif;">Total Course Fees</td><td><span id="c-y1" style="color:var(--a)">₹0</span></td><td><span id="c-y2" style="color:var(--a)">₹0</span></td><td><span id="c-tot" style="color:var(--a);font-size:13px;font-weight:700">₹0</span></td></tr>
+            </tbody>
+          </table>
+
+          <!-- Additional fees -->
+          <div class="fee-section-head" style="margin-top:26px;">
+            <div class="fee-section-dot" style="background:#F59E0B"></div>
+            Additional Fees
+          </div>
+          <table class="fee-tbl">
+            <thead><tr><th style="width:38%;">Fee Type</th><th>Year 1</th><th>Year 2</th><th>Total</th></tr></thead>
+            <tbody id="add-body">
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#F59E0B"></div>Hostel Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr><td><div class="fee-type-row"><div class="ft-dot" style="background:#22C55E"></div>Transport Fee</div></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" oninput="calc()"></td><td><input class="fee-inp" type="number" value="0" readonly></td></tr>
+              <tr class="fee-total-row"><td style="font-size:12px;font-weight:700;color:var(--t1);font-family:'Sora',sans-serif;">Total Additional Fees</td><td><span id="a-y1" style="color:#F59E0B">₹0</span></td><td><span id="a-y2" style="color:#F59E0B">₹0</span></td><td><span id="a-tot" style="color:#F59E0B;font-size:13px;font-weight:700">₹0</span></td></tr>
+            </tbody>
+          </table>
+
+          <div class="form-actions">
+            <button class="btn-g" onclick="switchPage('feestructures'); document.querySelectorAll('.ptab').forEach((t,i)=>t.classList.toggle('active',i===1))">Cancel</button>
+            <button class="btn-p">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Save Fee Structure
+            </button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /newfee -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ── SIDEBAR ── */
+function toggleSB() {
+  document.getElementById('sb').classList.toggle('collapsed');
+}
+
+function navTo(el, page) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  if (page) {
+    switchPage(page);
+    const map = { dashboard: 0, feestructures: 1, newfee: 2 };
+    if (map[page] !== undefined) {
+      document.querySelectorAll('.ptab').forEach((t, i) => t.classList.toggle('active', i === map[page]));
+    }
+  }
+}
+
+/* ── PAGES ── */
+function switchPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const titles = { dashboard: 'Dashboard', feestructures: 'Fee Structures', newfee: 'New Fee Structure' };
+  document.getElementById('tb-title').textContent = titles[id] || id;
+}
+
+document.querySelectorAll('.ptab').forEach((tab, i) => {
+  tab.addEventListener('click', function () {
+    document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    const pages = ['dashboard', 'feestructures', 'newfee'];
+    switchPage(pages[i]);
+  });
+});
+
+/* ── THEME ── */
+let isDark = true;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  const icon = document.getElementById('theme-icon');
+  if (!isDark) {
+    icon.innerHTML = '<path d="M12 8a4 4 0 11-8 0c0-.73.2-1.4.55-2A5 5 0 108 13a4 4 0 004-5z" fill="currentColor"/>';
+  } else {
+    icon.innerHTML = '<circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.7 3.7L4.7 4.7M11.3 11.3l1 1M3.7 12.3l1-1M11.3 4.7l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+  }
+}
+
+/* ── PALETTE ── */
+let palOpen = false;
+function togglePalette() {
+  palOpen = !palOpen;
+  document.getElementById('pal-panel').classList.toggle('open', palOpen);
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('palette-wrap').contains(e.target)) {
+    palOpen = false;
+    document.getElementById('pal-panel').classList.remove('open');
+  }
+});
+
+function setAccent(key, name, hex, desc, el) {
+  document.documentElement.setAttribute('data-accent', key);
+  document.getElementById('pal-name').textContent = name;
+  document.getElementById('pal-dot').style.background = hex;
+  document.getElementById('pal-dot').style.boxShadow = '0 0 8px ' + hex + '80';
+  document.querySelectorAll('.pp-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  palOpen = false;
+  document.getElementById('pal-panel').classList.remove('open');
+}
+
+/* ── FEE CALCULATOR ── */
+function calc() {
+  const fmt = v => '₹' + Math.round(v).toLocaleString('en-IN');
+  ['course-body', 'add-body'].forEach((id, ti) => {
+    const rows = document.querySelectorAll('#' + id + ' tr:not(.fee-total-row)');
+    let sy1 = 0, sy2 = 0;
+    rows.forEach(row => {
+      const inp = row.querySelectorAll('input');
+      const y1 = parseFloat(inp[0]?.value) || 0;
+      const y2 = parseFloat(inp[1]?.value) || 0;
+      if (inp[2]) inp[2].value = y1 + y2;
+      sy1 += y1; sy2 += y2;
+    });
+    if (ti === 0) {
+      document.getElementById('c-y1').textContent = fmt(sy1);
+      document.getElementById('c-y2').textContent = fmt(sy2);
+      document.getElementById('c-tot').textContent = fmt(sy1 + sy2);
+    } else {
+      document.getElementById('a-y1').textContent = fmt(sy1);
+      document.getElementById('a-y2').textContent = fmt(sy2);
+      document.getElementById('a-tot').textContent = fmt(sy1 + sy2);
+    }
+  });
+}
+</script>
+</body>
+</html>

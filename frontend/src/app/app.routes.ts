@@ -569,11 +569,11 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'enquiries/admission-completion',
+    path: 'enquiries/document-submission/:id',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/enquiry/admission-completion/admission-completion-list.component').then(
-        (m) => m.AdmissionCompletionListComponent
+      import('./features/enquiry/document-collection/document-collection.component').then(
+        (m) => m.DocumentCollectionComponent
       ),
   },
   {

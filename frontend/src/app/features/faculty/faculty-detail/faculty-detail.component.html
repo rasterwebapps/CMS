@@ -1,67 +1,147 @@
-<div class="list-page">
+<div class="detail-page">
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="40"></mat-spinner>
+    <div class="profile-skeleton">
+      <cms-skeleton [circle]="true" height="64px"></cms-skeleton>
+      <div class="profile-skeleton__body">
+        <cms-skeleton [lines]="2" height="14px"></cms-skeleton>
+        <div class="profile-skeleton__chips">
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+        </div>
+      </div>
     </div>
   } @else if (faculty()) {
-    <app-page-header [title]="faculty()!.fullName" subtitle="Faculty profile and details">
-      <div actions>
-        @if (authService.isAdmin()) {
+    <!-- ── Hero ────────────────────────────────────────── -->
+    <header class="profile-hero">
+      <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+      <div class="profile-hero__body">
+        <h1 class="profile-hero__name">{{ faculty()!.fullName }}</h1>
+        <div class="profile-hero__meta">
+          <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
+          <span class="cms-badge cms-badge--blue">{{ getDesignationLabel(faculty()!.designation) }}</span>
+          <span class="cms-badge cms-badge--gray">{{ faculty()!.departmentName }}</span>
+        </div>
+        <div class="profile-hero__stats">
+          <div class="profile-stat">
+            <span class="profile-stat__value code-value">{{ faculty()!.employeeCode }}</span>
+            <span class="profile-stat__label">Employee Code</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ faculty()!.departmentName }}</span>
+            <span class="profile-stat__label">Department</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ faculty()!.joiningDate | date:'dd MMM yyyy' }}</span>
+            <span class="profile-stat__label">Joining Date</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ getDesignationLabel(faculty()!.designation) }}</span>
+            <span class="profile-stat__label">Designation</span>
+          </div>
+        </div>
+      </div>
+      @if (authService.isAdmin()) {
+        <div class="profile-hero__actions">
           <button class="btn-primary" (click)="editFaculty()">
             <mat-icon>edit</mat-icon> Edit
           </button>
-        }
-      </div>
-    </app-page-header>
+        </div>
+      }
+    </header>
 
-    <div class="content-grid">
-      <div class="content-card info-card">
-        <h3 class="section-title">Basic Information</h3>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">Employee Code</span>
-            <span class="detail-value">{{ faculty()!.employeeCode }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Email</span>
-            <span class="detail-value">{{ faculty()!.email }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Phone</span>
-            <span class="detail-value">{{ faculty()!.phone || '—' }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Department</span>
-            <span class="detail-value">{{ faculty()!.departmentName }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Designation</span>
-            <span class="detail-value">{{ getDesignationLabel(faculty()!.designation) }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Status</span>
-            <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Joining Date</span>
-            <span class="detail-value">{{ formatDate(faculty()!.joiningDate) }}</span>
+    <!-- ── Tabs ────────────────────────────────────────── -->
+    <mat-tab-group class="detail-tabs">
+      <!-- Tab 1: Profile -->
+      <mat-tab label="Profile">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Employee Code</span>
+                <span class="detail-value code-value">{{ faculty()!.employeeCode }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ faculty()!.email }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ faculty()!.phone || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Department</span>
+                <span class="detail-value">{{ faculty()!.departmentName }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Designation</span>
+                <span class="detail-value">{{ getDesignationLabel(faculty()!.designation) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Joining Date</span>
+                <span class="detail-value">{{ faculty()!.joiningDate | date:'dd MMM yyyy' }}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </mat-tab>
 
-      <div class="content-card info-card">
-        <h3 class="section-title">Professional Information</h3>
-        <div class="detail-item">
-          <span class="detail-label">Specialization</span>
-          <span class="detail-value">{{ faculty()!.specialization || 'Not specified' }}</span>
+      <!-- Tab 2: Professional -->
+      <mat-tab label="Professional">
+        <div class="tab-content">
+          <div class="content-card">
+            <p class="form-section-title">Specialization</p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Specialization</span>
+                <span class="detail-value">{{ faculty()!.specialization || 'Not specified' }}</span>
+              </div>
+            </div>
+
+            <p class="form-section-title profile-subsection">Lab Expertise</p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Lab Expertise</span>
+                <span class="detail-value">{{ faculty()!.labExpertise || 'Not specified' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="section-divider"></div>
-        <div class="detail-item">
-          <span class="detail-label">Lab Expertise</span>
-          <span class="detail-value">{{ faculty()!.labExpertise || 'Not specified' }}</span>
+      </mat-tab>
+
+      <!-- Tab 3: Courses (placeholder) -->
+      <mat-tab label="Courses">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="empty-state__content">
+              <p class="empty-state__text">Assigned courses will appear here.</p>
+              <a class="btn-secondary" [routerLink]="['/courses']">
+                <mat-icon>menu_book</mat-icon> View Courses
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </mat-tab>
+
+      <!-- Tab 4: Lab Schedules (placeholder) -->
+      <mat-tab label="Lab Schedules">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="empty-state__content">
+              <p class="empty-state__text">Lab schedule will appear here.</p>
+              <a class="btn-secondary" [routerLink]="['/lab-schedules']">
+                <mat-icon>schedule</mat-icon> View Lab Schedules
+              </a>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
   } @else {
     <p>Faculty not found</p>
   }

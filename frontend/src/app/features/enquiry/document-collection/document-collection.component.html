@@ -1,0 +1,179 @@
+<div class="form-container">
+  @if (!layoutService.isFocusMode()) {
+    <app-page-header
+      title="Collect Documents"
+      subtitle="Record the documents submitted by the candidate. Mandatory documents must all be uploaded or verified before submission."
+    >
+      <button class="btn-secondary" type="button" (click)="backToList()">
+        <mat-icon>arrow_back</mat-icon> Back to list
+      </button>
+    </app-page-header>
+  }
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+  } @else if (enquiry()) {
+    <div class="finalize-layout">
+      <div class="entry-form-card">
+        <!-- Enquiry Summary -->
+        <div class="enquiry-summary">
+          <div class="summary-row">
+            <span class="summary-label">Name</span>
+            <span class="summary-value">{{ enquiry()!.name }}</span>
+          </div>
+          @if (enquiry()!.phone) {
+            <div class="summary-row">
+              <span class="summary-label">Phone</span>
+              <span class="summary-value">{{ enquiry()!.phone }}</span>
+            </div>
+          }
+          <div class="summary-row">
+            <span class="summary-label">Program</span>
+            <span class="summary-value">{{ enquiry()!.programName || '—' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Course</span>
+            <span class="summary-value">{{ enquiry()!.courseName || '—' }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Status</span>
+            <span class="summary-value"><cms-status-badge [status]="enquiry()!.status"></cms-status-badge></span>
+          </div>
+          @if (enquiry()!.finalizedNetFee) {
+            <div class="summary-row">
+              <span class="summary-label">Net Fee</span>
+              <span class="summary-value">{{ enquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Mandatory progress -->
+        <div
+          class="mandatory-progress"
+          [class.mandatory-progress--complete]="mandatorySatisfiedCount() === mandatoryTotal"
+          aria-live="polite"
+        >
+          <mat-icon>{{ mandatorySatisfiedCount() === mandatoryTotal ? 'check_circle' : 'pending' }}</mat-icon>
+          <span>
+            <strong>{{ mandatorySatisfiedCount() }}</strong> of
+            <strong>{{ mandatoryTotal }}</strong> mandatory documents collected
+          </span>
+        </div>
+
+        <!-- Document checklist -->
+        <h3 class="section-title">Document Checklist</h3>
+        <div class="table-wrapper">
+          <table class="modern-table checklist-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th class="actions-header">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.documentType) {
+                <tr class="table-row">
+                  <td>
+                    <span class="cell-name">{{ formatDocType(row.documentType) }}</span>
+                    @if (row.isMandatory) {
+                      <span class="required-star" matTooltip="Mandatory document">*</span>
+                    }
+                  </td>
+                  <td>
+                    <cms-status-badge [status]="row.status"></cms-status-badge>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      class="field-input field-input--inline"
+                      placeholder="Optional remarks"
+                      [(ngModel)]="row.remarks"
+                      [disabled]="row.saving || !isAdminOrFrontOffice()"
+                      (blur)="onRemarksBlur(row)"
+                      [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)"
+                    />
+                  </td>
+                  <td class="row-actions-cell">
+                    <div class="row-actions">
+                      @if (row.saving) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      } @else if (isAdminOrFrontOffice()) {
+                        <button
+                          type="button"
+                          class="action-btn"
+                          [class.action-btn--active]="row.status === 'UPLOADED'"
+                          matTooltip="Mark as uploaded"
+                          (click)="saveRow(row, 'UPLOADED')"
+                          [disabled]="row.status === 'UPLOADED'"
+                          aria-label="Mark uploaded"
+                        >
+                          <mat-icon>upload_file</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          [class.action-btn--active]="row.status === 'VERIFIED'"
+                          matTooltip="Mark as verified"
+                          (click)="saveRow(row, 'VERIFIED')"
+                          [disabled]="row.status === 'VERIFIED'"
+                          aria-label="Mark verified"
+                        >
+                          <mat-icon>verified</mat-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          matTooltip="Mark as rejected"
+                          [class.action-btn--active]="row.status === 'REJECTED'"
+                          (click)="saveRow(row, 'REJECTED')"
+                          [disabled]="row.status === 'REJECTED'"
+                          aria-label="Mark rejected"
+                        >
+                          <mat-icon>close</mat-icon>
+                        </button>
+                        @if (row.document) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn--danger"
+                            matTooltip="Clear document record"
+                            (click)="removeRow(row)"
+                            aria-label="Clear document record"
+                          >
+                            <mat-icon>delete_outline</mat-icon>
+                          </button>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <p class="field-hint mandatory-hint">
+          <span class="required-star">*</span> Mandatory documents required to submit.
+        </p>
+
+        <div class="form-footer">
+          <button type="button" class="btn-cancel" (click)="backToList()">Back</button>
+          <button
+            type="button"
+            class="btn-submit"
+            [disabled]="!canSubmit() || !isAdminOrFrontOffice()"
+            (click)="submitDocuments()"
+            [matTooltip]="canSubmit() ? '' : 'All mandatory documents must be uploaded or verified'"
+          >
+            @if (submitting()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              Submit Documents
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
