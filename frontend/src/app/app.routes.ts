@@ -569,6 +569,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'enquiries/document-submission/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/document-collection/document-collection.component').then(
+        (m) => m.DocumentCollectionComponent
+      ),
+  },
+  {
     path: 'enquiries/new',
     canActivate: [authGuard],
     loadComponent: () =>

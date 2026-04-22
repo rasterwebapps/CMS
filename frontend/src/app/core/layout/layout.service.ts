@@ -17,6 +17,7 @@ export const FOCUS_MODE_PATTERNS: RegExp[] = [
   /\/enquiries\/new$/,
   /\/enquiries\/[^/]+\/edit$/,
   /\/enquiries\/[^/]+\/convert$/,
+  /\/enquiries\/document-submission\/[^/]+$/,
 ];
 
 export const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
@@ -32,6 +33,7 @@ export const FOCUS_MODE_TITLES: { pattern: RegExp; title: string }[] = [
   { pattern: /\/enquiries\/new$/, title: 'New Enquiry' },
   { pattern: /\/enquiries\/[^/]+\/edit$/, title: 'Edit Enquiry' },
   { pattern: /\/enquiries\/[^/]+\/convert$/, title: 'Create Admission' },
+  { pattern: /\/enquiries\/document-submission\/[^/]+$/, title: 'Collect Documents' },
 ];
 
 @Injectable({ providedIn: 'root' })
