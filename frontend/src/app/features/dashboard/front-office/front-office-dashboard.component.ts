@@ -154,8 +154,9 @@ export class FrontOfficeDashboardComponent implements OnInit {
    * pill will appear automatically once the field lands on `FrontOfficeDashboard`.
    */
   private conversionRateTrend(d: FrontOfficeDashboard | null): KpiTrend | undefined {
-    const previous = (d as unknown as { conversionRateLastWeek?: number })?.conversionRateLastWeek;
-    if (typeof previous !== 'number' || !d) return undefined;
+    if (!d) return undefined;
+    const previous = d.conversionRateLastWeek;
+    if (typeof previous !== 'number') return undefined;
     const delta = d.conversionRate - previous;
     if (Math.abs(delta) < 0.05) {
       return { direction: 'neutral', label: 'No change vs last week' };

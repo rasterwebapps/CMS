@@ -62,12 +62,16 @@
               <div class="class-card__status">
                 @if (item.attendanceMarked) {
                   <span class="cms-badge cms-badge--blue">Marked</span>
-                } @else {
+                } @else if (item.courseId !== undefined) {
                   <a
                     class="btn-sm-primary"
                     [routerLink]="['/attendance/mark']"
-                    [queryParams]="{ courseId: item.courseId ?? item.courseCode }"
+                    [queryParams]="{ courseId: item.courseId }"
                   >
+                    Mark Attendance
+                  </a>
+                } @else {
+                  <a class="btn-sm-primary" [routerLink]="['/attendance/mark']">
                     Mark Attendance
                   </a>
                 }

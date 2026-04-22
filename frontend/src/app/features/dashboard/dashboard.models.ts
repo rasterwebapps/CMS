@@ -17,6 +17,14 @@ export interface DashboardSummary {
   enquiryFunnel: Record<string, number>;
   feeCollectedThisMonth: number;
   feeOutstanding: number;
+  // Phase 4 — optional month-over-month deltas powering the KPI trend pills.
+  // Backend will populate these in a follow-up; until then the trend pill is hidden.
+  studentsDelta?: number;
+  feeCollectedDelta?: number;
+  feeOutstandingDelta?: number;
+  totalEnquiriesThisMonth?: number;
+  admissionsThisMonth?: number;
+  pendingDocumentsCount?: number;
 }
 
 export interface DashboardTrendPoint {
@@ -48,6 +56,8 @@ export interface FrontOfficeDashboard {
   enquiryFunnel: Record<string, number>;
   todaysEnquiries: FrontOfficeEnquiryItem[];
   pendingActionItems: string[];
+  /** Phase 4 — optional last-week conversion rate powering the KPI trend pill. */
+  conversionRateLastWeek?: number;
 }
 
 // ── Phase 4 additions ──────────────────────────────────────────────

@@ -258,7 +258,7 @@ export class AdminDashboardComponent implements OnInit {
   // the helpers return `undefined` so the trend pill is hidden — wiring is in
   // place, but never lies about data we don't have.
   private studentsTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = (s as unknown as { studentsDelta?: number })?.studentsDelta;
+    const delta = s?.studentsDelta;
     if (typeof delta !== 'number') return undefined;
     return {
       direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral',
@@ -267,21 +267,21 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private feeCollectedTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = (s as unknown as { feeCollectedDelta?: number })?.feeCollectedDelta;
+    const delta = s?.feeCollectedDelta;
     if (typeof delta !== 'number') return undefined;
     return {
       direction: delta >= 0 ? 'up' : 'down',
-      label: (delta >= 0 ? '+' : '') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
+      label: (delta >= 0 ? '+' : '-') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
     };
   }
 
   private feeOutstandingTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = (s as unknown as { feeOutstandingDelta?: number })?.feeOutstandingDelta;
+    const delta = s?.feeOutstandingDelta;
     if (typeof delta !== 'number') return undefined;
     // Outstanding going DOWN is good — both directions render in green by design.
     return {
       direction: delta <= 0 ? 'down' : 'up',
-      label: (delta <= 0 ? '−' : '+') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
+      label: (delta <= 0 ? '-' : '+') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
     };
   }
 
@@ -295,6 +295,11 @@ export class AdminDashboardComponent implements OnInit {
     const ts = Date.parse(iso);
     if (isNaN(ts)) return '';
     const diff = Date.now() - ts;
+    // Defensive: clock skew or future-dated entries shouldn't render as a
+    // negative duration — fall back to the absolute date.
+    if (diff < 0) {
+      return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
     if (diff < 60_000) return 'Just now';
     if (diff < 3_600_000) {
       const m = Math.floor(diff / 60_000);
@@ -331,11 +336,23 @@ export class AdminDashboardComponent implements OnInit {
     return map[type] ?? 'gray';
   }
 
-  /** True when the given ISO date (YYYY-MM-DD) is today in the user's timezone. */
+  /**
+   * True when the given ISO date is today in the user's local timezone.
+   * Bare `YYYY-MM-DD` strings are parsed as UTC midnight by `new Date(...)` —
+   * which can roll back to the previous day in negative-offset timezones — so
+   * we split & reconstruct in local time when no time component is supplied.
+   */
   protected isToday(date: string): boolean {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return false;
+    if (!date) return false;
     const now = new Date();
+    let d: Date;
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    if (dateOnlyMatch) {
+      d = new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]));
+    } else {
+      d = new Date(date);
+    }
+    if (isNaN(d.getTime())) return false;
     return (
       d.getFullYear() === now.getFullYear() &&
       d.getMonth() === now.getMonth() &&
