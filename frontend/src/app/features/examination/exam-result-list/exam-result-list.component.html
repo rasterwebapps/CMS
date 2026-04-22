@@ -3,12 +3,38 @@
     <h2 class="page-title">Exam Results</h2>
   </div>
   <div class="command-bar">
-    <select class="filter-select" (change)="onExaminationChange(+$any($event.target).value)" aria-label="Select examination">
-      <option value="" disabled>Select Examination</option>
-      @for (exam of examinations(); track exam.id) {
-        <option [value]="exam.id">{{ exam.name }}</option>
+    <div class="command-bar__left">
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} results</span>
       }
-    </select>
+    </div>
+    <div class="command-bar__right">
+      <select class="filter-select" (change)="onExaminationChange(+$any($event.target).value)" aria-label="Select examination">
+        <option value="" disabled>Select Examination</option>
+        @for (exam of examinations(); track exam.id) {
+          <option [value]="exam.id">{{ exam.name }}</option>
+        }
+      </select>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
+    </div>
   </div>
 
   @if (selectedExamId()) {
@@ -49,10 +75,10 @@
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
                 <td mat-cell *matCellDef="let row"><cms-status-badge [status]="row.status"></cms-status-badge></td>
               </ng-container>
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+              <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
               <tr class="mat-row" *matNoDataRow>
-                <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">No data available</td>
+                <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns().length">No data available</td>
               </tr>
             </table>
           </div>

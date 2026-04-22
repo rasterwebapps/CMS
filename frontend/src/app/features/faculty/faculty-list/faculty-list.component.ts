@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
@@ -55,16 +55,21 @@ export class FacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = [
-    'employeeCode',
-    'fullName',
-    'phone',
-    'email',
-    'departmentName',
-    'designation',
-    'status',
-    'actions',
-  ];
+  // ── Column visibility ────────────────────────────────────────────────────
+  protected readonly ALL_COLS = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'actions'];
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    employeeCode: 'Code',
+    fullName: 'Name',
+    phone: 'Phone',
+    email: 'Email',
+    departmentName: 'Department',
+    designation: 'Designation',
+    status: 'Status',
+    actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'faculty-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -147,6 +152,25 @@ export class FacultyListComponent implements OnInit {
         return 'warn';
     }
   }
+
+  private _loadColPrefs(): Set<string> {
+    try {
+      const s = localStorage.getItem(this.COLS_KEY);
+      if (s) return new Set<string>(JSON.parse(s) as string[]);
+    } catch { /* empty */ }
+    return new Set<string>(this.ALL_COLS);
+  }
+
+  protected toggleColumn(col: string): void {
+    this._visibleCols.update(s => {
+      const next = new Set(s);
+      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(faculty: Faculty): void {
     this.loading.set(true);

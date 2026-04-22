@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -47,7 +47,19 @@ export class AttendanceListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['date', 'studentName', 'courseName', 'type', 'status', 'actions'];
+  // ── Column visibility ────────────────────────────────────────────────────
+  protected readonly ALL_COLS = ['date', 'studentName', 'courseName', 'type', 'status', 'actions'];
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    date: 'Date',
+    studentName: 'Student',
+    courseName: 'Course',
+    type: 'Type',
+    status: 'Status',
+    actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'attendance-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
+  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Attendance>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -98,6 +110,25 @@ export class AttendanceListComponent implements OnInit {
       }
     });
   }
+
+  private _loadColPrefs(): Set<string> {
+    try {
+      const s = localStorage.getItem(this.COLS_KEY);
+      if (s) return new Set<string>(JSON.parse(s) as string[]);
+    } catch { /* empty */ }
+    return new Set<string>(this.ALL_COLS);
+  }
+
+  protected toggleColumn(col: string): void {
+    this._visibleCols.update(s => {
+      const next = new Set(s);
+      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private loadAttendance(): void {
     this.loading.set(true);

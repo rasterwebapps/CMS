@@ -6,13 +6,39 @@
   </app-page-header>
 
   <div class="command-bar">
-    <div class="filter-pill-group">
-      <select class="filter-select" [(ngModel)]="selectedStatus" (ngModelChange)="onStatusChange()" aria-label="Filter by status">
-        <option value="">All Statuses</option>
-        @for (s of statuses; track s) {
-          <option [value]="s">{{ s }}</option>
-        }
-      </select>
+    <div class="command-bar__left">
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} admissions</span>
+      }
+    </div>
+    <div class="command-bar__right">
+      <div class="filter-pill-group">
+        <select class="filter-select" [(ngModel)]="selectedStatus" (ngModelChange)="onStatusChange()" aria-label="Filter by status">
+          <option value="">All Statuses</option>
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </div>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
     </div>
   </div>
 
@@ -48,10 +74,10 @@
               </div>
             </td>
           </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
               <p class="empty-state__text">No admissions found</p>
             </td>
           </tr>
