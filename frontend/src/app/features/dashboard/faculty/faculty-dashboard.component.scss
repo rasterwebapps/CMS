@@ -1,0 +1,296 @@
+.faculty-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 8px 4px 32px;
+}
+
+// ── Hero strip ──────────────────────────────────────────
+.faculty-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: var(--cms-radius-lg);
+  background: linear-gradient(135deg, var(--cms-primary, #6366f1), var(--color-primary-700, #4338ca));
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(var(--cms-primary-rgb, 99 102 241), 0.4);
+}
+
+.faculty-hero__greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.faculty-hero__hi {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.faculty-hero__date {
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.faculty-hero__stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.faculty-hero__stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+
+  strong {
+    color: #fff;
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+}
+
+// ── Loading + empty states ──────────────────────────────
+.faculty-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px;
+  color: var(--cms-text-muted);
+  font-size: 0.9375rem;
+}
+
+.faculty-empty {
+  text-align: center;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.faculty-empty__icon {
+  font-size: 56px;
+  width: 56px;
+  height: 56px;
+  color: var(--cms-text-muted);
+  opacity: 0.6;
+}
+
+.faculty-empty__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--cms-text);
+}
+
+.faculty-empty__text {
+  margin: 0;
+  max-width: 480px;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+// ── Two-column grid: classes (wide) + side stack (narrow) ──
+.faculty-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+
+    .faculty-classes { order: -1; }
+  }
+}
+
+.faculty-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ── Today's Classes widget ──────────────────────────────
+.class-card {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--cms-border-light);
+  transition: background 0.15s ease;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--cms-bg-muted); border-radius: var(--cms-radius-sm); }
+
+  &--done {
+    opacity: 0.6;
+    border-bottom-color: var(--cms-border-light);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.class-card__time {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--cms-primary, #6366f1);
+  letter-spacing: 0.02em;
+}
+
+.class-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.class-card__name {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cms-text);
+}
+
+.class-card__meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+.class-card__status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// ── Pending Attendance widget ───────────────────────────
+.pending-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.pending-row__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pending-row__course {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text);
+}
+
+.pending-row__date,
+.pending-row__students {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Lab Schedule widget ─────────────────────────────────
+.lab-slot-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--cms-border-light);
+  font-size: 0.8125rem;
+
+  &:last-child { border-bottom: none; }
+}
+
+.lab-slot-row__date {
+  font-weight: 600;
+  color: var(--cms-text);
+  min-width: 80px;
+}
+
+.lab-slot-row__time {
+  color: var(--cms-text-muted);
+  font-size: 0.75rem;
+}
+
+.lab-slot-row__lab {
+  color: var(--cms-text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lab-slot-row__batch {
+  color: var(--cms-text-muted);
+  font-size: 0.75rem;
+}
+
+// ── Small action buttons ────────────────────────────────
+.btn-sm-primary,
+.btn-sm-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-sm-primary {
+  background: var(--cms-primary, #6366f1);
+  color: #fff;
+
+  &:hover { opacity: 0.9; }
+}
+
+.btn-sm-secondary {
+  background: transparent;
+  color: var(--cms-primary, #6366f1);
+  border: 1px solid var(--cms-border);
+
+  &:hover { background: var(--cms-bg-muted); }
+}
+
+.empty-hint {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.all-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--cms-success, #10b981);
+  font-size: 0.875rem;
+  font-weight: 600;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}

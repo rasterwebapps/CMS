@@ -6,11 +6,6 @@
       <div class="fo-hero__text">
         <p class="fo-hero__eyebrow">📋 Admissions Desk</p>
         <h2 class="fo-hero__greeting font-display">{{ authService.username() || 'Front Office' }} &bull; {{ today }}</h2>
-        <p class="fo-hero__stats">
-          Today: {{ foData()?.todayEnquiryCount ?? 0 }} enquiries &nbsp;&bull;&nbsp;
-          ₹{{ (foData()?.feeCollectedToday ?? 0) | number }} collected &nbsp;&bull;&nbsp;
-          {{ foData()?.pendingActionItems?.length ?? 0 }} item{{ (foData()?.pendingActionItems?.length ?? 0) !== 1 ? 's' : '' }} need attention
-        </p>
       </div>
       <div class="fo-hero__deco">
         <div class="deco-circle deco-1"></div>
@@ -18,6 +13,24 @@
         <div class="deco-circle deco-3"></div>
       </div>
     </div>
+  </div>
+
+  <!-- ── Today's Summary Strip (Phase 4) ───────────── -->
+  <div class="fo-today-strip">
+    <span class="fo-today-stat">
+      <strong class="font-mono">{{ foData()?.todayEnquiryCount ?? 0 }}</strong>
+      enquiries today
+    </span>
+    <span class="fo-today-divider"></span>
+    <span class="fo-today-stat">
+      <strong class="font-mono">₹{{ (foData()?.feeCollectedToday ?? 0) | number }}</strong>
+      collected
+    </span>
+    <span class="fo-today-divider"></span>
+    <span class="fo-today-stat">
+      <strong class="font-mono">{{ foData()?.pendingActionItems?.length ?? 0 }}</strong>
+      pending
+    </span>
   </div>
 
   <!-- ── CTA Quick Actions ─────────────────────────── -->
@@ -29,15 +42,18 @@
     </div>
   } @else {
     <div class="fo-cta-row">
-      <a routerLink="/enquiries/new" class="fo-cta fo-cta--sky">
+      <a routerLink="/enquiries/new" class="fo-cta fo-cta--primary fo-cta--hero">
         <mat-icon>add</mat-icon>
-        New Enquiry
+        <span class="fo-cta__text">
+          <span class="fo-cta__label">New Enquiry</span>
+          <span class="fo-cta__sub">Walk-in · Quick registration</span>
+        </span>
       </a>
-      <a routerLink="/admissions/new" class="fo-cta fo-cta--lime">
+      <a routerLink="/admissions/new" class="fo-cta fo-cta--secondary">
         <mat-icon>person_add</mat-icon>
         New Admission
       </a>
-      <a routerLink="/fee-payments/new" class="fo-cta fo-cta--teal">
+      <a routerLink="/fee-payments/new" class="fo-cta fo-cta--secondary">
         <mat-icon>payments</mat-icon>
         Collect Payment
       </a>
@@ -67,6 +83,7 @@
           [colorVariant]="card.color"
           [subtitle]="card.subtitle"
           [animationDelay]="card.delay"
+          [trend]="card.trend"
         />
       }
     </div>

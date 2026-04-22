@@ -509,6 +509,129 @@
   &[data-color='red']    { background: rgba(239,68,68,0.1);   color: #dc2626; }
   &[data-color='emerald']{ background: rgba(16,185,129,0.12); color: #059669; }
   &[data-color='violet'] { background: rgba(139,92,246,0.12); color: #7c3aed; }
+  &[data-color='gray']   { background: var(--cms-bg-muted);    color: var(--cms-text-muted); }
+}
+
+.admin-calendar-pill--loading {
+  min-width: 140px;
+  padding: 10px 16px;
+  background: var(--cms-bg-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// ── Recent Activity Feed (Phase 4) ────────────────────
+.activity-card {
+  margin-bottom: 28px;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .widget-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--cms-radius-md);
+    border: 1px solid var(--cms-border-light);
+    background: transparent;
+    color: var(--cms-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    &:hover:not(:disabled) {
+      background: var(--cms-bg-muted);
+      color: var(--cms-text);
+    }
+
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
+  }
+}
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--cms-border-light);
+  min-height: 40px;
+
+  &:last-child { border-bottom: none; }
+
+  &--loading { grid-template-columns: 24px 1fr; }
+}
+
+.activity-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-muted);
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &[data-entity='ENQUIRY']   { background: rgba(59,130,246,0.12);  color: #2563eb; }
+  &[data-entity='ADMISSION'] { background: rgba(16,185,129,0.12);  color: #059669; }
+  &[data-entity='STUDENT']   { background: rgba(99,102,241,0.12);  color: #4f46e5; }
+  &[data-entity='PAYMENT']   { background: rgba(20,184,166,0.12);  color: #0d9488; }
+  &[data-entity='DOCUMENT']  { background: rgba(139,92,246,0.12);  color: #7c3aed; }
+}
+
+.activity-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-item__action {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-item__meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+.activity-item__link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-primary, #6366f1);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
 }
 
 // ── Skeletons ─────────────────────────────────────────

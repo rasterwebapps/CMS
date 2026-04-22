@@ -46,6 +46,7 @@
           [colorVariant]="card.color"
           [subtitle]="card.subtitle"
           [animationDelay]="card.delay"
+          [trend]="card.trend"
         />
       }
     </div>
@@ -147,6 +148,53 @@
       }
     </div>
   }
+
+  <!-- ── Recent Activity Feed (Phase 4) ────────────────── -->
+  <div class="content-card widget-card activity-card">
+    <div class="widget-header activity-header">
+      <div class="widget-header-left">
+        <div class="widget-icon-wrap widget-icon-violet">
+          <mat-icon>history</mat-icon>
+        </div>
+        <h3 class="widget-title">Recent Activity</h3>
+      </div>
+      <button type="button" class="btn-toolbar" (click)="refreshActivity()" [disabled]="activityLoading()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+    <div class="widget-card__body">
+      @if (activityLoading()) {
+        <div class="activity-feed">
+          @for (n of [1,2,3,4,5]; track n) {
+            <div class="activity-item activity-item--loading">
+              <cms-skeleton [circle]="true" height="24px"></cms-skeleton>
+              <div class="activity-item__body">
+                <cms-skeleton [lines]="1" height="14px"></cms-skeleton>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="activity-feed">
+          @for (item of activityFeed(); track item.id) {
+            <div class="activity-item">
+              <div class="activity-item__icon" [attr.data-entity]="item.entityType">
+                <mat-icon>{{ activityIcon(item.entityType) }}</mat-icon>
+              </div>
+              <div class="activity-item__body">
+                <p class="activity-item__action">{{ item.action }}</p>
+                <p class="activity-item__meta">by {{ item.actor }} · {{ relativeTime(item.timestamp) }}</p>
+              </div>
+              <a [routerLink]="item.linkPath" class="activity-item__link">View →</a>
+            </div>
+          } @empty {
+            <p class="empty-hint">No recent activity.</p>
+          }
+        </div>
+      }
+    </div>
+  </div>
 
   <!-- ── Two-column: Lab Utilization + Fee Overview ── -->
   @if (!loading() && summary(); as s) {
@@ -409,18 +457,34 @@
     </div>
   }
 
-  <!-- ── Academic Calendar Strip ──────────────────── -->
+  <!-- ── Academic Calendar Strip (Phase 4: live API) ── -->
   <h3 class="section-title">
     <mat-icon class="section-icon">event</mat-icon>
     Academic Calendar
   </h3>
-  <!-- TODO: Replace with live academic calendar API -->
   <div class="admin-calendar-strip">
-    @for (pill of calendarPills; track pill.label) {
-      <div class="admin-calendar-pill" [attr.data-color]="pill.color">
-        <span class="pill-date">{{ pill.date }}</span>
-        <span class="pill-label">{{ pill.label }}</span>
+    @if (calendarLoading()) {
+      @for (n of [1,2,3]; track n) {
+        <div class="admin-calendar-pill admin-calendar-pill--loading">
+          <cms-skeleton [lines]="1" height="10px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="12px"></cms-skeleton>
+        </div>
+      }
+    } @else if (calendarEvents().length === 0) {
+      <div class="admin-calendar-pill" [attr.data-color]="'gray'">
+        <span class="pill-date">—</span>
+        <span class="pill-label">No upcoming events</span>
       </div>
+    } @else {
+      @for (event of calendarEvents(); track event.id) {
+        <div class="admin-calendar-pill" [attr.data-color]="calendarColor(event.type)">
+          <span class="pill-date">
+            @if (isToday(event.date)) { Today }
+            @else { {{ event.date | date: 'd MMM' }} }
+          </span>
+          <span class="pill-label">{{ event.label }}</span>
+        </div>
+      }
     }
   </div>
 

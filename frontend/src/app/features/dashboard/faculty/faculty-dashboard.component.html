@@ -1,0 +1,138 @@
+<div class="faculty-dashboard">
+
+  <!-- ── Hero strip ─────────────────────────────────── -->
+  <div class="faculty-hero anim-rise">
+    <div class="faculty-hero__greeting">
+      <p class="faculty-hero__hi font-display">Good morning, {{ authService.username() || 'Faculty' }}</p>
+      <p class="faculty-hero__date">{{ today }}</p>
+    </div>
+    @if (facultyData(); as d) {
+      <div class="faculty-hero__stats">
+        <span class="faculty-hero__stat">
+          <strong class="font-mono">{{ d.assignedCourseCount }}</strong>
+          courses assigned
+        </span>
+        <span class="faculty-hero__stat">
+          <strong class="font-mono">{{ d.totalStudentCount }}</strong>
+          students
+        </span>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="faculty-loading">
+      <mat-icon>hourglass_top</mat-icon>
+      Loading your dashboard…
+    </div>
+  } @else if (endpointMissing() || !facultyData()) {
+    <!-- Full-page empty state when the backend endpoint isn't available yet. -->
+    <div class="content-card faculty-empty">
+      <mat-icon class="faculty-empty__icon">school</mat-icon>
+      <h3 class="faculty-empty__title">Faculty dashboard data not yet available</h3>
+      <p class="faculty-empty__text">
+        Your classes, attendance, and lab schedule will appear here once the backend
+        service is enabled. In the meantime you can still navigate the app from the
+        sidebar.
+      </p>
+    </div>
+  } @else if (facultyData(); as d) {
+    <div class="faculty-grid">
+
+      <!-- ── Today's Classes (right / wide) ───────────── -->
+      <div class="content-card widget-card faculty-classes">
+        <div class="widget-header">
+          <div class="widget-icon-wrap">
+            <mat-icon>schedule</mat-icon>
+          </div>
+          <h3 class="widget-title">My Classes Today</h3>
+        </div>
+        <div class="widget-card__body">
+          @for (item of d.todayClasses; track item.courseCode + item.startTime) {
+            <div class="class-card" [class.class-card--done]="item.attendanceMarked">
+              <div class="class-card__time font-mono">
+                {{ item.startTime }} – {{ item.endTime }}
+              </div>
+              <div class="class-card__info">
+                <p class="class-card__name">{{ item.courseName }}</p>
+                <p class="class-card__meta">
+                  {{ item.courseCode }} · {{ item.batch }} · {{ item.room }}
+                </p>
+              </div>
+              <div class="class-card__status">
+                @if (item.attendanceMarked) {
+                  <span class="cms-badge cms-badge--blue">Marked</span>
+                } @else {
+                  <a
+                    class="btn-sm-primary"
+                    [routerLink]="['/attendance/mark']"
+                    [queryParams]="{ courseId: item.courseId ?? item.courseCode }"
+                  >
+                    Mark Attendance
+                  </a>
+                }
+              </div>
+            </div>
+          } @empty {
+            <p class="empty-hint">No classes scheduled for today.</p>
+          }
+        </div>
+      </div>
+
+      <!-- ── Side column (left / narrow) ──────────────── -->
+      <div class="faculty-side">
+
+        <!-- Pending Attendance -->
+        <div class="content-card widget-card">
+          <div class="widget-header">
+            <div class="widget-icon-wrap widget-icon-amber">
+              <mat-icon>fact_check</mat-icon>
+            </div>
+            <h3 class="widget-title">Pending Attendance ({{ d.pendingAttendanceCount }})</h3>
+          </div>
+          <div class="widget-card__body">
+            @for (s of d.pendingAttendanceSessions; track s.id) {
+              <div class="pending-row">
+                <div class="pending-row__info">
+                  <span class="pending-row__course">{{ s.courseName }}</span>
+                  <span class="pending-row__date">{{ s.date | date: 'mediumDate' }}</span>
+                  <span class="pending-row__students">{{ s.studentCount }} students</span>
+                </div>
+                <a class="btn-sm-secondary" [routerLink]="s.linkPath">Mark →</a>
+              </div>
+            } @empty {
+              <div class="all-clear">
+                <mat-icon>check_circle</mat-icon>
+                All caught up!
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Lab Schedule -->
+        <div class="content-card widget-card">
+          <div class="widget-header">
+            <div class="widget-icon-wrap widget-icon-violet">
+              <mat-icon>science</mat-icon>
+            </div>
+            <h3 class="widget-title">Lab Schedule</h3>
+          </div>
+          <div class="widget-card__body">
+            @for (slot of d.upcomingLabSlots; track slot.date + slot.startTime + slot.labName) {
+              <div class="lab-slot-row">
+                <span class="lab-slot-row__date">{{ slot.date | date: 'EEE d MMM' }}</span>
+                <span class="lab-slot-row__time font-mono">{{ slot.startTime }}–{{ slot.endTime }}</span>
+                <span class="lab-slot-row__lab">{{ slot.labName }}</span>
+                <span class="lab-slot-row__batch">{{ slot.batch }}</span>
+              </div>
+            } @empty {
+              <p class="empty-hint">No lab slots scheduled.</p>
+            }
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  }
+</div>

@@ -8,7 +8,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
 import { FrontOfficeDashboard } from '../dashboard.models';
-import { DashboardKpiCardComponent } from '../shared/kpi-card/dashboard-kpi-card.component';
+import { DashboardKpiCardComponent, KpiTrend } from '../shared/kpi-card/dashboard-kpi-card.component';
+
+interface FoKpiCard {
+  title: string;
+  value: string;
+  icon: string;
+  color: 'sky' | 'amber' | 'teal' | 'emerald' | 'violet';
+  subtitle: string;
+  delay: string;
+  trend?: KpiTrend;
+}
 
 @Component({
   selector: 'app-front-office-dashboard',
@@ -38,14 +48,14 @@ export class FrontOfficeDashboardComponent implements OnInit {
     day: 'numeric',
   });
 
-  protected readonly kpiCards = computed(() => {
+  protected readonly kpiCards = computed((): FoKpiCard[] => {
     const d = this.foData();
     return [
       {
         title: "Today's Enquiries",
         value: d ? String(d.todayEnquiryCount) : '—',
         icon: 'contact_mail',
-        color: 'sky' as const,
+        color: 'sky',
         subtitle: 'Today',
         delay: '0ms',
       },
@@ -53,7 +63,7 @@ export class FrontOfficeDashboardComponent implements OnInit {
         title: 'Pending Admissions',
         value: d ? String(d.pendingAdmissionsCount) : '—',
         icon: 'assignment_ind',
-        color: 'amber' as const,
+        color: 'amber',
         subtitle: 'Need attention',
         delay: '60ms',
       },
@@ -61,7 +71,7 @@ export class FrontOfficeDashboardComponent implements OnInit {
         title: 'Fees Collected',
         value: d ? '₹' + d.feeCollectedToday.toLocaleString('en-IN') : '—',
         icon: 'payments',
-        color: 'teal' as const,
+        color: 'teal',
         subtitle: 'Today',
         delay: '120ms',
       },
@@ -69,7 +79,7 @@ export class FrontOfficeDashboardComponent implements OnInit {
         title: 'Conversions',
         value: d ? String(d.conversionsThisWeek) : '—',
         icon: 'how_to_reg',
-        color: 'emerald' as const,
+        color: 'emerald',
         subtitle: 'This week',
         delay: '180ms',
       },
@@ -77,9 +87,10 @@ export class FrontOfficeDashboardComponent implements OnInit {
         title: 'Conversion Rate',
         value: d ? d.conversionRate.toFixed(1) + '%' : '—',
         icon: 'trending_up',
-        color: 'violet' as const,
+        color: 'violet',
         subtitle: 'Enquiry → Student',
         delay: '240ms',
+        trend: this.conversionRateTrend(d),
       },
     ];
   });
@@ -135,5 +146,23 @@ export class FrontOfficeDashboardComponent implements OnInit {
       ADMITTED: 'green',
     };
     return map[status] ?? 'grey';
+  }
+
+  /**
+   * Conversion-rate trend pill. Backend does not yet expose last week's rate,
+   * so the helper returns `undefined` for now — the wiring is in place and the
+   * pill will appear automatically once the field lands on `FrontOfficeDashboard`.
+   */
+  private conversionRateTrend(d: FrontOfficeDashboard | null): KpiTrend | undefined {
+    const previous = (d as unknown as { conversionRateLastWeek?: number })?.conversionRateLastWeek;
+    if (typeof previous !== 'number' || !d) return undefined;
+    const delta = d.conversionRate - previous;
+    if (Math.abs(delta) < 0.05) {
+      return { direction: 'neutral', label: 'No change vs last week' };
+    }
+    return {
+      direction: delta > 0 ? 'up' : 'down',
+      label: (delta > 0 ? '+' : '') + delta.toFixed(1) + '% vs last week',
+    };
   }
 }

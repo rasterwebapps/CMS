@@ -11,6 +11,8 @@
     <app-admin-dashboard />
   } @else if (activeRole() === 'ROLE_FRONT_OFFICE') {
     <app-front-office-dashboard />
+  } @else if (activeRole() === 'ROLE_FACULTY') {
+    <app-faculty-dashboard />
   } @else if (activeRole() === '') {
     <!-- No role matched — show nothing (handled on init) -->
   }
