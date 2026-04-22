@@ -1,90 +1,42 @@
-.faculty-detail-container {
-  padding: 24px 32px;
+// Faculty Profile — hero + tabs. Layout primitives live in styles.scss
+// (.detail-page, .profile-hero*, .profile-stat*, .detail-grid). This file
+// only adds component-scoped tweaks.
 
-  .loading-spinner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
-  }
+.tab-content {
+  padding: 16px 0;
+}
 
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
+.profile-subsection {
+  margin-top: 24px;
+}
 
-    h1 {
-      flex: 1;
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-  }
+// Skeleton for the loading state
+.profile-skeleton {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px 32px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+}
 
-  .content-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+.profile-skeleton__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-    @media (max-width: 960px) {
-      grid-template-columns: 1fr;
-    }
-  }
+.profile-skeleton__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 
-  .info-card {
-    border-radius: var(--cms-radius-lg) !important;
-
-    mat-card-content {
-      padding-top: 16px;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-
-      .info-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 4px 0;
-
-        .label {
-          font-size: 0.6875rem;
-          color: var(--cms-text-muted);
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-
-        .value {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--cms-text-primary);
-        }
-      }
-    }
-
-    .info-section {
-      padding: 16px 0;
-      border-top: 1px solid var(--cms-border-light);
-
-      h4 {
-        margin: 0 0 8px 0;
-        font-size: 0.75rem;
-        color: var(--cms-text-muted);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: var(--cms-text-secondary);
-      }
-    }
+  cms-skeleton {
+    flex: 1 1 140px;
+    min-width: 140px;
   }
 }
+
+// mat-tab visual upgrade lives in styles.scss under .detail-tabs (Phase 3 §7).

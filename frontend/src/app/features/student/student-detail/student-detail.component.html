@@ -1,141 +1,161 @@
-<div class="list-page">
-  <app-page-header
-    [title]="student() ? student()!.fullName : 'Student Details'"
-    subtitle="View student profile and details"
-  >
-    <div actions>
-      @if (student()) {
+<div class="detail-page">
+  @if (loading()) {
+    <div class="profile-skeleton">
+      <cms-skeleton [circle]="true" height="64px"></cms-skeleton>
+      <div class="profile-skeleton__body">
+        <cms-skeleton [lines]="2" height="14px"></cms-skeleton>
+        <div class="profile-skeleton__chips">
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+        </div>
+      </div>
+    </div>
+  } @else if (student()) {
+    <!-- ── Hero ────────────────────────────────────────── -->
+    <header class="profile-hero">
+      <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+      <div class="profile-hero__body">
+        <h1 class="profile-hero__name">{{ student()!.fullName }}</h1>
+        <div class="profile-hero__meta">
+          <cms-status-badge [status]="student()!.status"></cms-status-badge>
+          <span class="cms-badge cms-badge--blue">{{ student()!.programName }}</span>
+          <span class="cms-badge cms-badge--gray">Sem {{ student()!.semester }}</span>
+        </div>
+        <div class="profile-hero__stats">
+          <div class="profile-stat">
+            <span class="profile-stat__value code-value">{{ student()!.rollNumber }}</span>
+            <span class="profile-stat__label">Roll Number</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ student()!.programName }}</span>
+            <span class="profile-stat__label">Program</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ student()!.admissionDate }}</span>
+            <span class="profile-stat__label">Admission Date</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ student()!.labBatch || '—' }}</span>
+            <span class="profile-stat__label">Lab Batch</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-hero__actions">
         <button class="btn-primary" (click)="editStudent()">
           <mat-icon>edit</mat-icon> Edit
         </button>
-      }
-    </div>
-  </app-page-header>
-
-  @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
-  } @else if (student()) {
-    <div class="content-card">
-      <h3 class="section-title">Basic Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Roll Number</span>
-          <span class="detail-value">{{ student()!.rollNumber }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Full Name</span>
-          <span class="detail-value">{{ student()!.fullName }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Email</span>
-          <span class="detail-value">{{ student()!.email }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Phone</span>
-          <span class="detail-value">{{ student()!.phone || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Program</span>
-          <span class="detail-value">{{ student()!.programName }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Semester</span>
-          <span class="detail-value">{{ student()!.semester }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Lab Batch</span>
-          <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Status</span>
-          <cms-status-badge [status]="student()!.status"></cms-status-badge>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Admission Date</span>
-          <span class="detail-value">{{ student()!.admissionDate }}</span>
-        </div>
       </div>
+    </header>
 
-      <div class="section-divider"></div>
-      <h3 class="section-title">Personal Details</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Date of Birth</span>
-          <span class="detail-value">{{ student()!.dateOfBirth || '—' }}</span>
+    <!-- ── Tabs ────────────────────────────────────────── -->
+    <mat-tab-group class="detail-tabs">
+      <!-- Tab 1: Profile -->
+      <mat-tab label="Profile">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Roll Number</span>
+                <span class="detail-value code-value">{{ student()!.rollNumber }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Full Name</span>
+                <span class="detail-value">{{ student()!.fullName }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ student()!.email }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ student()!.phone || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Program</span>
+                <span class="detail-value">{{ student()!.programName }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Semester</span>
+                <span class="detail-value">{{ student()!.semester }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Lab Batch</span>
+                <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <cms-status-badge [status]="student()!.status"></cms-status-badge>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Admission Date</span>
+                <span class="detail-value">{{ student()!.admissionDate }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">Gender</span>
-          <span class="detail-value">{{ student()!.gender || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Nationality</span>
-          <span class="detail-value">{{ student()!.nationality || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Religion</span>
-          <span class="detail-value">{{ student()!.religion || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Community Category</span>
-          <span class="detail-value">{{ student()!.communityCategory || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Caste</span>
-          <span class="detail-value">{{ student()!.caste || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Blood Group</span>
-          <span class="detail-value">{{ student()!.bloodGroup || '—' }}</span>
-        </div>
-      </div>
+      </mat-tab>
 
-      <div class="section-divider"></div>
-      <h3 class="section-title">Family Details</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Father's Name</span>
-          <span class="detail-value">{{ student()!.fatherName || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Mother's Name</span>
-          <span class="detail-value">{{ student()!.motherName || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Parent Mobile</span>
-          <span class="detail-value">{{ student()!.parentMobile || '—' }}</span>
-        </div>
-      </div>
+      <!-- Tab 2: Personal & Family -->
+      <mat-tab label="Personal & Family">
+        <div class="tab-content">
+          <div class="content-card">
+            <p class="form-section-title">Personal Details</p>
+            <div class="detail-grid">
+              <div class="detail-item"><span class="detail-label">Date of Birth</span><span class="detail-value">{{ student()!.dateOfBirth || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Gender</span><span class="detail-value">{{ student()!.gender || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Nationality</span><span class="detail-value">{{ student()!.nationality || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Religion</span><span class="detail-value">{{ student()!.religion || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Community Category</span><span class="detail-value">{{ student()!.communityCategory || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Caste</span><span class="detail-value">{{ student()!.caste || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Blood Group</span><span class="detail-value">{{ student()!.bloodGroup || '—' }}</span></div>
+            </div>
 
-      <div class="section-divider"></div>
-      <h3 class="section-title">Address</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Postal Address</span>
-          <span class="detail-value">{{ student()!.postalAddress || '—' }}</span>
+            <p class="form-section-title profile-subsection">Family Details</p>
+            <div class="detail-grid">
+              <div class="detail-item"><span class="detail-label">Father's Name</span><span class="detail-value">{{ student()!.fatherName || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Mother's Name</span><span class="detail-value">{{ student()!.motherName || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Parent Mobile</span><span class="detail-value">{{ student()!.parentMobile || '—' }}</span></div>
+            </div>
+
+            <p class="form-section-title profile-subsection">Address</p>
+            <div class="detail-grid">
+              <div class="detail-item"><span class="detail-label">Postal Address</span><span class="detail-value">{{ student()!.postalAddress || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Street</span><span class="detail-value">{{ student()!.street || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">City</span><span class="detail-value">{{ student()!.city || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">District</span><span class="detail-value">{{ student()!.district || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">State</span><span class="detail-value">{{ student()!.state || '—' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Pincode</span><span class="detail-value">{{ student()!.pincode || '—' }}</span></div>
+            </div>
+          </div>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">Street</span>
-          <span class="detail-value">{{ student()!.street || '—' }}</span>
+      </mat-tab>
+
+      <!-- Tab 3: Academic (placeholder) -->
+      <mat-tab label="Academic">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="empty-state__content">
+              <p class="empty-state__text">Academic data will be available here.</p>
+            </div>
+          </div>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">City</span>
-          <span class="detail-value">{{ student()!.city || '—' }}</span>
+      </mat-tab>
+
+      <!-- Tab 4: Finance (placeholder + link to fee details) -->
+      <mat-tab label="Finance">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="empty-state__content">
+              <p class="empty-state__text">Full finance details are available on the dedicated fee screen.</p>
+              <a class="btn-secondary" [routerLink]="['/student-fees', student()!.id]">
+                <mat-icon>account_balance_wallet</mat-icon> View Fee Details
+              </a>
+            </div>
+          </div>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">District</span>
-          <span class="detail-value">{{ student()!.district || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">State</span>
-          <span class="detail-value">{{ student()!.state || '—' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Pincode</span>
-          <span class="detail-value">{{ student()!.pincode || '—' }}</span>
-        </div>
-      </div>
-    </div>
+      </mat-tab>
+    </mat-tab-group>
   }
 </div>

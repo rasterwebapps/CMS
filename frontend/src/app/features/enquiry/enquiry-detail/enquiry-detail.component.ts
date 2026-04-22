@@ -1,16 +1,15 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import {
   Enquiry,
   EnquiryDocument,
@@ -27,12 +26,12 @@ import {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
     CurrencyPipe,
     DatePipe,
     PageHeaderComponent,
     CmsStatusBadgeComponent,
+    CmsSkeletonComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
@@ -50,9 +49,22 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly paymentColumns = ['receiptNumber', 'amountPaid', 'paymentDate', 'paymentMode', 'collectedBy'];
   protected readonly historyColumns = ['changedAt', 'fromStatus', 'toStatus', 'changedBy', 'remarks'];
-  protected readonly docColumns = ['documentType', 'status', 'verifiedBy', 'verifiedAt'];
+
+  // Quick-stat computed signals (Phase 3 §2.3 / §2.8)
+  protected readonly daysActive = computed(() => {
+    const e = this.enquiry();
+    if (!e?.enquiryDate) return 0;
+    const ms = Date.now() - Date.parse(e.enquiryDate);
+    return Math.max(0, Math.floor(ms / 86_400_000));
+  });
+  protected readonly totalPaid = computed(() =>
+    this.payments().reduce((sum, p) => sum + (p.amountPaid ?? 0), 0),
+  );
+  protected readonly docsVerified = computed(
+    () => this.documents().filter((d) => d.status === 'VERIFIED').length,
+  );
+  protected readonly docsTotal = computed(() => this.documents().length);
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -105,5 +117,35 @@ export class EnquiryDetailComponent implements OnInit {
   protected navigateToConvert(): void {
     const id = this.enquiry()?.id;
     if (id) void this.router.navigate(['/enquiries', id, 'convert']);
+  }
+
+  /** Maps payment mode → receipt-card border-left modifier class. */
+  protected receiptModeClass(mode: string | null | undefined): string {
+    switch ((mode || '').toUpperCase()) {
+      case 'CASH':
+        return 'receipt-card--cash';
+      case 'CHEQUE':
+      case 'DD':
+        return 'receipt-card--cheque';
+      case 'ONLINE':
+      case 'UPI':
+      case 'CARD':
+      case 'NEFT':
+      case 'RTGS':
+      default:
+        return 'receipt-card--online';
+    }
+  }
+
+  /** Maps document status → doc-row icon modifier class. */
+  protected docIconClass(status: string | null | undefined): string {
+    switch ((status || '').toUpperCase()) {
+      case 'VERIFIED':
+        return 'doc-row__icon--verified';
+      case 'REJECTED':
+        return 'doc-row__icon--rejected';
+      default:
+        return 'doc-row__icon--pending';
+    }
   }
 }
