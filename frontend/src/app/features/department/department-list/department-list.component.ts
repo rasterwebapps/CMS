@@ -11,6 +11,7 @@ import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsViewToggleComponent, CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 
 @Component({
   selector: 'app-department-list',
@@ -25,6 +26,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatSnackBarModule,
     MatDialogModule,
     MatTooltipModule,
+    CmsViewToggleComponent,
   ],
   templateUrl: './department-list.component.html',
   styleUrl: './department-list.component.scss',
@@ -56,6 +58,30 @@ export class DepartmentListComponent implements OnInit {
   protected readonly dataSource = new MatTableDataSource<Department>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+
+  // ── View mode (card / table) ─────────────────────────────────────────────
+  protected readonly viewMode = signal<CmsViewMode>('card');
+  protected readonly VIEW_KEY = 'department-list-view';
+
+  protected onViewModeChange(mode: CmsViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  /** Filtered rows for the card grid (mirrors MatTableDataSource filter). */
+  protected readonly visibleRows = computed<Department[]>(() => {
+    // Re-evaluate when search changes
+    this.searchValue();
+    return this.dataSource.filteredData;
+  });
+
+  protected initials(name?: string | null): string {
+    if (!name) return '—';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '—';
+    const first = parts[0]?.[0] ?? '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
+    return (first + last).toUpperCase() || '—';
+  }
 
   ngOnInit(): void {
     this.loadDepartments();

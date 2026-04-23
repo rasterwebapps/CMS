@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +7,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-department-form',
@@ -18,6 +20,8 @@ import { DepartmentRequest } from '../department.model';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
@@ -34,6 +38,40 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
+  // ── Live preview state ───────────────────────────────────────────────────
+  // These signals mirror the form values and drive the preview card.
+  protected readonly previewName = signal('');
+  protected readonly previewCode = signal('');
+  protected readonly previewDescription = signal('');
+  protected readonly previewHod = signal('');
+
+  protected readonly previewInitials = computed(() => {
+    const name = this.previewHod().trim();
+    if (!name) return '';
+    const parts = name.split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
+    return (first + last).toUpperCase();
+  });
+
+  protected readonly tips: CmsTip[] = [
+    {
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      title: 'Use a short, uppercase code',
+      subtitle: 'Codes such as CS, EE or NUR appear as monospace badges across lists and reports.',
+    },
+    {
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>',
+      title: 'Assign a Head of Department',
+      subtitle: 'The HOD name appears with an avatar on department cards and in faculty linkage flows.',
+    },
+    {
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+      title: 'Description is searchable',
+      subtitle: 'A clear one-line description helps users find the department from global search.',
+    },
+  ];
+
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
@@ -42,6 +80,15 @@ export class DepartmentFormComponent implements OnInit {
     description: ['', [Validators.maxLength(500)]],
     hodName: ['', [Validators.maxLength(100)]],
   });
+
+  constructor() {
+    // Wire each form control to its preview signal so the live preview
+    // updates as the user types.
+    this.form.get('name')?.valueChanges.subscribe((v: string | null) => this.previewName.set(v ?? ''));
+    this.form.get('code')?.valueChanges.subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
+    this.form.get('description')?.valueChanges.subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
+    this.form.get('hodName')?.valueChanges.subscribe((v: string | null) => this.previewHod.set(v ?? ''));
+  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');

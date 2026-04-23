@@ -16,77 +16,110 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
 
-        <div class="field-group">
-          <label for="dept-name" class="field-label">Name</label>
-          <input
-            id="dept-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Computer Science"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">{{ getErrorMessage('name') }}</p>
-          }
-        </div>
+      <!-- ── Left: form card ────────────────────────────────────────── -->
+      <div class="entry-form-card">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-        <div class="field-group">
-          <label for="dept-code" class="field-label">Code</label>
-          <input
-            id="dept-code"
-            class="field-input field-input--narrow"
-            formControlName="code"
-            placeholder="e.g., CS, EE, ME"
-            autocomplete="off"
-            [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
-          />
-          <p class="field-hint">Short uppercase code for the department (max 20 characters)</p>
-          @if (form.get('code')?.invalid && form.get('code')?.touched) {
-            <p class="field-error">{{ getErrorMessage('code') }}</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label for="dept-description" class="field-label">Description</label>
-          <textarea
-            id="dept-description"
-            class="field-textarea"
-            formControlName="description"
-            placeholder="Enter a brief description of the department"
-            rows="3"
-          ></textarea>
-          @if (form.get('description')?.invalid && form.get('description')?.touched) {
-            <p class="field-error">{{ getErrorMessage('description') }}</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label for="dept-hod" class="field-label">Head of Department</label>
-          <input
-            id="dept-hod"
-            class="field-input"
-            formControlName="hodName"
-            placeholder="e.g., Dr. John Smith"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Department' : 'Create Department' }}
+          <div class="field-group">
+            <label for="dept-name" class="field-label">Name</label>
+            <input
+              id="dept-name"
+              class="field-input"
+              formControlName="name"
+              placeholder="e.g., Computer Science"
+              autocomplete="off"
+              [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+            />
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <p class="field-error">{{ getErrorMessage('name') }}</p>
             }
-          </button>
-        </div>
+          </div>
 
-      </form>
+          <div class="field-group">
+            <label for="dept-code" class="field-label">Code</label>
+            <input
+              id="dept-code"
+              class="field-input field-input--narrow"
+              formControlName="code"
+              placeholder="e.g., CS, EE, ME"
+              autocomplete="off"
+              [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+            />
+            <p class="field-hint">Short uppercase code for the department (max 20 characters)</p>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <p class="field-error">{{ getErrorMessage('code') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="dept-description" class="field-label">Description</label>
+            <textarea
+              id="dept-description"
+              class="field-textarea"
+              formControlName="description"
+              placeholder="Enter a brief description of the department"
+              rows="3"
+            ></textarea>
+            @if (form.get('description')?.invalid && form.get('description')?.touched) {
+              <p class="field-error">{{ getErrorMessage('description') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="dept-hod" class="field-label">Head of Department</label>
+            <input
+              id="dept-hod"
+              class="field-input"
+              formControlName="hodName"
+              placeholder="e.g., Dr. John Smith"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-footer">
+            <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Department' : 'Create Department' }}
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- ── Right: live preview + tips ─────────────────────────────── -->
+      <aside class="entry-form-layout__side">
+        <cms-preview-card label="Live preview">
+          <div class="dept-preview">
+            <div class="dept-preview__code">{{ previewCode() || '—' }}</div>
+            <div class="dept-preview__name">{{ previewName() || 'Department name' }}</div>
+            <div class="dept-preview__hod">
+              @if (previewHod()) {
+                <span class="dept-preview__avatar">{{ previewInitials() }}</span>
+                <span class="dept-preview__hod-name">{{ previewHod() }}</span>
+              } @else {
+                <span class="dept-preview__avatar dept-preview__avatar--empty" aria-hidden="true">—</span>
+                <span class="dept-preview__hod-placeholder">No HOD assigned</span>
+              }
+            </div>
+            @if (previewDescription()) {
+              <p class="dept-preview__desc">{{ previewDescription() }}</p>
+            } @else {
+              <p class="dept-preview__desc dept-preview__desc--placeholder">
+                A description will appear here as you type…
+              </p>
+            }
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Tips" [tips]="tips" />
+      </aside>
+
     </div>
   }
 </div>
