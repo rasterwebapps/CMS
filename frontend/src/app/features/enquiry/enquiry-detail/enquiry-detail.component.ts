@@ -5,7 +5,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
@@ -29,7 +28,6 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatTableModule,
     MatTooltipModule,
-    MatSnackBarModule,
     CurrencyPipe,
     DatePipe,
     PageHeaderComponent,
@@ -171,7 +169,7 @@ export class EnquiryDetailComponent implements OnInit {
         }
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
       },
-      error: () => this.snackBar.open('Failed to load document', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load document'),
     });
   }
 
@@ -180,7 +178,7 @@ export class EnquiryDetailComponent implements OnInit {
     if (!d.hasFile) return;
     this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
       next: (blob) => this.triggerDownload(blob, d.fileName ?? d.documentType),
-      error: () => this.snackBar.open('Failed to download document', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to download document'),
     });
   }
 

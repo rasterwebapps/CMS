@@ -21,6 +21,7 @@ import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.se
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
+import { ToastHostComponent } from './core/toast/toast-host.component';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -63,10 +64,10 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     ThemePickerComponent,
     GlobalSearchComponent,
     BreadcrumbBarComponent,
+    ToastHostComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
-  animations: [routeFadeSlide],
 })
 export class App implements OnInit {
   protected readonly authService = inject(AuthService);

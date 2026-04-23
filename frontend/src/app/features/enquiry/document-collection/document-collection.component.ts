@@ -235,9 +235,7 @@ export class DocumentCollectionComponent implements OnInit {
       },
       error: () => {
         this.updateRow(row, { ...row, saving: false });
-        this.snackBar.open(`Failed to clear ${this.formatDocType(row.documentType)}`, 'Close', {
-          duration: 3000,
-        });
+        this.toast.error(`Failed to clear ${this.formatDocType(row.documentType)}`);
       },
     });
   }
@@ -267,7 +265,7 @@ export class DocumentCollectionComponent implements OnInit {
     // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
     const MAX_BYTES = 10 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
-      this.snackBar.open('File exceeds the 10 MB upload limit', 'Close', { duration: 4000 });
+      this.toast.warning('File exceeds the 10 MB upload limit');
       return;
     }
 
@@ -283,17 +281,15 @@ export class DocumentCollectionComponent implements OnInit {
             remarks: saved.remarks ?? '',
             saving: false,
           });
-          this.snackBar.open(
+          this.toast.success(
             `${this.formatDocType(row.documentType)}: ${saved.fileName} uploaded`,
-            'Close',
-            { duration: 3000 },
           );
         },
         error: (err) => {
           this.updateRow(row, { ...row, saving: false });
           const message =
             err?.error?.message ?? `Failed to upload ${this.formatDocType(row.documentType)}`;
-          this.snackBar.open(message, 'Close', { duration: 4000 });
+          this.toast.error(message);
         },
       });
   }
@@ -317,7 +313,7 @@ export class DocumentCollectionComponent implements OnInit {
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
       },
       error: () => {
-        this.snackBar.open('Failed to load document', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load document');
       },
     });
   }
@@ -329,7 +325,7 @@ export class DocumentCollectionComponent implements OnInit {
     this.enquiryService.downloadDocumentFile(enquiryId, row.document.id).subscribe({
       next: (blob) => this.triggerDownload(blob, row.document?.fileName ?? row.documentType),
       error: () => {
-        this.snackBar.open('Failed to download document', 'Close', { duration: 3000 });
+        this.toast.error('Failed to download document');
       },
     });
   }

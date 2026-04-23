@@ -9,6 +9,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-form',
@@ -19,7 +20,6 @@ import { DepartmentRequest } from '../department.model';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    LoadingButtonDirective,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',

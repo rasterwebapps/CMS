@@ -9,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',

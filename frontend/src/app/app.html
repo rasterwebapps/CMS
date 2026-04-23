@@ -264,9 +264,7 @@
       <app-breadcrumb-bar />
     }
     <main class="app-content">
-      <div class="route-anim-container" [@routeAnim]="getRouteAnimationData(outlet)">
-        <router-outlet #outlet="outlet" />
-      </div>
+      <router-outlet />
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>

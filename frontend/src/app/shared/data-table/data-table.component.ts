@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { CmsSkeletonComponent } from '../skeleton/skeleton.component';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
 import { ResponsiveService } from '../../core/layout/responsive.service';
+import { CsvExporterService } from '../../core/export/csv-exporter.service';
 import { ColumnDef } from './column-def.model';
 
 /**

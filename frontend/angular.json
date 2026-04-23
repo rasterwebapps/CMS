@@ -3,7 +3,10 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": false
+    "analytics": false,
+    "cache": {
+      "path": "/tmp/ng-cache-raster"
+    }
   },
   "newProjectRoot": "projects",
   "projects": {
