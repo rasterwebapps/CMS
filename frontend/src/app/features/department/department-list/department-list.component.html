@@ -55,34 +55,124 @@
       }
     </div>
     <div class="command-bar__right">
-      <div class="view-toggle" role="group" aria-label="Switch view">
-        <button
-          class="view-toggle__btn"
-          [class.view-toggle__btn--active]="viewMode() === 'card'"
-          (click)="setViewMode('card')"
-          aria-label="Card view"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-          Cards
-        </button>
-        <button
-          class="view-toggle__btn"
-          [class.view-toggle__btn--active]="viewMode() === 'table'"
-          (click)="setViewMode('table')"
-          aria-label="Table view"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Table
-        </button>
-      </div>
+      <cms-view-toggle
+        [mode]="viewMode()"
+        [storageKey]="VIEW_KEY"
+        (modeChange)="onViewModeChange($event)"
+      />
+      @if (viewMode() === 'table') {
+        <details class="col-toggle">
+          <summary class="btn-toolbar" aria-label="Toggle columns">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Columns
+          </summary>
+          <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+            @for (col of ALL_COLS; track col) {
+              <label class="col-toggle__item">
+                <input
+                  type="checkbox"
+                  class="col-toggle__checkbox"
+                  [checked]="isColumnVisible(col)"
+                  (change)="toggleColumn(col)"
+                />
+                {{ COLUMN_LABELS[col] }}
+              </label>
+            }
+          </div>
+        </details>
+      }
     </div>
   </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="36" aria-label="Loading departments"></mat-spinner>
+    <div class="content-card">
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading departments"></mat-spinner>
+      </div>
     </div>
+  } @else if (viewMode() === 'card') {
+    @if (visibleRows().length === 0) {
+      <div class="content-card">
+        <div class="empty-state">
+          <div class="empty-state__content">
+            <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            @if (searchValue()) {
+              <p class="empty-state__text">No departments found matching "{{ searchValue() }}"</p>
+            } @else {
+              <p class="empty-state__text">No departments available</p>
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="cards-grid" role="list">
+        @for (dept of visibleRows(); track dept.id) {
+          <div
+            class="entity-card"
+            role="listitem"
+            tabindex="0"
+            (click)="editDepartment(dept)"
+            (keydown.enter)="editDepartment(dept)"
+            (keydown.space)="$event.preventDefault(); editDepartment(dept)"
+            [attr.aria-label]="'Open ' + dept.name"
+          >
+            <div class="entity-card__actions">
+              <button
+                type="button"
+                class="entity-card__action-btn"
+                aria-label="Edit department"
+                matTooltip="Edit"
+                (click)="$event.stopPropagation(); editDepartment(dept)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button
+                type="button"
+                class="entity-card__action-btn entity-card__action-btn--danger"
+                aria-label="Delete department"
+                matTooltip="Delete"
+                (click)="$event.stopPropagation(); deleteDepartment(dept)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="entity-card__code">{{ dept.code }}</div>
+            <h3 class="entity-card__title">{{ dept.name }}</h3>
+            <div class="entity-card__meta">
+              @if (dept.hodName) {
+                <span class="entity-card__avatar">{{ initials(dept.hodName) }}</span>
+                <span>{{ dept.hodName }}</span>
+              } @else {
+                <span class="entity-card__avatar" aria-hidden="true">—</span>
+                <span>No HOD assigned</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
   } @else {
+    <div class="content-card">
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+            <td mat-cell *matCellDef="let department">
+              <span class="cell-code">{{ department.code }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let department">
+              <span class="cell-name">{{ department.name }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="hodName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Head of Department</th>
+            <td mat-cell *matCellDef="let department">{{ department.hodName || '—' }}</td>
+          </ng-container>
 
     <!-- ── CARD VIEW ──────────────────────────────────────────────────── -->
     @if (viewMode() === 'card') {
@@ -200,7 +290,6 @@
           ></mat-paginator>
         </div>
       </div>
-    }
-
+    </div>
   }
 </div>

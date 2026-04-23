@@ -9,7 +9,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { ToastService } from '../../../core/toast/toast.service';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsViewToggleComponent, CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-department-list',
@@ -21,7 +23,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatSortModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+    CmsViewToggleComponent,
+  ],
   templateUrl: './department-list.component.html',
   styleUrl: './department-list.component.scss',
 })
@@ -48,10 +52,24 @@ export class DepartmentListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
 
-  // ── Stat counts ──────────────────────────────────────────────────────────
-  private readonly _departments = signal<Department[]>([]);
-  protected readonly totalCount = computed(() => this._departments().length);
-  protected readonly hodAssignedCount = computed(() => this._departments().filter(d => d.hodName).length);
+  // ── View mode (card / table) ─────────────────────────────────────────────
+  protected readonly viewMode = signal<CmsViewMode>('card');
+  protected readonly VIEW_KEY = 'department-list-view';
+
+  protected onViewModeChange(mode: CmsViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  /** Filtered rows for the card grid (mirrors MatTableDataSource filter). */
+  protected readonly visibleRows = computed<Department[]>(() => {
+    // Re-evaluate when search changes
+    this.searchValue();
+    return this.dataSource.filteredData;
+  });
+
+  protected initials(name?: string | null): string {
+    return computeInitials(name) || '—';
+  }
 
   ngOnInit(): void {
     this.loadDepartments();
@@ -104,6 +122,27 @@ export class DepartmentListComponent implements OnInit {
       ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
       : parts[0][0].toUpperCase();
   }
+
+  protected toggleColumn(col: string): void {
+    const next = new Set(this._visibleCols());
+    if (next.size > 1 && next.has(col)) {
+      next.delete(col);
+    } else {
+      next.add(col);
+    }
+    this._visibleCols.set(next);
+    this._persistColPrefs(next);
+  }
+
+  private _persistColPrefs(cols: Set<string>): void {
+    try {
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...cols]));
+    } catch {
+      /* localStorage may be unavailable — ignore */
+    }
+  }
+
+  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(department: Department): void {
     this.loading.set(true);

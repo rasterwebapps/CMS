@@ -3222,4 +3222,405 @@ html.dark-theme body::after {
   .app-toolbar.is-mobile .toolbar-right { gap: 2px; padding: 0 4px; }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// VIEW TOGGLE — segmented control for switching list view modes (card/table)
+// Reference: docs/departments-screen.html .tb-seg / .seg-btn
+// ════════════════════════════════════════════════════════════════════
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--cms-text-secondary);
+    font-family: inherit;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+
+    svg { width: 14px; height: 14px; }
+
+    &:hover:not(.view-toggle__btn--active) {
+      color: var(--cms-text-primary);
+    }
+
+    &--active {
+      background: var(--cms-bg-card);
+      color: var(--cms-text-primary);
+      box-shadow: var(--cms-shadow-sm);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cms-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CARDS GRID — explorer card view layout
+// Reference: docs/departments-screen.html .dept-grid
+// ════════════════════════════════════════════════════════════════════
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 4px; // breathing room so hover lift / focus rings aren't clipped
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ENTITY CARD — base tile for any explorer card view
+// Reference: docs/departments-screen.html .dcard
+// ────────────────────────────────────────────────────────────────────
+.entity-card {
+  position: relative;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-xl);
+  padding: 22px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.2s ease;
+  animation: cms-rise-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  // accent top bar — appears on hover
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: var(--cms-radius-xl) var(--cms-radius-xl) 0 0;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-4px);
+    border-color: var(--cms-border-hover, var(--cms-border-default));
+    box-shadow: var(--cms-shadow-card-hover);
+
+    &::before { opacity: 1; }
+    .entity-card__actions { opacity: 1; transform: translateX(0); }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+
+  // Code badge — square chip top-left
+  &__code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+    border-radius: 12px;
+    background: rgba(var(--cms-primary-rgb), 0.12);
+    border: 1px solid rgba(var(--cms-primary-rgb), 0.22);
+    font-family: var(--cms-font-mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--cms-primary);
+    margin-bottom: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  // Primary title
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+  }
+
+  // Secondary metadata row(s)
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--cms-text-secondary);
+  }
+
+  &__meta + .entity-card__meta {
+    margin-top: 6px;
+  }
+
+  // Initials avatar (e.g. HOD)
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(var(--cms-primary-rgb), 0.18);
+    color: var(--cms-primary);
+    font-size: 9px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  // Hover-revealed actions in top-right
+  &__actions {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transform: translateX(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  &__action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--cms-bg-muted);
+    border: 1px solid var(--cms-border-default);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--cms-text-secondary);
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+
+    svg { width: 13px; height: 13px; }
+
+    &:hover {
+      background: rgba(var(--cms-primary-rgb), 0.14);
+      border-color: rgba(var(--cms-primary-rgb), 0.3);
+      color: var(--cms-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cms-primary);
+      outline-offset: 1px;
+    }
+
+    &--danger:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+  }
+}
+
+// Stagger first 6 grid children
+.cards-grid > .entity-card:nth-child(1) { animation-delay: 0.05s; }
+.cards-grid > .entity-card:nth-child(2) { animation-delay: 0.10s; }
+.cards-grid > .entity-card:nth-child(3) { animation-delay: 0.15s; }
+.cards-grid > .entity-card:nth-child(4) { animation-delay: 0.20s; }
+.cards-grid > .entity-card:nth-child(5) { animation-delay: 0.25s; }
+.cards-grid > .entity-card:nth-child(6) { animation-delay: 0.30s; }
+
+// Empty state inside cards-grid (single full-width cell)
+.cards-grid__empty {
+  grid-column: 1 / -1;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--cms-text-secondary);
+  font-size: 13px;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ENTRY FORM LAYOUT — two-column grid (form + live preview side panel)
+// Reference: docs/departments-screen.html .form-layout
+// ════════════════════════════════════════════════════════════════════
+.entry-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+
+  // Override the entry-form-card max-width when nested in the layout
+  .entry-form-card {
+    max-width: none;
+  }
+
+  // Right-side panel container
+  &__side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: cms-rise-up 0.5s 0.12s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+    @media (max-width: 1024px) {
+      animation-delay: 0s;
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// PREVIEW CARD — live preview shell (header + accent stripe + body slot)
+// Reference: docs/departments-screen.html .preview-card
+// ────────────────────────────────────────────────────────────────────
+.preview-card {
+  position: relative;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-xl);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: var(--cms-radius-xl) var(--cms-radius-xl) 0 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cms-text-secondary);
+  }
+
+  &__live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: cms-live-pulse 2s ease-out infinite;
+  }
+
+  &__body {
+    padding: 22px 20px;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// TIPS CARD — short contextual help items
+// Reference: docs/departments-screen.html .tip-card
+// ────────────────────────────────────────────────────────────────────
+.tip-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-xl);
+  padding: 18px;
+
+  &__title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cms-text-secondary);
+    margin: 0 0 12px;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--cms-border-default);
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    &:first-child {
+      padding-top: 0;
+    }
+  }
+
+  &__icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: rgba(var(--cms-primary-rgb), 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--cms-primary);
+
+    svg { width: 12px; height: 12px; }
+
+    .mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
+      color: inherit;
+    }
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__heading {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    line-height: 1.35;
+  }
+
+  &__sub {
+    font-size: 11px;
+    color: var(--cms-text-secondary);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+}
+
 

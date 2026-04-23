@@ -1,0 +1,18 @@
+<aside class="tip-card" aria-label="Helpful tips">
+  <h3 class="tip-card__title">{{ heading }}</h3>
+  <ul class="tip-card__list">
+    @for (tip of tips; track $index) {
+      <li class="tip-card__item">
+        <span class="tip-card__icon" aria-hidden="true">
+          <mat-icon>{{ tip.icon }}</mat-icon>
+        </span>
+        <div class="tip-card__text">
+          <div class="tip-card__heading">{{ tip.title }}</div>
+          <div class="tip-card__sub">{{ tip.subtitle }}</div>
+        </div>
+      </li>
+    }
+  </ul>
+</aside>
+
+

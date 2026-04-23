@@ -1,377 +1,90 @@
-// ── Two-column form layout ────────────────────────────────────────────────────
-.dept-form-layout {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 24px;
-  align-items: start;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-// ── Form Card (left column) ───────────────────────────────────────────────────
-.dept-form-card {
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-xl);
-  overflow: hidden;
-}
-
-.dept-form-card__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--cms-border-default);
-}
-
-.dept-form-card__icon {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--cms-radius-md);
-  background: rgba(var(--cms-primary-rgb), 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  svg {
-    width: 15px;
-    height: 15px;
+// Department-specific styles for the live preview body inside
+// <cms-preview-card>. Mirrors the entity-card representation a user
+// will see in the explorer once the department is saved.
+//
+// The preview body is rendered via <ng-content> in CmsPreviewCardComponent
+// so it remains in this component's view encapsulation scope.
+.dept-preview {
+  &__code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 52px;
+    padding: 0 12px;
+    border-radius: 14px;
+    background: rgba(var(--cms-primary-rgb), 0.12);
+    border: 1px solid rgba(var(--cms-primary-rgb), 0.22);
+    font-family: var(--cms-font-mono, 'JetBrains Mono', monospace);
+    font-size: 13px;
+    font-weight: 600;
     color: var(--cms-primary);
-  }
-}
-
-.dept-form-card__title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--cms-text-primary);
-}
-
-.dept-form-card__subtitle {
-  font-size: 0.75rem;
-  color: var(--cms-text-muted);
-  margin-top: 1px;
-}
-
-.dept-form-card__body {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-// ── Required star ─────────────────────────────────────────────────────────────
-.required-star {
-  color: var(--cms-danger);
-  margin-left: 2px;
-}
-
-// ── Code input with inline badge preview ──────────────────────────────────────
-.code-input-wrap {
-  position: relative;
-}
-
-.code-input {
-  font-family: var(--cms-font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding-right: 56px;
-}
-
-.code-badge-preview {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
-  border-radius: var(--cms-radius-md);
-  background: rgba(var(--cms-primary-rgb), 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--cms-font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--cms-primary);
-  letter-spacing: 0.04em;
-  pointer-events: none;
-}
-
-// ── Character count row ───────────────────────────────────────────────────────
-.char-count-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
-}
-
-.char-count {
-  font-size: 0.6875rem;
-  color: var(--cms-text-muted);
-  font-family: var(--cms-font-mono);
-}
-
-// ── HOD input with avatar preview ─────────────────────────────────────────────
-.hod-input-wrap {
-  position: relative;
-}
-
-.hod-input {
-  padding-left: 46px;
-}
-
-.hod-avatar-preview {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(var(--cms-primary-rgb), 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  color: var(--cms-primary);
-  pointer-events: none;
-}
-
-// ── Form Actions ──────────────────────────────────────────────────────────────
-.dept-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 6px;
-  border-top: 1px solid var(--cms-border-default);
-  margin-top: 4px;
-}
-
-.btn-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--cms-primary);
-  color: #fff;
-  font-family: var(--cms-font-ui);
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 10px 20px;
-  border-radius: var(--cms-radius-sm);
-  border: none;
-  cursor: pointer;
-  transition: var(--cms-transition);
-  box-shadow: 0 4px 22px rgba(var(--cms-primary-rgb), 0.35);
-
-  &:hover:not(:disabled) {
-    background: var(--cms-primary-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(var(--cms-primary-rgb), 0.45);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
   }
 
-  &:active:not(:disabled) {
-    transform: translateY(0);
+  &__name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    min-height: 22px;
+    word-break: break-word;
   }
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
+  &__hod {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-}
 
-.btn-spinner {
-  display: flex;
-}
-
-// ── Side Panel (right column) ─────────────────────────────────────────────────
-.dept-side-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-// ── Live Preview Card ─────────────────────────────────────────────────────────
-.dept-preview-card {
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-xl);
-  overflow: hidden;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--cms-primary);
-    border-radius: var(--cms-radius-xl) var(--cms-radius-xl) 0 0;
-  }
-}
-
-.dept-preview-card__header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--cms-border-default);
-
-  svg {
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(var(--cms-primary-rgb), 0.18);
     color: var(--cms-primary);
+    font-size: 9px;
+    font-weight: 700;
+    border: 1px solid rgba(var(--cms-primary-rgb), 0.22);
+
+    &--empty {
+      background: var(--cms-bg-muted);
+      color: var(--cms-text-muted);
+      border-color: var(--cms-border-default);
+    }
   }
-}
 
-.dept-preview-card__label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--cms-text-muted);
-}
+  &__hod-name {
+    font-size: 13px;
+    color: var(--cms-text-secondary);
+  }
 
-.dept-preview-card__body {
-  padding: 20px 18px;
-}
-
-.dept-preview-code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 52px;
-  height: 52px;
-  padding: 0 12px;
-  border-radius: var(--cms-radius-lg);
-  background: rgba(var(--cms-primary-rgb), 0.1);
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.2);
-  font-family: var(--cms-font-mono);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cms-primary);
-  margin-bottom: 14px;
-  letter-spacing: 0.04em;
-}
-
-.dept-preview-name {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--cms-text-primary);
-  margin-bottom: 8px;
-  letter-spacing: -0.01em;
-  min-height: 24px;
-
-  &--placeholder {
+  &__hod-placeholder {
+    font-size: 13px;
     color: var(--cms-text-muted);
-    font-weight: 400;
+    font-style: italic;
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: var(--cms-text-secondary);
+    margin: 12px 0 0;
+    line-height: 1.6;
+    min-height: 18px;
+    word-break: break-word;
+
+    &--placeholder {
+      color: var(--cms-text-muted);
+      font-style: italic;
+    }
   }
 }
 
-.dept-preview-hod {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
 
-.dept-preview-hod__avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(var(--cms-primary-rgb), 0.15);
-  color: var(--cms-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.2);
-  flex-shrink: 0;
-}
-
-.dept-preview-hod__name {
-  font-size: 0.8125rem;
-  color: var(--cms-text-secondary);
-}
-
-.dept-preview-desc {
-  margin: 12px 0 0;
-  font-size: 0.75rem;
-  color: var(--cms-text-muted);
-  line-height: 1.6;
-  min-height: 18px;
-}
-
-// ── Tips Card ─────────────────────────────────────────────────────────────────
-.dept-tip-card {
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-xl);
-  padding: 18px;
-}
-
-.dept-tip-card__title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--cms-text-muted);
-  margin-bottom: 12px;
-}
-
-.dept-tip-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--cms-border-default);
-
-  &--last {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-}
-
-.dept-tip-item__icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: rgba(var(--cms-primary-rgb), 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 1px;
-
-  svg {
-    width: 12px;
-    height: 12px;
-    color: var(--cms-primary);
-  }
-}
-
-.dept-tip-item__title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cms-text-primary);
-}
-
-.dept-tip-item__sub {
-  font-size: 0.6875rem;
-  color: var(--cms-text-muted);
-  margin-top: 2px;
-  line-height: 1.5;
-}
-
-// ── Error text ────────────────────────────────────────────────────────────────
-.field-error {
-  margin: 5px 0 0;
-  font-size: 0.75rem;
-  color: var(--cms-danger);
-  line-height: 1.5;
-}

@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,7 +10,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
-import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-department-form',
@@ -20,6 +23,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
@@ -29,7 +35,8 @@ export class DepartmentFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly departmentService = inject(DepartmentService);
-  private readonly toast = inject(ToastService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -38,8 +45,32 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
-  /** How long to display the green success state before navigating away. */
-  private static readonly SUCCESS_STATE_DURATION_MS = 600;
+  // ── Live preview state ───────────────────────────────────────────────────
+  // These signals mirror the form values and drive the preview card.
+  protected readonly previewName = signal('');
+  protected readonly previewCode = signal('');
+  protected readonly previewDescription = signal('');
+  protected readonly previewHod = signal('');
+
+  protected readonly previewInitials = computed(() => computeInitials(this.previewHod()));
+
+  protected readonly tips: CmsTip[] = [
+    {
+      icon: 'check_circle',
+      title: 'Use a short, uppercase code',
+      subtitle: 'Codes such as CS, EE or NUR appear as monospace badges across lists and reports.',
+    },
+    {
+      icon: 'person',
+      title: 'Assign a Head of Department',
+      subtitle: 'The HOD name appears with an avatar on department cards and in faculty linkage flows.',
+    },
+    {
+      icon: 'edit_note',
+      title: 'Description is searchable',
+      subtitle: 'A clear one-line description helps users find the department from global search.',
+    },
+  ];
 
   private departmentId: number | null = null;
 
@@ -50,26 +81,23 @@ export class DepartmentFormComponent implements OnInit {
     hodName: ['', [Validators.maxLength(100)]],
   });
 
-  // ── Live preview signals ─────────────────────────────────────────────────
-  private readonly formValues = toSignal(
-    this.form.valueChanges.pipe(startWith(this.form.value)),
-    { initialValue: this.form.getRawValue() },
-  );
-
-  protected readonly previewCode = computed(() => (this.formValues().code as string | null)?.toUpperCase() || '');
-  protected readonly previewName = computed(() => (this.formValues().name as string | null) || '');
-  protected readonly previewDescription = computed(() => (this.formValues().description as string | null) || '');
-  protected readonly previewHod = computed(() => (this.formValues().hodName as string | null) || '');
-  protected readonly codeCharCount = computed(() => ((this.formValues().code as string | null) || '').length);
-
-  protected readonly hodInitials = computed(() => {
-    const hod = this.previewHod();
-    if (!hod.trim()) return '?';
-    const parts = hod.trim().split(' ').filter(Boolean);
-    return parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : parts[0][0].toUpperCase();
-  });
+  constructor() {
+    // Wire each form control to its preview signal so the live preview
+    // updates as the user types. takeUntilDestroyed() unsubscribes
+    // automatically when the component is destroyed.
+    this.form.get('name')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewName.set(v ?? ''));
+    this.form.get('code')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
+    this.form.get('description')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
+    this.form.get('hodName')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewHod.set(v ?? ''));
+  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
