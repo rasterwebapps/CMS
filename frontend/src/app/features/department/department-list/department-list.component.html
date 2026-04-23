@@ -1,11 +1,30 @@
 <div class="list-page">
-  <app-page-header title="Departments" subtitle="Manage academic departments and their heads">
-    <button actions class="btn-primary" routerLink="/departments/new" aria-label="Add new department">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+
+  <!-- ── Page Header ──────────────────────────────────────────────────── -->
+  <div class="dept-page-header">
+    <div class="dept-page-header__left">
+      <h1 class="dept-page-title">Academic <em>Departments</em></h1>
+      <p class="dept-page-sub">Manage departments and their heads across the college</p>
+      @if (!loading()) {
+        <div class="dept-page-meta">
+          <div class="dept-stat">
+            <span class="dept-stat-dot dept-stat-dot--green"></span>
+            {{ totalCount() }} {{ totalCount() === 1 ? 'Department' : 'Departments' }}
+          </div>
+          <div class="dept-stat">
+            <span class="dept-stat-dot dept-stat-dot--primary"></span>
+            {{ hodAssignedCount() }} {{ hodAssignedCount() === 1 ? 'Head' : 'Heads' }} Assigned
+          </div>
+        </div>
+      }
+    </div>
+    <button class="btn-primary" routerLink="/departments/new" aria-label="Add new department">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Department
     </button>
-  </app-page-header>
+  </div>
 
+  <!-- ── Toolbar: Search + View Toggle ────────────────────────────────── -->
   <div class="command-bar">
     <div class="command-bar__left">
       <div class="search-bar" role="search">
@@ -14,7 +33,7 @@
           class="search-bar__input"
           [value]="searchValue()"
           (input)="applyFilter($event)"
-          placeholder="Search departments..."
+          placeholder="Search departments by name or code..."
           type="text"
           aria-label="Search departments"
         />
@@ -36,94 +55,152 @@
       }
     </div>
     <div class="command-bar__right">
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+      <div class="view-toggle" role="group" aria-label="Switch view">
+        <button
+          class="view-toggle__btn"
+          [class.view-toggle__btn--active]="viewMode() === 'card'"
+          (click)="setViewMode('card')"
+          aria-label="Card view"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+          Cards
+        </button>
+        <button
+          class="view-toggle__btn"
+          [class.view-toggle__btn--active]="viewMode() === 'table'"
+          (click)="setViewMode('table')"
+          aria-label="Table view"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Table
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading departments"></mat-spinner>
-      </div>
-    } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <ng-container matColumnDef="code">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
-            <td mat-cell *matCellDef="let department">
-              <span class="cell-code">{{ department.code }}</span>
-            </td>
-          </ng-container>
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="36" aria-label="Loading departments"></mat-spinner>
+    </div>
+  } @else {
 
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-            <td mat-cell *matCellDef="let department">
-              <span class="cell-name">{{ department.name }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="hodName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Head of Department</th>
-            <td mat-cell *matCellDef="let department">{{ department.hodName || '—' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-            <td mat-cell *matCellDef="let department">
-              <div class="row-actions">
-                <button class="action-btn" matTooltip="Edit" (click)="editDepartment(department)" aria-label="Edit department">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    <!-- ── CARD VIEW ──────────────────────────────────────────────────── -->
+    @if (viewMode() === 'card') {
+      @if (dataSource.filteredData.length > 0) {
+        <div class="dept-grid">
+          @for (dept of dataSource.filteredData; track dept.id) {
+            <div class="dept-card">
+              <div class="dept-card__actions">
+                <button class="dept-card__act-btn" (click)="editDepartment(dept)" matTooltip="Edit" aria-label="Edit department">
+                  <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M10 2l2 2-7 7H3v-2L10 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
                 </button>
-                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteDepartment(department)" aria-label="Delete department">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <button class="dept-card__act-btn dept-card__act-btn--danger" (click)="deleteDepartment(dept)" matTooltip="Delete" aria-label="Delete department">
+                  <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 4h10M5 4V2h4v2M11 4l-.7 8H3.7L3 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
               </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
-
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No departments found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No departments available</p>
-                }
+              <div class="dept-card__code">{{ dept.code }}</div>
+              <div class="dept-card__name">{{ dept.name }}</div>
+              <div class="dept-card__hod">
+                <span class="dept-card__hod-avatar">{{ getInitials(dept.hodName || '') }}</span>
+                {{ dept.hodName || '—' }}
               </div>
-            </td>
-          </tr>
-        </table>
-      </div>
+              @if (dept.description) {
+                <p class="dept-card__desc">{{ dept.description }}</p>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="dept-empty-state">
+          <div class="dept-empty-state__icon">
+            <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M4 8h24M4 16h16M4 24h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="dept-empty-state__title">No departments found</div>
+          @if (searchValue()) {
+            <div class="dept-empty-state__sub">No departments match your search. Try a different term or clear the search.</div>
+            <button class="btn-ghost" (click)="clearFilter()">Clear Search</button>
+          } @else {
+            <div class="dept-empty-state__sub">Get started by adding your first academic department.</div>
+            <button class="btn-primary" routerLink="/departments/new">Add Department</button>
+          }
+        </div>
+      }
+    }
 
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
+    <!-- ── TABLE VIEW ─────────────────────────────────────────────────── -->
+    @if (viewMode() === 'table') {
+      <div class="content-card">
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+            <ng-container matColumnDef="code">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+              <td mat-cell *matCellDef="let department">
+                <span class="cell-code">{{ department.code }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Department Name</th>
+              <td mat-cell *matCellDef="let department">
+                <span class="cell-name">{{ department.name }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="hodName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Head of Department</th>
+              <td mat-cell *matCellDef="let department">
+                <div class="hod-cell">
+                  @if (department.hodName) {
+                    <span class="hod-cell__avatar">{{ getInitials(department.hodName) }}</span>
+                    <span class="cell-name">{{ department.hodName }}</span>
+                  } @else {
+                    <span class="cell-muted">—</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+              <td mat-cell *matCellDef="let department">
+                <div class="row-actions">
+                  <button class="action-btn" matTooltip="Edit" (click)="editDepartment(department)" aria-label="Edit department">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteDepartment(department)" aria-label="Delete department">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
+                <div class="empty-state__content">
+                  <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  @if (searchValue()) {
+                    <p class="empty-state__text">No departments found matching "{{ searchValue() }}"</p>
+                  } @else {
+                    <p class="empty-state__text">No departments available</p>
+                  }
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="pagination-wrapper">
+          <mat-paginator
+            [pageSizeOptions]="[5, 10, 25, 50]"
+            [pageSize]="10"
+            showFirstLastButtons
+          ></mat-paginator>
+        </div>
       </div>
     }
-  </div>
+
+  }
 </div>

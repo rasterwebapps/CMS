@@ -1,2 +1,331 @@
-// Department list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// ── Page Header ──────────────────────────────────────────────────────────────
+.dept-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dept-page-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dept-page-title {
+  margin: 0;
+  font-family: var(--cms-font-display, serif);
+  font-size: 1.875rem;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: var(--cms-text-primary);
+  line-height: 1.1;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.dept-page-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.dept-page-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.dept-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.dept-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--green {
+    background: #22c55e;
+    box-shadow: 0 0 5px #22c55e;
+  }
+
+  &--primary {
+    background: var(--cms-primary);
+    box-shadow: 0 0 5px rgba(var(--cms-primary-rgb), 0.6);
+  }
+}
+
+// ── View Toggle (segmented) ──────────────────────────────────────────────────
+.view-toggle {
+  display: flex;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: calc(var(--cms-radius-lg) - 2px);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--cms-text-secondary);
+  font-family: inherit;
+  transition: var(--cms-transition);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    color: var(--cms-text-primary);
+    background: var(--cms-bg-hover);
+  }
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-text-primary);
+    box-shadow: var(--cms-shadow-sm);
+  }
+}
+
+// ── Department Card Grid ──────────────────────────────────────────────────────
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.dept-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-xl);
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--cms-line-strong);
+    box-shadow: var(--cms-shadow-card-hover);
+
+    &::before {
+      opacity: 1;
+    }
+
+    .dept-card__actions {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: var(--cms-radius-xl) var(--cms-radius-xl) 0 0;
+    opacity: 0;
+    transition: opacity 0.22s;
+  }
+}
+
+.dept-card__code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: var(--cms-radius-md);
+  background: rgba(var(--cms-primary-rgb), 0.1);
+  font-family: var(--cms-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cms-primary);
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.2);
+}
+
+.dept-card__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.dept-card__hod {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+}
+
+.dept-card__hod-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.15);
+  color: var(--cms-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dept-card__desc {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  line-height: 1.5;
+}
+
+.dept-card__actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.dept-card__act-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  color: var(--cms-text-secondary);
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.12);
+    border-color: rgba(var(--cms-primary-rgb), 0.3);
+    color: var(--cms-primary);
+  }
+
+  &--danger:hover {
+    background: var(--cms-danger-light);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--cms-danger);
+  }
+}
+
+// ── HOD cell in table view ────────────────────────────────────────────────────
+.hod-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hod-cell__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.12);
+  color: var(--cms-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.2);
+}
+
+// ── Empty state (card view) ───────────────────────────────────────────────────
+.dept-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 12px;
+}
+
+.dept-empty-state__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(var(--cms-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    color: var(--cms-primary);
+  }
+}
+
+.dept-empty-state__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.dept-empty-state__sub {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+
+// ── Count badge ───────────────────────────────────────────────────────────────
+.count-badge {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
