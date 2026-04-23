@@ -6,18 +6,17 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { LabScheduleService } from '../lab-schedule.service';
 import { DAYS_OF_WEEK, LabScheduleRequest, LabSlot } from '../lab-schedule.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-lab-schedule-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatCheckboxModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatCheckboxModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './lab-schedule-form.component.html',
   styleUrl: './lab-schedule-form.component.scss',
 })
@@ -27,7 +26,7 @@ export class LabScheduleFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly labScheduleService = inject(LabScheduleService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -56,23 +55,23 @@ export class LabScheduleFormComponent implements OnInit {
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({
       next: (data) => this.labs.set(data),
-      error: () => { this.snackBar.open('Failed to load labs', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load labs'); },
     });
     this.http.get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses`).subscribe({
       next: (data) => this.courses.set(data),
-      error: () => { this.snackBar.open('Failed to load courses', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load courses'); },
     });
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/faculty`).subscribe({
       next: (data) => this.faculty.set(data),
-      error: () => { this.snackBar.open('Failed to load faculty', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load faculty'); },
     });
     this.labScheduleService.getAllSlots().subscribe({
       next: (data) => this.labSlots.set(data),
-      error: () => { this.snackBar.open('Failed to load lab slots', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load lab slots'); },
     });
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/semesters`).subscribe({
       next: (data) => this.semesters.set(data),
-      error: () => { this.snackBar.open('Failed to load semesters', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load semesters'); },
     });
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -86,7 +85,7 @@ export class LabScheduleFormComponent implements OnInit {
           this.form.patchValue({ labId: item.labId, courseId: item.courseId, facultyId: item.facultyId, labSlotId: item.labSlotId, batchName: item.batchName, dayOfWeek: item.dayOfWeek, semesterId: item.semesterId, isActive: item.isActive });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/lab-schedules']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/lab-schedules']); },
       });
     }
   }
@@ -98,8 +97,8 @@ export class LabScheduleFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.labScheduleService.update(this.itemId!, request) : this.labScheduleService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/lab-schedules']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/lab-schedules']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

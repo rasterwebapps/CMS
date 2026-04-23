@@ -4,13 +4,13 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
 import { StudentRequest } from '../student.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface Program {
   id: number;
@@ -26,9 +26,7 @@ interface Program {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './student-form.component.html',
   styleUrl: './student-form.component.scss',
 })
@@ -38,7 +36,7 @@ export class StudentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly studentService = inject(StudentService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -143,14 +141,14 @@ export class StudentFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Student updated successfully'
           : 'Student created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/students']);
       },
       error: () => {
         const message = this.isEditMode()
           ? 'Failed to update student'
           : 'Failed to create student';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -185,7 +183,7 @@ export class StudentFormComponent implements OnInit {
   private loadPrograms(): void {
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (programs) => this.programs.set(programs),
-      error: () => this.snackBar.open('Failed to load programs', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load programs'),
     });
   }
 
@@ -225,7 +223,7 @@ export class StudentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load student', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load student');
         void this.router.navigate(['/students']);
       },
     });

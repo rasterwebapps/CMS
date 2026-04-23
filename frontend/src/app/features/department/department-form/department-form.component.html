@@ -1,12 +1,13 @@
 <div class="entry-form-page">
+  <!-- ── Page Header ──────────────────────────────────────────────────── -->
   <div class="entry-form-header">
     <button mat-icon-button routerLink="/departments" class="back-btn" aria-label="Back to departments">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em class="font-display-italic">Department</em></h1>
       <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new department.' }}
+        {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new academic department.' }}
       </p>
     </div>
   </div>

@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
@@ -38,6 +40,8 @@ export class DepartmentFormComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  /** Brief success state on the submit button before navigation (~600ms). */
+  protected readonly succeeded = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
@@ -129,13 +133,18 @@ export class DepartmentFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Department updated successfully'
           : 'Department created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
-        void this.router.navigate(['/departments']);
+        this.toast.success(message);
+        // Show the brief success state on the submit button, then navigate.
+        this.saving.set(false);
+        this.succeeded.set(true);
+        setTimeout(() => {
+          void this.router.navigate(['/departments']);
+        }, DepartmentFormComponent.SUCCESS_STATE_DURATION_MS);
       },
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update department' : 'Failed to create department');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -183,7 +192,7 @@ export class DepartmentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load department', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load department');
         void this.router.navigate(['/departments']);
       },
     });

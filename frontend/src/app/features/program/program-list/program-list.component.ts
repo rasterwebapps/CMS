@@ -7,13 +7,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgramService } from '../program.service';
 import { Program } from '../program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-program-list',
@@ -28,17 +28,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './program-list.component.html',
   styleUrl: './program-list.component.scss',
 })
 export class ProgramListComponent implements OnInit {
   private readonly programService = inject(ProgramService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -122,15 +120,11 @@ export class ProgramListComponent implements OnInit {
     this.loading.set(true);
     this.programService.delete(program.id).subscribe({
       next: () => {
-        this.snackBar.open('Program deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Program deleted successfully');
         this.loadPrograms();
       },
       error: () => {
-        this.snackBar.open('Failed to delete program', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete program');
         this.loading.set(false);
       },
     });
@@ -145,9 +139,7 @@ export class ProgramListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load programs', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load programs');
         this.loading.set(false);
       },
     });

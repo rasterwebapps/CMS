@@ -5,18 +5,17 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ExaminationService } from '../examination.service';
 import { ExaminationRequest } from '../examination.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-examination-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './examination-form.component.html',
   styleUrl: './examination-form.component.scss',
 })
@@ -26,7 +25,7 @@ export class ExaminationFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly examinationService = inject(ExaminationService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -65,7 +64,7 @@ export class ExaminationFormComponent implements OnInit {
           this.form.patchValue({ name: item.name, courseId: item.courseId, examType: item.examType, date: item.date || '', duration: item.duration, maxMarks: item.maxMarks, semesterId: item.semesterId });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/examinations']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/examinations']); },
       });
     }
   }
@@ -77,8 +76,8 @@ export class ExaminationFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.examinationService.update(this.itemId!, request) : this.examinationService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/examinations']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/examinations']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

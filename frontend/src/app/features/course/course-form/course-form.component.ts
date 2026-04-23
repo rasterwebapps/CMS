@@ -4,11 +4,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CourseService } from '../course.service';
 import { CourseRequest } from '../course.model';
 import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-course-form',
@@ -18,9 +18,7 @@ import { Program } from '../../program/program.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './course-form.component.html',
   styleUrl: './course-form.component.scss',
 })
@@ -30,7 +28,7 @@ export class CourseFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly courseService = inject(CourseService);
   private readonly programService = inject(ProgramService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -83,13 +81,13 @@ export class CourseFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Course updated successfully'
           : 'Course created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/courses']);
       },
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update course' : 'Failed to create course');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -136,7 +134,7 @@ export class CourseFormComponent implements OnInit {
         this.programs.set(programs);
       },
       error: () => {
-        this.snackBar.open('Failed to load programs', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load programs');
       },
     });
   }
@@ -156,7 +154,7 @@ export class CourseFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load course', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load course');
         void this.router.navigate(['/courses']);
       },
     });

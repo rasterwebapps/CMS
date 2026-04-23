@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FacultyService } from '../faculty.service';
 import {
   FacultyRequest,
@@ -15,6 +14,7 @@ import {
 } from '../faculty.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-faculty-form',
@@ -24,9 +24,7 @@ import { Department } from '../../department/department.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',
 })
@@ -36,7 +34,7 @@ export class FacultyFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly facultyService = inject(FacultyService);
   private readonly departmentService = inject(DepartmentService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -105,14 +103,14 @@ export class FacultyFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Faculty updated successfully'
           : 'Faculty created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/faculty']);
       },
       error: () => {
         const message = this.isEditMode()
           ? 'Failed to update faculty'
           : 'Failed to create faculty';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -161,7 +159,7 @@ export class FacultyFormComponent implements OnInit {
         this.departments.set(departments);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load departments');
       },
     });
   }
@@ -188,7 +186,7 @@ export class FacultyFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load faculty', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load faculty');
         void this.router.navigate(['/faculty']);
       },
     });

@@ -21,6 +21,7 @@ import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.se
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
+import { ToastHostComponent } from './core/toast/toast-host.component';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -63,6 +64,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     ThemePickerComponent,
     GlobalSearchComponent,
     BreadcrumbBarComponent,
+    ToastHostComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -399,6 +401,16 @@ export class App implements OnInit {
 
   protected navigateBack(): void {
     window.history.back();
+  }
+
+  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding.
+   *  Prefer the route's static config path so dynamic params (e.g. `:id`) don't
+   *  re-trigger the transition when the same component stays mounted. */
+  protected getRouteAnimationData(outlet: RouterOutlet): unknown {
+    if (!outlet?.isActivated) return '';
+    const data = outlet.activatedRouteData?.['animation'];
+    if (data) return data;
+    return outlet.activatedRoute?.snapshot?.routeConfig?.path ?? '';
   }
 
   protected async logout(): Promise<void> {
