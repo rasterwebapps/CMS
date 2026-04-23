@@ -72,6 +72,7 @@ export class DepartmentFormComponent implements OnInit {
     },
   ];
 
+  private static readonly SUCCESS_STATE_DURATION_MS = 600;
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
@@ -133,7 +134,7 @@ export class DepartmentFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Department updated successfully'
           : 'Department created successfully';
-        this.toast.success(message);
+        this.snackBar.open(message, 'Close', { duration: 3000 });
         // Show the brief success state on the submit button, then navigate.
         this.saving.set(false);
         this.succeeded.set(true);
@@ -144,7 +145,7 @@ export class DepartmentFormComponent implements OnInit {
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update department' : 'Failed to create department');
-        this.toast.error(message);
+        this.snackBar.open(message, 'Close', { duration: 4000 });
         this.saving.set(false);
       },
     });
@@ -192,7 +193,7 @@ export class DepartmentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Failed to load department');
+        this.snackBar.open('Failed to load department', 'Close', { duration: 4000 });
         void this.router.navigate(['/departments']);
       },
     });

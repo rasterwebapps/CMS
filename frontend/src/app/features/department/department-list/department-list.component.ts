@@ -9,9 +9,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsViewToggleComponent, CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',
@@ -42,30 +42,37 @@ export class DepartmentListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── View mode (card / table) ─────────────────────────────────────────────
-  protected readonly viewMode = signal<'card' | 'table'>('card');
+  protected readonly viewMode = signal<CmsViewMode>('card');
+  protected readonly VIEW_KEY = 'department-list-view';
 
-  // ── Column definitions ───────────────────────────────────────────────────
   protected readonly ALL_COLS = ['code', 'name', 'hodName', 'actions'];
-  protected readonly displayedColumns = computed(() => this.ALL_COLS);
+  protected readonly COLUMN_LABELS: Record<string, string> = {
+    code: 'Code', name: 'Name', hodName: 'Head of Department', actions: 'Actions',
+  };
+  private readonly COLS_KEY = 'department-list-cols';
+  private readonly _visibleCols = signal<Set<string>>(new Set(this.ALL_COLS));
+  protected readonly displayedColumns = computed(() =>
+    this.ALL_COLS.filter(c => this._visibleCols().has(c))
+  );
+
   protected readonly dataSource = new MatTableDataSource<Department>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  private readonly _departments = signal<Department[]>([]);
 
-  // ── View mode (card / table) ─────────────────────────────────────────────
-  protected readonly viewMode = signal<CmsViewMode>('card');
-  protected readonly VIEW_KEY = 'department-list-view';
+  protected readonly totalCount = computed(() => this._departments().length);
+  protected readonly hodAssignedCount = computed(() =>
+    this._departments().filter(d => d.hodName).length
+  );
+
+  protected readonly visibleRows = computed<Department[]>(() => {
+    this.searchValue();
+    return this.dataSource.filteredData;
+  });
 
   protected onViewModeChange(mode: CmsViewMode): void {
     this.viewMode.set(mode);
   }
-
-  /** Filtered rows for the card grid (mirrors MatTableDataSource filter). */
-  protected readonly visibleRows = computed<Department[]>(() => {
-    // Re-evaluate when search changes
-    this.searchValue();
-    return this.dataSource.filteredData;
-  });
 
   protected initials(name?: string | null): string {
     return computeInitials(name) || '—';
@@ -75,15 +82,10 @@ export class DepartmentListComponent implements OnInit {
     this.loadDepartments();
   }
 
-  protected setViewMode(mode: 'card' | 'table'): void {
-    this.viewMode.set(mode);
-  }
-
   protected applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.searchValue.set(filterValue);
     this.dataSource.filter = filterValue.trim().toLowerCase();
-
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
@@ -107,20 +109,13 @@ export class DepartmentListComponent implements OnInit {
         cancelText: 'Cancel',
       },
     });
-
     dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.performDelete(department);
-      }
+      if (confirmed) this.performDelete(department);
     });
   }
 
   protected getInitials(name: string): string {
-    if (!name) return '?';
-    const parts = name.trim().split(' ').filter(Boolean);
-    return parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : parts[0][0].toUpperCase();
+    return computeInitials(name) || '—';
   }
 
   protected toggleColumn(col: string): void {
@@ -137,12 +132,12 @@ export class DepartmentListComponent implements OnInit {
   private _persistColPrefs(cols: Set<string>): void {
     try {
       localStorage.setItem(this.COLS_KEY, JSON.stringify([...cols]));
-    } catch {
-      /* localStorage may be unavailable — ignore */
-    }
+    } catch { /* localStorage may be unavailable */ }
   }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
+  protected isColumnVisible(col: string): boolean {
+    return this._visibleCols().has(col);
+  }
 
   private performDelete(department: Department): void {
     this.loading.set(true);
