@@ -8,6 +8,9 @@ export type CmsViewMode = 'card' | 'table';
  * localStorage under the supplied storage key so a user's preference
  * is remembered per screen.
  *
+ * The component never mutates its `mode` input — it emits `modeChange`
+ * and lets the parent own the source of truth (one-way data flow).
+ *
  * Usage:
  *   <cms-view-toggle
  *     [mode]="viewMode()"
@@ -27,22 +30,20 @@ export class CmsViewToggleComponent implements OnInit {
 
   ngOnInit(): void {
     if (!this.storageKey) return;
+    let stored: string | null = null;
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored === 'card' || stored === 'table') {
-        if (stored !== this.mode) {
-          this.mode = stored;
-          this.modeChange.emit(stored);
-        }
-      }
+      stored = localStorage.getItem(this.storageKey);
     } catch {
       /* localStorage may be unavailable — ignore */
+    }
+    if ((stored === 'card' || stored === 'table') && stored !== this.mode) {
+      // Ask the parent to adopt the persisted preference.
+      this.modeChange.emit(stored);
     }
   }
 
   protected select(next: CmsViewMode): void {
     if (this.mode === next) return;
-    this.mode = next;
     if (this.storageKey) {
       try {
         localStorage.setItem(this.storageKey, next);
@@ -53,3 +54,5 @@ export class CmsViewToggleComponent implements OnInit {
     this.modeChange.emit(next);
   }
 }
+
+

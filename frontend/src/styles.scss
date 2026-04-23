@@ -3584,6 +3584,14 @@ html.dark-theme body::after {
     color: var(--cms-primary);
 
     svg { width: 12px; height: 12px; }
+
+    .mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
+      color: inherit;
+    }
   }
 
   &__text {

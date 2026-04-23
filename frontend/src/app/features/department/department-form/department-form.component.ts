@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +10,7 @@ import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-department-form',
@@ -32,6 +34,7 @@ export class DepartmentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly departmentService = inject(DepartmentService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -45,28 +48,21 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly previewDescription = signal('');
   protected readonly previewHod = signal('');
 
-  protected readonly previewInitials = computed(() => {
-    const name = this.previewHod().trim();
-    if (!name) return '';
-    const parts = name.split(/\s+/).filter(Boolean);
-    const first = parts[0]?.[0] ?? '';
-    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
-    return (first + last).toUpperCase();
-  });
+  protected readonly previewInitials = computed(() => computeInitials(this.previewHod()));
 
   protected readonly tips: CmsTip[] = [
     {
-      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      icon: 'check_circle',
       title: 'Use a short, uppercase code',
       subtitle: 'Codes such as CS, EE or NUR appear as monospace badges across lists and reports.',
     },
     {
-      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>',
+      icon: 'person',
       title: 'Assign a Head of Department',
       subtitle: 'The HOD name appears with an avatar on department cards and in faculty linkage flows.',
     },
     {
-      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+      icon: 'edit_note',
       title: 'Description is searchable',
       subtitle: 'A clear one-line description helps users find the department from global search.',
     },
@@ -83,11 +79,20 @@ export class DepartmentFormComponent implements OnInit {
 
   constructor() {
     // Wire each form control to its preview signal so the live preview
-    // updates as the user types.
-    this.form.get('name')?.valueChanges.subscribe((v: string | null) => this.previewName.set(v ?? ''));
-    this.form.get('code')?.valueChanges.subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
-    this.form.get('description')?.valueChanges.subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
-    this.form.get('hodName')?.valueChanges.subscribe((v: string | null) => this.previewHod.set(v ?? ''));
+    // updates as the user types. takeUntilDestroyed() unsubscribes
+    // automatically when the component is destroyed.
+    this.form.get('name')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewName.set(v ?? ''));
+    this.form.get('code')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
+    this.form.get('description')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
+    this.form.get('hodName')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewHod.set(v ?? ''));
   }
 
   ngOnInit(): void {

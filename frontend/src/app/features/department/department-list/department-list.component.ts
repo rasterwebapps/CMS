@@ -12,6 +12,7 @@ import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsViewToggleComponent, CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-department-list',
@@ -75,12 +76,7 @@ export class DepartmentListComponent implements OnInit {
   });
 
   protected initials(name?: string | null): string {
-    if (!name) return '—';
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '—';
-    const first = parts[0]?.[0] ?? '';
-    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
-    return (first + last).toUpperCase() || '—';
+    return computeInitials(name) || '—';
   }
 
   ngOnInit(): void {
@@ -132,12 +128,22 @@ export class DepartmentListComponent implements OnInit {
   }
 
   protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
+    const next = new Set(this._visibleCols());
+    if (next.size > 1 && next.has(col)) {
+      next.delete(col);
+    } else {
+      next.add(col);
+    }
+    this._visibleCols.set(next);
+    this._persistColPrefs(next);
+  }
+
+  private _persistColPrefs(cols: Set<string>): void {
+    try {
+      localStorage.setItem(this.COLS_KEY, JSON.stringify([...cols]));
+    } catch {
+      /* localStorage may be unavailable — ignore */
+    }
   }
 
   protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
