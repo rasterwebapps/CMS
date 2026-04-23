@@ -1,12 +1,16 @@
-<div class="entry-form-page">
-  <div class="entry-form-header">
-    <button mat-icon-button routerLink="/departments" class="back-btn" aria-label="Back to departments">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
+<div class="dept-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="dept-form-header">
+    <a class="dept-back-btn" routerLink="/departments" aria-label="Back to departments">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
     <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
-      <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new department.' }}
+      <h1 class="dept-form-title">
+        {{ isEditMode() ? 'Edit' : 'Add' }} <em>Department</em>
+      </h1>
+      <p class="dept-form-subtitle">
+        {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new academic department.' }}
       </p>
     </div>
   </div>
@@ -16,77 +20,180 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dept-form-layout">
 
-        <div class="field-group">
-          <label for="dept-name" class="field-label">Name</label>
-          <input
-            id="dept-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Computer Science"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">{{ getErrorMessage('name') }}</p>
-          }
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="dept-form-card">
+        <div class="dept-form-card-hdr">
+          <div class="dept-fchico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <div class="dept-fchtit">Department Information</div>
+            <div class="dept-fchsub">Basic details and identification</div>
+          </div>
         </div>
 
-        <div class="field-group">
-          <label for="dept-code" class="field-label">Code</label>
-          <input
-            id="dept-code"
-            class="field-input field-input--narrow"
-            formControlName="code"
-            placeholder="e.g., CS, EE, ME"
-            autocomplete="off"
-            [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
-          />
-          <p class="field-hint">Short uppercase code for the department (max 20 characters)</p>
-          @if (form.get('code')?.invalid && form.get('code')?.touched) {
-            <p class="field-error">{{ getErrorMessage('code') }}</p>
-          }
-        </div>
+        <div class="dept-form-body">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
-        <div class="field-group">
-          <label for="dept-description" class="field-label">Description</label>
-          <textarea
-            id="dept-description"
-            class="field-textarea"
-            formControlName="description"
-            placeholder="Enter a brief description of the department"
-            rows="3"
-          ></textarea>
-          @if (form.get('description')?.invalid && form.get('description')?.touched) {
-            <p class="field-error">{{ getErrorMessage('description') }}</p>
-          }
-        </div>
+            <!-- Name -->
+            <div class="field-group">
+              <label for="dept-name" class="field-label">
+                Department Name
+                <span class="required-star">*</span>
+              </label>
+              <input
+                id="dept-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., General Nursing"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
 
-        <div class="field-group">
-          <label for="dept-hod" class="field-label">Head of Department</label>
-          <input
-            id="dept-hod"
-            class="field-input"
-            formControlName="hodName"
-            placeholder="e.g., Dr. John Smith"
-            autocomplete="off"
-          />
-        </div>
+            <!-- Code -->
+            <div class="field-group">
+              <label for="dept-code" class="field-label">
+                Department Code
+                <span class="required-star">*</span>
+              </label>
+              <div class="code-input-wrap">
+                <input
+                  id="dept-code"
+                  class="field-input"
+                  formControlName="code"
+                  placeholder="e.g., GN, MSN"
+                  maxlength="20"
+                  autocomplete="off"
+                  (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+                />
+                <span class="code-badge-preview" aria-hidden="true">{{ previewCode() || '—' }}</span>
+              </div>
+              <div class="code-meta-row">
+                <span class="field-hint">Short uppercase code — max 20 characters</span>
+                <span class="char-count" aria-label="{{ codeCharCount() }} of 20 characters">{{ codeCharCount() }}/20</span>
+              </div>
+              @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                <p class="field-error">{{ getErrorMessage('code') }}</p>
+              }
+            </div>
 
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Department' : 'Create Department' }}
+            <!-- Description -->
+            <div class="field-group">
+              <label for="dept-description" class="field-label">Description</label>
+              <textarea
+                id="dept-description"
+                class="field-textarea"
+                formControlName="description"
+                placeholder="Enter a brief description of the department and its scope..."
+                rows="3"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+            <!-- Head of Department -->
+            <div class="field-group">
+              <label for="dept-hod" class="field-label">Head of Department</label>
+              <div class="hod-input-wrap">
+                <span class="hod-ava-preview" aria-hidden="true">
+                  {{ previewHod() ? hodInitials() : '—' }}
+                </span>
+                <input
+                  id="dept-hod"
+                  class="field-input hod-field-input"
+                  formControlName="hodName"
+                  placeholder="e.g., Dr. Priya Sharma"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-footer dept-form-footer">
+              <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
+              <button type="submit" class="btn-submit" [disabled]="saving()">
+                @if (saving()) {
+                  <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                } @else {
+                  {{ isEditMode() ? 'Update Department' : 'Create Department' }}
+                }
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: Side Panel ───────────────────────────────── -->
+      <div class="dept-side-panel">
+
+        <!-- Live Preview Card -->
+        <div class="dept-preview-card">
+          <div class="dept-preview-hdr">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="dept-preview-label">Live Preview</span>
+          </div>
+          <div class="dept-preview-body">
+            <div class="dept-prev-code">{{ previewCode() || '—' }}</div>
+            <div class="dept-prev-name" [class.dept-prev-name--empty]="!previewName()">
+              {{ previewName() || 'Department name will appear here' }}
+            </div>
+            @if (previewHod()) {
+              <div class="dept-prev-hod">
+                <span class="dept-prev-hod-av">{{ hodInitials() }}</span>
+                <span class="dept-prev-hod-name">{{ previewHod() }}</span>
+              </div>
             }
-          </button>
+            @if (previewDesc()) {
+              <p class="dept-prev-desc">{{ previewDesc() }}</p>
+            }
+          </div>
         </div>
 
-      </form>
+        <!-- Guidance Tips Card -->
+        <div class="dept-tip-card">
+          <div class="dept-tip-title">Guidance</div>
+
+          <div class="dept-tip-item">
+            <div class="dept-tip-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            </div>
+            <div>
+              <div class="dept-tip-t">Unique Code</div>
+              <div class="dept-tip-s">Use 2–5 uppercase letters as an identifier. E.g. GN for General Nursing, CS for Computer Science.</div>
+            </div>
+          </div>
+
+          <div class="dept-tip-item">
+            <div class="dept-tip-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="dept-tip-t">Head of Department</div>
+              <div class="dept-tip-s">Assign a faculty member as HOD. Include their title (Dr./Prof.) for professional display.</div>
+            </div>
+          </div>
+
+          <div class="dept-tip-item">
+            <div class="dept-tip-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </div>
+            <div>
+              <div class="dept-tip-t">Description</div>
+              <div class="dept-tip-s">Optional but helpful — briefly describe the department's focus area and programmes offered.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   }
 </div>

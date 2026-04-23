@@ -3043,3 +3043,21 @@ html.dark-theme body::after {
   }
 }
 
+// ── Code Chip — accent-tinted mono badge for table cells ──────
+// More visually refined than the solid .cell-code block; used in
+// department, course, program tables where the code is secondary info.
+.code-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-family: var(--cms-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  color: var(--cms-primary);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}

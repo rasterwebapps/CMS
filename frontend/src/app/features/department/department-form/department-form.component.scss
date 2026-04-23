@@ -1,1 +1,381 @@
-// Department form styles are handled by global entry-form classes in styles.scss
+// ─────────────────────────────────────────────────────────────
+// Department Form Page
+// ─────────────────────────────────────────────────────────────
+
+.dept-form-page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  animation: cms-rise-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
+}
+
+// ── Page Header ───────────────────────────────────────────────
+.dept-form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.dept-back-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-top: 6px;
+  border-radius: 10px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--cms-text-secondary);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.08);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    color: var(--cms-primary);
+    transform: translateX(-2px);
+  }
+}
+
+.dept-form-title {
+  margin: 0 0 4px;
+  font-family: var(--cms-font-display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.dept-form-subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Two-column Layout ─────────────────────────────────────────
+.dept-form-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Form Card (left column) ───────────────────────────────────
+.dept-form-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 18px;
+  overflow: hidden;
+  animation: cms-rise-up 0.5s 0.05s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.dept-form-card-hdr {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dept-fchico {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cms-primary);
+}
+
+.dept-fchtit {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.dept-fchsub {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin-top: 1px;
+}
+
+.dept-form-body {
+  padding: 24px;
+}
+
+.dept-form-footer {
+  border-top: 1px solid var(--cms-border-default);
+  margin: 8px -24px -24px;
+  padding: 18px 24px;
+}
+
+// ── Code input with badge preview ─────────────────────────────
+.code-input-wrap {
+  position: relative;
+}
+
+.code-input-wrap .field-input {
+  font-family: var(--cms-font-mono);
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding-right: 58px;
+}
+
+.code-badge-preview {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(var(--cms-primary-rgb), 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cms-font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--cms-primary);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+}
+
+.code-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.char-count {
+  font-size: 0.6875rem;
+  color: var(--cms-text-muted);
+  font-family: var(--cms-font-mono);
+}
+
+// ── HOD input with avatar preview ─────────────────────────────
+.hod-input-wrap {
+  position: relative;
+}
+
+.hod-ava-preview {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--cms-primary);
+  pointer-events: none;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.20);
+}
+
+.hod-field-input {
+  padding-left: 44px !important;
+}
+
+// ── Side Panel (right column) ─────────────────────────────────
+.dept-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: cms-rise-up 0.5s 0.12s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+// ── Live Preview Card ─────────────────────────────────────────
+.dept-preview-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+.dept-preview-hdr {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cms-primary);
+}
+
+.dept-preview-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+.dept-preview-body {
+  padding: 22px 20px;
+}
+
+.dept-prev-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.20);
+  font-family: var(--cms-font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cms-primary);
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+}
+
+.dept-prev-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  min-height: 24px;
+
+  &--empty {
+    color: var(--cms-text-muted);
+    font-weight: 400;
+    font-size: 0.875rem;
+  }
+}
+
+.dept-prev-hod {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dept-prev-hod-av {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.15);
+  color: var(--cms-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.20);
+}
+
+.dept-prev-hod-name {
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+}
+
+.dept-prev-desc {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+
+// ── Tips Card ─────────────────────────────────────────────────
+.dept-tip-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.dept-tip-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+  margin-bottom: 12px;
+}
+
+.dept-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.dept-tip-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cms-primary);
+}
+
+.dept-tip-t {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.dept-tip-s {
+  font-size: 0.6875rem;
+  color: var(--cms-text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}

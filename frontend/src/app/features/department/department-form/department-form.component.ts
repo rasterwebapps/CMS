@@ -1,12 +1,14 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-department-form',
@@ -28,11 +30,21 @@ export class DepartmentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly departmentService = inject(DepartmentService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
+
+  // Live preview signals
+  protected readonly previewCode = signal('');
+  protected readonly previewName = signal('');
+  protected readonly previewHod = signal('');
+  protected readonly previewDesc = signal('');
+  protected readonly codeCharCount = signal(0);
+
+  protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
 
   private departmentId: number | null = null;
 
@@ -50,6 +62,30 @@ export class DepartmentFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Department');
       this.loadDepartment();
+    }
+
+    // Sync live preview from form value changes
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        const code = (v.code ?? '').toUpperCase().trim();
+        this.previewCode.set(code);
+        this.codeCharCount.set(code.length);
+        this.previewName.set((v.name ?? '').trim());
+        this.previewHod.set((v.hodName ?? '').trim());
+        this.previewDesc.set((v.description ?? '').trim());
+      });
+  }
+
+  /** Auto-uppercase the code field on every keystroke, preserving cursor position. */
+  protected onCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const upper = input.value.toUpperCase();
+    if (upper !== input.value) {
+      this.form.get('code')?.setValue(upper, { emitEvent: true });
+      setTimeout(() => input.setSelectionRange(start, end));
     }
   }
 

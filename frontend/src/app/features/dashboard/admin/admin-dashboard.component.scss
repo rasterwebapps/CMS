@@ -29,6 +29,50 @@
   gap: 6px;
 }
 
+.admin-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-hero__greeting em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.admin-hero__btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.admin-hero__btn--outline {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+}
+
 .admin-hero__live {
   display: flex;
   align-items: center;
@@ -67,7 +111,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
   padding: 8px 18px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.15);
