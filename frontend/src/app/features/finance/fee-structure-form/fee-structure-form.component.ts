@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
@@ -13,6 +12,7 @@ import { BulkFeeStructureRequest, FeeStructureItemRequest } from '../finance.mod
 import { environment } from '../../../../environments';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface Program {
   id: number;
@@ -35,10 +35,8 @@ interface AcademicYear {
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatTooltipModule, DecimalPipe,
-    PageHeaderComponent,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe,
+    PageHeaderComponent],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',
 })
@@ -48,7 +46,7 @@ export class FeeStructureFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly financeService = inject(FinanceService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -82,13 +80,11 @@ export class FeeStructureFormComponent implements OnInit {
   /** All fee types in display order (generic first, then additional). */
   protected readonly feeTypes = [
     'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
-    'MISCELLANEOUS', 'LATE_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE',
-  ];
+    'MISCELLANEOUS', 'LATE_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE'];
 
   /** Generic fee types — included in the course total. */
   protected readonly genericFeeTypes = [
-    'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'MISCELLANEOUS', 'LATE_FEE',
-  ];
+    'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'MISCELLANEOUS', 'LATE_FEE'];
 
   /** Additional fee types — NOT included in the generic course total. */
   protected readonly additionalFeeTypes = ['HOSTEL_FEE', 'TRANSPORT_FEE'];
@@ -344,7 +340,7 @@ export class FeeStructureFormComponent implements OnInit {
           this.bulkForm.get('courseId')?.disable();
         },
         error: () => {
-          this.snackBar.open('Failed to load fee structures', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load fee structures');
           void this.router.navigate(['/fee-structures']);
         },
       });
@@ -486,7 +482,7 @@ export class FeeStructureFormComponent implements OnInit {
       return;
     }
     if (this.feeItems.length === 0) {
-      this.snackBar.open('Add at least one fee item', 'Close', { duration: 3000 });
+      this.toast.warning('Add at least one fee item');
       return;
     }
     const bv = this.bulkForm.value;
@@ -514,7 +510,7 @@ export class FeeStructureFormComponent implements OnInit {
       }, 0);
 
     if (totalFee === 0) {
-      this.snackBar.open('Total course fee must be greater than zero', 'Close', { duration: 3000 });
+      this.toast.warning('Total course fee must be greater than zero');
       return;
     }
 
@@ -544,24 +540,24 @@ export class FeeStructureFormComponent implements OnInit {
     if (this.isEditMode()) {
       this.financeService.bulkUpdateFeeStructures(request).subscribe({
         next: () => {
-          this.snackBar.open('Updated successfully', 'Close', { duration: 3000 });
+          this.toast.success('Updated successfully');
           void this.router.navigate(['/fee-structures']);
         },
         error: (err) => {
           const msg = err?.error?.message ?? 'Failed to update fee structures';
-          this.snackBar.open(msg, 'Close', { duration: 4000 });
+          this.toast.error(msg);
           this.saving.set(false);
         },
       });
     } else {
       this.financeService.bulkCreateFeeStructures(request).subscribe({
         next: (created) => {
-          this.snackBar.open(`${created.length} fee structure(s) saved`, 'Close', { duration: 3000 });
+          this.toast.success(`${created.length} fee structure(s) saved`);
           void this.router.navigate(['/fee-structures']);
         },
         error: (err) => {
           const msg = err?.error?.message ?? 'Failed to save fee structures';
-          this.snackBar.open(msg, 'Close', { duration: 4000 });
+          this.toast.error(msg);
           this.saving.set(false);
         },
       });

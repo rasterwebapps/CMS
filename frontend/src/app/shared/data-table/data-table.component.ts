@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
+import { MatIconModule } from '@angular/material/icon';
 import { CmsSkeletonComponent } from '../skeleton/skeleton.component';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
 import { ResponsiveService } from '../../core/layout/responsive.service';
@@ -41,11 +42,13 @@ import { ColumnDef } from './column-def.model';
 @Component({
   selector: 'cms-data-table',
   standalone: true,
-  imports: [MatTableModule, NgTemplateOutlet, CmsSkeletonComponent, CmsEmptyStateComponent],
+  imports: [MatTableModule, MatIconModule, NgTemplateOutlet, CmsSkeletonComponent, CmsEmptyStateComponent],
   templateUrl: './data-table.component.html',
   styleUrl: './data-table.component.scss',
 })
 export class CmsDataTableComponent<T = Record<string, unknown>> implements OnChanges, AfterContentInit {
+  private readonly csvExporter = inject(CsvExporterService);
+
   /** Column definitions — drives both header row and data cells. */
   @Input() columns: ColumnDef<T>[] = [];
 
@@ -69,6 +72,12 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
 
   /** Label for the optional CTA button in the empty state. */
   @Input() emptyActionLabel = '';
+
+  /** When `true`, renders an "Export CSV" button above the table. */
+  @Input() exportable = false;
+
+  /** Filename used for the CSV download (`.csv` is appended automatically). */
+  @Input() exportFilename = 'export';
 
   /** Projected template used to render the actions cell for each row. */
   @ContentChild('rowActions') rowActionsTemplate?: TemplateRef<{ $implicit: T }>;
@@ -113,6 +122,23 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
   protected cellValue(col: ColumnDef<T>, row: T): string {
     const val = col.cell(row);
     return val !== null && val !== undefined && val !== '' ? String(val) : '—';
+  }
+
+  /**
+   * Trigger a CSV download of the current `data` rows using the configured
+   * `columns`. The cell formatter from each `ColumnDef` is reused so the
+   * exported value matches what's shown on screen.
+   */
+  protected exportCsv(): void {
+    const columns = this.columns.map((col) => ({
+      key: col.key,
+      header: col.header,
+      format: (_value: unknown, row: T): string => {
+        const cellVal = col.cell(row);
+        return cellVal === null || cellVal === undefined ? '' : String(cellVal);
+      },
+    }));
+    this.csvExporter.exportRows<T>(this.exportFilename, columns, this.data);
   }
 }
 

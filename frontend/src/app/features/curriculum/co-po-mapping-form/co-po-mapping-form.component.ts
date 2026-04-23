@@ -4,9 +4,9 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CurriculumService } from '../curriculum.service';
 import { Experiment, LabCurriculumMappingRequest } from '../curriculum.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-co-po-mapping-form',
@@ -16,9 +16,7 @@ import { Experiment, LabCurriculumMappingRequest } from '../curriculum.model';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './co-po-mapping-form.component.html',
   styleUrl: './co-po-mapping-form.component.scss',
 })
@@ -27,7 +25,7 @@ export class CoPoMappingFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly curriculumService = inject(CurriculumService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -37,8 +35,7 @@ export class CoPoMappingFormComponent implements OnInit {
   protected readonly outcomeTypes = [
     'COURSE_OUTCOME',
     'PROGRAM_OUTCOME',
-    'PROGRAM_SPECIFIC_OUTCOME',
-  ];
+    'PROGRAM_SPECIFIC_OUTCOME'];
   protected readonly mappingLevels = ['LOW', 'MEDIUM', 'HIGH'];
 
   private itemId: number | null = null;
@@ -56,7 +53,7 @@ export class CoPoMappingFormComponent implements OnInit {
     this.curriculumService.getAllExperiments().subscribe({
       next: (data) => this.experiments.set(data),
       error: () => {
-        this.snackBar.open('Failed to load experiments', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load experiments');
       },
     });
     const id = this.route.snapshot.paramMap.get('id');
@@ -78,7 +75,7 @@ export class CoPoMappingFormComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load');
           void this.router.navigate(['/curriculum-mappings']);
         },
       });
@@ -105,11 +102,11 @@ export class CoPoMappingFormComponent implements OnInit {
       : this.curriculumService.createMapping(request);
     op$.subscribe({
       next: () => {
-        this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
+        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/curriculum-mappings']);
       },
       error: () => {
-        this.snackBar.open('Failed to save', 'Close', { duration: 3000 });
+        this.toast.error('Failed to save');
         this.saving.set(false);
       },
     });

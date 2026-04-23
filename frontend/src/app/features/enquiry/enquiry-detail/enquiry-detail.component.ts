@@ -17,6 +17,7 @@ import {
   EnquiryPaymentResponse,
   EnquiryStatusHistoryResponse,
 } from '../enquiry.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-enquiry-detail',
@@ -33,8 +34,7 @@ import {
     DatePipe,
     PageHeaderComponent,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent,
-  ],
+    CmsSkeletonComponent],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
 })
@@ -42,7 +42,7 @@ export class EnquiryDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly documents = signal<EnquiryDocument[]>([]);
@@ -92,7 +92,7 @@ export class EnquiryDetailComponent implements OnInit {
           .subscribe({ next: (h) => this.statusHistory.set(h) });
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiry');
         void this.router.navigate(['/enquiries']);
       },
     });
@@ -113,12 +113,12 @@ export class EnquiryDetailComponent implements OnInit {
     this.submitting.set(true);
     this.enquiryService.submitDocuments(id).subscribe({
       next: () => {
-        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Documents submitted successfully');
         this.load(id);
         this.submitting.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to submit documents', 'Close', { duration: 3000 });
+        this.toast.error('Failed to submit documents');
         this.submitting.set(false);
       },
     });

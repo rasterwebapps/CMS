@@ -4,25 +4,23 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ExaminationService } from '../examination.service';
 import { ExamResult, Examination } from '../examination.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-exam-result-list',
   standalone: true,
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    CmsStatusBadgeComponent,
-  ],
+    MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',
 })
 export class ExamResultListComponent implements OnInit {
   private readonly examinationService = inject(ExaminationService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -89,7 +87,7 @@ export class ExamResultListComponent implements OnInit {
   private loadExaminations(): void {
     this.examinationService.getAll().subscribe({
       next: (data) => this.examinations.set(data),
-      error: () => this.snackBar.open('Failed to load examinations', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to load examinations'),
     });
   }
 
@@ -100,7 +98,7 @@ export class ExamResultListComponent implements OnInit {
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.snackBar.open('Failed to load results', 'Close', { duration: 3000 }); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load results'); this.loading.set(false); },
     });
   }
 }

@@ -4,10 +4,10 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYearRequest } from '../academic-year.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-academic-year-form',
@@ -18,9 +18,7 @@ import { AcademicYearRequest } from '../academic-year.model';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatSlideToggleModule,
-  ],
+    MatSlideToggleModule],
   templateUrl: './academic-year-form.component.html',
   styleUrl: './academic-year-form.component.scss',
 })
@@ -29,7 +27,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -79,13 +77,13 @@ export class AcademicYearFormComponent implements OnInit {
         const message = this.isEditMode()
           ? 'Academic year updated successfully'
           : 'Academic year created successfully';
-        this.snackBar.open(message, 'Close', { duration: 3000 });
+        this.toast.success(message);
         void this.router.navigate(['/academic-years']);
       },
       error: (err) => {
         const message = err?.error?.message
           ?? (this.isEditMode() ? 'Failed to update academic year' : 'Failed to create academic year');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });
@@ -132,7 +130,7 @@ export class AcademicYearFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load academic year', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load academic year');
         void this.router.navigate(['/academic-years']);
       },
     });

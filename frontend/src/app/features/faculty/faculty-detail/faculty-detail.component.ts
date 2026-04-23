@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, DESIGNATION_OPTIONS, FACULTY_STATUS_OPTIONS } from '../faculty.model';
@@ -11,6 +10,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-faculty-detail',
@@ -20,11 +20,9 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule,
     DatePipe,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent,
-  ],
+    CmsSkeletonComponent],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
 })
@@ -32,7 +30,7 @@ export class FacultyDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly facultyService = inject(FacultyService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly authService = inject(AuthService);
 
   protected readonly faculty = signal<Faculty | null>(null);
@@ -56,7 +54,7 @@ export class FacultyDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Error loading faculty details', 'Close', { duration: 3000 });
+        this.toast.error('Error loading faculty details');
         this.loading.set(false);
         void this.router.navigate(['/faculty']);
       },

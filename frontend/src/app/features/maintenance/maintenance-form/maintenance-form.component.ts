@@ -5,18 +5,17 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MaintenanceService } from '../maintenance.service';
 import { MaintenanceRequestDto } from '../maintenance.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-maintenance-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './maintenance-form.component.html',
   styleUrl: './maintenance-form.component.scss',
 })
@@ -26,7 +25,7 @@ export class MaintenanceFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly maintenanceService = inject(MaintenanceService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -74,7 +73,7 @@ export class MaintenanceFormComponent implements OnInit {
           });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/maintenance']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/maintenance']); },
       });
     }
   }
@@ -95,8 +94,8 @@ export class MaintenanceFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.maintenanceService.update(this.itemId!, request) : this.maintenanceService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/maintenance']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/maintenance']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { AdmissionService } from '../admission.service';
 import {
@@ -14,6 +13,7 @@ import {
   AcademicQualificationResponse,
   AdmissionDocumentResponse,
 } from '../admission.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-admission-detail',
@@ -26,9 +26,7 @@ import {
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
-    MatChipsModule,
-    MatSnackBarModule,
-  ],
+    MatChipsModule],
   templateUrl: './admission-detail.component.html',
   styleUrl: './admission-detail.component.scss',
 })
@@ -36,7 +34,7 @@ export class AdmissionDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly admissionService = inject(AdmissionService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(true);
   protected readonly admission = signal<AdmissionResponse | null>(null);
@@ -62,7 +60,7 @@ export class AdmissionDetailComponent implements OnInit {
         this.loadQualifications(id);
       },
       error: () => {
-        this.snackBar.open('Failed to load admission', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load admission');
         this.loading.set(false);
       },
     });
@@ -98,7 +96,7 @@ export class AdmissionDetailComponent implements OnInit {
     this.admissionService.verifyDocument(doc.id, newStatus, verifiedBy).subscribe({
       next: (updated) => {
         this.documents.update((docs) => docs.map((d) => (d.id === updated.id ? updated : d)));
-        this.snackBar.open('Document status updated', 'Close', { duration: 3000 });
+        this.toast.success('Document status updated');
         const admissionId = this.admission()?.id;
         if (admissionId) {
           this.admissionService.getDocumentChecklist(admissionId).subscribe({
@@ -107,12 +105,12 @@ export class AdmissionDetailComponent implements OnInit {
           });
         }
       },
-      error: () => this.snackBar.open('Failed to update document status', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to update document status'),
     });
   }
 
   protected uploadPlaceholder(): void {
-    this.snackBar.open('File upload will be available soon', 'Close', { duration: 3000 });
+    this.toast.info('File upload will be available soon');
   }
 
   protected edit(): void {

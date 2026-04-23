@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe, DatePipe } from '@angular/common';
@@ -12,6 +11,7 @@ import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryPaymentResponse, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
@@ -23,11 +23,9 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTableModule,
     MatTooltipModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './enquiry-payment-collection.component.html',
   styleUrl: './enquiry-payment-collection.component.scss',
 })
@@ -36,7 +34,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -53,8 +51,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     'courseName',
     'finalizedNetFee',
     'finalizedAt',
-    'actions',
-  ];
+    'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
   protected readonly form: FormGroup = this.fb.group({
@@ -76,7 +73,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load enquiry');
           this.loadFinalizedEnquiries();
         },
       });
@@ -95,7 +92,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiries', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiries');
         this.loading.set(false);
       },
     });
@@ -156,7 +153,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
         this.lastPaymentResponse.set(response);
       },
       error: () => {
-        this.snackBar.open('Failed to collect payment', 'Close', { duration: 3000 });
+        this.toast.error('Failed to collect payment');
         this.saving.set(false);
       },
     });

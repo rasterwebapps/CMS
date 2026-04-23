@@ -4,10 +4,10 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReferralTypeService } from '../referral-type.service';
 import { ReferralTypeRequest } from '../referral-type.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-referral-type-form',
@@ -18,9 +18,7 @@ import { ReferralTypeRequest } from '../referral-type.model';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatSlideToggleModule,
-  ],
+    MatSlideToggleModule],
   templateUrl: './referral-type-form.component.html',
   styleUrl: './referral-type-form.component.scss',
 })
@@ -29,7 +27,7 @@ export class ReferralTypeFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly referralTypeService = inject(ReferralTypeService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -73,7 +71,7 @@ export class ReferralTypeFormComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load');
           void this.router.navigate(['/referral-types']);
         },
       });
@@ -100,12 +98,12 @@ export class ReferralTypeFormComponent implements OnInit {
       : this.referralTypeService.createReferralType(request);
     op$.subscribe({
       next: () => {
-        this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
+        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/referral-types']);
       },
       error: (err) => {
         const message = err?.error?.message ?? (this.isEditMode() ? 'Failed to update' : 'Failed to save');
-        this.snackBar.open(message, 'Close', { duration: 4000 });
+        this.toast.error(message);
         this.saving.set(false);
       },
     });

@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
@@ -13,6 +12,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 /**
  * All document types supported by the system. Mirrors the backend
@@ -33,8 +33,7 @@ const ALL_DOCUMENT_TYPES = [
   'UNDERTAKING_DOCUMENT',
   'AADHAR_CARD',
   'MEDICAL_FITNESS',
-  'ELIGIBILITY_CERTIFICATE',
-] as const;
+  'ELIGIBILITY_CERTIFICATE'] as const;
 
 /**
  * Mandatory document types that must be UPLOADED or VERIFIED before the
@@ -46,8 +45,7 @@ const MANDATORY_DOCUMENT_TYPES: ReadonlySet<string> = new Set([
   'TWELFTH_MARKSHEET',
   'TRANSFER_CERTIFICATE',
   'AADHAR_CARD',
-  'PASSPORT_PHOTO',
-]);
+  'PASSPORT_PHOTO']);
 
 interface ChecklistRow {
   documentType: string;
@@ -67,12 +65,10 @@ interface ChecklistRow {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTooltipModule,
     CurrencyPipe,
     PageHeaderComponent,
-    CmsStatusBadgeComponent,
-  ],
+    CmsStatusBadgeComponent],
   templateUrl: './document-collection.component.html',
   styleUrl: './document-collection.component.scss',
 })
@@ -81,7 +77,7 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService = inject(AuthService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(true);
@@ -118,7 +114,7 @@ export class DocumentCollectionComponent implements OnInit {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id || Number.isNaN(id)) {
-      this.snackBar.open('Invalid enquiry id', 'Close', { duration: 3000 });
+      this.toast.warning('Invalid enquiry id');
       void this.router.navigate(['/enquiries/document-submission']);
       return;
     }
@@ -130,11 +126,7 @@ export class DocumentCollectionComponent implements OnInit {
     this.enquiryService.getEnquiryById(id).subscribe({
       next: (enquiry) => {
         if (enquiry.status !== 'FEES_PAID' && enquiry.status !== 'PARTIALLY_PAID') {
-          this.snackBar.open(
-            'Documents can only be collected for enquiries in FEES_PAID or PARTIALLY_PAID status',
-            'Close',
-            { duration: 5000 },
-          );
+          this.toast.warning('Documents can only be collected for enquiries in FEES_PAID or PARTIALLY_PAID status');
           void this.router.navigate(['/enquiries/document-submission']);
           return;
         }
@@ -142,7 +134,7 @@ export class DocumentCollectionComponent implements OnInit {
         this.loadDocuments(id);
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiry');
         this.loading.set(false);
         void this.router.navigate(['/enquiries/document-submission']);
       },
@@ -156,7 +148,7 @@ export class DocumentCollectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load documents', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load documents');
         this.rows.set(this.buildChecklist([]));
         this.loading.set(false);
       },
@@ -199,17 +191,11 @@ export class DocumentCollectionComponent implements OnInit {
         remarks: saved.remarks ?? '',
         saving: false,
       });
-      this.snackBar.open(
-        `${this.formatDocType(row.documentType)} marked as ${this.formatDocType(saved.status)}`,
-        'Close',
-        { duration: 2500 },
-      );
+      this.toast.info(`${this.formatDocType(row.documentType)} marked as ${this.formatDocType(saved.status)}`);
     };
     const onError = (): void => {
       this.updateRow(row, { ...row, saving: false });
-      this.snackBar.open(`Failed to update ${this.formatDocType(row.documentType)}`, 'Close', {
-        duration: 3000,
-      });
+      this.toast.error(`Failed to update ${this.formatDocType(row.documentType)}`);
     };
 
     if (row.document) {
@@ -245,9 +231,7 @@ export class DocumentCollectionComponent implements OnInit {
           remarks: '',
           saving: false,
         });
-        this.snackBar.open(`${this.formatDocType(row.documentType)} cleared`, 'Close', {
-          duration: 2500,
-        });
+        this.toast.success(`${this.formatDocType(row.documentType)} cleared`);
       },
       error: () => {
         this.updateRow(row, { ...row, saving: false });
@@ -380,7 +364,7 @@ export class DocumentCollectionComponent implements OnInit {
     this.submitting.set(true);
     this.enquiryService.submitDocuments(enquiryId).subscribe({
       next: () => {
-        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Documents submitted successfully');
         this.submitting.set(false);
         void this.router.navigate(['/enquiries/document-submission']);
       },
@@ -390,7 +374,7 @@ export class DocumentCollectionComponent implements OnInit {
           missing && missing.length > 0
             ? `Missing documents: ${missing.map((m) => this.formatDocType(m)).join(', ')}`
             : (err?.error?.message ?? 'Failed to submit documents');
-        this.snackBar.open(message, 'Close', { duration: 6000 });
+        this.toast.error(message);
         this.submitting.set(false);
       },
     });

@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { EnquiryRequest } from '../enquiry.model';
@@ -16,6 +15,7 @@ import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { environment } from '../../../../environments';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface ProgramInfo {
   id: number;
@@ -52,9 +52,8 @@ interface FeeStructureInfo {
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule, CurrencyPipe,
-    PageHeaderComponent,
-  ],
+    MatProgressSpinnerModule, CurrencyPipe,
+    PageHeaderComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })
@@ -66,7 +65,7 @@ export class EnquiryFormComponent implements OnInit {
   private readonly agentService = inject(AgentService);
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -81,8 +80,7 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
   protected readonly studentTypeOptions: { value: 'DAY_SCHOLAR' | 'HOSTELER'; label: string }[] = [
     { value: 'DAY_SCHOLAR', label: 'Day Scholar' },
-    { value: 'HOSTELER', label: 'Hosteler' },
-  ];
+    { value: 'HOSTELER', label: 'Hosteler' }];
 
   /** Max date for enquiry date input — today as YYYY-MM-DD string */
   protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
@@ -156,7 +154,7 @@ export class EnquiryFormComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load');
           void this.router.navigate(['/enquiries']);
         },
       });
@@ -294,10 +292,10 @@ export class EnquiryFormComponent implements OnInit {
       : this.enquiryService.createEnquiry(request);
     op$.subscribe({
       next: () => {
-        this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
+        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/enquiries']);
       },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

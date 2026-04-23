@@ -6,7 +6,6 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdmissionService } from '../admission.service';
@@ -14,6 +13,7 @@ import { AdmissionResponse, ADMISSION_STATUSES } from '../admission.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-admission-list',
@@ -28,17 +28,15 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',
 })
 export class AdmissionListComponent implements OnInit {
   private readonly admissionService = inject(AdmissionService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -98,7 +96,7 @@ export class AdmissionListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load admissions', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load admissions');
         this.loading.set(false);
       },
     });
@@ -125,8 +123,8 @@ export class AdmissionListComponent implements OnInit {
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) {
         this.admissionService.delete(item.id).subscribe({
-          next: () => { this.snackBar.open('Deleted', 'Close', { duration: 3000 }); this.load(); },
-          error: () => this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }),
+          next: () => { this.toast.success('Deleted'); this.load(); },
+          error: () => this.toast.error('Failed to delete'),
         });
       }
     });

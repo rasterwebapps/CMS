@@ -1,5 +1,20 @@
 <div class="cms-table-host">
 
+  @if (exportable) {
+    <div class="cms-table-toolbar no-print">
+      <button
+        type="button"
+        class="cms-table-export-btn"
+        (click)="exportCsv()"
+        [disabled]="loading || data.length === 0"
+        aria-label="Export table as CSV"
+      >
+        <mat-icon>file_download</mat-icon>
+        <span>Export CSV</span>
+      </button>
+    </div>
+  }
+
   @if (loading) {
     <!-- ─── Skeleton loading state ─────────────────────────────────────── -->
     <div class="cms-skeleton-table" role="status" aria-label="Loading data…">

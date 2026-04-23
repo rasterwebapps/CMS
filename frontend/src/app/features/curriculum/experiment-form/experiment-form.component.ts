@@ -6,10 +6,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CurriculumService } from '../curriculum.service';
 import { ExperimentRequest } from '../curriculum.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-experiment-form',
@@ -20,9 +20,7 @@ import { environment } from '../../../../environments/environment';
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './experiment-form.component.html',
   styleUrl: './experiment-form.component.scss',
 })
@@ -32,7 +30,7 @@ export class ExperimentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly curriculumService = inject(CurriculumService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -62,7 +60,7 @@ export class ExperimentFormComponent implements OnInit {
       .subscribe({
         next: (data) => this.courses.set(data),
         error: () => {
-          this.snackBar.open('Failed to load courses', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load courses');
         },
       });
     const id = this.route.snapshot.paramMap.get('id');
@@ -89,7 +87,7 @@ export class ExperimentFormComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load');
           void this.router.navigate(['/experiments']);
         },
       });
@@ -121,11 +119,11 @@ export class ExperimentFormComponent implements OnInit {
       : this.curriculumService.createExperiment(request);
     op$.subscribe({
       next: () => {
-        this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 });
+        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/experiments']);
       },
       error: () => {
-        this.snackBar.open('Failed to save', 'Close', { duration: 3000 });
+        this.toast.error('Failed to save');
         this.saving.set(false);
       },
     });

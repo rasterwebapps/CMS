@@ -7,13 +7,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurriculumService } from '../curriculum.service';
 import { LabCurriculumMapping } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-co-po-mapping',
@@ -28,17 +28,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',
 })
 export class CoPoMappingComponent implements OnInit {
   private readonly curriculumService = inject(CurriculumService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -56,8 +54,7 @@ export class CoPoMappingComponent implements OnInit {
     'outcomeCode',
     'outcomeDescription',
     'mappingLevel',
-    'actions',
-  ];
+    'actions'];
   protected readonly dataSource = new MatTableDataSource<LabCurriculumMapping>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -102,11 +99,11 @@ export class CoPoMappingComponent implements OnInit {
     this.loading.set(true);
     this.curriculumService.deleteMapping(item.id).subscribe({
       next: () => {
-        this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Deleted successfully');
         this.load();
       },
       error: () => {
-        this.snackBar.open('Failed to delete', 'Close', { duration: 3000 });
+        this.toast.error('Failed to delete');
         this.loading.set(false);
       },
     });
@@ -120,7 +117,7 @@ export class CoPoMappingComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load');
         this.loading.set(false);
       },
     });

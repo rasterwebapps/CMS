@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { ProgramService } from '../../program/program.service';
@@ -12,6 +11,7 @@ import { CourseService } from '../../course/course.service';
 import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface RollAssignment {
   student: Student;
@@ -27,9 +27,7 @@ interface RollAssignment {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatProgressSpinnerModule],
   templateUrl: './roll-number-assignment.component.html',
   styleUrl: './roll-number-assignment.component.scss',
 })
@@ -37,7 +35,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly programService = inject(ProgramService);
   private readonly courseService = inject(CourseService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly programs = signal<Program[]>([]);
   protected readonly courses = signal<Course[]>([]);
@@ -79,7 +77,7 @@ export class RollNumberAssignmentComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load students', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load students');
         this.loading.set(false);
       },
     });
@@ -87,22 +85,22 @@ export class RollNumberAssignmentComponent implements OnInit {
 
   protected assignOne(item: RollAssignment): void {
     if (!item.rollNumber.trim()) {
-      this.snackBar.open('Enter a roll number first', 'Close', { duration: 2000 });
+      this.toast.warning('Enter a roll number first');
       return;
     }
     this.studentService.assignRollNumber(item.student.id, item.rollNumber.trim()).subscribe({
       next: () => {
-        this.snackBar.open(`Roll number assigned to ${item.student.fullName}`, 'Close', { duration: 3000 });
+        this.toast.success(`Roll number assigned to ${item.student.fullName}`);
         this.loadStudents();
       },
-      error: () => this.snackBar.open('Failed to assign roll number', 'Close', { duration: 3000 }),
+      error: () => this.toast.error('Failed to assign roll number'),
     });
   }
 
   protected saveAll(): void {
     const valid = this.assignments().filter((a) => a.rollNumber.trim());
     if (!valid.length) {
-      this.snackBar.open('No roll numbers to save', 'Close', { duration: 2000 });
+      this.toast.warning('No roll numbers to save');
       return;
     }
     this.saving.set(true);
@@ -110,12 +108,12 @@ export class RollNumberAssignmentComponent implements OnInit {
       valid.map((a) => ({ studentId: a.student.id, rollNumber: a.rollNumber.trim() })),
     ).subscribe({
       next: () => {
-        this.snackBar.open('Roll numbers saved successfully', 'Close', { duration: 3000 });
+        this.toast.success('Roll numbers saved successfully');
         this.loadStudents();
         this.saving.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to save roll numbers', 'Close', { duration: 3000 });
+        this.toast.error('Failed to save roll numbers');
         this.saving.set(false);
       },
     });

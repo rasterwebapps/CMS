@@ -6,13 +6,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AdmissionService } from '../admission.service';
 import { ADMISSION_STATUSES, QUALIFICATION_TYPES } from '../admission.model';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-admission-form',
@@ -25,9 +25,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatCheckboxModule,
     MatTableModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
 })
@@ -37,7 +35,7 @@ export class AdmissionFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly admissionService = inject(AdmissionService);
   private readonly studentService = inject(StudentService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly students = signal<Student[]>([]);
@@ -78,7 +76,7 @@ export class AdmissionFormComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load admission', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load admission');
           void this.router.navigate(['/admissions']);
         },
       });
@@ -130,14 +128,14 @@ export class AdmissionFormComponent implements OnInit {
         }
       },
       error: () => {
-        this.snackBar.open('Failed to save admission', 'Close', { duration: 3000 });
+        this.toast.error('Failed to save admission');
         this.saving.set(false);
       },
     });
   }
 
   private finish(): void {
-    this.snackBar.open('Admission saved successfully', 'Close', { duration: 3000 });
+    this.toast.success('Admission saved successfully');
     void this.router.navigate(['/admissions']);
   }
 }

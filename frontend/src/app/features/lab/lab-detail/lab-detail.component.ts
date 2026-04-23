@@ -5,13 +5,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabService } from '../lab.service';
 import { Lab, LabInChargeAssignment, LabInChargeAssignmentRequest, LabInChargeRole } from '../lab.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-lab-detail',
@@ -23,11 +23,9 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatIconModule,
     MatTableModule,
     MatChipsModule,
-    MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './lab-detail.component.html',
   styleUrl: './lab-detail.component.scss',
 })
@@ -35,7 +33,7 @@ export class LabDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly labService = inject(LabService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   protected readonly authService = inject(AuthService);
 
@@ -69,7 +67,7 @@ export class LabDetailComponent implements OnInit {
         this.loadAssignments(id);
       },
       error: () => {
-        this.snackBar.open('Error loading lab details', 'Close', { duration: 3000 });
+        this.toast.error('Error loading lab details');
         this.loading.set(false);
       },
     });
@@ -134,12 +132,12 @@ export class LabDetailComponent implements OnInit {
 
     this.labService.assignInCharge(this.lab()!.id, request).subscribe({
       next: () => {
-        this.snackBar.open('Assignment added successfully', 'Close', { duration: 3000 });
+        this.toast.success('Assignment added successfully');
         this.toggleAssignmentForm();
         this.loadAssignments(this.lab()!.id);
       },
       error: () => {
-        this.snackBar.open('Error adding assignment', 'Close', { duration: 3000 });
+        this.toast.error('Error adding assignment');
       },
     });
   }
@@ -151,11 +149,11 @@ export class LabDetailComponent implements OnInit {
 
     this.labService.removeAssignment(this.lab()!.id, assignmentId).subscribe({
       next: () => {
-        this.snackBar.open('Assignment removed', 'Close', { duration: 3000 });
+        this.toast.success('Assignment removed');
         this.loadAssignments(this.lab()!.id);
       },
       error: () => {
-        this.snackBar.open('Error removing assignment', 'Close', { duration: 3000 });
+        this.toast.error('Error removing assignment');
       },
     });
   }
