@@ -23,39 +23,6 @@
   }
 }
 
-.page-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 0.75rem;
-  color: var(--cms-text-muted);
-  margin-bottom: 4px;
-
-  &__link {
-    color: var(--cms-text-muted);
-    text-decoration: none;
-    transition: var(--cms-transition);
-    padding: 2px 0;
-
-    &:hover {
-      color: var(--cms-primary);
-    }
-  }
-
-  &__sep {
-    font-size: 14px !important;
-    width: 14px !important;
-    height: 14px !important;
-    opacity: 0.4;
-    flex-shrink: 0;
-  }
-
-  &__current {
-    color: var(--cms-text-secondary);
-    font-weight: 500;
-  }
-}
-
 .page-header-title {
   margin: 0;
   font-size: 1.75rem;
@@ -75,3 +42,4 @@
   color: var(--cms-text-muted);
   line-height: 1.5;
 }
+

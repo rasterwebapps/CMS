@@ -1,11 +1,12 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ToastService } from '../../../core/toast/toast.service';
-import { LoadingButtonDirective } from '../../../shared/directives/loading-button.directive';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 
@@ -47,6 +48,27 @@ export class DepartmentFormComponent implements OnInit {
     code: ['', [Validators.required, Validators.maxLength(20)]],
     description: ['', [Validators.maxLength(500)]],
     hodName: ['', [Validators.maxLength(100)]],
+  });
+
+  // ── Live preview signals ─────────────────────────────────────────────────
+  private readonly formValues = toSignal(
+    this.form.valueChanges.pipe(startWith(this.form.value)),
+    { initialValue: this.form.getRawValue() },
+  );
+
+  protected readonly previewCode = computed(() => (this.formValues().code as string | null)?.toUpperCase() || '');
+  protected readonly previewName = computed(() => (this.formValues().name as string | null) || '');
+  protected readonly previewDescription = computed(() => (this.formValues().description as string | null) || '');
+  protected readonly previewHod = computed(() => (this.formValues().hodName as string | null) || '');
+  protected readonly codeCharCount = computed(() => ((this.formValues().code as string | null) || '').length);
+
+  protected readonly hodInitials = computed(() => {
+    const hod = this.previewHod();
+    if (!hod.trim()) return '?';
+    const parts = hod.trim().split(' ').filter(Boolean);
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0][0].toUpperCase();
   });
 
   ngOnInit(): void {

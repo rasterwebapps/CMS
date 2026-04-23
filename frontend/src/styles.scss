@@ -1019,9 +1019,32 @@ app-root {
   margin-bottom: 20px;
   flex-wrap: wrap;
 
-  @media (max-width: 640px) {
+  // Phase 5 (3.3): stack vertically on mobile so search + actions don't crush.
+  @media (max-width: 767px) {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+
+    .command-bar__left,
+    .command-bar__right {
+      width: 100%;
+    }
+
+    .command-bar__right {
+      justify-content: stretch;
+    }
+
+    .search-bar {
+      max-width: none;
+    }
+
+    // Primary action button takes full width on mobile.
+    .btn-toolbar,
+    .btn-primary,
+    .btn-submit {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }
 
@@ -3052,158 +3075,151 @@ html.dark-theme body::after {
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-// Phase 6 — Polish & Micro-interactions
-// ════════════════════════════════════════════════════════════════
 
-// ── Animated inline form errors ──────────────────────────────
-// Animate the existing .field-error so newly-revealed validation
-// messages slide in rather than popping. Pure-CSS — no template change.
-.field-error {
-  animation: cms-drop-in var(--cms-duration-sm) var(--cms-ease-out) both;
+// ══════════════════════════════════════════════════
+// Phase 5 — Navigation & Shell Redesign
+// ══════════════════════════════════════════════════
+
+// 1.1 Hover-to-expand overlay rail — content does not reflow.
+.app-container.sidenav-hover-expanded {
+  .app-sidenav.hover-expanded {
+    width: var(--cms-sidenav-width) !important;
+    position: absolute;
+    z-index: 50;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.10);
+  }
+  .mat-sidenav-content { margin-left: 68px !important; }
 }
 
-// ── Submit button loading & success states ───────────────────
-// Used by the LoadingButtonDirective (`[appLoadingButton]`). The
-// `.is-loading` modifier swaps the label for a CSS-only spinner;
-// `.is-success` shows a brief green checkmark before navigation.
-.btn-submit {
+// 1.2 Section header refresh — low-emphasis hairline divider + uppercase label.
+.app-sidenav .nav-group {
+  &::before {
+    content: '';
+    display: block;
+    height: 1px;
+    margin: 6px 14px 4px;
+    background: var(--cms-sidenav-border, var(--cms-line));
+    opacity: 0.6;
+  }
+  &:first-child::before { display: none; }
+
+  mat-expansion-panel-header .nav-group-label {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cms-sidenav-group-text) !important;
+  }
+  mat-expansion-panel-header::ng-deep .mat-expansion-indicator::after {
+    opacity: 0.45;
+    transition: opacity 0.2s;
+  }
+  mat-expansion-panel-header:hover::ng-deep .mat-expansion-indicator::after {
+    opacity: 0.9;
+  }
+}
+
+// 1.3 Active-item left-border accent (top-level + group child + rail + popup).
+.top-level-nav-item.top-level-active,
+.active-link {
+  background: rgba(var(--cms-primary-rgb), 0.08) !important;
+  border-left: 3px solid var(--cms-primary) !important;
+  &::before { display: none !important; }
+}
+.top-level-nav-item.top-level-active { padding-left: 11px; }
+.active-link { border-radius: 0 !important; }
+
+.collapsed-active {
   position: relative;
+  background: rgba(var(--cms-primary-rgb), 0.08) !important;
+  color: var(--cms-primary) !important;
 
-  &.is-loading {
-    color: transparent !important;
-    pointer-events: none;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px;
+    background: var(--cms-primary);
+    border-radius: 0 2px 2px 0;
+  }
+}
+.collapsed-nav-menu .active-menu-item {
+  background: rgba(var(--cms-primary-rgb), 0.10) !important;
+  color: var(--cms-primary) !important;
+  border-left: 3px solid var(--cms-primary);
+}
 
-    &::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 16px;
-      height: 16px;
-      margin: -8px 0 0 -8px;
-      border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.4);
-      border-top-color: #ffffff;
-      animation: cms-btn-spin 0.6s linear infinite;
+// 1.5 Sidenav footer — keyboard-shortcuts trigger.
+.app-sidenav .sidenav-footer {
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .sidenav-footer-shortcut-btn {
+    flex: 1 0 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin-bottom: 2px;
+    font-family: var(--cms-font-ui);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-sidenav-footer-text);
+    background: transparent;
+    border: 1px solid var(--cms-sidenav-border, var(--cms-line));
+    border-radius: var(--cms-radius-sm, 6px);
+    cursor: pointer;
+    transition: var(--cms-transition);
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    &:hover {
+      color: var(--cms-sidenav-text-bright);
+      background: var(--cms-sidenav-hover);
+      border-color: var(--cms-line-strong);
     }
   }
 
-  &.is-success {
-    background: var(--cms-success) !important;
-    color: transparent !important;
-    pointer-events: none;
-    box-shadow: 0 4px 14px -3px rgba(16, 185, 129, 0.45) !important;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 18px;
-      height: 9px;
-      margin: -7px 0 0 -9px;
-      border-left: 2px solid #ffffff;
-      border-bottom: 2px solid #ffffff;
-      transform: rotate(-45deg);
-      animation: cms-btn-check var(--cms-duration-md) var(--cms-ease-out) both;
-    }
+  .sidenav-footer-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--cms-radius-sm, 6px);
+    color: var(--cms-sidenav-footer-text);
+    cursor: pointer;
+    transition: var(--cms-transition);
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    &:hover { color: var(--cms-sidenav-text-bright); background: var(--cms-sidenav-hover); }
   }
 }
 
-@keyframes cms-btn-spin {
-  to { transform: rotate(360deg); }
+// 3.2 Mobile drawer + 3.5 trimmed toolbar.
+.app-container.is-mobile {
+  .mat-sidenav-content { margin-left: 0 !important; }
+  .app-sidenav.mobile-drawer {
+    width: min(85vw, 320px) !important;
+    border-right: 1px solid var(--cms-sidenav-border) !important;
+  }
+}
+.toolbar-left.is-mobile {
+  width: auto;
+  flex: 0 0 auto;
+  border-right: none;
+  padding: 0 6px;
+  gap: 4px;
+  .toolbar-brand-text-block { display: none; }
+}
+.mobile-menu-btn { flex-shrink: 0; }
+
+@media (max-width: 767px) {
+  .app-toolbar.is-mobile .toolbar-right { gap: 2px; padding: 0 4px; }
 }
 
-@keyframes cms-btn-check {
-  from { opacity: 0; transform: rotate(-45deg) scale(0.4); }
-  to   { opacity: 1; transform: rotate(-45deg) scale(1); }
-}
-
-// ── Dialog panel — scale + fade entrance ─────────────────────
-// Applied via MAT_DIALOG_DEFAULT_OPTIONS panelClass = 'cms-dialog-panel'.
-.cms-dialog-panel .mat-mdc-dialog-container .mdc-dialog__surface {
-  animation: cms-drop-in var(--cms-duration-md) var(--cms-ease-out) both;
-}
-
-// ── Print-only & no-print utility classes ────────────────────
-.print-only { display: none !important; }
-.no-print { /* visible on screen by default */ }
-
-// ── Print stylesheet ─────────────────────────────────────────
-// Hides app chrome and forces a clean monochrome layout. Used both
-// for browser printing and for "Save as PDF" via PrintService.
-@media print {
-  // Reset shell colors to pure white/black so receipts print cleanly
-  :root {
-    --cms-bg-page: #ffffff;
-    --cms-bg-shell: #ffffff;
-    --cms-bg-card: #ffffff;
-    --cms-bg-muted: #ffffff;
-    --cms-text-primary: #000000;
-    --cms-text-secondary: #000000;
-  }
-
-  html,
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-
-  // Hide chrome that doesn't belong on a printed page
-  .app-toolbar,
-  mat-toolbar.app-toolbar,
-  mat-sidenav,
-  .mat-drawer,
-  .toolbar-left,
-  .toolbar-right,
-  .sidenav-brand-header,
-  .sidenav-nav,
-  .sidenav-footer,
-  .sidenav-search,
-  app-toast-host,
-  .cms-toast-host,
-  .command-bar .right,
-  .form-footer,
-  .row-actions,
-  .btn-submit,
-  .btn-cancel,
-  .btn-ghost,
-  .btn-icon-action,
-  app-page-header .actions,
-  app-global-search,
-  app-theme-picker,
-  .no-print {
-    display: none !important;
-  }
-
-  // Re-enable print-only nodes
-  .print-only { display: block !important; }
-
-  // Remove gradients, glows, shadows
-  body::before,
-  body::after { display: none !important; }
-
-  .app-content,
-  .mat-sidenav-container,
-  .mat-sidenav-content {
-    background: #ffffff !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-  }
-
-  // Ensure tables print full-width with visible borders
-  table { width: 100% !important; }
-  .modern-table th,
-  .modern-table td {
-    border-bottom: 1px solid #ccc !important;
-    color: #000 !important;
-  }
-
-  // Avoid awkward page breaks inside cards / receipts
-  .cms-card,
-  .entry-form-card,
-  .content-card,
-  .stat-card { break-inside: avoid; }
-}
 

@@ -86,10 +86,11 @@ export class DocumentCollectionComponent implements OnInit {
   protected readonly rows = signal<ChecklistRow[]>([]);
 
   /** Number of mandatory documents successfully uploaded or verified. */
-  protected readonly mandatorySatisfiedCount = computed(() =>
-    this.rows().filter(
-      (r) => r.isMandatory && (r.status === 'UPLOADED' || r.status === 'VERIFIED'),
-    ).length,
+  protected readonly mandatorySatisfiedCount = computed(
+    () =>
+      this.rows().filter(
+        (r) => r.isMandatory && (r.status === 'UPLOADED' || r.status === 'VERIFIED'),
+      ).length,
   );
 
   protected readonly mandatoryTotal = MANDATORY_DOCUMENT_TYPES.size;
@@ -202,7 +203,9 @@ export class DocumentCollectionComponent implements OnInit {
         .updateDocument(enquiryId, row.document.id, request)
         .subscribe({ next: onSuccess, error: onError });
     } else {
-      this.enquiryService.addDocument(enquiryId, request).subscribe({ next: onSuccess, error: onError });
+      this.enquiryService
+        .addDocument(enquiryId, request)
+        .subscribe({ next: onSuccess, error: onError });
     }
   }
 
@@ -232,9 +235,122 @@ export class DocumentCollectionComponent implements OnInit {
       },
       error: () => {
         this.updateRow(row, { ...row, saving: false });
-        this.toast.error(`Failed to clear ${this.formatDocType(row.documentType)}`);
+        this.snackBar.open(`Failed to clear ${this.formatDocType(row.documentType)}`, 'Close', {
+          duration: 3000,
+        });
       },
     });
+  }
+
+  /**
+   * Opens the native file browser for the given row. Triggered by the
+   * Browse / Upload button in the document checklist.
+   */
+  protected onBrowseFile(row: ChecklistRow, input: HTMLInputElement): void {
+    if (row.saving || !this.isAdminOrFrontOffice()) return;
+    input.value = '';
+    input.click();
+  }
+
+  /**
+   * Handles a chosen file from the native picker — uploads it to the backend
+   * and replaces the row with the persisted document (which now carries the
+   * file metadata).
+   */
+  protected onFileSelected(row: ChecklistRow, event: Event): void {
+    const enquiryId = this.enquiry()?.id;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = ''; // Allow re-selecting the same file later
+    if (!enquiryId || !file || !this.isAdminOrFrontOffice()) return;
+
+    // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      this.snackBar.open('File exceeds the 10 MB upload limit', 'Close', { duration: 4000 });
+      return;
+    }
+
+    this.updateRow(row, { ...row, saving: true });
+    this.enquiryService
+      .uploadDocumentFile(enquiryId, row.documentType, file, row.remarks?.trim() || undefined)
+      .subscribe({
+        next: (saved) => {
+          this.updateRow(row, {
+            ...row,
+            document: saved,
+            status: saved.status,
+            remarks: saved.remarks ?? '',
+            saving: false,
+          });
+          this.snackBar.open(
+            `${this.formatDocType(row.documentType)}: ${saved.fileName} uploaded`,
+            'Close',
+            { duration: 3000 },
+          );
+        },
+        error: (err) => {
+          this.updateRow(row, { ...row, saving: false });
+          const message =
+            err?.error?.message ?? `Failed to upload ${this.formatDocType(row.documentType)}`;
+          this.snackBar.open(message, 'Close', { duration: 4000 });
+        },
+      });
+  }
+
+  /**
+   * Opens the stored document binary in a new browser tab. Falls back to a
+   * download if the browser cannot render the MIME type inline.
+   */
+  protected viewFile(row: ChecklistRow): void {
+    const enquiryId = this.enquiry()?.id;
+    if (!enquiryId || !row.document?.hasFile) return;
+    this.enquiryService.downloadDocumentFile(enquiryId, row.document.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          // Pop-up blocked — fall back to a download.
+          this.triggerDownload(blob, row.document?.fileName ?? row.documentType);
+        }
+        // Revoke after a short delay so the new tab has time to load it.
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      },
+      error: () => {
+        this.snackBar.open('Failed to load document', 'Close', { duration: 3000 });
+      },
+    });
+  }
+
+  /** Downloads the stored document binary as a file on the user's device. */
+  protected downloadFile(row: ChecklistRow): void {
+    const enquiryId = this.enquiry()?.id;
+    if (!enquiryId || !row.document?.hasFile) return;
+    this.enquiryService.downloadDocumentFile(enquiryId, row.document.id).subscribe({
+      next: (blob) => this.triggerDownload(blob, row.document?.fileName ?? row.documentType),
+      error: () => {
+        this.snackBar.open('Failed to download document', 'Close', { duration: 3000 });
+      },
+    });
+  }
+
+  private triggerDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /** Formats a byte count as a human-readable string (e.g. "1.4 MB"). */
+  protected formatFileSize(bytes: number | null | undefined): string {
+    if (bytes == null) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   private updateRow(target: ChecklistRow, next: ChecklistRow): void {

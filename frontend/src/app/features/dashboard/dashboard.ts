@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminDashboardComponent } from './admin/admin-dashboard.component';
 import { FrontOfficeDashboardComponent } from './front-office/front-office-dashboard.component';
+import { FacultyDashboardComponent } from './faculty/faculty-dashboard.component';
 import { DashboardTabsComponent, DashboardTab } from './shared/tabs/dashboard-tabs.component';
 
 const SESSION_KEY = 'cms_dashboard_active_role';
@@ -13,6 +14,7 @@ const SESSION_KEY = 'cms_dashboard_active_role';
   imports: [
     AdminDashboardComponent,
     FrontOfficeDashboardComponent,
+    FacultyDashboardComponent,
     DashboardTabsComponent,
   ],
   templateUrl: './dashboard.html',

@@ -14,7 +14,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { CmsSkeletonComponent } from '../skeleton/skeleton.component';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
-import { CsvExporterService } from '../../core/export/csv-exporter.service';
+import { ResponsiveService } from '../../core/layout/responsive.service';
 import { ColumnDef } from './column-def.model';
 
 /**
@@ -26,6 +26,9 @@ import { ColumnDef } from './column-def.model';
  * - Sticky column headers
  * - Horizontally scrollable on small viewports
  * - Optional row-actions column via `<ng-template #rowActions let-row>`
+ * - Mobile (`≤ 767px`) automatically renders rows as a vertical card list,
+ *   either via the optional `<ng-template #mobileCard let-row>` or a default
+ *   key/value layout that loops over `columns`.
  *
  * Usage:
  * ```html
@@ -79,8 +82,23 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
   /** Projected template used to render the actions cell for each row. */
   @ContentChild('rowActions') rowActionsTemplate?: TemplateRef<{ $implicit: T }>;
 
+  /**
+   * Optional template projected via `<ng-template #mobileCard let-row>` used
+   * to render each row when the viewport is mobile. When omitted, a default
+   * key/value card layout is rendered automatically.
+   */
+  @ContentChild('mobileCard') mobileCardTemplate?: TemplateRef<{ $implicit: T }>;
+
+  private readonly responsive = inject(ResponsiveService);
+
+  /** True when the viewport is in the `mobile` bucket. */
+  protected readonly isMobile = this.responsive.isMobile;
+
   /** Internal signal tracking whether an actions column should be appended. */
   protected readonly hasActions = signal(false);
+
+  /** Internal signal tracking whether a custom mobile-card template was provided. */
+  protected readonly hasMobileCard = signal(false);
 
   /** Displayed column keys, appending `_actions` when a template is provided. */
   protected readonly displayedColumns = computed(() => {
@@ -97,6 +115,7 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
 
   ngAfterContentInit(): void {
     this.hasActions.set(!!this.rowActionsTemplate);
+    this.hasMobileCard.set(!!this.mobileCardTemplate);
   }
 
   /** Returns a safe string value for a cell, replacing nullish values with '—'. */
@@ -122,3 +141,4 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
     this.csvExporter.exportRows<T>(this.exportFilename, columns, this.data);
   }
 }
+

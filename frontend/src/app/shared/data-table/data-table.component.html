@@ -52,6 +52,38 @@
     ></cms-empty-state>
 
   } @else {
+    @if (isMobile()) {
+      <!-- ─── Mobile card list ──────────────────────────────────────────── -->
+      <div class="cms-card-list" role="list">
+        @for (row of data; track $index) {
+          <div class="cms-card-list__item" role="listitem">
+            @if (mobileCardTemplate) {
+              <ng-container
+                *ngTemplateOutlet="mobileCardTemplate; context: { $implicit: row }"
+              ></ng-container>
+            } @else {
+              @for (col of columns; track col.key; let first = $first) {
+                @if (first) {
+                  <div class="cms-card-list__title">{{ cellValue(col, row) }}</div>
+                } @else {
+                  <dl class="cms-card-list__field">
+                    <dt class="cms-card-list__label">{{ col.header }}</dt>
+                    <dd class="cms-card-list__value">{{ cellValue(col, row) }}</dd>
+                  </dl>
+                }
+              }
+              @if (rowActionsTemplate) {
+                <div class="cms-card-list__actions">
+                  <ng-container
+                    *ngTemplateOutlet="rowActionsTemplate; context: { $implicit: row }"
+                  ></ng-container>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+    } @else {
     <!-- ─── Data table ────────────────────────────────────────────────── -->
     <div class="table-wrapper">
       <table mat-table [dataSource]="data" class="modern-table">
@@ -93,6 +125,7 @@
 
       </table>
     </div>
+    }
   }
 
 </div>

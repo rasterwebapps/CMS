@@ -37,12 +37,16 @@
           </div>
           <div class="summary-row">
             <span class="summary-label">Status</span>
-            <span class="summary-value"><cms-status-badge [status]="enquiry()!.status"></cms-status-badge></span>
+            <span class="summary-value"
+              ><cms-status-badge [status]="enquiry()!.status"></cms-status-badge
+            ></span>
           </div>
           @if (enquiry()!.finalizedNetFee) {
             <div class="summary-row">
               <span class="summary-label">Net Fee</span>
-              <span class="summary-value">{{ enquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="summary-value">{{
+                enquiry()!.finalizedNetFee | currency: 'INR' : '₹' : '1.0-0'
+              }}</span>
             </div>
           }
         </div>
@@ -53,7 +57,9 @@
           [class.mandatory-progress--complete]="mandatorySatisfiedCount() === mandatoryTotal"
           aria-live="polite"
         >
-          <mat-icon>{{ mandatorySatisfiedCount() === mandatoryTotal ? 'check_circle' : 'pending' }}</mat-icon>
+          <mat-icon>{{
+            mandatorySatisfiedCount() === mandatoryTotal ? 'check_circle' : 'pending'
+          }}</mat-icon>
           <span>
             <strong>{{ mandatorySatisfiedCount() }}</strong> of
             <strong>{{ mandatoryTotal }}</strong> mandatory documents collected
@@ -67,6 +73,7 @@
             <thead>
               <tr>
                 <th>Document</th>
+                <th>File</th>
                 <th>Status</th>
                 <th>Remarks</th>
                 <th class="actions-header">Actions</th>
@@ -79,6 +86,73 @@
                     <span class="cell-name">{{ formatDocType(row.documentType) }}</span>
                     @if (row.isMandatory) {
                       <span class="required-star" matTooltip="Mandatory document">*</span>
+                    }
+                  </td>
+                  <td>
+                    <input
+                      #fileInput
+                      type="file"
+                      class="file-input-hidden"
+                      (change)="onFileSelected(row, $event)"
+                      [attr.aria-label]="'Choose file for ' + formatDocType(row.documentType)"
+                    />
+                    @if (row.document?.hasFile) {
+                      <div class="file-cell">
+                        <span class="file-cell__name" [matTooltip]="row.document?.fileName ?? ''">
+                          {{ row.document?.fileName }}
+                        </span>
+                        @if (row.document?.fileSize) {
+                          <span class="file-cell__size">{{
+                            formatFileSize(row.document?.fileSize)
+                          }}</span>
+                        }
+                        <div class="file-cell__actions">
+                          <button
+                            type="button"
+                            class="action-btn"
+                            matTooltip="View document"
+                            (click)="viewFile(row)"
+                            aria-label="View document"
+                          >
+                            <mat-icon>visibility</mat-icon>
+                          </button>
+                          <button
+                            type="button"
+                            class="action-btn"
+                            matTooltip="Download document"
+                            (click)="downloadFile(row)"
+                            aria-label="Download document"
+                          >
+                            <mat-icon>download</mat-icon>
+                          </button>
+                          @if (isAdminOrFrontOffice()) {
+                            <button
+                              type="button"
+                              class="action-btn"
+                              matTooltip="Replace file"
+                              (click)="onBrowseFile(row, fileInput)"
+                              [disabled]="row.saving"
+                              aria-label="Replace file"
+                            >
+                              <mat-icon>refresh</mat-icon>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    } @else if (isAdminOrFrontOffice()) {
+                      <button
+                        type="button"
+                        class="action-btn action-btn--primary"
+                        matTooltip="Browse for a scanned document"
+                        (click)="onBrowseFile(row, fileInput)"
+                        [disabled]="row.saving"
+                        aria-label="Browse file"
+                      >
+                        <mat-icon>folder_open</mat-icon>
+                        <span class="action-btn__label">Browse</span>
+                      </button>
+                    } @else {
+                      <span class="file-cell__empty">—</span>
                     }
                   </td>
                   <td>

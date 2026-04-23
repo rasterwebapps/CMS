@@ -62,6 +62,12 @@ public class EnquiryController {
         return ResponseEntity.ok(enquiryService.findDocumentPending());
     }
 
+    @GetMapping("/admission-pending")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<List<EnquiryResponse>> findAdmissionPending() {
+        return ResponseEntity.ok(enquiryService.findAdmissionPending());
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> create(@Valid @RequestBody EnquiryRequest request) {

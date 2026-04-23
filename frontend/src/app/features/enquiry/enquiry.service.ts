@@ -28,7 +28,11 @@ export class EnquiryService {
     return this.http.get<Enquiry[]>(this.baseUrl);
   }
 
-  getEnquiriesByDateRange(fromDate: string, toDate: string, status?: string): Observable<Enquiry[]> {
+  getEnquiriesByDateRange(
+    fromDate: string,
+    toDate: string,
+    status?: string,
+  ): Observable<Enquiry[]> {
     let params = new HttpParams().set('fromDate', fromDate).set('toDate', toDate);
     if (status) {
       params = params.set('status', status);
@@ -46,6 +50,10 @@ export class EnquiryService {
 
   getDocumentPending(): Observable<Enquiry[]> {
     return this.http.get<Enquiry[]>(`${this.baseUrl}/document-pending`);
+  }
+
+  getAdmissionPending(): Observable<Enquiry[]> {
+    return this.http.get<Enquiry[]>(`${this.baseUrl}/admission-pending`);
   }
 
   createEnquiry(request: EnquiryRequest): Observable<Enquiry> {
@@ -67,11 +75,20 @@ export class EnquiryService {
   }
 
   convertToStudent(enquiryId: number, studentId: number): Observable<Enquiry> {
-    return this.http.put<Enquiry>(`${this.baseUrl}/${enquiryId}/convert?studentId=${studentId}`, {});
+    return this.http.put<Enquiry>(
+      `${this.baseUrl}/${enquiryId}/convert?studentId=${studentId}`,
+      {},
+    );
   }
 
-  finalizeFees(enquiryId: number, request: FeeFinalizationRequest): Observable<FeeFinalizationResponse> {
-    return this.http.post<FeeFinalizationResponse>(`${this.baseUrl}/${enquiryId}/finalize-fees`, request);
+  finalizeFees(
+    enquiryId: number,
+    request: FeeFinalizationRequest,
+  ): Observable<FeeFinalizationResponse> {
+    return this.http.post<FeeFinalizationResponse>(
+      `${this.baseUrl}/${enquiryId}/finalize-fees`,
+      request,
+    );
   }
 
   getDocuments(enquiryId: number): Observable<EnquiryDocument[]> {
@@ -97,7 +114,40 @@ export class EnquiryService {
     return this.http.delete<void>(`${this.baseUrl}/${enquiryId}/documents/${documentId}`);
   }
 
-  collectPayment(enquiryId: number, request: EnquiryPaymentRequest): Observable<EnquiryPaymentResponse> {
+  /**
+   * Uploads a scanned document file for the given enquiry. The backend
+   * upserts the document by `documentType` — uploading the same type again
+   * replaces the previously stored file.
+   */
+  uploadDocumentFile(
+    enquiryId: number,
+    documentType: string,
+    file: File,
+    remarks?: string,
+  ): Observable<EnquiryDocument> {
+    const form = new FormData();
+    form.append('documentType', documentType);
+    form.append('file', file, file.name);
+    if (remarks) {
+      form.append('remarks', remarks);
+    }
+    return this.http.post<EnquiryDocument>(`${this.baseUrl}/${enquiryId}/documents/upload`, form);
+  }
+
+  /**
+   * Downloads the binary content of a stored document as a Blob, which the
+   * caller can either trigger as a download or open in a new tab for viewing.
+   */
+  downloadDocumentFile(enquiryId: number, documentId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${enquiryId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+  }
+
+  collectPayment(
+    enquiryId: number,
+    request: EnquiryPaymentRequest,
+  ): Observable<EnquiryPaymentResponse> {
     return this.http.post<EnquiryPaymentResponse>(`${this.baseUrl}/${enquiryId}/payments`, request);
   }
 
@@ -106,7 +156,9 @@ export class EnquiryService {
   }
 
   getStatusHistory(enquiryId: number): Observable<EnquiryStatusHistoryResponse[]> {
-    return this.http.get<EnquiryStatusHistoryResponse[]>(`${this.baseUrl}/${enquiryId}/status-history`);
+    return this.http.get<EnquiryStatusHistoryResponse[]>(
+      `${this.baseUrl}/${enquiryId}/status-history`,
+    );
   }
 
   submitDocuments(enquiryId: number): Observable<unknown> {
@@ -114,7 +166,9 @@ export class EnquiryService {
   }
 
   getConversionPrefill(enquiryId: number): Observable<EnquiryConversionPrefillResponse> {
-    return this.http.get<EnquiryConversionPrefillResponse>(`${this.baseUrl}/${enquiryId}/conversion-prefill`);
+    return this.http.get<EnquiryConversionPrefillResponse>(
+      `${this.baseUrl}/${enquiryId}/conversion-prefill`,
+    );
   }
 
   convertEnquiry(enquiryId: number, request: EnquiryConversionRequest): Observable<Enquiry> {

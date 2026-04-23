@@ -9,14 +9,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
-import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     RouterLink,
     MatTableModule,
     MatPaginatorModule,
@@ -40,23 +37,27 @@ export class DepartmentListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
+  // ── View mode (card / table) ─────────────────────────────────────────────
+  protected readonly viewMode = signal<'card' | 'table'>('card');
+
+  // ── Column definitions ───────────────────────────────────────────────────
   protected readonly ALL_COLS = ['code', 'name', 'hodName', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    code: 'Code',
-    name: 'Name',
-    hodName: 'HOD',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'department-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly displayedColumns = computed(() => this.ALL_COLS);
   protected readonly dataSource = new MatTableDataSource<Department>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
 
+  // ── Stat counts ──────────────────────────────────────────────────────────
+  private readonly _departments = signal<Department[]>([]);
+  protected readonly totalCount = computed(() => this._departments().length);
+  protected readonly hodAssignedCount = computed(() => this._departments().filter(d => d.hodName).length);
+
   ngOnInit(): void {
     this.loadDepartments();
+  }
+
+  protected setViewMode(mode: 'card' | 'table'): void {
+    this.viewMode.set(mode);
   }
 
   protected applyFilter(event: Event): void {
@@ -95,24 +96,13 @@ export class DepartmentListComponent implements OnInit {
     });
   }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
+  protected getInitials(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(' ').filter(Boolean);
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0][0].toUpperCase();
   }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(department: Department): void {
     this.loading.set(true);
@@ -133,6 +123,7 @@ export class DepartmentListComponent implements OnInit {
     this.departmentService.getAll().subscribe({
       next: (departments) => {
         this.dataSource.data = departments;
+        this._departments.set(departments);
         this.loading.set(false);
       },
       error: () => {
