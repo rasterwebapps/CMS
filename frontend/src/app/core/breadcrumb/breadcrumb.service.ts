@@ -47,6 +47,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   convert: 'Convert to Student',
   mark: 'Mark Attendance',
   search: 'Search',
+  'document-submission': 'Document Submission',
+  'year-wise-fee-status': 'Year-wise Fee Status',
 };
 
 @Injectable({ providedIn: 'root' })

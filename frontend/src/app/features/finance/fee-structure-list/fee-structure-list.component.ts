@@ -8,7 +8,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { HttpClient } from '@angular/common/http';
@@ -17,6 +16,7 @@ import { GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { environment } from '../../../../environments';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface Program { id: number; name: string; }
 interface Course { id: number; name: string; }
@@ -30,15 +30,14 @@ interface AcademicYear { id: number; name: string; }
     DecimalPipe, RouterLink, ReactiveFormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-  ],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',
 })
 export class FeeStructureListComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
@@ -153,8 +152,8 @@ export class FeeStructureListComponent implements OnInit {
     this.financeService.deleteGroupedFeeStructures(
       item.programId, item.academicYearId, item.courseId ?? undefined
     ).subscribe({
-      next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
-      error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
+      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
 
@@ -165,7 +164,7 @@ export class FeeStructureListComponent implements OnInit {
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }
 }

@@ -7,13 +7,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ExaminationService } from '../examination.service';
 import { Examination } from '../examination.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-examination-list',
@@ -21,15 +21,14 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   imports: [
     PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-  ],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './examination-list.component.html',
   styleUrl: './examination-list.component.scss',
 })
 export class ExaminationListComponent implements OnInit {
   private readonly examinationService = inject(ExaminationService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -98,8 +97,8 @@ export class ExaminationListComponent implements OnInit {
   private doDelete(item: Examination): void {
     this.loading.set(true);
     this.examinationService.delete(item.id).subscribe({
-      next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
-      error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
+      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
 
@@ -110,7 +109,7 @@ export class ExaminationListComponent implements OnInit {
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }
 }

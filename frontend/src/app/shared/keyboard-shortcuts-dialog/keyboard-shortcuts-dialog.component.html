@@ -1,0 +1,25 @@
+<div class="ks-dialog">
+  <header class="ks-dialog__header">
+    <h2 class="ks-dialog__title">Keyboard shortcuts</h2>
+    <button mat-icon-button class="ks-dialog__close" (click)="close()" aria-label="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <p class="ks-dialog__hint">
+    Press <kbd class="kbd">g</kbd> then a letter to jump between sections. Shortcuts are disabled while typing in form fields.
+  </p>
+
+  <ul class="ks-list">
+    @for (sc of shortcuts; track sc.keys) {
+      <li class="ks-row">
+        <span class="ks-row__desc">{{ sc.description }}</span>
+        <span class="ks-row__keys">
+          @for (k of keyParts(sc.keys); track $index) {
+            <kbd class="kbd">{{ k }}</kbd>
+          }
+        </span>
+      </li>
+    }
+  </ul>
+</div>

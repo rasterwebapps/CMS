@@ -7,13 +7,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurriculumService } from '../curriculum.service';
 import { Syllabus } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-syllabus-list',
@@ -28,17 +28,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',
 })
 export class SyllabusListComponent implements OnInit {
   private readonly curriculumService = inject(CurriculumService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -125,11 +123,11 @@ export class SyllabusListComponent implements OnInit {
     this.loading.set(true);
     this.curriculumService.deleteSyllabus(item.id).subscribe({
       next: () => {
-        this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Deleted successfully');
         this.load();
       },
       error: () => {
-        this.snackBar.open('Failed to delete', 'Close', { duration: 3000 });
+        this.toast.error('Failed to delete');
         this.loading.set(false);
       },
     });
@@ -143,7 +141,7 @@ export class SyllabusListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load');
         this.loading.set(false);
       },
     });

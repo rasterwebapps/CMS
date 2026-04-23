@@ -1,0 +1,11 @@
+<section class="preview-card" aria-label="Live preview">
+  <header class="preview-card__header">
+    @if (showLiveDot) {
+      <span class="preview-card__live-dot" aria-hidden="true"></span>
+    }
+    <span class="preview-card__label">{{ label }}</span>
+  </header>
+  <div class="preview-card__body">
+    <ng-content />
+  </div>
+</section>

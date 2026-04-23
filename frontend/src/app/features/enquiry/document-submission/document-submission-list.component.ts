@@ -4,13 +4,13 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-document-submission-list',
@@ -20,11 +20,9 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTooltipModule,
     CurrencyPipe,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',
 })
@@ -32,7 +30,7 @@ export class DocumentSubmissionListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(true);
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
@@ -87,7 +85,7 @@ export class DocumentSubmissionListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiries', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiries');
         this.loading.set(false);
       },
     });

@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -20,6 +22,8 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
@@ -34,6 +38,8 @@ export class DepartmentFormComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  /** Brief success state on the submit button before navigation (~600ms). */
+  protected readonly succeeded = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
@@ -54,6 +60,24 @@ export class DepartmentFormComponent implements OnInit {
     description: ['', [Validators.maxLength(500)]],
     hodName: ['', [Validators.maxLength(100)]],
   });
+
+  constructor() {
+    // Wire each form control to its preview signal so the live preview
+    // updates as the user types. takeUntilDestroyed() unsubscribes
+    // automatically when the component is destroyed.
+    this.form.get('name')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewName.set(v ?? ''));
+    this.form.get('code')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
+    this.form.get('description')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
+    this.form.get('hodName')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v: string | null) => this.previewHod.set(v ?? ''));
+  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -114,7 +138,12 @@ export class DepartmentFormComponent implements OnInit {
           ? 'Department updated successfully'
           : 'Department created successfully';
         this.snackBar.open(message, 'Close', { duration: 3000 });
-        void this.router.navigate(['/departments']);
+        // Show the brief success state on the submit button, then navigate.
+        this.saving.set(false);
+        this.succeeded.set(true);
+        setTimeout(() => {
+          void this.router.navigate(['/departments']);
+        }, DepartmentFormComponent.SUCCESS_STATE_DURATION_MS);
       },
       error: (err) => {
         const message = err?.error?.message
@@ -167,7 +196,7 @@ export class DepartmentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load department', 'Close', { duration: 3000 });
+        this.snackBar.open('Failed to load department', 'Close', { duration: 4000 });
         void this.router.navigate(['/departments']);
       },
     });

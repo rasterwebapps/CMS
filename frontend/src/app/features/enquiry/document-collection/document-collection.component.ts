@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
@@ -13,6 +12,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 /**
  * All document types supported by the system. Mirrors the backend
@@ -33,8 +33,7 @@ const ALL_DOCUMENT_TYPES = [
   'UNDERTAKING_DOCUMENT',
   'AADHAR_CARD',
   'MEDICAL_FITNESS',
-  'ELIGIBILITY_CERTIFICATE',
-] as const;
+  'ELIGIBILITY_CERTIFICATE'] as const;
 
 /**
  * Mandatory document types that must be UPLOADED or VERIFIED before the
@@ -46,8 +45,7 @@ const MANDATORY_DOCUMENT_TYPES: ReadonlySet<string> = new Set([
   'TWELFTH_MARKSHEET',
   'TRANSFER_CERTIFICATE',
   'AADHAR_CARD',
-  'PASSPORT_PHOTO',
-]);
+  'PASSPORT_PHOTO']);
 
 interface ChecklistRow {
   documentType: string;
@@ -67,12 +65,10 @@ interface ChecklistRow {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTooltipModule,
     CurrencyPipe,
     PageHeaderComponent,
-    CmsStatusBadgeComponent,
-  ],
+    CmsStatusBadgeComponent],
   templateUrl: './document-collection.component.html',
   styleUrl: './document-collection.component.scss',
 })
@@ -81,7 +77,7 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService = inject(AuthService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(true);
@@ -90,10 +86,11 @@ export class DocumentCollectionComponent implements OnInit {
   protected readonly rows = signal<ChecklistRow[]>([]);
 
   /** Number of mandatory documents successfully uploaded or verified. */
-  protected readonly mandatorySatisfiedCount = computed(() =>
-    this.rows().filter(
-      (r) => r.isMandatory && (r.status === 'UPLOADED' || r.status === 'VERIFIED'),
-    ).length,
+  protected readonly mandatorySatisfiedCount = computed(
+    () =>
+      this.rows().filter(
+        (r) => r.isMandatory && (r.status === 'UPLOADED' || r.status === 'VERIFIED'),
+      ).length,
   );
 
   protected readonly mandatoryTotal = MANDATORY_DOCUMENT_TYPES.size;
@@ -117,7 +114,7 @@ export class DocumentCollectionComponent implements OnInit {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id || Number.isNaN(id)) {
-      this.snackBar.open('Invalid enquiry id', 'Close', { duration: 3000 });
+      this.toast.warning('Invalid enquiry id');
       void this.router.navigate(['/enquiries/document-submission']);
       return;
     }
@@ -129,11 +126,7 @@ export class DocumentCollectionComponent implements OnInit {
     this.enquiryService.getEnquiryById(id).subscribe({
       next: (enquiry) => {
         if (enquiry.status !== 'FEES_PAID' && enquiry.status !== 'PARTIALLY_PAID') {
-          this.snackBar.open(
-            'Documents can only be collected for enquiries in FEES_PAID or PARTIALLY_PAID status',
-            'Close',
-            { duration: 5000 },
-          );
+          this.toast.warning('Documents can only be collected for enquiries in FEES_PAID or PARTIALLY_PAID status');
           void this.router.navigate(['/enquiries/document-submission']);
           return;
         }
@@ -141,7 +134,7 @@ export class DocumentCollectionComponent implements OnInit {
         this.loadDocuments(id);
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiry');
         this.loading.set(false);
         void this.router.navigate(['/enquiries/document-submission']);
       },
@@ -155,7 +148,7 @@ export class DocumentCollectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load documents', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load documents');
         this.rows.set(this.buildChecklist([]));
         this.loading.set(false);
       },
@@ -198,17 +191,11 @@ export class DocumentCollectionComponent implements OnInit {
         remarks: saved.remarks ?? '',
         saving: false,
       });
-      this.snackBar.open(
-        `${this.formatDocType(row.documentType)} marked as ${this.formatDocType(saved.status)}`,
-        'Close',
-        { duration: 2500 },
-      );
+      this.toast.info(`${this.formatDocType(row.documentType)} marked as ${this.formatDocType(saved.status)}`);
     };
     const onError = (): void => {
       this.updateRow(row, { ...row, saving: false });
-      this.snackBar.open(`Failed to update ${this.formatDocType(row.documentType)}`, 'Close', {
-        duration: 3000,
-      });
+      this.toast.error(`Failed to update ${this.formatDocType(row.documentType)}`);
     };
 
     if (row.document) {
@@ -216,7 +203,9 @@ export class DocumentCollectionComponent implements OnInit {
         .updateDocument(enquiryId, row.document.id, request)
         .subscribe({ next: onSuccess, error: onError });
     } else {
-      this.enquiryService.addDocument(enquiryId, request).subscribe({ next: onSuccess, error: onError });
+      this.enquiryService
+        .addDocument(enquiryId, request)
+        .subscribe({ next: onSuccess, error: onError });
     }
   }
 
@@ -242,19 +231,122 @@ export class DocumentCollectionComponent implements OnInit {
           remarks: '',
           saving: false,
         });
-        this.snackBar.open(`${this.formatDocType(row.documentType)} cleared`, 'Close', {
-          duration: 2500,
-        });
+        this.toast.success(`${this.formatDocType(row.documentType)} cleared`);
       },
       error: () => {
         this.updateRow(row, { ...row, saving: false });
-        this.snackBar.open(
-          `Failed to clear ${this.formatDocType(row.documentType)}`,
-          'Close',
-          { duration: 3000 },
-        );
+        this.toast.error(`Failed to clear ${this.formatDocType(row.documentType)}`);
       },
     });
+  }
+
+  /**
+   * Opens the native file browser for the given row. Triggered by the
+   * Browse / Upload button in the document checklist.
+   */
+  protected onBrowseFile(row: ChecklistRow, input: HTMLInputElement): void {
+    if (row.saving || !this.isAdminOrFrontOffice()) return;
+    input.value = '';
+    input.click();
+  }
+
+  /**
+   * Handles a chosen file from the native picker — uploads it to the backend
+   * and replaces the row with the persisted document (which now carries the
+   * file metadata).
+   */
+  protected onFileSelected(row: ChecklistRow, event: Event): void {
+    const enquiryId = this.enquiry()?.id;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = ''; // Allow re-selecting the same file later
+    if (!enquiryId || !file || !this.isAdminOrFrontOffice()) return;
+
+    // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      this.toast.warning('File exceeds the 10 MB upload limit');
+      return;
+    }
+
+    this.updateRow(row, { ...row, saving: true });
+    this.enquiryService
+      .uploadDocumentFile(enquiryId, row.documentType, file, row.remarks?.trim() || undefined)
+      .subscribe({
+        next: (saved) => {
+          this.updateRow(row, {
+            ...row,
+            document: saved,
+            status: saved.status,
+            remarks: saved.remarks ?? '',
+            saving: false,
+          });
+          this.toast.success(
+            `${this.formatDocType(row.documentType)}: ${saved.fileName} uploaded`,
+          );
+        },
+        error: (err) => {
+          this.updateRow(row, { ...row, saving: false });
+          const message =
+            err?.error?.message ?? `Failed to upload ${this.formatDocType(row.documentType)}`;
+          this.toast.error(message);
+        },
+      });
+  }
+
+  /**
+   * Opens the stored document binary in a new browser tab. Falls back to a
+   * download if the browser cannot render the MIME type inline.
+   */
+  protected viewFile(row: ChecklistRow): void {
+    const enquiryId = this.enquiry()?.id;
+    if (!enquiryId || !row.document?.hasFile) return;
+    this.enquiryService.downloadDocumentFile(enquiryId, row.document.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          // Pop-up blocked — fall back to a download.
+          this.triggerDownload(blob, row.document?.fileName ?? row.documentType);
+        }
+        // Revoke after a short delay so the new tab has time to load it.
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      },
+      error: () => {
+        this.toast.error('Failed to load document');
+      },
+    });
+  }
+
+  /** Downloads the stored document binary as a file on the user's device. */
+  protected downloadFile(row: ChecklistRow): void {
+    const enquiryId = this.enquiry()?.id;
+    if (!enquiryId || !row.document?.hasFile) return;
+    this.enquiryService.downloadDocumentFile(enquiryId, row.document.id).subscribe({
+      next: (blob) => this.triggerDownload(blob, row.document?.fileName ?? row.documentType),
+      error: () => {
+        this.toast.error('Failed to download document');
+      },
+    });
+  }
+
+  private triggerDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /** Formats a byte count as a human-readable string (e.g. "1.4 MB"). */
+  protected formatFileSize(bytes: number | null | undefined): string {
+    if (bytes == null) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   private updateRow(target: ChecklistRow, next: ChecklistRow): void {
@@ -268,7 +360,7 @@ export class DocumentCollectionComponent implements OnInit {
     this.submitting.set(true);
     this.enquiryService.submitDocuments(enquiryId).subscribe({
       next: () => {
-        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Documents submitted successfully');
         this.submitting.set(false);
         void this.router.navigate(['/enquiries/document-submission']);
       },
@@ -278,7 +370,7 @@ export class DocumentCollectionComponent implements OnInit {
           missing && missing.length > 0
             ? `Missing documents: ${missing.map((m) => this.formatDocType(m)).join(', ')}`
             : (err?.error?.message ?? 'Failed to submit documents');
-        this.snackBar.open(message, 'Close', { duration: 6000 });
+        this.toast.error(message);
         this.submitting.set(false);
       },
     });

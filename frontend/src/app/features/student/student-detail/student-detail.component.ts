@@ -3,12 +3,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-student-detail',
@@ -18,10 +18,8 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent,
-  ],
+    CmsSkeletonComponent],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
 })
@@ -29,7 +27,7 @@ export class StudentDetailComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
@@ -59,7 +57,7 @@ export class StudentDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load student', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load student');
         void this.router.navigate(['/students']);
       },
     });

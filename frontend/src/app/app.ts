@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, PLATFORM_ID, OnInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -12,11 +12,16 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
+import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { BreadcrumbService } from './core/breadcrumb/breadcrumb.service';
 import { LayoutService } from './core/layout/layout.service';
+import { ResponsiveService } from './core/layout/responsive.service';
+import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.service';
 import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
+import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
+import { ToastHostComponent } from './core/toast/toast-host.component';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -58,6 +63,8 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatBadgeModule,
     ThemePickerComponent,
     GlobalSearchComponent,
+    BreadcrumbBarComponent,
+    ToastHostComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -66,18 +73,37 @@ export class App implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly layoutService = inject(LayoutService);
   private readonly breadcrumbService = inject(BreadcrumbService);
+  protected readonly responsiveService = inject(ResponsiveService);
+  private readonly shortcutsService = inject(KeyboardShortcutsService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
 
   protected readonly darkTheme = signal(false);
+  /**
+   * `true` → user collapsed the sidenav into a 68 px icon rail.
+   * Stored in `localStorage` under {@link App.COLLAPSED_KEY}. When the rail is
+   * unpinned (i.e. `sidenavCollapsed() === true`), it expands as an overlay
+   * while {@link hoverExpanded} is `true`.
+   */
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
+  /** Tracks whether the unpinned rail is currently being hovered. */
+  protected readonly hoverExpanded = signal(false);
+  /** Mobile drawer open state. Independent of pinned/collapsed. */
+  protected readonly mobileDrawerOpen = signal(false);
   protected readonly menuSearch = signal('');
   protected readonly toolbarLogoError = signal(false);
   protected readonly sidenavLogoError = signal(false);
   protected readonly notificationCount = signal(0);
   protected readonly enquiryBadgeCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
+
+  /** True only when the rail is unpinned AND not currently hover-expanded. */
+  protected readonly sidenavRail = computed(
+    () => this.sidenavCollapsed() && !this.hoverExpanded(),
+  );
+
+  protected readonly isMobile = this.responsiveService.isMobile;
 
   /** Current top-level section label derived from BreadcrumbService for the toolbar sub-label. */
   protected readonly currentSectionLabel = computed(() => {
@@ -273,6 +299,16 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
+    // Install global keyboard shortcuts (g-leader navigation + ? cheat-sheet).
+    this.shortcutsService.install();
+
+    // Auto-close the mobile drawer on route changes.
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
+      if (this.isMobile()) {
+        this.mobileDrawerOpen.set(false);
+      }
+    });
+
     // Fetch enquiry badge count for admin users from the dashboard summary endpoint.
     // This avoids a separate API call by reusing the enquiry funnel data.
     if (isPlatformBrowser(this.platformId) && this.authService.isAdmin()) {
@@ -303,8 +339,14 @@ export class App implements OnInit {
     }
   }
 
+  /**
+   * Toggles the *pinned* state of the sidenav. When unpinned, the rail
+   * collapses to a 68 px icon strip and expands as an overlay on hover.
+   */
   protected toggleSidenav(): void {
     this.sidenavCollapsed.update((v) => !v);
+    // Drop any active hover state when the user explicitly pins/unpins.
+    this.hoverExpanded.set(false);
     if (isPlatformBrowser(this.platformId)) {
       try {
         localStorage.setItem(App.COLLAPSED_KEY, JSON.stringify(this.sidenavCollapsed()));
@@ -312,6 +354,31 @@ export class App implements OnInit {
         // Ignore storage errors
       }
     }
+  }
+
+  /** Hover-expand handlers — only active when the rail is unpinned. */
+  protected onSidenavMouseEnter(): void {
+    if (this.sidenavCollapsed() && !this.isMobile()) {
+      this.hoverExpanded.set(true);
+    }
+  }
+
+  protected onSidenavMouseLeave(): void {
+    if (this.hoverExpanded()) {
+      this.hoverExpanded.set(false);
+    }
+  }
+
+  protected toggleMobileDrawer(): void {
+    this.mobileDrawerOpen.update((v) => !v);
+  }
+
+  protected closeMobileDrawer(): void {
+    this.mobileDrawerOpen.set(false);
+  }
+
+  protected openKeyboardShortcuts(): void {
+    this.shortcutsService.openCheatSheet();
   }
 
   private loadCollapsedState(): boolean {
@@ -334,6 +401,16 @@ export class App implements OnInit {
 
   protected navigateBack(): void {
     window.history.back();
+  }
+
+  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding.
+   *  Prefer the route's static config path so dynamic params (e.g. `:id`) don't
+   *  re-trigger the transition when the same component stays mounted. */
+  protected getRouteAnimationData(outlet: RouterOutlet): unknown {
+    if (!outlet?.isActivated) return '';
+    const data = outlet.activatedRouteData?.['animation'];
+    if (data) return data;
+    return outlet.activatedRoute?.snapshot?.routeConfig?.path ?? '';
   }
 
   protected async logout(): Promise<void> {

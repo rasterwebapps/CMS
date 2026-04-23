@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
@@ -16,6 +16,7 @@ import {
   EnquiryPaymentResponse,
   EnquiryStatusHistoryResponse,
 } from '../enquiry.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-enquiry-detail',
@@ -26,13 +27,12 @@ import {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
-    MatSnackBarModule,
+    MatTooltipModule,
     CurrencyPipe,
     DatePipe,
     PageHeaderComponent,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent,
-  ],
+    CmsSkeletonComponent],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
 })
@@ -40,7 +40,7 @@ export class EnquiryDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly documents = signal<EnquiryDocument[]>([]);
@@ -49,7 +49,13 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly historyColumns = ['changedAt', 'fromStatus', 'toStatus', 'changedBy', 'remarks'];
+  protected readonly historyColumns = [
+    'changedAt',
+    'fromStatus',
+    'toStatus',
+    'changedBy',
+    'remarks',
+  ];
 
   // Quick-stat computed signals (Phase 3 §2.3 / §2.8)
   protected readonly daysActive = computed(() => {
@@ -79,10 +85,12 @@ export class EnquiryDetailComponent implements OnInit {
         this.loading.set(false);
         this.enquiryService.getDocuments(id).subscribe({ next: (d) => this.documents.set(d) });
         this.enquiryService.getPayments(id).subscribe({ next: (p) => this.payments.set(p) });
-        this.enquiryService.getStatusHistory(id).subscribe({ next: (h) => this.statusHistory.set(h) });
+        this.enquiryService
+          .getStatusHistory(id)
+          .subscribe({ next: (h) => this.statusHistory.set(h) });
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiry');
         void this.router.navigate(['/enquiries']);
       },
     });
@@ -103,12 +111,12 @@ export class EnquiryDetailComponent implements OnInit {
     this.submitting.set(true);
     this.enquiryService.submitDocuments(id).subscribe({
       next: () => {
-        this.snackBar.open('Documents submitted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Documents submitted successfully');
         this.load(id);
         this.submitting.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to submit documents', 'Close', { duration: 3000 });
+        this.toast.error('Failed to submit documents');
         this.submitting.set(false);
       },
     });
@@ -147,5 +155,41 @@ export class EnquiryDetailComponent implements OnInit {
       default:
         return 'doc-row__icon--pending';
     }
+  }
+
+  /** Opens the stored document binary in a new tab for inline viewing. */
+  protected viewDocumentFile(d: EnquiryDocument): void {
+    if (!d.hasFile) return;
+    this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          this.triggerDownload(blob, d.fileName ?? d.documentType);
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      },
+      error: () => this.toast.error('Failed to load document'),
+    });
+  }
+
+  /** Downloads the stored document binary to the user's device. */
+  protected downloadDocumentFile(d: EnquiryDocument): void {
+    if (!d.hasFile) return;
+    this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
+      next: (blob) => this.triggerDownload(blob, d.fileName ?? d.documentType),
+      error: () => this.toast.error('Failed to download document'),
+    });
+  }
+
+  private triggerDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }

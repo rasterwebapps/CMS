@@ -6,7 +6,6 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -18,6 +17,7 @@ import {
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-student-fee-detail',
@@ -25,16 +25,15 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
   imports: [
     DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatIconModule, MatProgressSpinnerModule, MatButtonModule,
-    MatSnackBarModule, MatDialogModule, MatTooltipModule,
-    PageHeaderComponent, CmsStatusBadgeComponent,
-  ],
+    MatDialogModule, MatTooltipModule,
+    PageHeaderComponent, CmsStatusBadgeComponent],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',
 })
 export class StudentFeeDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly financeService = inject(FinanceService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -64,7 +63,7 @@ export class StudentFeeDetailComponent implements OnInit {
     });
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.snackBar.open(`Payment collected. Receipt: ${result.receiptNumber}`, 'Close', { duration: 5000 });
+        this.toast.success(`Payment collected. Receipt: ${result.receiptNumber}`);
         this.loadAll();
       }
     });
@@ -87,7 +86,7 @@ export class StudentFeeDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load fee details', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load fee details');
         this.loading.set(false);
       },
     });

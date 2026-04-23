@@ -4,18 +4,17 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SettingsService } from '../settings.service';
 import { SystemConfigurationRequest } from '../settings.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-system-configuration-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatSlideToggleModule,
-  ],
+    MatSlideToggleModule],
   templateUrl: './system-configuration-form.component.html',
   styleUrl: './system-configuration-form.component.scss',
 })
@@ -24,7 +23,7 @@ export class SystemConfigurationFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -56,7 +55,7 @@ export class SystemConfigurationFormComponent implements OnInit {
           this.form.patchValue({ configKey: item.configKey, configValue: item.configValue, description: item.description, dataType: item.dataType, category: item.category, isEditable: item.isEditable });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/settings']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/settings']); },
       });
     }
   }
@@ -68,8 +67,8 @@ export class SystemConfigurationFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.settingsService.update(this.itemId!, request) : this.settingsService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/settings']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/settings']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

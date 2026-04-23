@@ -3,17 +3,16 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FinanceService } from '../finance.service';
 import { CollectPaymentRequest } from '../finance.model';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-collect-payment-dialog',
   standalone: true,
   imports: [
     ReactiveFormsModule, MatDialogModule,
-    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './collect-payment-dialog.component.html',
   styleUrl: './collect-payment-dialog.component.scss',
 })
@@ -22,7 +21,7 @@ export class CollectPaymentDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<CollectPaymentDialogComponent>);
   private readonly data: { studentId: number } = inject(MAT_DIALOG_DATA);
   private readonly financeService = inject(FinanceService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected saving = false;
 
@@ -54,7 +53,7 @@ export class CollectPaymentDialogComponent {
     this.financeService.collectPayment(this.data.studentId, request).subscribe({
       next: (result) => this.dialogRef.close(result),
       error: () => {
-        this.snackBar.open('Failed to collect payment', 'Close', { duration: 3000 });
+        this.toast.error('Failed to collect payment');
         this.saving = false;
       },
     });

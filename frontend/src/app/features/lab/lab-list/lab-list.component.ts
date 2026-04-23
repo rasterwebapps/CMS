@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabService } from '../lab.service';
@@ -18,6 +17,7 @@ import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-lab-list',
@@ -34,10 +34,8 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatIconModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './lab-list.component.html',
   styleUrl: './lab-list.component.scss',
 })
@@ -45,7 +43,7 @@ export class LabListComponent implements OnInit {
   private readonly labService = inject(LabService);
   private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -198,15 +196,11 @@ export class LabListComponent implements OnInit {
     this.loading.set(true);
     this.labService.delete(lab.id).subscribe({
       next: () => {
-        this.snackBar.open('Lab deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Lab deleted successfully');
         this.loadLabs();
       },
       error: () => {
-        this.snackBar.open('Failed to delete lab', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete lab');
         this.loading.set(false);
       },
     });
@@ -218,9 +212,7 @@ export class LabListComponent implements OnInit {
         this.departments.set(departments);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load departments');
       },
     });
   }
@@ -234,9 +226,7 @@ export class LabListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load labs', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load labs');
         this.loading.set(false);
       },
     });

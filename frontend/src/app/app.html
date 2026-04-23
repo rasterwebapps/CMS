@@ -1,6 +1,11 @@
-<mat-toolbar class="app-toolbar">
+<mat-toolbar class="app-toolbar" [class.is-mobile]="isMobile()">
   <!-- Left section: stable brand area whose width mirrors the sidenav -->
-  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed()">
+  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed() && !isMobile()" [class.is-mobile]="isMobile()">
+    @if (isMobile()) {
+      <button mat-icon-button (click)="toggleMobileDrawer()" matTooltip="Menu" class="toolbar-action-btn mobile-menu-btn" aria-label="Open navigation menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
     <a [routerLink]="'/dashboard'" class="toolbar-brand">
       @if (!toolbarLogoError()) {
         <img src="assets/images/cms-icon.svg" alt="College Management System" class="toolbar-brand-icon"
@@ -10,7 +15,7 @@
           <mat-icon>developer_board</mat-icon>
         </div>
       }
-      @if (!sidenavCollapsed()) {
+      @if (!sidenavCollapsed() && !isMobile()) {
         <div class="toolbar-brand-text-block">
           <span class="toolbar-brand-name">College Management System</span>
           @if (currentSectionLabel()) {
@@ -32,33 +37,37 @@
     } @else {
       <span class="toolbar-spacer"></span>
 
-      <!-- Live indicator chip -->
-      <div class="toolbar-live-chip">
-        <span class="toolbar-live-dot"></span>
-        <span class="toolbar-live-label">Live</span>
-      </div>
+      <!-- Live indicator chip — hidden on mobile -->
+      @if (!isMobile()) {
+        <div class="toolbar-live-chip">
+          <span class="toolbar-live-dot"></span>
+          <span class="toolbar-live-label">Live</span>
+        </div>
+      }
 
       <app-global-search />
 
-      <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
-        [matBadge]="notificationCount()"
-        [matBadgeHidden]="notificationCount() === 0"
-        matBadgeColor="warn"
-        matBadgeSize="small">
-        <mat-icon>notifications_none</mat-icon>
-      </button>
+      @if (!isMobile()) {
+        <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
+          [matBadge]="notificationCount()"
+          [matBadgeHidden]="notificationCount() === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small">
+          <mat-icon>notifications_none</mat-icon>
+        </button>
 
-      <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
-        <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
+        <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
+          <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
 
-      <app-theme-picker />
+        <app-theme-picker />
+      }
 
       <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
         <div class="avatar-circle">
           <mat-icon>person</mat-icon>
         </div>
-        @if (authService.username()) {
+        @if (authService.username() && !isMobile()) {
           <div class="toolbar-user-info">
             <span class="toolbar-username">{{ authService.username() }}</span>
             @if (primaryRole()) {
@@ -73,6 +82,11 @@
           <span>{{ authService.username() }}</span>
         </div>
         <mat-divider></mat-divider>
+        <button mat-menu-item (click)="openKeyboardShortcuts()">
+          <mat-icon>keyboard</mat-icon>
+          <span>Keyboard shortcuts</span>
+        </button>
+        <mat-divider></mat-divider>
         <button mat-menu-item (click)="logout()">
           <mat-icon>logout</mat-icon>
           <span>Logout</span>
@@ -82,10 +96,22 @@
   </div>
 </mat-toolbar>
 
-<mat-sidenav-container class="app-container" [class.sidenav-collapsed]="sidenavCollapsed()">
-  <mat-sidenav mode="side" [opened]="true" class="app-sidenav" [class.collapsed]="sidenavCollapsed()">
+<mat-sidenav-container class="app-container"
+  [class.sidenav-collapsed]="sidenavRail() && !isMobile()"
+  [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
+  [class.is-mobile]="isMobile()">
+  <mat-sidenav
+    [mode]="isMobile() ? 'over' : 'side'"
+    [opened]="isMobile() ? mobileDrawerOpen() : true"
+    (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
+    class="app-sidenav"
+    [class.collapsed]="sidenavRail() && !isMobile()"
+    [class.hover-expanded]="hoverExpanded() && !isMobile()"
+    [class.mobile-drawer]="isMobile()"
+    (mouseenter)="onSidenavMouseEnter()"
+    (mouseleave)="onSidenavMouseLeave()">
     <div class="sidenav-brand-header">
-      @if (!sidenavCollapsed()) {
+      @if (!sidenavRail() || isMobile()) {
         <div class="sidenav-brand-expanded">
           @if (!sidenavLogoError()) {
             <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing"
@@ -99,15 +125,24 @@
             <span class="sidenav-brand-name">SKS College</span>
             <span class="sidenav-brand-sub">of Nursing</span>
           </div>
-          <button mat-icon-button (click)="toggleSidenav()"
-            matTooltip="Collapse sidebar" matTooltipPosition="right"
-            class="sidenav-collapse-btn">
-            <mat-icon>chevron_left</mat-icon>
-          </button>
+          @if (!isMobile()) {
+            <button mat-icon-button (click)="toggleSidenav()"
+              [matTooltip]="sidenavCollapsed() ? 'Pin sidebar (always expanded)' : 'Unpin sidebar (collapse to rail)'"
+              matTooltipPosition="right"
+              class="sidenav-collapse-btn"
+              [attr.aria-pressed]="!sidenavCollapsed()">
+              <mat-icon>{{ sidenavCollapsed() ? 'push_pin' : 'keyboard_tab' }}</mat-icon>
+            </button>
+          } @else {
+            <button mat-icon-button (click)="closeMobileDrawer()"
+              matTooltip="Close menu" class="sidenav-collapse-btn" aria-label="Close menu">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
         </div>
       } @else {
         <div class="sidenav-brand-collapsed" (click)="toggleSidenav()"
-          matTooltip="Expand sidebar" matTooltipPosition="right">
+          matTooltip="Pin sidebar" matTooltipPosition="right">
           @if (!sidenavLogoError()) {
             <img src="assets/images/sks-logo-icon.svg" alt="SKS"
               class="sidenav-brand-logo-sm" (error)="sidenavLogoError.set(true)" />
@@ -120,7 +155,7 @@
       }
     </div>
 
-    @if (!sidenavCollapsed()) {
+    @if (!sidenavRail() || isMobile()) {
       <div class="sidenav-search">
         <mat-icon class="sidenav-search-icon">search</mat-icon>
         <input
@@ -142,7 +177,7 @@
     <div class="sidenav-nav">
       @for (entry of filteredNavEntries(); track entry.label) {
         @if (isNavGroup(entry)) {
-          @if (sidenavCollapsed()) {
+          @if (sidenavRail() && !isMobile()) {
             <!-- Collapsed: show group icon as menu trigger -->
             <div class="collapsed-group">
               <button mat-icon-button [matMenuTriggerFor]="groupMenu" [matTooltip]="entry.label" matTooltipPosition="right" class="collapsed-nav-btn">
@@ -168,7 +203,7 @@
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="nav-group-icon">{{ entry.icon }}</mat-icon>
-                  <span>{{ entry.label }}</span>
+                  <span class="nav-group-label">{{ entry.label }}</span>
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <mat-nav-list dense>
@@ -185,7 +220,7 @@
             </mat-expansion-panel>
           }
         } @else {
-          @if (sidenavCollapsed()) {
+          @if (sidenavRail() && !isMobile()) {
             <div class="collapsed-group">
               <a mat-icon-button [routerLink]="entry.route" routerLinkActive="collapsed-active"
                  [matTooltip]="entry.label" matTooltipPosition="right" class="collapsed-nav-btn">
@@ -202,12 +237,21 @@
       }
     </div>
 
-    <!-- Sidenav footer — Powered by Raster -->
+    <!-- Sidenav footer — Powered by Raster + keyboard shortcuts trigger -->
     <div class="sidenav-footer">
-      @if (!sidenavCollapsed()) {
+      @if (!sidenavRail() || isMobile()) {
+        <button type="button" class="sidenav-footer-shortcut-btn" (click)="openKeyboardShortcuts()"
+          matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+          <mat-icon>keyboard</mat-icon>
+          <span>Shortcuts</span>
+        </button>
         <span class="sidenav-footer-label">Powered by</span>
         <img src="assets/images/raster-wordmark.svg" alt="Raster" class="sidenav-footer-logo"/>
       } @else {
+        <button type="button" class="sidenav-footer-icon-btn" (click)="openKeyboardShortcuts()"
+          matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
+          <mat-icon>keyboard</mat-icon>
+        </button>
         <div class="sidenav-footer-icon" matTooltip="Powered by Raster" matTooltipPosition="right">
           <span class="sidenav-footer-r">R</span>
         </div>
@@ -216,9 +260,14 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
+    @if (!focusMode()) {
+      <app-breadcrumb-bar />
+    }
     <main class="app-content">
       <router-outlet />
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>
+
+<app-toast-host />
 

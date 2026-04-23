@@ -5,18 +5,17 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { EquipmentService } from '../equipment.service';
 import { EquipmentRequest } from '../equipment.model';
 import { environment } from '../../../../environments/environment';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-equipment-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './equipment-form.component.html',
   styleUrl: './equipment-form.component.scss',
 })
@@ -26,7 +25,7 @@ export class EquipmentFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly equipmentService = inject(EquipmentService);
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -53,7 +52,7 @@ export class EquipmentFormComponent implements OnInit {
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({
       next: (data) => this.labs.set(data),
-      error: () => { this.snackBar.open('Failed to load labs', 'Close', { duration: 3000 }); },
+      error: () => { this.toast.error('Failed to load labs'); },
     });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -66,7 +65,7 @@ export class EquipmentFormComponent implements OnInit {
           this.form.patchValue({ name: item.name, model: item.model || '', serialNumber: item.serialNumber || '', labId: item.labId, category: item.category, status: item.status, purchaseDate: item.purchaseDate || '', purchaseCost: item.purchaseCost, warrantyExpiry: item.warrantyExpiry || '' });
           this.loading.set(false);
         },
-        error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); void this.router.navigate(['/equipment']); },
+        error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/equipment']); },
       });
     }
   }
@@ -78,8 +77,8 @@ export class EquipmentFormComponent implements OnInit {
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.equipmentService.update(this.itemId!, request) : this.equipmentService.create(request);
     op$.subscribe({
-      next: () => { this.snackBar.open(this.isEditMode() ? 'Updated' : 'Created', 'Close', { duration: 3000 }); void this.router.navigate(['/equipment']); },
-      error: () => { this.snackBar.open('Failed to save', 'Close', { duration: 3000 }); this.saving.set(false); },
+      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/equipment']); },
+      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
 }

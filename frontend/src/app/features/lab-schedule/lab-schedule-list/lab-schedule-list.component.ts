@@ -7,13 +7,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabScheduleService } from '../lab-schedule.service';
 import { LabSchedule } from '../lab-schedule.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-lab-schedule-list',
@@ -21,15 +21,14 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   imports: [
     PageHeaderComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, MatTooltipModule,
-  ],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './lab-schedule-list.component.html',
   styleUrl: './lab-schedule-list.component.scss',
 })
 export class LabScheduleListComponent implements OnInit {
   private readonly labScheduleService = inject(LabScheduleService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -100,8 +99,8 @@ export class LabScheduleListComponent implements OnInit {
   private doDelete(item: LabSchedule): void {
     this.loading.set(true);
     this.labScheduleService.delete(item.id).subscribe({
-      next: () => { this.snackBar.open('Deleted successfully', 'Close', { duration: 3000 }); this.load(); },
-      error: () => { this.snackBar.open('Failed to delete', 'Close', { duration: 3000 }); this.loading.set(false); },
+      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
 
@@ -112,7 +111,7 @@ export class LabScheduleListComponent implements OnInit {
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.snackBar.open('Failed to load', 'Close', { duration: 3000 }); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }
 }

@@ -4,7 +4,6 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DepartmentService } from '../department.service';
@@ -22,7 +21,6 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatPaginatorModule,
     MatSortModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
@@ -33,7 +31,7 @@ import { computeInitials } from '../../../shared/utils/initials';
 export class DepartmentListComponent implements OnInit {
   private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -47,6 +45,25 @@ export class DepartmentListComponent implements OnInit {
   protected readonly dataSource = new MatTableDataSource<Department>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  private readonly _departments = signal<Department[]>([]);
+
+  protected readonly totalCount = computed(() => this._departments().length);
+  protected readonly hodAssignedCount = computed(() =>
+    this._departments().filter(d => d.hodName).length
+  );
+
+  protected readonly visibleRows = computed<Department[]>(() => {
+    this.searchValue();
+    return this.dataSource.filteredData;
+  });
+
+  protected onViewModeChange(mode: CmsViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  protected initials(name?: string | null): string {
+    return computeInitials(name) || '—';
+  }
 
   // Single source of truth for all departments (card view reads from here)
   private readonly allDepts = signal<Department[]>([]);
@@ -111,11 +128,8 @@ export class DepartmentListComponent implements OnInit {
         cancelText: 'Cancel',
       },
     });
-
     dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.performDelete(department);
-      }
+      if (confirmed) this.performDelete(department);
     });
   }
 
@@ -152,6 +166,7 @@ export class DepartmentListComponent implements OnInit {
       next: (departments) => {
         this.allDepts.set(departments);
         this.dataSource.data = departments;
+        this._departments.set(departments);
         this.loading.set(false);
       },
       error: () => {

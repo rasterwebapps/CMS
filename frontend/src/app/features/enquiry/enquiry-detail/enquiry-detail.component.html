@@ -45,11 +45,15 @@
           </div>
           <div class="detail-sidebar__stat">
             <span class="detail-sidebar__stat-label">Total Paid</span>
-            <span class="detail-sidebar__stat-value">{{ totalPaid() | currency:'INR':'₹':'1.0-0' }}</span>
+            <span class="detail-sidebar__stat-value">{{
+              totalPaid() | currency: 'INR' : '₹' : '1.0-0'
+            }}</span>
           </div>
           <div class="detail-sidebar__stat">
             <span class="detail-sidebar__stat-label">Documents</span>
-            <span class="detail-sidebar__stat-value">{{ docsVerified() }} / {{ docsTotal() }} verified</span>
+            <span class="detail-sidebar__stat-value"
+              >{{ docsVerified() }} / {{ docsTotal() }} verified</span
+            >
           </div>
         </div>
 
@@ -66,7 +70,9 @@
                   ></span>
                   <div class="status-timeline__body">
                     <span class="status-timeline__label">{{ h.toStatus }}</span>
-                    <span class="status-timeline__date">{{ h.changedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+                    <span class="status-timeline__date">{{
+                      h.changedAt | date: 'dd MMM yyyy, HH:mm'
+                    }}</span>
                   </div>
                 </li>
               }
@@ -85,16 +91,48 @@
             <div class="tab-content">
               <div class="content-card">
                 <div class="detail-grid">
-                  <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">{{ enquiry()!.email || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-value">{{ enquiry()!.phone || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Program</span><span class="detail-value">{{ enquiry()!.programName }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Course</span><span class="detail-value">{{ enquiry()!.courseName || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Student Type</span><span class="detail-value">{{ enquiry()!.studentType || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Enquiry Date</span><span class="detail-value">{{ enquiry()!.enquiryDate }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Agent</span><span class="detail-value">{{ enquiry()!.agentName || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Referral Type</span><span class="detail-value">{{ enquiry()!.referralTypeName || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Net Fee</span><span class="detail-value">{{ (enquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0') || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Remarks</span><span class="detail-value">{{ enquiry()!.remarks || '—' }}</span></div>
+                  <div class="detail-item">
+                    <span class="detail-label">Email</span
+                    ><span class="detail-value">{{ enquiry()!.email || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Phone</span
+                    ><span class="detail-value">{{ enquiry()!.phone || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Program</span
+                    ><span class="detail-value">{{ enquiry()!.programName }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Course</span
+                    ><span class="detail-value">{{ enquiry()!.courseName || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Student Type</span
+                    ><span class="detail-value">{{ enquiry()!.studentType || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Enquiry Date</span
+                    ><span class="detail-value">{{ enquiry()!.enquiryDate }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Agent</span
+                    ><span class="detail-value">{{ enquiry()!.agentName || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Referral Type</span
+                    ><span class="detail-value">{{ enquiry()!.referralTypeName || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Net Fee</span
+                    ><span class="detail-value">{{
+                      (enquiry()!.finalizedNetFee | currency: 'INR' : '₹' : '1.0-0') || '—'
+                    }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Remarks</span
+                    ><span class="detail-value">{{ enquiry()!.remarks || '—' }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -115,27 +153,94 @@
                         <span class="doc-row__icon" [class]="docIconClass(d.status)">
                           @switch ((d.status || '').toUpperCase()) {
                             @case ('VERIFIED') {
-                              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M3 8.5l3 3 7-7"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
                               </svg>
                             }
                             @case ('REJECTED') {
-                              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                              <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M4 4l8 8M12 4l-8 8"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                />
                               </svg>
                             }
                             @default {
-                              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
-                                <path d="M8 5v3.5l2.2 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                              <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <circle
+                                  cx="8"
+                                  cy="8"
+                                  r="6"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                />
+                                <path
+                                  d="M8 5v3.5l2.2 1.3"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                  stroke-linecap="round"
+                                />
                               </svg>
                             }
                           }
                         </span>
                         <span class="doc-row__name">{{ d.documentType }}</span>
+                        @if (d.hasFile) {
+                          <span class="doc-row__file" [matTooltip]="d.fileName ?? ''">
+                            {{ d.fileName }}
+                          </span>
+                          <button
+                            type="button"
+                            class="doc-row__action"
+                            matTooltip="View document"
+                            (click)="viewDocumentFile(d)"
+                            aria-label="View document"
+                          >
+                            <mat-icon>visibility</mat-icon>
+                          </button>
+                          <button
+                            type="button"
+                            class="doc-row__action"
+                            matTooltip="Download document"
+                            (click)="downloadDocumentFile(d)"
+                            aria-label="Download document"
+                          >
+                            <mat-icon>download</mat-icon>
+                          </button>
+                        }
                         @if (d.verifiedBy && d.verifiedAt) {
-                          <span class="doc-row__meta">Verified by {{ d.verifiedBy }} on {{ d.verifiedAt }}</span>
-                        } @else if (d.status && d.status !== 'PENDING' && d.status !== 'VERIFIED' && d.status !== 'REJECTED') {
+                          <span class="doc-row__meta"
+                            >Verified by {{ d.verifiedBy }} on {{ d.verifiedAt }}</span
+                          >
+                        } @else if (
+                          d.status &&
+                          d.status !== 'PENDING' &&
+                          d.status !== 'VERIFIED' &&
+                          d.status !== 'REJECTED'
+                        ) {
                           <cms-status-badge [status]="d.status"></cms-status-badge>
                         }
                       </div>
@@ -159,9 +264,11 @@
                     @for (p of payments(); track p.id) {
                       <div class="receipt-card" [class]="receiptModeClass(p.paymentMode)">
                         <span class="receipt-card__number">{{ p.receiptNumber }}</span>
-                        <span class="receipt-card__amount">{{ p.amountPaid | currency:'INR':'₹':'1.0-0' }}</span>
+                        <span class="receipt-card__amount">{{
+                          p.amountPaid | currency: 'INR' : '₹' : '1.0-0'
+                        }}</span>
                         <span class="receipt-card__meta">
-                          <span>{{ p.paymentDate | date:'dd MMM yyyy' }}</span>
+                          <span>{{ p.paymentDate | date: 'dd MMM yyyy' }}</span>
                           <span>via {{ p.paymentMode }}</span>
                           @if (p.collectedBy) {
                             <span>collected by {{ p.collectedBy }}</span>
@@ -188,15 +295,19 @@
                     <table mat-table [dataSource]="statusHistory()" class="modern-table">
                       <ng-container matColumnDef="changedAt">
                         <th mat-header-cell *matHeaderCellDef>Changed At</th>
-                        <td mat-cell *matCellDef="let row">{{ row.changedAt | date:'short' }}</td>
+                        <td mat-cell *matCellDef="let row">{{ row.changedAt | date: 'short' }}</td>
                       </ng-container>
                       <ng-container matColumnDef="fromStatus">
                         <th mat-header-cell *matHeaderCellDef>From</th>
-                        <td mat-cell *matCellDef="let row"><cms-status-badge [status]="row.fromStatus || ''"></cms-status-badge></td>
+                        <td mat-cell *matCellDef="let row">
+                          <cms-status-badge [status]="row.fromStatus || ''"></cms-status-badge>
+                        </td>
                       </ng-container>
                       <ng-container matColumnDef="toStatus">
                         <th mat-header-cell *matHeaderCellDef>To</th>
-                        <td mat-cell *matCellDef="let row"><cms-status-badge [status]="row.toStatus"></cms-status-badge></td>
+                        <td mat-cell *matCellDef="let row">
+                          <cms-status-badge [status]="row.toStatus"></cms-status-badge>
+                        </td>
                       </ng-container>
                       <ng-container matColumnDef="changedBy">
                         <th mat-header-cell *matHeaderCellDef>Changed By</th>
@@ -207,7 +318,11 @@
                         <td mat-cell *matCellDef="let row">{{ row.remarks || '—' }}</td>
                       </ng-container>
                       <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
-                      <tr mat-row *matRowDef="let row; columns: historyColumns" class="table-row"></tr>
+                      <tr
+                        mat-row
+                        *matRowDef="let row; columns: historyColumns"
+                        class="table-row"
+                      ></tr>
                     </table>
                   </div>
                 }

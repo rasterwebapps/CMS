@@ -8,13 +8,13 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-semester-list',
@@ -30,17 +30,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatDialogModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule],
   templateUrl: './semester-list.component.html',
   styleUrl: './semester-list.component.scss',
 })
 export class SemesterListComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -138,15 +136,11 @@ export class SemesterListComponent implements OnInit {
     this.loading.set(true);
     this.academicYearService.deleteSemester(semester.id).subscribe({
       next: () => {
-        this.snackBar.open('Semester deleted successfully', 'Close', {
-          duration: 3000,
-        });
+        this.toast.success('Semester deleted successfully');
         this.loadSemesters();
       },
       error: () => {
-        this.snackBar.open('Failed to delete semester', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to delete semester');
         this.loading.set(false);
       },
     });
@@ -158,9 +152,7 @@ export class SemesterListComponent implements OnInit {
         this.academicYears.set(academicYears);
       },
       error: () => {
-        this.snackBar.open('Failed to load academic years', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load academic years');
       },
     });
   }
@@ -179,9 +171,7 @@ export class SemesterListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load semesters', 'Close', {
-          duration: 3000,
-        });
+        this.toast.error('Failed to load semesters');
         this.loading.set(false);
       },
     });

@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractContro
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
@@ -14,6 +13,7 @@ import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { ToastService } from '../../../core/toast/toast.service';
 
 interface YearFee {
   yearNumber: number;
@@ -30,13 +30,11 @@ interface YearFee {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTableModule,
     MatPaginatorModule,
     MatChipsModule,
     MatTooltipModule,
-    PageHeaderComponent,
-  ],
+    PageHeaderComponent],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',
 })
@@ -45,7 +43,7 @@ export class FeeFinalizationComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(false);
@@ -66,8 +64,7 @@ export class FeeFinalizationComponent implements OnInit {
     'courseName',
     'referralTypeName',
     'finalCalculatedFee',
-    'actions',
-  ];
+    'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
   protected readonly form: FormGroup = this.fb.group({
@@ -93,7 +90,7 @@ export class FeeFinalizationComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.snackBar.open('Failed to load enquiry', 'Close', { duration: 3000 });
+          this.toast.error('Failed to load enquiry');
           this.loadInterestedEnquiries();
         },
       });
@@ -110,7 +107,7 @@ export class FeeFinalizationComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load enquiries', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load enquiries');
         this.loading.set(false);
       },
     });
@@ -170,13 +167,13 @@ export class FeeFinalizationComponent implements OnInit {
     this.saving.set(true);
     this.enquiryService.finalizeFees(enquiry.id, request).subscribe({
       next: () => {
-        this.snackBar.open('Fee finalized successfully', 'Close', { duration: 3000 });
+        this.toast.success('Fee finalized successfully');
         this.selectedEnquiry.set(null);
         this.loadInterestedEnquiries();
         this.saving.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to finalize fee', 'Close', { duration: 3000 });
+        this.toast.error('Failed to finalize fee');
         this.saving.set(false);
       },
     });

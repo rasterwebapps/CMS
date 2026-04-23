@@ -80,6 +80,11 @@ export interface EnquiryDocument {
   verifiedAt: string;
   createdAt: string;
   updatedAt: string;
+  fileName: string | null;
+  contentType: string | null;
+  fileSize: number | null;
+  uploadedAt: string | null;
+  hasFile: boolean;
 }
 
 export interface EnquiryDocumentRequest {
