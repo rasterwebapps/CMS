@@ -62,9 +62,8 @@ public class EnquiryDocument {
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "file_data")
+    @Column(name = "file_data", columnDefinition = "bytea")
     private byte[] fileData;
 
     @Column(name = "uploaded_at")
