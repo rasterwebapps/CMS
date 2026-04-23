@@ -85,7 +85,7 @@ export class DepartmentFormComponent implements OnInit {
     const upper = input.value.toUpperCase();
     if (upper !== input.value) {
       this.form.get('code')?.setValue(upper, { emitEvent: true });
-      setTimeout(() => input.setSelectionRange(start, end));
+      setTimeout(() => input.setSelectionRange(start, end), 0);
     }
   }
 
