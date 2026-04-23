@@ -10,7 +10,9 @@ import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',
@@ -150,11 +152,11 @@ export class DepartmentListComponent implements OnInit {
     this.loading.set(true);
     this.departmentService.delete(department.id).subscribe({
       next: () => {
-        this.snackBar.open('Department deleted successfully', 'Close', { duration: 3000 });
+        this.toast.success('Department deleted successfully');
         this.loadDepartments();
       },
       error: () => {
-        this.snackBar.open('Failed to delete department', 'Close', { duration: 3000 });
+        this.toast.error('Failed to delete department');
         this.loading.set(false);
       },
     });
@@ -170,7 +172,7 @@ export class DepartmentListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.snackBar.open('Failed to load departments', 'Close', { duration: 3000 });
+        this.toast.error('Failed to load departments');
         this.loading.set(false);
       },
     });

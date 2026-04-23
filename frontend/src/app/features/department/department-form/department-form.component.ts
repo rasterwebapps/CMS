@@ -11,6 +11,8 @@ import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-department-form',
@@ -52,6 +54,7 @@ export class DepartmentFormComponent implements OnInit {
 
   protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
 
+  private static readonly SUCCESS_STATE_DURATION_MS = 600;
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
@@ -73,7 +76,7 @@ export class DepartmentFormComponent implements OnInit {
       .subscribe((v: string | null) => this.previewCode.set((v ?? '').toUpperCase()));
     this.form.get('description')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v: string | null) => this.previewDescription.set(v ?? ''));
+      .subscribe((v: string | null) => this.previewDesc.set(v ?? ''));
     this.form.get('hodName')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v: string | null) => this.previewHod.set(v ?? ''));
