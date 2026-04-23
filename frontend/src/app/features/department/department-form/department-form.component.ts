@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -10,8 +10,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
-import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
-import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
@@ -45,34 +43,15 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
-  // ── Live preview state ───────────────────────────────────────────────────
-  // These signals mirror the form values and drive the preview card.
-  protected readonly previewName = signal('');
+  // Live preview signals
   protected readonly previewCode = signal('');
-  protected readonly previewDescription = signal('');
+  protected readonly previewName = signal('');
   protected readonly previewHod = signal('');
+  protected readonly previewDesc = signal('');
+  protected readonly codeCharCount = signal(0);
 
-  protected readonly previewInitials = computed(() => computeInitials(this.previewHod()));
+  protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
 
-  protected readonly tips: CmsTip[] = [
-    {
-      icon: 'check_circle',
-      title: 'Use a short, uppercase code',
-      subtitle: 'Codes such as CS, EE or NUR appear as monospace badges across lists and reports.',
-    },
-    {
-      icon: 'person',
-      title: 'Assign a Head of Department',
-      subtitle: 'The HOD name appears with an avatar on department cards and in faculty linkage flows.',
-    },
-    {
-      icon: 'edit_note',
-      title: 'Description is searchable',
-      subtitle: 'A clear one-line description helps users find the department from global search.',
-    },
-  ];
-
-  private static readonly SUCCESS_STATE_DURATION_MS = 600;
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
@@ -107,6 +86,30 @@ export class DepartmentFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Department');
       this.loadDepartment();
+    }
+
+    // Sync live preview from form value changes
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        const code = (v.code ?? '').toUpperCase().trim();
+        this.previewCode.set(code);
+        this.codeCharCount.set(code.length);
+        this.previewName.set((v.name ?? '').trim());
+        this.previewHod.set((v.hodName ?? '').trim());
+        this.previewDesc.set((v.description ?? '').trim());
+      });
+  }
+
+  /** Auto-uppercase the code field on every keystroke, preserving cursor position. */
+  protected onCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const upper = input.value.toUpperCase();
+    if (upper !== input.value) {
+      this.form.get('code')?.setValue(upper, { emitEvent: true });
+      setTimeout(() => input.setSelectionRange(start, end), 0);
     }
   }
 

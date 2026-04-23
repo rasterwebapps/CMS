@@ -54,6 +54,15 @@ export class AdminDashboardComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly trendsLoading = signal(true);
   protected readonly summary = signal<DashboardSummary | null>(null);
+
+  // Academic year label derived from today's date.
+  // Colleges in India typically start their academic year in June (month index 5),
+  // so June–December belongs to year N, January–May belongs to year N-1.
+  protected readonly academicYearLabel = computed(() => {
+    const now = new Date();
+    const year = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+    return `AY ${year}–${String(year + 1).slice(-2)}`;
+  });
   protected readonly trends = signal<DashboardTrends | null>(null);
 
   // ── Phase 4: Recent Activity feed ──────────────────────────────

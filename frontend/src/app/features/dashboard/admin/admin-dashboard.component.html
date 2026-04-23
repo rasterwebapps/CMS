@@ -4,16 +4,25 @@
   <div class="admin-hero anim-rise">
     <div class="admin-hero__content">
       <div class="admin-hero__text">
-        <p class="admin-hero__live">
-          <span class="live-dot"></span>
-          LIVE &bull; {{ summary()?.totalStudents ?? 0 }} students enrolled
-        </p>
-        <h2 class="admin-hero__greeting font-display">Welcome back, {{ authService.username() || 'Admin' }}! 👋</h2>
+        <div class="admin-hero__eyebrow">
+          <span class="hero-tag">{{ academicYearLabel() }}</span>
+          <p class="admin-hero__live">
+            <span class="live-dot"></span>
+            LIVE &bull; {{ summary()?.totalStudents ?? 0 }} students enrolled
+          </p>
+        </div>
+        <h2 class="admin-hero__greeting font-display">Welcome back, <em>{{ authService.username() || 'Admin' }}</em>! 👋</h2>
         <p class="admin-hero__subtitle">Here's your college overview for today.</p>
-        <a routerLink="/reports" class="admin-hero__btn">
-          <mat-icon>summarize</mat-icon>
-          Generate Report →
-        </a>
+        <div class="admin-hero__btns">
+          <a routerLink="/reports" class="admin-hero__btn">
+            <mat-icon>summarize</mat-icon>
+            Generate Report →
+          </a>
+          <a routerLink="/reports" class="admin-hero__btn admin-hero__btn--outline">
+            <mat-icon>bar_chart</mat-icon>
+            View Reports
+          </a>
+        </div>
       </div>
       <div class="admin-hero__deco">
         <div class="deco-circle deco-1"></div>
