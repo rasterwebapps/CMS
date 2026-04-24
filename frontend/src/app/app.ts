@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 import { filter } from 'rxjs';
@@ -58,7 +57,6 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatButtonModule,
     MatMenuModule,
     MatTooltipModule,
-    MatExpansionModule,
     MatDivider,
     MatBadgeModule,
     ThemePickerComponent,

@@ -110,7 +110,10 @@
   border-right: 1px solid var(--cms-sidenav-border) !important;
   border-radius: 0 !important;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  // overflow visible so the floating circular collapse-toggle (positioned at
+  // right: -13px) is not clipped. Internal scrolling is owned by .sidenav-nav.
+  overflow: visible;
+  position: relative;
 
   // ─── Collapsed Icon Rail ───
   &.collapsed {
@@ -121,131 +124,43 @@
     }
   }
 
-  // ─── Sidebar Brand / Institution Identity Header ───
-  .sidenav-brand-header {
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--cms-sidenav-border);
+  // ─── Floating circular collapse toggle (matches v2 reference .sb-toggle) ───
+  .sidenav-toggle-fab {
+    position: absolute;
+    top: 14px;
+    right: -13px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--cms-bg-surface-2, #f3f4f6);
+    border: 1px solid var(--cms-line-strong, rgba(0, 0, 0, 0.12));
+    color: var(--cms-sidenav-group-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    padding: 0;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
 
-    .sidenav-brand-expanded {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 8px 10px 14px;
-      min-height: 56px;
-
-      .sidenav-brand-logo {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 3px;
-        object-fit: contain;
-      }
-
-      .sidenav-brand-logo-fallback {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-          color: #ffffff;
-        }
-      }
-
-      .sidenav-brand-text {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-
-        .sidenav-brand-name {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: var(--cms-sidenav-text-bright);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          line-height: 1.2;
-        }
-
-        .sidenav-brand-sub {
-          font-size: 0.6875rem;
-          font-weight: 400;
-          color: var(--cms-sidenav-group-text);
-          white-space: nowrap;
-          line-height: 1.2;
-        }
-      }
-
-      .sidenav-collapse-btn {
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        flex-shrink: 0;
-        color: var(--cms-sidenav-group-text) !important;
-        transition: var(--cms-transition) !important;
-
-        &:hover {
-          color: var(--cms-sidenav-text-bright) !important;
-          background: var(--cms-sidenav-hover) !important;
-        }
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-        }
-      }
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .sidenav-brand-collapsed {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 56px;
-      cursor: pointer;
-      transition: background 0.2s;
-
-      &:hover {
-        background: var(--cms-sidenav-hover);
-      }
-
-      .sidenav-brand-logo-sm {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 3px;
-        object-fit: contain;
-      }
-
-      .sidenav-brand-logo-fallback-sm {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          color: #ffffff;
-        }
-      }
+    &:hover {
+      background: var(--cms-primary);
+      border-color: var(--cms-primary);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(var(--cms-primary-rgb), 0.15);
     }
+  }
+
+  &.collapsed .sidenav-toggle-fab mat-icon {
+    transform: rotate(180deg);
   }
 
   // ─── Menu Search Box (v2 aesthetic — inset pill) ───
@@ -481,162 +396,86 @@
 }
 
 // ──────────────────────────────────────────────────
-// Navigation Groups — Expansion Panels (v2 aesthetic)
+// Flat Navigation Groups — v2 aesthetic
+// (uppercase section label + flat nav-item pills, no expansion panels)
 // ──────────────────────────────────────────────────
-.nav-group {
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-
-  &::ng-deep .mat-expansion-panel-body {
-    padding: 0 0 4px;
-  }
-
-  mat-expansion-panel-header {
-    padding: 0 14px;
-    height: 36px !important;
-    margin: 1px 8px;
-    border-radius: 10px;
-    transition: background 0.18s, color 0.18s;
-
-    .nav-group-icon {
-      margin-right: 11px;
-      color: var(--cms-sidenav-group-text);
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      transition: color 0.18s;
-    }
-
-    mat-panel-title {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      color: var(--cms-sidenav-text) !important;
-      font-size: 0.8125rem;
-      font-weight: 400;
-      letter-spacing: 0;
-      transition: color 0.18s;
-    }
-
-    &::ng-deep .mat-expansion-indicator {
-      transform: scale(0.85);
-    }
-
-    &::ng-deep .mat-expansion-indicator::after {
-      color: var(--cms-sidenav-group-text) !important;
-    }
-
-    &:hover {
-      background: var(--cms-sidenav-hover) !important;
-
-      .nav-group-icon {
-        color: var(--cms-sidenav-text-bright);
-      }
-
-      mat-panel-title {
-        color: var(--cms-sidenav-text-bright) !important;
-      }
-    }
-  }
-
-  &.mat-expanded {
-    mat-expansion-panel-header {
-      .nav-group-icon {
-        color: var(--cms-sidenav-active-text);
-      }
-      mat-panel-title {
-        color: var(--cms-sidenav-text-bright) !important;
-        font-weight: 500;
-      }
-    }
-  }
-
-  mat-nav-list {
-    padding-top: 0;
-    padding-bottom: 2px;
-
-    a[mat-list-item] {
-      // Indent child items under the group icon
-      padding-left: 41px !important;
-    }
-  }
+.nav-group-label {
+  font-size: 0.625rem; // ~10px
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cms-sidenav-group-text);
+  padding: 14px 20px 5px;
+  white-space: nowrap;
+  user-select: none;
 }
 
-// ──────────────────────────────────────────────────
-// Top-Level Standalone Nav Items (Dashboard, Reports)
-// v2 aesthetic — same compact pill as expansion-panel header
-// ──────────────────────────────────────────────────
-.top-level-nav-item {
+.nav-item {
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  height: 36px;
+  gap: 11px;
+  padding: 9px 14px;
   margin: 1px 8px;
   border-radius: 10px;
-  text-decoration: none;
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
+  position: relative;
+  white-space: nowrap;
+  color: var(--cms-sidenav-text);
+  font-size: 0.8125rem; // ~13px
+  font-weight: 400;
+  text-decoration: none;
 
-  .top-level-icon {
-    margin-right: 11px;
-    color: var(--cms-sidenav-group-text);
-    font-size: 18px;
+  .nav-item-icon {
     width: 18px;
     height: 18px;
+    font-size: 18px;
     flex-shrink: 0;
+    color: var(--cms-sidenav-group-text);
     transition: color 0.18s;
   }
 
-  .top-level-label {
-    font-size: 0.8125rem;
-    font-weight: 400;
-    letter-spacing: 0;
-    color: var(--cms-sidenav-text);
+  .nav-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     transition: color 0.18s;
   }
 
   &:hover {
     background: var(--cms-sidenav-hover);
+    color: var(--cms-sidenav-text-bright);
 
-    .top-level-icon {
-      color: var(--cms-sidenav-text-bright);
-    }
-
-    .top-level-label {
+    .nav-item-icon {
       color: var(--cms-sidenav-text-bright);
     }
   }
 
-  &.top-level-active {
+  &.nav-item-active {
     background: rgba(var(--cms-primary-rgb), 0.12);
+    color: var(--cms-sidenav-active-text);
+    font-weight: 600;
 
-    .top-level-icon {
-      color: var(--cms-sidenav-active-text) !important;
+    .nav-item-icon {
+      color: var(--cms-sidenav-active-text);
     }
 
-    .top-level-label {
-      color: var(--cms-sidenav-active-text) !important;
-      font-weight: 600;
+    .nav-item-label {
+      color: var(--cms-sidenav-active-text);
     }
   }
 }
 
-// ──────────────────────────────────────────────────
-// Active Link — soft-pill v2 aesthetic (no left bar)
-// ──────────────────────────────────────────────────
-.active-link {
-  background: rgba(var(--cms-primary-rgb), 0.12) !important;
-  border-radius: 10px !important;
-
-  mat-icon[matListItemIcon] {
-    color: var(--cms-sidenav-active-text) !important;
-  }
-
-  span[matListItemTitle] {
-    color: var(--cms-sidenav-active-text) !important;
-    font-weight: 600 !important;
-  }
+.nav-pill {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(var(--cms-primary-rgb), 0.18);
+  color: var(--cms-sidenav-active-text);
+  padding: 2px 7px;
+  border-radius: 20px;
+  line-height: 1.4;
 }
 
 // ──────────────────────────────────────────────────
@@ -687,6 +526,17 @@
     letter-spacing: -0.02em;
     color: var(--cms-toolbar-text, var(--cms-text-primary));
     white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  .toolbar-brand-sub {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--cms-toolbar-text, var(--cms-text-primary));
+    opacity: 0.65;
+    white-space: nowrap;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 }
 
