@@ -1,49 +1,52 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe, KeyValuePipe, DatePipe } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { DecimalPipe } from '@angular/common';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
 import {
   DashboardSummary,
-  DashboardTrends,
   DashboardTrendPoint,
-  ActivityItem,
-  CalendarEvent,
+  DashboardTrends,
 } from '../dashboard.models';
-import {
-  DashboardKpiCardComponent,
-  KpiTrend,
-} from '../shared/kpi-card/dashboard-kpi-card.component';
-import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
-interface AdminKpiCard {
+/**
+ * One row inside the "Pending Approvals" widget — title + subtitle + numeric amount.
+ * Severities map directly to the bullet / amount accent colour in the design spec.
+ */
+interface ApprovalItem {
   title: string;
-  value: string;
-  icon: string;
-  color: 'indigo' | 'emerald' | 'amber' | 'teal' | 'violet';
   subtitle: string;
-  delay: string;
-  trend?: KpiTrend;
+  amount: string;
+  severity: 'red' | 'amber' | 'accent';
 }
 
+/** Single bar in the Admission Trend chart with its `hi` / `lo` classification. */
+interface TrendBar {
+  label: string;
+  height: number;
+  emphasis: 'hi' | 'lo';
+  value: number;
+}
+
+/** A single row in the Equipment Status widget. */
+interface EquipmentRow {
+  label: string;
+  count: number;
+  pct: number;
+  color: 'green' | 'accent' | 'amber' | 'red';
+}
+
+/**
+ * Admin dashboard.
+ *
+ * Layout follows `docs/college-management-v2.html` exactly: hero, 5-card stats grid,
+ * quick-actions row, two 2-column rows (Trend + Approvals, Equipment + Fee).
+ */
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [
-    RouterLink,
-    DecimalPipe,
-    KeyValuePipe,
-    DatePipe,
-    MatIconModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    DashboardKpiCardComponent,
-    CmsSkeletonComponent,
-  ],
+  imports: [RouterLink, DecimalPipe],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss',
 })
@@ -54,129 +57,111 @@ export class AdminDashboardComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly trendsLoading = signal(true);
   protected readonly summary = signal<DashboardSummary | null>(null);
-
-  // Academic year label derived from today's date.
-  // Colleges in India typically start their academic year in June (month index 5),
-  // so June–December belongs to year N, January–May belongs to year N-1.
-  protected readonly academicYearLabel = computed(() => {
-    const now = new Date();
-    const year = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
-    return `AY ${year}–${String(year + 1).slice(-2)}`;
-  });
   protected readonly trends = signal<DashboardTrends | null>(null);
 
-  // ── Phase 4: Recent Activity feed ──────────────────────────────
-  protected readonly activityLoading = signal(true);
-  protected readonly activityFeed = signal<ActivityItem[]>([]);
+  // Academic year derived from today's date.
+  // Indian academic years start in June (month index 5): June–December → year N,
+  // January–May → year N-1.
+  private readonly academicYearShort = computed(() => {
+    const now = new Date();
+    const year = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+    return `${year}–${String(year + 1).slice(-2)}`;
+  });
+  protected readonly academicYearLabel = computed(() => `Academic Year ${this.academicYearShort()}`);
 
-  // ── Phase 4: Live Academic Calendar ────────────────────────────
-  protected readonly calendarLoading = signal(true);
-  protected readonly calendarEvents = signal<CalendarEvent[]>([]);
-
-  protected readonly kpiCards = computed((): AdminKpiCard[] => {
-    const s = this.summary();
-    return [
-      {
-        title: 'Total Students',
-        value: s ? String(s.totalStudents) : '—',
-        icon: 'school',
-        color: 'indigo',
-        subtitle: 'Enrolled',
-        delay: '0ms',
-        trend: this.studentsTrend(s),
-      },
-      {
-        title: 'Active Faculty',
-        value: s ? String(s.totalFaculty) : '—',
-        icon: 'groups',
-        color: 'emerald',
-        subtitle: 'Staff members',
-        delay: '60ms',
-      },
-      {
-        title: 'Labs',
-        value: s ? String(s.totalLabs) : '—',
-        icon: 'science',
-        color: 'violet',
-        subtitle: 'Lab utilization',
-        delay: '120ms',
-      },
-      {
-        title: 'Fee Collected',
-        value: s ? '₹' + s.feeCollectedThisMonth.toLocaleString('en-IN') : '—',
-        icon: 'payments',
-        color: 'teal',
-        subtitle: 'This month',
-        delay: '180ms',
-        trend: this.feeCollectedTrend(s),
-      },
-      {
-        title: 'Fee Outstanding',
-        value: s ? '₹' + s.feeOutstanding.toLocaleString('en-IN') : '—',
-        icon: 'account_balance_wallet',
-        color: 'amber',
-        subtitle: 'Pending collection',
-        delay: '240ms',
-        trend: this.feeOutstandingTrend(s),
-      },
-    ];
+  /** Optional "+N this month" pill rendered on the Total Students stat. */
+  protected readonly studentsBadge = computed(() => {
+    const delta = this.summary()?.studentsDelta;
+    if (typeof delta !== 'number' || delta === 0) return null;
+    return `${delta > 0 ? '+' : ''}${delta} this month`;
   });
 
-  protected readonly funnelOrder = [
-    'ENQUIRED',
-    'INTERESTED',
-    'FEES_FINALIZED',
-    'FEES_PAID',
-    'DOCUMENTS_SUBMITTED',
-    'CONVERTED',
-    'ADMITTED',
-  ];
-
-  protected readonly funnelEntries = computed((): { status: string; count: number; pct: number }[] => {
-    const s = this.summary();
-    if (!s?.enquiryFunnel) return [];
-    const funnel = s.enquiryFunnel;
-    const max = Math.max(1, ...Object.values(funnel));
-    return this.funnelOrder
-      .filter((status) => funnel[status] !== undefined)
-      .map((status) => ({
-        status,
-        count: funnel[status] ?? 0,
-        pct: Math.round(((funnel[status] ?? 0) / max) * 100),
-      }));
-  });
-
-  protected readonly pendingApprovals = computed(() => {
-    const s = this.summary();
-    if (!s) return [];
-    const items: { message: string; severity: 'red' | 'amber' | 'blue'; link: string }[] = [];
-    const pending = s.studentsByStatus?.['PENDING'] ?? 0;
-    if (pending > 0) {
-      items.push({ message: `${pending} student${pending > 1 ? 's' : ''} pending roll number`, severity: 'amber', link: '/students' });
-    }
-    const openMaint = s.maintenanceByStatus?.['OPEN'] ?? 0;
-    if (openMaint > 0) {
-      items.push({ message: `${openMaint} maintenance request${openMaint > 1 ? 's' : ''} open`, severity: 'red', link: '/maintenance' });
-    }
-    if (s.feeOutstanding > 0) {
-      items.push({ message: `₹${s.feeOutstanding.toLocaleString('en-IN')} outstanding fee`, severity: 'amber', link: '/student-fees' });
-    }
-    return items;
-  });
-
-  protected readonly equipmentStatusEntries = computed(() => {
-    const s = this.summary();
-    if (!s?.equipmentByStatus) return [];
-    const total = Math.max(1, Object.values(s.equipmentByStatus).reduce((a, b) => a + b, 0));
-    return Object.entries(s.equipmentByStatus).map(([status, count]) => ({
-      status,
-      count,
-      pct: Math.round((count / total) * 100),
+  /**
+   * Bars for the Admission Trend chart. A bar is rendered with the `hi` accent
+   * style when its value is at or above the median of the series; everything
+   * else is dimmed (`lo`). With no data we return an empty array — the empty
+   * state is handled in the template.
+   */
+  protected readonly trendBars = computed((): TrendBar[] => {
+    const points = this.trends()?.enrolmentTrend ?? [];
+    if (points.length === 0) return [];
+    const max = Math.max(1, ...points.map((p) => p.value));
+    const sorted = [...points.map((p) => p.value)].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    return points.map((p: DashboardTrendPoint) => ({
+      label: p.month.split(' ')[0],
+      height: Math.max(6, Math.round((p.value / max) * 100)),
+      emphasis: p.value >= median ? 'hi' : 'lo',
+      value: p.value,
     }));
   });
 
-  // Live academic calendar replaces the previous hardcoded `calendarPills` array.
-  // Data is loaded via the `/academic-years/current/events` endpoint in `ngOnInit`.
+  /** Up to three rows for the Pending Approvals widget, derived from the summary payload. */
+  protected readonly approvals = computed((): ApprovalItem[] => {
+    const s = this.summary();
+    if (!s) return [];
+    const rows: ApprovalItem[] = [];
+
+    if (s.feeOutstanding > 0) {
+      const studentsWithDues = s.studentsByStatus?.['ACTIVE'] ?? s.totalStudents;
+      rows.push({
+        title: 'Outstanding Fee Balance',
+        subtitle: `${studentsWithDues} student${studentsWithDues === 1 ? '' : 's'} · Immediate review required`,
+        amount: '₹' + s.feeOutstanding.toLocaleString('en-IN'),
+        severity: 'red',
+      });
+    }
+
+    const openMaintenance = s.maintenanceByStatus?.['OPEN'] ?? 0;
+    if (openMaintenance > 0) {
+      rows.push({
+        title: 'Maintenance Requests',
+        subtitle: `${openMaintenance} open · Action required`,
+        amount: String(openMaintenance),
+        severity: 'amber',
+      });
+    }
+
+    const newEnquiries = s.enquiryFunnel?.['ENQUIRED'] ?? 0;
+    if (newEnquiries > 0) {
+      rows.push({
+        title: 'New Enrolment Requests',
+        subtitle: `${newEnquiries} application${newEnquiries === 1 ? '' : 's'} · ${this.academicYearShort()} intake`,
+        amount: String(newEnquiries),
+        severity: 'accent',
+      });
+    }
+
+    return rows.slice(0, 3);
+  });
+
+  /**
+   * Equipment status rows used by the progress-bar widget. We re-map the raw
+   * backend statuses to the three buckets shown in the design (Available /
+   * In Use / Under Maintenance) so the colour assignment is deterministic.
+   */
+  protected readonly equipmentRows = computed((): EquipmentRow[] => {
+    const s = this.summary();
+    if (!s?.equipmentByStatus) return [];
+    const buckets = s.equipmentByStatus;
+    const total = Math.max(1, Object.values(buckets).reduce((a, b) => a + b, 0));
+    const colorFor: Record<string, EquipmentRow['color']> = {
+      OPERATIONAL: 'green',
+      AVAILABLE: 'green',
+      IN_USE: 'accent',
+      ASSIGNED: 'accent',
+      IN_REPAIR: 'amber',
+      MAINTENANCE: 'amber',
+      FAULTY: 'red',
+      DECOMMISSIONED: 'red',
+    };
+    return Object.entries(buckets).map(([status, count]) => ({
+      label: this.formatStatus(status),
+      count,
+      pct: Math.round((count / total) * 100),
+      color: colorFor[status] ?? 'accent',
+    }));
+  });
 
   ngOnInit(): void {
     this.http.get<DashboardSummary>(`${environment.apiUrl}/dashboard/summary`).subscribe({
@@ -194,178 +179,9 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: () => this.trendsLoading.set(false),
     });
-
-    this.loadActivity();
-    this.loadCalendar();
-  }
-
-  /**
-   * Loads (or reloads) the recent activity feed. Triggered on init and from the
-   * widget's manual "Refresh" button. Failures are swallowed — the empty state
-   * placeholder handles the missing-endpoint case gracefully.
-   */
-  protected refreshActivity(): void {
-    this.loadActivity();
-  }
-
-  private loadActivity(): void {
-    this.activityLoading.set(true);
-    this.http
-      .get<ActivityItem[]>(`${environment.apiUrl}/dashboard/activity`, { params: { limit: '10' } })
-      .subscribe({
-        next: (data) => {
-          this.activityFeed.set(Array.isArray(data) ? data : []);
-          this.activityLoading.set(false);
-        },
-        error: () => {
-          this.activityFeed.set([]);
-          this.activityLoading.set(false);
-        },
-      });
-  }
-
-  private loadCalendar(): void {
-    this.calendarLoading.set(true);
-    this.http
-      .get<CalendarEvent[]>(`${environment.apiUrl}/academic-years/current/events`)
-      .subscribe({
-        next: (data) => {
-          this.calendarEvents.set(Array.isArray(data) ? data : []);
-          this.calendarLoading.set(false);
-        },
-        error: () => {
-          this.calendarEvents.set([]);
-          this.calendarLoading.set(false);
-        },
-      });
-  }
-
-  protected maxTrendValue(points: DashboardTrendPoint[]): number {
-    return Math.max(1, ...points.map((p) => p.value));
-  }
-
-  protected trendBarHeight(value: number, max: number): number {
-    return Math.round((value / max) * 100);
   }
 
   protected formatStatus(status: string): string {
     return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
-  protected equipmentStatusColor(status: string): string {
-    const map: Record<string, string> = {
-      OPERATIONAL: 'emerald',
-      FAULTY: 'rose',
-      IN_REPAIR: 'amber',
-    };
-    return map[status] ?? 'blue';
-  }
-
-  // ── KPI trend helpers ────────────────────────────────────────────
-  // Backend currently does not yet expose month-over-month delta fields. When
-  // those land on `DashboardSummary`, return a populated `KpiTrend`; until then
-  // the helpers return `undefined` so the trend pill is hidden — wiring is in
-  // place, but never lies about data we don't have.
-  private studentsTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = s?.studentsDelta;
-    if (typeof delta !== 'number') return undefined;
-    return {
-      direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral',
-      label: (delta > 0 ? '+' : '') + delta + ' this month',
-    };
-  }
-
-  private feeCollectedTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = s?.feeCollectedDelta;
-    if (typeof delta !== 'number') return undefined;
-    return {
-      direction: delta >= 0 ? 'up' : 'down',
-      label: (delta >= 0 ? '+' : '-') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
-    };
-  }
-
-  private feeOutstandingTrend(s: DashboardSummary | null): KpiTrend | undefined {
-    const delta = s?.feeOutstandingDelta;
-    if (typeof delta !== 'number') return undefined;
-    // Outstanding going DOWN is good — both directions render in green by design.
-    return {
-      direction: delta <= 0 ? 'down' : 'up',
-      label: (delta <= 0 ? '-' : '+') + '₹' + Math.abs(delta).toLocaleString('en-IN') + ' vs last month',
-    };
-  }
-
-  // ── Recent Activity helpers ──────────────────────────────────────
-  /**
-   * Returns a human-friendly relative time string for the activity feed.
-   * Kept inline (no shared pipe) as this is the only screen that needs it —
-   * extract to a `RelativeTimePipe` if/when a second consumer appears.
-   */
-  protected relativeTime(iso: string): string {
-    const ts = Date.parse(iso);
-    if (isNaN(ts)) return '';
-    const diff = Date.now() - ts;
-    // Defensive: clock skew or future-dated entries shouldn't render as a
-    // negative duration — fall back to the absolute date.
-    if (diff < 0) {
-      return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    if (diff < 60_000) return 'Just now';
-    if (diff < 3_600_000) {
-      const m = Math.floor(diff / 60_000);
-      return `${m} minute${m === 1 ? '' : 's'} ago`;
-    }
-    if (diff < 86_400_000) {
-      const h = Math.floor(diff / 3_600_000);
-      return `${h} hour${h === 1 ? '' : 's'} ago`;
-    }
-    if (diff < 172_800_000) return 'Yesterday';
-    return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  protected activityIcon(entityType: ActivityItem['entityType']): string {
-    const map: Record<ActivityItem['entityType'], string> = {
-      ENQUIRY: 'contact_mail',
-      ADMISSION: 'how_to_reg',
-      STUDENT: 'school',
-      PAYMENT: 'payments',
-      DOCUMENT: 'description',
-    };
-    return map[entityType] ?? 'history';
-  }
-
-  // ── Calendar helpers ─────────────────────────────────────────────
-  protected calendarColor(type: CalendarEvent['type']): string {
-    const map: Record<CalendarEvent['type'], string> = {
-      EXAM: 'amber',
-      HOLIDAY: 'blue',
-      DEADLINE: 'red',
-      EVENT: 'violet',
-      OTHER: 'gray',
-    };
-    return map[type] ?? 'gray';
-  }
-
-  /**
-   * True when the given ISO date is today in the user's local timezone.
-   * Bare `YYYY-MM-DD` strings are parsed as UTC midnight by `new Date(...)` —
-   * which can roll back to the previous day in negative-offset timezones — so
-   * we split & reconstruct in local time when no time component is supplied.
-   */
-  protected isToday(date: string): boolean {
-    if (!date) return false;
-    const now = new Date();
-    let d: Date;
-    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-    if (dateOnlyMatch) {
-      d = new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]));
-    } else {
-      d = new Date(date);
-    }
-    if (isNaN(d.getTime())) return false;
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
   }
 }
