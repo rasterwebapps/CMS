@@ -168,7 +168,10 @@ CollegeManagementSystem/
 ## Authentication & Authorization
 
 ### User Roles
-- `ROLE_ADMIN` - Full system access
+- `ROLE_ADMIN` - Developer Administrator with full access to all screens
+- `ROLE_COLLEGE_ADMIN` - College Administrator: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types, all Admission Management, all Finance, Admin Dashboard, Reports
+- `ROLE_FRONT_OFFICE` - Front Office staff: all Admission Management screens, Front Office Dashboard
+- `ROLE_CASHIER` - Accountant/Cashier: all Finance screens, Cashier Dashboard
 - `ROLE_FACULTY` - Faculty-specific operations
 - `ROLE_STUDENT` - Student-specific access
 - `ROLE_LAB_INCHARGE` - Lab management access
@@ -355,7 +358,7 @@ When generating code for this project, adhere to these quality rules to prevent 
 
 ### Hallucination Prevention
 - Do not generate calls to APIs, methods, or classes that do not exist in the project's dependency versions (Spring Boot 3.4.5, Angular 21, Material 21).
-- Only use the six defined Keycloak roles: `ROLE_ADMIN`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`.
+- Only use the defined Keycloak roles: `ROLE_ADMIN`, `ROLE_COLLEGE_ADMIN`, `ROLE_FRONT_OFFICE`, `ROLE_CASHIER`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`.
 - Do not fabricate configuration properties — verify against `application.yml` and `application-local.yml`.
 
 ### Deterministic Patterns

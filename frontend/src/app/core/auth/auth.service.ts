@@ -21,12 +21,14 @@ export class AuthService {
   readonly token = this._token.asReadonly();
 
   readonly isAdmin = computed(() => this._roles().includes('ROLE_ADMIN'));
+  readonly isCollegeAdmin = computed(() => this._roles().includes('ROLE_COLLEGE_ADMIN'));
+  readonly isFrontOffice = computed(() => this._roles().includes('ROLE_FRONT_OFFICE'));
+  readonly isCashier = computed(() => this._roles().includes('ROLE_CASHIER'));
   readonly isFaculty = computed(() => this._roles().includes('ROLE_FACULTY'));
   readonly isStudent = computed(() => this._roles().includes('ROLE_STUDENT'));
   readonly isLabIncharge = computed(() => this._roles().includes('ROLE_LAB_INCHARGE'));
   readonly isTechnician = computed(() => this._roles().includes('ROLE_TECHNICIAN'));
   readonly isParent = computed(() => this._roles().includes('ROLE_PARENT'));
-  readonly isFrontOffice = computed(() => this._roles().includes('ROLE_FRONT_OFFICE'));
 
   /**
    * Returns all dashboard-relevant roles the user holds, sorted by priority order.
@@ -35,10 +37,12 @@ export class AuthService {
   readonly dashboardRoles = computed(() => {
     const priority = [
       'ROLE_ADMIN',
+      'ROLE_COLLEGE_ADMIN',
+      'ROLE_FRONT_OFFICE',
+      'ROLE_CASHIER',
       'ROLE_FACULTY',
       'ROLE_LAB_INCHARGE',
       'ROLE_TECHNICIAN',
-      'ROLE_FRONT_OFFICE',
       'ROLE_STUDENT',
       'ROLE_PARENT',
     ];

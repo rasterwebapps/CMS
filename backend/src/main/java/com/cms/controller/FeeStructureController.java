@@ -34,14 +34,14 @@ public class FeeStructureController {
     }
 
     @PostMapping("/bulk")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<List<FeeStructureResponse>> bulkCreate(@Valid @RequestBody BulkFeeStructureRequest request) {
         List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
     @PutMapping("/bulk")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<List<FeeStructureResponse>> bulkUpdate(@Valid @RequestBody BulkFeeStructureRequest request) {
         List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
         return ResponseEntity.ok(responses);
@@ -57,7 +57,7 @@ public class FeeStructureController {
     }
 
     @DeleteMapping("/group")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> deleteGroup(
             @RequestParam Long programId,
             @RequestParam Long academicYearId,
@@ -67,7 +67,7 @@ public class FeeStructureController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<FeeStructureResponse> create(@Valid @RequestBody FeeStructureRequest request) {
         FeeStructureResponse response = feeStructureService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -98,7 +98,7 @@ public class FeeStructureController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<FeeStructureResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody FeeStructureRequest request) {
@@ -107,7 +107,7 @@ public class FeeStructureController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         feeStructureService.delete(id);
         return ResponseEntity.noContent().build();

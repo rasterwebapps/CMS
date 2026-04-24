@@ -32,7 +32,7 @@ public class ReferralTypeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<ReferralTypeResponse> create(@Valid @RequestBody ReferralTypeRequest request) {
         ReferralTypeResponse response = referralTypeService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -57,7 +57,7 @@ public class ReferralTypeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<ReferralTypeResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody ReferralTypeRequest request) {
@@ -66,7 +66,7 @@ public class ReferralTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         referralTypeService.delete(id);
         return ResponseEntity.noContent().build();

@@ -23,7 +23,7 @@ public class ReportController {
     }
 
     @GetMapping("/lab-utilization")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<LabUtilizationReportResponse> getLabUtilizationReport() {
         return ResponseEntity.ok(reportService.getLabUtilizationReport());
     }
@@ -35,7 +35,7 @@ public class ReportController {
     }
 
     @GetMapping("/attendance-analytics")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FACULTY')")
     public ResponseEntity<AttendanceAnalyticsReportResponse> getAttendanceAnalyticsReport() {
         return ResponseEntity.ok(reportService.getAttendanceAnalyticsReport());
     }

@@ -1,0 +1,97 @@
+<div class="cashier-dashboard">
+  <!-- ── Hero Banner ──────────────────────────────── -->
+  <div class="cashier-hero anim-rise">
+    <div class="cashier-hero__content">
+      <div class="cashier-hero__text">
+        <p class="cashier-hero__eyebrow">💰 Finance &amp; Accounts</p>
+        <h2 class="cashier-hero__greeting font-display">
+          {{ authService.username() || 'Cashier' }} &bull; {{ today }}
+        </h2>
+      </div>
+      <div class="cashier-hero__deco">
+        <div class="deco-circle deco-1"></div>
+        <div class="deco-circle deco-2"></div>
+        <div class="deco-circle deco-3"></div>
+      </div>
+    </div>
+  </div>
+  <!-- ── Quick Actions ────────────────────────────── -->
+  <div class="cashier-actions-row">
+    <a routerLink="/student-fees" class="cashier-cta cashier-cta--primary">
+      <mat-icon>account_balance_wallet</mat-icon>
+      <span class="cashier-cta__text">
+        <span class="cashier-cta__label">Student Fees</span>
+        <span class="cashier-cta__sub">View &amp; explore fee records</span>
+      </span>
+    </a>
+    <a routerLink="/fee-payments/new" class="cashier-cta cashier-cta--secondary">
+      <mat-icon>add_card</mat-icon>
+      Collect Payment
+    </a>
+    <a routerLink="/student-fees/finalize" class="cashier-cta cashier-cta--secondary">
+      <mat-icon>lock</mat-icon>
+      Finalize Fees
+    </a>
+  </div>
+  <!-- ── KPI Cards ─────────────────────────────────── -->
+  @if (loading()) {
+    <div class="cashier-kpi-grid">
+      @for (n of [1,2,3,4]; track n) {
+        <div class="kpi-skeleton">
+          <div class="skeleton skeleton-icon"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-val"></div>
+            <div class="skeleton skeleton-lbl"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="cashier-kpi-grid">
+      @for (card of kpiCards(); track card.title) {
+        <app-dashboard-kpi-card
+          [title]="card.title"
+          [value]="card.value"
+          [icon]="card.icon"
+          [colorVariant]="card.color"
+          [subtitle]="card.subtitle"
+          [animationDelay]="card.delay"
+          [trend]="card.trend"
+        />
+      }
+    </div>
+  }
+  <!-- ── Finance Quick Links ─────────────────────── -->
+  @if (!loading()) {
+    <div class="cashier-links-card content-card">
+      <div class="widget-header">
+        <div class="widget-icon-wrap">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <h3 class="widget-title">Finance Quick Links</h3>
+      </div>
+      <div class="cashier-links-body">
+        <a routerLink="/student-fees" class="cashier-link-row">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span>Student Fee Explorer</span>
+          <mat-icon class="link-arrow">chevron_right</mat-icon>
+        </a>
+        <a routerLink="/fee-payments" class="cashier-link-row">
+          <mat-icon>receipt_long</mat-icon>
+          <span>Fee Payments History</span>
+          <mat-icon class="link-arrow">chevron_right</mat-icon>
+        </a>
+        <a routerLink="/student-fees/finalize" class="cashier-link-row">
+          <mat-icon>lock</mat-icon>
+          <span>Fee Finalization</span>
+          <mat-icon class="link-arrow">chevron_right</mat-icon>
+        </a>
+        <a routerLink="/fee-structures" class="cashier-link-row">
+          <mat-icon>table_chart</mat-icon>
+          <span>Fee Structures</span>
+          <mat-icon class="link-arrow">chevron_right</mat-icon>
+        </a>
+      </div>
+    </div>
+  }
+</div>

@@ -57,19 +57,19 @@ public class EnquiryController {
     }
 
     @GetMapping("/document-pending")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<List<EnquiryResponse>> findDocumentPending() {
         return ResponseEntity.ok(enquiryService.findDocumentPending());
     }
 
     @GetMapping("/admission-pending")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<List<EnquiryResponse>> findAdmissionPending() {
         return ResponseEntity.ok(enquiryService.findAdmissionPending());
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> create(@Valid @RequestBody EnquiryRequest request) {
         EnquiryResponse response = enquiryService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -126,7 +126,7 @@ public class EnquiryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody EnquiryRequest request) {
@@ -135,7 +135,7 @@ public class EnquiryController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam EnquiryStatus status,
@@ -146,7 +146,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/finalize-fees")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<FeeFinalizationResponse> finalizeFees(
             @PathVariable Long id,
             @Valid @RequestBody FeeFinalizationRequest request,
@@ -157,7 +157,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/submit-documents")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<?> submitDocuments(@PathVariable Long id) {
         MissingDocumentsResponse missingResponse = enquiryDocumentService.allMandatoryDocumentsSubmitted(id);
         if (!missingResponse.allSubmitted()) {
@@ -168,7 +168,7 @@ public class EnquiryController {
     }
 
     @PutMapping("/{id}/convert")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> convertToStudent(
             @PathVariable Long id,
             @RequestParam Long studentId) {
@@ -177,7 +177,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/convert")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryResponse> convertToStudentWithData(
             @PathVariable Long id,
             @Valid @RequestBody EnquiryConversionRequest request,
@@ -188,13 +188,13 @@ public class EnquiryController {
     }
 
     @GetMapping("/{id}/conversion-prefill")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryConversionPrefillResponse> getConversionPrefill(@PathVariable Long id) {
         return ResponseEntity.ok(enquiryService.getConversionPrefill(id));
     }
 
     @PostMapping("/{id}/payments")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<EnquiryPaymentResponse> collectPayment(
             @PathVariable Long id,
             @Valid @RequestBody EnquiryPaymentRequest request,
@@ -205,13 +205,13 @@ public class EnquiryController {
     }
 
     @GetMapping("/{id}/payments")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<List<EnquiryPaymentResponse>> getPayments(@PathVariable Long id) {
         return ResponseEntity.ok(enquiryPaymentService.getPaymentsByEnquiryId(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         enquiryService.delete(id);
         return ResponseEntity.noContent().build();

@@ -31,7 +31,7 @@ public class ProgramController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<ProgramResponse> create(@Valid @RequestBody ProgramRequest request) {
         ProgramResponse response = programService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -50,7 +50,7 @@ public class ProgramController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<ProgramResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody ProgramRequest request) {
@@ -59,7 +59,7 @@ public class ProgramController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         programService.delete(id);
         return ResponseEntity.noContent().build();

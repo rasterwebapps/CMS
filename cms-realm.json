@@ -5,7 +5,19 @@
     "realm": [
       {
         "name": "ROLE_ADMIN",
-        "description": "Administrator with full system access"
+        "description": "Developer Administrator with full system access to all screens and features"
+      },
+      {
+        "name": "ROLE_COLLEGE_ADMIN",
+        "description": "College Administrator with access to academic setup, admissions, finance and reports"
+      },
+      {
+        "name": "ROLE_FRONT_OFFICE",
+        "description": "Front Office staff with access to admission management screens and front office dashboard"
+      },
+      {
+        "name": "ROLE_CASHIER",
+        "description": "Accountant/Cashier with access to finance screens and cashier dashboard"
       },
       {
         "name": "ROLE_FACULTY",
@@ -49,6 +61,22 @@
   ],
   "users": [
     {
+      "username": "devadmin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Developer",
+      "lastName": "Admin",
+      "email": "devadmin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevAdmin@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_ADMIN"]
+    },
+    {
       "username": "admin",
       "enabled": true,
       "emailVerified": true,
@@ -63,6 +91,54 @@
         }
       ],
       "realmRoles": ["ROLE_ADMIN"]
+    },
+    {
+      "username": "collegeadmin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "College",
+      "lastName": "Admin",
+      "email": "collegeadmin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "College@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_COLLEGE_ADMIN"]
+    },
+    {
+      "username": "frontoffice",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Front",
+      "lastName": "Office",
+      "email": "frontoffice@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "FrontOffice@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_FRONT_OFFICE"]
+    },
+    {
+      "username": "cashier",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Cashier",
+      "lastName": "User",
+      "email": "cashier@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Cashier@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ROLE_CASHIER"]
     },
     {
       "username": "faculty1",

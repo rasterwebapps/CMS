@@ -33,7 +33,7 @@ public class FacultyController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<FacultyResponse> create(@Valid @RequestBody FacultyRequest request) {
         FacultyResponse response = facultyService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -61,7 +61,7 @@ public class FacultyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<FacultyResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody FacultyRequest request) {
@@ -70,7 +70,7 @@ public class FacultyController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facultyService.delete(id);
         return ResponseEntity.noContent().build();

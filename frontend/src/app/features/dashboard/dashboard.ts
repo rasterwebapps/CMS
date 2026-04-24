@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { AdminDashboardComponent } from './admin/admin-dashboard.component';
 import { FrontOfficeDashboardComponent } from './front-office/front-office-dashboard.component';
 import { FacultyDashboardComponent } from './faculty/faculty-dashboard.component';
+import { CashierDashboardComponent } from './cashier/cashier-dashboard.component';
 import { DashboardTabsComponent, DashboardTab } from './shared/tabs/dashboard-tabs.component';
 
 const SESSION_KEY = 'cms_dashboard_active_role';
@@ -15,6 +16,7 @@ const SESSION_KEY = 'cms_dashboard_active_role';
     AdminDashboardComponent,
     FrontOfficeDashboardComponent,
     FacultyDashboardComponent,
+    CashierDashboardComponent,
     DashboardTabsComponent,
   ],
   templateUrl: './dashboard.html',
@@ -32,13 +34,15 @@ export class DashboardComponent implements OnInit {
 
   protected readonly tabConfig = computed((): DashboardTab[] => {
     const roleLabels: Record<string, { label: string; icon: string; color: string }> = {
-      ROLE_ADMIN:       { label: 'Admin',       icon: 'admin_panel_settings', color: '#6366f1' },
-      ROLE_FACULTY:     { label: 'Faculty',     icon: 'school',               color: '#10b981' },
-      ROLE_LAB_INCHARGE:{ label: 'Lab Incharge',icon: 'science',              color: '#8b5cf6' },
-      ROLE_TECHNICIAN:  { label: 'Technician',  icon: 'build',                color: '#f59e0b' },
-      ROLE_FRONT_OFFICE:{ label: 'Front Office',icon: 'contact_phone',        color: '#0284c7' },
-      ROLE_STUDENT:     { label: 'Student',     icon: 'person',               color: '#06b6d4' },
-      ROLE_PARENT:      { label: 'Parent',      icon: 'family_restroom',      color: '#ec4899' },
+      ROLE_ADMIN:         { label: 'Developer Admin', icon: 'admin_panel_settings', color: '#6366f1' },
+      ROLE_COLLEGE_ADMIN: { label: 'College Admin',   icon: 'domain',               color: '#0284c7' },
+      ROLE_FRONT_OFFICE:  { label: 'Front Office',    icon: 'contact_phone',        color: '#0ea5e9' },
+      ROLE_CASHIER:       { label: 'Cashier',         icon: 'account_balance',      color: '#0f766e' },
+      ROLE_FACULTY:       { label: 'Faculty',         icon: 'school',               color: '#10b981' },
+      ROLE_LAB_INCHARGE:  { label: 'Lab Incharge',    icon: 'science',              color: '#8b5cf6' },
+      ROLE_TECHNICIAN:    { label: 'Technician',      icon: 'build',                color: '#f59e0b' },
+      ROLE_STUDENT:       { label: 'Student',         icon: 'person',               color: '#06b6d4' },
+      ROLE_PARENT:        { label: 'Parent',          icon: 'family_restroom',      color: '#ec4899' },
     };
     return this.dashboardRoles().map((role) => ({
       role,

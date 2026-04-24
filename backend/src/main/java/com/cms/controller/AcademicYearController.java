@@ -31,7 +31,7 @@ public class AcademicYearController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<AcademicYearResponse> create(@Valid @RequestBody AcademicYearRequest request) {
         AcademicYearResponse response = academicYearService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -56,7 +56,7 @@ public class AcademicYearController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<AcademicYearResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody AcademicYearRequest request) {
@@ -65,7 +65,7 @@ public class AcademicYearController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         academicYearService.delete(id);
         return ResponseEntity.noContent().build();

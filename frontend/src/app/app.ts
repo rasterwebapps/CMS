@@ -120,22 +120,26 @@ export class App implements OnInit {
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
 
   private readonly CMS_ROLE_NAMES: Record<string, string> = {
-    ROLE_ADMIN: 'Admin',
+    ROLE_ADMIN: 'Developer Admin',
+    ROLE_COLLEGE_ADMIN: 'College Admin',
+    ROLE_FRONT_OFFICE: 'Front Office',
+    ROLE_CASHIER: 'Cashier',
     ROLE_FACULTY: 'Faculty',
     ROLE_STUDENT: 'Student',
     ROLE_LAB_INCHARGE: 'Lab Incharge',
     ROLE_TECHNICIAN: 'Technician',
     ROLE_PARENT: 'Parent',
-    ROLE_FRONT_OFFICE: 'Front Office',
   };
 
   protected readonly primaryRole = computed(() => {
     const priority = [
       'ROLE_ADMIN',
+      'ROLE_COLLEGE_ADMIN',
+      'ROLE_FRONT_OFFICE',
+      'ROLE_CASHIER',
       'ROLE_FACULTY',
       'ROLE_LAB_INCHARGE',
       'ROLE_TECHNICIAN',
-      'ROLE_FRONT_OFFICE',
       'ROLE_STUDENT',
       'ROLE_PARENT',
     ];
@@ -149,23 +153,18 @@ export class App implements OnInit {
       label: 'Preferences',
       icon: 'tune',
       items: [
-        { label: 'Departments', icon: 'business', route: '/departments' },
-        { label: 'Programs', icon: 'school', route: '/programs' },
-        { label: 'Courses', icon: 'menu_book', route: '/courses' },
-        { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years' },
-        { label: 'Semesters', icon: 'date_range', route: '/semesters' },
-        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar' },
-        { label: 'Labs', icon: 'science', route: '/labs' },
-        { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures' },
-        { label: 'Equipment', icon: 'devices', route: '/equipment' },
-        { label: 'Faculty', icon: 'groups', route: '/faculty' },
-        { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN'] },
-        {
-          label: 'Referral Types',
-          icon: 'share',
-          route: '/referral-types',
-          roles: ['ROLE_ADMIN'],
-        },
+        { label: 'Departments', icon: 'business', route: '/departments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Programs', icon: 'school', route: '/programs', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Courses', icon: 'menu_book', route: '/courses', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Semesters', icon: 'date_range', route: '/semesters', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar', roles: ['ROLE_ADMIN'] },
+        { label: 'Labs', icon: 'science', route: '/labs', roles: ['ROLE_ADMIN'] },
+        { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Equipment', icon: 'devices', route: '/equipment', roles: ['ROLE_ADMIN'] },
+        { label: 'Faculty', icon: 'groups', route: '/faculty', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Referral Types', icon: 'share', route: '/referral-types', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
         { label: 'Settings', icon: 'settings', route: '/settings', roles: ['ROLE_ADMIN'] },
       ],
     },
@@ -173,56 +172,51 @@ export class App implements OnInit {
       label: 'Admission Management',
       icon: 'how_to_reg',
       items: [
-        { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
-        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admission Completion', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions' },
-        { label: 'Students', icon: 'person', route: '/students' },
-        { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },
+        { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Admission Completion', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Students', icon: 'person', route: '/students', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
       ],
     },
     {
       label: 'Curriculum & Academics',
       icon: 'auto_stories',
       items: [
-        { label: 'Syllabi', icon: 'library_books', route: '/syllabi' },
-        { label: 'Experiments', icon: 'biotech', route: '/experiments' },
-        { label: 'CO/PO Mapping', icon: 'account_tree', route: '/curriculum-mappings' },
-        { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules' },
-        { label: 'Attendance', icon: 'fact_check', route: '/attendance' },
+        { label: 'Syllabi', icon: 'library_books', route: '/syllabi', roles: ['ROLE_ADMIN'] },
+        { label: 'Experiments', icon: 'biotech', route: '/experiments', roles: ['ROLE_ADMIN'] },
+        { label: 'CO/PO Mapping', icon: 'account_tree', route: '/curriculum-mappings', roles: ['ROLE_ADMIN'] },
+        { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules', roles: ['ROLE_ADMIN'] },
+        { label: 'Attendance', icon: 'fact_check', route: '/attendance', roles: ['ROLE_ADMIN'] },
       ],
     },
     {
       label: 'Examinations',
       icon: 'quiz',
       items: [
-        { label: 'Examinations', icon: 'quiz', route: '/examinations' },
-        { label: 'Exam Results', icon: 'grade', route: '/exam-results' },
+        { label: 'Examinations', icon: 'quiz', route: '/examinations', roles: ['ROLE_ADMIN'] },
+        { label: 'Exam Results', icon: 'grade', route: '/exam-results', roles: ['ROLE_ADMIN'] },
       ],
     },
     {
       label: 'Finance',
       icon: 'account_balance_wallet',
       items: [
-        { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees' },
-        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        {
-          label: 'Fee Finalization',
-          icon: 'lock',
-          route: '/student-fees/finalize',
-          roles: ['ROLE_ADMIN'],
-        },
+        { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
+        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Fee Finalization', icon: 'lock', route: '/student-fees/finalize', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
       ],
     },
     {
       label: 'Lab & Infrastructure',
       icon: 'construction',
       items: [
-        { label: 'Inventory', icon: 'inventory_2', route: '/inventory' },
-        { label: 'Maintenance', icon: 'build', route: '/maintenance' },
+        { label: 'Inventory', icon: 'inventory_2', route: '/inventory', roles: ['ROLE_ADMIN'] },
+        { label: 'Maintenance', icon: 'build', route: '/maintenance', roles: ['ROLE_ADMIN'] },
       ],
     },
-    { label: 'Reports', icon: 'assessment', route: '/reports' },
+    { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
   ];
 
   protected readonly expandedGroups = signal<Record<string, boolean>>(this.loadExpandedGroups());
@@ -311,7 +305,7 @@ export class App implements OnInit {
 
     // Fetch enquiry badge count for admin users from the dashboard summary endpoint.
     // This avoids a separate API call by reusing the enquiry funnel data.
-    if (isPlatformBrowser(this.platformId) && this.authService.isAdmin()) {
+    if (isPlatformBrowser(this.platformId) && (this.authService.isAdmin() || this.authService.isCollegeAdmin())) {
       this.http
         .get<{ enquiryFunnel?: Record<string, number> }>(`${environment.apiUrl}/dashboard/summary`)
         .subscribe({
