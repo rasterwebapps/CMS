@@ -274,10 +274,10 @@ $color-purple: #A78BFA;
   padding: 3px 8px;
   border-radius: 20px;
 
-  // Modifier: when used inline (not absolutely positioned inside an .sc card)
+  // Modifier: when the badge is used inline in a card header rather than
+  // absolutely positioned inside an .sc stat card
   &--inline {
     position: static;
-    font-size: 10px;
   }
 }
 

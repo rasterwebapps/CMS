@@ -60,7 +60,10 @@ export class FrontOfficeDashboardComponent implements OnInit {
     'ADMITTED',
   ];
 
-  /** Admission funnel entries sorted by the canonical pipeline order. */
+  /** Admission funnel entries sorted by the canonical pipeline order.
+   * Only statuses with at least one enquiry are included; zero-count statuses
+   * would render empty bars that add no visual information to the funnel.
+   */
   protected readonly funnelEntries = computed(
     (): { status: string; count: number; pct: number }[] => {
       const d = this.foData();
@@ -68,7 +71,7 @@ export class FrontOfficeDashboardComponent implements OnInit {
       const funnel = d.enquiryFunnel;
       const max = Math.max(1, ...Object.values(funnel));
       return this.funnelOrder
-        .filter((status) => (funnel[status] ?? 0) > 0)
+        .filter((status) => (funnel[status] ?? 0) > 0) // exclude zero-count stages
         .map((status) => ({
           status,
           count: funnel[status] ?? 0,
