@@ -1,190 +1,316 @@
 <div class="fo-dashboard">
 
-  <!-- ── Hero Banner ──────────────────────────────── -->
-  <div class="fo-hero anim-rise">
-    <div class="fo-hero__content">
-      <div class="fo-hero__text">
-        <p class="fo-hero__eyebrow">📋 Admissions Desk</p>
-        <h2 class="fo-hero__greeting font-display">{{ authService.username() || 'Front Office' }} &bull; {{ today }}</h2>
+  <!-- ──────────────────── Shift Banner ──────────────────── -->
+  <div class="shift-banner">
+    <div class="shift-left">
+      <div class="shift-date">{{ today }}</div>
+      <div class="shift-label">
+        {{ shiftLabel() }}&nbsp;&nbsp;·&nbsp;&nbsp;<span class="shift-active">Active</span>
       </div>
-      <div class="fo-hero__deco">
-        <div class="deco-circle deco-1"></div>
-        <div class="deco-circle deco-2"></div>
-        <div class="deco-circle deco-3"></div>
+      <div class="shift-staff">
+        <div class="pulse-dot"></div>
+        {{ authService.username() || 'Front Office' }}
       </div>
+    </div>
+
+    <div class="shift-center">
+      <div class="vis-count">{{ foData()?.todayEnquiryCount ?? 0 }}</div>
+      <div class="vis-label">
+        <div class="pulse-dot"></div>
+        Enquiries Today
+      </div>
+    </div>
+
+    <div class="shift-actions">
+      <a routerLink="/enquiries" class="btn-g">View All</a>
+      <a routerLink="/enquiries/new" class="btn-p">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+          <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        New Enquiry
+      </a>
     </div>
   </div>
 
-  <!-- ── Today's Summary Strip (Phase 4) ───────────── -->
-  <div class="fo-today-strip">
-    <span class="fo-today-stat">
-      <strong class="font-mono">{{ foData()?.todayEnquiryCount ?? 0 }}</strong>
-      enquiries today
-    </span>
-    <span class="fo-today-divider"></span>
-    <span class="fo-today-stat">
-      <strong class="font-mono">₹{{ (foData()?.feeCollectedToday ?? 0) | number }}</strong>
-      collected
-    </span>
-    <span class="fo-today-divider"></span>
-    <span class="fo-today-stat">
-      <strong class="font-mono">{{ foData()?.pendingActionItems?.length ?? 0 }}</strong>
-      pending
-    </span>
+  <!-- ──────────────────── KPI Cards ──────────────────── -->
+  <div class="stats-grid-4">
+
+    <div class="sc c-accent">
+      <div class="sc-badge badge-info">Total: {{ foData()?.totalEnquiryCount ?? 0 }}</div>
+      <div class="sc-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M3 16c0-3.314 2.686-5.5 6-5.5s6 2.186 6 5.5"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sc-val">{{ foData()?.todayEnquiryCount ?? 0 }}</div>
+      <div class="sc-label">Enquiries Today</div>
+    </div>
+
+    <div class="sc c-amber">
+      <div class="sc-badge badge-warn">Needs review</div>
+      <div class="sc-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M3 3h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-4 3V4a1 1 0 011-1z"
+                stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sc-val">{{ foData()?.pendingAdmissionsCount ?? 0 }}</div>
+      <div class="sc-label">Pending Admissions</div>
+    </div>
+
+    <div class="sc c-green">
+      <div class="sc-badge badge-up">Today</div>
+      <div class="sc-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M6 9l2 2 4-4" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sc-val">₹{{ (foData()?.feeCollectedToday ?? 0) | number }}</div>
+      <div class="sc-label">Fees Collected</div>
+    </div>
+
+    <div class="sc c-purple">
+      <div class="sc-badge badge-purple">This week</div>
+      <div class="sc-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M3 15V11M7 15V7M11 15V4M15 15V2"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sc-val">{{ foData()?.conversionsThisWeek ?? 0 }}</div>
+      <div class="sc-label">Conversions</div>
+    </div>
+
   </div>
 
-  <!-- ── CTA Quick Actions ─────────────────────────── -->
+  <!-- ──────────────────── Main 2-column grid ──────────────────── -->
   @if (loading()) {
-    <div class="fo-cta-row">
-      @for (n of [1,2,3]; track n) {
-        <div class="cta-skeleton"></div>
-      }
+    <div class="skeleton-row">
+      <div class="card-skeleton"></div>
+      <div class="card-skeleton card-skeleton--sm"></div>
     </div>
   } @else {
-    <div class="fo-cta-row">
-      <a routerLink="/enquiries/new" class="fo-cta fo-cta--primary fo-cta--hero">
-        <mat-icon>add</mat-icon>
-        <span class="fo-cta__text">
-          <span class="fo-cta__label">New Enquiry</span>
-          <span class="fo-cta__sub">Walk-in · Quick registration</span>
-        </span>
-      </a>
-      <a routerLink="/admissions/new" class="fo-cta fo-cta--secondary">
-        <mat-icon>person_add</mat-icon>
-        New Admission
-      </a>
-      <a routerLink="/fee-payments/new" class="fo-cta fo-cta--secondary">
-        <mat-icon>payments</mat-icon>
-        Collect Payment
-      </a>
-    </div>
-  }
+    <div class="grid-2">
 
-  <!-- ── KPI Row ───────────────────────────────────── -->
-  @if (loading()) {
-    <div class="fo-kpi-grid">
-      @for (n of [1,2,3,4,5]; track n) {
-        <div class="kpi-skeleton">
-          <div class="skeleton skeleton-icon"></div>
-          <div class="skeleton-lines">
-            <div class="skeleton skeleton-val"></div>
-            <div class="skeleton skeleton-lbl"></div>
+      <!-- Left: Today's Enquiries -->
+      <div class="card">
+        <div class="card-h">
+          <div class="card-ht">
+            <div class="card-hico card-hico--accent">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <circle cx="7.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M2 13c0-3.038 2.462-5.5 5.5-5.5S13 9.962 13 13"
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            Today's Enquiries
           </div>
+          <a routerLink="/enquiries" class="card-action">View All →</a>
         </div>
-      }
-    </div>
-  } @else {
-    <div class="fo-kpi-grid">
-      @for (card of kpiCards(); track card.title) {
-        <app-dashboard-kpi-card
-          [title]="card.title"
-          [value]="card.value"
-          [icon]="card.icon"
-          [colorVariant]="card.color"
-          [subtitle]="card.subtitle"
-          [animationDelay]="card.delay"
-          [trend]="card.trend"
-        />
-      }
-    </div>
-  }
 
-  <!-- ── Two-column: Enquiries + Pending Actions ───── -->
-  @if (loading()) {
-    <div class="fo-two-col">
-      <div class="widget-skeleton" style="height: 280px"></div>
-      <div class="widget-skeleton" style="height: 280px"></div>
-    </div>
-  } @else if (foData(); as d) {
-    <div class="fo-two-col">
-
-      <!-- Today's Enquiries -->
-      <div class="content-card widget-card">
-        <div class="widget-header">
-          <div class="widget-icon-wrap">
-            <mat-icon>today</mat-icon>
+        @if ((foData()?.todaysEnquiries?.length ?? 0) === 0) {
+          <div class="card-b">
+            <p class="empty-hint">No enquiries today yet.</p>
           </div>
-          <h3 class="widget-title">Today's Enquiries</h3>
-        </div>
-        <div class="widget-card__body">
-          @if (d.todaysEnquiries.length === 0) {
-            <p class="empty-hint">No enquiries today yet 🎉</p>
-          } @else {
-            <div class="fo-enquiry-list">
-              @for (item of d.todaysEnquiries; track item.id) {
-                <div class="fo-enquiry-row">
-                  <span class="fo-status-dot" [attr.data-status]="item.status"></span>
-                  <div class="fo-enquiry-info">
-                    <span class="fo-enquiry-name">{{ item.name }}</span>
-                    <span class="fo-enquiry-meta">{{ item.programName ?? '—' }} &bull; {{ item.referralTypeName ?? '—' }}</span>
-                  </div>
-                  <span class="fo-status-chip" [attr.data-status]="item.status">{{ formatStatus(item.status) }}</span>
-                  <a [routerLink]="['/enquiries', item.id]" class="fo-view-btn">View</a>
-                </div>
+        } @else {
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Program</th>
+                <th>Referral</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of foData()!.todaysEnquiries; track item.id; let i = $index) {
+                <tr>
+                  <td class="tbl-num">{{ i + 1 }}</td>
+                  <td class="tp">{{ item.name }}</td>
+                  <td>{{ item.programName ?? '—' }}</td>
+                  <td>{{ item.referralTypeName ?? '—' }}</td>
+                  <td>
+                    <span class="status-chip" [attr.data-status]="item.status">
+                      {{ formatStatus(item.status) }}
+                    </span>
+                  </td>
+                  <td>
+                    <a [routerLink]="['/enquiries', item.id]" class="card-action row-link">View</a>
+                  </td>
+                </tr>
               }
-            </div>
-            <div class="fo-enquiry-footer">
-              <a routerLink="/enquiries" class="fo-all-link">View All Enquiries →</a>
-            </div>
-          }
-        </div>
+            </tbody>
+          </table>
+          <div class="tbl-foot">
+            <span>Showing {{ foData()!.todaysEnquiries.length }} of {{ foData()!.todayEnquiryCount }} today</span>
+            <a routerLink="/enquiries" class="card-action">View All →</a>
+          </div>
+        }
       </div>
 
-      <!-- Pending Actions -->
-      <div class="content-card widget-card">
-        <div class="widget-header">
-          <div class="widget-icon-wrap widget-icon-amber">
-            <mat-icon>task_alt</mat-icon>
-          </div>
-          <h3 class="widget-title">Pending Actions</h3>
-        </div>
-        <div class="widget-card__body">
-          @if (d.pendingActionItems.length === 0) {
-            <div class="all-clear">
-              <mat-icon>check_circle</mat-icon>
-              All clear — nothing pending
-            </div>
-          } @else {
-            <div class="pending-list">
-              @for (item of d.pendingActionItems; track item; let i = $index) {
-                <div class="pending-row">
-                  <span class="pending-dot pending-dot--{{ i === 0 ? 'red' : 'amber' }}"></span>
-                  <span class="pending-msg">{{ item }}</span>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  }
+      <!-- Right column: stacked cards -->
+      <div class="right-col">
 
-  <!-- ── Enquiry Funnel ────────────────────────────── -->
-  @if (!loading() && funnelEntries().length > 0) {
-    <div class="fo-funnel-section">
-      <div class="content-card widget-card">
-        <div class="widget-header">
-          <div class="widget-icon-wrap widget-icon-sky">
-            <mat-icon>stacked_bar_chart</mat-icon>
-          </div>
-          <h3 class="widget-title">📊 Admission Funnel — All Time</h3>
-        </div>
-        <div class="widget-card__body">
-          <div class="funnel-list">
-            @for (entry of funnelEntries(); track entry.status) {
-              <div class="funnel-row">
-                <span class="funnel-label">{{ formatStatus(entry.status) }}</span>
-                <div class="funnel-bar-wrap">
-                  <div class="funnel-bar" [style.width.%]="entry.pct"></div>
-                </div>
-                <span class="funnel-count">{{ entry.count }}</span>
-                <span class="funnel-pct">{{ entry.pct }}%</span>
+        <!-- Pending Actions -->
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--amber">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7.5 4v3.5M7.5 10.5v.5"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
               </div>
+              Pending Actions
+            </div>
+            @if (pendingCount() > 0) {
+              <span class="sc-badge badge-warn" style="position:static;font-size:10px;">
+                {{ pendingCount() }}
+              </span>
+            }
+          </div>
+          <div class="card-b">
+            @if (pendingCount() === 0) {
+              <div class="all-clear">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.5" stroke="#22C55E" stroke-width="1.5"/>
+                  <path d="M5 8l2 2 4-4" stroke="#22C55E" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                All clear — nothing pending
+              </div>
+            } @else {
+              @for (item of foData()!.pendingActionItems; track item; let i = $index) {
+                <div class="ap-item">
+                  <div class="ap-bullet" [attr.data-severity]="i === 0 ? 'red' : 'amber'"></div>
+                  <div class="ap-text">
+                    <div class="ap-title">{{ item }}</div>
+                  </div>
+                </div>
+              }
             }
           </div>
         </div>
-      </div>
-    </div>
+
+        <!-- Admission Funnel -->
+        @if (funnelEntries().length > 0) {
+          <div class="card">
+            <div class="card-h">
+              <div class="card-ht">
+                <div class="card-hico card-hico--accent">
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                    <path d="M1 3h13M3 7h9M5 11h5"
+                          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                Admission Funnel
+              </div>
+              <a routerLink="/enquiries" class="card-action">Details →</a>
+            </div>
+            <div class="card-b">
+              @for (entry of funnelEntries(); track entry.status) {
+                <div class="funnel-row">
+                  <span class="funnel-label">{{ formatStatus(entry.status) }}</span>
+                  <div class="funnel-bar-wrap">
+                    <div class="funnel-bar" [style.width.%]="entry.pct"></div>
+                  </div>
+                  <span class="funnel-count">{{ entry.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--accent">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <rect x="1.5" y="1.5" width="5" height="5" rx="1.5" fill="currentColor"/>
+                  <rect x="8.5" y="1.5" width="5" height="5" rx="1.5" fill="currentColor" opacity=".4"/>
+                  <rect x="1.5" y="8.5" width="5" height="5" rx="1.5" fill="currentColor" opacity=".4"/>
+                  <rect x="8.5" y="8.5" width="5" height="5" rx="1.5" fill="currentColor" opacity=".2"/>
+                </svg>
+              </div>
+              Quick Actions
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="qa-grid">
+              <a routerLink="/enquiries/new" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M4 17c0-3.314 2.686-5.5 6-5.5s6 2.186 6 5.5"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M14 4v5M16.5 6.5h-5"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                New Enquiry
+              </a>
+              <a routerLink="/admissions/new" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M12 3H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7l-4-4z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M7 11h6M7 14h4"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                New Admission
+              </a>
+              <a routerLink="/fee-payments/new" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <rect x="2" y="5" width="16" height="12" rx="2"
+                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M2 9h16" stroke="currentColor" stroke-width="1.5"/>
+                  <circle cx="6" cy="13" r="1" fill="currentColor"/>
+                </svg>
+                Collect Fee
+              </a>
+              <a routerLink="/enquiries" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M3 5h14M3 9h10M3 13h7"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="15.5" cy="14.5" r="3"
+                          stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M17.5 16.5l1.5 1.5"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                All Enquiries
+              </a>
+              <a routerLink="/admissions" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M11 3H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V9l-6-6z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M11 3v6h6"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Admissions
+              </a>
+              <a routerLink="/enquiries/document-submission" class="qa-tile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <rect x="3" y="5" width="14" height="12" rx="2"
+                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M7 5V3M13 5V3M3 9h14"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M7 13h6"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Doc Submission
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right-col -->
+
+    </div><!-- /grid-2 -->
   }
 
 </div>
