@@ -74,6 +74,10 @@ export class AcademicYearListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
+  protected navigateToNew(): void {
+    void this.router.navigate(['/academic-years/new']);
+  }
+
   protected applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.searchValue.set(filterValue);

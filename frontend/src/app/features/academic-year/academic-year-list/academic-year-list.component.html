@@ -36,8 +36,8 @@
       }
     </div>
     <div class="mlp-seg" role="group" aria-label="View mode">
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" type="button">Cards</button>
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" type="button">Table</button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" type="button" aria-label="Card view">Cards</button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" type="button" aria-label="Table view">Table</button>
     </div>
   </div>
 
@@ -54,7 +54,7 @@
         [title]="searchValue() ? 'No results found' : 'No academic years yet'"
         [subtitle]="searchValue() ? 'Try a different search term' : 'Add your first academic year to get started'"
         [actionLabel]="searchValue() ? '' : 'Add Academic Year'"
-        (actionClick)="searchValue() ? null : null"
+        (actionClick)="navigateToNew()"
       ></cms-empty-state>
     } @else {
       <div class="mlp-cards-grid">

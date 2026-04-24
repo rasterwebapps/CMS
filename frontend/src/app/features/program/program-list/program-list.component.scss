@@ -1,2 +1,39 @@
-// Program list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// Program card content — structural layout via mlp-* global classes
+
+.prog-card {
+  &__code {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-family: var(--cms-font-mono);
+    font-size: 0.725rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    color: var(--cms-primary);
+    border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+    text-transform: uppercase;
+  }
+
+  &__name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    margin-bottom: 12px;
+    line-height: 1.35;
+    padding-right: 56px; // space for action buttons
+  }
+
+  &__duration {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--cms-text-muted);
+    padding: 4px 10px;
+    background: var(--cms-bg-muted);
+    border-radius: 8px;
+  }
+}
