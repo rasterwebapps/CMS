@@ -96,8 +96,8 @@ export class CourseListComponent implements OnInit {
     this.dataSource.filter = '';
   }
 
-  protected onProgramFilterChange(value: string): void {
-    this.selectedProgramId.set(value ? +value : null);
+  protected onProgramFilterChange(programIdStr: string): void {
+    this.selectedProgramId.set(programIdStr ? +programIdStr : null);
   }
 
   protected editCourse(course: Course): void {
