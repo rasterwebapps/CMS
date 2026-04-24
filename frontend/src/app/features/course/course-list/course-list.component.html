@@ -1,163 +1,186 @@
-<div class="list-page">
-  <app-page-header title="Courses" subtitle="Manage all courses across programs and semesters">
-    <button actions class="btn-primary" routerLink="/courses/new" aria-label="Add new course">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Course
-    </button>
-  </app-page-header>
+<div class="mlp-page">
 
-  <!-- Command Bar -->
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search courses..."
-          type="text"
-          aria-label="Search courses"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        } @else {
-          <kbd class="search-bar__hotkey" aria-hidden="true">⌘K</kbd>
-        }
-      </div>
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Academic <em>Courses</em></h1>
+      <p class="mlp-sub">Manage all courses across programs and specializations</p>
       @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          courses
-        </span>
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+            {{ totalCount() }} Courses
+          </span>
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--amber"></span>
+            {{ uniqueSpecCount() }} Specializations
+          </span>
+        </div>
       }
     </div>
-    <div class="command-bar__right">
-      <div class="filter-pill-group">
-        <select class="filter-select" [value]="selectedProgramId()" (change)="onProgramFilterChange(+$any($event.target).value || null)" aria-label="Filter by program">
-          <option [ngValue]="null">All Programs</option>
-          @for (program of programs(); track program.id) {
-            <option [value]="program.id">{{ program.name }}</option>
-          }
-        </select>
-      </div>
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <button class="btn-primary" routerLink="/courses/new" aria-label="Add new course">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Course
+    </button>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select
+      class="mlp-filter-select"
+      [value]="selectedProgramId() ?? ''"
+      (change)="onProgramFilterChange($any($event.target).value)"
+      aria-label="Filter by program"
+    >
+      <option value="">All Programs</option>
+      @for (prog of programs(); track prog.id) {
+        <option [value]="prog.id">{{ prog.name }}</option>
+      }
+    </select>
+
+    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search courses…"
+        type="text"
+        aria-label="Search courses"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 3.5h12M1 7h12M1 10.5h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <!-- Content Area -->
-  <div class="content-card">
-    <!-- Loading State -->
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36"></mat-spinner>
-      </div>
+  <!-- ── Loading skeleton ─────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  }
+
+  <!-- ── Card view ────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (filteredCourses().length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'menu_book'"
+        [title]="searchValue() ? 'No courses found' : 'No courses yet'"
+        [subtitle]="searchValue() ? 'No courses match your search. Try a different term.' : 'Add your first course to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Course'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
     } @else {
-      <!-- Table -->
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <!-- Code Column -->
-          <ng-container matColumnDef="code">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
-            <td mat-cell *matCellDef="let course">
-              <span class="cell-code">{{ course.code }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Name Column -->
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course Name</th>
-            <td mat-cell *matCellDef="let course">
-              <span class="cell-name">{{ course.name }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Specialization Column -->
-          <ng-container matColumnDef="specialization">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Specialization</th>
-            <td mat-cell *matCellDef="let course">
-              <span class="cms-badge cms-badge--primary">{{ course.specialization || '—' }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Program Column -->
-          <ng-container matColumnDef="program">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let course">
-              <span class="cell-program">{{ course.program?.name || '—' }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-            <td mat-cell *matCellDef="let course">
-              <div class="row-actions">
-                <button class="action-btn" matTooltip="Edit" (click)="editCourse(course)" aria-label="Edit course">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button
-                  class="action-btn action-btn--danger"
-                  matTooltip="Delete"
-                  (click)="deleteCourse(course)"
-                  aria-label="Delete course"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
-
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No courses found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No courses available</p>
-                }
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
+      <div class="mlp-cards-grid">
+        @for (course of filteredCourses(); track course.id; let i = $index) {
+          <div class="mlp-card crs-card" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="mlp-card__actions">
+              <button class="mlp-act-btn" (click)="editCourse(course)" [attr.title]="'Edit ' + course.name" type="button" aria-label="Edit course">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="mlp-act-btn mlp-act-btn--del" (click)="deleteCourse(course)" [attr.title]="'Delete ' + course.name" type="button" aria-label="Delete course">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="crs-card__code">{{ course.code }}</div>
+            <div class="crs-card__name">{{ course.name }}</div>
+            @if (course.specialization) {
+              <span class="crs-card__spec">{{ course.specialization }}</span>
+            }
+            <div class="crs-card__program">{{ course.program?.name || '—' }}</div>
+          </div>
+        }
       </div>
     }
-  </div>
+  }
+
+  <!-- ── Table view ────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+          <td mat-cell *matCellDef="let course">
+            <span class="code-chip">{{ course.code }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Course Name</th>
+          <td mat-cell *matCellDef="let course">
+            <span class="cell-name">{{ course.name }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="specialization">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Specialization</th>
+          <td mat-cell *matCellDef="let course">
+            @if (course.specialization) {
+              <span class="cms-badge">{{ course.specialization }}</span>
+            } @else {
+              <span class="cms-badge cms-badge--gray">—</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="program">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+          <td mat-cell *matCellDef="let course">{{ course.program?.name || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let course">
+            <div class="row-actions">
+              <button class="action-btn" matTooltip="Edit" (click)="editCourse(course)" aria-label="Edit course">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteCourse(course)" aria-label="Delete course">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <cms-empty-state
+              [icon]="searchValue() ? 'search_off' : 'menu_book'"
+              [title]="searchValue() ? 'No courses found' : 'No courses yet'"
+              [subtitle]="searchValue() ? 'No courses match your search.' : 'Add your first course to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'Add Course'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
+
 </div>
