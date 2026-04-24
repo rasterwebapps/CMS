@@ -1,37 +1,30 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-semester-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
+    CmsEmptyStateComponent,
     RouterLink,
     DatePipe,
-    FormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+  ],
   templateUrl: './semester-list.component.html',
   styleUrl: './semester-list.component.scss',
 })
@@ -48,35 +41,49 @@ export class SemesterListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'semesterNumber', 'startDate', 'endDate', 'academicYear', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name',
-    semesterNumber: 'No.',
-    startDate: 'Start Date',
-    endDate: 'End Date',
-    academicYear: 'Academic Year',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'semester-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  private readonly VIEW_MODE_KEY = 'semester-list-view-mode';
+
+  private readonly allSemesters = signal<Semester[]>([]);
   protected readonly dataSource = new MatTableDataSource<Semester>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly selectedAcademicYearId = signal<number | null>(null);
+
+  protected readonly displayedColumns: readonly string[] = ['name', 'semesterNumber', 'startDate', 'endDate', 'academicYear', 'actions'];
+
+  protected readonly filteredSemesters = computed(() => {
+    const q = this.searchValue().toLowerCase().trim();
+    if (!q) return this.allSemesters();
+    return this.allSemesters().filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      String(s.semesterNumber).includes(q) ||
+      (s.academicYear?.name ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  protected readonly totalCount = computed(() => this.allSemesters().length);
 
   ngOnInit(): void {
     this.loadAcademicYears();
     this.loadSemesters();
   }
 
+  protected setViewMode(mode: 'card' | 'table'): void {
+    this.viewMode.set(mode);
+    localStorage.setItem(this.VIEW_MODE_KEY, mode);
+  }
+
+  private loadViewMode(): 'card' | 'table' {
+    const stored = localStorage.getItem(this.VIEW_MODE_KEY);
+    return stored === 'table' ? 'table' : 'card';
+  }
+
   protected applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.searchValue.set(filterValue);
     this.dataSource.filter = filterValue.trim().toLowerCase();
-
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
@@ -113,25 +120,6 @@ export class SemesterListComponent implements OnInit {
     });
   }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
-
   private performDelete(semester: Semester): void {
     this.loading.set(true);
     this.academicYearService.deleteSemester(semester.id).subscribe({
@@ -167,6 +155,7 @@ export class SemesterListComponent implements OnInit {
 
     request$.subscribe({
       next: (semesters) => {
+        this.allSemesters.set(semesters);
         this.dataSource.data = semesters;
         this.loading.set(false);
       },

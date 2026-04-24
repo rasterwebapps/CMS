@@ -166,3 +166,79 @@
 - A 404 error response is returned
 
 **Status:** NOT TESTED
+
+---
+
+## TC-SYSCONF-010: MLP card/table view toggle persists preference
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Navigate to System Configuration list page
+
+**Steps:**
+1. Observe default view is card mode
+2. Click the "Table" segment button in the toolbar
+3. Verify the list switches to table view
+4. Refresh the page
+5. Verify table view is still active (persisted in localStorage key `settings-view-mode`)
+
+**Expected Result:**
+- View mode persists across page refreshes via localStorage
+
+**Status:** NOT TESTED
+
+---
+
+## TC-SYSCONF-011: MLP card view displays configKey as code-chip, category badge, and Editable/Locked status
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one system configuration exists
+
+**Steps:**
+1. Navigate to System Configuration list page (card view)
+2. Observe each card
+
+**Expected Result:**
+- configKey displayed as a monospace code chip
+- configValue shown as the main label
+- category shown as a blue primary badge
+- dataType shown as a gray badge
+- isEditable shown as green "Editable" or inactive "Locked" status badge
+
+**Status:** NOT TESTED
+
+---
+
+## TC-SYSCONF-012: MLP header stats show correct total and editable counts
+
+**Preconditions:**
+- System configurations exist with a mix of editable and locked entries
+
+**Steps:**
+1. Navigate to System Configuration list page
+2. Observe the header stat pills
+
+**Expected Result:**
+- Blue stat shows total count of all configurations
+- Green stat shows count of configurations where isEditable = true
+
+**Status:** NOT TESTED
+
+---
+
+## TC-SYSCONF-013: MLP client-side search filters cards by key, value, and category
+
+**Preconditions:**
+- Multiple system configurations exist across different categories
+
+**Steps:**
+1. Navigate to System Configuration list page (card view)
+2. Type a partial configKey value into the search bar
+3. Observe cards update in real-time
+
+**Expected Result:**
+- Only cards matching the search term in configKey, configValue, or category are shown
+- Empty state with "No results found" appears if no match
+
+**Status:** NOT TESTED

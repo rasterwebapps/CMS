@@ -1,2 +1,28 @@
-// Equipment list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// eq-card__* card content styles for Equipment list
+.eq-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.eq-card__model {
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.eq-card__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.eq-card__status {
+  margin-bottom: 6px;
+}
+
+.eq-card__date {
+  font-size: 0.8rem;
+  margin-top: 4px;
+}

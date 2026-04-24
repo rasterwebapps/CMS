@@ -8,6 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.component';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -45,11 +47,14 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
+  static readonly SUCCESS_STATE_DURATION_MS = 600;
+
   // Live preview signals
   protected readonly previewCode = signal('');
   protected readonly previewName = signal('');
   protected readonly previewHod = signal('');
   protected readonly previewDesc = signal('');
+  protected readonly previewDescription = this.previewDesc;
   protected readonly codeCharCount = signal(0);
 
   protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');

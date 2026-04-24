@@ -1,4 +1,29 @@
-// Fee structure list — uses global list-page classes from styles.scss
-.filter-field {
-  min-width: 180px;
+// Fee-structure-list card anatomy (layout handled by global mlp-* classes)
+.fs-card {
+  &__program {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  &__course {
+    font-size: 0.8125rem;
+    margin-bottom: 8px;
+  }
+
+  &__meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  &__amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary, #6366f1);
+    margin-top: auto;
+  }
 }

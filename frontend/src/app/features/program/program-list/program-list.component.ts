@@ -1,35 +1,28 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgramService } from '../program.service';
 import { Program } from '../program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-program-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     RouterLink,
-    FormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+    CmsEmptyStateComponent,
+  ],
   templateUrl: './program-list.component.html',
   styleUrl: './program-list.component.scss',
 })
@@ -46,34 +39,53 @@ export class ProgramListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['code', 'name', 'durationYears', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    code: 'Code',
-    name: 'Name',
-    durationYears: 'Duration (yrs)',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'program-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+
+  private readonly allPrograms = signal<Program[]>([]);
+
+  protected readonly programCount = computed(() => this.allPrograms().length);
+
+  protected readonly filteredPrograms = computed(() => {
+    const q = this.searchValue().trim().toLowerCase();
+    if (!q) return this.allPrograms();
+    return this.allPrograms().filter(
+      p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q),
+    );
+  });
+
+  private readonly VIEW_MODE_KEY = 'program-view-mode';
+  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
   ngOnInit(): void {
     this.loadPrograms();
   }
 
+  protected setViewMode(mode: 'card' | 'table'): void {
+    this.viewMode.set(mode);
+    localStorage.setItem(this.VIEW_MODE_KEY, mode);
+  }
+
   protected applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.searchValue.set(filterValue);
-    this.applyFilters();
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.applyFilters();
+    this.dataSource.filter = '';
+  }
+
+  protected handleEmptyAction(): void {
+    if (this.searchValue()) {
+      this.clearFilter();
+    } else {
+      void this.router.navigate(['/programs/new']);
+    }
   }
 
   protected editProgram(program: Program): void {
@@ -81,40 +93,22 @@ export class ProgramListComponent implements OnInit {
   }
 
   protected deleteProgram(program: Program): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+    this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Delete Program',
         message: `Are you sure you want to delete "${program.name}"?`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
       },
-    });
-
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.performDelete(program);
-      }
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.performDelete(program);
     });
   }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
+  private loadViewMode(): 'card' | 'table' {
+    const stored = localStorage.getItem(this.VIEW_MODE_KEY);
+    return stored === 'table' ? 'table' : 'card';
   }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(program: Program): void {
     this.loading.set(true);
@@ -134,8 +128,8 @@ export class ProgramListComponent implements OnInit {
     this.loading.set(true);
     this.programService.getAll().subscribe({
       next: (programs) => {
+        this.allPrograms.set(programs);
         this.dataSource.data = programs;
-        this.applyFilters();
         this.loading.set(false);
       },
       error: () => {
@@ -143,14 +137,6 @@ export class ProgramListComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  private applyFilters(): void {
-    this.dataSource.filter = this.searchValue().trim().toLowerCase();
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
   }
 }
 

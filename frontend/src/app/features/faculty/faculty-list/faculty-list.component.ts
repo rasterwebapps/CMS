@@ -1,41 +1,32 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, FACULTY_STATUS_OPTIONS } from '../faculty.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-faculty-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
+    CmsEmptyStateComponent,
     RouterLink,
-    FormsModule,
     TitleCasePipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    MatChipsModule],
+  ],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',
 })
@@ -46,6 +37,8 @@ export class FacultyListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  private readonly VIEW_MODE_KEY = 'faculty-view-mode';
+
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -53,28 +46,45 @@ export class FacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    employeeCode: 'Code',
-    fullName: 'Name',
-    phone: 'Phone',
-    email: 'Email',
-    departmentName: 'Department',
-    designation: 'Designation',
-    status: 'Status',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'faculty-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
+
+  private readonly allFaculty = signal<Faculty[]>([]);
   protected readonly departments = signal<Department[]>([]);
   protected readonly selectedDepartmentId = signal<number | null>(null);
   protected readonly selectedStatus = signal<FacultyStatus | null>(null);
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
+
+  protected readonly filteredFaculty = computed(() => {
+    const q = this.searchValue().trim().toLowerCase();
+    const deptId = this.selectedDepartmentId();
+    const status = this.selectedStatus();
+    const deptName = deptId
+      ? (this.departments().find(d => d.id === deptId)?.name ?? '')
+      : '';
+
+    return this.allFaculty().filter(item => {
+      if (deptName && !item.departmentName.toLowerCase().includes(deptName.toLowerCase())) return false;
+      if (status && item.status !== status) return false;
+      if (q && !(
+        item.fullName.toLowerCase().includes(q) ||
+        item.employeeCode.toLowerCase().includes(q) ||
+        (item.email ?? '').toLowerCase().includes(q) ||
+        item.departmentName.toLowerCase().includes(q)
+      )) return false;
+      return true;
+    });
+  });
+
+  protected readonly totalCount = computed(() => this.allFaculty().length);
+  protected readonly activeCount = computed(() => this.allFaculty().filter(f => f.status === 'ACTIVE').length);
+
+  protected readonly hasActiveFilters = computed(() =>
+    this.selectedDepartmentId() !== null || this.selectedStatus() !== null || this.searchValue().length > 0,
+  );
 
   ngOnInit(): void {
     this.loadDepartments();
@@ -82,13 +92,10 @@ export class FacultyListComponent implements OnInit {
   }
 
   protected applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.searchValue.set(filterValue);
-    this.dataSource.filter = filterValue.trim().toLowerCase();
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    const value = (event.target as HTMLInputElement).value;
+    this.searchValue.set(value);
+    this.dataSource.filter = value.trim().toLowerCase();
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   protected clearFilter(): void {
@@ -98,19 +105,33 @@ export class FacultyListComponent implements OnInit {
 
   protected onDepartmentChange(departmentId: number | null): void {
     this.selectedDepartmentId.set(departmentId);
-    this.loadFaculty();
   }
 
   protected onStatusChange(status: FacultyStatus | null): void {
     this.selectedStatus.set(status);
-    this.loadFaculty();
   }
 
   protected clearFilters(): void {
     this.selectedDepartmentId.set(null);
     this.selectedStatus.set(null);
     this.clearFilter();
-    this.loadFaculty();
+  }
+
+  protected setViewMode(mode: 'card' | 'table'): void {
+    this.viewMode.set(mode);
+    localStorage.setItem(this.VIEW_MODE_KEY, mode);
+  }
+
+  private loadViewMode(): 'card' | 'table' {
+    return localStorage.getItem(this.VIEW_MODE_KEY) === 'table' ? 'table' : 'card';
+  }
+
+  protected handleEmptyAction(): void {
+    if (this.hasActiveFilters()) {
+      this.clearFilters();
+    } else {
+      void this.router.navigate(['/faculty/new']);
+    }
   }
 
   protected viewFaculty(faculty: Faculty): void {
@@ -122,53 +143,23 @@ export class FacultyListComponent implements OnInit {
   }
 
   protected deleteFaculty(faculty: Faculty): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+    this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Delete Faculty',
         message: `Are you sure you want to delete "${faculty.fullName}"?`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
       },
-    });
-
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.performDelete(faculty);
-      }
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.performDelete(faculty);
     });
   }
 
-  protected getStatusColor(status: FacultyStatus): string {
-    switch (status) {
-      case 'ACTIVE':
-        return 'primary';
-      case 'ON_LEAVE':
-        return 'accent';
-      case 'SABBATICAL':
-        return 'accent';
-      default:
-        return 'warn';
-    }
+  protected getStatusClass(status: FacultyStatus): string {
+    if (status === 'ACTIVE') return 'fac-status--active';
+    if (status === 'ON_LEAVE' || status === 'SABBATICAL') return 'fac-status--leave';
+    return 'fac-status--inactive';
   }
-
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private performDelete(faculty: Faculty): void {
     this.loading.set(true);
@@ -186,32 +177,16 @@ export class FacultyListComponent implements OnInit {
 
   private loadDepartments(): void {
     this.departmentService.getAll().subscribe({
-      next: (departments) => {
-        this.departments.set(departments);
-      },
-      error: () => {
-        this.toast.error('Failed to load departments');
-      },
+      next: (departments) => { this.departments.set(departments); },
+      error: () => { this.toast.error('Failed to load departments'); },
     });
   }
 
   private loadFaculty(): void {
     this.loading.set(true);
-
-    const departmentId = this.selectedDepartmentId();
-    const status = this.selectedStatus();
-
-    let observable;
-    if (departmentId) {
-      observable = this.facultyService.getByDepartmentId(departmentId);
-    } else if (status) {
-      observable = this.facultyService.getByStatus(status);
-    } else {
-      observable = this.facultyService.getAll();
-    }
-
-    observable.subscribe({
+    this.facultyService.getAll().subscribe({
       next: (facultyList) => {
+        this.allFaculty.set(facultyList);
         this.dataSource.data = facultyList;
         this.loading.set(false);
       },

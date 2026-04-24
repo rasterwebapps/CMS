@@ -1,13 +1,45 @@
-// Course list — uses global list-page classes from styles.scss
-// Only course-specific styles below
+// Course list — uses global mlp-* classes from styles.scss
 
-.credit-pills {
-  display: flex;
+.crs-card__code {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  font-family: var(--cms-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
 }
 
-.cell-program {
-  color: var(--cms-text-secondary);
+.crs-card__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.crs-card__spec {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+}
+
+.crs-card__program {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin-top: 4px;
 }

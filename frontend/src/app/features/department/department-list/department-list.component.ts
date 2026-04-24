@@ -10,6 +10,7 @@ import { DepartmentService } from '../department.service';
 import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -59,7 +60,7 @@ export class DepartmentListComponent implements OnInit {
     return this.dataSource.filteredData;
   });
 
-  protected onViewModeChange(mode: CmsViewMode): void {
+  protected onViewModeChange(mode: 'card' | 'table'): void {
     this.viewMode.set(mode);
   }
 

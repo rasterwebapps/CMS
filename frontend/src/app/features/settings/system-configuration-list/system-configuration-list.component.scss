@@ -1,2 +1,18 @@
-// System configuration list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// cfg-card__* card content styles for System Configuration list
+.cfg-card__code {
+  margin-bottom: 6px;
+}
+
+.cfg-card__value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+.cfg-card__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}

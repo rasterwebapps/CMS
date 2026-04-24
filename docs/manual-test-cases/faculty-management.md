@@ -133,3 +133,96 @@
 - Faculty members with phone/email show the values; those without show `—`
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FAC-MLP-001: MLP card/table view toggle persists preference
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Navigate to Faculty list page
+
+**Steps:**
+1. Observe default view is card mode
+2. Click the "Table" segment button
+3. Verify list switches to table view
+4. Refresh the page
+5. Verify table view persists (localStorage key `faculty-view-mode`)
+
+**Expected Result:**
+- View mode persists across refreshes
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FAC-MLP-002: Faculty card shows employee code chip, name, designation, department badge, and status pill
+
+**Preconditions:**
+- At least one faculty member exists
+
+**Steps:**
+1. Navigate to Faculty list (card view)
+2. Observe a card
+
+**Expected Result:**
+- Employee code shown as monospace code chip
+- Full name bold and prominent
+- Designation in muted text (title-cased)
+- Department shown as blue badge
+- Status shown as coloured pill (green=ACTIVE, amber=ON_LEAVE/SABBATICAL, gray=others)
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FAC-MLP-003: Clicking a faculty card navigates to detail view
+
+**Preconditions:**
+- Faculty list in card view with at least one member
+
+**Steps:**
+1. Click anywhere on a faculty card (not the action buttons)
+
+**Expected Result:**
+- Navigates to `/faculty/{id}` detail page
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FAC-MLP-004: Department and status filters work client-side without extra API calls
+
+**Preconditions:**
+- Multiple faculty members across different departments and statuses
+
+**Steps:**
+1. Navigate to Faculty list
+2. Select a department from the department dropdown
+3. Observe cards/rows filtered immediately
+4. Select a status from the status dropdown
+5. Observe further filtering
+
+**Expected Result:**
+- Filtering is instant (client-side) — no network request triggered on filter change
+- "Clear Filters" button appears when any filter is active
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FAC-MLP-005: Clear Filters resets all active filters
+
+**Preconditions:**
+- Department filter, status filter, or search is active
+
+**Steps:**
+1. Apply a department filter and a status filter
+2. Click "Clear Filters" button
+
+**Expected Result:**
+- All filters reset to "All Departments" / "All Statuses"
+- Search input cleared
+- Full faculty list shown again
+
+**Status:** NOT TESTED

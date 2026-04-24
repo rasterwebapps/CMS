@@ -1,97 +1,134 @@
-<div class="list-page">
-  <app-page-header title="Faculty" subtitle="Manage faculty members, designations, and department assignments">
-    <button actions class="btn-primary" routerLink="/faculty/new" aria-label="Add new faculty">
+<div class="mlp-page">
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Faculty <em>Members</em></h1>
+      <p class="mlp-sub">Manage faculty members, designations, and department assignments</p>
+      <div class="mlp-meta">
+        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ totalCount() }} total</span>
+        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--green"></span>{{ activeCount() }} active</span>
+      </div>
+    </div>
+    <button class="btn-primary" routerLink="/faculty/new" aria-label="Add new faculty">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Faculty
     </button>
-  </app-page-header>
+  </div>
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search faculty..."
-          type="text"
-          aria-label="Search faculty"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          faculty
-        </span>
+  <!-- Toolbar -->
+  <div class="mlp-toolbar">
+    <select
+      class="mlp-filter-select"
+      [value]="selectedDepartmentId() ?? ''"
+      (change)="onDepartmentChange(+$any($event.target).value || null)"
+      aria-label="Filter by department"
+    >
+      <option value="">All Departments</option>
+      @for (dept of departments(); track dept.id) {
+        <option [value]="dept.id">{{ dept.name }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="selectedStatus() ?? ''"
+      (change)="onStatusChange($any($event.target).value || null)"
+      aria-label="Filter by status"
+    >
+      <option value="">All Statuses</option>
+      @for (status of statusOptions; track status.value) {
+        <option [value]="status.value">{{ status.label }}</option>
+      }
+    </select>
+
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search faculty..."
+        type="text"
+        aria-label="Search faculty"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
-    <div class="command-bar__right">
-      <div class="filter-pill-group">
-        <select class="filter-select" [value]="selectedDepartmentId()" (change)="onDepartmentChange(+$any($event.target).value || null)" aria-label="Filter by department">
-          <option [ngValue]="null">All Departments</option>
-          @for (dept of departments(); track dept.id) {
-            <option [value]="dept.id">{{ dept.name }}</option>
-          }
-        </select>
 
-        <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange($any($event.target).value || null)" aria-label="Filter by status">
-          <option [ngValue]="null">All Statuses</option>
-          @for (status of statusOptions; track status.value) {
-            <option [value]="status.value">{{ status.label }}</option>
-          }
-        </select>
+    @if (hasActiveFilters()) {
+      <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
+    }
 
-        @if (selectedDepartmentId() || selectedStatus() || searchValue()) {
-          <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Clear Filters
-          </button>
-        }
-      </div>
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36"></mat-spinner>
-      </div>
+  <!-- Loading skeleton -->
+  @if (loading()) {
+    <div class="mlp-loading-grid" aria-label="Loading faculty" aria-busy="true">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  } @else if (viewMode() === 'card') {
+    @if (filteredFaculty().length === 0) {
+      <cms-empty-state
+        icon="group"
+        [title]="hasActiveFilters() ? 'No results found' : 'No faculty yet'"
+        [subtitle]="hasActiveFilters() ? 'Try adjusting your filters or search term' : 'Add the first faculty member'"
+        [actionLabel]="hasActiveFilters() ? 'Clear Filters' : 'Add Faculty'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
     } @else {
+      <div class="mlp-cards-grid">
+        @for (item of filteredFaculty(); track item.id) {
+          <div class="mlp-card anim-rise" (click)="viewFaculty(item)" style="cursor: pointer" role="button" [attr.aria-label]="'View ' + item.fullName">
+            <div class="mlp-card__actions" (click)="$event.stopPropagation()">
+              <button class="mlp-act-btn" matTooltip="View" (click)="viewFaculty(item)" aria-label="View faculty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button class="mlp-act-btn" matTooltip="Edit" (click)="editFaculty(item)" aria-label="Edit faculty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="deleteFaculty(item)" aria-label="Delete faculty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="fac-card__code">
+              <span class="code-chip">{{ item.employeeCode }}</span>
+            </div>
+            <div class="fac-card__name cell-name">{{ item.fullName }}</div>
+            <div class="fac-card__designation cell-muted">{{ item.designation | titlecase }}</div>
+            <div class="fac-card__meta-row">
+              <span class="cms-badge cms-badge--primary">{{ item.departmentName }}</span>
+              <span class="status-badge fac-card__status" [class]="getStatusClass(item.status)">
+                {{ item.status | titlecase }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <!-- Table view -->
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
           <ng-container matColumnDef="employeeCode">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee Code</th>
             <td mat-cell *matCellDef="let faculty">
-              <span class="cell-code">{{ faculty.employeeCode }}</span>
+              <span class="code-chip">{{ faculty.employeeCode }}</span>
             </td>
           </ng-container>
 
@@ -148,31 +185,28 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No faculty found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No faculty available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="group"
+                [title]="hasActiveFilters() ? 'No results found' : 'No faculty yet'"
+                [subtitle]="hasActiveFilters() ? 'Try adjusting your filters or search term' : 'Add the first faculty member'"
+                [actionLabel]="hasActiveFilters() ? 'Clear Filters' : 'Add Faculty'"
+                (actionClick)="handleEmptyAction()"
+              ></cms-empty-state>
             </td>
           </tr>
         </table>
       </div>
 
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
-      </div>
-    }
-  </div>
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
 </div>

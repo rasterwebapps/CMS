@@ -1,146 +1,203 @@
-<div class="list-page">
-  <app-page-header title="Agents" subtitle="Manage referral agents and their details">
-    <button actions class="btn-primary" routerLink="/agents/new" aria-label="Add new agent">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Agent
-    </button>
-  </app-page-header>
+<div class="mlp-page">
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search agents..."
-          type="text"
-          aria-label="Search agents"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Referral <em>Agents</em></h1>
+      <p class="mlp-sub">Manage referral agents and their contact details</p>
       @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          agents
-        </span>
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+            {{ totalCount() }} Total
+          </span>
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
+            {{ activeCount() }} Active
+          </span>
+        </div>
       }
     </div>
-    <div class="command-bar__right">
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <button class="btn-primary" routerLink="/agents/new" aria-label="Add new agent">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Agent
+    </button>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search agents…"
+        type="text"
+        aria-label="Search agents"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 3.5h12M1 7h12M1 10.5h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading agents"></mat-spinner>
-      </div>
+  <!-- ── Loading skeleton ─────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  }
+
+  <!-- ── Card view ────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (filteredAgents().length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'people'"
+        [title]="searchValue() ? 'No agents found' : 'No agents yet'"
+        [subtitle]="searchValue() ? 'No agents match your search. Try a different term.' : 'Add your first referral agent to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Agent'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
     } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.name }}</span>
-            </td>
-          </ng-container>
+      <div class="mlp-cards-grid">
+        @for (item of filteredAgents(); track item.id; let i = $index) {
+          <div class="mlp-card agt-card" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="mlp-card__actions">
+              <button class="mlp-act-btn" (click)="edit(item)" [attr.title]="'Edit ' + item.name" type="button" aria-label="Edit agent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="mlp-act-btn mlp-act-btn--del" (click)="delete(item)" [attr.title]="'Delete ' + item.name" type="button" aria-label="Delete agent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
 
-          <ng-container matColumnDef="phone">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
-            <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
-          </ng-container>
+            <div class="agt-card__name">{{ item.name }}</div>
 
-          <ng-container matColumnDef="email">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
-            <td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td>
-          </ng-container>
+            <div class="agt-card__contact-row">
+              @if (item.phone) {
+                <span class="agt-contact-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.25h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.06 6.06l1.27-.88a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  {{ item.phone }}
+                </span>
+              }
+              @if (item.email) {
+                <span class="agt-contact-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  {{ item.email }}
+                </span>
+              }
+            </div>
 
-          <ng-container matColumnDef="area">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Area</th>
-            <td mat-cell *matCellDef="let row">{{ row.area || '—' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="allottedSeats">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Allotted Seats</th>
-            <td mat-cell *matCellDef="let row">{{ row.allottedSeats ?? '—' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="isActive">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="status-badge" [class.status-active]="row.isActive" [class.status-inactive]="!row.isActive">
-                {{ row.isActive ? 'Active' : 'Inactive' }}
+            <div class="agt-card__meta-row">
+              @if (item.area) {
+                <span class="agt-badge">{{ item.area }}</span>
+              }
+              @if (item.allottedSeats != null) {
+                <span class="agt-badge agt-badge--seats">{{ item.allottedSeats }} seats</span>
+              }
+              <span class="status-badge" [class.status-active]="item.isActive" [class.status-inactive]="!item.isActive">
+                {{ item.isActive ? 'Active' : 'Inactive' }}
               </span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-            <td mat-cell *matCellDef="let row">
-              <div class="row-actions">
-                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit agent">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete agent">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
-
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No agents found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No agents available</p>
-                }
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
+            </div>
+          </div>
+        }
       </div>
     }
-  </div>
+  }
+
+  <!-- ── Table view ────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="cell-name">{{ row.name }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="phone">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
+          <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+          <td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="area">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Area</th>
+          <td mat-cell *matCellDef="let row">{{ row.area || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="allottedSeats">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Allotted Seats</th>
+          <td mat-cell *matCellDef="let row">{{ row.allottedSeats ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="isActive">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-badge" [class.status-active]="row.isActive" [class.status-inactive]="!row.isActive">
+              {{ row.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let row">
+            <div class="row-actions">
+              <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit agent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete agent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <cms-empty-state
+              [icon]="searchValue() ? 'search_off' : 'people'"
+              [title]="searchValue() ? 'No agents found' : 'No agents yet'"
+              [subtitle]="searchValue() ? 'No agents match your search.' : 'Add your first referral agent to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'Add Agent'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
+
 </div>
