@@ -158,21 +158,21 @@
   --cms-primary-rgb:    99, 102, 241;   /* updated dynamically by ThemeService */
 
   // ─── Toolbar ───
-  --cms-toolbar-bg: var(--cms-gradient-toolbar);
-  --cms-toolbar-text: #ffffff;
-  --cms-toolbar-border: transparent;
-  --cms-toolbar-btn-color: rgba(255, 255, 255, 0.7);
-  --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.08);
-  --cms-toolbar-btn-hover-color: #ffffff;
-  --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.2);
-  --cms-toolbar-avatar-hover-border: #ffffff;
-  // Toolbar search pill — semi-transparent glass on the dark gradient background
-  --cms-toolbar-search-bg: rgba(255, 255, 255, 0.12);
-  --cms-toolbar-search-border: rgba(255, 255, 255, 0.18);
-  --cms-toolbar-search-focus-bg: rgba(255, 255, 255, 0.20);
-  --cms-toolbar-search-text: #ffffff;
-  --cms-toolbar-search-placeholder: rgba(255, 255, 255, 0.55);
-  --cms-toolbar-search-icon: rgba(255, 255, 255, 0.60);
+  --cms-toolbar-bg: #ffffff;
+  --cms-toolbar-text: var(--cms-text-primary);
+  --cms-toolbar-border: var(--cms-border-default);
+  --cms-toolbar-btn-color: var(--cms-text-secondary);
+  --cms-toolbar-btn-hover-bg: var(--cms-bg-hover);
+  --cms-toolbar-btn-hover-color: var(--cms-primary);
+  --cms-toolbar-avatar-border: var(--cms-border-default);
+  --cms-toolbar-avatar-hover-border: var(--cms-primary);
+  // Toolbar search pill — light theme style
+  --cms-toolbar-search-bg: var(--cms-bg-muted);
+  --cms-toolbar-search-border: var(--cms-border-default);
+  --cms-toolbar-search-focus-bg: var(--cms-bg-card);
+  --cms-toolbar-search-text: var(--cms-text-primary);
+  --cms-toolbar-search-placeholder: var(--cms-text-muted);
+  --cms-toolbar-search-icon: var(--cms-text-muted);
 }
 
 html {
