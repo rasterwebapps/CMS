@@ -232,6 +232,9 @@ public class EnquiryService {
         if (request.yearWiseFees() != null) {
             enquiry.setYearWiseFees(request.yearWiseFees());
         }
+        if (request.semesterWiseFees() != null) {
+            enquiry.setSemesterWiseFees(request.semesterWiseFees());
+        }
 
         Enquiry saved = enquiryRepository.save(enquiry);
         recordHistory(saved, oldStatus, EnquiryStatus.FEES_FINALIZED, adminUsername, null);
@@ -505,6 +508,7 @@ public class EnquiryService {
             e.getReferralAdditionalAmount(),
             e.getFinalCalculatedFee(),
             e.getYearWiseFees(),
+            e.getSemesterWiseFees(),
             e.getStudentType(),
             e.getFinalizedTotalFee(),
             e.getFinalizedDiscountAmount(),

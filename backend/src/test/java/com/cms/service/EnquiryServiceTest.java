@@ -546,7 +546,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -568,7 +568,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null
+            new BigDecimal("50000.00"), null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -586,7 +586,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null
+            new BigDecimal("50000.00"), null, null, null, null
         );
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
@@ -599,7 +599,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null
+            new BigDecimal("50000.00"), null, null, null, null
         );
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(999L, request, "admin"))
@@ -909,7 +909,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), null, null, "[50000,50000]"
+            new BigDecimal("100000.00"), null, null, "[50000,50000]", null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));

@@ -12,5 +12,7 @@ public record FeeFinalizationRequest(
 
     String discountReason,
 
-    String yearWiseFees
+    String yearWiseFees,
+
+    String semesterWiseFees
 ) {}

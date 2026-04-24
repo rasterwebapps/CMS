@@ -67,20 +67,68 @@
   margin-bottom: 8px;
 }
 
-.year-fees-section { margin-top: 8px; }
-.year-fees-section h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 700; }
+// Semester fees section
+.semester-fees-section { margin-top: 16px; }
 
-.fee-year-grid {
-  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+.semester-fees-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
-.fee-year-box {
-  flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
-  border: 1px solid var(--cms-border-default); border-radius: 8px;
+
+.semester-fees-title { margin: 0; font-size: 1rem; font-weight: 700; }
+
+.semester-fees-hint {
+  font-size: 0.8125rem; color: var(--cms-text-muted); margin: 0 0 12px;
 }
-.fee-year-label {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--cms-text-muted); margin-bottom: 4px;
+
+.btn-redistribute {
+  display: flex; align-items: center; gap: 4px;
+  background: none;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer; color: var(--cms-text-default);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &:hover { background: var(--cms-bg-muted); }
 }
-.fee-year-amount {
-  font-size: 1rem; font-weight: 600; color: var(--cms-primary);
+
+.semester-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.semester-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.semester-label {
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; color: var(--cms-text-muted);
+}
+
+.semester-amount-input { font-size: 0.9375rem; font-weight: 600; }
+
+.semester-total-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cms-bg-muted);
+  font-size: 0.875rem;
+}
+
+.semester-total-label { font-weight: 600; color: var(--cms-text-muted); }
+.semester-total-value { font-weight: 700; color: var(--cms-primary); }
+
+.semester-match-note { font-size: 0.75rem; color: var(--cms-success); margin-left: auto; }
+.semester-mismatch-note { font-size: 0.75rem; color: var(--cms-danger, #ef4444); margin-left: auto; }
+
+.semester-total--mismatch {
+  border: 1px solid var(--cms-danger, #ef4444);
+  background: color-mix(in srgb, var(--cms-danger, #ef4444) 8%, transparent);
 }

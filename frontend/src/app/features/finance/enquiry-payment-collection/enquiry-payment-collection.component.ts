@@ -40,7 +40,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
-  protected readonly yearWiseFeeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
+  protected readonly feeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly lastPaymentResponse = signal<EnquiryPaymentResponse | null>(null);
 
   protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
@@ -100,7 +100,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   protected selectEnquiry(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
-    this.yearWiseFeeStatus.set(null);
+    this.feeStatus.set(null);
 
     this.form.patchValue({
       paymentDate: new Date().toISOString().split('T')[0],
@@ -108,14 +108,12 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
     this.enquiryService.getYearWiseFeeStatus(enquiry.id).subscribe({
       next: (status) => {
-        this.yearWiseFeeStatus.set(status);
-        // Pre-fill with outstanding amount
+        this.feeStatus.set(status);
         if (!this.form.get('amount')?.value) {
           this.form.patchValue({ amount: status.totalOutstanding > 0 ? status.totalOutstanding : null });
         }
       },
       error: () => {
-        // Fall back to net fee if status endpoint fails
         this.form.patchValue({
           amount: enquiry.finalizedNetFee ?? enquiry.finalCalculatedFee ?? 0,
         });
@@ -125,7 +123,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   protected backToList(): void {
     this.selectedEnquiry.set(null);
-    this.yearWiseFeeStatus.set(null);
+    this.feeStatus.set(null);
     this.form.reset();
   }
 

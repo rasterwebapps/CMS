@@ -130,16 +130,40 @@
               <strong>Net Fee: ₹{{ netFee() | number }}</strong>
             </div>
 
-            <!-- Year-wise breakdown (read-only from enquiry data) -->
-            @if (yearFees().length > 0) {
-              <div class="year-fees-section">
-                <h3>Year-wise Fee Breakdown</h3>
-                <div class="fee-year-grid">
-                  @for (yf of yearFees(); track yf.yearNumber) {
-                    <div class="fee-year-box">
-                      <div class="fee-year-label">Year {{ yf.yearNumber }}</div>
-                      <div class="fee-year-amount">{{ yf.amount | currency:'INR':'₹':'1.0-0' }}</div>
+            <!-- Semester-wise Fee Breakdown -->
+            @if (semesterFees().length > 0) {
+              <div class="semester-fees-section">
+                <div class="semester-fees-hdr">
+                  <h3 class="semester-fees-title">Semester-wise Fee Breakdown</h3>
+                  <button type="button" class="btn-redistribute" (click)="redistributeSemesters()" matTooltip="Split net fee equally across semesters">
+                    <mat-icon>autorenew</mat-icon>
+                    Redistribute
+                  </button>
+                </div>
+                <p class="semester-fees-hint">Enter the fee amount due for each semester. The sum should equal the net fee.</p>
+
+                <div class="semester-grid">
+                  @for (sf of semesterFees(); track sf.semesterNumber; let i = $index) {
+                    <div class="semester-row">
+                      <span class="semester-label">{{ sf.semesterLabel }}</span>
+                      <input
+                        class="field-input semester-amount-input"
+                        type="number"
+                        min="0"
+                        [value]="sf.amount"
+                        (change)="updateSemesterAmount(i, $any($event.target).value)"
+                      />
                     </div>
+                  }
+                </div>
+
+                <div class="semester-total-row" [class.semester-total--mismatch]="semesterSumMismatch()">
+                  <span class="semester-total-label">Sum of Semester Fees</span>
+                  <span class="semester-total-value">{{ semesterTotal() | currency:'INR':'₹':'1.0-0' }}</span>
+                  @if (semesterSumMismatch()) {
+                    <span class="semester-mismatch-note">⚠ Does not match Net Fee ({{ netFee() | currency:'INR':'₹':'1.0-0' }})</span>
+                  } @else {
+                    <span class="semester-match-note">✓ Matches net fee</span>
                   }
                 </div>
               </div>

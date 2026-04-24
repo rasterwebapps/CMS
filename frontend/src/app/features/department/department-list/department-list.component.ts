@@ -11,7 +11,9 @@ import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
+import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',

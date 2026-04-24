@@ -177,7 +177,7 @@ class EnquiryControllerTest {
             1L, "Walk In", null, false,
             EnquiryStatus.CONVERTED,
             null, null, "Converted", new BigDecimal("50000.00"),
-            null, null, null, null, null,
+            null, null, null, null, null, null,
             null, null, null, null, null, null,
             10L, Instant.now(), Instant.now()
         );
@@ -206,7 +206,7 @@ class EnquiryControllerTest {
             1L, "Walk In", null, false,
             EnquiryStatus.ADMITTED,
             null, null, "Admitted", new BigDecimal("50000.00"),
-            null, null, null, null, null,
+            null, null, null, null, null, null,
             null, null, null, null, null, null,
             10L, Instant.now(), Instant.now()
         );
@@ -348,7 +348,7 @@ class EnquiryControllerTest {
     @Test
     void shouldFinalizeFees() throws Exception {
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird", null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird", null, null
         );
 
         com.cms.dto.FeeFinalizationResponse response = new com.cms.dto.FeeFinalizationResponse(
@@ -463,7 +463,7 @@ class EnquiryControllerTest {
             1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
             1L, "Walk In", null, false,
             status, null, null, "Remarks",
-            new BigDecimal("50000.00"), null, null, null, null, null,
+            new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, now, now
         );
