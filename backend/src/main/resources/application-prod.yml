@@ -18,3 +18,4 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8280/realms/cms}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8280/realms/cms/protocol/openid-connect/certs}

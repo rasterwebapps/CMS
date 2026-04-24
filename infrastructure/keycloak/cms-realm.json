@@ -53,11 +53,13 @@
       "rootUrl": "http://localhost:4300",
       "redirectUris": [
         "http://localhost:4200/*",
-        "http://localhost:4300/*"
+        "http://localhost:4300/*",
+        "http://172.17.1.243/*"
       ],
       "webOrigins": [
         "http://localhost:4200",
-        "http://localhost:4300"
+        "http://localhost:4300",
+        "http://172.17.1.243"
       ],
       "protocol": "openid-connect"
     },
