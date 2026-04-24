@@ -1,100 +1,184 @@
-<div class="list-page">
-  <app-page-header title="Labs" subtitle="Manage laboratory facilities, types, and departmental assignments">
-    <button actions class="btn-primary" routerLink="/labs/new" aria-label="Add new lab">
+<div class="mlp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Lab <em>Facilities</em></h1>
+      <p class="mlp-sub">Manage laboratory facilities, types, and departmental assignments</p>
+      <div class="mlp-meta">
+        <span class="mlp-stat">
+          <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+          {{ totalLabs() }} total
+        </span>
+        <span class="mlp-stat">
+          <span class="mlp-stat-dot mlp-stat-dot--green"></span>
+          {{ activeLabs() }} active
+        </span>
+      </div>
+    </div>
+    <a class="btn-primary" routerLink="/labs/new" aria-label="Add new lab">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Lab
-    </button>
-  </app-page-header>
+    </a>
+  </div>
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search labs..."
-          type="text"
-          aria-label="Search labs"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          labs
-        </span>
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-toolbar">
+    <select
+      class="mlp-filter-select"
+      [value]="selectedDepartment() ?? ''"
+      (change)="onDepartmentChange(+$any($event.target).value || null)"
+      aria-label="Filter by department"
+    >
+      <option value="">All Departments</option>
+      @for (dept of departments(); track dept.id) {
+        <option [value]="dept.id">{{ dept.name }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="selectedType() ?? ''"
+      (change)="onTypeChange($any($event.target).value || null)"
+      aria-label="Filter by type"
+    >
+      <option value="">All Types</option>
+      @for (type of labTypes; track type.value) {
+        <option [value]="type.value">{{ type.label }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="selectedStatus() ?? ''"
+      (change)="onStatusChange($any($event.target).value || null)"
+      aria-label="Filter by status"
+    >
+      <option value="">All Statuses</option>
+      @for (s of labStatuses; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    @if (selectedDepartment() || selectedType() || selectedStatus() || searchValue()) {
+      <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Clear
+      </button>
+    }
+
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search labs..."
+        type="text"
+        aria-label="Search labs"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
-    <div class="command-bar__right">
-      <div class="filter-pill-group">
-        <select class="filter-select" [value]="selectedDepartment()" (change)="onDepartmentChange(+$any($event.target).value || null)" aria-label="Filter by department">
-          <option [ngValue]="null">All Departments</option>
-          @for (dept of departments(); track dept.id) {
-            <option [value]="dept.id">{{ dept.name }}</option>
-          }
-        </select>
 
-        <select class="filter-select" [value]="selectedType()" (change)="onTypeChange($any($event.target).value || null)" aria-label="Filter by type">
-          <option [ngValue]="null">All Types</option>
-          @for (type of labTypes; track type.value) {
-            <option [value]="type.value">{{ type.label }}</option>
-          }
-        </select>
-
-        <select class="filter-select" [value]="selectedStatus()" (change)="onStatusChange($any($event.target).value || null)" aria-label="Filter by status">
-          <option [ngValue]="null">All Statuses</option>
-          @for (status of labStatuses; track status.value) {
-            <option [value]="status.value">{{ status.label }}</option>
-          }
-        </select>
-
-        @if (selectedDepartment() || selectedType() || selectedStatus() || searchValue()) {
-          <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Clear Filters
-          </button>
-        }
-      </div>
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button
+        class="mlp-seg-btn"
+        [class.mlp-seg-btn--active]="viewMode() === 'card'"
+        (click)="setViewMode('card')"
+        aria-label="Card view"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button
+        class="mlp-seg-btn"
+        [class.mlp-seg-btn--active]="viewMode() === 'table'"
+        (click)="setViewMode('table')"
+        aria-label="Table view"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading labs"></mat-spinner>
-      </div>
-    } @else {
+  <!-- ── Loading skeleton ────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+
+  } @else if (filteredLabs().length === 0) {
+    <!-- ── Empty state ─────────────────────────────────────────────────── -->
+    <cms-empty-state
+      icon="science"
+      [title]="(searchValue() || selectedDepartment() || selectedType() || selectedStatus()) ? 'No labs match your filters' : 'No labs yet'"
+      [subtitle]="(searchValue() || selectedDepartment() || selectedType() || selectedStatus()) ? 'Try adjusting or clearing your filters.' : 'Get started by adding your first lab facility.'"
+      [actionLabel]="(!searchValue() && !selectedDepartment() && !selectedType() && !selectedStatus()) ? 'Add Lab' : ''"
+      (actionClick)="handleEmptyAction()"
+    ></cms-empty-state>
+
+  } @else if (viewMode() === 'card') {
+    <!-- ── Card grid ───────────────────────────────────────────────────── -->
+    <div class="mlp-cards-grid">
+      @for (lab of filteredLabs(); track lab.id) {
+        <div
+          class="mlp-card anim-rise"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'View ' + lab.name"
+          (click)="viewLab(lab)"
+          (keydown.enter)="viewLab(lab)"
+        >
+          <div class="mlp-card__actions" (click)="$event.stopPropagation()">
+            <button class="mlp-act-btn" matTooltip="View" (click)="viewLab(lab)" aria-label="View lab">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <button class="mlp-act-btn" matTooltip="Edit" (click)="editLab(lab)" aria-label="Edit lab">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="deleteLab(lab)" aria-label="Delete lab">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+
+          <div class="lab-card__name">{{ lab.name }}</div>
+
+          <div class="lab-card__type">
+            <span class="cms-badge cms-badge--primary">{{ getTypeLabel(lab.labType) }}</span>
+          </div>
+
+          <div class="lab-card__location">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            {{ getLocation(lab) }}
+          </div>
+
+          <div class="lab-card__capacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            {{ lab.capacity }} seats
+          </div>
+
+          <div class="lab-card__status">
+            <span class="status-badge" [ngClass]="getStatusColor(lab.status)">{{ getStatusLabel(lab.status) }}</span>
+          </div>
+
+          <div class="lab-card__dept cell-muted">{{ lab.department.name }}</div>
+        </div>
+      }
+    </div>
+
+  } @else {
+    <!-- ── Table view ──────────────────────────────────────────────────── -->
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
             <td mat-cell *matCellDef="let lab">
@@ -110,29 +194,27 @@
           </ng-container>
 
           <ng-container matColumnDef="location">
-            <th mat-header-cell *matHeaderCellDef>Building/Room</th>
+            <th mat-header-cell *matHeaderCellDef>Building / Room</th>
             <td mat-cell *matCellDef="let lab">{{ getLocation(lab) }}</td>
           </ng-container>
 
           <ng-container matColumnDef="capacity">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Capacity</th>
             <td mat-cell *matCellDef="let lab">
-              <span class="cell-number">{{ lab.capacity }}</span>
+              <span class="cms-badge cms-badge--gray">{{ lab.capacity }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let lab">
-              <span class="status-badge" [ngClass]="getStatusColor(lab.status)">
-                {{ getStatusLabel(lab.status) }}
-              </span>
+              <span class="status-badge" [ngClass]="getStatusColor(lab.status)">{{ getStatusLabel(lab.status) }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="department">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
-            <td mat-cell *matCellDef="let lab">{{ lab.department.name }}</td>
+            <td mat-cell *matCellDef="let lab" class="cell-muted">{{ lab.department.name }}</td>
           </ng-container>
 
           <ng-container matColumnDef="actions">
@@ -152,19 +234,16 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                @if (searchValue() || selectedDepartment() || selectedType() || selectedStatus()) {
-                  <p class="empty-state__text">No labs found matching the selected filters</p>
-                } @else {
-                  <p class="empty-state__text">No labs available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+              <cms-empty-state
+                icon="science"
+                title="No labs found"
+                subtitle="Try adjusting your filters."
+              ></cms-empty-state>
             </td>
           </tr>
         </table>
@@ -177,6 +256,7 @@
           showFirstLastButtons
         ></mat-paginator>
       </div>
-    }
-  </div>
+    </div>
+  }
+
 </div>

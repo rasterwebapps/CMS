@@ -1,84 +1,165 @@
-<div class="list-page">
-  <app-page-header title="Fee Structures" subtitle="Define fee structures for programs and courses">
-    <button actions class="btn-primary" routerLink="/fee-structures/new" aria-label="Add new fee structure">
+<div class="mlp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Fee <em>Structures</em></h1>
+      <p class="mlp-sub">Define fee structures for programs and courses</p>
+      <div class="mlp-meta">
+        <span class="mlp-stat">
+          <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+          {{ totalFeeStructures() }} total
+        </span>
+        <span class="mlp-stat">
+          <span class="mlp-stat-dot mlp-stat-dot--green"></span>
+          ₹{{ totalAmount() | number }} collected
+        </span>
+      </div>
+    </div>
+    <a class="btn-primary" routerLink="/fee-structures/new" aria-label="Add new fee structure">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Fee Structure
-    </button>
-  </app-page-header>
+    </a>
+  </div>
 
-  <div class="command-bar" [formGroup]="filterForm">
-    <div class="command-bar__left">
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} fee structures</span>
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-toolbar">
+    <select
+      class="mlp-filter-select"
+      [value]="selectedAcademicYearId() ?? ''"
+      (change)="onAcademicYearChange(+$any($event.target).value || null)"
+      aria-label="Filter by academic year"
+    >
+      <option value="">All Academic Years</option>
+      @for (ay of academicYears(); track ay.id) {
+        <option [value]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="selectedProgramId() ?? ''"
+      (change)="onProgramFilterChange(+$any($event.target).value || null)"
+      aria-label="Filter by program"
+    >
+      <option value="">All Programs</option>
+      @for (p of programs(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    @if (courses().length > 0) {
+      <select
+        class="mlp-filter-select"
+        [value]="selectedCourseId() ?? ''"
+        (change)="onCourseChange(+$any($event.target).value || null)"
+        aria-label="Filter by course"
+      >
+        <option value="">All Courses</option>
+        @for (c of courses(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    }
+
+    @if (selectedAcademicYearId() || selectedProgramId() || selectedCourseId() || searchValue()) {
+      <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Clear
+      </button>
+    }
+
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search fee structures..."
+        type="text"
+        aria-label="Search fee structures"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
-    <div class="command-bar__right">
-      <div class="filter-pill-group">
-        <select class="filter-select" formControlName="academicYearId" (change)="applyFilters()" aria-label="Filter by academic year">
-          <option [ngValue]="null">All Academic Years</option>
-          @for (ay of academicYears(); track ay.id) {
-            <option [ngValue]="ay.id">{{ ay.name }}</option>
-          }
-        </select>
 
-        <select class="filter-select" formControlName="programId" (change)="onProgramFilterChange(filterForm.get('programId')?.value)" aria-label="Filter by program">
-          <option [ngValue]="null">All Programs</option>
-          @for (p of programs(); track p.id) {
-            <option [ngValue]="p.id">{{ p.name }}</option>
-          }
-        </select>
-
-        @if (courses().length > 0) {
-          <select class="filter-select" formControlName="courseId" (change)="applyFilters()" aria-label="Filter by course">
-            <option [ngValue]="null">All Courses</option>
-            @for (c of courses(); track c.id) {
-              <option [ngValue]="c.id">{{ c.name }}</option>
-            }
-          </select>
-        }
-
-        <button class="btn-clear-filters" type="button" (click)="clearFilters()" aria-label="Clear filters">
-          Clear Filters
-        </button>
-      </div>
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading fee structures"></mat-spinner>
-      </div>
-    } @else {
+  <!-- ── Loading skeleton ────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+
+  } @else if (filteredFeeStructures().length === 0) {
+    <cms-empty-state
+      icon="receipt_long"
+      [title]="(searchValue() || selectedAcademicYearId() || selectedProgramId() || selectedCourseId()) ? 'No fee structures match your filters' : 'No fee structures yet'"
+      [subtitle]="(searchValue() || selectedAcademicYearId() || selectedProgramId() || selectedCourseId()) ? 'Try adjusting or clearing your filters.' : 'Get started by adding a fee structure.'"
+      [actionLabel]="(!searchValue() && !selectedAcademicYearId() && !selectedProgramId() && !selectedCourseId()) ? 'Add Fee Structure' : ''"
+      (actionClick)="handleEmptyAction()"
+    ></cms-empty-state>
+
+  } @else if (viewMode() === 'card') {
+    <!-- ── Card grid ───────────────────────────────────────────────────── -->
+    <div class="mlp-cards-grid">
+      @for (fs of filteredFeeStructures(); track fs.programId + '-' + fs.academicYearId + '-' + (fs.courseId ?? 0)) {
+        <div class="mlp-card anim-rise">
+          <div class="mlp-card__actions">
+            <button class="mlp-act-btn" matTooltip="Edit" (click)="edit(fs)" aria-label="Edit fee structure">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="delete(fs)" aria-label="Delete fee structure">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+
+          <div class="fs-card__program">{{ fs.programName }}</div>
+          @if (fs.courseName) {
+            <div class="fs-card__course cell-muted">{{ fs.courseName }}</div>
+          }
+
+          <div class="fs-card__meta-row">
+            <span class="cms-badge cms-badge--gray">{{ fs.academicYearName }}</span>
+            <span class="cms-badge cms-badge--primary">{{ fs.items.length }} type{{ fs.items.length !== 1 ? 's' : '' }}</span>
+          </div>
+
+          <div class="fs-card__amount">₹{{ fs.totalAmount | number }}</div>
+        </div>
+      }
+    </div>
+
+  } @else {
+    <!-- ── Table view ──────────────────────────────────────────────────── -->
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.programName }}</span>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="courseName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.courseName || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="academicYearName">
@@ -114,15 +195,16 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <p class="empty-state__text">No fee structures available</p>
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+              <cms-empty-state
+                icon="receipt_long"
+                title="No fee structures found"
+                subtitle="Try adjusting your filters."
+              ></cms-empty-state>
             </td>
           </tr>
         </table>
@@ -135,6 +217,7 @@
           showFirstLastButtons
         ></mat-paginator>
       </div>
-    }
-  </div>
+    </div>
+  }
+
 </div>

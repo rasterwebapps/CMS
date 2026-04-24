@@ -1,2 +1,34 @@
-// Lab list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// Lab-list card anatomy (layout/colour handled by global mlp-* classes)
+.lab-card {
+  &__name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  &__type {
+    margin-bottom: 8px;
+  }
+
+  &__location,
+  &__capacity {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 4px;
+  }
+
+  &__status {
+    margin-bottom: 6px;
+  }
+
+  &__dept {
+    font-size: 0.75rem;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+}
