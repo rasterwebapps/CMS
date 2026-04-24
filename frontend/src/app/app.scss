@@ -33,7 +33,7 @@
   padding: 0 8px;
   height: 100%;
   overflow: hidden;
-  border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.collapsed {
@@ -81,22 +81,21 @@
 
 .app-container {
   // Fill the remaining viewport below the fixed toolbar (56 px).
+  // Focus mode uses the same height since the focus-header is rendered
+  // outside the container (same level as .app-toolbar).
   height: calc(100vh - 56px);
 
-  // Let Angular Material manage content margins naturally in 'side' mode.
-  // We only add the transition so the reflow is animated.
-  .mat-sidenav-content {
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
-  }
-
-  // When hover-expanded the sidenav switches to 'over' mode, which removes
-  // Angular Material's margin push entirely.  Lock the content margin at the
-  // collapsed rail width (68 px) so the page does not jump on hover.
-  &.sidenav-hover-expanded {
+  // When sidenav is collapsed, override the content margin
+  &.sidenav-collapsed {
     .mat-sidenav-content {
       margin-left: 68px !important;
     }
+  }
+
+  .mat-sidenav-content {
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    // Allow mat-sidenav-content to be the scroll container
+    overflow-y: auto;
   }
 }
 
@@ -111,10 +110,7 @@
   border-right: 1px solid var(--cms-sidenav-border) !important;
   border-radius: 0 !important;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  // overflow visible so the floating circular collapse-toggle (positioned at
-  // right: -13px) is not clipped. Internal scrolling is owned by .sidenav-nav.
-  overflow: visible;
-  position: relative;
+  overflow: hidden;
 
   // ─── Collapsed Icon Rail ───
   &.collapsed {
@@ -125,77 +121,148 @@
     }
   }
 
-  // ─── Hover-expanded overlay ───
-  // In 'over' mode AM positions the drawer absolutely; add a drop-shadow so
-  // the expanded panel looks elevated above the content behind it.
-  &.hover-expanded {
-    box-shadow: 4px 0 24px -4px rgba(0, 0, 0, 0.15),
-                1px 0 0 0 var(--cms-sidenav-border) !important;
-    z-index: 200 !important;
-  }
+  // ─── Sidebar Brand / Institution Identity Header ───
+  .sidenav-brand-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--cms-sidenav-border);
 
-  // ─── Floating circular collapse toggle (matches v2 reference .sb-toggle) ───
-  .sidenav-toggle-fab {
-    position: absolute;
-    top: 14px;
-    right: -13px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--cms-bg-surface-2, #f3f4f6);
-    border: 1px solid var(--cms-line-strong, rgba(0, 0, 0, 0.12));
-    color: var(--cms-sidenav-group-text);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 30;
-    padding: 0;
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    .sidenav-brand-expanded {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px 10px 14px;
+      min-height: 56px;
 
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      line-height: 16px;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      .sidenav-brand-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3px;
+        object-fit: contain;
+      }
+
+      .sidenav-brand-logo-fallback {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #ffffff;
+        }
+      }
+
+      .sidenav-brand-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+
+        .sidenav-brand-name {
+          font-size: 0.8125rem;
+          font-weight: 700;
+          color: var(--cms-sidenav-text-bright);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.2;
+        }
+
+        .sidenav-brand-sub {
+          font-size: 0.6875rem;
+          font-weight: 400;
+          color: var(--cms-sidenav-group-text);
+          white-space: nowrap;
+          line-height: 1.2;
+        }
+      }
+
+      .sidenav-collapse-btn {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        flex-shrink: 0;
+        color: var(--cms-sidenav-group-text) !important;
+        transition: var(--cms-transition) !important;
+
+        &:hover {
+          color: var(--cms-sidenav-text-bright) !important;
+          background: var(--cms-sidenav-hover) !important;
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
     }
 
-    &:hover {
-      background: var(--cms-primary);
-      border-color: var(--cms-primary);
-      color: #fff;
-      box-shadow: 0 0 0 4px rgba(var(--cms-primary-rgb), 0.15);
+    .sidenav-brand-collapsed {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: var(--cms-sidenav-hover);
+      }
+
+      .sidenav-brand-logo-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3px;
+        object-fit: contain;
+      }
+
+      .sidenav-brand-logo-fallback-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: #ffffff;
+        }
+      }
     }
   }
 
-  &.collapsed .sidenav-toggle-fab mat-icon {
-    transform: rotate(180deg);
-  }
-
-  // ─── Menu Search Box (v2 aesthetic — inset pill) ───
+  // ─── Menu Search Box ───
   .sidenav-search {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 8px 12px 4px;
-    padding: 7px 12px;
-    border-radius: 10px;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cms-sidenav-border);
     background: var(--cms-sidenav-search-bg);
-    border: 1px solid var(--cms-sidenav-border);
     flex-shrink: 0;
-    transition: border-color 0.18s, background 0.18s;
-
-    &:focus-within {
-      border-color: rgba(var(--cms-primary-rgb), 0.45);
-      background: var(--cms-sidenav-hover);
-    }
 
     .sidenav-search-icon {
       color: var(--cms-sidenav-group-text);
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
       flex-shrink: 0;
     }
 
@@ -205,69 +272,65 @@
       background: none;
       border: none;
       outline: none;
-      color: var(--cms-sidenav-text-bright);
-      font-size: 0.8125rem;
+      color: var(--cms-sidenav-text);
+      font-size: 0.8rem;
       font-family: inherit;
       padding: 0;
 
       &::placeholder {
         color: var(--cms-sidenav-group-text);
-        opacity: 0.85;
+        opacity: 0.7;
       }
     }
 
     .sidenav-search-clear {
-      width: 20px !important;
-      height: 20px !important;
-      min-width: 20px !important;
+      width: 22px !important;
+      height: 22px !important;
+      min-width: 22px !important;
       padding: 0 !important;
-      line-height: 20px !important;
+      line-height: 22px !important;
       flex-shrink: 0;
 
       mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
         color: var(--cms-sidenav-group-text);
       }
     }
   }
 
-  // ─── Nav items (v2 aesthetic — compact soft-pill style) ───
   mat-nav-list {
-    padding: 2px 0;
+    padding: 4px 0;
 
     a[mat-list-item] {
-      border-radius: 10px !important;
-      margin: 1px 8px;
-      padding: 0 14px !important;
-      transition: background 0.18s, color 0.18s;
-      height: 36px !important;
+      border-radius: var(--cms-radius-sm) !important;
+      margin: 1px 10px;
+      transition: var(--cms-transition);
+      height: 40px !important;
       justify-content: flex-start !important;
 
       mat-icon[matListItemIcon] {
         color: var(--cms-sidenav-group-text);
-        transition: color 0.18s;
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        margin-right: 11px;
+        transition: var(--cms-transition);
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
       }
 
       span[matListItemTitle] {
         font-size: 0.8125rem;
-        font-weight: 400;
+        font-weight: 500;
         color: var(--cms-sidenav-text);
-        transition: color 0.18s;
+        transition: var(--cms-transition);
         text-align: left;
-        letter-spacing: 0;
       }
 
       &:hover {
         background-color: var(--cms-sidenav-hover) !important;
 
         mat-icon[matListItemIcon] {
-          color: var(--cms-sidenav-text-bright);
+          color: var(--cms-sidenav-text);
         }
 
         span[matListItemTitle] {
@@ -356,26 +419,20 @@
 }
 
 // ──────────────────────────────────────────────────
-// Collapsed Sidebar — Icon Buttons (v2 aesthetic)
+// Collapsed Sidebar — Icon Buttons
 // ──────────────────────────────────────────────────
 .collapsed-group {
   display: flex;
   justify-content: center;
-  padding: 1px 0;
+  padding: 2px 0;
 }
 
 .collapsed-nav-btn {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 10px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: var(--cms-radius-sm) !important;
   color: var(--cms-sidenav-group-text) !important;
-  transition: background 0.18s, color 0.18s !important;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
+  transition: var(--cms-transition) !important;
 
   &:hover {
     background: var(--cms-sidenav-hover) !important;
@@ -384,7 +441,7 @@
 }
 
 .collapsed-active {
-  background: rgba(var(--cms-primary-rgb), 0.12) !important;
+  background: var(--cms-sidenav-active-bg) !important;
   color: var(--cms-sidenav-active-text) !important;
 }
 
@@ -406,86 +463,172 @@
 }
 
 // ──────────────────────────────────────────────────
-// Flat Navigation Groups — v2 aesthetic
-// (uppercase section label + flat nav-item pills, no expansion panels)
+// Navigation Groups — Expansion Panels
 // ──────────────────────────────────────────────────
-.nav-group-label {
-  font-size: 0.625rem; // ~10px
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--cms-sidenav-group-text);
-  padding: 14px 20px 5px;
-  white-space: nowrap;
-  user-select: none;
-}
+.nav-group {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 9px 14px;
-  margin: 1px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s;
-  position: relative;
-  white-space: nowrap;
-  color: var(--cms-sidenav-text);
-  font-size: 0.8125rem; // ~13px
-  font-weight: 400;
-  text-decoration: none;
-
-  .nav-item-icon {
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-    flex-shrink: 0;
-    color: var(--cms-sidenav-group-text);
-    transition: color 0.18s;
+  &::ng-deep .mat-expansion-panel-body {
+    padding: 0;
   }
 
-  .nav-item-label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.18s;
+  mat-expansion-panel-header {
+    padding: 0 14px;
+    height: 44px !important;
+
+    .nav-group-icon {
+      margin-right: 10px;
+      color: var(--cms-sidenav-group-text);
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      transition: var(--cms-transition);
+    }
+
+    mat-panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      color: var(--cms-sidenav-text) !important;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    &::ng-deep .mat-expansion-indicator::after {
+      color: var(--cms-sidenav-group-text) !important;
+    }
+
+    &:hover {
+      background: var(--cms-sidenav-hover) !important;
+
+      .nav-group-icon {
+        color: var(--cms-sidenav-text);
+      }
+    }
+  }
+
+  &.mat-expanded {
+    mat-expansion-panel-header {
+      .nav-group-icon {
+        color: var(--cms-sidenav-active-text);
+      }
+      mat-panel-title {
+        color: var(--cms-sidenav-text-bright) !important;
+      }
+    }
+  }
+
+  mat-nav-list {
+    padding-top: 0;
+    padding-bottom: 4px;
+
+    a[mat-list-item] {
+      padding-left: 36px !important;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────
+// Top-Level Standalone Nav Items (Dashboard, Reports)
+// Match expansion panel header layout for consistent alignment
+// ──────────────────────────────────────────────────
+.top-level-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  height: 44px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--cms-transition);
+
+  .top-level-icon {
+    margin-right: 10px;
+    color: var(--cms-sidenav-group-text);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    transition: var(--cms-transition);
+  }
+
+  .top-level-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--cms-sidenav-text);
+    transition: var(--cms-transition);
   }
 
   &:hover {
     background: var(--cms-sidenav-hover);
-    color: var(--cms-sidenav-text-bright);
 
-    .nav-item-icon {
+    .top-level-icon {
+      color: var(--cms-sidenav-text);
+    }
+
+    .top-level-label {
       color: var(--cms-sidenav-text-bright);
     }
   }
 
-  &.nav-item-active {
-    background: rgba(var(--cms-primary-rgb), 0.12);
-    color: var(--cms-sidenav-active-text);
-    font-weight: 600;
+  &.top-level-active {
+    background: var(--cms-sidenav-active-bg);
+    position: relative;
 
-    .nav-item-icon {
-      color: var(--cms-sidenav-active-text);
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
+      border-radius: 0 3px 3px 0;
     }
 
-    .nav-item-label {
-      color: var(--cms-sidenav-active-text);
+    .top-level-icon {
+      color: var(--cms-sidenav-active-text) !important;
+    }
+
+    .top-level-label {
+      color: var(--cms-sidenav-text-bright) !important;
+      font-weight: 600;
     }
   }
 }
 
-.nav-pill {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(var(--cms-primary-rgb), 0.18);
-  color: var(--cms-sidenav-active-text);
-  padding: 2px 7px;
-  border-radius: 20px;
-  line-height: 1.4;
+// ──────────────────────────────────────────────────
+// Active Link — Glowing accent
+// ──────────────────────────────────────────────────
+.active-link {
+  background: var(--cms-sidenav-active-bg) !important;
+  border-radius: var(--cms-radius-sm) !important;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
+    border-radius: 0 3px 3px 0;
+  }
+
+  mat-icon[matListItemIcon] {
+    color: var(--cms-sidenav-active-text) !important;
+  }
+
+  span[matListItemTitle] {
+    color: var(--cms-sidenav-text-bright) !important;
+    font-weight: 600 !important;
+  }
 }
 
 // ──────────────────────────────────────────────────
@@ -536,17 +679,6 @@
     letter-spacing: -0.02em;
     color: var(--cms-toolbar-text, var(--cms-text-primary));
     white-space: nowrap;
-    line-height: 1.2;
-  }
-
-  .toolbar-brand-sub {
-    font-size: 0.6875rem;
-    font-weight: 400;
-    color: var(--cms-toolbar-text, var(--cms-text-primary));
-    opacity: 0.65;
-    white-space: nowrap;
-    line-height: 1.2;
-    letter-spacing: 0;
   }
 }
 
@@ -715,27 +847,6 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
-  }
-}
-
-// ──────────────────────────────────────────────────
-// Sidenav badge pill — v2 ".nav-pill" aesthetic
-// Targets the mat-badge attached to enquiry list item.
-// ──────────────────────────────────────────────────
-.app-sidenav {
-  .mat-badge-small .mat-badge-content {
-    background: rgba(var(--cms-primary-rgb), 0.18) !important;
-    color: var(--cms-sidenav-active-text) !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.02em;
-    border-radius: 999px !important;
-    min-width: 18px;
-    height: 16px !important;
-    line-height: 16px !important;
-    padding: 0 6px !important;
-    box-shadow: none !important;
-    border: none !important;
   }
 }
 

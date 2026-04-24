@@ -8,17 +8,19 @@
     }
     <a [routerLink]="'/dashboard'" class="toolbar-brand">
       @if (!toolbarLogoError()) {
-        <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-brand-icon"
-          (error)="toolbarLogoError.set(true)" />
+        <img src="assets/images/cms-icon.svg" alt="College Management System" class="toolbar-brand-icon"
+             (error)="toolbarLogoError.set(true)" />
       } @else {
         <div class="toolbar-brand-fallback">
-          <mat-icon>school</mat-icon>
+          <mat-icon>developer_board</mat-icon>
         </div>
       }
       @if (!sidenavCollapsed() && !isMobile()) {
         <div class="toolbar-brand-text-block">
-          <span class="toolbar-brand-name">SKS College</span>
-          <span class="toolbar-brand-sub">of Nursing</span>
+          <span class="toolbar-brand-name">College Management System</span>
+          @if (currentSectionLabel()) {
+            <span class="toolbar-brand-section">{{ currentSectionLabel() }}</span>
+          }
         </div>
       }
     </a>
@@ -47,10 +49,10 @@
 
       @if (!isMobile()) {
         <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
-          [matBadge]="notificationCount()"
-          [matBadgeHidden]="notificationCount() === 0"
-          matBadgeColor="warn"
-          matBadgeSize="small">
+                [matBadge]="notificationCount()"
+                [matBadgeHidden]="notificationCount() === 0"
+                matBadgeColor="warn"
+                matBadgeSize="small">
           <mat-icon>notifications_none</mat-icon>
         </button>
 
@@ -95,11 +97,11 @@
 </mat-toolbar>
 
 <mat-sidenav-container class="app-container"
-  [class.sidenav-collapsed]="sidenavRail() && !isMobile()"
-  [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
-  [class.is-mobile]="isMobile()">
+                       [class.sidenav-collapsed]="sidenavRail() && !isMobile()"
+                       [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
+                       [class.is-mobile]="isMobile()">
   <mat-sidenav
-    [mode]="isMobile() ? 'over' : sidenavMode()"
+    [mode]="isMobile() ? 'over' : 'side'"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
     class="app-sidenav"
@@ -108,23 +110,50 @@
     [class.mobile-drawer]="isMobile()"
     (mouseenter)="onSidenavMouseEnter()"
     (mouseleave)="onSidenavMouseLeave()">
-    <!-- Floating circular collapse toggle (matches v2 reference .sb-toggle) -->
-    @if (!isMobile()) {
-      <button type="button" class="sidenav-toggle-fab"
-        (click)="toggleSidenav()"
-        [matTooltip]="sidenavCollapsed() ? 'Pin sidebar (always expanded)' : 'Unpin sidebar (collapse to rail)'"
-        matTooltipPosition="right"
-        [attr.aria-pressed]="!sidenavCollapsed()"
-        aria-label="Toggle sidebar">
-        <mat-icon>chevron_left</mat-icon>
-      </button>
-    } @else {
-      <button type="button" class="sidenav-toggle-fab"
-        (click)="closeMobileDrawer()"
-        matTooltip="Close menu" aria-label="Close menu">
-        <mat-icon>close</mat-icon>
-      </button>
-    }
+    <div class="sidenav-brand-header">
+      @if (!sidenavRail() || isMobile()) {
+        <div class="sidenav-brand-expanded">
+          @if (!sidenavLogoError()) {
+            <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing"
+                 class="sidenav-brand-logo" (error)="sidenavLogoError.set(true)" />
+          } @else {
+            <div class="sidenav-brand-logo-fallback">
+              <mat-icon>school</mat-icon>
+            </div>
+          }
+          <div class="sidenav-brand-text">
+            <span class="sidenav-brand-name">SKS College</span>
+            <span class="sidenav-brand-sub">of Nursing</span>
+          </div>
+          @if (!isMobile()) {
+            <button mat-icon-button (click)="toggleSidenav()"
+                    [matTooltip]="sidenavCollapsed() ? 'Pin sidebar (always expanded)' : 'Unpin sidebar (collapse to rail)'"
+                    matTooltipPosition="right"
+                    class="sidenav-collapse-btn"
+                    [attr.aria-pressed]="!sidenavCollapsed()">
+              <mat-icon>{{ sidenavCollapsed() ? 'push_pin' : 'keyboard_tab' }}</mat-icon>
+            </button>
+          } @else {
+            <button mat-icon-button (click)="closeMobileDrawer()"
+                    matTooltip="Close menu" class="sidenav-collapse-btn" aria-label="Close menu">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="sidenav-brand-collapsed" (click)="toggleSidenav()"
+             matTooltip="Pin sidebar" matTooltipPosition="right">
+          @if (!sidenavLogoError()) {
+            <img src="assets/images/sks-logo-icon.svg" alt="SKS"
+                 class="sidenav-brand-logo-sm" (error)="sidenavLogoError.set(true)" />
+          } @else {
+            <div class="sidenav-brand-logo-fallback-sm">
+              <mat-icon>school</mat-icon>
+            </div>
+          }
+        </div>
+      }
+    </div>
 
     @if (!sidenavRail() || isMobile()) {
       <div class="sidenav-search">
@@ -165,17 +194,30 @@
               </mat-menu>
             </div>
           } @else {
-            <!-- Expanded: flat group label + nav items (v2 reference design) -->
-            <div class="nav-group-label">{{ entry.label }}</div>
-            @for (item of entry.items; track item.route) {
-              <a [routerLink]="item.route" routerLinkActive="nav-item-active" class="nav-item">
-                <mat-icon class="nav-item-icon">{{ item.icon }}</mat-icon>
-                <span class="nav-item-label">{{ item.label }}</span>
-                @if (item.route === '/enquiries' && enquiryBadgeCount() > 0) {
-                  <span class="nav-pill">{{ enquiryBadgeCount() }}</span>
+            <mat-expansion-panel
+              class="nav-group"
+              [expanded]="isGroupExpanded(entry.label)"
+              (afterExpand)="setGroupExpanded(entry.label, true)"
+              (afterCollapse)="setGroupExpanded(entry.label, false)"
+            >
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="nav-group-icon">{{ entry.icon }}</mat-icon>
+                  <span class="nav-group-label">{{ entry.label }}</span>
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <mat-nav-list dense>
+                @for (item of entry.items; track item.route) {
+                  <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link"
+                     [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
+                     [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
+                     matBadgeColor="warn" matBadgeSize="small">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                  </a>
                 }
-              </a>
-            }
+              </mat-nav-list>
+            </mat-expansion-panel>
           }
         } @else {
           @if (sidenavRail() && !isMobile()) {
@@ -186,9 +228,9 @@
               </a>
             </div>
           } @else {
-            <a [routerLink]="entry.route" routerLinkActive="nav-item-active" class="nav-item">
-              <mat-icon class="nav-item-icon">{{ entry.icon }}</mat-icon>
-              <span class="nav-item-label">{{ entry.label }}</span>
+            <a [routerLink]="entry.route" routerLinkActive="top-level-active" class="top-level-nav-item">
+              <mat-icon class="top-level-icon">{{ entry.icon }}</mat-icon>
+              <span class="top-level-label">{{ entry.label }}</span>
             </a>
           }
         }
@@ -199,7 +241,7 @@
     <div class="sidenav-footer">
       @if (!sidenavRail() || isMobile()) {
         <button type="button" class="sidenav-footer-shortcut-btn" (click)="openKeyboardShortcuts()"
-          matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+                matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
           <span>Shortcuts</span>
         </button>
@@ -207,7 +249,7 @@
         <img src="assets/images/raster-wordmark.svg" alt="Raster" class="sidenav-footer-logo"/>
       } @else {
         <button type="button" class="sidenav-footer-icon-btn" (click)="openKeyboardShortcuts()"
-          matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
+                matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
         </button>
         <div class="sidenav-footer-icon" matTooltip="Powered by Raster" matTooltipPosition="right">
@@ -228,4 +270,3 @@
 </mat-sidenav-container>
 
 <app-toast-host />
-
