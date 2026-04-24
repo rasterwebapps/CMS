@@ -6,15 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { startWith } from 'rxjs/operators';
-import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
-import { CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.component';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { computeInitials } from '../../../shared/utils/initials';
-import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
-import { CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-department-form',
@@ -26,8 +20,6 @@ import { CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.compon
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    CmsPreviewCardComponent,
-    CmsTipsCardComponent,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
@@ -42,19 +34,14 @@ export class DepartmentFormComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
-  /** Brief success state on the submit button before navigation (~600ms). */
   protected readonly succeeded = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
 
-  static readonly SUCCESS_STATE_DURATION_MS = 600;
-
-  // Live preview signals
   protected readonly previewCode = signal('');
   protected readonly previewName = signal('');
   protected readonly previewHod = signal('');
   protected readonly previewDesc = signal('');
-  protected readonly previewDescription = this.previewDesc;
   protected readonly codeCharCount = signal(0);
 
   protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
@@ -70,9 +57,6 @@ export class DepartmentFormComponent implements OnInit {
   });
 
   constructor() {
-    // Wire each form control to its preview signal so the live preview
-    // updates as the user types. takeUntilDestroyed() unsubscribes
-    // automatically when the component is destroyed.
     this.form.get('name')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v: string | null) => this.previewName.set(v ?? ''));
@@ -96,7 +80,6 @@ export class DepartmentFormComponent implements OnInit {
       this.loadDepartment();
     }
 
-    // Sync live preview from form value changes
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
@@ -109,7 +92,6 @@ export class DepartmentFormComponent implements OnInit {
       });
   }
 
-  /** Auto-uppercase the code field on every keystroke, preserving cursor position. */
   protected onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const start = input.selectionStart ?? 0;
@@ -146,7 +128,6 @@ export class DepartmentFormComponent implements OnInit {
           ? 'Department updated successfully'
           : 'Department created successfully';
         this.snackBar.open(message, 'Close', { duration: 3000 });
-        // Show the brief success state on the submit button, then navigate.
         this.saving.set(false);
         this.succeeded.set(true);
         setTimeout(() => {

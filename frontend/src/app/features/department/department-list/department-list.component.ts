@@ -13,7 +13,6 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
-import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-department-list',

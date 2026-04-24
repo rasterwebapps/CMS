@@ -247,17 +247,6 @@ export class FeeStructureFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
-      next: (data) => {
-        this.programs.set(data);
-        // In edit mode, set program duration once programs are loaded
-        const pId = this.route.snapshot.queryParamMap.get('programId');
-        if (pId) {
-          const program = data.find((p) => p.id === Number(pId));
-          if (program) this.selectedProgramDuration.set(program.durationYears);
-        }
-      },
-    });
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({
       next: (data) => this.academicYears.set(data),
     });
@@ -268,7 +257,7 @@ export class FeeStructureFormComponent implements OnInit {
     const courseId = qp.get('courseId');
 
     if (programId && academicYearId) {
-      // Edit mode — load group via query params
+      // Edit mode — programs must load first so duration is known before filling missing fee types
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Fee Structures');
       this.loading.set(true);
@@ -277,75 +266,86 @@ export class FeeStructureFormComponent implements OnInit {
       const ayId = Number(academicYearId);
       const cId = courseId ? Number(courseId) : undefined;
 
-      // Load courses for the program
-      this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${pId}`).subscribe({
-        next: (courses) => this.courses.set(courses),
-      });
+      this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
+        next: (data) => {
+          this.programs.set(data);
+          const program = data.find((p) => p.id === pId);
+          if (program) this.selectedProgramDuration.set(program.durationYears);
 
-      this.financeService.getGroupedFeeStructures({ programId: pId, academicYearId: ayId, courseId: cId }).subscribe({
-        next: (groups) => {
-          const group = groups.length > 0 ? groups[0] : null;
-          this.bulkForm.patchValue({
-            programId: pId,
-            academicYearId: ayId,
-            courseId: cId ?? null,
+          // Courses and fee structures load in parallel now that duration is known
+          this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${pId}`).subscribe({
+            next: (courses) => this.courses.set(courses),
           });
-          this.feeItems.clear();
-          if (group) {
-            for (const item of group.items) {
-              const newGroup = this.fb.group({
-                feeType: [item.feeType, Validators.required],
-                amount: [item.amount, [Validators.min(0)]],
-                description: [item.description || ''],
-                yearAmounts: this.fb.array([]),
+
+          this.financeService.getGroupedFeeStructures({ programId: pId, academicYearId: ayId, courseId: cId }).subscribe({
+            next: (groups) => {
+              const group = groups.length > 0 ? groups[0] : null;
+              this.bulkForm.patchValue({
+                programId: pId,
+                academicYearId: ayId,
+                courseId: cId ?? null,
               });
-              if (item.yearAmounts && item.yearAmounts.length > 0) {
-                const ya = newGroup.get('yearAmounts') as FormArray;
-                for (const y of item.yearAmounts) {
-                  ya.push(this.fb.group({
-                    yearNumber: [y.yearNumber],
-                    yearLabel: [y.yearLabel],
-                    amount: [y.amount, [Validators.min(0)]],
-                  }));
+              this.feeItems.clear();
+              if (group) {
+                for (const item of group.items) {
+                  const newGroup = this.fb.group({
+                    feeType: [item.feeType, Validators.required],
+                    amount: [item.amount, [Validators.min(0)]],
+                    description: [item.description || ''],
+                    yearAmounts: this.fb.array([]),
+                  });
+                  if (item.yearAmounts && item.yearAmounts.length > 0) {
+                    const ya = newGroup.get('yearAmounts') as FormArray;
+                    for (const y of item.yearAmounts) {
+                      ya.push(this.fb.group({
+                        yearNumber: [y.yearNumber],
+                        yearLabel: [y.yearLabel],
+                        amount: [y.amount, [Validators.min(0)]],
+                      }));
+                    }
+                  }
+                  this.feeItems.push(newGroup);
                 }
               }
-              this.feeItems.push(newGroup);
-            }
-          }
-          // Fill in missing fee types with amount 0
-          const existingTypes = new Set(group ? group.items.map((i) => i.feeType) : []);
-          const duration = this.selectedProgramDuration();
-          for (const ft of this.feeTypes) {
-            if (!existingTypes.has(ft)) {
-              const newGroup = this.fb.group({
-                feeType: [ft, Validators.required],
-                amount: [0, [Validators.min(0)]],
-                description: [''],
-                yearAmounts: this.fb.array([]),
-              });
-              if (duration > 1) {
-                const ya = newGroup.get('yearAmounts') as FormArray;
-                for (let i = 1; i <= duration; i++) {
-                  ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.min(0)]] }));
+              // Fill in missing fee types — duration is guaranteed to be set at this point
+              const existingTypes = new Set(group ? group.items.map((i) => i.feeType) : []);
+              const duration = this.selectedProgramDuration();
+              for (const ft of this.feeTypes) {
+                if (!existingTypes.has(ft)) {
+                  const newGroup = this.fb.group({
+                    feeType: [ft, Validators.required],
+                    amount: [0, [Validators.min(0)]],
+                    description: [''],
+                    yearAmounts: this.fb.array([]),
+                  });
+                  if (duration > 1) {
+                    const ya = newGroup.get('yearAmounts') as FormArray;
+                    for (let i = 1; i <= duration; i++) {
+                      ya.push(this.fb.group({ yearNumber: [i], yearLabel: [`Year ${i}`], amount: [0, [Validators.min(0)]] }));
+                    }
+                  }
+                  this.feeItems.push(newGroup);
                 }
               }
-              this.feeItems.push(newGroup);
-            }
-          }
-          this._grandTotalVersion.update((v) => v + 1);
-          this.loading.set(false);
-          // Lock all criteria dropdowns in edit mode — they must not be changed
-          this.bulkForm.get('academicYearId')?.disable();
-          this.bulkForm.get('programId')?.disable();
-          this.bulkForm.get('courseId')?.disable();
-        },
-        error: () => {
-          this.toast.error('Failed to load fee structures');
-          void this.router.navigate(['/fee-structures']);
+              this._grandTotalVersion.update((v) => v + 1);
+              this.loading.set(false);
+              // Lock all criteria dropdowns in edit mode — they must not be changed
+              this.bulkForm.get('academicYearId')?.disable();
+              this.bulkForm.get('programId')?.disable();
+              this.bulkForm.get('courseId')?.disable();
+            },
+            error: () => {
+              this.toast.error('Failed to load fee structures');
+              void this.router.navigate(['/fee-structures']);
+            },
+          });
         },
       });
     } else {
-      // Create mode — pre-populate all 8 fee types
+      // Create mode — programs load in parallel, pre-populate all 8 fee types
+      this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
+        next: (data) => this.programs.set(data),
+      });
       for (const ft of this.feeTypes) {
         this.addItemWithType(ft);
       }
@@ -485,9 +485,9 @@ export class FeeStructureFormComponent implements OnInit {
       this.toast.warning('Add at least one fee item');
       return;
     }
-    const bv = this.bulkForm.value;
+    const rv = this.bulkForm.getRawValue();
     // Treat blank/null amounts as 0 and filter out items where the total is zero
-    const nonZeroItems = (bv.items as {
+    const nonZeroItems = (rv.items as {
       feeType: string;
       amount: number;
       description: string;
@@ -529,9 +529,9 @@ export class FeeStructureFormComponent implements OnInit {
     }));
 
     const request: BulkFeeStructureRequest = {
-      programId: bv.programId,
-      academicYearId: bv.academicYearId,
-      courseId: bv.courseId || undefined,
+      programId: rv.programId,
+      academicYearId: rv.academicYearId,
+      courseId: rv.courseId || undefined,
       items,
     };
 
