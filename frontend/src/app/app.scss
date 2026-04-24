@@ -248,21 +248,29 @@
     }
   }
 
-  // ─── Menu Search Box ───
+  // ─── Menu Search Box (v2 aesthetic — inset pill) ───
   .sidenav-search {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--cms-sidenav-border);
+    gap: 8px;
+    margin: 8px 12px 4px;
+    padding: 7px 12px;
+    border-radius: 10px;
     background: var(--cms-sidenav-search-bg);
+    border: 1px solid var(--cms-sidenav-border);
     flex-shrink: 0;
+    transition: border-color 0.18s, background 0.18s;
+
+    &:focus-within {
+      border-color: rgba(var(--cms-primary-rgb), 0.45);
+      background: var(--cms-sidenav-hover);
+    }
 
     .sidenav-search-icon {
       color: var(--cms-sidenav-group-text);
-      font-size: 17px;
-      width: 17px;
-      height: 17px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
       flex-shrink: 0;
     }
 
@@ -272,65 +280,69 @@
       background: none;
       border: none;
       outline: none;
-      color: var(--cms-sidenav-text);
-      font-size: 0.8rem;
+      color: var(--cms-sidenav-text-bright);
+      font-size: 0.8125rem;
       font-family: inherit;
       padding: 0;
 
       &::placeholder {
         color: var(--cms-sidenav-group-text);
-        opacity: 0.7;
+        opacity: 0.85;
       }
     }
 
     .sidenav-search-clear {
-      width: 22px !important;
-      height: 22px !important;
-      min-width: 22px !important;
+      width: 20px !important;
+      height: 20px !important;
+      min-width: 20px !important;
       padding: 0 !important;
-      line-height: 22px !important;
+      line-height: 20px !important;
       flex-shrink: 0;
 
       mat-icon {
-        font-size: 15px;
-        width: 15px;
-        height: 15px;
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
         color: var(--cms-sidenav-group-text);
       }
     }
   }
 
+  // ─── Nav items (v2 aesthetic — compact soft-pill style) ───
   mat-nav-list {
-    padding: 4px 0;
+    padding: 2px 0;
 
     a[mat-list-item] {
-      border-radius: var(--cms-radius-sm) !important;
-      margin: 1px 10px;
-      transition: var(--cms-transition);
-      height: 40px !important;
+      border-radius: 10px !important;
+      margin: 1px 8px;
+      padding: 0 14px !important;
+      transition: background 0.18s, color 0.18s;
+      height: 36px !important;
       justify-content: flex-start !important;
 
       mat-icon[matListItemIcon] {
         color: var(--cms-sidenav-group-text);
-        transition: var(--cms-transition);
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        transition: color 0.18s;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 11px;
       }
 
       span[matListItemTitle] {
         font-size: 0.8125rem;
-        font-weight: 500;
+        font-weight: 400;
         color: var(--cms-sidenav-text);
-        transition: var(--cms-transition);
+        transition: color 0.18s;
         text-align: left;
+        letter-spacing: 0;
       }
 
       &:hover {
         background-color: var(--cms-sidenav-hover) !important;
 
         mat-icon[matListItemIcon] {
-          color: var(--cms-sidenav-text);
+          color: var(--cms-sidenav-text-bright);
         }
 
         span[matListItemTitle] {
@@ -419,20 +431,26 @@
 }
 
 // ──────────────────────────────────────────────────
-// Collapsed Sidebar — Icon Buttons
+// Collapsed Sidebar — Icon Buttons (v2 aesthetic)
 // ──────────────────────────────────────────────────
 .collapsed-group {
   display: flex;
   justify-content: center;
-  padding: 2px 0;
+  padding: 1px 0;
 }
 
 .collapsed-nav-btn {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: var(--cms-radius-sm) !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
   color: var(--cms-sidenav-group-text) !important;
-  transition: var(--cms-transition) !important;
+  transition: background 0.18s, color 0.18s !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 
   &:hover {
     background: var(--cms-sidenav-hover) !important;
@@ -441,7 +459,7 @@
 }
 
 .collapsed-active {
-  background: var(--cms-sidenav-active-bg) !important;
+  background: rgba(var(--cms-primary-rgb), 0.12) !important;
   color: var(--cms-sidenav-active-text) !important;
 }
 
@@ -463,7 +481,7 @@
 }
 
 // ──────────────────────────────────────────────────
-// Navigation Groups — Expansion Panels
+// Navigation Groups — Expansion Panels (v2 aesthetic)
 // ──────────────────────────────────────────────────
 .nav-group {
   box-shadow: none !important;
@@ -471,20 +489,23 @@
   background: transparent !important;
 
   &::ng-deep .mat-expansion-panel-body {
-    padding: 0;
+    padding: 0 0 4px;
   }
 
   mat-expansion-panel-header {
     padding: 0 14px;
-    height: 44px !important;
+    height: 36px !important;
+    margin: 1px 8px;
+    border-radius: 10px;
+    transition: background 0.18s, color 0.18s;
 
     .nav-group-icon {
-      margin-right: 10px;
+      margin-right: 11px;
       color: var(--cms-sidenav-group-text);
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      transition: var(--cms-transition);
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      transition: color 0.18s;
     }
 
     mat-panel-title {
@@ -493,8 +514,13 @@
       justify-content: flex-start;
       color: var(--cms-sidenav-text) !important;
       font-size: 0.8125rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
+      font-weight: 400;
+      letter-spacing: 0;
+      transition: color 0.18s;
+    }
+
+    &::ng-deep .mat-expansion-indicator {
+      transform: scale(0.85);
     }
 
     &::ng-deep .mat-expansion-indicator::after {
@@ -505,7 +531,11 @@
       background: var(--cms-sidenav-hover) !important;
 
       .nav-group-icon {
-        color: var(--cms-sidenav-text);
+        color: var(--cms-sidenav-text-bright);
+      }
+
+      mat-panel-title {
+        color: var(--cms-sidenav-text-bright) !important;
       }
     }
   }
@@ -517,56 +547,60 @@
       }
       mat-panel-title {
         color: var(--cms-sidenav-text-bright) !important;
+        font-weight: 500;
       }
     }
   }
 
   mat-nav-list {
     padding-top: 0;
-    padding-bottom: 4px;
+    padding-bottom: 2px;
 
     a[mat-list-item] {
-      padding-left: 36px !important;
+      // Indent child items under the group icon
+      padding-left: 41px !important;
     }
   }
 }
 
 // ──────────────────────────────────────────────────
 // Top-Level Standalone Nav Items (Dashboard, Reports)
-// Match expansion panel header layout for consistent alignment
+// v2 aesthetic — same compact pill as expansion-panel header
 // ──────────────────────────────────────────────────
 .top-level-nav-item {
   display: flex;
   align-items: center;
   padding: 0 14px;
-  height: 44px;
+  height: 36px;
+  margin: 1px 8px;
+  border-radius: 10px;
   text-decoration: none;
   cursor: pointer;
-  transition: var(--cms-transition);
+  transition: background 0.18s, color 0.18s;
 
   .top-level-icon {
-    margin-right: 10px;
+    margin-right: 11px;
     color: var(--cms-sidenav-group-text);
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
-    transition: var(--cms-transition);
+    transition: color 0.18s;
   }
 
   .top-level-label {
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-weight: 400;
+    letter-spacing: 0;
     color: var(--cms-sidenav-text);
-    transition: var(--cms-transition);
+    transition: color 0.18s;
   }
 
   &:hover {
     background: var(--cms-sidenav-hover);
 
     .top-level-icon {
-      color: var(--cms-sidenav-text);
+      color: var(--cms-sidenav-text-bright);
     }
 
     .top-level-label {
@@ -575,58 +609,32 @@
   }
 
   &.top-level-active {
-    background: var(--cms-sidenav-active-bg);
-    position: relative;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 20px;
-      background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
-      border-radius: 0 3px 3px 0;
-    }
+    background: rgba(var(--cms-primary-rgb), 0.12);
 
     .top-level-icon {
       color: var(--cms-sidenav-active-text) !important;
     }
 
     .top-level-label {
-      color: var(--cms-sidenav-text-bright) !important;
+      color: var(--cms-sidenav-active-text) !important;
       font-weight: 600;
     }
   }
 }
 
 // ──────────────────────────────────────────────────
-// Active Link — Glowing accent
+// Active Link — soft-pill v2 aesthetic (no left bar)
 // ──────────────────────────────────────────────────
 .active-link {
-  background: var(--cms-sidenav-active-bg) !important;
-  border-radius: var(--cms-radius-sm) !important;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 20px;
-    background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
-    border-radius: 0 3px 3px 0;
-  }
+  background: rgba(var(--cms-primary-rgb), 0.12) !important;
+  border-radius: 10px !important;
 
   mat-icon[matListItemIcon] {
     color: var(--cms-sidenav-active-text) !important;
   }
 
   span[matListItemTitle] {
-    color: var(--cms-sidenav-text-bright) !important;
+    color: var(--cms-sidenav-active-text) !important;
     font-weight: 600 !important;
   }
 }
@@ -847,6 +855,27 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+  }
+}
+
+// ──────────────────────────────────────────────────
+// Sidenav badge pill — v2 ".nav-pill" aesthetic
+// Targets the mat-badge attached to enquiry list item.
+// ──────────────────────────────────────────────────
+.app-sidenav {
+  .mat-badge-small .mat-badge-content {
+    background: rgba(var(--cms-primary-rgb), 0.18) !important;
+    color: var(--cms-sidenav-active-text) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em;
+    border-radius: 999px !important;
+    min-width: 18px;
+    height: 16px !important;
+    line-height: 16px !important;
+    padding: 0 6px !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 }
 

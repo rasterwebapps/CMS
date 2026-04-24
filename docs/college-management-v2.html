@@ -519,6 +519,13 @@ body::after {
 .ptab.active { color: var(--a); font-weight: 600; }
 .ptab.active::after { transform: scaleX(1); }
 
+/* Fix: topbar and page-tabs use tinted background in light mode */
+[data-theme="light"] .topbar,
+[data-theme="light"] .page-tabs {
+  background: var(--bg0);
+  border-bottom-color: var(--line2);
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    CONTENT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
