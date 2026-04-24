@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,13 +17,15 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-document-submission-list',
   standalone: true,
   imports: [
+    FormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     CurrencyPipe,
-    PageHeaderComponent],
+    PageHeaderComponent,
+  ],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',
 })
@@ -33,25 +36,70 @@ export class DocumentSubmissionListComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(true);
-  protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
+  protected readonly enquiries = signal<Enquiry[]>([]);
+  protected readonly searchQuery = signal('');
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'programName', 'courseName', 'status', 'finalizedNetFee', 'enquiryDate', 'actions'];
+  protected readonly filteredData = computed(() => {
+    const q = this.searchQuery().toLowerCase().trim();
+    if (!q) return this.enquiries();
+    return this.enquiries().filter(
+      (e) =>
+        e.name.toLowerCase().includes(q) ||
+        (e.programName ?? '').toLowerCase().includes(q) ||
+        (e.courseName ?? '').toLowerCase().includes(q) ||
+        (e.phone ?? '').includes(q),
+    );
+  });
+
+  protected readonly feesPaidCount = computed(
+    () => this.enquiries().filter((e) => e.status === 'FEES_PAID').length,
+  );
+
+  protected readonly partiallyPaidCount = computed(
+    () => this.enquiries().filter((e) => e.status === 'PARTIALLY_PAID').length,
+  );
+
+  // ── Column visibility ─────────────────────────────────────────────────────
+  protected readonly ALL_COLS = [
+    'name',
+    'programName',
+    'courseName',
+    'status',
+    'finalizedNetFee',
+    'enquiryDate',
+    'actions',
+  ];
   protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name',
+    name: 'Student',
     programName: 'Program',
     courseName: 'Course',
     status: 'Status',
     finalizedNetFee: 'Net Fee',
-    enquiryDate: 'Enquiry Date',
+    enquiryDate: 'Date',
     actions: 'Actions',
   };
   private readonly COLS_KEY = 'document-submission-list-cols';
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly displayedColumns = computed(() =>
+    this.ALL_COLS.filter((c) => this._visibleCols().has(c)),
+  );
 
   protected isAdminOrFrontOffice(): boolean {
-    return this.authService.hasRole('ROLE_ADMIN') || this.authService.hasRole('ROLE_FRONT_OFFICE');
+    return (
+      this.authService.hasRole('ROLE_ADMIN') ||
+      this.authService.hasRole('ROLE_FRONT_OFFICE')
+    );
+  }
+
+  protected initials(name: string): string {
+    return (
+      (name ?? '')
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase() || '?'
+    );
   }
 
   ngOnInit(): void {
@@ -67,21 +115,27 @@ export class DocumentSubmissionListComponent implements OnInit {
   }
 
   protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
+    this._visibleCols.update((s) => {
       const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
+      if (next.size > 1 && next.has(col)) {
+        next.delete(col);
+      } else {
+        next.add(col);
+      }
       localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
       return next;
     });
   }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
+  protected isColumnVisible(col: string): boolean {
+    return this._visibleCols().has(col);
+  }
 
   private load(): void {
     this.loading.set(true);
     this.enquiryService.getDocumentPending().subscribe({
       next: (enquiries) => {
-        this.dataSource.data = enquiries;
+        this.enquiries.set(enquiries);
         this.loading.set(false);
       },
       error: () => {

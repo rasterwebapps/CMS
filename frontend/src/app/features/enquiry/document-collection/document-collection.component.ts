@@ -99,6 +99,13 @@ export class DocumentCollectionComponent implements OnInit {
     () => this.mandatorySatisfiedCount() === this.mandatoryTotal && !this.submitting(),
   );
 
+  protected readonly mandatoryRows = computed(() => this.rows().filter((r) => r.isMandatory));
+  protected readonly optionalRows = computed(() => this.rows().filter((r) => !r.isMandatory));
+
+  protected readonly mandatoryProgressPct = computed(() =>
+    Math.round((this.mandatorySatisfiedCount() / this.mandatoryTotal) * 100),
+  );
+
   /** Display label for the document type (e.g., TENTH_MARKSHEET → Tenth Marksheet). */
   protected formatDocType(type: string): string {
     return type
@@ -109,6 +116,28 @@ export class DocumentCollectionComponent implements OnInit {
 
   protected isAdminOrFrontOffice(): boolean {
     return this.authService.isAdmin() || this.authService.isFrontOffice();
+  }
+
+  protected initials(name: string): string {
+    return (
+      (name ?? '')
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase() || '?'
+    );
+  }
+
+  protected getDocumentIcon(type: string): string {
+    if (type.includes('MARKSHEET')) return 'school';
+    if (type.includes('PHOTO')) return 'face';
+    if (type.includes('AADHAR')) return 'badge';
+    if (type.includes('MEDICAL')) return 'medical_services';
+    if (type.includes('AFFIDAVIT') || type.includes('UNDERTAKING')) return 'gavel';
+    if (type.includes('TRANSFER')) return 'swap_horiz';
+    if (type.includes('MIGRATION')) return 'flight_takeoff';
+    return 'description';
   }
 
   ngOnInit(): void {

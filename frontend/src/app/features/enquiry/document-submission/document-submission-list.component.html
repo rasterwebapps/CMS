@@ -1,107 +1,202 @@
 <app-page-header
   title="Document Submission"
-  subtitle="Enquiries awaiting document submission (FEES_PAID or PARTIALLY_PAID)"
+  subtitle="Collect and verify documents from candidates who have completed fee payment"
 />
 
-<div class="command-bar">
-  <div class="command-bar__left">
-    @if (!loading()) {
-      <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} enquiries</span>
-    }
+@if (loading()) {
+  <div class="skeleton-screen">
+    <div class="skeleton-stats">
+      <div class="skeleton-chip"></div>
+      <div class="skeleton-chip"></div>
+      <div class="skeleton-chip"></div>
+    </div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-table">
+      @for (_ of [1, 2, 3, 4, 5]; track $index) {
+        <div class="skeleton-row"></div>
+      }
+    </div>
   </div>
-  <div class="command-bar__right">
-    <details class="col-toggle">
-      <summary class="btn-toolbar" aria-label="Toggle columns">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Columns
-      </summary>
-      <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-        @for (col of ALL_COLS; track col) {
-          <label class="col-toggle__item">
-            <input
-              type="checkbox"
-              class="col-toggle__checkbox"
-              [checked]="isColumnVisible(col)"
-              (change)="toggleColumn(col)"
-            />
-            {{ COLUMN_LABELS[col] }}
-          </label>
+} @else {
+  <!-- ── Stats Bar ─────────────────────────────── -->
+  <div class="stats-bar" aria-label="Summary statistics">
+    <div class="stat-chip">
+      <div class="stat-chip__icon stat-chip__icon--default">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="stat-chip__body">
+        <span class="stat-chip__value">{{ enquiries().length }}</span>
+        <span class="stat-chip__label">Total Pending</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-chip--green">
+      <div class="stat-chip__icon stat-chip__icon--green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="stat-chip__body">
+        <span class="stat-chip__value">{{ feesPaidCount() }}</span>
+        <span class="stat-chip__label">Fees Paid</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-chip--amber">
+      <div class="stat-chip__icon stat-chip__icon--amber">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="stat-chip__body">
+        <span class="stat-chip__value">{{ partiallyPaidCount() }}</span>
+        <span class="stat-chip__label">Partially Paid</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Command Bar ─────────────────────────────── -->
+  <div class="command-bar">
+    <div class="command-bar__left">
+      <div class="search-bar">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          type="search"
+          placeholder="Search by name, program, course or phone…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          aria-label="Search enquiries"
+        />
+        @if (searchQuery()) {
+          <button class="search-bar__clear" (click)="searchQuery.set('')" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         }
       </div>
-    </details>
+    </div>
+    <div class="command-bar__right">
+      <span class="count-badge" aria-live="polite">
+        @if (filteredData().length !== enquiries().length) {
+          {{ filteredData().length }} of {{ enquiries().length }}
+        } @else {
+          {{ enquiries().length }}
+        }
+      </span>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle column visibility">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
+    </div>
   </div>
-</div>
 
-@if (loading()) {
-  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
-} @else {
+  <!-- ── Table / Empty State ─────────────────────── -->
   <div class="list-page-container">
-    @if (dataSource.data.length === 0) {
+    @if (enquiries().length === 0) {
       <div class="empty-state">
-        <mat-icon class="empty-state__icon-mat">upload_file</mat-icon>
-        <p class="empty-state__text">No enquiries pending document submission</p>
-        <p class="empty-state__hint">Enquiries in FEES_PAID or PARTIALLY_PAID status will appear here</p>
+        <div class="empty-state__icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <p class="empty-state__text">No pending document submissions</p>
+        <p class="empty-state__hint">Enquiries in FEES_PAID or PARTIALLY_PAID status will appear here automatically.</p>
+      </div>
+    } @else if (filteredData().length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p class="empty-state__text">No matching results</p>
+        <p class="empty-state__hint">Try adjusting your search term.</p>
+        <button class="btn-ghost" style="margin-top: 12px" (click)="searchQuery.set('')">Clear search</button>
       </div>
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" class="modern-table">
+        <table mat-table [dataSource]="filteredData()" class="modern-table">
 
+          <!-- Student -->
           <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <th mat-header-cell *matHeaderCellDef>Student</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.name }}</span>
-              @if (row.phone) {
-                <span class="cell-sub">{{ row.phone }}</span>
-              }
+              <div class="student-cell">
+                <div class="avatar">{{ initials(row.name) }}</div>
+                <div class="student-cell__info">
+                  <span class="cell-name">{{ row.name }}</span>
+                  @if (row.phone) {
+                    <span class="cell-sub">{{ row.phone }}</span>
+                  }
+                </div>
+              </div>
             </td>
           </ng-container>
 
+          <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.programName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Course -->
           <ng-container matColumnDef="courseName">
             <th mat-header-cell *matHeaderCellDef>Course</th>
-            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.courseName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Status -->
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <th mat-header-cell *matHeaderCellDef>Payment Status</th>
             <td mat-cell *matCellDef="let row">
               <span
                 class="status-badge"
-                [class.status-active]="row.status === 'FEES_PAID'"
-                [class.status-pending]="row.status === 'PARTIALLY_PAID'"
-              >{{ row.status }}</span>
+                [class.status-badge--green]="row.status === 'FEES_PAID'"
+                [class.status-badge--amber]="row.status === 'PARTIALLY_PAID'"
+              >
+                <span class="status-badge__dot"></span>
+                {{ row.status === 'FEES_PAID' ? 'Fees Paid' : 'Partially Paid' }}
+              </span>
             </td>
           </ng-container>
 
+          <!-- Net Fee -->
           <ng-container matColumnDef="finalizedNetFee">
             <th mat-header-cell *matHeaderCellDef>Net Fee</th>
             <td mat-cell *matCellDef="let row">
               @if (row.finalizedNetFee) {
                 <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
               } @else {
-                <span>—</span>
+                <span class="cell-muted">—</span>
               }
             </td>
           </ng-container>
 
+          <!-- Enquiry Date -->
           <ng-container matColumnDef="enquiryDate">
-            <th mat-header-cell *matHeaderCellDef>Enquiry Date</th>
+            <th mat-header-cell *matHeaderCellDef>Date</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-date">{{ row.enquiryDate }}</span>
             </td>
           </ng-container>
 
+          <!-- Actions -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <th mat-header-cell *matHeaderCellDef class="col-actions"></th>
             <td mat-cell *matCellDef="let row">
               <div class="row-actions">
                 <button
-                  class="action-btn"
-                  matTooltip="View enquiry"
+                  class="icon-btn"
+                  matTooltip="View enquiry details"
                   (click)="viewEnquiry(row)"
                   aria-label="View enquiry"
                 >
@@ -109,12 +204,13 @@
                 </button>
                 @if (isAdminOrFrontOffice()) {
                   <button
-                    class="action-btn action-btn--primary"
-                    matTooltip="Collect documents"
+                    class="collect-btn"
+                    matTooltip="Open document collection"
                     (click)="collectDocuments(row)"
                     aria-label="Collect documents"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Collect Docs
                   </button>
                 }
               </div>
@@ -122,7 +218,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row" (click)="collectDocuments(row)"></tr>
         </table>
       </div>
     }
