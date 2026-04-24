@@ -81,21 +81,22 @@
 
 .app-container {
   // Fill the remaining viewport below the fixed toolbar (56 px).
-  // Focus mode uses the same height since the focus-header is rendered
-  // outside the container (same level as .app-toolbar).
   height: calc(100vh - 56px);
 
-  // When sidenav is collapsed, override the content margin
-  &.sidenav-collapsed {
+  // Let Angular Material manage content margins naturally in 'side' mode.
+  // We only add the transition so the reflow is animated.
+  .mat-sidenav-content {
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
+
+  // When hover-expanded the sidenav switches to 'over' mode, which removes
+  // Angular Material's margin push entirely.  Lock the content margin at the
+  // collapsed rail width (68 px) so the page does not jump on hover.
+  &.sidenav-hover-expanded {
     .mat-sidenav-content {
       margin-left: 68px !important;
     }
-  }
-
-  .mat-sidenav-content {
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    // Allow mat-sidenav-content to be the scroll container
-    overflow-y: auto;
   }
 }
 
@@ -122,6 +123,15 @@
     .sidenav-nav {
       padding: 8px 0;
     }
+  }
+
+  // ─── Hover-expanded overlay ───
+  // In 'over' mode AM positions the drawer absolutely; add a drop-shadow so
+  // the expanded panel looks elevated above the content behind it.
+  &.hover-expanded {
+    box-shadow: 4px 0 24px -4px rgba(0, 0, 0, 0.15),
+                1px 0 0 0 var(--cms-sidenav-border) !important;
+    z-index: 200 !important;
   }
 
   // ─── Floating circular collapse toggle (matches v2 reference .sb-toggle) ───

@@ -99,7 +99,7 @@
   [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
   [class.is-mobile]="isMobile()">
   <mat-sidenav
-    [mode]="isMobile() ? 'over' : 'side'"
+    [mode]="isMobile() ? 'over' : sidenavMode()"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
     class="app-sidenav"

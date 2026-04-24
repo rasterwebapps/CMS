@@ -101,6 +101,15 @@ export class App implements OnInit {
     () => this.sidenavCollapsed() && !this.hoverExpanded(),
   );
 
+  /**
+   * Use 'over' mode while hover-expanded so the sidenav floats above the
+   * content without triggering Angular Material's content-margin recalculation.
+   * In every other state 'side' mode handles margin naturally.
+   */
+  protected readonly sidenavMode = computed<'over' | 'side'>(() =>
+    this.hoverExpanded() && !this.isMobile() ? 'over' : 'side',
+  );
+
   protected readonly isMobile = this.responsiveService.isMobile;
 
   /** Current top-level section label derived from BreadcrumbService for the toolbar sub-label. */
