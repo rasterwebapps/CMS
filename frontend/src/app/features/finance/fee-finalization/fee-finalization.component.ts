@@ -15,8 +15,9 @@ import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
-interface YearFee {
-  yearNumber: number;
+interface SemesterFeeRow {
+  semesterNumber: number;
+  semesterLabel: string;
   amount: number;
 }
 
@@ -49,9 +50,8 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
-  protected readonly yearFees = signal<YearFee[]>([]);
+  protected readonly semesterFees = signal<SemesterFeeRow[]>([]);
 
-  /** Cross-field validator: discount must not exceed total fee. */
   private discountNotExceedTotalValidator(group: AbstractControl): ValidationErrors | null {
     const total = Number(group.get('totalFee')?.value) || 0;
     const discount = Number(group.get('discountAmount')?.value) || 0;
@@ -76,7 +76,17 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly netFee = computed(() => {
     const total = this.form.get('totalFee')?.value || 0;
     const discount = this.form.get('discountAmount')?.value || 0;
-    return total - discount;
+    return Math.max(0, total - discount);
+  });
+
+  protected readonly semesterTotal = computed(() =>
+    this.semesterFees().reduce((sum, s) => sum + (Number(s.amount) || 0), 0)
+  );
+
+  protected readonly semesterSumMismatch = computed(() => {
+    const net = this.netFee();
+    const sum = this.semesterTotal();
+    return net > 0 && Math.abs(sum - net) > 0.01;
   });
 
   ngOnInit(): void {
@@ -116,7 +126,6 @@ export class FeeFinalizationComponent implements OnInit {
   protected selectEnquiry(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
 
-    // Pre-populate form with enquiry data
     const totalFee = enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0;
     this.form.patchValue({
       totalFee,
@@ -124,22 +133,65 @@ export class FeeFinalizationComponent implements OnInit {
       discountReason: '',
     });
 
-    // Parse year-wise fees from enquiry
+    this.initSemesterFees(enquiry, totalFee);
+  }
+
+  private initSemesterFees(enquiry: Enquiry, totalFee: number): void {
+    // Use existing semester-wise data if already set on this enquiry
+    if (enquiry.semesterWiseFees) {
+      try {
+        const parsed = JSON.parse(enquiry.semesterWiseFees) as SemesterFeeRow[];
+        this.semesterFees.set(parsed);
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    // Derive number of semesters from year_wise_fees; default to 4 (2-year programme)
+    let numSemesters = 4;
     if (enquiry.yearWiseFees) {
       try {
-        const parsed = JSON.parse(enquiry.yearWiseFees) as YearFee[];
-        this.yearFees.set(parsed);
+        const years = JSON.parse(enquiry.yearWiseFees) as { yearNumber: number; amount: number }[];
+        if (years.length > 0) numSemesters = years.length * 2;
       } catch {
-        this.yearFees.set([]);
+        // default
       }
-    } else {
-      this.yearFees.set([]);
     }
+
+    // Build equal-split rows using net fee (discount is 0 at this point)
+    const perSemester = numSemesters > 0 ? Math.round((totalFee / numSemesters) * 100) / 100 : 0;
+    const rows: SemesterFeeRow[] = [];
+    for (let i = 1; i <= numSemesters; i++) {
+      rows.push({ semesterNumber: i, semesterLabel: `Semester ${i}`, amount: perSemester });
+    }
+    this.semesterFees.set(rows);
+  }
+
+  protected updateSemesterAmount(index: number, value: string): void {
+    const updated = [...this.semesterFees()];
+    updated[index] = { ...updated[index], amount: Number(value) || 0 };
+    this.semesterFees.set(updated);
+  }
+
+  /** Redistribute net fee equally across semesters. */
+  protected redistributeSemesters(): void {
+    const net = this.netFee();
+    const count = this.semesterFees().length;
+    if (count === 0 || net <= 0) return;
+    const perSem = Math.round((net / count) * 100) / 100;
+    this.semesterFees.set(
+      this.semesterFees().map((s, i) => ({
+        ...s,
+        // Last semester absorbs any rounding remainder
+        amount: i < count - 1 ? perSem : Math.round((net - perSem * (count - 1)) * 100) / 100,
+      }))
+    );
   }
 
   protected backToList(): void {
     this.selectedEnquiry.set(null);
-    this.yearFees.set([]);
+    this.semesterFees.set([]);
     this.form.reset({ totalFee: null, discountAmount: 0, discountReason: '' });
   }
 
@@ -152,16 +204,14 @@ export class FeeFinalizationComponent implements OnInit {
     if (!enquiry) return;
 
     const v = this.form.value;
-    const yearWiseFeesJson =
-      this.yearFees().length > 0
-        ? JSON.stringify(this.yearFees())
-        : undefined;
 
     const request: FeeFinalizationRequest = {
       totalFee: v.totalFee,
       discountAmount: v.discountAmount || undefined,
       discountReason: v.discountReason?.trim() || undefined,
-      yearWiseFees: yearWiseFeesJson,
+      semesterWiseFees: this.semesterFees().length > 0
+        ? JSON.stringify(this.semesterFees())
+        : undefined,
     };
 
     this.saving.set(true);
@@ -169,6 +219,7 @@ export class FeeFinalizationComponent implements OnInit {
       next: () => {
         this.toast.success('Fee finalized successfully');
         this.selectedEnquiry.set(null);
+        this.semesterFees.set([]);
         this.loadInterestedEnquiries();
         this.saving.set(false);
       },

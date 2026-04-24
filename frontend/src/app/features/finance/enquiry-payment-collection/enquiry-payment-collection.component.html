@@ -150,9 +150,58 @@
             </div>
           </div>
 
-          <!-- Year-wise Fee Status -->
-          @if (yearWiseFeeStatus(); as feeStatus) {
-            @if (feeStatus.yearBreakdown.length > 0) {
+          <!-- Semester-wise Fee Status (primary) -->
+          @if (feeStatus(); as fs) {
+            @if (fs.semesterBreakdown.length > 0) {
+              <h3 class="section-title">Semester-wise Fee Status</h3>
+
+              <!-- Payment progress summary -->
+              @if (fs.totalPaid > 0) {
+                <p class="paid-through-label">
+                  Total paid: <strong>{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</strong>
+                  &nbsp;·&nbsp; Outstanding: <strong>{{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</strong>
+                </p>
+              }
+
+              <div class="sem-status-table">
+                <div class="sem-status-header">
+                  <span>Semester</span>
+                  <span>Fee</span>
+                  <span>Paid</span>
+                  <span>Outstanding</span>
+                  <span>Status</span>
+                </div>
+                @for (sf of fs.semesterBreakdown; track sf.semesterNumber) {
+                  <div class="sem-status-row"
+                       [class.sem-status-row--paid]="sf.outstanding === 0"
+                       [class.sem-status-row--partial]="sf.paidAmount > 0 && sf.outstanding > 0"
+                       [class.sem-status-row--pending]="sf.paidAmount === 0">
+                    <span class="sem-label">{{ sf.semesterLabel }}</span>
+                    <span class="sem-fee">{{ sf.allocatedFee | currency:'INR':'₹':'1.0-0' }}</span>
+                    <span class="sem-paid">{{ sf.paidAmount | currency:'INR':'₹':'1.0-0' }}</span>
+                    <span class="sem-outstanding" [class.outstanding-zero]="sf.outstanding === 0">
+                      {{ sf.outstanding | currency:'INR':'₹':'1.0-0' }}
+                    </span>
+                    <span class="sem-badge"
+                          [class.sem-badge--paid]="sf.outstanding === 0"
+                          [class.sem-badge--partial]="sf.paidAmount > 0 && sf.outstanding > 0"
+                          [class.sem-badge--pending]="sf.paidAmount === 0">
+                      {{ sf.outstanding === 0 ? 'Paid' : sf.paidAmount > 0 ? 'Partial' : 'Pending' }}
+                    </span>
+                  </div>
+                }
+                <div class="sem-status-footer">
+                  <span>Total</span>
+                  <span>{{ fs.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-paid">{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-outstanding" [class.outstanding-zero]="fs.totalOutstanding === 0">
+                    {{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
+                  </span>
+                  <span></span>
+                </div>
+              </div>
+            } @else if (fs.yearBreakdown.length > 0) {
+              <!-- Fall-back: year-wise when no semester data -->
               <h3 class="section-title">Year-wise Fee Status</h3>
               <div class="year-status-table">
                 <div class="year-status-header">
@@ -161,7 +210,7 @@
                   <span>Paid</span>
                   <span>Outstanding</span>
                 </div>
-                @for (yf of feeStatus.yearBreakdown; track yf.yearNumber) {
+                @for (yf of fs.yearBreakdown; track yf.yearNumber) {
                   <div class="year-status-row" [class.year-status-row--paid]="yf.outstanding === 0" [class.year-status-row--partial]="yf.paidAmount > 0 && yf.outstanding > 0">
                     <span class="year-label">Year {{ yf.yearNumber }}</span>
                     <span class="year-fee">{{ yf.allocatedFee | currency:'INR':'₹':'1.0-0' }}</span>
@@ -173,10 +222,10 @@
                 }
                 <div class="year-status-footer">
                   <span>Total</span>
-                  <span>{{ feeStatus.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
-                  <span class="total-paid">{{ feeStatus.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
-                  <span class="total-outstanding" [class.outstanding-zero]="feeStatus.totalOutstanding === 0">
-                    {{ feeStatus.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
+                  <span>{{ fs.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-paid">{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="total-outstanding" [class.outstanding-zero]="fs.totalOutstanding === 0">
+                    {{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
                   </span>
                 </div>
               </div>
@@ -192,7 +241,7 @@
             <div class="field-group">
               <label for="epc-amount" class="field-label">Amount (₹) <span class="field-required">*</span></label>
               <input id="epc-amount" class="field-input" type="number" formControlName="amount" min="1" placeholder="0" [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
-              <p class="field-hint">Enter any amount from ₹1 to full outstanding balance</p>
+              <p class="field-hint">Enter any amount — payments fill semesters in order</p>
               @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
                 <p class="field-error">Valid amount is required</p>
               }

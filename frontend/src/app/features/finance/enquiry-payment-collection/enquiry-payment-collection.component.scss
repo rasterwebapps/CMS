@@ -76,7 +76,78 @@
 .summary-value { font-size: 0.875rem; font-weight: 600; }
 .discount-value { color: var(--cms-success); }
 
-// Year-wise fee status table
+// Paid-through summary label
+.paid-through-label {
+  font-size: 0.8125rem; margin: 0 0 10px; color: var(--cms-text-muted);
+  strong { color: var(--cms-text-default); }
+}
+
+// Semester-wise fee status table
+.sem-status-table {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  font-size: 0.8125rem;
+}
+
+.sem-status-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+  background: var(--cms-bg-muted);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.sem-status-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cms-border-light);
+  align-items: center;
+  transition: background 0.15s;
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--cms-bg-muted); }
+
+  &--paid .sem-label { color: var(--cms-success); font-weight: 600; }
+  &--partial .sem-label { color: var(--cms-warning, #f59e0b); font-weight: 600; }
+  &--pending .sem-label { color: var(--cms-text-muted); }
+}
+
+.sem-label { font-weight: 600; }
+.sem-fee { color: var(--cms-text-default); }
+.sem-paid { color: var(--cms-success); font-weight: 600; }
+.sem-outstanding { color: var(--cms-danger, #ef4444); font-weight: 600; }
+
+.sem-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+
+  &--paid { background: color-mix(in srgb, var(--cms-success) 12%, transparent); color: var(--cms-success); }
+  &--partial { background: color-mix(in srgb, var(--cms-warning, #f59e0b) 12%, transparent); color: var(--cms-warning, #d97706); }
+  &--pending { background: var(--cms-bg-muted); color: var(--cms-text-muted); }
+}
+
+.sem-status-footer {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+  padding: 10px 12px;
+  background: var(--cms-bg-muted);
+  font-weight: 700;
+  border-top: 2px solid var(--cms-border-default);
+}
+
+// Year-wise fee status table (fallback)
 .year-status-table {
   border: 1px solid var(--cms-border-default);
   border-radius: 10px;

@@ -30,6 +30,7 @@ public record EnquiryResponse(
     BigDecimal referralAdditionalAmount,
     BigDecimal finalCalculatedFee,
     String yearWiseFees,
+    String semesterWiseFees,
     StudentType studentType,
     BigDecimal finalizedTotalFee,
     BigDecimal finalizedDiscountAmount,

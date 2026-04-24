@@ -21,6 +21,7 @@ export interface Enquiry {
   referralAdditionalAmount: number | null;
   finalCalculatedFee: number | null;
   yearWiseFees: string | null;
+  semesterWiseFees: string | null;
   studentType: 'DAY_SCHOLAR' | 'HOSTELER' | null;
   finalizedTotalFee: number | null;
   finalizedDiscountAmount: number | null;
@@ -57,6 +58,7 @@ export interface FeeFinalizationRequest {
   discountAmount?: number;
   discountReason?: string;
   yearWiseFees?: string;
+  semesterWiseFees?: string;
 }
 
 export interface FeeFinalizationResponse {
@@ -211,10 +213,19 @@ export interface YearFeeStatus {
   outstanding: number;
 }
 
+export interface SemesterFeeStatus {
+  semesterNumber: number;
+  semesterLabel: string;
+  allocatedFee: number;
+  paidAmount: number;
+  outstanding: number;
+}
+
 export interface EnquiryYearWiseFeeStatusResponse {
   enquiryId: number;
   totalFee: number;
   totalPaid: number;
   totalOutstanding: number;
   yearBreakdown: YearFeeStatus[];
+  semesterBreakdown: SemesterFeeStatus[];
 }

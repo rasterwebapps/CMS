@@ -91,6 +91,10 @@ public class Enquiry {
     @Column(name = "year_wise_fees", columnDefinition = "TEXT")
     private String yearWiseFees;
 
+    // Semester-wise fee breakdown stored as JSON (set at fee finalization)
+    @Column(name = "semester_wise_fees", columnDefinition = "TEXT")
+    private String semesterWiseFees;
+
     // Admin fee finalization fields
     @Column(name = "finalized_total_fee", precision = 12, scale = 2)
     private BigDecimal finalizedTotalFee;
@@ -281,6 +285,14 @@ public class Enquiry {
 
     public void setYearWiseFees(String yearWiseFees) {
         this.yearWiseFees = yearWiseFees;
+    }
+
+    public String getSemesterWiseFees() {
+        return semesterWiseFees;
+    }
+
+    public void setSemesterWiseFees(String semesterWiseFees) {
+        this.semesterWiseFees = semesterWiseFees;
     }
 
     public BigDecimal getFinalizedTotalFee() {

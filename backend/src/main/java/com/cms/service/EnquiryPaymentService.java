@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
+import com.cms.dto.EnquiryYearWiseFeeStatusResponse.SemesterFeeStatus;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse.YearFeeStatus;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
@@ -31,6 +32,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class EnquiryPaymentService {
 
     private static final TypeReference<List<YearWiseFeeEntry>> YEAR_FEES_TYPE =
+        new TypeReference<>() {};
+
+    private static final TypeReference<List<SemesterWiseFeeEntry>> SEMESTER_FEES_TYPE =
         new TypeReference<>() {};
 
     private final EnquiryPaymentRepository enquiryPaymentRepository;
@@ -129,34 +133,71 @@ public class EnquiryPaymentService {
         BigDecimal totalPaid = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
             .orElse(BigDecimal.ZERO);
 
+        // --- Year-wise breakdown (backward-compatible) ---
         List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
         yearEntries.sort(Comparator.comparingInt(YearWiseFeeEntry::yearNumber));
 
-        BigDecimal totalFee = yearEntries.stream()
+        BigDecimal yearTotalFee = yearEntries.stream()
             .map(YearWiseFeeEntry::amount)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Waterfall allocation: fill year 1 first, then year 2, etc.
-        BigDecimal remaining = totalPaid;
-        List<YearFeeStatus> breakdown = new ArrayList<>();
+        BigDecimal yearRemaining = totalPaid;
+        List<YearFeeStatus> yearBreakdown = new ArrayList<>();
         for (YearWiseFeeEntry entry : yearEntries) {
             BigDecimal allocated = entry.amount();
-            BigDecimal paid = remaining.min(allocated);
+            BigDecimal paid = yearRemaining.min(allocated);
             BigDecimal outstanding = allocated.subtract(paid);
-            breakdown.add(new YearFeeStatus(entry.yearNumber(), allocated, paid, outstanding));
-            remaining = remaining.subtract(paid);
+            yearBreakdown.add(new YearFeeStatus(entry.yearNumber(), allocated, paid, outstanding));
+            yearRemaining = yearRemaining.subtract(paid);
+        }
+
+        // --- Semester-wise breakdown (primary when available) ---
+        List<SemesterWiseFeeEntry> semesterEntries = parseSemesterWiseFees(enquiry.getSemesterWiseFees());
+        semesterEntries.sort(Comparator.comparingInt(SemesterWiseFeeEntry::semesterNumber));
+
+        BigDecimal totalFee;
+        BigDecimal semesterRemaining = totalPaid;
+        List<SemesterFeeStatus> semesterBreakdown = new ArrayList<>();
+
+        if (!semesterEntries.isEmpty()) {
+            totalFee = semesterEntries.stream()
+                .map(SemesterWiseFeeEntry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            for (SemesterWiseFeeEntry entry : semesterEntries) {
+                BigDecimal allocated = entry.amount();
+                BigDecimal paid = semesterRemaining.min(allocated);
+                BigDecimal outstanding = allocated.subtract(paid);
+                semesterBreakdown.add(new SemesterFeeStatus(
+                    entry.semesterNumber(), entry.semesterLabel(), allocated, paid, outstanding));
+                semesterRemaining = semesterRemaining.subtract(paid);
+            }
+        } else {
+            totalFee = yearTotalFee;
         }
 
         BigDecimal totalOutstanding = totalFee.subtract(totalPaid.min(totalFee));
-        return new EnquiryYearWiseFeeStatusResponse(enquiryId, totalFee, totalPaid, totalOutstanding, breakdown);
+        return new EnquiryYearWiseFeeStatusResponse(
+            enquiryId, totalFee, totalPaid, totalOutstanding, yearBreakdown, semesterBreakdown);
     }
 
-    private List<YearWiseFeeEntry> parseYearWiseFees(String yearWiseFeesJson) {
-        if (yearWiseFeesJson == null || yearWiseFeesJson.isBlank()) {
+    private List<YearWiseFeeEntry> parseYearWiseFees(String json) {
+        if (json == null || json.isBlank()) {
             return new ArrayList<>();
         }
         try {
-            return objectMapper.readValue(yearWiseFeesJson, YEAR_FEES_TYPE);
+            return objectMapper.readValue(json, YEAR_FEES_TYPE);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private List<SemesterWiseFeeEntry> parseSemesterWiseFees(String json) {
+        if (json == null || json.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(json, SEMESTER_FEES_TYPE);
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -180,4 +221,6 @@ public class EnquiryPaymentService {
     }
 
     record YearWiseFeeEntry(int yearNumber, BigDecimal amount) {}
+
+    record SemesterWiseFeeEntry(int semesterNumber, String semesterLabel, BigDecimal amount) {}
 }
