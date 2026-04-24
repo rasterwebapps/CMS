@@ -1,2 +1,61 @@
-// Faculty list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// fac-card__* card content styles for Faculty list
+.fac-card__code {
+  margin-bottom: 6px;
+}
+
+.fac-card__name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.fac-card__designation {
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.fac-card__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+// Faculty status badge colour overrides on cards
+.fac-card__status {
+  &.fac-status--active {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+  }
+
+  &.fac-status--leave {
+    background: #fef9c3;
+    color: #854d0e;
+    border-color: #fde68a;
+  }
+
+  &.fac-status--inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #e5e7eb;
+  }
+}
+
+// btn-ghost utility used for "Clear Filters" in the toolbar
+.btn-ghost {
+  padding: 6px 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--surface-hover, #f1f5f9);
+    color: var(--text, #1e293b);
+  }
+}

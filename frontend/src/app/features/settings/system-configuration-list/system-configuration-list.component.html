@@ -1,75 +1,102 @@
-<div class="list-page">
-  <app-page-header title="System Configuration" subtitle="Manage application settings, data types, and access controls">
-    <button actions class="btn-primary" routerLink="/settings/new" aria-label="Add new configuration">
+<div class="mlp-page">
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">System <em>Configuration</em></h1>
+      <p class="mlp-sub">Manage application settings, data types, and access controls</p>
+      <div class="mlp-meta">
+        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ totalCount() }} total</span>
+        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--green"></span>{{ editableCount() }} editable</span>
+      </div>
+    </div>
+    <button class="btn-primary" routerLink="/settings/new" aria-label="Add new configuration">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Configuration
     </button>
-  </app-page-header>
+  </div>
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search settings..."
-          type="text"
-          aria-label="Search settings"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          configurations
-        </span>
+  <!-- Toolbar -->
+  <div class="mlp-toolbar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search settings..."
+        type="text"
+        aria-label="Search settings"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
-    <div class="command-bar__right">
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading settings"></mat-spinner>
-      </div>
+  <!-- Loading skeleton -->
+  @if (loading()) {
+    <div class="mlp-loading-grid" aria-label="Loading configurations" aria-busy="true">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  } @else if (viewMode() === 'card') {
+    @if (filteredSettings().length === 0) {
+      <cms-empty-state
+        icon="settings"
+        [title]="searchValue() ? 'No results found' : 'No configurations yet'"
+        [subtitle]="searchValue() ? 'Try a different search term' : 'Add the first system configuration'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Configuration'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
     } @else {
+      <div class="mlp-cards-grid">
+        @for (item of filteredSettings(); track item.id) {
+          <div class="mlp-card anim-rise">
+            <div class="mlp-card__actions">
+              <button class="mlp-act-btn" matTooltip="Edit" (click)="edit(item)" aria-label="Edit configuration">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="delete(item)" aria-label="Delete configuration">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="cfg-card__code">
+              <span class="code-chip">{{ item.configKey }}</span>
+            </div>
+            <div class="cfg-card__value cell-name">{{ item.configValue }}</div>
+            <div class="cfg-card__meta-row">
+              <span class="cms-badge cms-badge--primary">{{ item.category }}</span>
+              <span class="cms-badge cms-badge--gray">{{ item.dataType }}</span>
+              <span class="status-badge" [class.status-active]="item.isEditable" [class.status-inactive]="!item.isEditable">
+                {{ item.isEditable ? 'Editable' : 'Locked' }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <!-- Table view -->
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
           <ng-container matColumnDef="configKey">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-code">{{ row.configKey }}</span>
+              <span class="code-chip">{{ row.configKey }}</span>
             </td>
           </ng-container>
 
@@ -117,31 +144,28 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No settings found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No system configurations available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="settings"
+                [title]="searchValue() ? 'No results found' : 'No configurations yet'"
+                [subtitle]="searchValue() ? 'Try a different search term' : 'Add the first system configuration'"
+                [actionLabel]="searchValue() ? 'Clear Search' : 'Add Configuration'"
+                (actionClick)="handleEmptyAction()"
+              ></cms-empty-state>
             </td>
           </tr>
         </table>
       </div>
 
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
-      </div>
-    }
-  </div>
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
 </div>

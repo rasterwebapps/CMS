@@ -1,30 +1,26 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EquipmentService } from '../equipment.service';
 import { Equipment } from '../equipment.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-equipment-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
+    CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
-    RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
+    RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
+    MatDialogModule, MatTooltipModule,
+  ],
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',
 })
@@ -34,6 +30,8 @@ export class EquipmentListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  private readonly VIEW_MODE_KEY = 'equipment-view-mode';
+
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -41,23 +39,26 @@ export class EquipmentListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name',
-    model: 'Model',
-    labName: 'Lab',
-    category: 'Category',
-    status: 'Status',
-    purchaseDate: 'Purchase Date',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'equipment-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly displayedColumns = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Equipment>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
+
+  private readonly allEquipment = signal<Equipment[]>([]);
+
+  protected readonly filteredEquipment = computed(() => {
+    const q = this.searchValue().trim().toLowerCase();
+    return this.allEquipment().filter(item =>
+      !q ||
+      item.name.toLowerCase().includes(q) ||
+      (item.model ?? '').toLowerCase().includes(q) ||
+      item.labName.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q),
+    );
+  });
+
+  protected readonly totalCount = computed(() => this.allEquipment().length);
 
   ngOnInit(): void { this.load(); }
 
@@ -68,34 +69,37 @@ export class EquipmentListComponent implements OnInit {
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
-  protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
+  protected clearFilter(): void {
+    this.searchValue.set('');
+    this.dataSource.filter = '';
+  }
 
-  protected edit(item: Equipment): void { void this.router.navigate(['/equipment', item.id, 'edit']); }
+  protected setViewMode(mode: 'card' | 'table'): void {
+    this.viewMode.set(mode);
+    localStorage.setItem(this.VIEW_MODE_KEY, mode);
+  }
+
+  private loadViewMode(): 'card' | 'table' {
+    return localStorage.getItem(this.VIEW_MODE_KEY) === 'table' ? 'table' : 'card';
+  }
+
+  protected handleEmptyAction(): void {
+    if (this.searchValue()) {
+      this.clearFilter();
+    } else {
+      void this.router.navigate(['/equipment/new']);
+    }
+  }
+
+  protected edit(item: Equipment): void {
+    void this.router.navigate(['/equipment', item.id, 'edit']);
+  }
 
   protected delete(item: Equipment): void {
     this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Delete Equipment', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
-
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private doDelete(item: Equipment): void {
     this.loading.set(true);
@@ -109,6 +113,7 @@ export class EquipmentListComponent implements OnInit {
     this.loading.set(true);
     this.equipmentService.getAll().subscribe({
       next: (data) => {
+        this.allEquipment.set(data);
         this.dataSource.data = data;
         this.loading.set(false);
       },

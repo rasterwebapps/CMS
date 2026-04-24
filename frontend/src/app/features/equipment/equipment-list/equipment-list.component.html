@@ -1,69 +1,98 @@
-<div class="list-page">
-  <app-page-header title="Equipment" subtitle="Track lab equipment, models, and maintenance status">
-    <button actions class="btn-primary" routerLink="/equipment/new" aria-label="Add new equipment">
+<div class="mlp-page">
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Lab <em>Equipment</em></h1>
+      <p class="mlp-sub">Track lab equipment, models, and maintenance status</p>
+      <div class="mlp-meta">
+        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ totalCount() }} total</span>
+      </div>
+    </div>
+    <button class="btn-primary" routerLink="/equipment/new" aria-label="Add new equipment">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Equipment
     </button>
-  </app-page-header>
+  </div>
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search equipment..."
-          type="text"
-          aria-label="Search equipment"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          equipment
-        </span>
+  <!-- Toolbar -->
+  <div class="mlp-toolbar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search equipment..."
+        type="text"
+        aria-label="Search equipment"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
-    <div class="command-bar__right">
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
+    <div class="mlp-seg" role="group" aria-label="View mode">
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Table
+      </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading equipment"></mat-spinner>
-      </div>
+  <!-- Loading skeleton -->
+  @if (loading()) {
+    <div class="mlp-loading-grid" aria-label="Loading equipment" aria-busy="true">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  } @else if (viewMode() === 'card') {
+    @if (filteredEquipment().length === 0) {
+      <cms-empty-state
+        icon="build"
+        [title]="searchValue() ? 'No results found' : 'No equipment yet'"
+        [subtitle]="searchValue() ? 'Try a different search term' : 'Add the first lab equipment'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Equipment'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
     } @else {
+      <div class="mlp-cards-grid">
+        @for (item of filteredEquipment(); track item.id) {
+          <div class="mlp-card anim-rise">
+            <div class="mlp-card__actions">
+              <button class="mlp-act-btn" matTooltip="Edit" (click)="edit(item)" aria-label="Edit equipment">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="delete(item)" aria-label="Delete equipment">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="eq-card__name cell-name">{{ item.name }}</div>
+            @if (item.model) {
+              <div class="eq-card__model cell-muted">{{ item.model }}</div>
+            }
+            <div class="eq-card__meta-row">
+              <span class="cms-badge cms-badge--primary">{{ item.category }}</span>
+              <span class="cms-badge cms-badge--gray">{{ item.labName }}</span>
+            </div>
+            <div class="eq-card__status">
+              <cms-status-badge [status]="item.status"></cms-status-badge>
+            </div>
+            @if (item.purchaseDate) {
+              <div class="cell-date eq-card__date">{{ item.purchaseDate }}</div>
+            }
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <!-- Table view -->
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
           <ng-container matColumnDef="name">
@@ -75,7 +104,7 @@
 
           <ng-container matColumnDef="model">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Model</th>
-            <td mat-cell *matCellDef="let row">{{ row.model }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.model || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="labName">
@@ -116,31 +145,28 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No equipment found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No equipment available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="build"
+                [title]="searchValue() ? 'No results found' : 'No equipment yet'"
+                [subtitle]="searchValue() ? 'Try a different search term' : 'Add the first lab equipment'"
+                [actionLabel]="searchValue() ? 'Clear Search' : 'Add Equipment'"
+                (actionClick)="handleEmptyAction()"
+              ></cms-empty-state>
             </td>
           </tr>
         </table>
       </div>
 
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
-          showFirstLastButtons
-        ></mat-paginator>
-      </div>
-    }
-  </div>
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
 </div>

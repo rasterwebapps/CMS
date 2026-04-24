@@ -245,3 +245,60 @@
 |-------------|--------------------------------------------------|
 | **Action**  | View inventory list when no items exist          |
 | **Expected**| Table shows "No data available" message          |
+
+---
+
+## TC-EQUIP-MLP-001: MLP card/table view toggle persists preference
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_LAB_INCHARGE
+- Navigate to Equipment list page
+
+**Steps:**
+1. Observe default view is card mode
+2. Click the "Table" segment button
+3. Verify list switches to table view
+4. Refresh the page
+5. Verify table view is still active (localStorage key `equipment-view-mode`)
+
+**Expected Result:**
+- View mode persists across page refreshes
+
+**Status:** NOT TESTED
+
+---
+
+## TC-EQUIP-MLP-002: MLP card view shows name, model, category, lab, status, and purchase date
+
+**Preconditions:**
+- At least one equipment item exists with all fields populated
+
+**Steps:**
+1. Navigate to Equipment list (card view)
+2. Observe a card
+
+**Expected Result:**
+- Equipment name is prominent (bold)
+- Model shown in muted text below name
+- category badge (blue) and labName badge (gray) shown
+- Status rendered via `cms-status-badge`
+- purchaseDate shown at the bottom if present
+
+**Status:** NOT TESTED
+
+---
+
+## TC-EQUIP-MLP-003: MLP search filters equipment by name, model, lab, and category
+
+**Preconditions:**
+- Multiple equipment items exist
+
+**Steps:**
+1. Navigate to Equipment list (card view)
+2. Type part of a model name into the search bar
+
+**Expected Result:**
+- Cards filtered in real-time; only matching items shown
+- Empty state shown when no match
+
+**Status:** NOT TESTED
