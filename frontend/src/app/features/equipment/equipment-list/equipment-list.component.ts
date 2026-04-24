@@ -39,7 +39,7 @@ export class EquipmentListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
+  protected readonly displayedColumns: readonly string[] = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Equipment>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

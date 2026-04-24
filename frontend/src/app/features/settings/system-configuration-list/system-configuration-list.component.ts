@@ -37,7 +37,7 @@ export class SystemConfigurationListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['configKey', 'configValue', 'category', 'dataType', 'isEditable', 'actions'];
+  protected readonly displayedColumns: readonly string[] = ['configKey', 'configValue', 'category', 'dataType', 'isEditable', 'actions'];
   protected readonly dataSource = new MatTableDataSource<SystemConfiguration>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

@@ -46,7 +46,7 @@ export class FacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'actions'];
+  protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
