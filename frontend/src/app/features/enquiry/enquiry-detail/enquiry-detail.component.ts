@@ -7,7 +7,6 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { EnquiryService } from '../enquiry.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import {
@@ -30,9 +29,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatTooltipModule,
     CurrencyPipe,
     DatePipe,
-    PageHeaderComponent,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent],
+    CmsSkeletonComponent,
+  ],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
 })
@@ -58,6 +57,16 @@ export class EnquiryDetailComponent implements OnInit {
   ];
 
   // Quick-stat computed signals (Phase 3 §2.3 / §2.8)
+  protected readonly initials = computed(() => {
+    const name = this.enquiry()?.name ?? '';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join('');
+  });
+
   protected readonly daysActive = computed(() => {
     const e = this.enquiry();
     if (!e?.enquiryDate) return 0;
