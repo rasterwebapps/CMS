@@ -65,6 +65,15 @@ export class AdmissionFormComponent implements OnInit {
     'AB_POSITIVE', 'AB_NEGATIVE',
   ] as const;
 
+  private static readonly FROM_ENQUIRY_CONTROLS: ReadonlyArray<string> = [
+    'enquiryId', 'firstName', 'lastName', 'email', 'semester', 'admissionDate',
+  ];
+  private static readonly MANUAL_CONTROLS: ReadonlyArray<string> = ['studentId'];
+  private static readonly MODE_TOGGLED_CONTROLS: ReadonlyArray<string> = [
+    ...AdmissionFormComponent.FROM_ENQUIRY_CONTROLS,
+    ...AdmissionFormComponent.MANUAL_CONTROLS,
+  ];
+
   protected readonly qualColumns = ['qualificationType', 'schoolName', 'percentage', 'monthAndYearOfPassing', 'actions'];
 
   protected readonly form: FormGroup = this.fb.group({
@@ -233,7 +242,7 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('admissionDate')?.clearValidators();
       this.form.get('studentId')?.setValidators([Validators.required]);
     }
-    ['enquiryId', 'firstName', 'lastName', 'email', 'semester', 'admissionDate', 'studentId'].forEach((ctrl) => {
+    AdmissionFormComponent.MODE_TOGGLED_CONTROLS.forEach((ctrl) => {
       this.form.get(ctrl)?.updateValueAndValidity({ emitEvent: false });
     });
   }
@@ -255,24 +264,28 @@ export class AdmissionFormComponent implements OnInit {
 
   private submitManual(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    // Strip out from-enquiry-only fields before sending to the admission API.
-    const {
-      qualifications,
-      enquiryId: _eq, firstName: _fn, lastName: _ln, email: _em, phone: _ph,
-      semester: _se, admissionDate: _ad, dateOfBirth: _dob, gender: _ge,
-      aadharNumber: _aa, nationality: _na, religion: _re, communityCategory: _cc,
-      caste: _ca, bloodGroup: _bg, fatherName: _fa, motherName: _mo, parentMobile: _pm,
-      address: _addr,
-      ...admissionData
-    } = this.form.value as Record<string, unknown>;
+    // Pick only the fields relevant to AdmissionRequest; ignore from-enquiry-only fields.
+    const v = this.form.value as Record<string, unknown>;
+    const admissionData: AdmissionRequest = {
+      studentId: v['studentId'] as number,
+      academicYearFrom: v['academicYearFrom'] as number,
+      academicYearTo: v['academicYearTo'] as number,
+      applicationDate: v['applicationDate'] as string,
+      status: v['status'] as string | undefined,
+      declarationPlace: v['declarationPlace'] as string | undefined,
+      declarationDate: v['declarationDate'] as string | undefined,
+      parentConsentGiven: v['parentConsentGiven'] as boolean | undefined,
+      applicantConsentGiven: v['applicantConsentGiven'] as boolean | undefined,
+    };
+    const qualifications = v['qualifications'] as unknown[] ?? [];
 
     const save$ = this.isEdit()
-      ? this.admissionService.update(id, admissionData as unknown as AdmissionRequest)
-      : this.admissionService.create(admissionData as unknown as AdmissionRequest);
+      ? this.admissionService.update(id, admissionData)
+      : this.admissionService.create(admissionData);
 
     save$.subscribe({
       next: (admission) => {
-        const quals: unknown[] = (qualifications as unknown[]) ?? [];
+        const quals: unknown[] = qualifications;
         if (!this.isEdit() && quals.length > 0) {
           let remaining = quals.length;
           quals.forEach((q) => {
@@ -296,13 +309,12 @@ export class AdmissionFormComponent implements OnInit {
     const v = this.form.value as Record<string, unknown> & { address?: Record<string, unknown> };
     const addr = (v['address'] as Record<string, unknown>) ?? {};
     const hasAddress = Object.values(addr).some((x) => x !== '' && x !== null && x !== undefined);
-    const nullable = <T>(value: T): T | undefined => (value === '' || value === null ? undefined : value);
 
     return {
       firstName: v['firstName'] as string,
       lastName: v['lastName'] as string,
       email: v['email'] as string,
-      phone: nullable(v['phone'] as string),
+      phone: this.nullableStr(v['phone'] as string) ?? undefined,
       semester: v['semester'] as number,
       admissionDate: v['admissionDate'] as string,
       academicYearFrom: v['academicYearFrom'] as number,
@@ -310,30 +322,40 @@ export class AdmissionFormComponent implements OnInit {
       applicationDate: v['applicationDate'] as string,
       parentConsentGiven: v['parentConsentGiven'] as boolean,
       applicantConsentGiven: v['applicantConsentGiven'] as boolean,
-      dateOfBirth: nullable(v['dateOfBirth'] as string) ?? null,
-      gender: (nullable(v['gender']) as EnquiryConversionRequest['gender']) ?? null,
-      aadharNumber: nullable(v['aadharNumber'] as string) ?? null,
-      nationality: nullable(v['nationality'] as string) ?? null,
-      religion: nullable(v['religion'] as string) ?? null,
-      communityCategory: (nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory']) ?? null,
-      caste: nullable(v['caste'] as string) ?? null,
-      bloodGroup: (nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup']) ?? null,
-      fatherName: nullable(v['fatherName'] as string) ?? null,
-      motherName: nullable(v['motherName'] as string) ?? null,
-      parentMobile: nullable(v['parentMobile'] as string) ?? null,
+      dateOfBirth: this.nullableStr(v['dateOfBirth'] as string),
+      gender: this.nullable(v['gender']) as EnquiryConversionRequest['gender'],
+      aadharNumber: this.nullableStr(v['aadharNumber'] as string),
+      nationality: this.nullableStr(v['nationality'] as string),
+      religion: this.nullableStr(v['religion'] as string),
+      communityCategory: this.nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory'],
+      caste: this.nullableStr(v['caste'] as string),
+      bloodGroup: this.nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup'],
+      fatherName: this.nullableStr(v['fatherName'] as string),
+      motherName: this.nullableStr(v['motherName'] as string),
+      parentMobile: this.nullableStr(v['parentMobile'] as string),
       address: hasAddress
         ? {
-            postalAddress: nullable(addr['postalAddress'] as string) ?? null,
-            street: nullable(addr['street'] as string) ?? null,
-            city: nullable(addr['city'] as string) ?? null,
-            district: nullable(addr['district'] as string) ?? null,
-            state: nullable(addr['state'] as string) ?? null,
-            pincode: nullable(addr['pincode'] as string) ?? null,
+            postalAddress: this.nullableStr(addr['postalAddress'] as string),
+            street: this.nullableStr(addr['street'] as string),
+            city: this.nullableStr(addr['city'] as string),
+            district: this.nullableStr(addr['district'] as string),
+            state: this.nullableStr(addr['state'] as string),
+            pincode: this.nullableStr(addr['pincode'] as string),
           }
         : null,
-      declarationPlace: nullable(v['declarationPlace'] as string) ?? null,
-      declarationDate: nullable(v['declarationDate'] as string) ?? null,
+      declarationPlace: this.nullableStr(v['declarationPlace'] as string),
+      declarationDate: this.nullableStr(v['declarationDate'] as string),
     };
+  }
+
+  /** Returns null when value is an empty string or null; otherwise returns the value. */
+  private nullable<T>(value: T): T | null {
+    return value === '' || value === null ? null : value;
+  }
+
+  /** Typed convenience wrapper for string fields. */
+  private nullableStr(value: string | null | undefined): string | null {
+    return value === '' || value == null ? null : value;
   }
 
   private finish(): void {
