@@ -577,6 +577,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'enquiries/admission-completion',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enquiry/admission-completion/admission-completion-list.component').then(
+        (m) => m.AdmissionCompletionListComponent
+      ),
+  },
+  {
     path: 'enquiries/new',
     canActivate: [authGuard],
     loadComponent: () =>
