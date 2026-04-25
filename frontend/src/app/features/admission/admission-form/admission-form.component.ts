@@ -308,7 +308,6 @@ export class AdmissionFormComponent implements OnInit {
   private buildConversionRequest(): EnquiryConversionRequest {
     const v = this.form.value as Record<string, unknown> & { address?: Record<string, unknown> };
     const addr = (v['address'] as Record<string, unknown>) ?? {};
-    const hasAddress = Object.values(addr).some((x) => x !== '' && x !== null && x !== undefined);
 
     return {
       firstName: v['firstName'] as string,
@@ -333,7 +332,7 @@ export class AdmissionFormComponent implements OnInit {
       fatherName: this.nullableStr(v['fatherName'] as string),
       motherName: this.nullableStr(v['motherName'] as string),
       parentMobile: this.nullableStr(v['parentMobile'] as string),
-      address: hasAddress
+      address: this.hasValidAddressFields(addr)
         ? {
             postalAddress: this.nullableStr(addr['postalAddress'] as string),
             street: this.nullableStr(addr['street'] as string),
@@ -346,6 +345,10 @@ export class AdmissionFormComponent implements OnInit {
       declarationPlace: this.nullableStr(v['declarationPlace'] as string),
       declarationDate: this.nullableStr(v['declarationDate'] as string),
     };
+  }
+
+  private hasValidAddressFields(addr: Record<string, unknown>): boolean {
+    return Object.values(addr).some((x) => x !== '' && x !== null && x !== undefined);
   }
 
   /** Returns null when value is an empty string or null; otherwise returns the value. */
