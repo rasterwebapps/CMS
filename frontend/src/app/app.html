@@ -198,7 +198,7 @@
       }
     </div>
 
-    <!-- Sidenav footer — Powered by Raster + keyboard shortcuts trigger -->
+    <!-- Sidenav footer — OneCMS logo + keyboard shortcuts trigger -->
     <div class="sidenav-footer">
       @if (!sidenavRail() || isMobile()) {
         <button type="button" class="sidenav-footer-shortcut-btn" (click)="openKeyboardShortcuts()"
@@ -206,16 +206,20 @@
           <mat-icon>keyboard</mat-icon>
           <span>Shortcuts</span>
         </button>
-        <span class="sidenav-footer-label">Powered by</span>
-        <img src="assets/images/raster-wordmark.svg" alt="Raster" class="sidenav-footer-logo"/>
+        <a href="https://rasterimages.in" target="_blank" rel="noopener noreferrer"
+           class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" aria-label="Raster Images Private Limited">
+          <img src="assets/images/cms-logo.svg" alt="OneCMS by Raster" class="sidenav-footer-logo"/>
+        </a>
       } @else {
         <button type="button" class="sidenav-footer-icon-btn" (click)="openKeyboardShortcuts()"
                 matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
         </button>
-        <div class="sidenav-footer-icon" matTooltip="Powered by Raster" matTooltipPosition="right">
-          <span class="sidenav-footer-r">R</span>
-        </div>
+        <a href="https://rasterimages.in" target="_blank" rel="noopener noreferrer"
+           class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" matTooltipPosition="right"
+           aria-label="Raster Images Private Limited">
+          <img src="assets/images/cms-icon.svg" alt="OneCMS" class="sidenav-footer-icon-logo"/>
+        </a>
       }
     </div>
   </mat-sidenav>
