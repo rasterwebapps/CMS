@@ -60,6 +60,7 @@
   border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-radius-lg);
   box-shadow: var(--cms-shadow-sm);
+  flex: 1;
   min-width: 130px;
   transition: var(--cms-transition);
 
@@ -116,8 +117,8 @@
     white-space: nowrap;
   }
 
-  &--green .stat-chip__value { color: #047857; }
-  &--amber .stat-chip__value { color: #92400e; }
+  &--green .stat-chip__value { color: var(--cms-success); }
+  &--amber .stat-chip__value { color: var(--cms-warning); }
 }
 
 // ── Student Cell ──────────────────────────────────────────────────────────
@@ -190,14 +191,14 @@
 
   &--green {
     background: color-mix(in srgb, var(--cms-success) 10%, transparent);
-    color: #047857;
+    color: var(--cms-success);
     border: 1px solid color-mix(in srgb, var(--cms-success) 25%, transparent);
     .status-badge__dot { background: var(--cms-success); }
   }
 
   &--amber {
     background: color-mix(in srgb, var(--cms-warning) 10%, transparent);
-    color: #92400e;
+    color: var(--cms-warning);
     border: 1px solid color-mix(in srgb, var(--cms-warning) 25%, transparent);
     .status-badge__dot { background: var(--cms-warning); }
   }
