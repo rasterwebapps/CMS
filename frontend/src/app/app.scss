@@ -98,6 +98,9 @@
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     // Allow mat-sidenav-content to be the scroll container
     overflow-y: auto;
+    // Override Angular Material's default (purple-tinted) surface background
+    // so the page shell colour fills all the way to the bottom of the viewport.
+    background-color: var(--cms-bg-shell) !important;
   }
 }
 
