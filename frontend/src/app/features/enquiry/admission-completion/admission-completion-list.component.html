@@ -196,7 +196,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row" (click)="completeAdmission(row)"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row" (click)="viewEnquiry(row)"></tr>
         </table>
       </div>
     }

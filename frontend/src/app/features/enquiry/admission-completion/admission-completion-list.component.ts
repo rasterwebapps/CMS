@@ -41,10 +41,10 @@ export class AdmissionCompletionListComponent implements OnInit {
     const q = this.searchQuery().toLowerCase().trim();
     if (!q) return this.enquiries();
     return this.enquiries().filter(e =>
-      e.name?.toLowerCase().includes(q) ||
-      e.programName?.toLowerCase().includes(q) ||
-      e.courseName?.toLowerCase().includes(q) ||
-      e.phone?.toLowerCase().includes(q),
+      (e.name ?? '').toLowerCase().includes(q) ||
+      (e.programName ?? '').toLowerCase().includes(q) ||
+      (e.courseName ?? '').toLowerCase().includes(q) ||
+      (e.phone ?? '').toLowerCase().includes(q),
     );
   });
 
