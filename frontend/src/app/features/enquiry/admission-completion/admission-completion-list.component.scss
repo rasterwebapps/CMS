@@ -1,21 +1,276 @@
 // Admission Completion List — uses global list-page classes from styles.scss
 
+// ── Skeleton loading ──────────────────────────────────────────────────────
+.skeleton-screen { padding: 4px 0; }
+
+.skeleton-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.skeleton-chip,
+.skeleton-bar,
+.skeleton-row {
+  background: linear-gradient(90deg, var(--cms-bg-muted) 25%, var(--cms-bg-surface-2) 50%, var(--cms-bg-muted) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: var(--cms-radius-lg);
+}
+
+.skeleton-chip {
+  height: 68px;
+  width: 180px;
+}
+
+.skeleton-bar {
+  height: 40px;
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: var(--cms-radius-sm);
+}
+
+.skeleton-table { display: flex; flex-direction: column; gap: 1px; }
+.skeleton-row {
+  height: 60px;
+  border-radius: var(--cms-radius-sm);
+  margin-bottom: 2px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ── Stats Bar ─────────────────────────────────────────────────────────────
+.stats-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  box-shadow: var(--cms-shadow-sm);
+  flex: 1;
+  min-width: 130px;
+  transition: var(--cms-transition);
+
+  &:hover {
+    box-shadow: var(--cms-shadow-md);
+    transform: translateY(-1px);
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--cms-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--default {
+      background: var(--cms-bg-surface-2);
+      color: var(--cms-text-secondary);
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  &__label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--cms-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+}
+
+// ── Student Cell ──────────────────────────────────────────────────────────
+.student-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cms-primary) 0%, var(--color-primary-700, #4338ca) 100%);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+  box-shadow: 0 2px 8px rgba(var(--cms-primary-rgb), 0.35);
+  user-select: none;
+}
+
+.student-cell__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .cell-sub {
-  display: block;
   font-size: 0.75rem;
-  color: var(--cms-text-secondary, #6b7280);
-  margin-top: 2px;
+  color: var(--cms-text-muted);
 }
 
-.action-btn--primary {
-  color: var(--color-primary-600, #4f46e5);
+// ── Shared cell helpers ───────────────────────────────────────────────────
+.cell-text { color: var(--cms-text-secondary); font-size: 0.875rem; }
 
-  &:hover:not([disabled]) {
-    background-color: color-mix(in srgb, var(--color-primary-600, #4f46e5) 10%, transparent);
+// ── Status Badge ──────────────────────────────────────────────────────────
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--cms-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
-  &[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &--indigo {
+    background: color-mix(in srgb, var(--cms-primary) 10%, transparent);
+    color: var(--cms-primary);
+    border: 1px solid color-mix(in srgb, var(--cms-primary) 25%, transparent);
+    .status-badge__dot { background: var(--cms-primary); }
   }
 }
+
+// ── Row Actions ───────────────────────────────────────────────────────────
+.col-actions { width: 180px; }
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--cms-border-default);
+  background: transparent;
+  border-radius: var(--cms-radius-sm);
+  cursor: pointer;
+  color: var(--cms-text-secondary);
+  transition: var(--cms-transition-fast);
+
+  &:hover {
+    background: var(--cms-bg-hover);
+    color: var(--cms-primary);
+    border-color: var(--cms-border-hover);
+  }
+}
+
+.complete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--cms-primary) 7%, transparent);
+  border-radius: var(--cms-radius-sm);
+  cursor: pointer;
+  color: var(--cms-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: var(--cms-transition-fast);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--cms-primary);
+    color: #fff;
+    border-color: var(--cms-primary);
+    box-shadow: 0 4px 12px rgba(var(--cms-primary-rgb), 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+}
+
+// ── Table row pointer ─────────────────────────────────────────────────────
+.table-row { cursor: pointer; }
+
+// ── Table container ───────────────────────────────────────────────────────
+.list-page-inner { flex: 1; }
+
+// ── Empty State ───────────────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 24px;
+  text-align: center;
+
+  &__icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--cms-bg-surface-2);
+    border: 1px solid var(--cms-border-default);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: var(--cms-text-muted);
+  }
+
+  &__text {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--cms-text-muted);
+    max-width: 380px;
+    line-height: 1.6;
+  }
+}
+
