@@ -63,7 +63,7 @@ export class EnquiryDetailComponent implements OnInit {
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
+      .map((w) => w[0]?.toUpperCase() ?? '')
       .join('');
   });
 
