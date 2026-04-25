@@ -1,19 +1,55 @@
 <div class="detail-page">
   @if (loading()) {
-    <div class="enquiry-detail-skeleton">
-      <div class="enquiry-detail-skeleton__sidebar">
-        <cms-skeleton [lines]="5" height="14px"></cms-skeleton>
-      </div>
-      <div class="enquiry-detail-skeleton__main">
-        <cms-skeleton [lines]="8" height="14px"></cms-skeleton>
+    <div class="profile-skeleton">
+      <cms-skeleton [circle]="true" height="64px"></cms-skeleton>
+      <div class="profile-skeleton__body">
+        <cms-skeleton [lines]="2" height="14px"></cms-skeleton>
+        <div class="profile-skeleton__chips">
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+        </div>
       </div>
     </div>
   } @else if (enquiry()) {
-    <app-page-header
-      [title]="enquiry()!.name"
-      subtitle="Enquiry details, documents, payments, and status history"
-    >
-      <div actions class="header-actions">
+    <!-- ── Hero ────────────────────────────────────────── -->
+    <header class="profile-hero">
+      <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+      <div class="profile-hero__body">
+        <h1 class="profile-hero__name">{{ enquiry()!.name }}</h1>
+        <div class="profile-hero__meta">
+          <cms-status-badge [status]="enquiry()!.status"></cms-status-badge>
+          <span class="cms-badge cms-badge--blue">{{ enquiry()!.programName }}</span>
+          @if (enquiry()!.courseName) {
+            <span class="cms-badge cms-badge--gray">{{ enquiry()!.courseName }}</span>
+          }
+          @if (enquiry()!.studentType) {
+            <span class="cms-badge cms-badge--violet">{{ enquiry()!.studentType }}</span>
+          }
+        </div>
+        <div class="profile-hero__stats">
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ enquiry()!.enquiryDate }}</span>
+            <span class="profile-stat__label">Enquiry Date</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ daysActive() }} days</span>
+            <span class="profile-stat__label">Days Active</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{
+              totalPaid() | currency: 'INR' : '₹' : '1.0-0'
+            }}</span>
+            <span class="profile-stat__label">Total Paid</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value">{{ docsVerified() }} / {{ docsTotal() }}</span>
+            <span class="profile-stat__label">Docs Verified</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-hero__actions">
         @if (canSubmitDocuments()) {
           <button class="btn-secondary" [disabled]="submitting()" (click)="submitDocuments()">
             <mat-icon>upload_file</mat-icon> Submit Documents
@@ -28,309 +64,276 @@
           <mat-icon>edit</mat-icon> Edit
         </a>
       </div>
-    </app-page-header>
+    </header>
 
-    <div class="detail-split">
-      <!-- ── Sidebar ───────────────────────────────────── -->
-      <aside class="detail-split__sidebar">
-        <!-- Quick stats -->
-        <div class="detail-sidebar__stats">
-          <div class="detail-sidebar__stat detail-sidebar__stat--center">
-            <span class="detail-sidebar__stat-label">Status</span>
-            <cms-status-badge [status]="enquiry()!.status"></cms-status-badge>
-          </div>
-          <div class="detail-sidebar__stat">
-            <span class="detail-sidebar__stat-label">Days Active</span>
-            <span class="detail-sidebar__stat-value">{{ daysActive() }} days</span>
-          </div>
-          <div class="detail-sidebar__stat">
-            <span class="detail-sidebar__stat-label">Total Paid</span>
-            <span class="detail-sidebar__stat-value">{{
-              totalPaid() | currency: 'INR' : '₹' : '1.0-0'
-            }}</span>
-          </div>
-          <div class="detail-sidebar__stat">
-            <span class="detail-sidebar__stat-label">Documents</span>
-            <span class="detail-sidebar__stat-value"
-              >{{ docsVerified() }} / {{ docsTotal() }} verified</span
-            >
+    <!-- ── Tabs ────────────────────────────────────────── -->
+    <mat-tab-group class="detail-tabs">
+      <!-- Overview Tab -->
+      <mat-tab label="Overview">
+        <div class="tab-content">
+          <div class="content-card">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ enquiry()!.email || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ enquiry()!.phone || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Program</span>
+                <span class="detail-value">{{ enquiry()!.programName }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Course</span>
+                <span class="detail-value">{{ enquiry()!.courseName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Student Type</span>
+                <span class="detail-value">{{ enquiry()!.studentType || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Agent</span>
+                <span class="detail-value">{{ enquiry()!.agentName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Referral Type</span>
+                <span class="detail-value">{{ enquiry()!.referralTypeName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Net Fee</span>
+                <span class="detail-value">{{
+                  (enquiry()!.finalizedNetFee | currency: 'INR' : '₹' : '1.0-0') || '—'
+                }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Remarks</span>
+                <span class="detail-value">{{ enquiry()!.remarks || '—' }}</span>
+              </div>
+            </div>
           </div>
         </div>
+      </mat-tab>
 
-        <!-- Status timeline -->
-        <div class="detail-sidebar__section">
-          <h3 class="detail-sidebar__section-title">Status Timeline</h3>
-          @if (statusHistory().length > 0) {
-            <ol class="status-timeline">
-              @for (h of statusHistory(); track h.id; let last = $last) {
-                <li class="status-timeline__item">
-                  <span
-                    class="status-timeline__dot"
-                    [class.status-timeline__dot--active]="last"
-                  ></span>
-                  <div class="status-timeline__body">
-                    <span class="status-timeline__label">{{ h.toStatus }}</span>
-                    <span class="status-timeline__date">{{
-                      h.changedAt | date: 'dd MMM yyyy, HH:mm'
-                    }}</span>
+      <!-- Documents Tab -->
+      <mat-tab label="Documents ({{ documents().length }})">
+        <div class="tab-content">
+          <div class="content-card">
+            @if (documents().length === 0) {
+              <div class="empty-state__content">
+                <p class="empty-state__text">No documents recorded.</p>
+              </div>
+            } @else {
+              <div class="doc-row-list">
+                @for (d of documents(); track d.id) {
+                  <div class="doc-row">
+                    <span class="doc-row__icon" [class]="docIconClass(d.status)">
+                      @switch ((d.status || '').toUpperCase()) {
+                        @case ('VERIFIED') {
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 8.5l3 3 7-7"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        }
+                        @case ('REJECTED') {
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 4l8 8M12 4l-8 8"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        }
+                        @default {
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <circle
+                              cx="8"
+                              cy="8"
+                              r="6"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                            />
+                            <path
+                              d="M8 5v3.5l2.2 1.3"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        }
+                      }
+                    </span>
+                    <span class="doc-row__name">{{ d.documentType }}</span>
+                    @if (d.hasFile) {
+                      <span class="doc-row__file" [matTooltip]="d.fileName ?? ''">
+                        {{ d.fileName }}
+                      </span>
+                      <button
+                        type="button"
+                        class="doc-row__action"
+                        matTooltip="View document"
+                        (click)="viewDocumentFile(d)"
+                        aria-label="View document"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="doc-row__action"
+                        matTooltip="Download document"
+                        (click)="downloadDocumentFile(d)"
+                        aria-label="Download document"
+                      >
+                        <mat-icon>download</mat-icon>
+                      </button>
+                    }
+                    @if (d.verifiedBy && d.verifiedAt) {
+                      <span class="doc-row__meta"
+                        >Verified by {{ d.verifiedBy }} on {{ d.verifiedAt }}</span
+                      >
+                    } @else if (
+                      d.status &&
+                      d.status !== 'PENDING' &&
+                      d.status !== 'VERIFIED' &&
+                      d.status !== 'REJECTED'
+                    ) {
+                      <cms-status-badge [status]="d.status"></cms-status-badge>
+                    }
                   </div>
-                </li>
-              }
-            </ol>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Payments Tab -->
+      <mat-tab label="Payments ({{ payments().length }})">
+        <div class="tab-content">
+          <div class="content-card">
+            @if (payments().length === 0) {
+              <div class="empty-state__content">
+                <p class="empty-state__text">No payments recorded.</p>
+              </div>
+            } @else {
+              <div class="receipt-card-list">
+                @for (p of payments(); track p.id) {
+                  <div class="receipt-card" [class]="receiptModeClass(p.paymentMode)">
+                    <span class="receipt-card__number">{{ p.receiptNumber }}</span>
+                    <span class="receipt-card__amount">{{
+                      p.amountPaid | currency: 'INR' : '₹' : '1.0-0'
+                    }}</span>
+                    <span class="receipt-card__meta">
+                      <span>{{ p.paymentDate | date: 'dd MMM yyyy' }}</span>
+                      <span>via {{ p.paymentMode }}</span>
+                      @if (p.collectedBy) {
+                        <span>collected by {{ p.collectedBy }}</span>
+                      }
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Status History Tab -->
+      <mat-tab label="Status History">
+        <div class="tab-content">
+          @if (statusHistory().length === 0) {
+            <div class="content-card">
+              <div class="empty-state__content">
+                <p class="empty-state__text">No status history available.</p>
+              </div>
+            </div>
           } @else {
-            <cms-skeleton [lines]="3" height="12px"></cms-skeleton>
-          }
-        </div>
-      </aside>
+            <div class="history-layout">
+              <!-- Visual timeline -->
+              <div class="content-card history-timeline-card">
+                <p class="form-section-title">Timeline</p>
+                <ol class="status-timeline">
+                  @for (h of statusHistory(); track h.id; let last = $last) {
+                    <li class="status-timeline__item">
+                      <span
+                        class="status-timeline__dot"
+                        [class.status-timeline__dot--active]="last"
+                      ></span>
+                      <div class="status-timeline__body">
+                        <span class="status-timeline__label">{{ h.toStatus }}</span>
+                        <span class="status-timeline__date">{{
+                          h.changedAt | date: 'dd MMM yyyy, HH:mm'
+                        }}</span>
+                      </div>
+                    </li>
+                  }
+                </ol>
+              </div>
 
-      <!-- ── Main panel ────────────────────────────────── -->
-      <div class="detail-split__main">
-        <mat-tab-group class="detail-tabs">
-          <!-- Overview Tab -->
-          <mat-tab label="Overview">
-            <div class="tab-content">
-              <div class="content-card">
-                <div class="detail-grid">
-                  <div class="detail-item">
-                    <span class="detail-label">Email</span
-                    ><span class="detail-value">{{ enquiry()!.email || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Phone</span
-                    ><span class="detail-value">{{ enquiry()!.phone || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Program</span
-                    ><span class="detail-value">{{ enquiry()!.programName }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Course</span
-                    ><span class="detail-value">{{ enquiry()!.courseName || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Student Type</span
-                    ><span class="detail-value">{{ enquiry()!.studentType || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Enquiry Date</span
-                    ><span class="detail-value">{{ enquiry()!.enquiryDate }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Agent</span
-                    ><span class="detail-value">{{ enquiry()!.agentName || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Referral Type</span
-                    ><span class="detail-value">{{ enquiry()!.referralTypeName || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Net Fee</span
-                    ><span class="detail-value">{{
-                      (enquiry()!.finalizedNetFee | currency: 'INR' : '₹' : '1.0-0') || '—'
-                    }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Remarks</span
-                    ><span class="detail-value">{{ enquiry()!.remarks || '—' }}</span>
-                  </div>
+              <!-- Detail table -->
+              <div class="content-card history-table-card">
+                <p class="form-section-title">Change Log</p>
+                <div class="table-wrapper">
+                  <table mat-table [dataSource]="statusHistory()" class="modern-table">
+                    <ng-container matColumnDef="changedAt">
+                      <th mat-header-cell *matHeaderCellDef>Changed At</th>
+                      <td mat-cell *matCellDef="let row">{{ row.changedAt | date: 'short' }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="fromStatus">
+                      <th mat-header-cell *matHeaderCellDef>From</th>
+                      <td mat-cell *matCellDef="let row">
+                        <cms-status-badge [status]="row.fromStatus || ''"></cms-status-badge>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="toStatus">
+                      <th mat-header-cell *matHeaderCellDef>To</th>
+                      <td mat-cell *matCellDef="let row">
+                        <cms-status-badge [status]="row.toStatus"></cms-status-badge>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="changedBy">
+                      <th mat-header-cell *matHeaderCellDef>Changed By</th>
+                      <td mat-cell *matCellDef="let row">{{ row.changedBy }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="remarks">
+                      <th mat-header-cell *matHeaderCellDef>Remarks</th>
+                      <td mat-cell *matCellDef="let row">{{ row.remarks || '—' }}</td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+                    <tr
+                      mat-row
+                      *matRowDef="let row; columns: historyColumns"
+                      class="table-row"
+                    ></tr>
+                  </table>
                 </div>
               </div>
             </div>
-          </mat-tab>
-
-          <!-- Documents Tab -->
-          <mat-tab label="Documents ({{ documents().length }})">
-            <div class="tab-content">
-              <div class="content-card">
-                @if (documents().length === 0) {
-                  <div class="empty-state__content">
-                    <p class="empty-state__text">No documents recorded.</p>
-                  </div>
-                } @else {
-                  <div class="doc-row-list">
-                    @for (d of documents(); track d.id) {
-                      <div class="doc-row">
-                        <span class="doc-row__icon" [class]="docIconClass(d.status)">
-                          @switch ((d.status || '').toUpperCase()) {
-                            @case ('VERIFIED') {
-                              <svg
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  d="M3 8.5l3 3 7-7"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                />
-                              </svg>
-                            }
-                            @case ('REJECTED') {
-                              <svg
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  d="M4 4l8 8M12 4l-8 8"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                  stroke-linecap="round"
-                                />
-                              </svg>
-                            }
-                            @default {
-                              <svg
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                aria-hidden="true"
-                              >
-                                <circle
-                                  cx="8"
-                                  cy="8"
-                                  r="6"
-                                  stroke="currentColor"
-                                  stroke-width="1.5"
-                                />
-                                <path
-                                  d="M8 5v3.5l2.2 1.3"
-                                  stroke="currentColor"
-                                  stroke-width="1.5"
-                                  stroke-linecap="round"
-                                />
-                              </svg>
-                            }
-                          }
-                        </span>
-                        <span class="doc-row__name">{{ d.documentType }}</span>
-                        @if (d.hasFile) {
-                          <span class="doc-row__file" [matTooltip]="d.fileName ?? ''">
-                            {{ d.fileName }}
-                          </span>
-                          <button
-                            type="button"
-                            class="doc-row__action"
-                            matTooltip="View document"
-                            (click)="viewDocumentFile(d)"
-                            aria-label="View document"
-                          >
-                            <mat-icon>visibility</mat-icon>
-                          </button>
-                          <button
-                            type="button"
-                            class="doc-row__action"
-                            matTooltip="Download document"
-                            (click)="downloadDocumentFile(d)"
-                            aria-label="Download document"
-                          >
-                            <mat-icon>download</mat-icon>
-                          </button>
-                        }
-                        @if (d.verifiedBy && d.verifiedAt) {
-                          <span class="doc-row__meta"
-                            >Verified by {{ d.verifiedBy }} on {{ d.verifiedAt }}</span
-                          >
-                        } @else if (
-                          d.status &&
-                          d.status !== 'PENDING' &&
-                          d.status !== 'VERIFIED' &&
-                          d.status !== 'REJECTED'
-                        ) {
-                          <cms-status-badge [status]="d.status"></cms-status-badge>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-          </mat-tab>
-
-          <!-- Payments Tab -->
-          <mat-tab label="Payments ({{ payments().length }})">
-            <div class="tab-content">
-              <div class="content-card">
-                @if (payments().length === 0) {
-                  <div class="empty-state__content">
-                    <p class="empty-state__text">No payments recorded.</p>
-                  </div>
-                } @else {
-                  <div class="receipt-card-list">
-                    @for (p of payments(); track p.id) {
-                      <div class="receipt-card" [class]="receiptModeClass(p.paymentMode)">
-                        <span class="receipt-card__number">{{ p.receiptNumber }}</span>
-                        <span class="receipt-card__amount">{{
-                          p.amountPaid | currency: 'INR' : '₹' : '1.0-0'
-                        }}</span>
-                        <span class="receipt-card__meta">
-                          <span>{{ p.paymentDate | date: 'dd MMM yyyy' }}</span>
-                          <span>via {{ p.paymentMode }}</span>
-                          @if (p.collectedBy) {
-                            <span>collected by {{ p.collectedBy }}</span>
-                          }
-                        </span>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-          </mat-tab>
-
-          <!-- Status History Tab -->
-          <mat-tab label="Status History">
-            <div class="tab-content">
-              <div class="content-card">
-                @if (statusHistory().length === 0) {
-                  <div class="empty-state__content">
-                    <p class="empty-state__text">No status history available.</p>
-                  </div>
-                } @else {
-                  <div class="table-wrapper">
-                    <table mat-table [dataSource]="statusHistory()" class="modern-table">
-                      <ng-container matColumnDef="changedAt">
-                        <th mat-header-cell *matHeaderCellDef>Changed At</th>
-                        <td mat-cell *matCellDef="let row">{{ row.changedAt | date: 'short' }}</td>
-                      </ng-container>
-                      <ng-container matColumnDef="fromStatus">
-                        <th mat-header-cell *matHeaderCellDef>From</th>
-                        <td mat-cell *matCellDef="let row">
-                          <cms-status-badge [status]="row.fromStatus || ''"></cms-status-badge>
-                        </td>
-                      </ng-container>
-                      <ng-container matColumnDef="toStatus">
-                        <th mat-header-cell *matHeaderCellDef>To</th>
-                        <td mat-cell *matCellDef="let row">
-                          <cms-status-badge [status]="row.toStatus"></cms-status-badge>
-                        </td>
-                      </ng-container>
-                      <ng-container matColumnDef="changedBy">
-                        <th mat-header-cell *matHeaderCellDef>Changed By</th>
-                        <td mat-cell *matCellDef="let row">{{ row.changedBy }}</td>
-                      </ng-container>
-                      <ng-container matColumnDef="remarks">
-                        <th mat-header-cell *matHeaderCellDef>Remarks</th>
-                        <td mat-cell *matCellDef="let row">{{ row.remarks || '—' }}</td>
-                      </ng-container>
-                      <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
-                      <tr
-                        mat-row
-                        *matRowDef="let row; columns: historyColumns"
-                        class="table-row"
-                      ></tr>
-                    </table>
-                  </div>
-                }
-              </div>
-            </div>
-          </mat-tab>
-        </mat-tab-group>
-      </div>
-    </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
   }
 </div>

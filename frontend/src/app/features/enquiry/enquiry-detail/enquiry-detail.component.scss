@@ -1,45 +1,57 @@
-// Enquiry Detail — split-pane layout. Most layout primitives live in
-// styles.scss (.detail-page, .detail-split, .detail-sidebar__*, .receipt-card,
-// .doc-row, .status-timeline). This file only adds component-scoped tweaks.
+// Enquiry Detail — profile-hero + tabs layout. Layout primitives (.detail-page,
+// .profile-hero*, .profile-stat*, .detail-grid, .status-timeline*, .receipt-card,
+// .doc-row) live in styles.scss. This file only adds component-scoped tweaks.
 
-// Header action row spacing
-.header-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-// Tab content spacing inside the main panel
+// Tab content spacing inside the tab panel
 .tab-content {
   padding: 16px 0;
 }
 
-// Centre the status badge inside the first sidebar quick stat
-.detail-sidebar__stat--center {
+// Skeleton for the loading state — approximates the profile-hero shape
+.profile-skeleton {
+  display: flex;
   align-items: flex-start;
+  gap: 20px;
+  padding: 28px 32px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
 }
 
-// Skeleton for the loading state — approximates the split-pane shape
-.enquiry-detail-skeleton {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 24px;
-  padding-top: 16px;
+.profile-skeleton__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-  @media (max-width: 900px) {
+.profile-skeleton__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  cms-skeleton {
+    flex: 1 1 140px;
+    min-width: 140px;
+  }
+}
+
+// Status history tab — timeline + table side-by-side on wide screens
+.history-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
 
-.enquiry-detail-skeleton__sidebar,
-.enquiry-detail-skeleton__main {
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-md);
-  padding: 20px;
+.history-timeline-card,
+.history-table-card {
+  // inherits .content-card from styles.scss
 }
-
-// mat-tab visual upgrade lives in styles.scss under .detail-tabs (Phase 3 §7).
 
 .doc-row {
   &__file {
