@@ -1,103 +1,180 @@
+<div class="list-page">
+
 <app-page-header
   title="Admission Completion"
   subtitle="Enquiries with documents submitted — choose one to complete admission"
 />
 
-<div class="command-bar">
-  <div class="command-bar__left">
-    @if (!loading()) {
-      <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} enquiries</span>
-    }
+@if (loading()) {
+  <div class="skeleton-screen">
+    <div class="skeleton-stats">
+      <div class="skeleton-chip"></div>
+    </div>
+    <div class="skeleton-bar"></div>
+    <div class="skeleton-table">
+      @for (_ of [1, 2, 3, 4, 5]; track $index) {
+        <div class="skeleton-row"></div>
+      }
+    </div>
   </div>
-  <div class="command-bar__right">
-    <details class="col-toggle">
-      <summary class="btn-toolbar" aria-label="Toggle columns">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Columns
-      </summary>
-      <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-        @for (col of ALL_COLS; track col) {
-          <label class="col-toggle__item">
-            <input
-              type="checkbox"
-              class="col-toggle__checkbox"
-              [checked]="isColumnVisible(col)"
-              (change)="toggleColumn(col)"
-            />
-            {{ COLUMN_LABELS[col] }}
-          </label>
+} @else {
+  <!-- ── Stats Bar ─────────────────────────────── -->
+  <div class="stats-bar" aria-label="Summary statistics">
+    <div class="stat-chip">
+      <div class="stat-chip__icon stat-chip__icon--default">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+      </div>
+      <div class="stat-chip__body">
+        <span class="stat-chip__value">{{ enquiries().length }}</span>
+        <span class="stat-chip__label">Pending Completion</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Command Bar ─────────────────────────────── -->
+  <div class="command-bar">
+    <div class="command-bar__left">
+      <div class="search-bar">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          type="search"
+          placeholder="Search by name, program, course or phone…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          aria-label="Search enquiries"
+        />
+        @if (searchQuery()) {
+          <button class="search-bar__clear" (click)="searchQuery.set('')" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         }
       </div>
-    </details>
+    </div>
+    <div class="command-bar__right">
+      <span class="count-badge" aria-live="polite">
+        @if (filteredData().length !== enquiries().length) {
+          {{ filteredData().length }} of {{ enquiries().length }}
+        } @else {
+          {{ enquiries().length }}
+        }
+      </span>
+      <details class="col-toggle">
+        <summary class="btn-toolbar" aria-label="Toggle column visibility">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </summary>
+        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
+          @for (col of ALL_COLS; track col) {
+            <label class="col-toggle__item">
+              <input
+                type="checkbox"
+                class="col-toggle__checkbox"
+                [checked]="isColumnVisible(col)"
+                (change)="toggleColumn(col)"
+              />
+              {{ COLUMN_LABELS[col] }}
+            </label>
+          }
+        </div>
+      </details>
+    </div>
   </div>
-</div>
 
-@if (loading()) {
-  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
-} @else {
-  <div class="list-page-container">
-    @if (dataSource.data.length === 0) {
+  <!-- ── Table / Empty State ─────────────────────── -->
+  <div class="list-page-inner">
+    @if (enquiries().length === 0) {
       <div class="empty-state">
-        <mat-icon class="empty-state__icon-mat">how_to_reg</mat-icon>
+        <div class="empty-state__icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+        </div>
         <p class="empty-state__text">No enquiries pending admission completion</p>
-        <p class="empty-state__hint">Enquiries in DOCUMENTS_SUBMITTED status will appear here</p>
+        <p class="empty-state__hint">Enquiries in DOCUMENTS_SUBMITTED status will appear here automatically.</p>
+      </div>
+    } @else if (filteredData().length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p class="empty-state__text">No matching results</p>
+        <p class="empty-state__hint">Try adjusting your search term.</p>
+        <button class="btn-ghost" style="margin-top: 12px" (click)="searchQuery.set('')">Clear search</button>
       </div>
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" class="modern-table">
+        <table mat-table [dataSource]="filteredData()" class="modern-table">
 
+          <!-- Student -->
           <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <th mat-header-cell *matHeaderCellDef>Student</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.name }}</span>
-              @if (row.phone) {
-                <span class="cell-sub">{{ row.phone }}</span>
-              }
+              <div class="student-cell">
+                <div class="avatar">{{ initials(row.name) }}</div>
+                <div class="student-cell__info">
+                  <span class="cell-name">{{ row.name }}</span>
+                  @if (row.phone) {
+                    <span class="cell-sub">{{ row.phone }}</span>
+                  }
+                </div>
+              </div>
             </td>
           </ng-container>
 
+          <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.programName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Course -->
           <ng-container matColumnDef="courseName">
             <th mat-header-cell *matHeaderCellDef>Course</th>
-            <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.courseName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Status -->
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let row">
-              <span class="status-badge status-active">{{ row.status }}</span>
+              <span class="status-badge status-badge--indigo">
+                <span class="status-badge__dot"></span>
+                Docs Submitted
+              </span>
             </td>
           </ng-container>
 
+          <!-- Net Fee -->
           <ng-container matColumnDef="finalizedNetFee">
             <th mat-header-cell *matHeaderCellDef>Net Fee</th>
             <td mat-cell *matCellDef="let row">
               @if (row.finalizedNetFee) {
                 <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
               } @else {
-                <span>—</span>
+                <span class="cell-muted">—</span>
               }
             </td>
           </ng-container>
 
+          <!-- Enquiry Date -->
           <ng-container matColumnDef="enquiryDate">
-            <th mat-header-cell *matHeaderCellDef>Enquiry Date</th>
+            <th mat-header-cell *matHeaderCellDef>Date</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-date">{{ row.enquiryDate }}</span>
             </td>
           </ng-container>
 
+          <!-- Actions -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <th mat-header-cell *matHeaderCellDef class="col-actions"></th>
             <td mat-cell *matCellDef="let row">
               <div class="row-actions">
                 <button
-                  class="action-btn"
-                  matTooltip="View enquiry"
+                  class="icon-btn"
+                  matTooltip="View enquiry details"
                   (click)="viewEnquiry(row)"
                   aria-label="View enquiry"
                 >
@@ -105,12 +182,13 @@
                 </button>
                 @if (isAdminOrFrontOffice()) {
                   <button
-                    class="action-btn action-btn--primary"
+                    class="complete-btn"
                     matTooltip="Complete admission"
                     (click)="completeAdmission(row)"
                     aria-label="Complete admission"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+                    Complete
                   </button>
                 }
               </div>
@@ -118,9 +196,11 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row" (click)="viewEnquiry(row)"></tr>
         </table>
       </div>
     }
   </div>
 }
+
+</div>
