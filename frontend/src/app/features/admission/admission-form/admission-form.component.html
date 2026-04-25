@@ -5,131 +5,475 @@
       [subtitle]="isEdit() ? 'Update the admission record below.' : 'Fill in the details below to create a new admission record.'"
     />
   }
+
   @if (loading()) {
     <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
   } @else {
+
+    <!-- Mode toggle — only shown when creating a new admission -->
+    @if (!isEdit()) {
+      <div class="mode-toggle">
+        <button
+          type="button"
+          class="mode-btn"
+          [class.mode-btn--active]="mode() === 'from-enquiry'"
+          (click)="setMode('from-enquiry')"
+        >
+          <mat-icon>how_to_reg</mat-icon>
+          From Enquiry
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          [class.mode-btn--active]="mode() === 'manual'"
+          (click)="setMode('manual')"
+        >
+          <mat-icon>person_add</mat-icon>
+          Existing Student
+        </button>
+      </div>
+    }
+
     <div class="entry-form-card">
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-        <div class="field-group">
-          <label for="adm-student" class="field-label">Student <span class="field-required">*</span></label>
-          <select
-            id="adm-student"
-            class="field-select"
-            formControlName="studentId"
-            [class.field-input--error]="form.get('studentId')?.invalid && form.get('studentId')?.touched"
-          >
-            <option [ngValue]="null" disabled>Select a student</option>
-            @for (s of students(); track s.id) {
-              <option [ngValue]="s.id">{{ s.fullName }}</option>
+        <!-- ════════════════════════════════════════════════════════
+             FROM-ENQUIRY MODE (new admission only)
+             ════════════════════════════════════════════════════════ -->
+        @if (!isEdit() && mode() === 'from-enquiry') {
+
+          <!-- Enquiry selector -->
+          <div class="field-group">
+            <label for="adm-enquiry" class="field-label">Select Enquiry <span class="field-required">*</span></label>
+            <select
+              id="adm-enquiry"
+              class="field-select"
+              formControlName="enquiryId"
+              [class.field-input--error]="form.get('enquiryId')?.invalid && form.get('enquiryId')?.touched"
+              (change)="onEnquiryChange($event)"
+            >
+              <option [ngValue]="null">— Choose an enquiry to admit —</option>
+              @for (e of pendingEnquiries(); track e.id) {
+                <option [ngValue]="e.id">{{ e.name }} — {{ e.programName }}{{ e.courseName ? ' / ' + e.courseName : '' }}</option>
+              }
+            </select>
+            @if (pendingEnquiries().length === 0) {
+              <p class="field-hint">No enquiries are currently awaiting admission (documents must be submitted first).</p>
             }
-          </select>
-          @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
-            <p class="field-error">Student is required</p>
-          }
-        </div>
-
-        <div class="form-row">
-          <div class="field-group">
-            <label for="adm-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
-            <input id="adm-year-from" class="field-input" type="number" formControlName="academicYearFrom" placeholder="e.g., 2024" />
-          </div>
-          <div class="field-group">
-            <label for="adm-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
-            <input id="adm-year-to" class="field-input" type="number" formControlName="academicYearTo" placeholder="e.g., 2025" />
-          </div>
-          <div class="field-group">
-            <label for="adm-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
-            <input id="adm-app-date" class="field-input" type="date" formControlName="applicationDate" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="adm-status" class="field-label">Status</label>
-          <select id="adm-status" class="field-select" formControlName="status">
-            @for (s of statuses; track s) {
-              <option [value]="s">{{ s }}</option>
+            @if (form.get('enquiryId')?.invalid && form.get('enquiryId')?.touched) {
+              <p class="field-error">Please select an enquiry</p>
             }
-          </select>
-        </div>
-
-        <div class="form-row">
-          <div class="field-group">
-            <label for="adm-decl-place" class="field-label">Declaration Place</label>
-            <input id="adm-decl-place" class="field-input" formControlName="declarationPlace" placeholder="City" />
           </div>
-          <div class="field-group">
-            <label for="adm-decl-date" class="field-label">Declaration Date</label>
-            <input id="adm-decl-date" class="field-input" type="date" formControlName="declarationDate" />
-          </div>
-        </div>
 
-        <div class="consent-row">
-          <mat-checkbox formControlName="parentConsentGiven">Parent Consent Given</mat-checkbox>
-          <mat-checkbox formControlName="applicantConsentGiven">Applicant Consent Given</mat-checkbox>
-        </div>
-
-        <!-- Qualifications Sub-form -->
-        @if (!isEdit()) {
-          <div class="qualifications-section">
-            <div class="section-header">
-              <h3>Academic Qualifications</h3>
-              <button mat-stroked-button type="button" (click)="addQualification()">
-                <mat-icon>add</mat-icon> Add
-              </button>
+          <!-- Enquiry summary chip — shown after selection -->
+          @if (selectedEnquiry()) {
+            <div class="enquiry-summary">
+              <div class="enquiry-summary__item">
+                <span class="enquiry-summary__label">Program</span>
+                <span class="enquiry-summary__value">{{ selectedEnquiry()!.programName }}</span>
+              </div>
+              @if (selectedEnquiry()!.courseName) {
+                <div class="enquiry-summary__item">
+                  <span class="enquiry-summary__label">Course</span>
+                  <span class="enquiry-summary__value">{{ selectedEnquiry()!.courseName }}</span>
+                </div>
+              }
+              @if (selectedEnquiry()!.finalizedNetFee != null) {
+                <div class="enquiry-summary__item">
+                  <span class="enquiry-summary__label">Net Fee</span>
+                  <span class="enquiry-summary__value">{{ selectedEnquiry()!.finalizedNetFee | currency:'INR':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+              <div class="enquiry-summary__item">
+                <span class="enquiry-summary__label">Status</span>
+                <span class="enquiry-summary__value">{{ selectedEnquiry()!.status }}</span>
+              </div>
             </div>
-            @if (qualifications.length > 0) {
-              <table mat-table [dataSource]="qualifications.controls" class="qual-table">
-                <ng-container matColumnDef="qualificationType">
-                  <th mat-header-cell *matHeaderCellDef>Type</th>
-                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
-                    <select class="field-select field-select--inline" formControlName="qualificationType">
-                      @for (t of qualificationTypes; track t) {
-                        <option [value]="t">{{ t }}</option>
-                      }
-                    </select>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="schoolName">
-                  <th mat-header-cell *matHeaderCellDef>School/Institute</th>
-                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
-                    <input class="field-input field-input--inline" formControlName="schoolName" />
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="percentage">
-                  <th mat-header-cell *matHeaderCellDef>Percentage</th>
-                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
-                    <input class="field-input field-input--inline field-input--narrow" type="number" formControlName="percentage" />
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="monthAndYearOfPassing">
-                  <th mat-header-cell *matHeaderCellDef>Month & Year</th>
-                  <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
-                    <input class="field-input field-input--inline field-input--narrow" placeholder="MM/YYYY" formControlName="monthAndYearOfPassing" />
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="actions">
-                  <th mat-header-cell *matHeaderCellDef></th>
-                  <td mat-cell *matCellDef="let row; let i = index">
-                    <button mat-icon-button color="warn" type="button" (click)="removeQualification(i)">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  </td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="qualColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: qualColumns"></tr>
-              </table>
-            }
+          }
+
+          <h3 class="section-heading">Student Details</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
+              <input
+                id="conv-first-name"
+                class="field-input"
+                formControlName="firstName"
+                [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
+              />
+              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                <p class="field-error">First name is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
+              <input
+                id="conv-last-name"
+                class="field-input"
+                formControlName="lastName"
+                [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
+              />
+              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                <p class="field-error">Last name is required</p>
+              }
+            </div>
           </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
+              <input
+                id="conv-email"
+                class="field-input"
+                type="email"
+                formControlName="email"
+                [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
+              />
+              @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                <p class="field-error">Valid email is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label for="conv-phone" class="field-label">Phone</label>
+              <input id="conv-phone" class="field-input" formControlName="phone" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-semester" class="field-label">Semester <span class="field-required">*</span></label>
+              <input
+                id="conv-semester"
+                class="field-input"
+                type="number"
+                min="1"
+                formControlName="semester"
+                [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
+              />
+              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+                <p class="field-error">Semester is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
+              <input
+                id="conv-adm-date"
+                class="field-input"
+                type="date"
+                formControlName="admissionDate"
+                [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched"
+              />
+              @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                <p class="field-error">Admission date is required</p>
+              }
+            </div>
+          </div>
+
+          <h3 class="section-heading">Admission Details</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
+              <input
+                id="conv-year-from"
+                class="field-input"
+                type="number"
+                formControlName="academicYearFrom"
+                [class.field-input--error]="form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched"
+              />
+              @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
+                <p class="field-error">Academic year from is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label for="conv-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
+              <input
+                id="conv-year-to"
+                class="field-input"
+                type="number"
+                formControlName="academicYearTo"
+                [class.field-input--error]="form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched"
+              />
+              @if (form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched) {
+                <p class="field-error">Academic year to is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+              <input
+                id="conv-app-date"
+                class="field-input"
+                type="date"
+                formControlName="applicationDate"
+                [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched"
+              />
+              @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
+                <p class="field-error">Application date is required</p>
+              }
+            </div>
+          </div>
+
+          <h3 class="section-heading">Personal Information</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-dob" class="field-label">Date of Birth</label>
+              <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth" />
+            </div>
+            <div class="field-group">
+              <label for="conv-gender" class="field-label">Gender</label>
+              <select id="conv-gender" class="field-select" formControlName="gender">
+                <option value="">—</option>
+                @for (g of genderOptions; track g) {
+                  <option [value]="g">{{ g }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="conv-aadhar" class="field-label">Aadhar Number</label>
+              <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" />
+            </div>
+          </div>
+
+          <h3 class="section-heading">Demographics</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-nationality" class="field-label">Nationality</label>
+              <input id="conv-nationality" class="field-input" formControlName="nationality" />
+            </div>
+            <div class="field-group">
+              <label for="conv-religion" class="field-label">Religion</label>
+              <input id="conv-religion" class="field-input" formControlName="religion" />
+            </div>
+            <div class="field-group">
+              <label for="conv-community" class="field-label">Community Category</label>
+              <select id="conv-community" class="field-select" formControlName="communityCategory">
+                <option value="">—</option>
+                @for (c of communityOptions; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-caste" class="field-label">Caste</label>
+              <input id="conv-caste" class="field-input" formControlName="caste" />
+            </div>
+            <div class="field-group">
+              <label for="conv-blood" class="field-label">Blood Group</label>
+              <select id="conv-blood" class="field-select" formControlName="bloodGroup">
+                <option value="">—</option>
+                @for (b of bloodGroupOptions; track b) {
+                  <option [value]="b">{{ b }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <h3 class="section-heading">Family Information</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-father" class="field-label">Father's Name</label>
+              <input id="conv-father" class="field-input" formControlName="fatherName" />
+            </div>
+            <div class="field-group">
+              <label for="conv-mother" class="field-label">Mother's Name</label>
+              <input id="conv-mother" class="field-input" formControlName="motherName" />
+            </div>
+            <div class="field-group">
+              <label for="conv-parent-mobile" class="field-label">Parent Mobile</label>
+              <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" />
+            </div>
+          </div>
+
+          <h3 class="section-heading">Address</h3>
+
+          <div formGroupName="address">
+            <div class="form-row">
+              <div class="field-group" style="flex: 1 1 100%;">
+                <label for="conv-postal" class="field-label">Postal Address</label>
+                <input id="conv-postal" class="field-input" formControlName="postalAddress" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label for="conv-street" class="field-label">Street</label>
+                <input id="conv-street" class="field-input" formControlName="street" />
+              </div>
+              <div class="field-group">
+                <label for="conv-city" class="field-label">City</label>
+                <input id="conv-city" class="field-input" formControlName="city" />
+              </div>
+              <div class="field-group">
+                <label for="conv-district" class="field-label">District</label>
+                <input id="conv-district" class="field-input" formControlName="district" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label for="conv-state" class="field-label">State</label>
+                <input id="conv-state" class="field-input" formControlName="state" />
+              </div>
+              <div class="field-group">
+                <label for="conv-pincode" class="field-label">Pincode</label>
+                <input id="conv-pincode" class="field-input" formControlName="pincode" />
+              </div>
+            </div>
+          </div>
+
+          <h3 class="section-heading">Declaration</h3>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-decl-place" class="field-label">Declaration Place</label>
+              <input id="conv-decl-place" class="field-input" formControlName="declarationPlace" />
+            </div>
+            <div class="field-group">
+              <label for="conv-decl-date" class="field-label">Declaration Date</label>
+              <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate" />
+            </div>
+          </div>
+
+          <div class="consent-row">
+            <mat-checkbox formControlName="parentConsentGiven">Parent / Guardian consent given</mat-checkbox>
+            <mat-checkbox formControlName="applicantConsentGiven">Applicant consent given</mat-checkbox>
+          </div>
+
         }
 
+        <!-- ════════════════════════════════════════════════════════
+             MANUAL MODE — new admission for an existing student,
+             or editing an existing admission record.
+             ════════════════════════════════════════════════════════ -->
+        @if (isEdit() || mode() === 'manual') {
+
+          <div class="field-group">
+            <label for="adm-student" class="field-label">Student <span class="field-required">*</span></label>
+            <select
+              id="adm-student"
+              class="field-select"
+              formControlName="studentId"
+              [class.field-input--error]="form.get('studentId')?.invalid && form.get('studentId')?.touched"
+            >
+              <option [ngValue]="null" disabled>Select a student</option>
+              @for (s of students(); track s.id) {
+                <option [ngValue]="s.id">{{ s.fullName }}</option>
+              }
+            </select>
+            @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
+              <p class="field-error">Student is required</p>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="adm-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
+              <input id="adm-year-from" class="field-input" type="number" formControlName="academicYearFrom" placeholder="e.g., 2024" />
+            </div>
+            <div class="field-group">
+              <label for="adm-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
+              <input id="adm-year-to" class="field-input" type="number" formControlName="academicYearTo" placeholder="e.g., 2025" />
+            </div>
+            <div class="field-group">
+              <label for="adm-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+              <input id="adm-app-date" class="field-input" type="date" formControlName="applicationDate" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="adm-status" class="field-label">Status</label>
+            <select id="adm-status" class="field-select" formControlName="status">
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="adm-decl-place" class="field-label">Declaration Place</label>
+              <input id="adm-decl-place" class="field-input" formControlName="declarationPlace" placeholder="City" />
+            </div>
+            <div class="field-group">
+              <label for="adm-decl-date" class="field-label">Declaration Date</label>
+              <input id="adm-decl-date" class="field-input" type="date" formControlName="declarationDate" />
+            </div>
+          </div>
+
+          <div class="consent-row">
+            <mat-checkbox formControlName="parentConsentGiven">Parent Consent Given</mat-checkbox>
+            <mat-checkbox formControlName="applicantConsentGiven">Applicant Consent Given</mat-checkbox>
+          </div>
+
+          <!-- Qualifications sub-form (new admissions only) -->
+          @if (!isEdit()) {
+            <div class="qualifications-section">
+              <div class="section-header">
+                <h3>Academic Qualifications</h3>
+                <button mat-stroked-button type="button" (click)="addQualification()">
+                  <mat-icon>add</mat-icon> Add
+                </button>
+              </div>
+              @if (qualifications.length > 0) {
+                <table mat-table [dataSource]="qualifications.controls" class="qual-table">
+                  <ng-container matColumnDef="qualificationType">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                      <select class="field-select field-select--inline" formControlName="qualificationType">
+                        @for (t of qualificationTypes; track t) {
+                          <option [value]="t">{{ t }}</option>
+                        }
+                      </select>
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="schoolName">
+                    <th mat-header-cell *matHeaderCellDef>School/Institute</th>
+                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                      <input class="field-input field-input--inline" formControlName="schoolName" />
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="percentage">
+                    <th mat-header-cell *matHeaderCellDef>Percentage</th>
+                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                      <input class="field-input field-input--inline field-input--narrow" type="number" formControlName="percentage" />
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="monthAndYearOfPassing">
+                    <th mat-header-cell *matHeaderCellDef>Month & Year</th>
+                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                      <input class="field-input field-input--inline field-input--narrow" placeholder="MM/YYYY" formControlName="monthAndYearOfPassing" />
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let row; let i = index">
+                      <button mat-icon-button color="warn" type="button" (click)="removeQualification(i)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="qualColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: qualColumns"></tr>
+                </table>
+              }
+            </div>
+          }
+
+        }
+
+        <!-- Form footer (always shown) -->
         <div class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/admissions">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {
               <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
             } @else {
-              Save
+              {{ (!isEdit() && mode() === 'from-enquiry') ? 'Create Admission' : 'Save' }}
             }
           </button>
         </div>
@@ -138,3 +482,4 @@
     </div>
   }
 </div>
+
