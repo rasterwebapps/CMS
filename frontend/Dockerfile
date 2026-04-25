@@ -8,4 +8,6 @@ RUN npm run build -- --configuration=production
 FROM nginx:alpine
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+COPY ssl/self.crt /etc/nginx/ssl/self.crt
+COPY ssl/self.key /etc/nginx/ssl/self.key
+EXPOSE 80 443

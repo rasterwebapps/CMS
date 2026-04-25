@@ -30,25 +30,27 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 4px 0 4px;
   height: 100%;
   overflow: hidden;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Brand button always fills the space and handles toggle
+  .toolbar-brand {
+    flex: 1;
+    min-width: 0;
+  }
 
   &.collapsed {
     width: 68px;
-    justify-content: center;
     padding: 0 4px;
+    justify-content: center;
 
-    // Hide the brand name and section label in icon-rail mode
-    .toolbar-brand-name,
-    .toolbar-brand-section {
+
+    // Hide the text name when collapsed
+    .toolbar-brand-name {
       display: none;
-    }
-
-    .toolbar-brand {
-      padding: 4px;
     }
   }
 }
@@ -121,132 +123,7 @@
     }
   }
 
-  // ─── Sidebar Brand / Institution Identity Header ───
-  .sidenav-brand-header {
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--cms-sidenav-border);
-
-    .sidenav-brand-expanded {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 8px 10px 14px;
-      min-height: 56px;
-
-      .sidenav-brand-logo {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 3px;
-        object-fit: contain;
-      }
-
-      .sidenav-brand-logo-fallback {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-          color: #ffffff;
-        }
-      }
-
-      .sidenav-brand-text {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-
-        .sidenav-brand-name {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: var(--cms-sidenav-text-bright);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          line-height: 1.2;
-        }
-
-        .sidenav-brand-sub {
-          font-size: 0.6875rem;
-          font-weight: 400;
-          color: var(--cms-sidenav-group-text);
-          white-space: nowrap;
-          line-height: 1.2;
-        }
-      }
-
-      .sidenav-collapse-btn {
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        flex-shrink: 0;
-        color: var(--cms-sidenav-group-text) !important;
-        transition: var(--cms-transition) !important;
-
-        &:hover {
-          color: var(--cms-sidenav-text-bright) !important;
-          background: var(--cms-sidenav-hover) !important;
-        }
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-        }
-      }
-    }
-
-    .sidenav-brand-collapsed {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 56px;
-      cursor: pointer;
-      transition: background 0.2s;
-
-      &:hover {
-        background: var(--cms-sidenav-hover);
-      }
-
-      .sidenav-brand-logo-sm {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 3px;
-        object-fit: contain;
-      }
-
-      .sidenav-brand-logo-fallback-sm {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          color: #ffffff;
-        }
-      }
-    }
-  }
+  // sidenav-brand-header removed — toggle/expand is handled in the toolbar
 
   // ─── Menu Search Box ───
   .sidenav-search {
@@ -320,23 +197,23 @@
     }
 
     a[mat-list-item] {
-      border-radius: var(--cms-radius-sm) !important;
-      margin: 1px 10px;
+      border-radius: 10px !important;
+      margin: 1px 8px;
       transition: var(--cms-transition);
-      height: 40px !important;
+      height: 36px !important;
       justify-content: flex-start !important;
 
       mat-icon[matListItemIcon] {
         color: var(--cms-sidenav-group-text);
         transition: var(--cms-transition);
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
       }
 
       span[matListItemTitle] {
-        font-size: 0.8125rem;
-        font-weight: 500;
+        font-size: 0.8rem;
+        font-weight: 400;
         color: var(--cms-sidenav-text);
         transition: var(--cms-transition);
         text-align: left;
@@ -346,7 +223,7 @@
         background-color: var(--cms-sidenav-hover) !important;
 
         mat-icon[matListItemIcon] {
-          color: var(--cms-sidenav-text);
+          color: var(--cms-sidenav-text-bright);
         }
 
         span[matListItemTitle] {
@@ -491,15 +368,15 @@
   }
 
   mat-expansion-panel-header {
-    padding: 0 14px;
-    height: 44px !important;
+    padding: 0 12px;
+    height: 38px !important;
 
     .nav-group-icon {
       margin-right: 10px;
       color: var(--cms-sidenav-group-text);
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
       transition: var(--cms-transition);
     }
 
@@ -508,8 +385,8 @@
       align-items: center;
       justify-content: flex-start;
       color: var(--cms-sidenav-text) !important;
-      font-size: 0.8125rem;
-      font-weight: 600;
+      font-size: 0.8rem;
+      font-weight: 500;
       letter-spacing: 0.01em;
     }
 
@@ -539,10 +416,10 @@
 
   mat-nav-list {
     padding-top: 0;
-    padding-bottom: 4px;
+    padding-bottom: 2px;
 
     a[mat-list-item] {
-      padding-left: 36px !important;
+      padding-left: 30px !important;
     }
   }
 }
@@ -554,8 +431,10 @@
 .top-level-nav-item {
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  height: 44px;
+  padding: 0 12px;
+  margin: 1px 8px;
+  height: 38px;
+  border-radius: 10px;
   text-decoration: none;
   cursor: pointer;
   transition: var(--cms-transition);
@@ -563,16 +442,16 @@
   .top-level-icon {
     margin-right: 10px;
     color: var(--cms-sidenav-group-text);
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     transition: var(--cms-transition);
   }
 
   .top-level-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--cms-sidenav-text);
     transition: var(--cms-transition);
@@ -663,42 +542,66 @@
   &:hover {
     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover));
   }
-
-  .toolbar-brand-icon {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-    border-radius: 6px;
-    display: block;
-  }
-
-  .toolbar-brand-fallback {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: #ffffff;
-    }
-  }
-
-  .toolbar-brand-name {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--cms-toolbar-text, var(--cms-text-primary));
-    white-space: nowrap;
-  }
 }
 
-// ── Phase 2: Toolbar brand text block (name + section label) ──
+// Logo button: toggles sidebar, stays fixed size
+.toolbar-logo-btn {
+   flex-shrink: 0;
+   width: 60px !important;
+   height: 60px !important;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0 !important;
+   color: var(--cms-toolbar-btn-color, var(--cms-text-secondary)) !important;
+   transition: var(--cms-transition) !important;
+   border-radius: var(--cms-radius-md) !important;
+
+   &:hover {
+     color: var(--cms-toolbar-btn-hover-color, var(--cms-primary)) !important;
+     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover)) !important;
+   }
+
+   .toolbar-brand-icon {
+     width: 52px;
+     height: 52px;
+     object-fit: contain;
+     border-radius: 6px;
+     display: block;
+   }
+
+   .toolbar-brand-fallback {
+     width: 52px;
+     height: 52px;
+     border-radius: 6px;
+     background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+     display: flex;
+     align-items: center;
+     justify-content: center;
+
+     mat-icon {
+       font-size: 32px;
+       width: 32px;
+       height: 32px;
+       color: #ffffff;
+     }
+   }
+ }
+
+// Static brand name text (not clickable, only visible when expanded)
+.toolbar-brand-name {
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  letter-spacing: 0.3px;
+}
+
+ // ── Phase 2: Toolbar brand text block (name + section label) ──
 .toolbar-brand-text-block {
   display: flex;
   flex-direction: column;
@@ -715,6 +618,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: 0.01em;
+}
+
+// Static institution sub-label (e.g. "of Nursing") shown below the brand name
+.toolbar-brand-sub {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--cms-toolbar-text, var(--cms-text-primary));
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 // ── Phase 2: Live indicator chip ──────────────────────────────
@@ -740,13 +656,13 @@
 }
 
 .toolbar-live-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #22C55E;
-  white-space: nowrap;
-}
+   font-size: 0.625rem;
+   font-weight: 700;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   color: #22C55E;
+   white-space: nowrap;
+ }
 
 // ──────────────────────────────────────────────────
 // Breadcrumb Strip
@@ -810,6 +726,8 @@
   border-radius: var(--cms-radius-sm) !important;
 }
 
+// Sidebar toggle button in the toolbar (hamburger / menu_open icon)
+
 .toolbar-avatar-btn {
   display: flex;
   align-items: center;
@@ -839,14 +757,14 @@
 }
 
 .toolbar-username {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cms-toolbar-text, var(--cms-text-primary));
-  white-space: nowrap;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+   font-size: 0.75rem;
+   font-weight: 600;
+   color: var(--cms-toolbar-text, var(--cms-text-primary));
+   white-space: nowrap;
+   max-width: 140px;
+   overflow: hidden;
+   text-overflow: ellipsis;
+ }
 
 .avatar-circle {
   width: 32px;

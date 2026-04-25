@@ -1,12 +1,4 @@
 <div class="dashboard-shell">
-  @if (showTabs()) {
-    <app-dashboard-tabs
-      [tabs]="tabConfig()"
-      [activeRole]="activeRole()"
-      (tabChange)="setActiveRole($event)"
-    />
-  }
-
   @if (activeRole() === 'ROLE_ADMIN' || activeRole() === 'ROLE_COLLEGE_ADMIN') {
     <app-admin-dashboard />
   } @else if (activeRole() === 'ROLE_FRONT_OFFICE') {
@@ -15,8 +7,5 @@
     <app-cashier-dashboard />
   } @else if (activeRole() === 'ROLE_FACULTY') {
     <app-faculty-dashboard />
-  } @else if (activeRole() === '') {
-    <!-- No role matched — show nothing (handled on init) -->
   }
 </div>
-

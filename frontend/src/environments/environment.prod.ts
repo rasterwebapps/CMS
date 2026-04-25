@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   keycloak: {
-    url: 'http://172.17.1.243:8280',
+    url: 'https://122.165.197.93:8443',
     realm: 'cms',
     clientId: 'cms-frontend',
   },

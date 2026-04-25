@@ -54,12 +54,14 @@
       "redirectUris": [
         "http://localhost:4200/*",
         "http://localhost:4300/*",
-        "http://172.17.1.243/*"
+        "https://172.17.1.243/*",
+        "https://122.165.197.93:8443/*"
       ],
       "webOrigins": [
         "http://localhost:4200",
         "http://localhost:4300",
-        "http://172.17.1.243"
+        "https://172.17.1.243",
+        "https://122.165.197.93:8443"
       ],
       "protocol": "openid-connect"
     },

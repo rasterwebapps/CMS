@@ -1,29 +1,38 @@
 <mat-toolbar class="app-toolbar" [class.is-mobile]="isMobile()">
-  <!-- Left section: stable brand area whose width mirrors the sidenav -->
-  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed() && !isMobile()" [class.is-mobile]="isMobile()">
-    @if (isMobile()) {
-      <button mat-icon-button (click)="toggleMobileDrawer()" matTooltip="Menu" class="toolbar-action-btn mobile-menu-btn" aria-label="Open navigation menu">
-        <mat-icon>menu</mat-icon>
+  <!-- Left section: brand panel whose width mirrors the sidenav.
+       Logo is clickable button (toggles sidebar); text is static display (hidden when collapsed). -->
+  <div class="toolbar-left" [class.collapsed]="sidenavRail() && !isMobile()" [class.is-mobile]="isMobile()">
+
+    @if (!isMobile()) {
+      <!-- Desktop: logo button + static text -->
+      <button type="button" mat-icon-button class="toolbar-logo-btn"
+              (click)="toggleSidenav()"
+              [matTooltip]="sidenavRail() ? 'Expand sidebar' : 'Collapse sidebar'"
+              [attr.aria-pressed]="!sidenavRail()"
+              aria-label="Toggle sidebar">
+        @if (!toolbarLogoError()) {
+          <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-brand-icon"
+               (error)="toolbarLogoError.set(true)" />
+        } @else {
+          <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
+        }
       </button>
+
+      <!-- Static text (not clickable) - visible only when expanded -->
+      @if (!sidenavRail()) {
+        <span class="toolbar-brand-name">SKS College of Nursing</span>
+      }
+    } @else {
+      <!-- Mobile: logo links to dashboard -->
+      <a [routerLink]="'/dashboard'" class="toolbar-brand">
+        @if (!toolbarLogoError()) {
+          <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-brand-icon"
+               (error)="toolbarLogoError.set(true)" />
+        } @else {
+          <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
+        }
+      </a>
     }
-    <a [routerLink]="'/dashboard'" class="toolbar-brand">
-      @if (!toolbarLogoError()) {
-        <img src="assets/images/cms-icon.svg" alt="College Management System" class="toolbar-brand-icon"
-             (error)="toolbarLogoError.set(true)" />
-      } @else {
-        <div class="toolbar-brand-fallback">
-          <mat-icon>developer_board</mat-icon>
-        </div>
-      }
-      @if (!sidenavCollapsed() && !isMobile()) {
-        <div class="toolbar-brand-text-block">
-          <span class="toolbar-brand-name">College Management System</span>
-          @if (currentSectionLabel()) {
-            <span class="toolbar-brand-section">{{ currentSectionLabel() }}</span>
-          }
-        </div>
-      }
-    </a>
   </div>
 
   <!-- Right section: normal toolbar items OR focus-mode back-button + title -->
@@ -68,12 +77,7 @@
           <mat-icon>person</mat-icon>
         </div>
         @if (authService.username() && !isMobile()) {
-          <div class="toolbar-user-info">
-            <span class="toolbar-username">{{ authService.username() }}</span>
-            @if (primaryRole()) {
-              <span class="toolbar-user-role">{{ primaryRole() }}</span>
-            }
-          </div>
+          <span class="toolbar-username">{{ authService.username() }}</span>
         }
       </button>
       <mat-menu #userMenu="matMenu">
@@ -110,50 +114,7 @@
     [class.mobile-drawer]="isMobile()"
     (mouseenter)="onSidenavMouseEnter()"
     (mouseleave)="onSidenavMouseLeave()">
-    <div class="sidenav-brand-header">
-      @if (!sidenavRail() || isMobile()) {
-        <div class="sidenav-brand-expanded">
-          @if (!sidenavLogoError()) {
-            <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing"
-                 class="sidenav-brand-logo" (error)="sidenavLogoError.set(true)" />
-          } @else {
-            <div class="sidenav-brand-logo-fallback">
-              <mat-icon>school</mat-icon>
-            </div>
-          }
-          <div class="sidenav-brand-text">
-            <span class="sidenav-brand-name">SKS College</span>
-            <span class="sidenav-brand-sub">of Nursing</span>
-          </div>
-          @if (!isMobile()) {
-            <button mat-icon-button (click)="toggleSidenav()"
-                    [matTooltip]="sidenavCollapsed() ? 'Pin sidebar (always expanded)' : 'Unpin sidebar (collapse to rail)'"
-                    matTooltipPosition="right"
-                    class="sidenav-collapse-btn"
-                    [attr.aria-pressed]="!sidenavCollapsed()">
-              <mat-icon>{{ sidenavCollapsed() ? 'push_pin' : 'keyboard_tab' }}</mat-icon>
-            </button>
-          } @else {
-            <button mat-icon-button (click)="closeMobileDrawer()"
-                    matTooltip="Close menu" class="sidenav-collapse-btn" aria-label="Close menu">
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </div>
-      } @else {
-        <div class="sidenav-brand-collapsed" (click)="toggleSidenav()"
-             matTooltip="Pin sidebar" matTooltipPosition="right">
-          @if (!sidenavLogoError()) {
-            <img src="assets/images/sks-logo-icon.svg" alt="SKS"
-                 class="sidenav-brand-logo-sm" (error)="sidenavLogoError.set(true)" />
-          } @else {
-            <div class="sidenav-brand-logo-fallback-sm">
-              <mat-icon>school</mat-icon>
-            </div>
-          }
-        </div>
-      }
-    </div>
+
 
     @if (!sidenavRail() || isMobile()) {
       <div class="sidenav-search">
