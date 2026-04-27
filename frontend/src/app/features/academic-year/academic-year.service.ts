@@ -11,12 +11,17 @@ import {
   CourseOffering,
   CourseOfferingUpdateRequest,
   CourseRegistration,
+  FeeDemand,
   GenerateCourseOfferingsResponse,
   GenerateCourseRegistrationsResponse,
+  GenerateDemandsResponse,
   GenerateEnrollmentsResponse,
+  DemandStatus,
   Semester,
   SemesterRequest,
   StudentTermEnrollment,
+  TermFeePayment,
+  TermFeePaymentRequest,
   TermInstance,
   TermInstanceUpdateRequest,
   TermBillingSchedule,
@@ -198,6 +203,39 @@ export class AcademicYearService {
     return this.http.post<GenerateCourseRegistrationsResponse>(
       `${baseUrl}/api/course-registrations/generate?termInstanceId=${termInstanceId}`,
       {},
+    );
+  }
+
+  // FeeDemand methods
+  getFeeDemandsByTermInstance(
+    termInstanceId: number,
+    status?: DemandStatus,
+  ): Observable<FeeDemand[]> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    let url = `${baseUrl}/api/fee-demands?termInstanceId=${termInstanceId}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    return this.http.get<FeeDemand[]>(url);
+  }
+
+  generateFeeDemands(termInstanceId: number): Observable<GenerateDemandsResponse> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.post<GenerateDemandsResponse>(
+      `${baseUrl}/api/fee-demands/generate?termInstanceId=${termInstanceId}`,
+      {},
+    );
+  }
+
+  recordFeePayment(request: TermFeePaymentRequest): Observable<TermFeePayment> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.post<TermFeePayment>(`${baseUrl}/api/term-fee-payments`, request);
+  }
+
+  getPaymentsByDemand(demandId: number): Observable<TermFeePayment[]> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.get<TermFeePayment[]>(
+      `${baseUrl}/api/term-fee-payments?demandId=${demandId}`,
     );
   }
 }

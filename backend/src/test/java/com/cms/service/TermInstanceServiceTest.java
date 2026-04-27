@@ -30,6 +30,7 @@ import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.TermInstanceRepository;
 import com.cms.service.CourseOfferingService;
 import com.cms.service.CourseRegistrationService;
+import com.cms.service.FeeDemandService;
 import com.cms.service.StudentTermEnrollmentService;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +51,9 @@ class TermInstanceServiceTest {
     @Mock
     private CourseRegistrationService courseRegistrationService;
 
+    @Mock
+    private FeeDemandService feeDemandService;
+
     private TermInstanceService termInstanceService;
 
     private AcademicYear testAcademicYear;
@@ -60,6 +64,7 @@ class TermInstanceServiceTest {
         termInstanceService.setStudentTermEnrollmentService(studentTermEnrollmentService);
         termInstanceService.setCourseOfferingService(courseOfferingService);
         termInstanceService.setCourseRegistrationService(courseRegistrationService);
+        termInstanceService.setFeeDemandService(feeDemandService);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
     }
@@ -179,6 +184,7 @@ class TermInstanceServiceTest {
         verify(studentTermEnrollmentService).generateEnrollmentsForTermInstance(1L);
         verify(courseOfferingService).generateOfferingsForTermInstance(1L);
         verify(courseRegistrationService).generateRegistrationsForTermInstance(1L);
+        verify(feeDemandService).generateDemandsForTermInstance(1L);
     }
 
     @Test

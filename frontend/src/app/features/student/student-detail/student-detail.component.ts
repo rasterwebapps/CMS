@@ -1,11 +1,18 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { StudentService } from '../student.service';
-import { CourseRegistration, Student, StudentTermEnrollment } from '../student.model';
+import {
+  CourseRegistration,
+  DemandStatus,
+  Student,
+  StudentFeeLedger,
+  StudentTermEnrollment,
+} from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -16,6 +23,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     RouterLink,
+    DatePipe,
+    DecimalPipe,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
@@ -36,6 +45,9 @@ export class StudentDetailComponent implements OnInit {
   protected readonly loadingEnrollments = signal(false);
   protected readonly registrationsByEnrollment = signal<Map<number, CourseRegistration[]>>(new Map());
   protected readonly loadingRegistrations = signal(false);
+
+  protected readonly feeLedger = signal<StudentFeeLedger | null>(null);
+  protected readonly loadingLedger = signal(false);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
@@ -65,6 +77,7 @@ export class StudentDetailComponent implements OnInit {
         this.student.set(student);
         this.loading.set(false);
         this.loadEnrollments(id);
+        this.loadFeeLedger(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
@@ -112,5 +125,28 @@ export class StudentDetailComponent implements OnInit {
 
   protected getRegistrationsForEnrollment(enrollmentId: number): CourseRegistration[] {
     return this.registrationsByEnrollment().get(enrollmentId) ?? [];
+  }
+
+  private loadFeeLedger(studentId: number): void {
+    this.loadingLedger.set(true);
+    this.studentService.getStudentFeeLedger(studentId).subscribe({
+      next: (ledger) => {
+        this.feeLedger.set(ledger);
+        this.loadingLedger.set(false);
+      },
+      error: () => {
+        // Fee ledger may not exist yet — not a fatal error
+        this.loadingLedger.set(false);
+      },
+    });
+  }
+
+  protected getDemandStatusClass(status: DemandStatus): string {
+    switch (status) {
+      case 'PAID': return 'success';
+      case 'PARTIAL': return 'warning';
+      case 'UNPAID': return 'danger';
+      case 'WAIVED': return 'default';
+    }
   }
 }

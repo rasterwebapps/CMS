@@ -39,6 +39,10 @@ public class TermInstanceService {
     @Lazy
     private CourseRegistrationService courseRegistrationService;
 
+    @Autowired
+    @Lazy
+    private FeeDemandService feeDemandService;
+
     public TermInstanceService(TermInstanceRepository termInstanceRepository,
                                 AcademicYearRepository academicYearRepository) {
         this.termInstanceRepository = termInstanceRepository;
@@ -106,6 +110,7 @@ public class TermInstanceService {
             studentTermEnrollmentService.generateEnrollmentsForTermInstance(id);
             courseOfferingService.generateOfferingsForTermInstance(id);
             courseRegistrationService.generateRegistrationsForTermInstance(id);
+            feeDemandService.generateDemandsForTermInstance(id);
         }
         if (request.status() != null && request.status() == TermInstanceStatus.LOCKED) {
             courseOfferingService.deactivateAllOfferingsForTermInstance(id);
@@ -153,5 +158,10 @@ public class TermInstanceService {
     /** Package-private setter for test injection of the lazy-wired service. */
     void setCourseRegistrationService(CourseRegistrationService courseRegistrationService) {
         this.courseRegistrationService = courseRegistrationService;
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setFeeDemandService(FeeDemandService feeDemandService) {
+        this.feeDemandService = feeDemandService;
     }
 }
