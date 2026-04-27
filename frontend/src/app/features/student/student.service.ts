@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Student, StudentRequest, StudentTermEnrollment } from './student.model';
+import { CourseRegistration, Student, StudentRequest, StudentTermEnrollment } from './student.model';
 
 @Injectable({
   providedIn: 'root',
@@ -60,6 +60,13 @@ export class StudentService {
     const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<StudentTermEnrollment[]>(
       `${baseUrl}/api/student-term-enrollments?studentId=${studentId}`,
+    );
+  }
+
+  getRegistrationsByEnrollment(enrollmentId: number): Observable<CourseRegistration[]> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.get<CourseRegistration[]>(
+      `${baseUrl}/api/course-registrations?enrollmentId=${enrollmentId}`,
     );
   }
 }

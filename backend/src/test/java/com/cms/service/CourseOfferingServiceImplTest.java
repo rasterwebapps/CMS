@@ -102,6 +102,7 @@ class CourseOfferingServiceImplTest {
     private CurriculumVersion createCV(Long id, Program program, AcademicYear ay) {
         CurriculumVersion cv = new CurriculumVersion(program, "CV-2024", ay, true);
         cv.setId(id);
+        cv.setCreatedAt(Instant.now());
         return cv;
     }
 

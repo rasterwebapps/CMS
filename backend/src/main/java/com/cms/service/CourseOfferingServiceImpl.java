@@ -61,8 +61,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             if (activeCVs.isEmpty()) {
                 continue;
             }
-            // Use the most recently created active CV (last in list by id ascending — take last)
-            CurriculumVersion cv = activeCVs.get(activeCVs.size() - 1);
+            // Use the most recently created active CV (max by createdAt)
+            CurriculumVersion cv = activeCVs.stream()
+                .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
+                .orElseThrow();
 
             Integer totalSemesters = cohort.getProgram().getTotalSemesters();
             if (totalSemesters == null) {

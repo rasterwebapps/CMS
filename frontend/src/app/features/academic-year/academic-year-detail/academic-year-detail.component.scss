@@ -193,3 +193,88 @@
     background: rgba(99, 102, 241, 0.06);
   }
 }
+
+.offerings-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.offerings-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.offerings-table-wrapper {
+  overflow-x: auto;
+}
+
+.enrollments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface-hover, #f9fafb);
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.inline-edit-form {
+  display: inline;
+}
+
+.field-input--xs {
+  width: 80px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  margin: 0 2px;
+}
+
+.registrations-summary {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+}
+
+.no-data {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #9ca3af);
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.enrollments-section {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editing-row {
+  background: var(--surface-hover, #f0f9ff);
+}

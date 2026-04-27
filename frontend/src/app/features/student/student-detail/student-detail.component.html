@@ -187,6 +187,52 @@
           }
         </div>
       </mat-tab>
+
+      <!-- Tab 6: Course Registrations -->
+      <mat-tab label="Course Registrations">
+        <div class="tab-content">
+          @if (loadingRegistrations()) {
+            <cms-skeleton></cms-skeleton>
+          } @else if (enrollments().length === 0) {
+            <p class="no-data">No term enrollments found.</p>
+          } @else {
+            @for (enrollment of sortedEnrollments(); track enrollment.id) {
+              @let regs = getRegistrationsForEnrollment(enrollment.id);
+              <div class="enrollment-section">
+                <div class="enrollment-section__header">
+                  <strong>{{ enrollment.termInstanceLabel }}</strong>
+                  <span class="cms-badge cms-badge--gray">Sem {{ enrollment.semesterNumber }}</span>
+                  <cms-status-badge [status]="enrollment.status" />
+                </div>
+                @if (regs.length === 0) {
+                  <p class="no-data">No course registrations for this term.</p>
+                } @else {
+                  <table class="enrollments-table enrollments-table--compact">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Code</th>
+                        <th>Semester</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (reg of regs; track reg.id) {
+                        <tr>
+                          <td>{{ reg.subjectName }}</td>
+                          <td><span class="code-value">{{ reg.subjectCode }}</span></td>
+                          <td>{{ reg.semesterNumber }}</td>
+                          <td><cms-status-badge [status]="reg.status" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            }
+          }
+        </div>
+      </mat-tab>
     </mat-tab-group>
   }
 </div>

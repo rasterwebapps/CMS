@@ -47,6 +47,23 @@ export interface StudentTermEnrollment {
   status: EnrollmentStatus;
 }
 
+export type RegistrationStatus = 'REGISTERED' | 'DROPPED' | 'COMPLETED';
+
+export interface CourseRegistration {
+  id: number;
+  enrollmentId: number;
+  studentId: number;
+  studentName: string;
+  cohortCode: string;
+  courseOfferingId: number;
+  subjectName: string;
+  subjectCode: string;
+  semesterNumber: number;
+  status: RegistrationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StudentRequest {
   rollNumber: string;
   firstName: string;
