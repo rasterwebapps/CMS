@@ -1,0 +1,276 @@
+/* SKS College of Nursing - User Guide Print Stylesheet */
+
+:root {
+  --sks-primary: #1a5276;
+  --sks-secondary: #2980b9;
+  --sks-accent: #e74c3c;
+  --sks-green: #27ae60;
+  --sks-light-bg: #eaf4fb;
+  --sks-border: #aed6f1;
+  --font-main: 'Georgia', serif;
+  --font-code: 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-main);
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #222;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+}
+
+/* ── HEADER ──────────────────────────────────────────── */
+.guide-header {
+  background: linear-gradient(135deg, var(--sks-primary) 0%, var(--sks-secondary) 100%);
+  color: white;
+  padding: 2rem 2.5rem;
+  margin: -2rem -2rem 2rem -2rem;
+  border-bottom: 4px solid var(--sks-accent);
+}
+
+.guide-header h1 {
+  font-size: 2rem;
+  margin: 0 0 0.25rem 0;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.guide-header .subtitle {
+  font-size: 1rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.guide-header .college-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+/* ── HEADINGS ────────────────────────────────────────── */
+h1 {
+  color: var(--sks-primary);
+  font-size: 1.8rem;
+  border-bottom: 3px solid var(--sks-secondary);
+  padding-bottom: 0.5rem;
+  margin-top: 2rem;
+}
+
+h2 {
+  color: var(--sks-primary);
+  font-size: 1.4rem;
+  border-left: 5px solid var(--sks-secondary);
+  padding-left: 0.75rem;
+  margin-top: 1.8rem;
+}
+
+h3 {
+  color: var(--sks-secondary);
+  font-size: 1.1rem;
+  margin-top: 1.5rem;
+}
+
+h4 {
+  color: #555;
+  font-size: 1rem;
+  font-style: italic;
+  margin-top: 1.2rem;
+}
+
+/* ── TABLES ──────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem 0;
+  font-size: 11pt;
+  page-break-inside: avoid;
+}
+
+thead {
+  background: var(--sks-primary);
+  color: white;
+}
+
+thead th {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-weight: bold;
+}
+
+tbody tr:nth-child(even) {
+  background: var(--sks-light-bg);
+}
+
+tbody tr:hover {
+  background: #d4e6f1;
+}
+
+td, th {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--sks-border);
+}
+
+/* ── CODE BLOCKS (Flow Diagrams) ─────────────────────── */
+pre {
+  background: #1a1a2e;
+  color: #e8f4f8;
+  padding: 1.2rem 1.5rem;
+  border-radius: 6px;
+  font-family: var(--font-code);
+  font-size: 10.5pt;
+  line-height: 1.5;
+  overflow-x: auto;
+  border-left: 4px solid var(--sks-accent);
+  margin: 1.2rem 0;
+  page-break-inside: avoid;
+  white-space: pre;
+}
+
+code {
+  font-family: var(--font-code);
+  background: #eaf4fb;
+  color: var(--sks-primary);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-size: 10pt;
+}
+
+/* ── BLOCKQUOTES ─────────────────────────────────────── */
+blockquote {
+  background: var(--sks-light-bg);
+  border-left: 5px solid var(--sks-secondary);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+}
+
+blockquote p { margin: 0; }
+
+/* ── NOTES AND WARNINGS ──────────────────────────────── */
+.note {
+  background: #fef9e7;
+  border-left: 5px solid #f39c12;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+}
+
+/* ── LISTS ───────────────────────────────────────────── */
+ul, ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0 1rem 0;
+}
+
+li {
+  margin-bottom: 0.35rem;
+}
+
+ul li::marker { color: var(--sks-secondary); }
+
+/* Task lists */
+ul li:has(input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1rem;
+}
+
+/* ── HORIZONTAL RULES ────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 2px solid var(--sks-border);
+  margin: 2rem 0;
+}
+
+/* ── TABLE OF CONTENTS ───────────────────────────────── */
+#table-of-contents, .toc {
+  background: var(--sks-light-bg);
+  border: 1px solid var(--sks-border);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+/* ── STATUS BADGES ───────────────────────────────────── */
+.status-enquired { color: #7f8c8d; font-weight: bold; }
+.status-interested { color: #2980b9; font-weight: bold; }
+.status-finalized { color: #8e44ad; font-weight: bold; }
+.status-paid { color: var(--sks-green); font-weight: bold; }
+.status-admitted { color: var(--sks-accent); font-weight: bold; }
+
+/* ── PAGE BREAKS ─────────────────────────────────────── */
+.page-break { page-break-after: always; }
+
+h2 { page-break-before: auto; }
+
+/* ── FOOTER ──────────────────────────────────────────── */
+.guide-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--sks-border);
+  font-size: 10pt;
+  color: #777;
+  text-align: center;
+}
+
+/* ── PRINT STYLES ────────────────────────────────────── */
+@media print {
+  body {
+    max-width: 100%;
+    padding: 0;
+    font-size: 11pt;
+  }
+
+  .guide-header {
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  pre {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  thead {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h2 {
+    page-break-after: avoid;
+  }
+
+  h3 {
+    page-break-after: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  pre, blockquote {
+    page-break-inside: avoid;
+  }
+}
+
+@page {
+  margin: 1.5cm 2cm;
+  @bottom-center {
+    content: "SKS College of Nursing — " attr(data-guide-title) " | Page " counter(page);
+    font-size: 9pt;
+    color: #555;
+  }
+}
+

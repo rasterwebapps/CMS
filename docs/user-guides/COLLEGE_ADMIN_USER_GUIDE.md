@@ -1,1109 +1,939 @@
-# College Management System - College Admin User Guide
+# SKS College of Nursing
+# College Administrator — User Guide
 
-## Version 1.0 | April 27, 2026
+**Version 2.0 | April 27, 2026**
 
 ---
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Role Overview](#role-overview)
-3. [Getting Started](#getting-started)
-4. [Main Dashboard](#main-dashboard)
-5. [Preferences & Settings](#preferences--settings)
-6. [Admission Management](#admission-management)
-7. [Finance Management](#finance-management)
-8. [Reports](#reports)
-9. [Common Workflows](#common-workflows)
-10. [Troubleshooting](#troubleshooting)
-11. [Keyboard Shortcuts](#keyboard-shortcuts)
+1. [Introduction](#1-introduction)
+2. [Your Role at SKS College of Nursing](#2-your-role-at-sks-college-of-nursing)
+3. [Getting Started & Login](#3-getting-started--login)
+4. [Admin Dashboard](#4-admin-dashboard)
+5. [Preferences — Academic Setup](#5-preferences--academic-setup)
+   - [5.1 Departments](#51-departments)
+   - [5.2 Programs](#52-programs)
+   - [5.3 Courses (Subjects)](#53-courses-subjects)
+   - [5.4 Academic Years](#54-academic-years)
+   - [5.5 Semesters](#55-semesters)
+   - [5.6 Fee Structures](#56-fee-structures)
+   - [5.7 Faculty](#57-faculty)
+   - [5.8 Agents & Referral Types](#58-agents--referral-types)
+6. [Admission Management](#6-admission-management)
+   - [6.1 Status Lifecycle](#61-admission-status-lifecycle)
+   - [6.2 Enquiries](#62-enquiries)
+   - [6.3 Document Submission](#63-document-submission)
+   - [6.4 Admission Completion](#64-admission-completion)
+   - [6.5 Admissions List](#65-admissions-list)
+   - [6.6 Students List](#66-students-list)
+7. [Finance Management](#7-finance-management)
+   - [7.1 Fee Finalization](#71-fee-finalization)
+   - [7.2 Payment Collection](#72-payment-collection)
+8. [Reports](#8-reports)
+9. [Complete Admission Workflow](#9-complete-admission-workflow)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Quick Reference](#11-quick-reference)
 
 ---
 
-## Introduction
+## 1. Introduction
 
-Welcome to the College Management System! This guide is designed specifically for **College Administrators**. As a College Admin, you have comprehensive access to manage college operations, from student admissions to financial tracking and reporting.
+Welcome to the **SKS College of Nursing Management System**. This guide is written for **College Administrators** who are responsible for configuring academic operations, managing admissions from enquiry to enrollment, and overseeing financial collections.
 
-### About This Document
-
-This handbook will walk you through all features available to your role, providing step-by-step instructions for common tasks and best practices for efficient workflow management.
+SKS College of Nursing offers INC-approved programs in nursing and allied health sciences. The system is designed to help you manage the entire student journey from the first phone call to graduation.
 
 ---
 
-## Role Overview
+## 2. Your Role at SKS College of Nursing
 
-### What is a College Admin?
+### Permissions at a Glance
 
-A College Admin is responsible for:
-- ✅ Managing the college's academic structure (departments, programs, courses)
-- ✅ Setting up academic calendars and semesters
-- ✅ Managing fee structures and financial parameters
-- ✅ Overseeing the admission process
-- ✅ Processing fee finalization and payments
-- ✅ Managing faculty and administrative staff
-- ✅ Generating reports and analytics
-- ✅ Configuring system settings
+| Menu Section | Access |
+|------|--------|
+| Dashboard | ✅ Full access |
+| Preferences — Academic Setup | ✅ Full access |
+| Admission Management | ✅ Full access |
+| Finance — Fee Finalization | ✅ College Admin only |
+| Finance — Fee Payments | ✅ Full access |
+| Reports | ✅ Full access |
+| System Settings | ❌ System Admin only |
 
-### Permissions Summary
+### Enquiry Shortcut Actions Available to You
 
-| Area | Permission | Access |
-|------|-----------|--------|
-| Dashboard | View | ✅ Full |
-| Preferences | Edit | ✅ Full (Departments, Programs, Courses, Academic Calendar, etc.) |
-| Admission Management | Full | ✅ Enquiries, Document Submission, Admissions, Students |
-| Finance | Full | ✅ Fee Structures, Student Fees, Fee Payments, Fee Finalization |
-| Curriculum | View Only | ❌ Limited (Admin only) |
-| Reports | View | ✅ Full |
-| Settings | No Access | ❌ Admin only |
+From the **Enquiries list**, you can trigger key workflow steps with a single button:
 
----
-
-## Getting Started
-
-### Login Process
-
-1. **Navigate to the application**: Open your browser and go to the CMS application URL
-2. **Keycloak Login Screen**: You will be redirected to the Keycloak identity server
-3. **Enter Credentials**:
-   - Username: Your college admin email
-   - Password: Your Keycloak password
-4. **Dashboard**: You'll be directed to the admin dashboard after successful authentication
-
-### First-Time Setup
-
-**Step 1**: Verify your profile
-- Click your **avatar/initials** in the top-right corner
-- Verify your name, email, and role displays as "College Admin"
-
-**Step 2**: Familiarize yourself with the navigation menu
-- Left sidebar contains all major sections
-- Expandable groups show related features
-- Shortcuts to frequently used screens
-
-**Step 3**: Customize your dashboard
-- Dashboard provides quick statistics
-- Pin favorite reports for quick access
+| Button | Enquiry Status Required | Action |
+|--------|------------------------|--------|
+| 💰 Finalize Fee | `INTERESTED` | Set student's fee amount, apply scholarships |
+| 💳 Collect Payment | `FEES_FINALIZED` or `PARTIALLY_PAID` | Record a cash/online/cheque payment |
+| 📁 Submit Documents | `FEES_PAID` or `PARTIALLY_PAID` | Open document upload workflow |
+| 🎓 Create Admission | `DOCUMENTS_SUBMITTED` (via enquiry detail) | Create admission and student record |
 
 ---
 
-## Main Dashboard
+## 3. Getting Started & Login
 
-### Dashboard Overview
+### How to Log In
 
-The Dashboard provides at-a-glance metrics about your institution's operations.
+1. Open your browser and navigate to the CMS application URL
+2. You are automatically redirected to the **Keycloak login screen**
+3. Enter:
+   - **Username**: Your college email (e.g., `admin@sksnursing.edu.in`)
+   - **Password**: Your Keycloak password
+4. Click **"Log In"**
+5. The **College Admin Dashboard** loads
+
+### First-Time Checklist
+
+- [ ] Verify your name and role display correctly (avatar → top-right)
+- [ ] Check that "College Admin" appears in your profile
+- [ ] Explore the left navigation sidebar
+- [ ] Complete Step 5 (Preferences) before processing first admission
+
+---
+
+## 4. Admin Dashboard
 
 ### Dashboard Widgets
 
-#### Admissions Widget
-- **Total Enquiries**: Number of active enquiries
-- **Documents Submitted**: Ready for admission creation
-- **Admissions Pending**: Awaiting completion
+| Widget | What It Shows |
+|--------|--------------|
+| New Enquiries This Month | Count of prospective students who enquired |
+| Pending Fee Finalizations | Enquiries in `INTERESTED` status awaiting fee setup |
+| Ready for Admission | Enquiries in `DOCUMENTS_SUBMITTED` status |
+| Monthly Collections | Total fees received this calendar month |
+| Outstanding Balance | Total fees yet to be collected across all students |
+| Active Academic Year | Currently configured academic year (e.g., 2026–27) |
 
-**Action**: Click on any metric to jump to that section
+### Quick Action Shortcuts
 
-#### Finance Widget
-- **Outstanding Fees**: Total pending collections
-- **Monthly Collections**: This month's fee payments
-- **Fee Finalization Status**: Pending fee finalizations
-
-**Action**: Click metrics to view detailed lists
-
-#### Faculty Widget
-- **Total Faculty**: Count of active faculty members
-- **By Department**: Breakdown by academic department
-
-#### System Status
-- **Active Academic Year**: Current operational year
-- **Current Semester**: Ongoing semester details
-- **Online Users**: Real-time count
-
-### Dashboard Actions
-
-**Quick Navigation Buttons**:
-- "New Enquiry" - Create a new student enquiry
-- "Record Payment" - Quick access to payment collection
-- "Finalize Fees" - Start fee finalization process
-- "View Reports" - Access reporting dashboard
+| Button | Takes You To |
+|--------|-------------|
+| + New Enquiry | Create enquiry screen |
+| Finalize Fee | Student fees finalization |
+| View Reports | Reports dashboard |
+| Record Payment | Fee payment recording |
 
 ---
 
-## Preferences & Settings
+## 5. Preferences — Academic Setup
 
-### Overview
+This section configures the academic and operational backbone of SKS College of Nursing. Set up Preferences **before** processing any admissions.
 
-The Preferences section is where you configure your college's core academic and administrative structure.
+---
 
-### 1. Departments Management
+### 5.1 Departments
 
-**Access**: Sidenav → Preferences → Departments
+**Navigate**: Sidenav → Preferences → Departments
 
-#### Creating a Department
+SKS College of Nursing organizes its faculty and curriculum into the following departments:
 
-1. Click **"+ New Department"** button (top-right)
-2. Fill in the form:
-   - **Department Name**: e.g., "Computer Science"
-   - **Department Code**: e.g., "CS" (unique identifier)
-   - **Description**: Brief description of the department
+| Department Name | Code | Description |
+|----------------|------|-------------|
+| Medical-Surgical Nursing | MSN | Adult inpatient and surgical care nursing |
+| Community Health Nursing | CHN | Public health, epidemiology, and rural health nursing |
+| Child Health Nursing | CHD | Paediatric and neonatal nursing |
+| Psychiatric & Mental Health Nursing | PMH | Psychiatry care and mental wellness nursing |
+| OBG Nursing | OBG | Obstetrics, Gynaecology, and Midwifery |
+| Nursing Foundations | NF | Fundamentals of nursing and clinical skills |
+| Basic Sciences | BSC | Anatomy, Physiology, Biochemistry, Microbiology |
+
+#### How to Create a Department
+
+1. Click **"+ New Department"** button (top-right of the screen)
+2. Fill in:
+   - **Department Name**: e.g., `Medical-Surgical Nursing`
+   - **Department Code**: e.g., `MSN`
+   - **Description**: Brief description of scope
 3. Click **"Save Department"**
-4. Verify the new department appears in the list
-
-#### Editing a Department
-
-1. Find the department in the list
-2. Click the **pencil icon** (edit button)
-3. Update the required fields
-4. Click **"Save"**
-
-#### Viewing Department Details
-
-1. Click on the department row (or the eye icon)
-2. View associated programs and courses
-3. See faculty assigned to the department
-4. Click **"Back"** to return to the list
-
-**Best Practice**: Use meaningful codes (e.g., "CS" for Computer Science) for quick identification.
+4. New department appears in the list
 
 ---
 
-### 2. Programs Management
+### 5.2 Programs
 
-**Access**: Sidenav → Preferences → Programs
+**Navigate**: Sidenav → Preferences → Programs
 
-#### Creating a New Program
+SKS College of Nursing offers the following INC-approved programs:
 
-1. Click **"+ New Program"** button
-2. Form fields:
-   - **Program Name**: e.g., "Bachelor of Technology in CSE"
-   - **Program Code**: e.g., "B.TECH.CSE"
-   - **Department**: Select from dropdown
-   - **Duration (Years)**: e.g., 4
-   - **Intake Capacity**: Number of seats available
-   - **Description**: Program overview
+| Program Name | Code | Duration | Intake Seats | Department |
+|-------------|------|----------|--------------|-----------|
+| Bachelor of Science in Nursing | BSC-NUR | 4 Years | 60 | Nursing Foundations |
+| Master of Science in Nursing | MSC-NUR | 2 Years | 30 | Medical-Surgical Nursing |
+| General Nursing & Midwifery | GNM | 3½ Years | 60 | Nursing Foundations |
+| Post Basic B.Sc Nursing | PBB-NUR | 2 Years | 30 | Nursing Foundations |
+| Diploma in OT Technician | DOTT | 2 Years | 30 | Basic Sciences |
+| Diploma in Medical Lab Technology | DMLT | 2 Years | 30 | Basic Sciences |
+
+#### How to Create a Program
+
+1. Click **"+ New Program"**
+2. Fill in:
+   - **Program Name**: `Bachelor of Science in Nursing`
+   - **Program Code**: `BSC-NUR`
+   - **Department**: `Nursing Foundations`
+   - **Duration (Years)**: `4`
+   - **Intake Capacity**: `60`
+   - **Description**: `INC-approved 4-year nursing degree program`
 3. Click **"Save Program"**
 
-#### Important**: Each program must be associated with a department. Select the correct department before saving.
-
 ---
 
-### 3. Courses Management
+### 5.3 Courses (Subjects)
 
-**Access**: Sidenav → Preferences → Courses
+**Navigate**: Sidenav → Preferences → Courses
 
-**Courses are the individual subjects/subjects included in a program each semester**
+Courses are individual subjects taught within programs. Below is the complete curriculum for **B.Sc Nursing (BSC-NUR)**:
 
-#### Creating a Course
+#### Semester-wise Course List — B.Sc Nursing
 
-1. Click **"+ New Course"** button
-2. Fill in details:
-   - **Course Name**: e.g., "Data Structures"
-   - **Course Code**: e.g., "CS201"
-   - **Program**: Select the program this course belongs to
-   - **Semester**: Which semester does this course run?
-   - **Credits**: Academic credits (e.g., 4)
+| Semester | Subject | Code | Credits |
+|----------|---------|------|---------|
+| Sem 1 | Anatomy and Physiology | BSC-NUR-101 | 4 |
+| Sem 1 | Biochemistry | BSC-NUR-102 | 3 |
+| Sem 1 | Nursing Foundations I | BSC-NUR-103 | 6 |
+| Sem 1 | Nutrition and Dietetics | BSC-NUR-104 | 3 |
+| Sem 2 | Psychology | BSC-NUR-105 | 3 |
+| Sem 2 | Microbiology | BSC-NUR-106 | 4 |
+| Sem 2 | Nursing Foundations II | BSC-NUR-107 | 6 |
+| Sem 2 | Sociology | BSC-NUR-108 | 2 |
+| Sem 3 | Medical-Surgical Nursing I | BSC-NUR-201 | 8 |
+| Sem 3 | Pharmacology | BSC-NUR-202 | 4 |
+| Sem 3 | Pathology and Genetics | BSC-NUR-203 | 3 |
+| Sem 4 | Medical-Surgical Nursing II | BSC-NUR-204 | 8 |
+| Sem 4 | Community Health Nursing I | BSC-NUR-205 | 6 |
+| Sem 4 | Mental Health Nursing | BSC-NUR-206 | 5 |
+| Sem 5 | Child Health Nursing | BSC-NUR-301 | 6 |
+| Sem 5 | Midwifery & OBG Nursing I | BSC-NUR-302 | 8 |
+| Sem 6 | Midwifery & OBG Nursing II | BSC-NUR-303 | 8 |
+| Sem 6 | Community Health Nursing II | BSC-NUR-304 | 5 |
+| Sem 7 | Nursing Research & Statistics | BSC-NUR-401 | 4 |
+| Sem 7 | Management of Nursing Services | BSC-NUR-402 | 5 |
+| Sem 8 | Nursing Education | BSC-NUR-403 | 4 |
+| Sem 8 | Clinical Internship | BSC-NUR-404 | 20 |
+
+#### How to Create a Course
+
+1. Click **"+ New Course"**
+2. Fill in:
+   - **Course Name**: `Anatomy and Physiology`
+   - **Course Code**: `BSC-NUR-101`
+   - **Program**: `Bachelor of Science in Nursing`
+   - **Semester**: `1`
+   - **Credits**: `4`
 3. Click **"Save Course"**
 
 ---
 
-### 4. Academic Years
+### 5.4 Academic Years
 
-**Access**: Sidenav → Preferences → Academic Years
+**Navigate**: Sidenav → Preferences → Academic Years
 
-Academic years define study periods for your institution.
+SKS College follows the **INC academic calendar** (August to July).
 
-#### Creating an Academic Year
+| Academic Year | Status |
+|---------------|--------|
+| 2023–24 | Archived |
+| 2024–25 | Archived |
+| 2025–26 | Archived |
+| 2026–27 | ✅ **Active** |
+| 2027–28 | Future |
 
-1. Click **"+ New Academic Year"** button
+#### How to Create an Academic Year
+
+1. Click **"+ New Academic Year"**
 2. Enter:
-   - **Start Year**: e.g., 2026
-   - **End Year**: e.g., 2027
-   - **Label**: Auto-filled as "2026-27" (can edit)
-   - **Status**: Set to "Active" if this is the current year
+   - **Start Year**: `2026`
+   - **End Year**: `2027`
+   - **Status**: `Active`
 3. Click **"Save"**
 
-**Note**: You can have one active academic year at a time.
-
-#### Changing Active Academic Year
-
-1. Find the desired academic year in the list
-2. Click the **status dropdown** for that year
-3. Select **"Active"**
-4. Confirm the change
+> **Note**: Only one academic year should be set to `Active` at a time.
 
 ---
 
-### 5. Semesters
+### 5.5 Semesters
 
-**Access**: Sidenav → Preferences → Semesters
+**Navigate**: Sidenav → Preferences → Semesters
 
-Semesters divide the academic year into instructional periods.
+Each academic year has two semesters for degree programs and three blocks for GNM.
 
-#### Creating a Semester
+| Semester Name | Number | Period | Exam Dates |
+|---------------|--------|--------|------------|
+| Sem 1 — Foundation (Odd) 2026 | 1 | 01 Aug – 12 Dec 2026 | 15 Dec – 28 Dec 2026 |
+| Sem 2 — Foundation (Even) 2027 | 2 | 03 Jan – 10 May 2027 | 12 May – 25 May 2027 |
+| Sem 3 — Clinical I (Odd) 2027 | 3 | 01 Aug – 12 Dec 2027 | 15 Dec – 28 Dec 2027 |
+| Sem 4 — Clinical I (Even) 2028 | 4 | 03 Jan – 10 May 2028 | 12 May – 25 May 2028 |
 
-1. Click **"+ New Semester"** button
-2. Fill in:
-   - **Name**: e.g., "Fall 2026"
-   - **Semester Number**: e.g., 1 (first semester)
-   - **Academic Year**: Select from dropdown
-   - **Start Date**: When instruction begins
-   - **End Date**: When instruction ends
-   - **Exam Start Date**: When exams begin
-   - **Exam End Date**: When exams conclude
+#### How to Create a Semester
+
+1. Click **"+ New Semester"**
+2. Enter:
+   - **Name**: `Sem 1 — Foundation (Odd) 2026`
+   - **Semester Number**: `1`
+   - **Academic Year**: `2026–27`
+   - **Start Date**: `01-08-2026`
+   - **End Date**: `12-12-2026`
+   - **Exam Start Date**: `15-12-2026`
+   - **Exam End Date**: `28-12-2026`
 3. Click **"Save"**
 
 ---
 
-### 6. Fee Structures
+### 5.6 Fee Structures
 
-**Access**: Sidenav → Preferences → Fee Structures
+**Navigate**: Sidenav → Preferences → Fee Structures
 
-Fee structures define how much students pay and what components comprise fees.
+SKS College of Nursing fee structures comply with INC regulations and state government guidelines.
 
-#### Creating a Fee Structure
+#### B.Sc Nursing Fee Structure — 2026–27
 
-1. Click **"+ New Fee Structure"** button
-2. Basic Information:
-   - **Program**: Which program is this for?
-   - **Academic Year**: Applicable year
-   - **Course**: Select specific course (if course-specific fees)
-   - **Fee Type**: e.g., "Tuition", "Lab Fee", "Hostel"
-3. Fee Components (click "Add Fee Component"):
-   - **Component Name**: e.g., "Tuition Fee"
-   - **Year (1-4)**: Which year's students pay this
-   - **Amount**: Fee amount in currency
+| Fee Component | Year 1 | Year 2 | Year 3 | Year 4 | Total |
+|--------------|--------|--------|--------|--------|-------|
+| Tuition Fee | ₹60,000 | ₹60,000 | ₹60,000 | ₹60,000 | ₹2,40,000 |
+| Clinical Training Fee | ₹20,000 | ₹25,000 | ₹30,000 | ₹25,000 | ₹1,00,000 |
+| Lab & Practical Fee | ₹10,000 | ₹10,000 | ₹10,000 | ₹10,000 | ₹40,000 |
+| Exam Fee | ₹5,000 | ₹5,000 | ₹5,000 | ₹5,000 | ₹20,000 |
+| Uniform & Kit (Year 1) | ₹8,000 | — | — | — | ₹8,000 |
+| **Annual Total** | **₹1,03,000** | **₹1,00,000** | **₹1,05,000** | **₹1,00,000** | **₹4,08,000** |
+
+> Hostel fee (₹36,000/year) is additional and optional.
+
+#### M.Sc Nursing Fee Structure — 2026–27
+
+| Fee Component | Year 1 | Year 2 |
+|--------------|--------|--------|
+| Tuition Fee | ₹80,000 | ₹80,000 |
+| Research Lab Fee | ₹15,000 | ₹20,000 |
+| Clinical Placement Fee | ₹25,000 | ₹30,000 |
+| Exam Fee | ₹5,000 | ₹5,000 |
+| **Annual Total** | **₹1,25,000** | **₹1,35,000** |
+
+#### GNM Fee Structure — 2026–27
+
+| Fee Component | Year 1 | Year 2 | Year 3 |
+|--------------|--------|--------|--------|
+| Tuition Fee | ₹45,000 | ₹45,000 | ₹45,000 |
+| Clinical Training | ₹15,000 | ₹18,000 | ₹20,000 |
+| Uniform & Kit | ₹6,000 | — | — |
+| Exam Fee | ₹4,000 | ₹4,000 | ₹4,000 |
+| **Annual Total** | **₹70,000** | **₹67,000** | **₹69,000** |
+
+#### Scholarship / Concession Categories
+
+| Scholarship | Eligibility | Discount |
+|-------------|-------------|---------|
+| Merit Scholarship | 95%+ in 12th Grade | ₹30,000/year |
+| SC/ST Government Concession | Caste certificate | As per Govt norms |
+| Staff Ward Concession | Child of SKS staff | 25% tuition fee |
+| Hospital Referral Concession | Referred by affiliated hospital | 15% tuition fee |
+| Financial Hardship Concession | Income certificate < ₹3 lakh | Case by case |
+
+#### How to Create a Fee Structure
+
+1. Click **"+ New Fee Structure"**
+2. Select:
+   - **Program**: `Bachelor of Science in Nursing`
+   - **Academic Year**: `2026–27`
+   - **Fee Type**: `Tuition Fee`
+3. Add Year Amounts:
+   - Year 1: `60000`, Year 2: `60000`, Year 3: `60000`, Year 4: `60000`
 4. Click **"Save Fee Structure"**
 
-#### Example Fee Structure
-```
-Program: B.Tech CSE
-Academic Year: 2026-27
-Components:
-  Year 1: ₹100,000
-  Year 2: ₹95,000
-  Year 3: ₹90,000
-  Year 4: ₹85,000
-```
-
-#### Bulk Update Fee Structures
-
-For multiple programs/years:
-1. Click **"Bulk Upload"** button
-2. Prepare CSV file with columns: Program, AcademicYear, FeeType, Year, Amount
-3. Upload the file
-4. Verify preview
-5. Click **"Confirm Upload"**
+> **Tip**: Create separate fee structure entries for each component (Tuition, Clinical, Lab, Exam) and the system aggregates them.
 
 ---
 
-### 7. Faculty Management
+### 5.7 Faculty
 
-**Access**: Sidenav → Preferences → Faculty
+**Navigate**: Sidenav → Preferences → Faculty
 
-#### Adding a Faculty Member
+#### SKS College of Nursing — Faculty Register (Sample)
 
-1. Click **"+ New Faculty"** button
-2. Personal Information:
-   - **First Name**, **Last Name**
-   - **Email**: Official email address
-   - **Phone**: Contact number
-   - **Employee ID**: Unique identifier
-3. Assignment:
-   - **Department**: Faculty department
-   - **Designation**: e.g., "Assistant Professor"
-   - **Specialization**: Subject expertise
-4. Click **"Save Faculty"**
+| Name | Designation | Department | Qualification |
+|------|-------------|-----------|---------------|
+| Ms. Anita Rao | Principal & Professor | Nursing Foundations | M.Sc Nursing, Ph.D |
+| Dr. Kavitha M | Reader | Medical-Surgical Nursing | M.Sc Nursing (Critical Care) |
+| Ms. Priya Sundaram | Lecturer | Community Health Nursing | M.Sc Nursing |
+| Ms. Deepa Nair | Lecturer | OBG Nursing | M.Sc Nursing (Midwifery) |
+| Ms. Lakshmi K | Tutor | Child Health Nursing | B.Sc Nursing |
+| Mr. Arun Kumar | Tutor | Basic Sciences | M.Sc Anatomy |
+| Ms. Sindhu G | Clinical Instructor | Medical-Surgical Nursing | B.Sc Nursing |
 
-#### Assigning Courses to Faculty
+#### How to Add Faculty
 
-1. Find faculty in list, click to open
-2. Click **"Assign Courses"** tab
-3. Select courses to assign from dropdown
-4. Click **"Add Course"**
-5. Review assignments
-6. Click **"Save"**
-
----
-
-### 8. Agents & Referral Types
-
-**Access**: Sidenav → Preferences → Agents and Referral Types
-
-#### Managing Agents (Admission Representatives)
-
-Agents help recruit students to your institution.
-
-1. Click **"+ New Agent"** button
+1. Click **"+ New Faculty"**
 2. Enter:
-   - **Agent Name**: Representative's name
-   - **Agency Name**: If representing an organization
-   - **Commission Type**: Percentage commission or flat fee
-   - **Commission Rate**: e.g., 5% or ₹500
-3. Save agent
-
-#### Managing Referral Types
-
-Referral types categorize how enquiries came to you.
-
-1. Click **"+ New Referral Type"** button
-2. Enter:
-   - **Type Name**: e.g., "Website", "Direct Walk-in", "Alumni"
-   - **Description**: Optional details
-3. Save
+   - **First Name / Last Name**: e.g., `Kavitha M`
+   - **Email**: `kavitha.m@sksnursing.edu.in`
+   - **Phone**: `+91-98XXXXXXXX`
+   - **Employee ID**: `FAC-001`
+   - **Department**: `Medical-Surgical Nursing`
+   - **Designation**: `Reader`
+   - **Specialization**: `Critical Care Nursing`
+3. Click **"Save Faculty"**
 
 ---
 
-## Admission Management
+### 5.8 Agents & Referral Types
 
-### Overview
+**Navigate**: Sidenav → Preferences → Agents and Referral Types
 
-The Admission Management section handles the complete student admission workflow from initial enquiry to student enrollment.
+#### SKS College — Referral Type Setup
 
-### 1. Enquiries Management
+| Referral Type | Description |
+|---------------|-------------|
+| Direct Walk-In | Walk-in student — no referral |
+| Hospital Referral | Staff from affiliated hospital recommends |
+| Alumni Network | SKS alumni refers prospective student |
+| Advertisement | Newspaper, TV, or Radio ad |
+| Social Media | Facebook, Instagram, WhatsApp group |
+| INC / State Nursing Board | Via INC or TNMSC notice board |
+| School / PU College | Referred by a 12th-grade institution |
+| Education Agent | Commission-based recruitment agent |
 
-**Access**: Sidenav → Admission Management → Enquiries
+---
 
-Enquiry is the first step when someone shows interest in your programs.
+## 6. Admission Management
+
+### 6.1 Admission Status Lifecycle
+
+Every prospective student passes through the following statuses, each unlocking new actions:
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║         ENQUIRY STATUS LIFECYCLE — SKS COLLEGE OF NURSING           ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+  [ENQUIRED]
+    │  Student expressed interest (walk-in, call, social media)
+    │  Action: Front Office records enquiry details
+    │
+    ▼
+  [INTERESTED]
+    │  Student confirmed they want to join
+    │  Action: Notify College Admin to finalize fees
+    │
+    ▼
+  [FEES_FINALIZED]
+    │  College Admin has set the fee amount, applied scholarships
+    │  Action: Cashier / Front Office / Admin collects payment
+    │
+    ▼
+  [FEES_PAID] ──── or ──── [PARTIALLY_PAID]
+    │                              │
+    │  Full payment received       │  First instalment received
+    │                              │  (Remaining > 0)
+    └──────────┬───────────────────┘
+               │
+               │  Action: Collect 7 mandatory documents
+               ▼
+  [DOCUMENTS_SUBMITTED]
+    │  All 7 documents uploaded and verified
+    │  Action: College Admin / Front Office creates admission
+    │
+    ▼
+  [ADMITTED] ✅
+       Student ID generated — Admission is complete!
+```
+
+**What happens if a student changes their mind?**
+- From `ENQUIRED` or `INTERESTED` → Change status to `NOT_INTERESTED`
+- From `NOT_INTERESTED` → Can return to `INTERESTED` later
+- From `FEES_FINALIZED` onwards → Status change requires College Admin action
+
+---
+
+### 6.2 Enquiries
+
+**Navigate**: Sidenav → Admission Management → Enquiries
 
 #### Creating a New Enquiry
 
-1. Click **"+ New Enquiry"** button (top-right)
-2. Fill in Student Information:
-   - **Name**: Prospective student's name
-   - **Email**: Contact email
-   - **Phone**: Contact number
-   - **Program**: Interested program
-   - **Course**: (If applicable)
-   - **Student Type**: e.g., "First Year", "Lateral Entry"
-3. Add Optional Information:
-   - **Agent**: If referred by an agent
-   - **Referral Type**: Source of enquiry
-   - **Remarks**: Any notes about the student
-4. Click **"Create Enquiry"**
-5. Enquiry status automatically set to "ENQUIRED"
+1. Click **"+ New Enquiry"** (top-right)
+2. Fill in the form:
 
-#### Enquiry Status Workflow
+   **Student Information**:
+   | Field | Example |
+   |-------|---------|
+   | Name | `Meena Rajendran` |
+   | Email | `meena@gmail.com` |
+   | Phone | `+91-99XXXXXXXX` |
+   | Program | `Bachelor of Science in Nursing` |
+   | Student Type | `General` / `SC/ST` / `OBC` / `NRI` / `Lateral Entry` |
+   | Referral Type | `Hospital Referral` |
+   | Agent | (if referred through an agent) |
+   | Remarks | `Interested in critical care specialization` |
 
-An enquiry progresses through these statuses:
+3. Click **"Create Enquiry"**
+4. Status automatically set to `ENQUIRED`
 
-```
-ENQUIRED → INTERESTED → FEES_FINALIZED → FEES_PAID → DOCUMENTS_SUBMITTED → ADMITTED
-```
+#### Searching and Filtering Enquiries
 
-#### Managing Enquiries - List View
+| Filter | Options | Purpose |
+|--------|---------|---------|
+| Search Box | Name / Phone / Email | Find specific student |
+| Status Filter | All statuses or specific | See students at a stage |
+| Program Filter | BSC-NUR / GNM / etc. | See by program |
+| Date Range | From – To | Enquiries in a period |
 
-1. Navigate to Enquiries list
-2. **Search**: Find by student name, phone, or email
-3. **Filter by Status**: Use dropdown to filter
-4. **Date Range**: Filter by enquiry date range
-5. **Sort**: Click column headers to sort
+#### Quick Action Buttons in List View
 
-#### Key Actions in List View
+From the enquiry list, these buttons appear automatically when the enquiry is in the correct status:
 
-**Status Update** (when applicable):
-- Click the **status badge** on an enquiry
-- Select new status from dropdown
-- Confirm transition
-
-**Finalize Fee** (from shortcut button):
-1. Find enquiry with status "INTERESTED"
-2. Click **"Finalize Fee"** button (green button, right side)
-3. Redirects to Fee Finalization screen (see Finance section)
-
-**Collect Payment** (from shortcut button):
-1. Find enquiry with status "FEES_FINALIZED" or "PARTIALLY_PAID"
-2. Click **"Collect Payment"** button (success/teal button)
-3. Redirects to payment collection screen
-
-**Submit Documents** (from shortcut button):
-1. Find enquiry with status "FEES_PAID" or "PARTIALLY_PAID"
-2. Click **"Submit Documents"** button
-3. Opens document submission workflow
-
-**View Details**:
-- Click on enquiry name or row
-- Opens detailed enquiry view with tabs:
-  - Overview (personal details)
-  - Documents (uploaded files)
-  - Payments (transaction history)
-  - Status History (workflow timeline)
-
-#### Enquiry Detail View
-
-When you click on an enquiry:
-
-**Overview Tab**:
-- Student details
-- Program information
-- Agent and referral details
-- Net fee amount
-
-**Documents Tab**:
-- Uploaded documents
-- Verification status (PENDING, VERIFIED, REJECTED)
-- File download/view options
-
-**Payments Tab**:
-- Payment history
-- Receipt numbers
-- Amount paid
-- Collection method (CASH, ONLINE, CHEQUE)
-
-**Status History Tab**:
-- Timeline of status changes
-- Who made each change
-- When each change occurred
-
-#### Quick Actions on Enquiry Detail
-
-**Submit Documents Button** (becomes active when status = FEES_PAID):
-1. Verify all mandatory documents are marked UPLOADED or VERIFIED
-2. Click **"Submit Documents"**
-3. Status changes to DOCUMENTS_SUBMITTED
-4. Documents cannot be reverse-transitioned
-
-**Create Admission Button** (becomes active when status = DOCUMENTS_SUBMITTED):
-1. Click **"Create Admission"**
-2. Redirects to admission creation form
-3. Enquiry details pre-filled
-4. Create new student with additional data
-5. Completes admission workflow
+- **💰 Finalize Fee** → Click to set student's fee (status: `INTERESTED`)
+- **💳 Collect Payment** → Click to record a payment (status: `FEES_FINALIZED` / `PARTIALLY_PAID`)
+- **📁 Submit Documents** → Click to collect docs (status: `FEES_PAID` / `PARTIALLY_PAID`)
 
 ---
 
-### 2. Document Submission
+### 6.3 Document Submission
 
-**Access**: Sidenav → Admission Management → Document Submission
+**Navigate**: Sidenav → Admission Management → Document Submission
 
-Documents are proof of student eligibility and qualifications.
+SKS College of Nursing is affiliated with the **Indian Nursing Council (INC)** and **State Nurses Registration Council**, which mandates specific documents for admission:
 
-#### What are Mandatory Documents?
+#### Mandatory Document Checklist (7 Documents)
 
-Your institution requires these 5 documents from every student:
-1. Tenth Grade Marksheet
-2. Twelfth Grade Marksheet
-3. Transfer Certificate
-4. Aadhar Card (or Government ID)
-5. Passport Photo
+| # | Document Type | Minimum Requirement | Notes |
+|---|---------------|---------------------|-------|
+| 1 | 10th Grade Marksheet | Min 45% aggregate | SSC / CBSE / State Board |
+| 2 | 12th Grade Marksheet | Science stream — Biology compulsory | Min 45% for General, 40% SC/ST |
+| 3 | Transfer Certificate | Original from last institution | Clear conduct stated |
+| 4 | Aadhar Card | Valid government ID | Or Voter ID / Passport |
+| 5 | Passport Photo | White background, recent | 4×6 cm, 2 copies scanned |
+| 6 | Medical Fitness Certificate | From registered medical practitioner | Dated within 6 months |
+| 7 | Blood Group Report | From accredited lab/hospital | Required for clinical posting |
 
-#### Uploading Documents
+> **Optional**: NEET scorecard (required if state mandates it), Caste certificate (for reservations), Income certificate (for concessions).
 
-1. Click **"Document Submission"** from menu
-2. Find enquiry with status "FEES_PAID" or "PARTIALLY_PAID"
-3. Click to open document collection screen
-4. For each document:
+#### Document Collection Steps
+
+1. Navigate to **Admission Management → Document Submission**
+2. Find the eligible enquiry (`FEES_PAID` or `PARTIALLY_PAID` status)
+3. Click on the enquiry
+4. For each of the 7 documents:
    - Select document type from dropdown
-   - Click **"Upload File"**
-   - Select image/PDF from your computer
-   - Click **"Verify"** if document is authentic
-5. Add remarks if needed
-6. Repeat for all 5 mandatory documents
+   - Click **"Upload File"** → Browse and select file (PDF or JPG, max 5 MB)
+   - Click **"Verify"** if document meets requirements
+   - Click **"Reject"** if document is unacceptable → Add rejection reason
+5. When all 7 documents are `UPLOADED` or `VERIFIED`:
+   - Click **"Submit Documents"** button
+   - System validates completeness
+   - Status changes to `DOCUMENTS_SUBMITTED`
 
-#### Document Status Indicators
+#### Document Verification Standards
 
-- **⏳ PENDING**: Uploaded but not yet reviewed
-- **✅ VERIFIED**: Document reviewed and accepted
-- **❌ REJECTED**: Document not acceptable, needs resubmission
+| Status | When to Use |
+|--------|------------|
+| VERIFIED ✅ | Document is clear, original-looking, and meets requirements |
+| PENDING ⏳ | Uploaded but not yet reviewed |
+| REJECTED ❌ | Document is blurry, expired, incorrect, or tampered |
 
-#### Completing Document Submission
-
-When all 5 mandatory documents are marked UPLOADED or VERIFIED:
-1. Click **"Submit Documents"** button at bottom
-2. System validates all mandatory docs are submitted
-3. Enquiry status changes to DOCUMENTS_SUBMITTED
-4. Student becomes eligible for admission creation
-
-**Important**: All mandatory documents must be submitted. You cannot proceed without them.
-
----
-
-### 3. Admission Completion
-
-**Access**: Sidenav → Admission Management → Admission Completion
-
-This screen shows enquiries ready for admission creation.
-
-#### Creating an Admission
-
-1. Navigate to "Admission Completion"
-2. List shows only enquiries with status = DOCUMENTS_SUBMITTED
-3. Click on an enquiry to open
-4. Click **"Create Admission"** button
-5. Form opens pre-filled with enquiry data:
-   - **Student Name**: Auto-filled
-   - **Email**: Auto-filled
-   - **Semester**: Select entrance semester
-   - **Admission Date**: Date of joining
-   - **Academic Year**: From and To years
-   - **Application Date**: When application was submitted
-   - **Additional Fields**: Personal details, family info, etc.
-6. Complete all required fields (marked with *)
-7. Click **"Create Admission"**
-8. System creates:
-   - New **Admission** record
-   - New **Student** record
-   - Transitions enquiry to **ADMITTED** status
-9. Success message appears with new Student ID
+**Common Rejection Reasons for Nursing**:
+- Medical fitness certificate older than 6 months
+- 12th marksheet without Biology/Chemistry/Physics
+- Passport photo with coloured background
+- Blood group certificate not from accredited lab
+- Transfer certificate with "conduct: poor" remark
 
 ---
 
-### 4. Admissions List
+### 6.4 Admission Completion
 
-**Access**: Sidenav → Admission Management → Admissions
+**Navigate**: Sidenav → Admission Management → Admission Completion
 
-View all admissions created in the system.
+This screen shows **only** enquiries in `DOCUMENTS_SUBMITTED` status — i.e., students ready for admission creation.
 
-#### Features
+#### How to Create an Admission
 
-**Search and Filter**:
-- Search by student name or admission ID
-- Sort by admission date
-- Filter by status
+1. Find the student's enquiry in the list
+2. Click to open enquiry detail
+3. Click **"Create Admission"** button
+4. Fill in the **Admission Form**:
 
-**Status Types**:
-- PENDING - Awaiting completion
-- APPROVED - Approved admission
-- ENROLLED - Student actively studying
-- GRADUATED - Completed program
-- WITHDRAWN - Student left
+   **Auto-filled from enquiry**:
+   - Student Name, Email, Phone, Program
 
-#### Actions
+   **Required Fields**:
+   | Field | Example |
+   |-------|---------|
+   | Semester | `Semester 1` |
+   | Admission Date | `01-08-2026` |
+   | Academic Year From | `2026` |
+   | Academic Year To | `2027` |
+   | Application Date | `05-07-2026` |
 
-**View Admission Details**:
-- Click on admission to view:
-  - Student information
-  - Documents uploaded
-  - Associated enquiry
-  - Fees and payments
+   **Student Personal Details**:
+   | Field | Example |
+   |-------|---------|
+   | Date of Birth | `15-03-2007` |
+   | Gender | `Female` |
+   | Aadhar Number | `XXXX XXXX XXXX` |
+   | Blood Group | `B+` |
+   | Community Category | `OC` / `BC` / `SC` / `ST` / `MBC` / `DNC` / `EWS` |
+   | Nationality | `Indian` |
+   | Religion | `Hindu` / `Christian` / `Muslim` / etc. |
 
-**Update Admission Status**:
-- Click status dropdown
-- Select new status
-- Confirm update
+   **Family Information**:
+   | Field | Example |
+   |-------|---------|
+   | Father's Name | `Mr. K Rajendran` |
+   | Mother's Name | `Mrs. S Rajendran` |
+   | Parent Mobile | `+91-98XXXXXXXX` |
 
-#### Academic Qualifications
+5. Click **"Create Admission"**
 
-Each admission can have multiple prior academic qualifications:
-1. Open an admission
-2. Click **"Academic Qualifications"** tab
-3. Click **"+ Add Qualification"**
-4. Fill in:
-   - **Examination**: e.g., "10th Grade"
-   - **Board**: e.g., "CBSE"
-   - **Marks**: Score obtained
-   - **Percentage**: Calculate percentage
-5. Save qualification
+#### What Happens After Admission Creation
 
----
-
-### 5. Students List
-
-**Access**: Sidenav → Admission Management → Students
-
-View all enrolled and active students.
-
-#### Student Information
-
-Each student record contains:
-- Personal details
-- Academic enrollment information
-- Associated admission
-- Active courses and progress
-
-#### Search and Filter
-
-- Search by name, student ID, email
-- Filter by program
-- Filter by enrollment status
-
-#### Student Details View
-
-Click on a student to see:
-- **Profile**: Personal information
-- **Enrollment**: Courses and semester info
-- **Fees**: Fee allocation and payment status
-- **Documents**: Submitted documents
-- **Attendance**: (if enabled) Attendance records
+```
+System creates:
+  ✅ Admission Record   → Admission ID: ADM-2026-XXX
+  ✅ Student Record     → Student ID:   SKS-NUR-2026-XXX
+  ✅ Enquiry            → Status transitions to: ADMITTED
+  ✅ Fee Allocation     → Linked to student for payment tracking
+```
 
 ---
 
-## Finance Management
+### 6.5 Admissions List
 
-### Overview
+**Navigate**: Sidenav → Admission Management → Admissions
 
-The Finance section handles all monetary transactions including fee collection, finalization, and payment tracking.
+View and manage all created admissions:
 
-**Access**: Sidenav → Finance
+| Column | Description |
+|--------|-------------|
+| Admission ID | e.g., `ADM-2026-001` |
+| Student Name | Full name |
+| Program | B.Sc Nursing, GNM, etc. |
+| Admission Date | Date of joining |
+| Status | PENDING / APPROVED / ENROLLED / GRADUATED |
+
+**Actions**:
+- View full admission details including qualifications
+- Update admission status
+- View linked documents and fee records
 
 ---
 
-### 1. Student Fees
+### 6.6 Students List
 
-**Access**: Sidenav → Finance → Student Fees
+**Navigate**: Sidenav → Admission Management → Students
 
-Student Fees is where you allocate fees to students based on program and semester.
+All admitted and enrolled students appear here with their Student IDs (e.g., `SKS-NUR-2026-001`).
 
-#### Fee Finalization
+---
 
-Fee Finalization is the process of assigning fee amounts to students for a specific academic year.
+## 7. Finance Management
 
-#### How to Finalize Student Fees
+### 7.1 Fee Finalization
 
-1. Navigate to **Finance → Student Fees → Finalize**
-2. **Search for Student/Enquiry**:
-   - Enter student name or enquiry ID
-   - Select from dropdown
-3. **Fee Breakdown** appears showing:
-   - Year 1 fee: ₹X
-   - Year 2 fee: ₹X
-   - Year 3 fee: ₹X
-   - Year 4 fee: ₹X
-   - **Original Total**: Sum of all years
-4. **Apply Discount** (Optional):
-   - Enter global discount amount: ₹Y
-   - Or enter discount percentage: Z%
-   - System recalculates final amount
-   - **Final Total** = Original - Discount
-5. **Add Discount Reason** (if discount applied):
-   - e.g., "Merit scholarship", "Financial hardship"
+**Navigate**: Finance → Student Fees → Finalize  
+*Or click 💰 Finalize Fee button from enquiry list*
+
+#### Fee Finalization Flow
+
+```
+╔═══════════════════════════════════════════════════════╗
+║            FEE FINALIZATION WORKFLOW                  ║
+╚═══════════════════════════════════════════════════════╝
+
+  College Admin clicks "Finalize Fee"
+  for enquiry: Meena Rajendran (BSC-NUR)
+         │
+         ▼
+  System loads INC fee structure:
+  ┌──────────────────────────────────────────────┐
+  │  Program: B.Sc Nursing (BSC-NUR)             │
+  │  Academic Year: 2026–27                      │
+  │                                              │
+  │  Year 1:  ₹1,03,000  (Tuition+Clinical+Lab) │
+  │  Year 2:  ₹1,00,000                         │
+  │  Year 3:  ₹1,05,000                         │
+  │  Year 4:  ₹1,00,000                         │
+  │  ─────────────────────────────────────────── │
+  │  Original Total:  ₹4,08,000                  │
+  └──────────────────────────────────────────────┘
+         │
+         ▼
+  Apply Scholarship?
+         │
+  ┌─────┴─────┐
+  │YES        │NO
+  ▼           ▼
+  Enter:      Skip
+  ₹30,000 discount
+  Reason: "Merit — 96% in 12th"
+         │
+         ▼
+  ┌──────────────────────────────────────────────┐
+  │  Final Fee:   ₹4,08,000 − ₹30,000           │
+  │             = ₹3,78,000  ✅                  │
+  └──────────────────────────────────────────────┘
+         │
+         ▼
+  Click "Finalize Fee"
+         │
+         ▼
+  ✅ Status → FEES_FINALIZED
+  Student is notified of amount due
+```
+
+#### Step-by-Step: Finalize a Fee
+
+1. Navigate to **Finance → Student Fees** or click 💰 button in enquiry list
+2. Find the enquiry by student name
+3. Review the year-wise fee breakdown
+4. To apply a discount:
+   - Enter amount in "Global Discount" field (e.g., `30000`)
+   - Enter reason: `Merit Scholarship — 96% in 12th Grade`
+5. Verify the **Final Total** shown
 6. Click **"Finalize Fee"**
-7. System creates fee allocation
-8. Enquiry status changes from INTERESTED to FEES_FINALIZED
-9. Confirmation shows:
-   - Final fee amount
-   - Number of years included
-   - Applied discount
-
-#### Bulk Fee Finalization
-
-For multiple students:
-1. Click **"Bulk Finalize"** button (if available)
-2. Upload CSV file with:
-   - Student ID / Enquiry ID
-   - Discount amount (optional)
-   - Discount reason (optional)
-3. Review preview
-4. Confirm bulk operation
-5. System processes all records
-6. Download results summary
+7. Enquiry status changes to `FEES_FINALIZED`
 
 ---
 
-### 2. Fee Payments
+### 7.2 Payment Collection
 
-**Access**: Sidenav → Finance → Fee Payments
+**Navigate**: Finance → Fee Payments  
+*Or click 💳 Collect Payment from enquiry list*
 
-Record all payments received from students.
+#### Accepted Payment Modes at SKS College of Nursing
 
-#### Recording a Payment
+| Mode | Reference Required | Notes |
+|------|--------------------|-------|
+| CASH | No | Receipt issued immediately |
+| CHEQUE | Cheque number | Payable to "SKS College of Nursing" |
+| NEFT / RTGS | UTR number | Bank transfer reference |
+| UPI | Transaction ID | Google Pay, PhonePe, BHIM UPI |
+| CARD | Terminal Auth code | Card swipe at campus terminal |
+| Demand Draft (DD) | DD number | Payable at local bank |
 
-**Method 1: From Fee Payments List**
-1. Click **"+ Record Payment"** button
-2. **Payment Details**:
-   - **Student**: Select from dropdown
-   - **Fee Structure**: Choose which fee is being paid
-   - **Amount Paid**: Entry amount
-   - **Payment Date**: Date money received
-   - **Payment Method**: CASH / CARD / ONLINE / CHEQUE
-   - **Transaction ID**: (For online/card payments)
-   - **Status**: Usually COMPLETED
-3. Click **"Save Payment"**
-4. Receipt generated automatically
-5. Payment appears in student's fee history
+#### How to Record a Payment
 
-**Method 2: From Enquiry List (Shortcut)**
-1. Navigate to Enquiries
-2. Find enquiry with status "FEES_FINALIZED" or "PARTIALLY_PAID"
-3. Click **"Collect Payment"** button
-4. Page redirects to payment form pre-filled with enquiry details
-5. Enter payment amount and method
-6. Process payment
-
-#### Payment Methods
-
-- **CASH**: Student pays in person
-- **CHEQUE**: Student provides cheque (include cheque number)
-- **ONLINE**: Bank transfer (include transaction reference)
-- **CARD**: Credit/Debit card payment (include transaction ID)
-- **DD**: Demand Draft (include DD number)
-
-#### Viewing Payment History
-
-1. Navigate to **Fee Payments** list
-2. View all payments recorded
-3. Search by student name or receipt number
-4. Filter by payment method or date range
-5. Click on payment to view receipt
-
-#### Receipt Details
-
-After recording payment, receipt shows:
-- **Receipt Number**: Unique identifier
-- **Student Name**: Who paid
-- **Amount**: Payment amount
-- **Date**: Payment date
-- **Method**: How paid
-- **Remaining Balance**: Still outstanding
+1. Navigate to Fee Payments or click Collect Payment from enquiry
+2. Fill in:
+   - **Student / Enquiry**: Auto-filled if from shortcut
+   - **Amount Paid**: e.g., `50000`
+   - **Payment Date**: `27-04-2026`
+   - **Payment Method**: `NEFT`
+   - **Transaction Reference**: e.g., `UTR123456789`
+   - **Remarks**: e.g., `First instalment — Year 1 fee`
+3. Click **"Collect Payment"**
+4. Receipt is generated:
+   ```
+   Receipt No: RCP-SKS-20260427-001
+   Student:    Meena Rajendran
+   Program:    B.Sc Nursing
+   Amount:     ₹50,000
+   Method:     NEFT — UTR123456789
+   Date:       27-Apr-2026
+   Collected by: Ms. N Kumar (Admin)
+   Balance:    ₹53,000 remaining
+   ```
 
 ---
 
-### 3. Fee Finalization
+## 8. Reports
 
-**Access**: Sidenav → Finance → Fee Finalization
+**Navigate**: Sidenav → Reports
 
-This is the primary area for fee finalization (already covered above, repeated for convenience).
+### Reports Available to College Admin
 
-**Important Actions**:
-- Allocate fees to students
-- Apply scholarships or discounts
-- Set payment terms
-- Track payments against allocation
+| Report Name | Description | Useful For |
+|-------------|-------------|-----------|
+| Admissions Report | Total admissions by date range, by program | INC annual compliance |
+| Fee Collections Report | All payments by period and method | Finance monthly review |
+| Program-wise Enrollment | Current students per program | Capacity planning |
+| Outstanding Fees Report | Students with pending balances | Collections drive |
+| Enquiry Conversion Report | Enquiry to admission ratio | Marketing analysis |
+| Document Verification Report | Docs verified vs. pending | Pre-registration audit |
+| Faculty Workload Report | Courses per faculty | Semester planning |
+| Department Report | Student count per department | Administrative review |
 
-**Note**: Only College Admin and Admin can finalize fees. Front Office and Cashier cannot.
+### How to Generate a Report
 
----
-
-## Reports
-
-### Overview
-
-Reports provide business intelligence on your institution's operations.
-
-**Access**: Sidenav → Reports
-
-### Available Reports
-
-#### 1. Admissions Report
-- Total admissions by period
-- Program-wise admissions
-- Status breakdown
-- Admission source analysis
-
-**How to Generate**:
-1. Click **"Admissions Report"**
-2. Select date range
-3. Optionally filter by program
-4. Click **"Generate"**
-5. View in browser or export to Excel
-
-#### 2. Fee Collections Report
-- Total fees collected by period
-- Collection trend analysis
-- Outstanding fees
-- Collection method breakdown
-
-**How to Generate**:
-1. Click **"Fee Collections Report"**
-2. Select date range
-3. Choose academic year
-4. Click **"Generate"**
-5. Displays pie chart and detailed table
-
-#### 3. Student Progress Report
-- Semester-wise progress
-- Course completion rates
-- Attendance summary
-- Grades and performance
-
-#### 4. Faculty Workload Report
-- Courses assigned per faculty
-- Class sizes
-- Lab/practical sessions
-
-#### 5. Financial Summary Report
-- Total fees budgeted vs. collected
-- Outstanding list
-- Department-wise fees
-- Year-wise trends
-
-**How to Generate**:
-1. Click report type
-2. Configure filters and date range
-3. Click **"Run Report"**
-4. View or export results
-
-#### Export Options
-
-Most reports allow:
-- **Export to PDF**: Download as formatted PDF
-- **Export to Excel**: Download spreadsheet for further analysis
-- **Print**: Direct print to configured printer
-- **Email**: Schedule report to email recipients
+1. Click the desired report name
+2. Set filters:
+   - **Date Range**: Start and end date
+   - **Program**: All or specific (e.g., `Bachelor of Science in Nursing`)
+   - **Academic Year**: `2026–27`
+3. Click **"Generate Report"**
+4. View on screen or export:
+   - **Export to PDF** → Download formatted file
+   - **Export to Excel** → Download for further analysis
+   - **Print** → Send to printer
 
 ---
 
-## Common Workflows
-
-### Workflow 1: Complete Admission from Enquiry to Student
-
-**Goal**: Convert an enquiry into an active student
-
-**Steps**:
-
-1. **Create Enquiry** (Day 1)
-   - New → Enquiry
-   - Enter student details
-   - Student now in "ENQUIRED" status
-
-2. **Mark as Interested** (When student expresses interest)
-   - Open enquiry
-   - Click status dropdown
-   - Change to "INTERESTED"
-   - Enquiry now open for fee finalization
-
-3. **Finalize Fees** (College Admin action)
-   - Finance → Student Fees → Finalize
-   - Search the enquiry
-   - Review fee breakdown
-   - Apply discount (if applicable)
-   - Click "Finalize Fee"
-   - Status changes to "FEES_FINALIZED"
-
-4. **Collect Payment** (Cashier or College Admin action)
-   - Finance → Fee Payments
-   - OR from Enquiry list: Click "Collect Payment" button
-   - Enter payment amount and method
-   - Process payment
-   - Status changes to "FEES_PAID" (full) or "PARTIALLY_PAID"
-
-5. **Submit Documents** (College Admin action)
-   - Admission Management → Document Submission
-   - Find the enquiry
-   - Upload all 5 mandatory documents
-   - Mark documents as VERIFIED
-   - Click "Submit Documents"
-   - Status changes to "DOCUMENTS_SUBMITTED"
-
-6. **Create Admission** (College Admin action)
-   - Admission Management → Admission Completion
-   - Find the enquiry (status = DOCUMENTS_SUBMITTED)
-   - Click "Create Admission"
-   - Fill in additional student details (semester, admission date, etc.)
-   - Click "Create Admission"
-   - New Student created
-   - Enquiry status changes to "ADMITTED"
-
-**Timeline**: Usually 1-7 days depending on document submission speed
-
----
-
-### Workflow 2: Apply Bulk Fee Finalization
-
-**Goal**: Finalize fees for multiple students at once
-
-**Steps**:
-
-1. **Prepare Data**:
-   - Create Excel/CSV with columns:
-     - Student ID or Enquiry ID
-     - Discount Amount (optional)
-     - Discount Reason (optional)
-
-2. **Upload**:
-   - Finance → Student Fees → Finalize
-   - Click "Bulk Upload" (if available)
-   - Select CSV file
-   - Upload
-
-3. **Preview**:
-   - System shows preview of all records
-   - Verify data accuracy
-   - Check for any errors
-
-4. **Confirm**:
-   - Click "Confirm Upload"
-   - System processes all records
-   - Shows results summary
-   - Download results CSV (optional)
-
-**Result**: All students in the file have fees finalized
-
----
-
-### Workflow 3: Generate Monthly Collections Report
-
-**Goal**: Understand how much fee revenue your college collected this month
-
-**Steps**:
-
-1. **Navigate to Reports**:
-   - Sidenav → Reports
-
-2. **Select Report Type**:
-   - Click "Fee Collections Report"
-
-3. **Configure**:
-   - Start Date: 1st of month
-   - End Date: Today's date
-   - Academic Year: Current year (if applicable)
-
-4. **Generate**:
-   - Click "Generate Report"
-
-5. **Review**:
-   - Shows total collected
-   - Payment method breakdown
-   - Program-wise collections
-   - Trends and comparisons
-
-6. **Export**:
-   - Click "Export to Excel" or "Export to PDF"
-   - File downloads to your computer
-   - Use for financial reporting
-
----
-
-## Troubleshooting
-
-### Issue: I cannot see "Finalize Fee" button for an enquiry
-
-**Solution**:
-- The enquiry must be in "INTERESTED" status
-- If enquiry is in "ENQUIRED" status, change it first:
-  - Open enquiry
-  - Click status dropdown
-  - Select "INTERESTED"
-  - Finalize button will now appear
-
----
-
-### Issue: Student documents rejected, cannot submit
-
-**Solution**:
-1. Open the enquiry with rejected documents
-2. Go to Document Submission tab
-3. For each rejected document:
-   - Re-upload the file
-   - Ensure it's clear and legible
-   - Click "Verify" to mark as accepted
-4. Once all 5 are submitted/verified:
-   - Click "Submit Documents" button
-   - Status changes to DOCUMENTS_SUBMITTED
-
----
-
-### Issue: Fee finalization shows wrong amount
-
-**Solution**:
-1. Check the fee structure for the student's program:
-   - Sidenav → Preferences → Fee Structures
-   - Search for the program
-   - Verify amount for the student's year
-
-2. Check for active discounts:
-   - Some scholarships automatically apply
-   - Verify discount rules in financial settings
-
-3. If still incorrect:
-   - Contact system administrator
-   - Provide student name and program
-
----
-
-### Issue: Payment entered but not appearing in collection report
-
-**Solution**:
-1. Verify payment was saved:
-   - Finance → Fee Payments
-   - Search for the payment
-   - If not found, re-enter payment
-
-2. Check the date:
-   - Report date range must include payment date
-   - If payment is dated next month, won't appear in this month's report
-
-3. Verify academic year:
-   - Payment and report must use same academic year
-
----
-
-### Issue: Cannot create admission for a student
-
-**Solution**:
-- Student enquiry must be in "DOCUMENTS_SUBMITTED" status
-- Check status progression:
-  1. ENQUIRED → Update to INTERESTED
-  2. INTERESTED → Finalize fees
-  3. FEES_FINALIZED → Collect payment
-  4. FEES_PAID → Submit documents
-  5. DOCUMENTS_SUBMITTED → Now can create admission
-
-- If stuck at any stage, work through each step before attempting admission creation
-
----
-
-### Issue: Keycloak login not working
-
-**Solution**:
-1. Verify username and password are correct
-2. Check Caps Lock is OFF
-3. Verify you have "ROLE_COLLEGE_ADMIN" role assigned in Keycloak
-4. Clear browser cache and cookies
-   - Press Ctrl+Shift+Delete (or Cmd+Shift+Delete on Mac)
-   - Select "Cookies and cached images"
-   - Click "Clear"
-5. Try again in a private/incognito browser window
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl + K` | Open global search bar |
-| `Ctrl + /` | Show keyboard shortcuts help |
-| `Escape` | Close current dialog/modal |
-| `Enter` | Submit form / Confirm action |
-| `Alt + D` | Go to Dashboard |
-| `Alt + A` | Go to Admission Management |
-| `Alt + F` | Go to Finance |
-| `Alt + R` | Go to Reports |
-
----
-
-## Quick Reference Card
-
-### Most Common Actions
-
-| Task | Path | Time |
-|------|------|------|
-| Create new enquiry | Admission → Enquiries → +New | 2 min |
-| Finalize fees | Finance → Student Fees → Finalize | 5 min |
-| Record payment | Finance → Fee Payments → Record | 3 min |
-| Upload documents | Admission → Document Submission | 10 min |
-| Create admission | Admission → Admission Completion | 5 min |
-| Generate report | Reports → [Select Report] | 2 min |
-
-### Key Statuses Remember
+## 9. Complete Admission Workflow
 
 ```
-ENQUIRED → INTERESTED → FEES_FINALIZED → FEES_PAID → DOCUMENTS_SUBMITTED → ADMITTED
+╔══════════════════════════════════════════════════════════════════════════╗
+║     SKS COLLEGE OF NURSING — FULL ADMISSION WORKFLOW (ALL ROLES)        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+   PROSPECTIVE STUDENT
+          │ Enquires by walk-in / phone / social media
+          ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 1 — ENQUIRY CREATION                    [Front Office]       │
+  │  • Student name, phone, email collected                           │
+  │  • Program selected: B.Sc Nursing / M.Sc / GNM / PBB / DOTT / DMLT │
+  │  • Referral type noted                                            │
+  │  • Status = ENQUIRED                                              │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student confirms interest
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 2 — INTEREST CONFIRMATION               [Front Office]       │
+  │  • Discuss program details, duration, career prospects            │
+  │  • Change status to INTERESTED                                    │
+  │  • Notify College Admin to set fees                               │
+  │  • Status = INTERESTED                                            │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ (College Admin action)
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 3 — FEE FINALIZATION                    [College Admin ONLY] │
+  │  • Load fee structure for program + academic year                 │
+  │  • Apply scholarship / concession if applicable                   │
+  │  • Confirm final fee amount                                       │
+  │  • Status = FEES_FINALIZED                                        │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student pays
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 4 — PAYMENT COLLECTION    [Cashier / Front Office / Admin]  │
+  │  • Accept CASH / CHEQUE / NEFT / UPI / CARD / DD                 │
+  │  • Record in system with transaction reference                    │
+  │  • Issue printed receipt                                          │
+  │  • Full pay → FEES_PAID                                           │
+  │  • Partial pay → PARTIALLY_PAID (can still proceed to docs)        │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student brings documents
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 5 — DOCUMENT COLLECTION   [Front Office / College Admin]    │
+  │  Upload & verify 7 mandatory documents:                           │
+  │    ✓ 10th Marksheet                  ✓ Medical Fitness Certificate │
+  │    ✓ 12th Marksheet (Science stream)  ✓ Blood Group Report         │
+  │    ✓ Transfer Certificate             ✓ Aadhar Card                │
+  │    ✓ Passport Photo                                               │
+  │  Click "Submit Documents" once all 7 are verified                 │
+  │  Status = DOCUMENTS_SUBMITTED                                     │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 6 — ADMISSION CREATION    [College Admin / Front Office]    │
+  │  • Open Admission Completion screen                               │
+  │  • Auto-fill from enquiry: Name, Program, Phone                   │
+  │  • Enter: Semester, Admission date, DOB, Blood Group, Community   │
+  │  • Click "Create Admission"                                       │
+  │  • Student ID: SKS-NUR-2026-XXX                                   │
+  │  • Status = ADMITTED ✅                                            │
+  └────────────────────────────────────────────────────────────────────┘
+
+  Typical Timeline: 1–3 weeks from enquiry to admission
 ```
 
-When student moves through each status, additional actions become available.
+---
+
+## 10. Troubleshooting
+
+### Cannot see 💰 Finalize Fee button
+
+- Enquiry must be in `INTERESTED` status
+- If status is `ENQUIRED` → Update status to `INTERESTED` first from the status dropdown
+- If status is already `FEES_FINALIZED` → Fee is already done, skip to payment
+
+### Admission Creation is disabled / greyed out
+
+- Check that **all 7 mandatory documents** are uploaded (UPLOADED or VERIFIED status)
+- Verify enquiry status is `DOCUMENTS_SUBMITTED`
+- If stuck at `FEES_PAID`, go to Document Submission, upload docs, then submit
+
+### Fee amount shows as ₹0 or incorrect amount
+
+- Check fee structure exists for the student's program and academic year
+- Navigate to Preferences → Fee Structures → Search program
+- If missing, create fee structure with correct year amounts
+- Then re-attempt fee finalization
+
+### Document rejected — Medical Fitness Certificate
+
+- Must be from State Medical Council registered doctor
+- Certificate must be dated within last 6 months
+- Must mention "fit for nursing study" explicitly
+- Must have doctor's stamp and signature
+- Ask student to get a fresh certificate
+
+### Student has duplicate enquiries
+
+- Search student's phone number in enquiry list
+- Identify the correct (most recent) enquiry
+- On the duplicate, change status to `CLOSED`
+- Continue processing the correct enquiry
+
+### Keycloak session expired
+
+- You see "Session expired / unauthorized" error
+- Refresh the browser page (F5)
+- You should be automatically redirected to Keycloak login
+- Log in again with your credentials
+- Session typically lasts 8 hours
 
 ---
 
-## Support & Help
+## 11. Quick Reference
 
-### Need Help?
-- Check the **Troubleshooting** section above
-- Contact your system administrator
-- Email: [support email from your institution]
-- Phone: [support phone from your institution]
+### SKS Programs at a Glance
 
-### System Status
-- Check system status page for maintenance notices
-- Follow your institution's IT department for announcements
+| Code | Program | Duration | Seats | Key Subjects |
+|------|---------|----------|-------|-------------|
+| BSC-NUR | B.Sc Nursing | 4 years | 60 | Anatomy, MSN, Community, OBG, Paediatrics |
+| MSC-NUR | M.Sc Nursing | 2 years | 30 | Advanced nursing, Research, Leadership |
+| GNM | Gen. Nursing & Midwifery | 3.5 years | 60 | Nursing basics, Midwifery, Community |
+| PBB-NUR | Post Basic B.Sc Nursing | 2 years | 30 | Bridge to degree for GNM nurses |
+| DOTT | Diploma OT Technician | 2 years | 30 | OT procedures, instruments, sterile technique |
+| DMLT | Diploma Med. Lab Technology | 2 years | 30 | Haematology, Biochemistry, Microbiology |
+
+### Status Cheat Sheet
+
+| Status | What it Means | Your Action |
+|--------|--------------|------------|
+| ENQUIRED | Just enquired | Assess interest, guide |
+| INTERESTED | Confirmed interest | 💰 Finalize fees |
+| FEES_FINALIZED | Fees set | Wait for payment |
+| FEES_PAID | Fully paid | 📁 Collect documents |
+| PARTIALLY_PAID | Partially paid | Collect documents, collect remaining fee |
+| DOCUMENTS_SUBMITTED | All docs uploaded | 🎓 Create admission |
+| ADMITTED | ✅ Done! | Enroll in semester |
+
+### Admin Daily Checklist
+
+```
+MORNING:
+  [ ] Review dashboard — any new enquiries?
+  [ ] Check enquiries awaiting fee finalization (status: INTERESTED)
+  [ ] Check document submissions awaiting verification
+
+AFTERNOON:
+  [ ] Process fee finalizations for interested students
+  [ ] Review and follow up on outstanding payments
+  [ ] Handle admissions for DOCUMENTS_SUBMITTED enquiries
+
+END OF DAY:
+  [ ] Generate daily collections summary
+  [ ] Check pending document verifications
+  [ ] Log out securely
+```
 
 ---
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Apr 27, 2026 | Initial release for College Admin role |
-
----
-
-**Last Updated**: April 27, 2026  
-**Next Review**: July 27, 2026
+**SKS College of Nursing | College Administrator User Guide**
+**Version 2.0 | April 27, 2026 | Next Review: July 2026**
 

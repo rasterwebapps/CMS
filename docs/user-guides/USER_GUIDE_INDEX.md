@@ -1,535 +1,254 @@
-# College Management System - User Guide Index
+# SKS College of Nursing
+# CMS User Guide Index
 
-## Version 1.0 | April 27, 2026
-
----
-
-## Quick Navigation
-
-### Find Your Role-Specific Guide
-
-**Are you a...?**
-
-- [College Admin](#college-admin-guide) - Manage academic structure, fees, admissions, reports
-- [Front Office Staff](#front-office-guide) - Manage student inquiries and admission workflow
-- [Cashier/Finance](#cashier-guide) - Collect payments and maintain payment records
-- [Administrator](#administrator-notes) - System configuration and role management
+**Version 2.0 | April 27, 2026**
 
 ---
 
-## Available User Guides
+## Quick Navigation — Find Your Guide
 
-### College Admin Guide
-
-**File**: [`COLLEGE_ADMIN_USER_GUIDE.md`](./COLLEGE_ADMIN_USER_GUIDE.md)
-
-**Who should read this**: College Administrators, Academic Coordinators
-
-**Key Topics**:
-- Setting up academic calendar, programs, courses
-- Managing departments, faculty, agents
-- Fee structure configuration
-- Complete admission workflow management
-- Finance oversight (fee finalization, payment tracking)
-- Administrative reporting
-
-**Time to Review**: 1-2 hours
-
-**Primary Responsibilities**:
-- Configure academic structure (departments, programs, courses, semesters)
-- Define fee structures for programs
-- Finalize student fees
-- Oversee complete admission process
-- Manage faculty and support staff
-- Generate strategic reports
-
-**Key Menu Items**:
-```
-Preferences
-  ├─ Departments
-  ├─ Programs
-  ├─ Courses
-  ├─ Academic Years
-  ├─ Semesters
-  ├─ Fee Structures
-  ├─ Faculty
-  ├─ Agents
-  └─ Referral Types
-
-Admission Management
-  ├─ Enquiries
-  ├─ Document Submission
-  ├─ Admission Completion
-  ├─ Admissions
-  └─ Students
-
-Finance
-  ├─ Student Fees (Finalize)
-  └─ Fee Payments (Collect)
-
-Reports
-```
-
-**Most Common Tasks**:
-1. Finalize fees for students
-2. Collect payments (via shortcuts)
-3. Create admissions
-4. Generate reports
+| Your Role | Read This Guide | Time |
+|-----------|----------------|------|
+| College Administrator | [COLLEGE_ADMIN_USER_GUIDE.md](./COLLEGE_ADMIN_USER_GUIDE.md) | ~1.5 hours |
+| Front Office Staff | [FRONT_OFFICE_USER_GUIDE.md](./FRONT_OFFICE_USER_GUIDE.md) | ~1 hour |
+| Cashier / Finance | [CASHIER_USER_GUIDE.md](./CASHIER_USER_GUIDE.md) | ~45 min |
 
 ---
 
-### Front Office Guide
+## SKS College of Nursing — Quick Overview
 
-**File**: [`FRONT_OFFICE_USER_GUIDE.md`](./FRONT_OFFICE_USER_GUIDE.md)
+**SKS College of Nursing** is an INC-approved nursing institute offering:
 
-**Who should read this**: Front Office Staff, Admissions Coordinators, Student Liaison Officers
-
-**Key Topics**:
-- Creating and managing student inquiries
-- Collecting student payments
-- Document collection and verification
-- Admission creation
-- Student communication
-- Report generation
-
-**Time to Review**: 1 hour
-
-**Primary Responsibilities**:
-- First point of contact for prospective students
-- Record student inquiries
-- Guide students through admission workflow
-- Collect payments
-- Collect and verify documents
-- Create admissions for eligible students
-- Generate admission reports
-
-**Key Menu Items**:
-```
-Admission Management
-  ├─ Enquiries
-  ├─ Document Submission
-  ├─ Admission Completion
-  └─ Admissions (View)
-
-Reports
-  ├─ Admissions Report
-  └─ Collection Report
-```
-
-**Most Common Tasks**:
-1. Create new enquiries for prospective students
-2. Collect payments from students
-3. Upload and verify documents
-4. Create admissions from completed enquiries
-5. Track student progress
-6. Generate admission reports
-
-**Not Allowed**:
-- Cannot configure fees (College Admin only)
-- Cannot finalize fees (College Admin only)
-- Cannot access Preferences section
+| Program | Code | Duration | Seats |
+|---------|------|----------|-------|
+| Bachelor of Science in Nursing | BSC-NUR | 4 Years | 60 |
+| Master of Science in Nursing | MSC-NUR | 2 Years | 30 |
+| General Nursing & Midwifery | GNM | 3½ Years | 60 |
+| Post Basic B.Sc Nursing | PBB-NUR | 2 Years | 30 |
+| Diploma in OT Technician | DOTT | 2 Years | 30 |
+| Diploma in Medical Lab Technology | DMLT | 2 Years | 30 |
 
 ---
 
-### Cashier Guide
-
-**File**: [`CASHIER_USER_GUIDE.md`](./CASHIER_USER_GUIDE.md)
-
-**Who should read this**: Cashiers, Finance Staff, Accountants
-
-**Key Topics**:
-- Payment collection from students
-- Multiple payment methods (cash, check, online, card)
-- Receipt generation and tracking
-- Daily reconciliation
-- Payment reporting
-- Banking and cash handling
-
-**Time to Review**: 45 minutes
-
-**Primary Responsibilities**:
-- Collect all student payments
-- Process multiple payment methods
-- Generate payment receipts
-- Maintain payment records
-- Reconcile daily collections
-- Prepare bank deposits
-- Track outstanding balances
-
-**Key Menu Items**:
-```
-Admission Management
-  ├─ Enquiries (View payments and shortcuts)
-  └─ Payment Recording
-
-Reports
-  ├─ Daily Collection Report
-  ├─ Weekly Collection Report
-  ├─ Monthly Collection Report
-  ├─ Receipt Report
-  └─ Outstanding Balance Report
-```
-
-**Most Common Tasks**:
-1. Record student payments (multiple methods)
-2. Generate and issue payment receipts
-3. Daily cash reconciliation
-4. Tracking outstanding balances
-5. Weekly bank deposits
-6. Collection reporting
-
-**Not Allowed**:
-- Cannot configure fees
-- Cannot finalize fees
-- Cannot create admissions
-- Cannot submit documents
-- Cannot access Preferences or Finance configuration
-
----
-
-## General Features Available to All Users
-
-### Authentication & Login
-- Login with Keycloak credentials
-- Support for single sign-on
-- Role-based access control
-- Automatic token refresh
-
-### Dashboard & Navigation
-- Personalized dashboard per role
-- Responsive sidebar navigation
-- Search functionality
-- Keyboard shortcuts (Ctrl+K to search)
-
-### Common Actions
-- Create new records (as per role)
-- Search and filter lists
-- Export to Excel/PDF
-- Generate reports
-- Print documents/receipts
-
-### Reporting
-- Standard reports available to all roles
-- Filter by date range, program, student
-- Export and email functionality
-- Print-ready formatting
-
----
-
-## Workflow Summary: Complete Admission Process
-
-The following shows how different roles interact:
+## Complete Admission Workflow — All Roles
 
 ```
-STEP 1: ENQUIRY CREATION [Front Office]
-├─ Create new enquiry
-├─ Record student details
-└─ Status: ENQUIRED
-
-STEP 2: INTEREST CONFIRMATION [Front Office]
-├─ Student confirms interest
-├─ Update status to INTERESTED
-└─ Notify College Admin for fee finalization
-
-STEP 3: FEE FINALIZATION [College Admin]
-├─ Determine fee amount for student
-├─ Apply scholarships/discounts if applicable
-├─ Finalize fees
-└─ Status: FEES_FINALIZED
-
-STEP 4: PAYMENT COLLECTION [Cashier/Front Office/College Admin]
-├─ Student pays (full or partial)
-├─ Record payment in system
-├─ Issue receipt
-└─ Status: FEES_PAID (or PARTIALLY_PAID)
-
-STEP 5: DOCUMENT COLLECTION [Front Office/College Admin]
-├─ Collect 5 mandatory documents
-├─ Verify documents
-├─ Upload verified documents
-└─ Status: DOCUMENTS_SUBMITTED
-
-STEP 6: ADMISSION CREATION [Front Office/College Admin]
-├─ Create admission from enquiry
-├─ Generate new Student ID
-└─ Status: ADMITTED
-
-STEP 7: STUDENT ENROLLMENT [College Admin]
-└─ Student can now enroll in courses
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║         SKS COLLEGE OF NURSING — ADMISSION WORKFLOW OVERVIEW                 ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║   PROSPECTIVE STUDENT                                                         ║
+║         │ Phone / Walk-in / Social media                                      ║
+║         ▼                                                                     ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 1: ENQUIRY CREATION         │ ← Front Office                        ║
+║   │ Status: ENQUIRED                 │                                        ║
+║   └─────────────────┬────────────────┘                                        ║
+║                     │ Student confirms                                        ║
+║                     ▼                                                         ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 2: CONFIRM INTEREST         │ ← Front Office                        ║
+║   │ Status: INTERESTED               │                                        ║
+║   └─────────────────┬────────────────┘                                        ║
+║                     │                                                         ║
+║                     ▼                                                         ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 3: FEE FINALIZATION         │ ← College Admin ONLY                  ║
+║   │ Status: FEES_FINALIZED           │                                        ║
+║   └─────────────────┬────────────────┘                                        ║
+║                     │ Student pays                                            ║
+║                     ▼                                                         ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 4: PAYMENT COLLECTION       │ ← Cashier / Front Office / Admin      ║
+║   │ Status: FEES_PAID                │                                        ║
+║   │       / PARTIALLY_PAID           │                                        ║
+║   └─────────────────┬────────────────┘                                        ║
+║                     │                                                         ║
+║                     ▼                                                         ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 5: DOCUMENT COLLECTION      │ ← Front Office / Admin                ║
+║   │ 7 mandatory documents:           │                                        ║
+║   │ 10th, 12th, TC, Aadhar, Photo,   │                                        ║
+║   │ Medical Cert, Blood Group        │                                        ║
+║   │ Status: DOCUMENTS_SUBMITTED      │                                        ║
+║   └─────────────────┬────────────────┘                                        ║
+║                     │                                                         ║
+║                     ▼                                                         ║
+║   ┌──────────────────────────────────┐                                        ║
+║   │ STEP 6: ADMISSION CREATION       │ ← Front Office / Admin                ║
+║   │ Student ID: SKS-NUR-2026-XXX     │                                        ║
+║   │ Status: ADMITTED ✅              │                                        ║
+║   └──────────────────────────────────┘                                        ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-## Access Control Matrix
+## Who Does What — Role Responsibility Matrix
 
-| Feature | College Admin | Front Office | Cashier |
-|---------|:---:|:---:|:---:|
-| **Create Enquiry** | ✅ | ✅ | ❌ |
-| **View Enquiries** | ✅ | ✅ | ✅ (read-only) |
-| **Update Enquiry Status** | ✅ | ✅ | ❌ |
-| **Finalize Fees** | ✅ | ❌ | ❌ |
-| **Collect Payments** | ✅ | ✅ | ✅ |
-| **Submit Documents** | ✅ | ✅ | ❌ |
-| **Create Admissions** | ✅ | ✅ | ❌ |
-| **Configure Programs** | ✅ | ❌ | ❌ |
-| **Configure Fee Structures** | ✅ | ❌ | ❌ |
-| **View Reports** | ✅ | ✅ | ✅ |
-| **Access Preferences** | ✅ | ❌ | ❌ |
-| **Access Finance Config** | ✅ | ❌ | ❌ |
-
----
-
-## Quick Reference by Task
-
-### Task: Create New Student Enquiry
-- **Best access**: Front Office
-- **Also can do**: College Admin
-- **Guide section**: Front Office Guide → Enquiry Management
-
-### Task: Record Student Payment
-- **Best access**: Cashier, Front Office, or College Admin
-- **Guide section**: Cashier Guide → Payment Collection, or Front Office Guide → Payment Collection
-
-### Task: Set Up New Program
-- **Best access**: College Admin
-- **Guide section**: College Admin Guide → Preferences & Settings → Programs
-
-### Task: Create Admission
-- **Best access**: Front Office or College Admin
-- **Guide section**: Front Office Guide → Admission Creation, or College Admin Guide → Admission Management
-
-### Task: Track Payment History
-- **Best access**: Cashier or College Admin
-- **Guide section**: Cashier Guide → Payment Records
-
-### Task: Generate Reports
-- **Best access**: Any role (filtered per role)
-- **Guide section**: Respective role guide → Reports section
+| Task | Front Office | Cashier | College Admin |
+|------|:---:|:---:|:---:|
+| Create new enquiry | ✅ | ❌ | ✅ |
+| View enquiries | ✅ | ✅ (read) | ✅ |
+| Update enquiry status | ✅ | ❌ | ✅ |
+| Finalize student fees | ❌ | ❌ | ✅ only |
+| Collect payments | ✅ | ✅ | ✅ |
+| Upload & verify documents | ✅ | ❌ | ✅ |
+| Submit documents | ✅ | ❌ | ✅ |
+| Create admissions | ✅ | ❌ | ✅ |
+| Configure programs/fees | ❌ | ❌ | ✅ only |
+| View reports | ✅ | ✅ | ✅ |
+| Access finance config | ❌ | ❌ | ✅ only |
 
 ---
 
-## Getting Help
+## Enquiry Status Reference
 
-### Before Contacting Support
-
-1. **Check the appropriate user guide** for your role
-2. **Review the Troubleshooting section** in your guide
-3. **Search using Ctrl+K** in the application
-4. **Contact your department supervisor**
-
-### Support Contacts
-
-| Issue | Contact | Info |
-|-------|---------|------|
-| Application Access | System Admin | [contact info] |
-| Payment Processing | Finance Manager | [contact info] |
-| Admission Questions | Admissions Coordinator | [contact info] |
-| Account Issues | IT Support | [contact info] |
-| General Questions | Your Supervisor | [contact info] |
+| Status | Meaning | Who Acts |
+|--------|---------|---------|
+| `ENQUIRED` | Student expressed interest | Front Office: evaluate, guide |
+| `INTERESTED` | Student confirmed interest | College Admin: finalize fees |
+| `FEES_FINALIZED` | Fee amount set | Cashier/Front Office: collect payment |
+| `FEES_PAID` | Fully paid | Front Office: collect documents |
+| `PARTIALLY_PAID` | Partially paid | Cashier: collect more; Front Office: collect docs |
+| `DOCUMENTS_SUBMITTED` | All 7 docs uploaded | Front Office/Admin: create admission |
+| `ADMITTED` | ✅ Student admitted | Everyone: celebrate! |
 
 ---
 
-## Version History & Updates
+## Document Checklist — All 7 Must Be Collected
+
+For every nursing admission, these documents are **mandatory per INC**:
+
+```
+[ ] 1. 10th Grade Marksheet (min 45% aggregate)
+[ ] 2. 12th Grade Marksheet (Science — Bio+Chem+Physics)
+[ ] 3. Transfer Certificate (from last institution)
+[ ] 4. Aadhar Card (government ID)
+[ ] 5. Passport Photo (white background, recent)
+[ ] 6. Medical Fitness Certificate (within 6 months)
+[ ] 7. Blood Group Report (from accredited lab)
+```
+
+---
+
+## Payment Methods Accepted at SKS
+
+| Method | Description | Reference Needed |
+|--------|-------------|-----------------|
+| CASH | In-person cash at counter | None |
+| CHEQUE | Crossed cheque | Cheque number |
+| NEFT / RTGS | Bank transfer | UTR number |
+| UPI | Google Pay / PhonePe / BHIM | Transaction ID |
+| CARD | Credit / Debit card | Auth code from terminal |
+| DD | Demand Draft | DD number |
+
+---
+
+## Nursing Programs — Eligibility Quick Reference
+
+| Program | Min Qualification | Min % | Stream |
+|---------|-----------------|-------|--------|
+| B.Sc Nursing | Class 12 | 45% (Gen) / 40% (SC/ST) | Science: Bio+Chem+Physics |
+| M.Sc Nursing | B.Sc Nursing + 1 yr | 55% | N/A |
+| GNM | Class 12 | 40% | Any |
+| Post Basic B.Sc | GNM + 1 yr | — | N/A |
+| DOTT / DMLT | Class 12 | 40% | Science preferred |
+
+---
+
+## SKS Academic Calendar (INC) — 2026–27
+
+| Event | Date |
+|-------|------|
+| New Batch Admission Opens | May 1, 2026 |
+| Last Date for Applications | July 31, 2026 |
+| Orientation & Induction | August 1–7, 2026 |
+| Semester 1 Begins | August 8, 2026 |
+| Semester 1 Ends | December 12, 2026 |
+| Semester 1 Exams | December 15–28, 2026 |
+| Semester 2 Begins | January 5, 2027 |
+| Semester 2 Ends | May 15, 2027 |
+| Semester 2 Exams | May 18–30, 2027 |
+| Annual Clinical Placement | Feb–Mar 2027 (field rotation) |
+
+---
+
+## Fee Summary — 2026–27
+
+| Program | Year 1 | Year 2 | Year 3 | Year 4 |
+|---------|--------|--------|--------|--------|
+| B.Sc Nursing | ₹1,03,000 | ₹1,00,000 | ₹1,05,000 | ₹1,00,000 |
+| M.Sc Nursing | ₹1,25,000 | ₹1,35,000 | — | — |
+| GNM | ₹70,000 | ₹67,000 | ₹69,000 | — |
+
+> Hostel fee: ₹36,000/year (optional). Uniform/kit fee: ₹8,000 in Year 1 only.
+
+---
+
+## FAQs
+
+### General
+
+**Q: How do I log in?**
+A: Open the CMS URL, enter your college email and Keycloak password. Redirected to your role-based dashboard automatically.
+
+**Q: What browser should I use?**
+A: Chrome (recommended), Firefox, or Edge. Use the latest version.
+
+**Q: My session expired — what do I do?**
+A: Refresh the page (F5). You will be redirected to Keycloak to log in again.
+
+### Role-Specific
+
+**Q (Front Office): Can I finalize fees?**
+A: No. Only the College Admin can finalize fees. You will see the "Finalize Fee" button is not available to you.
+
+**Q (Cashier): Can I see the student documents?**
+A: You can view the enquiry but cannot upload or verify documents. Contact Front Office if docs need attention.
+
+**Q (Cashier): Can I create the admission?**
+A: No. Admission creation is done by Front Office or College Admin after documents are submitted.
+
+**Q (College Admin): Can I collect payments?**
+A: Yes. You can click "Collect Payment" from the enquiry list shortcut, or through Finance → Fee Payments.
+
+### Workflow
+
+**Q: Student wants to pay in two instalments. Is that possible?**
+A: Yes. Record each payment separately. Status becomes `PARTIALLY_PAID` after first instalment. Full document submission and admission can still proceed.
+
+**Q: Student lost their receipt. Can we reprint?**
+A: Yes. Find the enquiry → Payments tab → Click on the receipt → Print.
+
+**Q: A student paid by NEFT but didn't give UTR number. How do I record?**
+A: Check college bank account to verify transfer. Once confirmed, record payment with the UTR from bank statement/portal and note "UTR from bank verification" in remarks.
+
+---
+
+## Support Contacts
+
+| Issue | Contact |
+|-------|---------|
+| Application login / access | System Administrator |
+| Keycloak role issues | IT Department |
+| Payment discrepancy | Finance Manager |
+| Document requirements | Principal / INC guidelines |
+| Program eligibility | Academic Coordinator |
+| General system help | Your Department Supervisor |
+
+---
+
+## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | Apr 27, 2026 | Initial release: College Admin, Front Office, Cashier guides |
-
-### Planned Updates
-- Scheduled for July 27, 2026
-- Additional workflows
-- Advanced reporting features
-- Integration with new modules
+| 1.0 | Apr 27, 2026 | Initial guides |
+| 2.0 | Apr 27, 2026 | Updated with SKS nursing-specific content, flow diagrams, PDF export support |
 
 ---
 
-## Frequently Asked Questions
-
-### General Questions
-
-**Q: How do I reset my password?**
-A: Use the "Forgot Password" link on the Keycloak login screen. Follow email instructions to reset.
-
-**Q: Can I access the system from my phone?**
-A: Yes, the system is responsive. Open the URL in your phone browser. Login with your credentials.
-
-**Q: What browser should I use?**
-A: Chrome, Firefox, Safari, or Edge. Recommended: Chrome (latest version).
-
-### Role-Specific Questions
-
-**Q (Front Office): Can I finalize fees for a student?**
-A: No, only College Admin can finalize fees. You can view finalized amounts and record collections.
-
-**Q (Cashier): Can I create admissions?**
-A: No, only College Admin or Front Office can create admissions. You can record payments and track payment status.
-
-**Q (College Admin): Can I access Preferences if I have ROLE_FRONT_OFFICE in addition to ROLE_COLLEGE_ADMIN?**
-A: Yes, you can access Preferences because you have ROLE_COLLEGE_ADMIN. Role permissions are additive.
-
-### Workflow Questions
-
-**Q: What if a student wants to pay in installments?**
-A: Record each payment separately. System automatically marks as PARTIALLY_PAID. Student can make additional payments when ready.
-
-**Q: Can admissions be created before all documents are submitted?**
-A: No, enquiry must be in DOCUMENTS_SUBMITTED status. All 5 documents must be verified first.
-
-**Q: What if we need to change finalized fees?**
-A: Contact College Admin. They can adjust fee structure. Changes affect future students or exceptions can be noted.
-
----
-
-## Key Concepts Glossary
-
-| Term | Definition |
-|------|------------|
-| **Enquiry** | Initial registration of interest from prospective student |
-| **Status** | Current position in the admission workflow |
-| **Finalized Fee** | Amount determined by College Admin that student must pay |
-| **Collection** | Payment received from student |
-| **Document** | One of 5 mandatory files (marksheets, ID, photo) |
-| **Receipt** | Proof of payment issued to student |
-| **Admission** | Final acceptance of student into college |
-| **Student ID** | Unique identifier for admitted student |
-| **Partially Paid** | Student has paid some but not full amount |
-| **Outstanding Balance** | Amount still owed by student |
-| **RBAC** | Role-Based Access Control - system restricts features by user role |
-
----
-
-## Tips for Success
-
-### For College Admin
-- ✅ Regularly review dashboard for pending actions
-- ✅ Finalize fees promptly after student confirms interest
-- ✅ Monitor collection progress
-- ✅ Generate reports for strategic planning
-- ⚠️ Never change fee structure mid-year without careful review
-
-### For Front Office
-- ✅ Follow up with students on payment collection
-- ✅ Verify all documents before submission
-- ✅ Keep accurate records of all communications
-- ✅ Maintain professional courtesy with students
-- ⚠️ Don't create duplicate enquiries for same student
-
-### For Cashier
-- ✅ Reconcile cash daily without fail
-- ✅ Process payments accurately
-- ✅ Keep secure record of checks
-- ✅ Prepare timely bank deposits
-- ✅ Generate daily reports for Finance Manager
-- ⚠️ Never leave cash unattended
-- ⚠️ Double-check payment amounts before recording
-
----
-
-## Recent RBAC Enhancements (April 2026)
-
-Recent updates have improved role-based access control:
-
-**College Admin Now Can**:
-- Collect payments directly from enquiry shortcuts
-- Finalize fees from enquiry shortcuts
-- Submit documents from enquiry shortcuts
-- Create admissions from enquiry shortcuts
-
-**Cashier Now Can**:
-- Collect payments from enquiry shortcuts
-- View enquiry payment history
-
-**Front Office Enhancements**:
-- Properly restricted from fee finalization (College Admin only)
-- Full access to payment collection and document submission
-
-For details, see: [`RBAC_FIXES_SUMMARY.md`](../RBAC_FIXES_SUMMARY.md)
-
----
-
-## Feedback & Suggestions
-
-Have feedback on these guides? Please share:
-- Email: [feedback email]
-- Form: [feedback form link]
-- Your Name: [Optional]
-- Suggestion: [Your suggestion]
-
-We continually improve our guides based on user feedback!
-
----
-
-## Appendix: Menu Navigation Quick Reference
-
-### College Admin Full Menu
-```
-Dashboard
-Preferences
-  ├─ Departments
-  ├─ Programs
-  ├─ Courses
-  ├─ Academic Years
-  ├─ Semesters
-  ├─ Fee Structures
-  ├─ Faculty
-  ├─ Agents
-  └─ Referral Types
-Admission Management
-  ├─ Enquiries
-  ├─ Document Submission
-  ├─ Admission Completion
-  ├─ Admissions
-  └─ Students
-Finance
-  ├─ Student Fees
-  └─ Fee Payments
-Reports
-```
-
-### Front Office Menu
-```
-Dashboard
-Admission Management
-  ├─ Enquiries
-  ├─ Document Submission
-  ├─ Admission Completion
-  ├─ Admissions
-  └─ Students
-Reports
-```
-
-### Cashier Menu
-```
-Dashboard
-Admission Management
-  └─ Enquiries (for payment shortcuts)
-Reports
-```
-
----
-
-**Last Updated**: April 27, 2026  
-**Document Version**: 1.0  
-**Next Review Date**: July 27, 2026
-
----
-
-## Document Information
-
-**Purpose**: Central hub for all user guides and documentation
-
-**Target Audience**: All roles (College Admin, Front Office, Cashier)
-
-**Related Documents**:
-- College Admin User Guide (`COLLEGE_ADMIN_USER_GUIDE.md`)
-- Front Office User Guide (`FRONT_OFFICE_USER_GUIDE.md`)
-- Cashier User Guide (`CASHIER_USER_GUIDE.md`)
-- RBAC Implementation Summary (`../RBAC_FIXES_SUMMARY.md`)
-- Manual Test Cases (`../manual-test-cases/rbac-fixes-college-admin-cashier.md`)
-
-**Questions?** Contact your system administrator or department supervisor.
-
----
-
-**Welcome to the College Management System! 🎓**
+**SKS College of Nursing | CMS User Guides**
+**Version 2.0 | April 27, 2026**
 

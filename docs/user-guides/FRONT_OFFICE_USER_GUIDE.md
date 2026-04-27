@@ -1,1019 +1,810 @@
-# College Management System - Front Office User Guide
+# SKS College of Nursing
+# Front Office Staff — User Guide
 
-## Version 1.0 | April 27, 2026
+**Version 2.0 | April 27, 2026**
 
 ---
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Role Overview](#role-overview)
-3. [Getting Started](#getting-started)
-4. [Front Office Dashboard](#front-office-dashboard)
-5. [Enquiry Management](#enquiry-management)
-6. [Payment Collection](#payment-collection)
-7. [Document Management](#document-management)
-8. [Admission Creation](#admission-creation)
-9. [Reports](#reports)
-10. [Common Workflows](#common-workflows)
-11. [Troubleshooting](#troubleshooting)
-12. [Keyboard Shortcuts](#keyboard-shortcuts)
+1. [Introduction](#1-introduction)
+2. [Your Role at SKS College of Nursing](#2-your-role-at-sks-college-of-nursing)
+3. [Getting Started](#3-getting-started)
+4. [Front Office Dashboard](#4-front-office-dashboard)
+5. [Enquiry Management](#5-enquiry-management)
+   - [5.1 Creating an Enquiry](#51-creating-an-enquiry)
+   - [5.2 Managing the Enquiry List](#52-managing-the-enquiry-list)
+   - [5.3 Enquiry Detail View](#53-enquiry-detail-view)
+   - [5.4 Status Workflow](#54-status-workflow)
+6. [Payment Collection](#6-payment-collection)
+7. [Document Management](#7-document-management)
+8. [Admission Creation](#8-admission-creation)
+9. [Reports](#9-reports)
+10. [Daily Workflows](#10-daily-workflows)
+11. [Troubleshooting](#11-troubleshooting)
+12. [Quick Reference](#12-quick-reference)
 
 ---
 
-## Introduction
+## 1. Introduction
 
-Welcome to the College Management System! This guide is designed specifically for **Front Office Staff**.
+Welcome to the **SKS College of Nursing** Management System — Front Office Edition.
 
-As a Front Office representative, you are the first point of contact for prospective students. You manage their inquiries, track their progress through the admission process, collect initial information, and guide them through document submission and admission completion.
-
-### About This Document
-
-This handbook walks you through all features available to your role, focusing on student-facing interactions and admission process management.
+As a **Front Office representative**, you are the first face students and parents see when they contact SKS. You create enquiry records, guide students through the admission process, collect payments, and upload documents. Your role spans from first contact all the way to creating the student's admission record.
 
 ---
 
-## Role Overview
+## 2. Your Role at SKS College of Nursing
 
-### What is a Front Office Representative?
+### What You Can Access
 
-A Front Office representative is responsible for:
-- ✅ Managing student enquiries and interactions
-- ✅ Recording initial student information
-- ✅ Collecting payments from students
-- ✅ Managing student document submissions
-- ✅ Coordinating with students for admission completion
-- ✅ Generating reports on admissions progress
-- ✅ Supporting the admission workflow
+| Section | Access |
+|---------|--------|
+| Dashboard | ✅ Front Office Dashboard |
+| Admission Management — Enquiries | ✅ Full (Create, Edit, Update Status) |
+| Admission Management — Document Submission | ✅ Full |
+| Admission Management — Admission Completion | ✅ Full |
+| Admission Management — Admissions & Students | ✅ Read |
+| Finance — Collect Payment | ✅ Full |
+| Reports | ✅ Admission & Collection reports |
+| Preferences (Academic Setup) | ❌ College Admin only |
+| Finance — Fee Finalization | ❌ College Admin only |
 
-### Permissions Summary
+### What You Cannot Do
 
-| Area | Permission | Access |
-|------|-----------|--------|
-| Dashboard | View | ✅ Front Office Dashboard |
-| Enquiry Management | Full | ✅ Create, update, search enquiries |
-| Payment Collection | Full | ✅ Record and track payments |
-| Document Submission | Full | ✅ Collect and verify documents |
-| Admission Creation | Full | ✅ Create admissions from enquiries |
-| Reports | View | ✅ Admission and collection reports |
-| Preferences | No Access | ❌ (College Admin only) |
-| Finance Configuration | No Access | ❌ (College Admin only) |
+- ❌ Configure programs, courses, fees, faculty
+- ❌ Finalize student fees (only College Admin can do this)
+- ❌ Access system settings
 
----
+### Actions Available to You from Enquiry Shortcuts
 
-## Getting Started
+From the **Enquiries list row**, you will see these shortcut buttons:
 
-### Login Process
-
-1. **Navigate to Application**: Open your browser and go to the CMS application URL
-2. **Keycloak Login**: You'll see the Keycloak login screen
-3. **Enter Credentials**:
-   - Username: Your college email
-   - Password: Your Keycloak password
-4. **Front Office Dashboard**: You'll see your role-specific dashboard
-
-### First-Time Setup
-
-**Verify Your Profile**:
-- Click your avatar in the top-right corner
-- Confirm role shows as "Front Office"
-- Verify contact information is correct
-
-**Explore Your Access**:
-- You have access to: Admission Management and Reports
-- You cannot access: Preferences and Finance Configuration
-- These are controlled by College Admin
+| Button | Required Status | What It Does |
+|--------|----------------|-------------|
+| 💳 Collect Payment | `FEES_FINALIZED` or `PARTIALLY_PAID` | Jump to payment form pre-filled with this enquiry |
+| 📁 Submit Documents | `FEES_PAID` or `PARTIALLY_PAID` | Jump to document upload screen |
+| 🎓 Create Admission | `DOCUMENTS_SUBMITTED` (from detail view) | Open admission creation form |
 
 ---
 
-## Front Office Dashboard
+## 3. Getting Started
 
-### Dashboard Overview
+### Logging In
 
-Your personalized dashboard shows metrics specific to the admission process you manage.
+1. Open your browser → CMS Application URL
+2. Redirected to **Keycloak login screen**
+3. Enter your **college email and password**
+4. Front Office Dashboard loads
+
+### Checklist Before You Start
+
+- [ ] Confirm role shows "Front Office" in your profile (avatar → top-right)
+- [ ] Familiarize yourself with the left sidebar navigation
+- [ ] Note: You can see Admission Management and Reports only
+- [ ] Ensure programme brochures and fee information are available to share with students
+
+---
+
+## 4. Front Office Dashboard
+
+Your dashboard shows metrics relevant to your daily responsibilities.
 
 ### Dashboard Widgets
 
-#### Today's Statistics
-- **New Enquiries**: How many new students inquired today
-- **Outstanding Collections**: Payments due from students
-- **Document Submissions**: Documents received today
-
-**Click any metric** to jump to that section for details
-
-#### Admission Progress
-- **In Progress**: Enquiries moving through the workflow
-- **Ready for Admission**: Students with complete documents
-- **Admissions Created**: Students admitted this month
-
-#### Weekly Performance
-- **Conversion Rate**: Enquiry to admission conversion
-- **Collection Amount**: Fees collected this week
-- **Document Completion**: Percentage of complete applications
+| Widget | What It Shows |
+|--------|--------------|
+| Today's New Enquiries | Enquiries created today |
+| Awaiting Documents | Students in `FEES_PAID` status (need documents collected) |
+| Awaiting Payments | Students in `FEES_FINALIZED` (need to pay) |
+| Ready for Admission | Students in `DOCUMENTS_SUBMITTED` |
+| Monthly Conversions | Enquiries converted to admissions this month |
+| Collections Today | Payments recorded today by you |
 
 ### Quick Actions
 
-**Action Buttons** on the dashboard:
-- **"New Enquiry"** - Start a new student registration
-- **"Collect Payment"** - Quick access to payment entry
-- **"View All Enquiries"** - Jump to full enquiry list
+| Button | Takes You To |
+|--------|-------------|
+| + New Enquiry | Create new enquiry form |
+| Collect Payment | Payment recording shortcut |
+| View All Enquiries | Full enquiry list |
 
 ---
 
-## Enquiry Management
+## 5. Enquiry Management
 
-### Overview
+An **enquiry** is created the moment a student or parent expresses interest in joining SKS College of Nursing.
 
-An enquiry is created when a prospective student shows interest in your institution. Managing enquiries is your primary responsibility.
+### 5.1 Creating an Enquiry
 
-**Access**: Sidenav → Admission Management → Enquiries
+**Navigate**: Sidenav → Admission Management → Enquiries → "**+ New Enquiry**"
 
-### Creating a New Enquiry
+#### Enquiry Creation Form — Nursing-Specific
+
+Fill in the following fields:
+
+**Student Basic Information**
+
+| Field | Example | Notes |
+|-------|---------|-------|
+| Full Name | `Divya Krishnan` | As per school certificates |
+| Email | `divya.k@gmail.com` | Active email for letters/receipts |
+| Phone | `+91-7XXXXXXXXX` | WhatsApp-enabled preferred |
+
+**Program Preferences**
+
+| Field | Example | Options |
+|-------|---------|---------|
+| Program | `B.Sc Nursing` | BSC-NUR / MSC-NUR / GNM / PBB-NUR / DOTT / DMLT |
+| Student Type | `General` | General / SC/ST / OBC / NRI / Lateral Entry |
+
+**Referral Information** *(Optional but important)*
+
+| Field | Example | Why It Matters |
+|-------|---------|----------------|
+| Agent | `Mrs. Lakshmi` | For commission tracking |
+| Referral Type | `Hospital Referral` | Marketing analytics |
+| Remarks | `Completing 12th in April 2026, wants B.Sc Nursing` | Any useful context |
 
 #### Step-by-Step
 
-1. **Click "New Enquiry"** button (top-right)
+1. Click **"+ New Enquiry"** button
+2. Enter student name, email, phone
+3. Select program (e.g., `Bachelor of Science in Nursing`)
+4. Select student type
+5. Select referral type (how did they find us?)
+6. Add remarks if needed
+7. Click **"Create Enquiry"**
+8. Status automatically set to **ENQUIRED**
 
-2. **Student Information Section**:
-   - **Name**: Student's full name
-   - **Email**: Contact email address
-   - **Phone**: Mobile number for contact
-   - These are required fields (marked with *)
+#### Common Programs at SKS — Quick Description for Students
 
-3. **Program Interest Section**:
-   - **Program**: Select from dropdown (e.g., "B.Tech CSE")
-   - **Course**: Optional - specific course (if applicable)
-   - **Student Type**: How are they entering?
-     - First Year (brand new, just finished 12th grade)
-     - Lateral Entry (transferring from another program)
-
-4. **Reference Information** (Optional):
-   - **Agent**: If referred by recruitment agent
-   - **Referral Type**: How did they learn about you?
-     - "Website", "Direct Walk-in", "Alumni Referral", etc.
-   - **Remarks**: Any notes about the student
-
-5. **Click "Create Enquiry"**
-
-6. **Confirmation**:
-   - New enquiry created
-   - Automatically assigned to "ENQUIRED" status
-   - Unique enquiry ID generated
-   - Enquiry now appears in your list
-
-#### Example Enquiry Creation
-
-```
-Name: Rahul Kumar
-Email: rahul@email.com
-Phone: +91-9876543210
-Program: B.Tech Computer Science
-Student Type: First Year
-Referral Type: Website
-Remarks: Good performance in 12th, interested in scholarship
-```
+| Program | Duration | Who Should Apply |
+|---------|----------|-----------------|
+| B.Sc Nursing | 4 years | Class 12, Science (Bio/Chem/Phy), min 45% |
+| M.Sc Nursing | 2 years | B.Sc Nursing graduates, 1 yr experience |
+| GNM | 3½ years | Class 12 pass (any stream), min 40% |
+| Post Basic B.Sc | 2 years | Registered GNM nurses with 1 yr experience |
+| DOTT / DMLT | 2 years | Class 12 pass, Science preferred |
 
 ---
 
-### Managing Enquiries - List View
+### 5.2 Managing the Enquiry List
 
-#### Accessing the Enquiry List
-
-1. **Sidenav** → **Admission Management** → **Enquiries**
-2. Shows all enquiries you have access to
-3. Default sorted by latest enquiry date first
+**Navigate**: Sidenav → Admission Management → Enquiries
 
 #### Search and Filter
 
-**Search by Name/Phone/Email**:
-- Type in search box top-left
-- System searches across name, email, and phone
-- Real-time filtering as you type
+| Tool | How to Use | Purpose |
+|------|-----------|---------|
+| Search box | Type name, phone, or email | Find a specific student |
+| Status filter | Select status from dropdown | See students at a specific stage |
+| Date range | Set from–to dates | Enquiries in a date range |
+| Program filter | (if available) | See by program |
 
-**Filter by Status**:
-- Dropdown at top: "All Statuses" or select specific status
-- Status options:
-  - ENQUIRED - Just started
-  - INTERESTED - Student confirmed interest
-  - FEES_FINALIZED - Fees set by college admin
-  - FEES_PAID - Payment received (full or partial)
-  - DOCUMENTS_SUBMITTED - All documents uploaded
-  - ADMITTED - Admission created, accepted
-
-**Filter by Date Range**:
-- "From Date" and "To Date" fields
-- Click dates to select
-- Filters enquiries created in that range
-
-**Sort**:
-- Click column headers to sort
-- Click name, date, program, etc.
-- Arrow indicates sort direction (↑ ascending, ↓ descending)
-
-#### Enquiry List Columns
+#### List Columns Explained
 
 | Column | Meaning |
 |--------|---------|
-| **Name** | Student name |
-| **Phone** | Contact number |
-| **Program** | Interested program |
-| **Type** | Student type (First Year, Lateral Entry) |
-| **Enquiry Date** | When enquiry was created |
-| **Referral** | How they heard about you |
-| **Status** | Current status in workflow |
-| **Agent** | Assigned agent (if any) |
-| **Actions** | Quick action buttons |
+| Name | Prospective student name |
+| Phone | Contact number |
+| Program | Interested program |
+| Type | General / SC/ST / OBC / etc. |
+| Enquiry Date | When they enquired |
+| Referral | Source of enquiry |
+| Status | Current position in workflow |
+| Actions | Shortcut buttons (Collect Payment, Submit Docs) |
 
-#### Quick Action Buttons
+#### Status Action Buttons
 
-**For each enquiry in the list**:
+| Button | When It Appears | What to Do |
+|--------|----------------|-----------|
+| 💳 Collect Payment | When status = `FEES_FINALIZED` or `PARTIALLY_PAID` | Click to collect fee |
+| 📁 Submit Documents | When status = `FEES_PAID` or `PARTIALLY_PAID` | Click to upload docs |
 
-1. **View Details** (Eye icon):
-   - Opens full enquiry record
-   - Shows all information and tabs
-
-2. **Edit** (Pencil icon):
-   - Modify enquiry details
-   - Update phone, email, program preference
-
-3. **Status Actions**:
-   - **Update Status** (Status badge):
-     - Click the status badge/label
-     - Select new status from dropdown
-     - Confirm change
-   - **Finalize Fee** (Green button) - Only if status = INTERESTED:
-     - College Admin sets the fees
-     - You will see this button after admin finalizes
-   - **Collect Payment** (Teal button) - Only if status = FEES_FINALIZED or PARTIALLY_PAID:
-     - Click to record payments
-   - **Submit Documents** (Blue button) - Only if status = FEES_PAID or PARTIALLY_PAID:
-     - Collect uploaded documents
+> **Note**: You do not see "Finalize Fee" — that is done by the College Admin.
 
 ---
 
-### Enquiry Detail View
+### 5.3 Enquiry Detail View
 
-When you click on an enquiry or open via edit icon:
+Click on any enquiry name to open the full **Enquiry Detail** screen.
 
 #### Overview Tab
 
-Shows complete student information:
-- **Student Details**: Name, email, phone
-- **Program Info**: Program, course, student type
-- **Referral Info**: Agent, referral type, external remarks
-- **Financial**: Net finalized fee (if already finalized by college admin)
-- **Status Indicators**: Current status badge with visual color coding
+Shows complete enquiry information:
+- Student name, email, phone
+- Program and student type
+- Referral type and agent
+- Finalized fee amount (if fee is already set by College Admin)
+- Current status badge
 
 #### Documents Tab
 
-Shows all uploaded documents for the student:
-
-**Document List shows**:
-- **Type**: TENTH_MARKSHEET, TWELFTH_MARKSHEET, TRANSFER_CERTIFICATE, AADHAR_CARD, PASSPORT_PHOTO
-- **Status**: PENDING, VERIFIED, REJECTED
-- **File Name**: Original filename uploaded
-- **Verification Info**: Who verified and when
-
-**File Actions**:
-- **View** (Eye icon): Opens document (preview mode)
-- **Download** (Download icon): Save to your computer
+Shows document upload status:
+- Document type name
+- Status: PENDING / UPLOADED / VERIFIED / REJECTED
+- File name and size
+- View and download buttons (if file uploaded)
 
 #### Payments Tab
 
-Shows all payments recorded against this enquiry:
-
-**For each payment**:
-- **Receipt Number**: Unique identifier for this payment
-- **Amount Paid**: How much was received
-- **Date**: When payment was made
-- **Method**: CASH, ONLINE, CHEQUE, CARD
-- **Collected By**: Who recorded the payment
-- **Status**: Usually COMPLETED
+Shows full payment history for this student:
+- Receipt number
+- Amount paid
+- Payment date
+- Payment method (CASH / NEFT / UPI / CARD)
+- Collected by
+- Balance remaining
 
 #### Status History Tab
 
-Timeline of all status changes:
+Timeline of all changes:
+- Each status transition shown chronologically
+- Who changed it and when
+- Remarks added with each change
 
-**Shows for each change**:
-- **Changed At**: Date and time
-- **From Status**: Previous status
-- **To Status**: New status
-- **Changed By**: Who made the change
-- **Remarks**: Any note about the change
+#### Action Buttons on Detail Screen
+
+| Button | When Visible | Action |
+|--------|-------------|--------|
+| Submit Documents | Status = `FEES_PAID` or `PARTIALLY_PAID` | Submits all docs and changes status to `DOCUMENTS_SUBMITTED` |
+| Create Admission | Status = `DOCUMENTS_SUBMITTED` | Opens admission creation form |
+| Edit | Always | Edit enquiry details |
+| Back | Always | Return to list |
 
 ---
 
-### Status Workflow
+### 5.4 Status Workflow
 
-An enquiry progresses through statuses. Understand each:
+The enquiry status tells you exactly **what step the student is at** and **what you need to do next**.
 
 ```
-ENQUIRED
-    ↓ [Student confirms interest]
-INTERESTED
-    ↓ [College Admin finalizes fees]
-FEES_FINALIZED
-    ↓ [Student pays fees]
-FEES_PAID (or PARTIALLY_PAID)
-    ↓ [All documents submitted]
-DOCUMENTS_SUBMITTED
-    ↓ [Admission is created]
-ADMITTED
+╔══════════════════════════════════════════════════════════════╗
+║   FRONT OFFICE VIEW — ENQUIRY STATUS & YOUR ACTIONS          ║
+╚══════════════════════════════════════════════════════════════╝
+
+ENQUIRED  ───────────────────────────────────────────────────►
+                Your Action: Contact student, discuss programs.
+                             Change status to INTERESTED
+                             when student confirms.
+
+INTERESTED ──────────────────────────────────────────────────►
+                Wait: College Admin sets the fee.
+                Your Action: Let student know fee is
+                             being calculated and to
+                             come back in 1-2 days.
+
+FEES_FINALIZED ──────────────────────────────────────────────►
+                Your Action: Call student to collect payment.
+                💳 "Collect Payment" button is now visible.
+
+FEES_PAID ───────────────────────────────────────────────────►
+  PARTIALLY_PAID                                               │
+                Your Action: Collect 7 mandatory documents.    │
+                📁 "Submit Documents" button is now visible.   │
+
+DOCUMENTS_SUBMITTED ─────────────────────────────────────────►
+                Enquiry detail shows "Create Admission".
+                🎓 Click to complete admission.
+
+ADMITTED ✅──────────────────────────────────────────────────►
+                Done! Student ID issued.
+                Welcome the student to SKS!
 ```
 
-### Your Role in Each Status
+#### How to Change Status
 
-| Status | Your Actions |
-|--------|--------------|
-| ENQUIRED | Contact student, answer questions, help select program |
-| INTERESTED | Coordinate with college to set fees |
-| FEES_FINALIZED | Collect payment, send receipt |
-| FEES_PAID | Collect documents from student |
-| DOCUMENTS_SUBMITTED | Prepare for admission creation |
-| ADMITTED | Onboard new student |
+1. Open the enquiry
+2. Click the **status badge** next to the student's name
+3. Choose the new status from the dropdown
+4. Confirm
 
----
-
-## Payment Collection
-
-### Overview
-
-As Front Office, you collect initial payments from students. This is a crucial function for revenue collection.
-
-**Access**: Sidenav → Admission Management → Enquiries (or shortcuts from enquiry list)
-
-### Recording a Payment - Method 1: From Enquiry List
-
-1. **Find the enquiry** with status "FEES_FINALIZED" or "PARTIALLY_PAID"
-2. **Click "Collect Payment"** button (teal button on the right)
-3. **You're taken to Payment Collection screen** with enquiry pre-filled
-4. **Enter Payment Details**:
-   - **Amount Paid**: How much student is paying
-   - **Payment Date**: Date money received
-   - **Payment Method**: 
-     - CASH: Student pays in person
-     - ONLINE: Bank transfer
-     - CHEQUE: Student gives cheque
-     - CARD: Credit/debit card payment
-   - **Transaction Reference**: (For online/card, include confirmation number)
-   - **Remarks**: Any notes about payment
-
-5. **Click "Collect Payment"**
-
-6. **Receipt Generated**:
-   - Receipt number assigned
-   - Shows all payment details
-   - Display on screen for student to keep
-   - Or print if in-person
-
-### Recording a Payment - Method 2: Direct Entry
-
-If you're not starting from enquiry list:
-
-1. Navigate to Admission Management
-2. Click on Enquiries > Find the enquiry
-3. Open enquiry detail
-4. Click "Payments" tab
-5. Click "Record Payment" button
-6. follows same process as above
-
-### Payment Methods Explained
-
-#### CASH Payment
-- Student pays in person
-- You count money
-- Verify amount matches
-- Record date received
-- Student gets receipt
-
-#### ONLINE Payment
-- Student makes bank transfer
-- You receive a confirmation
-- Enter transaction reference number
-- Online confirmation email forwarded to college
-- Record in system
-
-#### CHEQUE Payment
-- Student gives physical cheque
-- Write down cheque number
-- Include cheque number in transaction reference
-- Record date cheque received
-- Cheque goes to finance for clearing
-
-#### CARD Payment
-- Student pays via card (in-office terminal)
-- Card reader confirms transaction
-- Transaction ID generated
-- Record transaction ID in system
-- Keep receipt for records
-
-### Record Partial Payments
-
-If student pays less than full amount:
-- Enter the amount actually received
-- Status changes to "PARTIALLY_PAID"
-- Student still has remaining balance
-- Remaining amount shows in enquiry
-
-**Example**:
-- Finalized fee: ₹100,000
-- Student pays: ₹50,000
-- Remaining: ₹50,000
-- Status: PARTIALLY_PAID
-
-### Payment Receipt
-
-After successful payment entry, you see:
-
-**Receipt Display shows**:
-- **Receipt Number**: e.g., "RCP20260427001"
-- **Student Name**: Who paid
-- **Program**: Their program
-- **Amount Paid**: Rupee amount
-- **Balance Remaining**: If partial payment
-- **Payment Method**: How paid
-- **Date**: Payment date
-- **Collected By**: Your name
-
-**Actions**:
-- **Print**: Print for student records
-- **Email**: Send receipt to student's email
-- **Save/Close**: Dismiss and continue
+**Manual Transitions You Can Make**:
+- `ENQUIRED` → `INTERESTED` (when student confirms)
+- `ENQUIRED` → `NOT_INTERESTED` (if student declines)
+- `NOT_INTERESTED` → `INTERESTED` (if student changes mind)
 
 ---
 
-## Document Management
+## 6. Payment Collection
 
-### Overview
+As Front Office, you can collect payments from students who have had their fees finalized.
 
-Documents are proof of student eligibility. Managing submissions is a key front office duty.
+### How to Collect a Payment
 
-**Access**: Sidenav → Admission Management → Document Submission
+**Method A (Recommended): From Enquiry List Shortcut**
 
-### What are Mandatory Documents?
+1. Navigate to **Enquiries list**
+2. Find student with status `FEES_FINALIZED` or `PARTIALLY_PAID`
+3. Click **💳 "Collect Payment"** button (teal/green button on the right)
+4. Payment collection screen opens with enquiry auto-filled
+5. Enter payment details:
 
-All students must submit these 5 documents:
+| Field | Example |
+|-------|---------|
+| Amount Paid | `50000` |
+| Payment Date | `27-04-2026` |
+| Payment Method | `CASH` / `CHEQUE` / `NEFT` / `UPI` / `CARD` |
+| Transaction Reference | Cheque No / UTR / UPI Ref ID (if applicable) |
+| Remarks | `Year 1 first instalment` |
 
-1. **Tenth Grade Marksheet**
-   - Marksheet from 10th standard examination
-   - Shows grades/scores
+6. Click **"Collect Payment"**
+7. Receipt is displayed — print or email to student
 
-2. **Twelfth Grade Marksheet**
-   - Marksheet from 12th standard examination
-   - Most recent academic record
+**Method B: From Enquiry Detail View**
 
-3. **Transfer Certificate**
-   - Document from previous school
-   - Shows good standing and character
-
-4. **Aadhar Card**
-   - Government-issued ID proof
-   - Or alternative national ID
-
-5. **Passport Photo**
-   - 4x6 cm photo
-   - Recent passport-size photo
-
-### Collecting Documents Process
-
-1. **Navigate to Document Submission**
-   - Sidenav → Admission Management → Document Submission
-
-2. **Find Eligible Enquiry**
-   - Status must be "FEES_PAID" or "PARTIALLY_PAID"
-   - List shows only eligible enquiries
-   - Search for student by name
-
-3. **Click on Enquiry**
-   - Opens document collection screen
-   - Student details shown at top
-
-4. **Upload First Document**:
-   - Click dropdown for document type
-   - Select first document type
-   - Click "Upload File" button
-   - Browse and select file from computer
-   - File uploads to system
-
-5. **Verify Document**:
-   - Review uploaded document
-   - Ensure it's clear and readable
-   - If acceptable, click "Verify"
-   - Status changes to VERIFIED
-   - If not acceptable, click "Reject"
-   - Add remark explaining why
-
-6. **Repeat for All 5 Documents**:
-   - Upload each of 5 mandatory documents
-   - Verify each one
-
-7. **Complete Submission**:
-   - Once all 5 are VERIFIED or UPLOADED
-   - Click "Submit Documents" button
-   - System validates completeness
-   - Enquiry status changes to DOCUMENTS_SUBMITTED
-   - Student now ready for admission creation
-
-### Document Status Meanings
-
-| Status | Meaning | Action |
-|--------|---------|--------|
-| PENDING | Uploaded but not reviewed | Review and verify |
-| UPLOADED | Document received but not checked | Verify when ready |
-| VERIFIED | Document reviewed and accepted | None needed |
-| REJECTED | Document not acceptable | Ask student to resubmit |
-
-### Document Verification Rules
-
-**Clear and Legible**:
-- Document must be readable
-- No excessive blur or damage
-- All text visible
-
-**Not Altered**:
-- No signs of modification
-- Original document preferred
-- All stamps/signatures intact
-
-**Valid Timeframe**:
-- Document must be current
-- No expired ID proofs
-- Recent marksheets acceptable
-
-### Rejecting and Requesting Resubmission
-
-If document is unacceptable:
-
-1. Click "Reject" button for that document
-2. Add remark explaining issue:
-   - "Photo too blurry, please resubmit"
-   - "Aadhar card expired, need new copy"
-   - "Marksheet incomplete, needs all pages"
-3. Click "Save"
-4. Contact student to resubmit corrected document
-5. Student uploads new version
-6. You verify again
+1. Open enquiry → click Payments tab
+2. Then record payment from there
 
 ---
 
-## Admission Creation
-
-### Overview
-
-Once documents are submitted, you guide the student through admission creation.
-
-**Access**: Sidenav → Admission Management → Admission Completion (or from enquiry detail)
-
-### Prerequisites for Admission Creation
-
-Student enquiry must have:
-- ✅ Status = "DOCUMENTS_SUBMITTED"
-- ✅ All 5 documents uploaded and verified
-- ✅ Fees finalized
-- ✅ Payment received (at least partial)
-
-### Creating an Admission
-
-#### Step 1: Find the Enquiry
-
-1. Navigate to **Admission Completion**
-2. List shows only enquiries ready for admission
-3. Search for student by name
-4. Click on the enquiry
-
-#### Step 2: Fill Admission Form
-
-**Basic Information** (Pre-filled):
-- **Student Name**: Auto-filled from enquiry
-- **Email**: Auto-filled from enquiry
-- **Phone**: Auto-filled from enquiry
-
-**Admission Details** (Required):
-- **Semester**: Which semester starting (e.g., "Fall 2026, Semester 1")
-- **Admission Date**: Date of joining
-- **Academic Year From**: Starting year
-- **Academic Year To**: Ending year
-- **Application Date**: When application was submitted
-
-**Student Personal Information**:
-- **Date of Birth**: Student's birthdate
-- **Gender**: Male, Female, Other
-- **Aadhar Number**: Government ID number
-- **Nationality**: Country of citizenship
-- **Religion**: Optional
-- **Community Category**: E.g., SC, ST, OC, MBC, DNC
-- **Blood Group**: For records
-
-**Family Information**:
-- **Father's Name**: Father/guardian name
-- **Mother's Name**: Mother name
-- **Parent Mobile**: Parent contact number
-
-#### Step 3: Verify All Information
-
-Before submitting:
-1. Review all filled information
-2. Verify dates are correct
-3. Check spelling of names
-4. Confirm semester and academic year
-
-#### Step 4: Create Admission
-
-1. Click **"Create Admission"** button
-2. System processes the form
-3. Success message appears
-4. New **Admission ID** generated
-5. New **Student ID** created
-6. Enquiry status changes to **"ADMITTED"**
-
-#### Confirmation Screen
-
-Shows:
-- **Admission ID**: e.g., "ADM20260427001"
-- **Student ID**: e.g., "STU20260001"
-- **Student Name**
-- **Program**
-- **Enrollment details**
-
-**Actions Available**:
-- **Print Admission Form**: For student records
-- **Email Confirmation**: Send to student
-- **Continue**: Go back to enquiries
-
----
-
-## Reports
-
-### Overview
-
-Reports help track admission progress and performance metrics.
-
-**Access**: Sidenav → Reports
-
-### Available Reports for Front Office
-
-#### 1. Admissions Report
-**Shows**: Total admissions by time period
-
-**How to Generate**:
-1. Click "Admissions Report"
-2. Select "Date Range":
-   - From Date
-   - To Date
-3. Click "Generate"
-4. Report shows:
-   - Total admissions in period
-   - Trend over time
-   - Program-wise breakdown
-   - Source/referral analysis
-
-**Use Case**: Manager asks "How many students did we admit this month?"
-
-#### 2. Collection Report
-**Shows**: Payment collections by period
-
-**How to Generate**:
-1. Click "Fee Collections Report"
-2. Select Period (e.g., this month)
-3. Click "Generate"
-4. Report shows:
-   - Total collected
-   - Collection method breakdown (cash vs. online)
-   - Student-wise collections
-   - Outstanding balances
-
-**Use Case**: Finance asks "What was our collection this week?"
-
-#### 3. Enquiry Status Report
-**Shows**: Where enquiries are in the workflow
-
-**How to Generate**:
-1. Click "Enquiry Status Report" (if available)
-2. View breakdown:
-   - How many in ENQUIRED
-   - How many in INTERESTED
-   - How many waiting on documents
-   - etc.
-
-**Use Case**: "Where are we in our admission pipeline?"
-
-### Exporting Reports
-
-**Export Options**:
-- **Excel**: Download spreadsheet for analysis
-- **PDF**: Download formatted report
-- **Print**: Send to configured printer
-- **Email**: Schedule report to recipients
-
-**How to Export**:
-1. After generating report
-2. Click export format button
-3. File downloads to your computer
-4. Optional: Save or open file
-
----
-
-## Common Workflows
-
-### Workflow 1: First Contact to Admission (Complete Journey)
-
-**Day 1 - Initial Inquiry**
-1. Student walks in or calls
-2. You create new enquiry
-3. Enter student details and program interest
-4. Status: ENQUIRED
-
-**Days 2-5 - Interest Confirmation**
-1. Student confirms interest
-2. Change status to INTERESTED
-3. College Admin is notified
-
-**Day 5-7 - Fee Finalization** (College Admin action)
-1. College Admin finalizes fees
-2. Student informed of amount due
-
-**Day 7-14 - Payment Collection** (Your action)
-1. Student comes to pay or transfers online
-2. You record payment
-3. Generate and provide receipt
-4. Status: FEES_PAID or PARTIALLY_PAID
-
-**Day 14-21 - Document Collection** (Your action)
-1. Student provides documents
-2. You upload each document
-3. Verify authenticity
-4. Once all 5 verified, mark DOCUMENTS_SUBMITTED
-5. Status: DOCUMENTS_SUBMITTED
-
-**Day 21-30 - Admission Creation** (Your action)
-1. Create admission from enquiry
-2. Fill in additional details
-3. Generate Student ID
-4. Provide admission confirmation
-5. Status: ADMITTED
-
-**Timeline**: 1-4 weeks from inquiry to admitted student
-
----
-
-### Workflow 2: Handling Multiple Students (Daily Routine)
-
-**Morning** (9:00 AM - 12:00 PM):
-1. Check dashboard for action items
-2. Review enquiries waiting for payments
-3. Send payment reminders to students
-4. Meet students bringing documents
-5. Upload and verify documents submitted
-
-**Afternoon** (1:00 PM - 5:00 PM):
-1. Collect payments from students
-2. Process document submissions
-3. Create admissions for ready students
-4. Answer student questions
-5. Update enquiry statuses
-
----
-
-### Workflow 3: Generating Weekly Reports
-
-**Every Friday**:
-1. Navigate to Reports
-2. Generate "Fee Collections Report"
-   - Date Range: This week
-3. Export to Excel
-4. Send to Finance department
-5. Generate "Admissions Report"
-   - Date Range: This week
-6. Share with management
-
----
-
-## Troubleshooting
-
-### Issue: Cannot see "Collect Payment" button
-
-**Causes & Solutions**:
-1. **Enquiry not in correct status**:
-   - Status must be FEES_FINALIZED or PARTIALLY_PAID
-   - If status is ENQUIRED or INTERESTED:
-     - College Admin hasn't finalized fees yet
-     - Wait for admin to finalize, button will appear
-
-2. **Fees not finalized**:
-   - Contact College Admin
-   - Ask them to finalize fees for this student
-   - Once finalized, button appears
-
----
-
-### Issue: Student says they already paid but I don't see the payment
-
-**Solutions**:
-1. **Check if payment is recorded**:
-   - Open enquiry detail
-   - Go to Payments tab
-   - Search for their receipt
-
-2. **If not found**:
-   - Ask student for receipt number
-   - Search by receipt number
-   - If not in system, needs to be recorded:
-     - Open enquiry
-     - Click "Collect Payment"
-     - Enter amount and date
-     - Save
-
-3. **If dated months ago**:
-   - Payment may be in old academic year
-   - Check date range in filter
-
----
-
-### Issue: Document upload fails
-
-**Solutions**:
-1. **File too large**:
-   - Compress image first
-   - Supported formats: JPG, PNG, PDF
-   - Max size: Usually 10 MB
-
-2. **Wrong file format**:
-   - Ensure file is PDF or image
-   - Not Word, Excel, or other formats
-   - If document is a scan, save as JPG or PDF
-
-3. **Browser issue**:
-   - Try different browser
-   - Clear cache: Ctrl+Shift+Del
-   - Try uploading again
-
----
-
-### Issue: Cannot find student in list
-
-**Solutions**:
-1. **Search by different field**:
-   - Try searching by phone instead of name
-   - Try searching by email
-   - Name spelling may be different
-
-2. **Check status filter**:
-   - If looking for "FEES_PAID" students
-   - But student in "INTERESTED" status
-   - Won't appear in filtered view
-   - Change filter to "All Statuses"
-
-3. **Check date range**:
-   - If enquiry created long ago
-   - May not appear in current date range filter
-   - Expand date range
-
----
-
-### Issue: Cannot create admission for a student
-
-**Solutions**:
-1. **Check prerequisites**:
-   ```
-   ✓ Status = DOCUMENTS_SUBMITTED
-   ✓ All 5 documents verified
-   ✓ Fees finalized
-   ✓ Payment received
-   ```
-
-2. **If status not DOCUMENTS_SUBMITTED**:
-   - Complete document submission first
-   - Click "Submit Documents" button
-   - Wait for status to change
-
-3. **If documents not all submitted**:
-   - Upload missing documents
-   - Verify each one
-   - Then submit documents
-
----
-
-### Issue: Report not showing expected data
-
-**Solutions**:
-1. **Check date range**:
-   - Ensure date range includes the data
-   - If looking for January data, start date should be Jan 1
-
-2. **Check filters**:
-   - If report has program filter
-   - Ensure correct program selected
-   - Or select "All Programs"
-
-3. **Data timing**:
-   - Data may not update immediately
-   - Try refreshing page: F5
-   - Wait a few moments and try again
-
----
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Ctrl + K` | Open search bar |
-| `Ctrl + /` | Show all shortcuts |
-| `Escape` | Close dialog/modal |
-| `Enter` | Submit form |
-| `Alt + A` | Go to Admission Management |
-| `Alt + R` | Go to Reports |
-| `Ctrl + Shift + L` | Focus on search/list |
-
----
-
-## Quick Reference Card
-
-### Daily Tasks Checklist
-
-- [ ] Review new enquiries from morning walk-ins
-- [ ] Follow up on students with outstanding payments
-- [ ] Collect and upload documents from students
-- [ ] Create admissions for ready students
-- [ ] Generate daily collection report
-- [ ] Update enquiry statuses
-- [ ] Send receipts to students
-
-### Status Decision Tree
+### Payment Methods Accepted at SKS
+
+| Method | When | Reference |
+|--------|------|-----------|
+| CASH | At counter | No reference needed |
+| CHEQUE | At counter | Record cheque number (e.g., `CK112345`) |
+| NEFT / RTGS | Bank transfer | UTR number (e.g., `UTR20262704XXXXX`) |
+| UPI | Phone transfer | UPI Transaction ID |
+| Card | At campus terminal | Authorization code |
+| DD | At counter | DD number and bank |
+
+### Understanding the Receipt
+
+After payment is recorded, the system shows a receipt like:
 
 ```
-Is student ENQUIRED?
-  → Call student, confirm interest
-  → If confirmed, change to INTERESTED
-
-Is student INTERESTED?
-  → Wait for College Admin to finalize fees
-  → Once finalized, change to FEES_FINALIZED
-
-Is student FEES_FINALIZED?
-  → Collect payment from student
-  → Record in system
-  → Status changes automatically
-
-Is student FEES_PAID/PARTIALLY_PAID?
-  → Collect documents from student
-  └→ 5 mandatory documents needed
-  → Upload and verify
-  → Submit documents
-  → Status changes to DOCUMENTS_SUBMITTED
-
-Is student DOCUMENTS_SUBMITTED?
-  → Create admission with complete information
-  → Generate Student ID
-  → Status changes to ADMITTED
+┌─────────────────────────────────────────┐
+│     SKS COLLEGE OF NURSING              │
+│         PAYMENT RECEIPT                 │
+├─────────────────────────────────────────┤
+│ Receipt No:    RCP-SKS-20260427-001     │
+│ Date:          27-Apr-2026              │
+├─────────────────────────────────────────┤
+│ Student:       Divya Krishnan           │
+│ Program:       B.Sc Nursing             │
+│ Enquiry ID:    ENQ-2026-042             │
+├─────────────────────────────────────────┤
+│ Amount Paid:   ₹50,000                 │
+│ Method:        NEFT                     │
+│ Ref:           UTR20262704XXXXX        │
+│ Collected by:  Ms. Radhika (Front Off)  │
+├─────────────────────────────────────────┤
+│ Balance Due:   ₹53,000                 │
+└─────────────────────────────────────────┘
+ Print | Email | Close
 ```
 
-### Most Used Paths
+### Partial Payments
 
-| Task | Path | Time |
-|------|------|------|
-| New enquiry | Admission → Enquiries → +New | 3 min |
-| Find student | Admission → Enquiries → Search | 1 min |
-| Record payment | Click "Collect Payment" on enquiry | 5 min |
-| Upload documents | Document Submission → Find student | 10 min |
-| Create admission | Admission Completion → Select student | 5 min |
-| Check reports | Reports → Select report type | 2 min |
+If a student cannot pay the full amount:
+- Record the amount they are paying (e.g., ₹50,000 of ₹1,03,000)
+- Status changes to `PARTIALLY_PAID`
+- Student can still proceed to document submission
+- System tracks balance automatically
+- Remind student of remaining balance
 
 ---
 
-## Support & Help
+## 7. Document Management
 
-### Questions?
-- Refer to relevant section above
-- Ask your Front Office supervisor
-- Contact system administrator
-- Email: [support email]
-- Phone: [support number]
+Collecting and verifying documents is one of your most important responsibilities. **All 7 documents must be uploaded** before a student can be admitted.
 
-### Common Terms Glossary
+### Mandatory Documents — INC Requirements
 
-| Term | Meaning |
-|------|---------|
-| Enquiry | Initial student registration of interest |
-| Status | Current position in admission workflow |
-| Finalized Fee | Amount student must pay (set by college admin) |
-| Collection | Payment received from student |
-| Documents | 5 mandatory files (marksheets, ID, photo) |
-| Admission | Final acceptance and enrollment |
-| Student ID | Unique identifier for admitted student |
-| Receipt | Proof of payment for student |
+SKS College of Nursing requires these **7 documents** for every admission:
+
+| # | Document | Requirement |
+|---|----------|-------------|
+| 1 | **10th Grade Marksheet** | Minimum 45% aggregate |
+| 2 | **12th Grade Marksheet** | Science stream — Biology + Chemistry + Physics compulsory |
+| 3 | **Transfer Certificate** | From last school/college with "conduct: good" |
+| 4 | **Aadhar Card** | Valid government-issued ID |
+| 5 | **Passport Photo** | White background, recent, 4×6 cm |
+| 6 | **Medical Fitness Certificate** | From registered medical practitioner, dated within 6 months |
+| 7 | **Blood Group Report** | From accredited hospital or diagnostic lab |
+
+### Document Collection Workflow
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║      DOCUMENT COLLECTION WORKFLOW — FRONT OFFICE                ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Student arrives with documents
+          │
+          ▼
+Navigate to:
+Admission Management → Document Submission
+          │
+          ▼
+Find student's enquiry
+  (Status must be FEES_PAID or PARTIALLY_PAID)
+          │
+          ▼
+Open document submission screen
+          │
+          ▼
+FOR EACH of the 7 documents:
+    ├─ Select document type from dropdown
+    ├─ Click "Upload File" → select from computer
+    ├─ Review uploaded preview
+    ├─ Is it valid?
+    │   ├─ YES → Click "Verify" ✅
+    │   └─ NO  → Click "Reject" ❌
+    │              Add reason (e.g., "Photo has coloured background")
+    │              Return to student for resubmission
+    └─ Proceed to next document
+          │
+          ▼
+All 7 documents uploaded and verified?
+          │
+    ┌─────┴─────┐
+   YES         NO
+    │           └─ Request missing/rejected docs from student
+    ▼               and revisit when corrected
+Click "Submit Documents"
+          │
+          ▼
+✅ Status changes to DOCUMENTS_SUBMITTED
+   Student is now ready for admission!
+```
+
+### Verifying Each Document
+
+#### 10th Marksheet
+- All subjects and grades visible
+- School name, year, and board clearly stated
+- Not a photocopy of a photocopy
+
+#### 12th Marksheet
+- Must show **Biology**, **Chemistry**, and **Physics** as subjects
+- Mark above minimum (45% general / 40% SC-ST)
+- Science stream confirmed
+
+#### Transfer Certificate
+- On institution letterhead
+- Mentions "conduct: satisfactory" or "good"
+- Signed and stamped
+
+#### Aadhar Card
+- Both sides scanned
+- Card is valid and not expired
+- If no Aadhar, accept Voter ID or Passport with note
+
+#### Passport Photo
+- White/light background
+- Recent (within 6 months)
+- Clear face visible, no glasses or headwear
+
+#### Medical Fitness Certificate
+- On doctor's official letterhead
+- Doctor must be registered (IMA or State Medical Council)
+- Must state student is "fit for nursing education"
+- **Dated within 6 months** — reject older certificates
+
+#### Blood Group Report
+- From accredited lab or hospital
+- Shows blood group clearly (e.g., B+, O-, A+)
+- Name matches student's name on other documents
+
+### Submitting Documents
+
+Once all 7 are uploaded and verified:
+
+1. Scroll to bottom of document submission screen
+2. Click **"Submit Documents"** button
+3. System checks:
+   - All 7 mandatory documents present?
+   - At least UPLOADED (not necessarily VERIFIED)?
+4. If all present → Status changes to `DOCUMENTS_SUBMITTED`
+5. Success message confirms submission
 
 ---
 
-## Version History
+## 8. Admission Creation
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Apr 27, 2026 | Initial release |
+When a student's enquiry is in `DOCUMENTS_SUBMITTED` status, you can create their official admission record.
+
+### Create Admission from Admission Completion Screen
+
+**Navigate**: Sidenav → Admission Management → Admission Completion
+
+1. Screen shows all enquiries with `DOCUMENTS_SUBMITTED` status
+2. Search for your student
+3. Click on the enquiry
+4. Click **"Create Admission"** button
+
+### Admission Form — Nursing-Specific Fields
+
+Fill in all required fields (marked with *):
+
+**Auto-filled from Enquiry**:
+- Student Name, Email, Phone, Program
+
+**You Need to Enter**:
+
+| Section | Field | Example |
+|---------|-------|---------|
+| **Admission Details** | Semester | `Semester 1` |
+| | Admission Date | `01-08-2026` |
+| | Academic Year From | `2026` |
+| | Academic Year To | `2027` |
+| | Application Date | `15-07-2026` |
+| **Personal Info** | Date of Birth | `15-03-2007` |
+| | Gender | `Female` (most nursing students) |
+| | Aadhar Number | From Aadhar card |
+| | Blood Group | `B+` (from blood group report) |
+| | Community Category | `OC` / `BC` / `SC` / `ST` / `MBC` / `DNC` |
+| | Nationality | `Indian` |
+| **Family Info** | Father's Name | `Mr. K Krishnan` |
+| | Mother's Name | `Mrs. S Krishnan` |
+| | Parent Mobile | `+91-98XXXXXXXX` |
+
+### After Submitting
+
+System shows:
+
+```
+✅ ADMISSION CREATED SUCCESSFULLY
+
+Admission ID:  ADM-2026-042
+Student ID:    SKS-NUR-2026-042
+Student Name:  Divya Krishnan
+Program:       Bachelor of Science in Nursing
+Semester:      1 (August 2026 batch)
+
+[ Print Admission Confirmation ] [ Email to Student ] [ Continue ]
+```
 
 ---
 
-**Last Updated**: April 27, 2026  
-**Next Review**: July 27, 2026
+## 9. Reports
 
-**Thank you for your dedicated service to our students!**
+**Navigate**: Sidenav → Reports
+
+### Reports Available to Front Office
+
+| Report | What It Shows | Useful For |
+|--------|--------------|-----------|
+| Admissions Report | Total admissions by period | Weekly/monthly review |
+| Enquiry Status Report | Where enquiries are in pipeline | Daily follow-up planning |
+| Fee Collections Report | Collections recorded by you | Your day's performance |
+
+### How to Generate a Report
+
+1. Navigate to **Reports**
+2. Click the report name
+3. Set date range (e.g., April 1 – April 27, 2026)
+4. Click **"Generate"**
+5. View or export:
+   - **Excel**: For spreadsheet analysis
+   - **PDF**: For printing and sharing
+   - **Email**: Send report by email
+
+---
+
+## 10. Daily Workflows
+
+### Workflow A: New Student Walk-In
+
+```
+Student arrives at front office
+         │
+         ▼
+Greet student professionally:
+"Welcome to SKS College of Nursing!"
+         │
+         ▼
+Collect basic information:
+  • Name, phone, email
+  • Which program they're interested in
+  • Class 12 stream (must be Science for B.Sc Nursing)
+         │
+         ▼
+Create enquiry in system
+  Status: ENQUIRED
+         │
+         ▼
+Explain programs, fees (approximate),
+duration, career scope
+         │
+         ▼
+Student confirms interest?
+  ├── YES → Update status to INTERESTED
+  │          Inform College Admin to finalize fees
+  │
+  └── NO  → Leave as ENQUIRED
+             Schedule follow-up call in 2 days
+```
+
+---
+
+### Workflow B: Collecting Documents from Student
+
+```
+Student arrives with documents
+         │
+         ▼
+Find enquiry (must be FEES_PAID or PARTIALLY_PAID)
+         │
+         ▼
+Click "Submit Documents" shortcut or
+navigate to Admission Management → Document Submission
+         │
+         ▼
+Go through 7 documents one by one:
+  1. 10th Marksheet        ── Upload → Verify ✅
+  2. 12th Marksheet        ── Upload → Verify ✅
+  3. Transfer Certificate  ── Upload → Verify ✅
+  4. Aadhar Card           ── Upload → Verify ✅
+  5. Passport Photo        ── Upload → Verify ✅
+  6. Medical Fitness Cert  ── Upload → Verify ✅ (Check date!)
+  7. Blood Group Report    ── Upload → Verify ✅
+         │
+         ▼
+All 7 verified? → Click "Submit Documents"
+Status: DOCUMENTS_SUBMITTED
+         │
+         ▼
+Inform College Admin / schedule admission
+creation appointment
+```
+
+---
+
+### Workflow C: Full Day — Front Office Routine
+
+```
+9:00 AM — Morning Shift Start
+  ├─ Check dashboard: any students awaiting payment or docs?
+  ├─ Call students with status FEES_FINALIZED (collect payment)
+  └─ Arrange appointment book for walk-in admissions
+
+10:00 AM – 1:00 PM — Receive Students
+  ├─ Process new enquiries (walk-ins, referrals)
+  ├─ Collect documents from students
+  └─ Process payments
+
+1:00 PM – 2:00 PM — Lunch Break
+
+2:00 PM – 5:00 PM — Process & Follow Up
+  ├─ Create admissions for ready students
+  ├─ Follow up by phone on pending docs
+  ├─ Update statuses based on interactions
+  └─ Generate daily collection report
+
+5:00 PM — End of Day
+  ├─ Review pending actions on dashboard
+  ├─ Note follow-up tasks for tomorrow
+  └─ Log out of system
+```
+
+---
+
+## 11. Troubleshooting
+
+### Cannot see 💳 Collect Payment button
+
+**Cause**: Student's fee has not been finalized yet by College Admin.
+
+**Solution**:
+- Check enquiry status — must be `FEES_FINALIZED` or `PARTIALLY_PAID`
+- If status is `INTERESTED`, the College Admin has not yet finalized the fee
+- Contact College Admin to finalize fee first
+- Once finalized, button will appear automatically
+
+---
+
+### Cannot upload a document
+
+**Cause**: File format or size issue.
+
+**Solution**:
+- Accepted formats: **PDF, JPG, PNG** only
+- Max file size: **5 MB** per document
+- If file is larger: compress the image (use Paint, mobile photo settings, or online compressor)
+- Try a different browser (Chrome recommended)
+
+---
+
+### 12th Marksheet rejected — wrong stream
+
+**Situation**: Student's 12th marksheet doesn't have Biology.
+
+**Solution**:
+- Explain INC requirement: Biology is compulsory for B.Sc Nursing
+- GNM accepts students without Biology — suggest this program
+- If they want B.Sc Nursing, they may need to re-appear for Biology exam
+
+---
+
+### Medical Fitness Certificate is outdated
+
+**Situation**: Certificate is more than 6 months old.
+
+**Solution**:
+- Reject the document with note: "Certificate dated more than 6 months ago. Please resubmit."
+- Provide student with list of nearby hospitals/clinics for quick check
+- Remind them the certificate must explicitly say "fit for nursing study"
+
+---
+
+### Cannot find student in enquiry list
+
+**Possible Causes**:
+1. Different phone number used when enquiry was created
+2. Different name spelling
+3. Date filter is excluding their enquiry date
+
+**Solution**:
+- Try searching by phone number
+- Clear all filters and search again
+- Check if enquiry is under a different name (family name used first)
+
+---
+
+### Student says they paid but system shows balance outstanding
+
+**Solution**:
+- Ask for payment receipt number
+- Search by receipt number in the enquiry's Payments tab
+- If receipt not found, check if payment was recorded under a different enquiry
+- If not found anywhere, the payment may not have been entered
+- Ask for bank SMS or UPI notification as proof
+- Record payment with transaction reference from their proof
+
+---
+
+## 12. Quick Reference
+
+### Nursing Program Eligibility — Quick Check
+
+| Program | Minimum Qualification | Min % | Stream Required |
+|---------|----------------------|-------|----------------|
+| B.Sc Nursing | 12th Pass | 45% (Gen) / 40% (SC/ST) | Science (Bio+Chem+Physics) |
+| GNM | 12th Pass | 40% | Any stream |
+| M.Sc Nursing | B.Sc Nursing + 1 yr experience | 55% in B.Sc | N/A |
+| Post Basic B.Sc | GNM + 1 yr experience | — | N/A |
+| DOTT / DMLT | 12th Pass | 40% | Science preferred |
+
+### Status Cheat Sheet for Front Office
+
+| Status | What You Need to Do |
+|--------|-------------------|
+| ENQUIRED | Contact student, explain program, update to INTERESTED |
+| INTERESTED | Wait for College Admin to finalize fee |
+| FEES_FINALIZED | Call student to collect payment ← **💳 Action** |
+| FEES_PAID | Collect 7 documents ← **📁 Action** |
+| PARTIALLY_PAID | Collect documents AND chase remaining payment |
+| DOCUMENTS_SUBMITTED | Create admission ← **🎓 Action** |
+| ADMITTED | ✅ Done! Welcome new student to SKS! |
+
+### 7 Mandatory Documents Checklist
+
+```
+[ ] 1. 10th Marksheet
+[ ] 2. 12th Marksheet (Science with Biology)
+[ ] 3. Transfer Certificate
+[ ] 4. Aadhar Card
+[ ] 5. Passport Photo (white background, recent)
+[ ] 6. Medical Fitness Certificate (within 6 months)
+[ ] 7. Blood Group Report (from accredited lab)
+```
+
+### How to Greet Different Student Types
+
+| Situation | Approach |
+|-----------|---------|
+| First-year B.Sc Nursing | Discuss career in nursing, duration, clinical training hospitals |
+| GNM Applicant | Simpler career path, explain bridge to B.Sc later |
+| Post Basic applicant | Talk about degree upgrade for career advancement |
+| Parent accompanying student | Address parent's concerns about career, safety, hostel |
+| NRI / International student | Enquire about documentation requirements for NRI quota |
+
+---
+
+**SKS College of Nursing | Front Office User Guide**
+**Version 2.0 | April 27, 2026 | Next Review: July 2026**
 
