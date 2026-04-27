@@ -87,6 +87,18 @@
                 }
               </div>
             </form>
+
+            <!-- Enrollments Section -->
+            <div class="enrollments-section">
+              <h4>Enrollments</h4>
+              @if (term.status === 'OPEN') {
+                <button mat-stroked-button (click)="generateEnrollments(term)" [disabled]="generatingEnrollments()">
+                  <mat-icon>refresh</mat-icon>
+                  Generate Enrollments
+                </button>
+              }
+              <p>{{ enrollments().length }} enrollment(s)</p>
+            </div>
           } @else {
             <p class="term-card__empty">Term instances are created automatically by the backend.</p>
           }

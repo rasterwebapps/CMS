@@ -8,8 +8,10 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  GenerateEnrollmentsResponse,
   Semester,
   SemesterRequest,
+  StudentTermEnrollment,
   TermInstance,
   TermInstanceUpdateRequest,
   TermBillingSchedule,
@@ -122,5 +124,21 @@ export class AcademicYearService {
 
   createOrUpdateTermBillingSchedule(request: TermBillingScheduleRequest): Observable<TermBillingSchedule> {
     return this.http.post<TermBillingSchedule>(`${environment.apiUrl}/term-billing-schedules`, request);
+  }
+
+  // StudentTermEnrollment methods
+  getEnrollmentsByTermInstance(termInstanceId: number): Observable<StudentTermEnrollment[]> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.get<StudentTermEnrollment[]>(
+      `${baseUrl}/api/student-term-enrollments?termInstanceId=${termInstanceId}`,
+    );
+  }
+
+  generateEnrollments(termInstanceId: number): Observable<GenerateEnrollmentsResponse> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.post<GenerateEnrollmentsResponse>(
+      `${baseUrl}/api/student-term-enrollments/generate?termInstanceId=${termInstanceId}`,
+      {},
+    );
   }
 }

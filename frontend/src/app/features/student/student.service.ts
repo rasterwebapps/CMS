@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Student, StudentRequest } from './student.model';
+import { Student, StudentRequest, StudentTermEnrollment } from './student.model';
 
 @Injectable({
   providedIn: 'root',
@@ -54,5 +54,12 @@ export class StudentService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  getEnrollmentsByStudent(studentId: number): Observable<StudentTermEnrollment[]> {
+    const baseUrl = environment.apiUrl.replace('/api/v1', '');
+    return this.http.get<StudentTermEnrollment[]>(
+      `${baseUrl}/api/student-term-enrollments?studentId=${studentId}`,
+    );
   }
 }
