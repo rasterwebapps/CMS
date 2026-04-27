@@ -1,10 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   AcademicYear,
   AcademicYearRequest,
+  CalendarEvent,
+  CalendarEventRequest,
+  CalendarEventType,
   Semester,
   SemesterRequest,
 } from './academic-year.model';
@@ -16,6 +19,7 @@ export class AcademicYearService {
   private readonly http = inject(HttpClient);
   private readonly academicYearUrl = `${environment.apiUrl}/academic-years`;
   private readonly semesterUrl = `${environment.apiUrl}/semesters`;
+  private readonly calendarEventUrl = `${environment.apiUrl}/calendar-events`;
 
   // Academic Year methods
   getAllAcademicYears(): Observable<AcademicYear[]> {
@@ -65,5 +69,32 @@ export class AcademicYearService {
 
   deleteSemester(id: number): Observable<void> {
     return this.http.delete<void>(`${this.semesterUrl}/${id}`);
+  }
+
+  // Calendar Event methods
+  getCalendarEventsByAcademicYear(
+    academicYearId: number,
+    eventType?: CalendarEventType,
+  ): Observable<CalendarEvent[]> {
+    let params = new HttpParams();
+    if (eventType) {
+      params = params.set('eventType', eventType);
+    }
+    return this.http.get<CalendarEvent[]>(
+      `${this.calendarEventUrl}/academic-year/${academicYearId}`,
+      { params },
+    );
+  }
+
+  createCalendarEvent(request: CalendarEventRequest): Observable<CalendarEvent> {
+    return this.http.post<CalendarEvent>(this.calendarEventUrl, request);
+  }
+
+  updateCalendarEvent(id: number, request: CalendarEventRequest): Observable<CalendarEvent> {
+    return this.http.put<CalendarEvent>(`${this.calendarEventUrl}/${id}`, request);
+  }
+
+  deleteCalendarEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.calendarEventUrl}/${id}`);
   }
 }

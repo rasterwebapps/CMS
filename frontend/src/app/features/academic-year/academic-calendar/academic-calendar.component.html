@@ -1,12 +1,36 @@
-<div class="list-page">
-  <app-page-header title="Academic Calendar" subtitle="Current academic year and semester timeline">
+<div class="list-page" #calendarPrintArea>
+  <app-page-header title="Academic Calendar" subtitle="Semester timeline, events and holidays">
     <div actions class="header-actions">
-      <a class="btn-secondary" routerLink="/academic-years">
-        <mat-icon>calendar_month</mat-icon> Manage Academic Years
-      </a>
-      <a class="btn-secondary" routerLink="/semesters">
-        <mat-icon>date_range</mat-icon> Manage Semesters
-      </a>
+      <!-- Year Selector -->
+      @if (allAcademicYears().length > 1) {
+        <select class="year-select" [value]="selectedAcademicYear()?.id" (change)="selectYear(+$any($event.target).value)">
+          @for (year of allAcademicYears(); track year.id) {
+            <option [value]="year.id">{{ year.name }}{{ year.isCurrent ? ' (Current)' : '' }}</option>
+          }
+        </select>
+      }
+
+      @if (canManage()) {
+        <button class="btn-secondary" (click)="openAddEvent()">
+          <mat-icon>add</mat-icon> Add Event
+        </button>
+      }
+
+      <button class="btn-secondary" (click)="exportEvents()" [disabled]="events().length === 0" matTooltip="Export events to CSV">
+        <mat-icon>download</mat-icon>
+      </button>
+      <button class="btn-secondary" (click)="printCalendar()" matTooltip="Print calendar">
+        <mat-icon>print</mat-icon>
+      </button>
+
+      @if (canManage()) {
+        <a class="btn-secondary" routerLink="/academic-years">
+          <mat-icon>calendar_month</mat-icon> Years
+        </a>
+        <a class="btn-secondary" routerLink="/semesters">
+          <mat-icon>date_range</mat-icon> Semesters
+        </a>
+      }
     </div>
   </app-page-header>
 
@@ -18,88 +42,345 @@
     <div class="content-card error-card">
       <div class="error-content">
         <mat-icon class="error-icon">calendar_today</mat-icon>
-        <h3>No Current Academic Year</h3>
-        <p>There is no current academic year set. Please create an academic year and mark it as current.</p>
-        <a class="btn-primary" routerLink="/academic-years/new">Create Academic Year</a>
+        <h3>No Academic Year Found</h3>
+        <p>There are no academic years set up yet. Please create one first.</p>
+        @if (canManage()) {
+          <a class="btn-primary" routerLink="/academic-years/new">Create Academic Year</a>
+        }
       </div>
     </div>
   } @else {
+    <!-- ── Stats Strip ── -->
+    @if (stats(); as s) {
+      <div class="stats-strip">
+        <div class="stat-card c-accent">
+          <span class="stat-value font-mono">{{ s.totalWeeks }}</span>
+          <span class="stat-label">Total Weeks</span>
+        </div>
+        <div class="stat-card c-green">
+          <span class="stat-value font-mono">{{ s.semesterCount }}</span>
+          <span class="stat-label">Semesters</span>
+        </div>
+        <div class="stat-card c-amber">
+          <span class="stat-value font-mono">{{ s.daysRemaining !== null ? s.daysRemaining : '—' }}</span>
+          <span class="stat-label">Days Left in Semester</span>
+        </div>
+        <div class="stat-card c-purple">
+          <span class="stat-value font-mono">{{ s.eventCount }}</span>
+          <span class="stat-label">Events / Holidays</span>
+        </div>
+      </div>
+    }
+
+    <!-- ── Upcoming Events Alert ── -->
+    @if (upcomingEvents().length > 0) {
+      <div class="upcoming-banner">
+        <mat-icon class="upcoming-icon">notifications_active</mat-icon>
+        <div class="upcoming-content">
+          <h4>Upcoming in the next 30 days</h4>
+          <div class="upcoming-list">
+            @for (evt of upcomingEvents(); track evt.id) {
+              <div class="upcoming-item">
+                <mat-icon class="ue-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
+                <span class="ue-title">{{ evt.title }}</span>
+                <span class="ue-date">{{ evt.startDate | date: 'mediumDate' }}</span>
+                <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Current Year Card ── -->
     <div class="content-card current-year-card">
       <div class="current-year-header">
         <div class="year-icon-wrap">
           <mat-icon>school</mat-icon>
         </div>
         <div>
-          <h3 class="current-year-title">{{ currentAcademicYear()?.name }}</h3>
+          <h3 class="current-year-title">{{ selectedAcademicYear()?.name }}</h3>
           <p class="current-year-dates">
-            {{ currentAcademicYear()?.startDate | date: 'mediumDate' }} —
-            {{ currentAcademicYear()?.endDate | date: 'mediumDate' }}
+            {{ selectedAcademicYear()?.startDate | date: 'mediumDate' }} —
+            {{ selectedAcademicYear()?.endDate | date: 'mediumDate' }}
           </p>
         </div>
-        <span class="cms-badge cms-badge--blue">Current Academic Year</span>
+        @if (selectedAcademicYear()?.isCurrent) {
+          <span class="cms-badge cms-badge--blue">Current Academic Year</span>
+        }
       </div>
     </div>
 
-    <h3 class="section-title">Semesters</h3>
-
-    @if (semesters().length === 0) {
-      <div class="content-card">
-        <div class="empty-state__content">
-          <mat-icon class="empty-state__icon-mat">event_note</mat-icon>
-          <p class="empty-state__text">No semesters found for this academic year.</p>
-          <a class="btn-primary" routerLink="/semesters/new">Add Semester</a>
-        </div>
+    <!-- ── View Toggle ── -->
+    <div class="view-bar">
+      <h3 class="section-title">Semesters</h3>
+      <div class="view-toggle" role="group" aria-label="Toggle calendar view">
+        <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">
+          <mat-icon>view_timeline</mat-icon> Timeline
+        </button>
+        <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'grid'" (click)="viewMode.set('grid')">
+          <mat-icon>grid_view</mat-icon> Month Grid
+        </button>
       </div>
-    } @else {
-      <div class="semester-timeline">
-        @for (semester of semesters(); track semester.id; let i = $index) {
-          <div class="timeline-item" [class.current]="getSemesterStatus(semester) === 'current'">
-            <div class="timeline-marker">
-              <div class="marker-dot" [class]="getSemesterStatus(semester)">
-                @if (getSemesterStatus(semester) === 'completed') {
-                  <mat-icon>check</mat-icon>
-                } @else if (getSemesterStatus(semester) === 'current') {
-                  <mat-icon>play_arrow</mat-icon>
-                } @else {
-                  <mat-icon>schedule</mat-icon>
+    </div>
+
+    <!-- ─────────── TIMELINE VIEW ─────────── -->
+    @if (viewMode() === 'timeline') {
+      @if (semesters().length === 0) {
+        <div class="content-card">
+          <div class="empty-state__content">
+            <mat-icon class="empty-state__icon-mat">event_note</mat-icon>
+            <p class="empty-state__text">No semesters found for this academic year.</p>
+            @if (canManage()) {
+              <a class="btn-primary" routerLink="/semesters/new">Add Semester</a>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="semester-timeline">
+          @for (semester of semesters(); track semester.id; let i = $index) {
+            <div class="timeline-item" [class.is-current]="semester.status === 'ONGOING'">
+              <!-- Marker -->
+              <div class="timeline-marker">
+                <div class="marker-dot" [class]="semester.status.toLowerCase()">
+                  @switch (semester.status) {
+                    @case ('COMPLETED') { <mat-icon>check</mat-icon> }
+                    @case ('ONGOING')   { <mat-icon>play_arrow</mat-icon> }
+                    @default            { <mat-icon>schedule</mat-icon> }
+                  }
+                </div>
+                @if (i < semesters().length - 1) {
+                  <div class="marker-line"></div>
                 }
               </div>
-              @if (i < semesters().length - 1) {
-                <div class="marker-line"></div>
-              }
-            </div>
-            <div class="content-card semester-card" [class]="getSemesterStatus(semester)">
-              <div class="semester-card-header">
-                <h4 class="semester-name">{{ semester.name }}</h4>
-                <span class="semester-number">Semester {{ semester.semesterNumber }}</span>
-              </div>
-              <div class="semester-dates">
-                <div class="date-item">
-                  <mat-icon>event</mat-icon>
-                  <span><strong>Start:</strong> {{ semester.startDate | date: 'mediumDate' }}</span>
+
+              <!-- Semester Card -->
+              <div class="content-card semester-card" [class.is-current]="semester.status === 'ONGOING'">
+                <div class="semester-card-header">
+                  <h4 class="semester-name">{{ semester.name }}</h4>
+                  <span class="semester-number">Semester {{ semester.semesterNumber }}</span>
                 </div>
-                <div class="date-item">
-                  <mat-icon>event</mat-icon>
-                  <span><strong>End:</strong> {{ semester.endDate | date: 'mediumDate' }}</span>
+
+                <!-- Dates -->
+                <div class="semester-dates">
+                  <div class="date-item">
+                    <mat-icon>event</mat-icon>
+                    <span><strong>Start:</strong> {{ semester.startDate | date: 'mediumDate' }}</span>
+                  </div>
+                  <div class="date-item">
+                    <mat-icon>event</mat-icon>
+                    <span><strong>End:</strong> {{ semester.endDate | date: 'mediumDate' }}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="semester-status">
-                @switch (getSemesterStatus(semester)) {
-                  @case ('completed') {
-                    <span class="cms-badge cms-badge--gray">Completed</span>
+
+                <!-- Progress Bar -->
+                <div class="progress-wrap">
+                  <div class="progress-bar-track">
+                    <div class="progress-bar-fill" [class.is-current]="semester.status === 'ONGOING'" [style.width.%]="getSemesterProgress(semester)"></div>
+                  </div>
+                  <span class="progress-label">
+                    @if (semester.status === 'UPCOMING') {
+                      Starts {{ semester.startDate | date: 'mediumDate' }}
+                    } @else {
+                      {{ getSemesterDays(semester).elapsed }} / {{ getSemesterDays(semester).total }} days
+                      ({{ getSemesterProgress(semester) }}%)
+                    }
+                  </span>
+                </div>
+
+                <!-- Status badge -->
+                <div class="semester-status">
+                  @switch (semester.status) {
+                    @case ('COMPLETED') { <span class="cms-badge cms-badge--gray">Completed</span> }
+                    @case ('ONGOING')   { <span class="cms-badge cms-badge--blue">In Progress</span> }
+                    @case ('UPCOMING')  { <span class="cms-badge cms-badge--amber">Upcoming</span> }
                   }
-                  @case ('current') {
-                    <span class="cms-badge cms-badge--blue">In Progress</span>
-                  }
-                  @case ('upcoming') {
-                    <span class="cms-badge cms-badge--amber">Upcoming</span>
-                  }
+                </div>
+
+                <!-- Events for this semester -->
+                @if (getEventsForSemester(semester).length > 0) {
+                  <div class="semester-events">
+                    <h5 class="events-subtitle">Events</h5>
+                    @for (evt of getEventsForSemester(semester); track evt.id) {
+                      <div class="event-row">
+                        <mat-icon class="ev-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
+                        <span class="ev-title">{{ evt.title }}</span>
+                        <span class="ev-date">{{ evt.startDate | date: 'mediumDate' }}@if (evt.startDate !== evt.endDate) { – {{ evt.endDate | date: 'mediumDate' }} }</span>
+                        <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+                        @if (canManage()) {
+                          <button class="btn-icon-action" (click)="openEditEvent(evt)" matTooltip="Edit">
+                            <mat-icon>edit</mat-icon>
+                          </button>
+                          <button class="btn-icon-action danger" (click)="deleteEvent(evt)" matTooltip="Delete">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
                 }
               </div>
             </div>
+          }
+        </div>
+
+        <!-- Unassigned events -->
+        @if (getUnassignedEvents().length > 0) {
+          <div class="content-card unassigned-events-card">
+            <h4 class="events-subtitle">Year-Level Events (not tied to a semester)</h4>
+            @for (evt of getUnassignedEvents(); track evt.id) {
+              <div class="event-row">
+                <mat-icon class="ev-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
+                <span class="ev-title">{{ evt.title }}</span>
+                <span class="ev-date">{{ evt.startDate | date: 'mediumDate' }}@if (evt.startDate !== evt.endDate) { – {{ evt.endDate | date: 'mediumDate' }} }</span>
+                <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+                @if (canManage()) {
+                  <button class="btn-icon-action" (click)="openEditEvent(evt)" matTooltip="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="btn-icon-action danger" (click)="deleteEvent(evt)" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            }
           </div>
         }
+      }
+    }
+
+    <!-- ─────────── GRID VIEW ─────────── -->
+    @if (viewMode() === 'grid') {
+      <div class="month-grid-container">
+        @for (grid of monthGrids(); track trackByMonth($index, grid)) {
+          <div class="month-card content-card">
+            <h4 class="month-label">{{ grid.label }}</h4>
+            <div class="week-header">
+              @for (d of ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; track d) {
+                <span>{{ d }}</span>
+              }
+            </div>
+            <div class="day-grid">
+              @for (cell of grid.days; track cell.date.getTime()) {
+                <div class="day-cell"
+                  [class.other-month]="!cell.isCurrentMonth"
+                  [class.today]="cell.isToday"
+                  [class.sem-upcoming]="cell.semesterStatus === 'UPCOMING' && cell.isCurrentMonth"
+                  [class.sem-ongoing]="cell.semesterStatus === 'ONGOING' && cell.isCurrentMonth"
+                  [class.sem-completed]="cell.semesterStatus === 'COMPLETED' && cell.isCurrentMonth"
+                  [title]="cell.semesterName ?? ''">
+                  <span class="day-num">{{ cell.isCurrentMonth ? cell.dayNum : '' }}</span>
+                  @if (cell.events.length > 0 && cell.isCurrentMonth) {
+                    <div class="event-dots">
+                      @for (ev of cell.events.slice(0, 3); track ev.id) {
+                        <span class="dot dot-{{ ev.eventType.toLowerCase() }}" [title]="ev.title"></span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <!-- Legend for this month -->
+            @if (monthGrids().indexOf(grid) === 0) {
+              <div class="grid-legend">
+                <span class="legend-item"><span class="legend-swatch sem-ongoing"></span> Ongoing</span>
+                <span class="legend-item"><span class="legend-swatch sem-upcoming"></span> Upcoming</span>
+                <span class="legend-item"><span class="legend-swatch sem-completed"></span> Completed</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Dot legend -->
+      <div class="content-card dot-legend-card">
+        <h5 class="events-subtitle">Event Legend</h5>
+        <div class="dot-legend-row">
+          @for (type of eventTypes; track type) {
+            <span class="legend-item">
+              <span class="dot dot-{{ type.toLowerCase() }}"></span>
+              {{ eventTypeLabels[type] }}
+            </span>
+          }
+        </div>
       </div>
     }
   }
 </div>
+
+<!-- ─────────── EVENT DIALOG ─────────── -->
+@if (showEventDialog()) {
+  <div class="dialog-overlay" (click)="closeEventDialog()">
+    <div class="dialog-panel" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>{{ editingEvent() ? 'Edit Event' : 'Add Calendar Event' }}</h3>
+        <button class="btn-icon-action" (click)="closeEventDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="eventForm" class="dialog-body entry-form-layout" (ngSubmit)="saveEvent()">
+        <div class="form-field">
+          <label class="form-field-label">Title <span class="required-star">*</span></label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input matInput formControlName="title" placeholder="e.g. Diwali Holiday" />
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-field-label">Start Date <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="date" formControlName="startDate" />
+            </mat-form-field>
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">End Date <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="date" formControlName="endDate" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-field-label">Event Type <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-select formControlName="eventType">
+                @for (type of eventTypes; track type) {
+                  <mat-option [value]="type">{{ eventTypeLabels[type] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="form-field">
+            <label class="form-field-label">Semester (optional)</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-select formControlName="semesterId">
+                <mat-option [value]="null">— None —</mat-option>
+                @for (sem of semesters(); track sem.id) {
+                  <mat-option [value]="sem.id">{{ sem.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-field-label">Description</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <textarea matInput formControlName="description" rows="3" placeholder="Optional details"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn-secondary" (click)="closeEventDialog()">Cancel</button>
+          <button type="submit" class="btn-submit" [class.is-loading]="eventSaving()">
+            @if (eventSaving()) { <mat-spinner diameter="18"></mat-spinner> }
+            @else { {{ editingEvent() ? 'Update' : 'Create' }} }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

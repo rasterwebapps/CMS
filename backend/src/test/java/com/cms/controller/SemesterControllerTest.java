@@ -29,6 +29,7 @@ import com.cms.dto.AcademicYearResponse;
 import com.cms.dto.SemesterRequest;
 import com.cms.dto.SemesterResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.enums.SemesterStatus;
 import com.cms.service.SemesterService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -67,6 +68,7 @@ class SemesterControllerTest {
             LocalDate.of(2024, 8, 1),
             LocalDate.of(2024, 12, 15),
             1,
+            SemesterStatus.UPCOMING,
             now,
             now
         );
@@ -276,11 +278,11 @@ class SemesterControllerTest {
         );
         SemesterResponse sem1 = new SemesterResponse(
             1L, "Fall 2024", ayResponse, LocalDate.of(2024, 8, 1),
-            LocalDate.of(2024, 12, 15), 1, now, now
+            LocalDate.of(2024, 12, 15), 1, SemesterStatus.UPCOMING, now, now
         );
         SemesterResponse sem2 = new SemesterResponse(
             2L, "Spring 2025", ayResponse, LocalDate.of(2025, 1, 15),
-            LocalDate.of(2025, 5, 31), 2, now, now
+            LocalDate.of(2025, 5, 31), 2, SemesterStatus.UPCOMING, now, now
         );
 
         when(semesterService.findAll()).thenReturn(List.of(sem1, sem2));
@@ -321,6 +323,7 @@ class SemesterControllerTest {
             LocalDate.of(2024, 8, 1),
             LocalDate.of(2024, 12, 15),
             1,
+            SemesterStatus.UPCOMING,
             now,
             now
         );
@@ -356,11 +359,11 @@ class SemesterControllerTest {
         );
         SemesterResponse sem1 = new SemesterResponse(
             1L, "Fall 2024", ayResponse, LocalDate.of(2024, 8, 1),
-            LocalDate.of(2024, 12, 15), 1, now, now
+            LocalDate.of(2024, 12, 15), 1, SemesterStatus.UPCOMING, now, now
         );
         SemesterResponse sem2 = new SemesterResponse(
             2L, "Spring 2025", ayResponse, LocalDate.of(2025, 1, 15),
-            LocalDate.of(2025, 5, 31), 2, now, now
+            LocalDate.of(2025, 5, 31), 2, SemesterStatus.UPCOMING, now, now
         );
 
         when(semesterService.findByAcademicYearId(1L)).thenReturn(List.of(sem1, sem2));
@@ -409,6 +412,7 @@ class SemesterControllerTest {
             LocalDate.of(2024, 8, 15),
             LocalDate.of(2024, 12, 20),
             1,
+            SemesterStatus.UPCOMING,
             now,
             now
         );
