@@ -28,6 +28,7 @@ import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.TermInstanceRepository;
+import com.cms.service.StudentTermEnrollmentService;
 
 @ExtendWith(MockitoExtension.class)
 class TermInstanceServiceTest {
@@ -38,13 +39,20 @@ class TermInstanceServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private StudentTermEnrollmentService studentTermEnrollmentService;
+
     private TermInstanceService termInstanceService;
 
     private AcademicYear testAcademicYear;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         termInstanceService = new TermInstanceService(termInstanceRepository, academicYearRepository);
+        // Inject the lazy-wired StudentTermEnrollmentService to avoid NPE on OPEN transitions
+        java.lang.reflect.Field field = TermInstanceService.class.getDeclaredField("studentTermEnrollmentService");
+        field.setAccessible(true);
+        field.set(termInstanceService, studentTermEnrollmentService);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
     }

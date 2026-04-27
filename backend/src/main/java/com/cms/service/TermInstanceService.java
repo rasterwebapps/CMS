@@ -25,6 +25,8 @@ public class TermInstanceService {
     private final TermInstanceRepository termInstanceRepository;
     private final AcademicYearRepository academicYearRepository;
 
+    // Field injection with @Lazy breaks the circular dependency:
+    // TermInstanceService -> StudentTermEnrollmentService -> TermInstanceRepository
     @Autowired
     @Lazy
     private StudentTermEnrollmentService studentTermEnrollmentService;
@@ -92,8 +94,7 @@ public class TermInstanceService {
         }
 
         TermInstance saved = termInstanceRepository.save(instance);
-        if (request.status() != null && request.status() == TermInstanceStatus.OPEN
-                && studentTermEnrollmentService != null) {
+        if (request.status() != null && request.status() == TermInstanceStatus.OPEN) {
             studentTermEnrollmentService.generateEnrollmentsForTermInstance(id);
         }
         return toDto(saved);
