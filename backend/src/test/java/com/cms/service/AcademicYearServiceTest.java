@@ -35,11 +35,15 @@ class AcademicYearServiceTest {
     @Mock
     private FeeStructureRepository feeStructureRepository;
 
+    @Mock
+    private TermInstanceService termInstanceService;
+
     private AcademicYearService academicYearService;
 
     @BeforeEach
     void setUp() {
-        academicYearService = new AcademicYearService(academicYearRepository, feeStructureRepository);
+        academicYearService = new AcademicYearService(
+            academicYearRepository, feeStructureRepository, termInstanceService);
     }
 
     @Test
@@ -228,23 +232,23 @@ class AcademicYearServiceTest {
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), false);
 
         AcademicYearRequest updateRequest = new AcademicYearRequest(
-            "2024-2025 Updated",
+            "2025-2026",
             LocalDate.of(2024, 9, 1),
             LocalDate.of(2025, 6, 30),
             false
         );
 
-        AcademicYear updatedAcademicYear = createAcademicYear(1L, "2024-2025 Updated",
+        AcademicYear updatedAcademicYear = createAcademicYear(1L, "2025-2026",
             LocalDate.of(2024, 9, 1), LocalDate.of(2025, 6, 30), false);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existingAcademicYear));
-        when(academicYearRepository.existsByNameAndIdNot("2024-2025 Updated", 1L)).thenReturn(false);
+        when(academicYearRepository.existsByNameAndIdNot("2025-2026", 1L)).thenReturn(false);
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(updatedAcademicYear);
 
         AcademicYearResponse response = academicYearService.update(1L, updateRequest);
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("2024-2025 Updated");
+        assertThat(response.name()).isEqualTo("2025-2026");
         assertThat(response.startDate()).isEqualTo(LocalDate.of(2024, 9, 1));
         assertThat(response.endDate()).isEqualTo(LocalDate.of(2025, 6, 30));
         verify(academicYearRepository).findById(1L);
@@ -305,17 +309,17 @@ class AcademicYearServiceTest {
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
 
         AcademicYearRequest updateRequest = new AcademicYearRequest(
-            "2024-2025 Updated",
+            "2025-2026",
             LocalDate.of(2024, 8, 1),
             LocalDate.of(2025, 5, 31),
             true
         );
 
-        AcademicYear updatedAcademicYear = createAcademicYear(1L, "2024-2025 Updated",
+        AcademicYear updatedAcademicYear = createAcademicYear(1L, "2025-2026",
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existingAcademicYear));
-        when(academicYearRepository.existsByNameAndIdNot("2024-2025 Updated", 1L)).thenReturn(false);
+        when(academicYearRepository.existsByNameAndIdNot("2025-2026", 1L)).thenReturn(false);
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(updatedAcademicYear);
 
         academicYearService.update(1L, updateRequest);
@@ -396,6 +400,53 @@ class AcademicYearServiceTest {
 
         verify(academicYearRepository).existsById(999L);
         verify(academicYearRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldThrowWhenAcademicYearNameDoesNotMatchFormat() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "AY-2024-2025",
+            LocalDate.of(2024, 8, 1),
+            LocalDate.of(2025, 5, 31),
+            false
+        );
+
+        assertThatThrownBy(() -> academicYearService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("YYYY-YYYY");
+    }
+
+    @Test
+    void shouldThrowWhenAcademicYearEndIsNotStartPlusOne() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2024-2026",
+            LocalDate.of(2024, 8, 1),
+            LocalDate.of(2026, 5, 31),
+            false
+        );
+
+        assertThatThrownBy(() -> academicYearService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("one year");
+    }
+
+    @Test
+    void shouldAutoCreateTermInstancesWhenAcademicYearIsCreated() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2026-2027",
+            LocalDate.of(2026, 6, 1),
+            LocalDate.of(2027, 5, 31),
+            false
+        );
+
+        AcademicYear saved = createAcademicYear(1L, "2026-2027",
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), false);
+
+        when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
+
+        academicYearService.create(request);
+
+        verify(termInstanceService).createTermInstancesForAcademicYear(any(AcademicYear.class));
     }
 
     private AcademicYear createAcademicYear(Long id, String name, LocalDate startDate,

@@ -51,7 +51,7 @@ class SubjectControllerTest {
     private SubjectResponse createTestResponse(Long id, String name, String code) {
         DepartmentResponse dept = new DepartmentResponse(1L, "MSN", "MSN", "Desc", "Dr. X", now, now);
         ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN",
-            4, now, now);
+            4, 8, null, now, now);
         CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
             "General", prog, now, now);
         return new SubjectResponse(id, name, code, 4, 3, 1, courseResp, dept, 1, now, now);

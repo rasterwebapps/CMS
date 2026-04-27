@@ -72,7 +72,7 @@ class SubjectServiceTest {
         program.setCreatedAt(now);
         program.setUpdatedAt(now);
 
-        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, now, now);
         org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
 
         course = new Course();
