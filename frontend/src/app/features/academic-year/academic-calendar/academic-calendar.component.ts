@@ -104,6 +104,9 @@ export class AcademicCalendarComponent implements OnInit {
 
   @ViewChild('calendarPrintArea') calendarPrintArea!: ElementRef<HTMLElement>;
 
+  /** Milliseconds in one day — used for date-diff calculations. */
+  private static readonly MS_PER_DAY = 86_400_000;
+
   // ─── Loading / error state ───
   protected readonly loading = signal(false);
   protected readonly hasError = signal(false);
@@ -144,7 +147,7 @@ export class AcademicCalendarComponent implements OnInit {
 
     const start = new Date(ay.startDate);
     const end = new Date(ay.endDate);
-    const totalDays = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+    const totalDays = Math.round((end.getTime() - start.getTime()) / AcademicCalendarComponent.MS_PER_DAY) + 1;
     const totalWeeks = Math.round(totalDays / 7);
 
     const today = new Date();
@@ -159,7 +162,7 @@ export class AcademicCalendarComponent implements OnInit {
     const daysRemaining = currentSem
       ? Math.max(
           0,
-          Math.round((new Date(currentSem.endDate).getTime() - today.getTime()) / 86_400_000),
+          Math.round((new Date(currentSem.endDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY),
         )
       : null;
 
@@ -203,10 +206,9 @@ export class AcademicCalendarComponent implements OnInit {
     semesterId: [null as number | null],
   });
 
-  private readonly MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
+  private readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
+    new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1)),
+  );
 
   ngOnInit(): void {
     this.loadAll();
@@ -247,6 +249,12 @@ export class AcademicCalendarComponent implements OnInit {
     this.loadYearData(yearId);
   }
 
+  /** Typed event handler for the year `<select>` element — avoids `$any()` in the template. */
+  protected selectYearFromEvent(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.selectYear(Number(select.value));
+  }
+
   private loadYearData(yearId: number): void {
     forkJoin({
       semesters: this.academicYearService.getSemestersByAcademicYear(yearId),
@@ -282,10 +290,10 @@ export class AcademicCalendarComponent implements OnInit {
     today.setHours(0, 0, 0, 0);
     const start = new Date(semester.startDate);
     const end = new Date(semester.endDate);
-    const total = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+    const total = Math.round((end.getTime() - start.getTime()) / AcademicCalendarComponent.MS_PER_DAY) + 1;
     const elapsed = Math.min(
       total,
-      Math.max(0, Math.round((today.getTime() - start.getTime()) / 86_400_000) + 1),
+      Math.max(0, Math.round((today.getTime() - start.getTime()) / AcademicCalendarComponent.MS_PER_DAY) + 1),
     );
     return { elapsed: today < start ? 0 : elapsed, total };
   }

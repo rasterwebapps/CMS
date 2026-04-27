@@ -3,7 +3,7 @@
     <div actions class="header-actions">
       <!-- Year Selector -->
       @if (allAcademicYears().length > 1) {
-        <select class="year-select" [value]="selectedAcademicYear()?.id" (change)="selectYear(+$any($event.target).value)">
+        <select class="year-select" [value]="selectedAcademicYear()?.id" (change)="selectYearFromEvent($event)">
           @for (year of allAcademicYears(); track year.id) {
             <option [value]="year.id">{{ year.name }}{{ year.isCurrent ? ' (Current)' : '' }}</option>
           }
