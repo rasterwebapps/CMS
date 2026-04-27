@@ -28,6 +28,7 @@ import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.TermInstanceRepository;
+import com.cms.service.StudentTermEnrollmentService;
 
 @ExtendWith(MockitoExtension.class)
 class TermInstanceServiceTest {
@@ -38,6 +39,9 @@ class TermInstanceServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private StudentTermEnrollmentService studentTermEnrollmentService;
+
     private TermInstanceService termInstanceService;
 
     private AcademicYear testAcademicYear;
@@ -45,6 +49,7 @@ class TermInstanceServiceTest {
     @BeforeEach
     void setUp() {
         termInstanceService = new TermInstanceService(termInstanceRepository, academicYearRepository);
+        termInstanceService.setStudentTermEnrollmentService(studentTermEnrollmentService);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
     }

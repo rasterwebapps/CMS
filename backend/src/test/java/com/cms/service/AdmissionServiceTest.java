@@ -19,15 +19,28 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
+import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.IntakeRule;
+import com.cms.model.Program;
 import com.cms.model.Student;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.AdmissionStatus;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.CohortRepository;
+import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AdmissionServiceTest {
@@ -38,11 +51,24 @@ class AdmissionServiceTest {
     @Mock
     private StudentRepository studentRepository;
 
+    @Mock
+    private CohortRepository cohortRepository;
+
+    @Mock
+    private IntakeRuleRepository intakeRuleRepository;
+
+    @Mock
+    private AcademicYearRepository academicYearRepository;
+
+    @Mock
+    private TermInstanceRepository termInstanceRepository;
+
     private AdmissionService admissionService;
 
     @BeforeEach
     void setUp() {
-        admissionService = new AdmissionService(admissionRepository, studentRepository);
+        admissionService = new AdmissionService(admissionRepository, studentRepository,
+            cohortRepository, intakeRuleRepository, academicYearRepository, termInstanceRepository);
     }
 
     private Student createStudent(Long id) {
@@ -237,5 +263,141 @@ class AdmissionServiceTest {
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Admission not found with id: 999");
         verify(admissionRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void confirm_throwsUnprocessableEntityWhenNoIntakeRule() {
+        Student student = createStudent(1L);
+        Program program = new Program("BCA Program", "BCA", 3, ProgramStatus.ACTIVE);
+        program.setId(1L);
+        student.setProgram(program);
+
+        Admission admission = createAdmission(1L, student);
+        LocalDate admissionDate = LocalDate.of(2024, 6, 15);
+
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
+        when(intakeRuleRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> admissionService.confirm(1L, admissionDate))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
+
+    @Test
+    void confirm_createsNewCohortAndReturnsDto() {
+        Student student = createStudent(1L);
+        Program program = new Program("BCA Program", "BCA", 3, ProgramStatus.ACTIVE);
+        program.setId(1L);
+        student.setProgram(program);
+
+        AcademicYear mappedAY = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1),
+            LocalDate.of(2025, 5, 31), true);
+        mappedAY.setId(10L);
+
+        IntakeRule rule = new IntakeRule();
+        rule.setId(1L);
+        rule.setProgram(program);
+        rule.setAdmissionWindowStartDate(LocalDate.of(2024, 6, 1));
+        rule.setAdmissionWindowEndDate(LocalDate.of(2024, 8, 31));
+        rule.setMappedAcademicYear(mappedAY);
+        rule.setMappedStartTermType(TermType.ODD);
+        rule.setStartingSemesterNumber(1);
+        rule.setIsActive(true);
+
+        Cohort savedCohort = new Cohort();
+        savedCohort.setId(5L);
+        savedCohort.setCohortCode("BCA-2024-2027");
+        savedCohort.setDisplayName("BCA Program (2024-2027)");
+
+        TermInstance oddTerm = new TermInstance(mappedAY, TermType.ODD,
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 11, 30), TermInstanceStatus.OPEN);
+        oddTerm.setId(20L);
+
+        Admission admission = createAdmission(1L, student);
+        LocalDate admissionDate = LocalDate.of(2024, 6, 15);
+
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
+        when(intakeRuleRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(rule));
+        when(cohortRepository.findByProgramIdAndAdmissionAcademicYearId(1L, 10L))
+            .thenReturn(Optional.empty());
+        when(academicYearRepository.findByName("2027-2028")).thenReturn(Optional.empty());
+        when(cohortRepository.save(any(Cohort.class))).thenReturn(savedCohort);
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(10L, TermType.ODD))
+            .thenReturn(Optional.of(oddTerm));
+        when(studentRepository.save(any(Student.class))).thenReturn(student);
+
+        AdmissionConfirmationDto result = admissionService.confirm(1L, admissionDate);
+
+        assertThat(result).isNotNull();
+        assertThat(result.firstTermInstanceId()).isEqualTo(20L);
+        assertThat(result.firstSemesterNumber()).isEqualTo(1);
+        verify(cohortRepository).save(any(Cohort.class));
+        verify(studentRepository).save(any(Student.class));
+    }
+
+    @Test
+    void confirm_usesExistingCohort() {
+        Student student = createStudent(1L);
+        Program program = new Program("BCA Program", "BCA", 3, ProgramStatus.ACTIVE);
+        program.setId(1L);
+        student.setProgram(program);
+
+        AcademicYear mappedAY = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1),
+            LocalDate.of(2025, 5, 31), true);
+        mappedAY.setId(10L);
+
+        AcademicYear gradAY = new AcademicYear("2027-2028", LocalDate.of(2027, 6, 1),
+            LocalDate.of(2028, 5, 31), false);
+        gradAY.setId(11L);
+
+        IntakeRule rule = new IntakeRule();
+        rule.setId(1L);
+        rule.setProgram(program);
+        rule.setAdmissionWindowStartDate(LocalDate.of(2024, 6, 1));
+        rule.setAdmissionWindowEndDate(LocalDate.of(2024, 8, 31));
+        rule.setMappedAcademicYear(mappedAY);
+        rule.setMappedStartTermType(TermType.ODD);
+        rule.setStartingSemesterNumber(1);
+        rule.setIsActive(true);
+
+        Cohort existingCohort = new Cohort();
+        existingCohort.setId(5L);
+        existingCohort.setCohortCode("BCA-2024-2027");
+        existingCohort.setDisplayName("BCA Program (2024-2027)");
+        existingCohort.setExpectedGraduationAcademicYear(gradAY);
+
+        TermInstance oddTerm = new TermInstance(mappedAY, TermType.ODD,
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 11, 30), TermInstanceStatus.OPEN);
+        oddTerm.setId(20L);
+
+        TermInstance evenGradTerm = new TermInstance(gradAY, TermType.EVEN,
+            LocalDate.of(2027, 12, 1), LocalDate.of(2028, 5, 31), TermInstanceStatus.PLANNED);
+        evenGradTerm.setId(30L);
+
+        Admission admission = createAdmission(1L, student);
+        LocalDate admissionDate = LocalDate.of(2024, 6, 15);
+
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
+        when(intakeRuleRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(rule));
+        when(cohortRepository.findByProgramIdAndAdmissionAcademicYearId(1L, 10L))
+            .thenReturn(Optional.of(existingCohort));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(10L, TermType.ODD))
+            .thenReturn(Optional.of(oddTerm));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(11L, TermType.EVEN))
+            .thenReturn(Optional.of(evenGradTerm));
+        when(studentRepository.save(any(Student.class))).thenReturn(student);
+
+        AdmissionConfirmationDto result = admissionService.confirm(1L, admissionDate);
+
+        assertThat(result).isNotNull();
+        assertThat(result.expectedGraduationTermInstanceId()).isEqualTo(30L);
+        assertThat(result.cohortCode()).isEqualTo("BCA-2024-2027");
+    }
+
+    @Test
+    void confirm_throwsWhenAdmissionNotFound() {
+        when(admissionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> admissionService.confirm(999L, LocalDate.of(2024, 6, 15)))
+            .isInstanceOf(ResourceNotFoundException.class);
     }
 }

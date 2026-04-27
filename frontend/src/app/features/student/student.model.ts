@@ -32,6 +32,21 @@ export interface Student {
   updatedAt: string;
 }
 
+export type EnrollmentStatus = 'ENROLLED' | 'COMPLETED' | 'DROPPED';
+
+export interface StudentTermEnrollment {
+  id: number;
+  studentId: number;
+  studentName: string;
+  cohortId: number;
+  cohortCode: string;
+  termInstanceId: number;
+  termInstanceLabel: string;
+  semesterNumber: number;
+  yearOfStudy: number;
+  status: EnrollmentStatus;
+}
+
 export interface StudentRequest {
   rollNumber: string;
   firstName: string;

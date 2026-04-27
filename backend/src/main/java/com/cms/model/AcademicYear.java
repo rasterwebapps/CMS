@@ -94,6 +94,11 @@ public class AcademicYear {
         this.isCurrent = isCurrent;
     }
 
+    /** Returns the start year extracted from the academic year name (e.g. "2024" from "2024-2025"). */
+    public int getStartYear() {
+        return Integer.parseInt(name.split("-")[0]);
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

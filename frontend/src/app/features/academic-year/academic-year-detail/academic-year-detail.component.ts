@@ -8,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../academic-year.service';
 import {
   AcademicYear,
+  StudentTermEnrollment,
   TermInstance,
   TermInstanceStatus,
   TermBillingSchedule,
@@ -42,6 +43,8 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly academicYear = signal<AcademicYear | null>(null);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly billingSchedules = signal<TermBillingSchedule[]>([]);
+  protected readonly enrollments = signal<StudentTermEnrollment[]>([]);
+  protected readonly generatingEnrollments = signal(false);
 
   protected readonly oddTermInstance = computed(() =>
     this.termInstances().find(t => t.termType === 'ODD') ?? null
@@ -215,6 +218,28 @@ export class AcademicYearDetailComponent implements OnInit {
       error: () => {
         this.toast.error('Failed to save billing schedule');
         this.saving.set(false);
+      },
+    });
+  }
+
+  protected loadEnrollmentsForTerm(termInstanceId: number): void {
+    this.academicYearService.getEnrollmentsByTermInstance(termInstanceId).subscribe({
+      next: (data) => this.enrollments.set(data),
+      error: () => this.toast.error('Failed to load enrollments'),
+    });
+  }
+
+  protected generateEnrollments(term: TermInstance): void {
+    this.generatingEnrollments.set(true);
+    this.academicYearService.generateEnrollments(term.id).subscribe({
+      next: (result) => {
+        this.toast.success(`Generated ${result.enrollmentsCreated} enrollment(s)`);
+        this.loadEnrollmentsForTerm(term.id);
+        this.generatingEnrollments.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to generate enrollments');
+        this.generatingEnrollments.set(false);
       },
     });
   }

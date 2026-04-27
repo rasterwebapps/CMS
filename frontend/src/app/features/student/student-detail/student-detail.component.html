@@ -156,6 +156,37 @@
           </div>
         </div>
       </mat-tab>
+      <!-- Tab 5: Term Enrollments -->
+      <mat-tab label="Term Enrollments">
+        <div class="tab-content">
+          @if (loadingEnrollments()) {
+            <cms-skeleton></cms-skeleton>
+          } @else if (enrollments().length === 0) {
+            <p class="no-data">No term enrollments found.</p>
+          } @else {
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Term</th>
+                  <th>Semester</th>
+                  <th>Year of Study</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of sortedEnrollments(); track e.id) {
+                  <tr>
+                    <td>{{ e.termInstanceLabel }}</td>
+                    <td>{{ e.semesterNumber }}</td>
+                    <td>Year {{ e.yearOfStudy }}</td>
+                    <td><cms-status-badge [status]="e.status" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </mat-tab>
     </mat-tab-group>
   }
 </div>

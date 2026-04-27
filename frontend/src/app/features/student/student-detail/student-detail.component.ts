@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { StudentService } from '../student.service';
-import { Student } from '../student.model';
+import { Student, StudentTermEnrollment } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -31,9 +31,15 @@ export class StudentDetailComponent implements OnInit {
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
+  protected readonly enrollments = signal<StudentTermEnrollment[]>([]);
+  protected readonly loadingEnrollments = signal(false);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
+
+  protected readonly sortedEnrollments = computed(() =>
+    [...this.enrollments()].sort((a, b) => b.semesterNumber - a.semesterNumber),
+  );
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -55,10 +61,24 @@ export class StudentDetailComponent implements OnInit {
       next: (student) => {
         this.student.set(student);
         this.loading.set(false);
+        this.loadEnrollments(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
         void this.router.navigate(['/students']);
+      },
+    });
+  }
+
+  private loadEnrollments(studentId: number): void {
+    this.loadingEnrollments.set(true);
+    this.studentService.getEnrollmentsByStudent(studentId).subscribe({
+      next: (data) => {
+        this.enrollments.set(data);
+        this.loadingEnrollments.set(false);
+      },
+      error: () => {
+        this.loadingEnrollments.set(false);
       },
     });
   }

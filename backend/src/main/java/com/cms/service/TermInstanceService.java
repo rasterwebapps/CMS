@@ -3,6 +3,8 @@ package com.cms.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,12 @@ public class TermInstanceService {
 
     private final TermInstanceRepository termInstanceRepository;
     private final AcademicYearRepository academicYearRepository;
+
+    // Field injection with @Lazy breaks the circular dependency:
+    // TermInstanceService -> StudentTermEnrollmentService -> TermInstanceRepository
+    @Autowired
+    @Lazy
+    private StudentTermEnrollmentService studentTermEnrollmentService;
 
     public TermInstanceService(TermInstanceRepository termInstanceRepository,
                                 AcademicYearRepository academicYearRepository) {
@@ -85,7 +93,11 @@ public class TermInstanceService {
             instance.setStatus(request.status());
         }
 
-        return toDto(termInstanceRepository.save(instance));
+        TermInstance saved = termInstanceRepository.save(instance);
+        if (request.status() != null && request.status() == TermInstanceStatus.OPEN) {
+            studentTermEnrollmentService.generateEnrollmentsForTermInstance(id);
+        }
+        return toDto(saved);
     }
 
     private void validateStatusTransition(TermInstanceStatus current, TermInstanceStatus next) {
@@ -113,5 +125,10 @@ public class TermInstanceService {
             ti.getCreatedAt(),
             ti.getUpdatedAt()
         );
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setStudentTermEnrollmentService(StudentTermEnrollmentService studentTermEnrollmentService) {
+        this.studentTermEnrollmentService = studentTermEnrollmentService;
     }
 }
