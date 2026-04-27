@@ -210,6 +210,27 @@ export interface StudentFeeSummary {
   allocationStatus: string;
 }
 
+export interface EnquiryYearFee {
+  yearNumber: number;
+  amount: number;
+  suggestedDueDate: string;
+}
+
+export interface CreateAllocationYearFee {
+  yearNumber: number;
+  amount: number;
+  dueDate: string;
+}
+
+export interface CreateAllocationRequest {
+  studentId: number;
+  totalFee: number;
+  discountAmount?: number;
+  discountReason?: string;
+  agentCommission?: number;
+  yearFees: CreateAllocationYearFee[];
+}
+
 export interface Receipt {
   id: number;
   receiptNumber: string;

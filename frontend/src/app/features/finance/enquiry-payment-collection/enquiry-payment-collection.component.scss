@@ -84,8 +84,8 @@
 
 // Semester-wise fee status table
 .sem-status-table {
-  border: 1px solid var(--cms-border-default);
-  border-radius: 10px;
+  border: 1px solid var(--cms-line);
+  border-radius: 12px;
   overflow: hidden;
   margin-bottom: 12px;
   font-size: 0.8125rem;
@@ -93,59 +93,105 @@
 
 .sem-status-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
-  background: var(--cms-bg-muted);
+  grid-template-columns: 28px 2fr 1fr 1fr 1fr 72px;
+  background: var(--cms-bg-subtle);
   padding: 8px 12px;
   font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--cms-text-muted);
-  border-bottom: 1px solid var(--cms-border-default);
+  border-bottom: 1px solid var(--cms-line);
 }
 
 .sem-status-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--cms-border-light);
+  grid-template-columns: 28px 2fr 1fr 1fr 1fr 72px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--cms-line);
   align-items: center;
   transition: background 0.15s;
+
   &:last-child { border-bottom: none; }
   &:hover { background: var(--cms-bg-muted); }
 
-  &--paid .sem-label { color: var(--cms-success); font-weight: 600; }
-  &--partial .sem-label { color: var(--cms-warning, #f59e0b); font-weight: 600; }
-  &--pending .sem-label { color: var(--cms-text-muted); }
+  // Next-due row gets a primary accent
+  &--next {
+    background: rgba(var(--cms-primary-rgb), 0.04);
+    border-left: 3px solid var(--cms-primary);
+    padding-left: 9px;
+  }
+  &--next .sem-seq {
+    background: rgba(var(--cms-primary-rgb), 0.15);
+    color: var(--cms-primary);
+  }
+
+  // Paid rows dimmed
+  &--paid { opacity: 0.65; }
 }
 
-.sem-label { font-weight: 600; }
-.sem-fee { color: var(--cms-text-default); }
-.sem-paid { color: var(--cms-success); font-weight: 600; }
-.sem-outstanding { color: var(--cms-danger, #ef4444); font-weight: 600; }
+.sem-seq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--cms-bg-surface-3);
+  color: var(--cms-text-muted);
+  font-size: 10px; font-weight: 800;
+}
+
+.sem-label {
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.next-pill {
+  font-size: 10px; font-weight: 700;
+  color: var(--cms-primary);
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border-radius: 20px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.sem-fee        { color: var(--cms-text-secondary); }
+.sem-paid       { color: #22C55E; font-weight: 600; }
+.sem-outstanding { color: #EF4444; font-weight: 600; }
+.outstanding-zero { color: var(--cms-text-muted); font-weight: 400; }
+
+.align-right { text-align: right; }
+.mono { font-family: var(--cms-font-mono); }
 
 .sem-badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 99px;
+  border-radius: 20px;
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-align: center;
+  white-space: nowrap;
 
-  &--paid { background: color-mix(in srgb, var(--cms-success) 12%, transparent); color: var(--cms-success); }
-  &--partial { background: color-mix(in srgb, var(--cms-warning, #f59e0b) 12%, transparent); color: var(--cms-warning, #d97706); }
-  &--pending { background: var(--cms-bg-muted); color: var(--cms-text-muted); }
+  &--paid    { background: rgba(34,197,94,0.12);  color: #22C55E; }
+  &--partial { background: rgba(245,158,11,0.12); color: #d97706; }
+  &--pending { background: var(--cms-bg-muted);   color: var(--cms-text-muted); }
 }
 
 .sem-status-footer {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+  grid-template-columns: 28px 2fr 1fr 1fr 1fr 72px;
   padding: 10px 12px;
-  background: var(--cms-bg-muted);
-  font-weight: 700;
-  border-top: 2px solid var(--cms-border-default);
+  background: var(--cms-bg-subtle);
+  border-top: 2px solid var(--cms-line-strong);
 }
+
+.total-paid        { color: #22C55E; }
+.total-outstanding { color: #EF4444; }
 
 // Year-wise fee status table (fallback)
 .year-status-table {

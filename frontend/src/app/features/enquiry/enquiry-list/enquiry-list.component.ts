@@ -201,19 +201,19 @@ export class EnquiryListComponent implements OnInit {
     void this.router.navigate(['/enquiries', item.id, 'convert']);
   }
 
-  protected canFinalizeFee(item: Enquiry): boolean {
-    return item.status === 'INTERESTED' && this.authService.isAdmin();
-  }
+   protected canFinalizeFee(item: Enquiry): boolean {
+     return item.status === 'INTERESTED' && (this.authService.isAdmin() || this.authService.isCollegeAdmin());
+   }
 
-  protected canCollectPayment(item: Enquiry): boolean {
-    return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
-      (this.authService.isAdmin() || this.authService.isFrontOffice());
-  }
+   protected canCollectPayment(item: Enquiry): boolean {
+     return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
+       (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isCashier());
+   }
 
-  protected canSubmitDocuments(item: Enquiry): boolean {
-    return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
-      (this.authService.isAdmin() || this.authService.isFrontOffice());
-  }
+   protected canSubmitDocuments(item: Enquiry): boolean {
+     return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
+       (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice());
+   }
 
   protected finalizeFee(item: Enquiry): void {
     void this.router.navigate(['/student-fees/finalize'], { queryParams: { enquiryId: item.id } });

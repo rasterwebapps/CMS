@@ -219,6 +219,7 @@ export interface SemesterFeeStatus {
   allocatedFee: number;
   paidAmount: number;
   outstanding: number;
+  dueDate: string | null;
 }
 
 export interface EnquiryYearWiseFeeStatusResponse {

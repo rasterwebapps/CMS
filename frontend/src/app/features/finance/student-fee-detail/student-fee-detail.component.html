@@ -1,168 +1,298 @@
 <div class="list-page">
-  <app-page-header title="Student Fee Details" subtitle="Semester-wise fee status and payment history">
+  <app-page-header title="Student Fee Collection" subtitle="Semester-wise fee tracking and payment collection">
     <a actions class="btn-secondary" routerLink="/student-fees">
       <mat-icon>arrow_back</mat-icon> Back
     </a>
   </app-page-header>
 
-  <!-- ── Student summary strip ── -->
-  @if (allocation(); as alloc) {
-    <div class="content-card student-summary">
-      <div class="student-summary__info">
-        <h3 class="student-summary__name">
-          {{ alloc.studentName }}
-          <span class="text-muted">({{ alloc.rollNumber }})</span>
-        </h3>
-        <p class="student-summary__meta">
-          {{ alloc.programName }}
-          &bull;
-          <cms-status-badge [status]="alloc.status" />
-          &bull; Finalized by <strong>{{ alloc.finalizedBy }}</strong>
+  @if (loading()) {
+    <div class="loading-center"><mat-spinner diameter="40" /></div>
+
+  } @else if (noAllocation()) {
+    <!-- ── No allocation yet — Setup panel ── -->
+    <div class="no-alloc-banner">
+      <mat-icon class="no-alloc-banner__icon">info_outline</mat-icon>
+      <div>
+        <strong>Fee allocation not set up</strong>
+        <p>
+          The year-wise fees have been pre-filled from the student's enquiry.
+          Verify the amounts and due dates, then click <em>Create Allocation</em>.
+          Semesters (2 per year) will be generated automatically.
         </p>
       </div>
-      <div class="student-summary__stats">
-        <div class="stat-pill">
-          <span class="stat-pill__label">Total Fee</span>
-          <span class="stat-pill__val">₹{{ totalFee() | number }}</span>
-        </div>
-        <div class="stat-pill">
-          <span class="stat-pill__label">Total Paid</span>
-          <span class="stat-pill__val stat-pill__val--green">₹{{ totalPaid() | number }}</span>
-        </div>
-        <div class="stat-pill stat-pill--warn" [class.stat-pill--danger]="totalOutstanding() > 0">
-          <span class="stat-pill__label">Outstanding</span>
-          <span class="stat-pill__val">₹{{ totalOutstanding() | number }}</span>
-        </div>
-        @if (alloc.discountAmount > 0) {
-          <div class="stat-pill">
-            <span class="stat-pill__label">Discount</span>
-            <span class="stat-pill__val">₹{{ alloc.discountAmount | number }}</span>
-          </div>
-        }
-      </div>
-    </div>
-  }
-
-  <!-- ── Semester Status — always first, skeleton while loading ── -->
-  <div class="content-card">
-    <div class="section-header">
-      <div class="section-header__title">
-        <mat-icon class="section-header__icon">account_balance_wallet</mat-icon>
-        Semester Fee Status
-      </div>
-      <button class="btn-primary" (click)="openCollectPaymentDialog()" [disabled]="semesterLoading()">
-        <mat-icon>payment</mat-icon>
-        Collect Payment
-      </button>
     </div>
 
-    @if (semesterLoading()) {
-      <!-- Skeleton rows while loading -->
-      <div class="skeleton-table">
-        @for (_ of [1,2,3,4]; track $index) {
-          <div class="skeleton-row">
-            <div class="skeleton-cell skeleton-cell--wide"></div>
-            <div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div>
-            <div class="skeleton-cell skeleton-cell--badge"></div>
-          </div>
+    <div class="content-card">
+      <div class="card-hdr">
+        <div class="card-hdr__title">
+          <mat-icon>calendar_view_month</mat-icon>
+          Year-wise Fee Setup
+        </div>
+        @if (setupLoading()) {
+          <mat-spinner diameter="20" />
         }
       </div>
-    } @else if (allocation(); as alloc) {
-      <div class="table-wrapper">
-        <table class="semester-table">
-          <thead>
-            <tr>
-              <th>Semester</th>
-              <th class="text-right">Fee Amount</th>
-              <th class="text-right">Paid</th>
-              <th class="text-right">Outstanding</th>
-              <th>Due Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (sem of alloc.semesterFees; track sem.id) {
-              <tr [class.row--overdue]="isOverdue(sem)" [class.row--paid]="sem.paymentStatus === 'PAID'">
-                <td class="semester-cell">
-                  <span class="semester-badge">S{{ sem.semesterSequence }}</span>
-                  {{ sem.semesterLabel }}
-                  @if (isOverdue(sem)) {
-                    <span class="overdue-tag">OVERDUE</span>
-                  }
-                </td>
-                <td class="text-right mono">₹{{ sem.amount | number }}</td>
-                <td class="text-right mono text-green">₹{{ sem.amountPaid | number }}</td>
-                <td class="text-right mono" [class.text-red]="sem.pendingAmount > 0">
-                  ₹{{ sem.pendingAmount | number }}
-                </td>
-                <td class="mono-sm">{{ sem.dueDate }}</td>
-                <td><cms-status-badge [status]="sem.paymentStatus" /></td>
+
+      @if (!setupLoading()) {
+        <div class="setup-table-wrap">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th class="text-right">Fee Amount (₹)</th>
+                <th>Due Date</th>
+                <th class="text-right">Semester 1</th>
+                <th class="text-right">Semester 2</th>
               </tr>
-            }
-          </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td><strong>Total</strong></td>
-              <td class="text-right mono"><strong>₹{{ totalFee() | number }}</strong></td>
-              <td class="text-right mono text-green"><strong>₹{{ totalPaid() | number }}</strong></td>
-              <td class="text-right mono" [class.text-red]="totalOutstanding() > 0">
-                <strong>₹{{ totalOutstanding() | number }}</strong>
-              </td>
-              <td></td><td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    }
-  </div>
+            </thead>
+            <tbody>
+              @for (row of yearFeeRows(); track row.yearNumber; let i = $index) {
+                <tr>
+                  <td>
+                    <span class="year-pill">Y{{ row.yearNumber }}</span>
+                    Year {{ row.yearNumber }}
+                  </td>
+                  <td class="text-right">
+                    <div class="amt-wrap">
+                      <span class="amt-prefix">₹</span>
+                      <input class="amt-input" type="number" min="0"
+                        [value]="row.amount"
+                        (change)="updateYearAmount(i, $any($event.target).value)" />
+                    </div>
+                  </td>
+                  <td>
+                    <input class="date-input" type="date" [value]="row.dueDate"
+                      (change)="updateYearDueDate(i, $any($event.target).value)" />
+                  </td>
+                  <td class="text-right muted">₹{{ (row.amount / 2) | number:'1.0-0' }}</td>
+                  <td class="text-right muted">₹{{ (row.amount - row.amount / 2) | number:'1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td class="text-right mono"><strong>₹{{ setupTotal() | number }}</strong></td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
-  <!-- ── Receipt History (grouped by receipt number) ── -->
-  <div class="content-card">
-    <div class="section-header">
-      <div class="section-header__title">
-        <mat-icon class="section-header__icon">receipt_long</mat-icon>
-        Payment Receipts
-      </div>
+        <!-- Discount row -->
+        <div class="setup-discount" [formGroup]="setupForm">
+          <div class="field-col">
+            <label class="field-label">Discount Amount (₹)</label>
+            <div class="amt-wrap">
+              <span class="amt-prefix">₹</span>
+              <input class="amt-input" type="number" min="0" placeholder="0"
+                formControlName="discountAmount" />
+            </div>
+          </div>
+          <div class="field-col" style="flex:1">
+            <label class="field-label">Discount Reason</label>
+            <input class="field-input" formControlName="discountReason"
+              placeholder="e.g., Merit scholarship…" />
+          </div>
+          <div class="field-col net-fee-col">
+            <label class="field-label">Net Fee</label>
+            <div class="net-fee-val">₹{{ setupNetFee() | number }}</div>
+          </div>
+        </div>
+
+        <div class="setup-footer">
+          <p class="setup-note">
+            <mat-icon>auto_awesome</mat-icon>
+            Each year will be split into <strong>2 equal semesters</strong>.
+            Payments cascade from Semester 1 → Semester 2 → Year 2 Semester 1 → … in order.
+          </p>
+          <button class="btn-primary" (click)="createAllocation()" [disabled]="savingAlloc()">
+            @if (savingAlloc()) {
+              <mat-spinner diameter="18" class="btn-spinner" />
+            } @else {
+              <mat-icon>check_circle</mat-icon>
+              Create Allocation
+            }
+          </button>
+        </div>
+      }
     </div>
 
-    @if (receiptGroups().length === 0) {
-      <div class="empty-receipts">
-        <mat-icon>receipt_long</mat-icon>
-        <p>No payments recorded yet</p>
-      </div>
-    } @else {
-      <div class="receipt-list">
-        @for (group of receiptGroups(); track group.receiptNumber) {
-          <div class="receipt-group">
-            <!-- Receipt header -->
-            <div class="receipt-group__header">
-              <div class="receipt-group__left">
-                <span class="receipt-number">{{ group.receiptNumber }}</span>
-                <span class="receipt-meta">
-                  {{ group.paymentDate }} &bull; {{ group.paymentMode }}
-                  @if (group.transactionReference) {
-                    &bull; Ref: {{ group.transactionReference }}
-                  }
-                </span>
-              </div>
-              <div class="receipt-group__total">
-                ₹{{ group.totalAmount | number }}
-              </div>
-            </div>
-            <!-- Per-semester lines within this receipt -->
-            @for (line of group.lines; track line.id) {
-              <div class="receipt-line">
-                <span class="receipt-line__semester">{{ line.semesterLabel }}</span>
-                <span class="receipt-line__amount">₹{{ line.amountPaid | number }}</span>
-              </div>
-            }
+  } @else {
+    <!-- ── Allocation exists — normal collection view ── -->
+
+    <!-- Student summary -->
+    @if (allocation(); as alloc) {
+      <div class="content-card student-summary">
+        <div class="student-summary__info">
+          <h3 class="student-summary__name">
+            {{ alloc.studentName }}
+            <span class="text-muted">({{ alloc.rollNumber }})</span>
+          </h3>
+          <p class="student-summary__meta">
+            {{ alloc.programName }}
+            &bull; <cms-status-badge [status]="alloc.status" />
+            &bull; Finalized by <strong>{{ alloc.finalizedBy }}</strong>
+          </p>
+        </div>
+        <div class="student-summary__stats">
+          <div class="stat-pill">
+            <span class="stat-pill__label">Total Fee</span>
+            <span class="stat-pill__val mono">₹{{ totalFee() | number }}</span>
           </div>
-        }
+          <div class="stat-pill">
+            <span class="stat-pill__label">Paid</span>
+            <span class="stat-pill__val mono text-green">₹{{ totalPaid() | number }}</span>
+          </div>
+          <div class="stat-pill" [class.stat-pill--danger]="totalOutstanding() > 0">
+            <span class="stat-pill__label">Outstanding</span>
+            <span class="stat-pill__val mono" [class.text-red]="totalOutstanding() > 0">
+              ₹{{ totalOutstanding() | number }}
+            </span>
+          </div>
+          @if (alloc.discountAmount > 0) {
+            <div class="stat-pill">
+              <span class="stat-pill__label">Discount</span>
+              <span class="stat-pill__val mono">₹{{ alloc.discountAmount | number }}</span>
+            </div>
+          }
+        </div>
       </div>
     }
-  </div>
 
+    <!-- Semester fee collection table -->
+    <div class="content-card">
+      <div class="card-hdr">
+        <div class="card-hdr__title">
+          <mat-icon>account_balance_wallet</mat-icon>
+          Semester-wise Fee Status
+        </div>
+        <button class="btn-primary" (click)="openCollectPaymentDialog()">
+          <mat-icon>payment</mat-icon>
+          Collect Payment
+        </button>
+      </div>
+
+      @if (allocation(); as alloc) {
+        <div class="table-wrap">
+          <table class="sem-table">
+            <thead>
+              <tr>
+                <th>Semester</th>
+                <th class="text-right">Fee Amount</th>
+                <th class="text-right">Paid</th>
+                <th class="text-right">Outstanding</th>
+                <th>Due Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sem of alloc.semesterFees; track sem.id) {
+                <tr [class.row--next]="isNextDue(sem)"
+                    [class.row--paid]="sem.paymentStatus === 'PAID'"
+                    [class.row--overdue]="isOverdue(sem)">
+                  <td class="sem-cell">
+                    <!-- Cascade order badge -->
+                    <span class="seq-badge">{{ $index + 1 }}</span>
+                    <div class="sem-info">
+                      <span class="sem-label">{{ sem.semesterLabel }}</span>
+                      @if (isNextDue(sem)) {
+                        <span class="next-tag">
+                          <mat-icon>arrow_forward</mat-icon>Next payment
+                        </span>
+                      }
+                      @if (isOverdue(sem)) {
+                        <span class="overdue-tag">OVERDUE</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="text-right mono">₹{{ sem.amount | number }}</td>
+                  <td class="text-right mono text-green">₹{{ sem.amountPaid | number }}</td>
+                  <td class="text-right mono" [class.text-red]="sem.pendingAmount > 0">
+                    ₹{{ sem.pendingAmount | number }}
+                  </td>
+                  <td class="mono-sm">{{ sem.dueDate }}</td>
+                  <td>
+                    <cms-status-badge [status]="sem.paymentStatus" />
+                    <!-- Progress bar inside the row -->
+                    @if (sem.paymentStatus !== 'PAID' && sem.amountPaid > 0) {
+                      <div class="sem-progress">
+                        <div class="sem-progress__fill"
+                             [style.width.%]="(sem.amountPaid / sem.amount) * 100"></div>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td class="text-right mono"><strong>₹{{ totalFee() | number }}</strong></td>
+                <td class="text-right mono text-green"><strong>₹{{ totalPaid() | number }}</strong></td>
+                <td class="text-right mono" [class.text-red]="totalOutstanding() > 0">
+                  <strong>₹{{ totalOutstanding() | number }}</strong>
+                </td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Cascade note -->
+        @if (totalOutstanding() > 0) {
+          <div class="cascade-note">
+            <mat-icon>info_outline</mat-icon>
+            Any payment will automatically fill
+            <strong>{{ nextDueSemester()?.semesterLabel }}</strong> first,
+            then cascade to subsequent semesters if the amount exceeds its balance.
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Receipt history -->
+    <div class="content-card">
+      <div class="card-hdr">
+        <div class="card-hdr__title">
+          <mat-icon>receipt_long</mat-icon>
+          Payment History
+        </div>
+        <span class="receipt-count">{{ receiptGroups().length }} receipt(s)</span>
+      </div>
+
+      @if (receiptGroups().length === 0) {
+        <div class="empty-receipts">
+          <mat-icon>receipt_long</mat-icon>
+          <p>No payments recorded yet</p>
+        </div>
+      } @else {
+        <div class="receipt-list">
+          @for (group of receiptGroups(); track group.receiptNumber; let gi = $index) {
+            <div class="receipt-group">
+              <div class="receipt-group__hdr">
+                <div class="receipt-group__left">
+                  <span class="receipt-no">{{ group.receiptNumber }}</span>
+                  <span class="receipt-meta">
+                    {{ group.paymentDate }} &bull; {{ group.paymentMode }}
+                    @if (group.transactionReference) {
+                      &bull; Ref: {{ group.transactionReference }}
+                    }
+                  </span>
+                </div>
+                <span class="receipt-total">₹{{ group.totalAmount | number }}</span>
+              </div>
+              @for (line of group.lines; track line.id) {
+                <div class="receipt-line">
+                  <span class="receipt-line__sem">{{ line.semesterLabel }}</span>
+                  <span class="receipt-line__amt mono">₹{{ line.amountPaid | number }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+  }
 </div>

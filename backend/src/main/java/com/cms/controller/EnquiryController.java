@@ -146,7 +146,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/finalize-fees")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
     public ResponseEntity<FeeFinalizationResponse> finalizeFees(
             @PathVariable Long id,
             @Valid @RequestBody FeeFinalizationRequest request,
@@ -194,7 +194,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/payments")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE') or hasRole('ROLE_CASHIER')")
     public ResponseEntity<EnquiryPaymentResponse> collectPayment(
             @PathVariable Long id,
             @Valid @RequestBody EnquiryPaymentRequest request,
@@ -205,7 +205,7 @@ public class EnquiryController {
     }
 
     @GetMapping("/{id}/payments")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE') or hasRole('ROLE_CASHIER')")
     public ResponseEntity<List<EnquiryPaymentResponse>> getPayments(@PathVariable Long id) {
         return ResponseEntity.ok(enquiryPaymentService.getPaymentsByEnquiryId(id));
     }

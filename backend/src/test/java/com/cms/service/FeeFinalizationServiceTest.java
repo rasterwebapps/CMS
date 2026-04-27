@@ -42,6 +42,8 @@ class FeeFinalizationServiceTest {
     @Mock private FeeInstallmentRepository installmentRepository;
     @Mock private PenaltyRepository penaltyRepository;
     @Mock private StudentRepository studentRepository;
+    @Mock private com.cms.repository.EnquiryRepository enquiryRepository;
+    @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private FeeFinalizationService service;
     private Student testStudent;
@@ -50,7 +52,8 @@ class FeeFinalizationServiceTest {
     @BeforeEach
     void setUp() {
         service = new FeeFinalizationService(allocationRepository, semesterFeeRepository,
-            installmentRepository, penaltyRepository, studentRepository);
+            installmentRepository, penaltyRepository, studentRepository,
+            enquiryRepository, objectMapper);
 
         testProgram = new Program();
         testProgram.setId(1L);

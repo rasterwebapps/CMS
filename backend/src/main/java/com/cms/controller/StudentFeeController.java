@@ -22,6 +22,7 @@ import com.cms.dto.PenaltyResponse;
 import com.cms.dto.ReceiptResponse;
 import com.cms.dto.StudentFeeAllocationRequest;
 import com.cms.dto.StudentFeeAllocationResponse;
+import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.service.FeeExplorerService;
 import com.cms.service.FeeFinalizationService;
 import com.cms.service.PaymentCollectionService;
@@ -56,6 +57,16 @@ public class StudentFeeController {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "admin";
         StudentFeeAllocationResponse response = feeFinalizationService.finalize(request, username);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{studentId}/allocation-exists")
+    public ResponseEntity<Boolean> allocationExists(@PathVariable Long studentId) {
+        return ResponseEntity.ok(feeFinalizationService.allocationExists(studentId));
+    }
+
+    @GetMapping("/{studentId}/enquiry-year-fees")
+    public ResponseEntity<List<YearFeeFromEnquiry>> getEnquiryYearFees(@PathVariable Long studentId) {
+        return ResponseEntity.ok(feeFinalizationService.getEnquiryYearFees(studentId));
     }
 
     @GetMapping("/{studentId}/semester-breakdown")
