@@ -154,5 +154,155 @@
         </div>
       }
     </div>
+
+    <!-- Course Offerings Section -->
+    @let openTerm = oddTermInstance()?.status === 'OPEN' ? oddTermInstance() : (evenTermInstance()?.status === 'OPEN' ? evenTermInstance() : null);
+    @let anyOpenOrLocked = oddTermInstance()?.status === 'OPEN' || oddTermInstance()?.status === 'LOCKED' || evenTermInstance()?.status === 'OPEN' || evenTermInstance()?.status === 'LOCKED';
+    @if (anyOpenOrLocked) {
+      <h3 class="section-title">Course Offerings</h3>
+      <div class="detail-card">
+        <div class="offerings-header">
+          <div class="offerings-filter">
+            <label class="field-label">Filter by Semester</label>
+            <select class="field-input field-input--narrow" (change)="setSemesterFilter($any($event.target).value)">
+              <option value="">All Semesters</option>
+              @for (sem of [1,2,3,4,5,6,7,8]; track sem) {
+                <option [value]="sem">Semester {{ sem }}</option>
+              }
+            </select>
+          </div>
+          @if (openTerm) {
+            <button class="btn-secondary" (click)="generateCourseOfferings(openTerm)" [disabled]="generatingOfferings()">
+              <mat-icon>auto_awesome</mat-icon>
+              Generate Offerings
+            </button>
+          }
+        </div>
+
+        @if (filteredOfferings().length === 0) {
+          <p class="no-data">No course offerings found. Click "Generate Offerings" to create them.</p>
+        } @else {
+          <div class="offerings-table-wrapper">
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Code</th>
+                  <th>Sem</th>
+                  <th>Curriculum Version</th>
+                  <th>Faculty ID</th>
+                  <th>Section</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (offering of filteredOfferings(); track offering.id) {
+                  @if (editingOffering() === offering.id) {
+                    <tr class="editing-row">
+                      <td colspan="2">{{ offering.subjectName }} ({{ offering.subjectCode }})</td>
+                      <td>{{ offering.semesterNumber }}</td>
+                      <td>{{ offering.curriculumVersionName }}</td>
+                      <td>
+                        <form [formGroup]="offeringEditForm" class="inline-edit-form">
+                          <input type="number" class="field-input field-input--xs" formControlName="facultyId"
+                            placeholder="Faculty ID" />
+                        </form>
+                      </td>
+                      <td>
+                        <form [formGroup]="offeringEditForm" class="inline-edit-form">
+                          <input type="text" class="field-input field-input--xs" formControlName="sectionLabel"
+                            placeholder="Section" />
+                        </form>
+                      </td>
+                      <td>
+                        <span class="cms-badge" [class.cms-badge--soft-success]="offering.isActive"
+                          [class.cms-badge--soft-default]="!offering.isActive">
+                          {{ offering.isActive ? 'Active' : 'Inactive' }}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="btn-primary btn-xs"
+                          (click)="saveOffering(offering, offering.termInstanceId)">Save</button>
+                        <button class="btn-ghost btn-xs" (click)="cancelEditOffering()">Cancel</button>
+                      </td>
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td>{{ offering.subjectName }}</td>
+                      <td><span class="code-value">{{ offering.subjectCode }}</span></td>
+                      <td>{{ offering.semesterNumber }}</td>
+                      <td>{{ offering.curriculumVersionName }}</td>
+                      <td>{{ offering.facultyId ?? '—' }}</td>
+                      <td>{{ offering.sectionLabel ?? '—' }}</td>
+                      <td>
+                        <span class="cms-badge" [class.cms-badge--soft-success]="offering.isActive"
+                          [class.cms-badge--soft-default]="!offering.isActive">
+                          {{ offering.isActive ? 'Active' : 'Inactive' }}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="btn-ghost btn-xs" (click)="startEditOffering(offering)">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <!-- Course Registrations Summary Section -->
+      <h3 class="section-title">Course Registrations</h3>
+      <div class="detail-card">
+        <div class="offerings-header">
+          <p class="registrations-summary">
+            <strong>{{ courseOfferings().length }}</strong> offering(s) available ·
+            Registrations shown per offering (click "View Class List" per row)
+          </p>
+          @if (openTerm && courseOfferings().length > 0) {
+            <button class="btn-secondary" (click)="generateCourseRegistrations(openTerm)"
+              [disabled]="generatingRegistrations()">
+              <mat-icon>how_to_reg</mat-icon>
+              Generate Registrations
+            </button>
+          }
+        </div>
+        @if (courseRegistrations().length > 0) {
+          <table class="enrollments-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Cohort</th>
+                <th>Semester</th>
+                <th>Subject</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reg of courseRegistrations(); track reg.id) {
+                <tr>
+                  <td>{{ reg.studentName }}</td>
+                  <td><span class="code-value">{{ reg.cohortCode }}</span></td>
+                  <td>{{ reg.semesterNumber }}</td>
+                  <td>{{ reg.subjectName }}</td>
+                  <td>
+                    <span class="cms-badge"
+                      [class.cms-badge--soft-success]="reg.status === 'REGISTERED'"
+                      [class.cms-badge--soft-warning]="reg.status === 'DROPPED'"
+                      [class.cms-badge--soft-default]="reg.status === 'COMPLETED'">
+                      {{ reg.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
   }
 </div>

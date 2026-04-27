@@ -31,6 +31,14 @@ public class TermInstanceService {
     @Lazy
     private StudentTermEnrollmentService studentTermEnrollmentService;
 
+    @Autowired
+    @Lazy
+    private CourseOfferingService courseOfferingService;
+
+    @Autowired
+    @Lazy
+    private CourseRegistrationService courseRegistrationService;
+
     public TermInstanceService(TermInstanceRepository termInstanceRepository,
                                 AcademicYearRepository academicYearRepository) {
         this.termInstanceRepository = termInstanceRepository;
@@ -96,6 +104,11 @@ public class TermInstanceService {
         TermInstance saved = termInstanceRepository.save(instance);
         if (request.status() != null && request.status() == TermInstanceStatus.OPEN) {
             studentTermEnrollmentService.generateEnrollmentsForTermInstance(id);
+            courseOfferingService.generateOfferingsForTermInstance(id);
+            courseRegistrationService.generateRegistrationsForTermInstance(id);
+        }
+        if (request.status() != null && request.status() == TermInstanceStatus.LOCKED) {
+            courseOfferingService.deactivateAllOfferingsForTermInstance(id);
         }
         return toDto(saved);
     }
@@ -130,5 +143,15 @@ public class TermInstanceService {
     /** Package-private setter for test injection of the lazy-wired service. */
     void setStudentTermEnrollmentService(StudentTermEnrollmentService studentTermEnrollmentService) {
         this.studentTermEnrollmentService = studentTermEnrollmentService;
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setCourseOfferingService(CourseOfferingService courseOfferingService) {
+        this.courseOfferingService = courseOfferingService;
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setCourseRegistrationService(CourseRegistrationService courseRegistrationService) {
+        this.courseRegistrationService = courseRegistrationService;
     }
 }

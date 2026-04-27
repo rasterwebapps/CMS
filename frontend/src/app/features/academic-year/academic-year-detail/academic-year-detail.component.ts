@@ -8,6 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../academic-year.service';
 import {
   AcademicYear,
+  CourseOffering,
+  CourseRegistration,
   StudentTermEnrollment,
   TermInstance,
   TermInstanceStatus,
@@ -46,6 +48,14 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly enrollments = signal<StudentTermEnrollment[]>([]);
   protected readonly generatingEnrollments = signal(false);
 
+  protected readonly courseOfferings = signal<CourseOffering[]>([]);
+  protected readonly generatingOfferings = signal(false);
+  protected readonly semesterFilter = signal<number | null>(null);
+  protected readonly editingOffering = signal<number | null>(null);
+
+  protected readonly courseRegistrations = signal<CourseRegistration[]>([]);
+  protected readonly generatingRegistrations = signal(false);
+
   protected readonly oddTermInstance = computed(() =>
     this.termInstances().find(t => t.termType === 'ODD') ?? null
   );
@@ -58,6 +68,13 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly evenBilling = computed(() =>
     this.billingSchedules().find(b => b.termType === 'EVEN') ?? null
   );
+
+  protected readonly filteredOfferings = computed(() => {
+    const filter = this.semesterFilter();
+    return filter != null
+      ? this.courseOfferings().filter(o => o.semesterNumber === filter)
+      : this.courseOfferings();
+  });
 
   protected readonly oddTermForm: FormGroup = this.fb.group({
     startDate: [''],
@@ -81,6 +98,11 @@ export class AcademicYearDetailComponent implements OnInit {
     lateFeeType: ['FLAT' as LateFeeType, Validators.required],
     lateFeeAmount: [0, [Validators.required, Validators.min(0)]],
     graceDays: [0, [Validators.required, Validators.min(0)]],
+  });
+
+  protected readonly offeringEditForm: FormGroup = this.fb.group({
+    facultyId: [null],
+    sectionLabel: [''],
   });
 
   private academicYearId!: number;
@@ -117,9 +139,17 @@ export class AcademicYearDetailComponent implements OnInit {
         const even = terms.find(t => t.termType === 'EVEN');
         if (odd) {
           this.oddTermForm.patchValue({ startDate: odd.startDate, endDate: odd.endDate });
+          if (odd.status === 'OPEN' || odd.status === 'LOCKED') {
+            this.loadCourseOfferings(odd.id);
+            this.loadCourseRegistrations(odd.id);
+          }
         }
         if (even) {
           this.evenTermForm.patchValue({ startDate: even.startDate, endDate: even.endDate });
+          if (even.status === 'OPEN' || even.status === 'LOCKED') {
+            this.loadCourseOfferings(even.id);
+            this.loadCourseRegistrations(even.id);
+          }
         }
         this.loadBillingSchedules();
       },
@@ -240,6 +270,88 @@ export class AcademicYearDetailComponent implements OnInit {
       error: () => {
         this.toast.error('Failed to generate enrollments');
         this.generatingEnrollments.set(false);
+      },
+    });
+  }
+
+  protected loadCourseOfferings(termInstanceId: number): void {
+    this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId).subscribe({
+      next: (data) => this.courseOfferings.set(data),
+      error: () => this.toast.error('Failed to load course offerings'),
+    });
+  }
+
+  protected generateCourseOfferings(term: TermInstance): void {
+    this.generatingOfferings.set(true);
+    this.academicYearService.generateCourseOfferings(term.id).subscribe({
+      next: (result) => {
+        this.toast.success(`Generated ${result.offeringsCreated} course offering(s)`);
+        this.loadCourseOfferings(term.id);
+        this.generatingOfferings.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to generate course offerings');
+        this.generatingOfferings.set(false);
+      },
+    });
+  }
+
+  protected startEditOffering(offering: CourseOffering): void {
+    this.editingOffering.set(offering.id);
+    this.offeringEditForm.patchValue({
+      facultyId: offering.facultyId,
+      sectionLabel: offering.sectionLabel,
+    });
+  }
+
+  protected cancelEditOffering(): void {
+    this.editingOffering.set(null);
+  }
+
+  protected saveOffering(offering: CourseOffering, termInstanceId: number): void {
+    const v = this.offeringEditForm.value;
+    this.academicYearService.updateCourseOffering(offering.id, {
+      facultyId: v.facultyId ? Number(v.facultyId) : null,
+      sectionLabel: v.sectionLabel || null,
+    }).subscribe({
+      next: () => {
+        this.toast.success('Offering updated');
+        this.editingOffering.set(null);
+        this.loadCourseOfferings(termInstanceId);
+      },
+      error: () => this.toast.error('Failed to update offering'),
+    });
+  }
+
+  protected setSemesterFilter(value: string): void {
+    const num = Number(value);
+    this.semesterFilter.set(value === '' ? null : num);
+  }
+
+  protected loadCourseRegistrations(termInstanceId: number): void {
+    // Load registrations count by fetching from all offerings for summary
+    const offerings = this.courseOfferings();
+    if (offerings.length === 0) {
+      return;
+    }
+    // Load registrations for the first offering as a representative sample for display
+    this.academicYearService.getCourseRegistrationsByCourseOffering(offerings[0].id).subscribe({
+      next: (data) => this.courseRegistrations.set(data),
+      error: () => {},
+    });
+  }
+
+  protected generateCourseRegistrations(term: TermInstance): void {
+    this.generatingRegistrations.set(true);
+    this.academicYearService.generateCourseRegistrations(term.id).subscribe({
+      next: (result) => {
+        this.toast.success(`Generated ${result.registrationsCreated} course registration(s)`);
+        this.loadCourseOfferings(term.id);
+        this.generatingRegistrations.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to generate course registrations');
+        this.generatingRegistrations.set(false);
       },
     });
   }

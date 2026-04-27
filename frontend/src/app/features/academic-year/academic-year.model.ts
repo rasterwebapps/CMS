@@ -124,3 +124,51 @@ export interface StudentTermEnrollment {
 export interface GenerateEnrollmentsResponse {
   enrollmentsCreated: number;
 }
+
+export type RegistrationStatus = 'REGISTERED' | 'DROPPED' | 'COMPLETED';
+
+export interface CourseOffering {
+  id: number;
+  termInstanceId: number;
+  termInstanceLabel: string;
+  curriculumVersionId: number;
+  curriculumVersionName: string;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
+  semesterNumber: number;
+  facultyId: number | null;
+  sectionLabel: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseOfferingUpdateRequest {
+  facultyId?: number | null;
+  sectionLabel?: string | null;
+}
+
+export interface GenerateCourseOfferingsResponse {
+  offeringsCreated: number;
+}
+
+export interface CourseRegistration {
+  id: number;
+  enrollmentId: number;
+  studentId: number;
+  studentName: string;
+  cohortCode: string;
+  courseOfferingId: number;
+  subjectName: string;
+  subjectCode: string;
+  semesterNumber: number;
+  status: RegistrationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GenerateCourseRegistrationsResponse {
+  registrationsCreated: number;
+}
+

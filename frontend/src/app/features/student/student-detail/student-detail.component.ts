@@ -1,10 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { StudentService } from '../student.service';
-import { Student, StudentTermEnrollment } from '../student.model';
+import { CourseRegistration, Student, StudentTermEnrollment } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -33,6 +34,8 @@ export class StudentDetailComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly enrollments = signal<StudentTermEnrollment[]>([]);
   protected readonly loadingEnrollments = signal(false);
+  protected readonly registrationsByEnrollment = signal<Map<number, CourseRegistration[]>>(new Map());
+  protected readonly loadingRegistrations = signal(false);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
@@ -76,10 +79,38 @@ export class StudentDetailComponent implements OnInit {
       next: (data) => {
         this.enrollments.set(data);
         this.loadingEnrollments.set(false);
+        this.loadAllRegistrations(data);
       },
       error: () => {
         this.loadingEnrollments.set(false);
       },
     });
+  }
+
+  private loadAllRegistrations(enrollments: StudentTermEnrollment[]): void {
+    if (enrollments.length === 0) return;
+    this.loadingRegistrations.set(true);
+
+    const requests = enrollments.map(enrollment =>
+      this.studentService.getRegistrationsByEnrollment(enrollment.id)
+    );
+
+    forkJoin(requests).subscribe({
+      next: (results) => {
+        const map = new Map<number, CourseRegistration[]>();
+        enrollments.forEach((enrollment, index) => {
+          map.set(enrollment.id, results[index]);
+        });
+        this.registrationsByEnrollment.set(map);
+        this.loadingRegistrations.set(false);
+      },
+      error: () => {
+        this.loadingRegistrations.set(false);
+      },
+    });
+  }
+
+  protected getRegistrationsForEnrollment(enrollmentId: number): CourseRegistration[] {
+    return this.registrationsByEnrollment().get(enrollmentId) ?? [];
   }
 }
