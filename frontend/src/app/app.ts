@@ -35,6 +35,7 @@ interface NavGroup {
   label: string;
   icon: string;
   items: NavItem[];
+  roles?: string[];
 }
 
 type NavEntry = NavItem | NavGroup;
@@ -121,6 +122,8 @@ export class App implements OnInit {
 
   private readonly CMS_ROLE_NAMES: Record<string, string> = {
     ROLE_ADMIN: 'Admin',
+    ROLE_COLLEGE_ADMIN: 'College Admin',
+    ROLE_CASHIER: 'Cashier',
     ROLE_FACULTY: 'Faculty',
     ROLE_STUDENT: 'Student',
     ROLE_LAB_INCHARGE: 'Lab Incharge',
@@ -132,6 +135,8 @@ export class App implements OnInit {
   protected readonly primaryRole = computed(() => {
     const priority = [
       'ROLE_ADMIN',
+      'ROLE_COLLEGE_ADMIN',
+      'ROLE_CASHIER',
       'ROLE_FACULTY',
       'ROLE_LAB_INCHARGE',
       'ROLE_TECHNICIAN',
@@ -144,27 +149,28 @@ export class App implements OnInit {
   });
 
   private readonly navEntries: NavEntry[] = [
-    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
+    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER', 'ROLE_FACULTY', 'ROLE_STUDENT', 'ROLE_LAB_INCHARGE', 'ROLE_TECHNICIAN', 'ROLE_PARENT'] },
     {
       label: 'Preferences',
       icon: 'tune',
+      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
       items: [
-        { label: 'Departments', icon: 'business', route: '/departments' },
-        { label: 'Programs', icon: 'school', route: '/programs' },
-        { label: 'Courses', icon: 'menu_book', route: '/courses' },
-        { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years' },
-        { label: 'Semesters', icon: 'date_range', route: '/semesters' },
-        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar' },
-        { label: 'Labs', icon: 'science', route: '/labs' },
-        { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures' },
-        { label: 'Equipment', icon: 'devices', route: '/equipment' },
-        { label: 'Faculty', icon: 'groups', route: '/faculty' },
-        { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN'] },
+        { label: 'Departments', icon: 'business', route: '/departments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Programs', icon: 'school', route: '/programs', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Courses', icon: 'menu_book', route: '/courses', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Semesters', icon: 'date_range', route: '/semesters', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar', roles: ['ROLE_ADMIN'] },
+        { label: 'Labs', icon: 'science', route: '/labs', roles: ['ROLE_ADMIN'] },
+        { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Equipment', icon: 'devices', route: '/equipment', roles: ['ROLE_ADMIN'] },
+        { label: 'Faculty', icon: 'groups', route: '/faculty', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
         {
           label: 'Referral Types',
           icon: 'share',
           route: '/referral-types',
-          roles: ['ROLE_ADMIN'],
+          roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
         },
         { label: 'Settings', icon: 'settings', route: '/settings', roles: ['ROLE_ADMIN'] },
       ],
@@ -172,18 +178,20 @@ export class App implements OnInit {
     {
       label: 'Admission Management',
       icon: 'how_to_reg',
+      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'],
       items: [
-        { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries' },
-        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admission Completion', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions' },
-        { label: 'Students', icon: 'person', route: '/students' },
+        { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
+        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Admission Completion', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Students', icon: 'person', route: '/students', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },
       ],
     },
     {
       label: 'Curriculum & Academics',
       icon: 'auto_stories',
+      roles: ['ROLE_ADMIN'],
       items: [
         { label: 'Syllabi', icon: 'library_books', route: '/syllabi' },
         { label: 'Experiments', icon: 'biotech', route: '/experiments' },
@@ -195,6 +203,7 @@ export class App implements OnInit {
     {
       label: 'Examinations',
       icon: 'quiz',
+      roles: ['ROLE_ADMIN'],
       items: [
         { label: 'Examinations', icon: 'quiz', route: '/examinations' },
         { label: 'Exam Results', icon: 'grade', route: '/exam-results' },
@@ -203,26 +212,28 @@ export class App implements OnInit {
     {
       label: 'Finance',
       icon: 'account_balance_wallet',
+      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'],
       items: [
-        { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees' },
-        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
         {
           label: 'Fee Finalization',
           icon: 'lock',
           route: '/student-fees/finalize',
-          roles: ['ROLE_ADMIN'],
+          roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
         },
       ],
     },
     {
       label: 'Lab & Infrastructure',
       icon: 'construction',
+      roles: ['ROLE_ADMIN'],
       items: [
         { label: 'Inventory', icon: 'inventory_2', route: '/inventory' },
         { label: 'Maintenance', icon: 'build', route: '/maintenance' },
       ],
     },
-    { label: 'Reports', icon: 'assessment', route: '/reports' },
+    { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
   ];
 
   protected readonly expandedGroups = signal<Record<string, boolean>>(this.loadExpandedGroups());
@@ -232,6 +243,13 @@ export class App implements OnInit {
     return this.navEntries
       .map((entry) => {
         if (isNavGroup(entry)) {
+          // Check if user has access to the group itself
+          if (entry.roles && entry.roles.length > 0) {
+            if (!entry.roles.some((role) => this.authService.hasRole(role))) {
+              return null;
+            }
+          }
+
           let filteredItems = entry.items.filter((item) => {
             if (!item.roles || item.roles.length === 0) {
               return true;

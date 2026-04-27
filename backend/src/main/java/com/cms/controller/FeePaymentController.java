@@ -34,7 +34,7 @@ public class FeePaymentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_CASHIER')")
     public ResponseEntity<FeePaymentResponse> create(@Valid @RequestBody FeePaymentRequest request) {
         FeePaymentResponse response = feePaymentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
