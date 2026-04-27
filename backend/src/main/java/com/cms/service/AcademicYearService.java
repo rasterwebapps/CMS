@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,18 +17,24 @@ import com.cms.repository.FeeStructureRepository;
 @Transactional(readOnly = true)
 public class AcademicYearService {
 
+    private static final Pattern YEAR_RANGE_PATTERN = Pattern.compile("^\\d{4}-\\d{4}$");
+
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureRepository feeStructureRepository;
+    private final TermInstanceService termInstanceService;
 
     public AcademicYearService(AcademicYearRepository academicYearRepository,
-                               FeeStructureRepository feeStructureRepository) {
+                               FeeStructureRepository feeStructureRepository,
+                               TermInstanceService termInstanceService) {
         this.academicYearRepository = academicYearRepository;
         this.feeStructureRepository = feeStructureRepository;
+        this.termInstanceService = termInstanceService;
     }
 
     @Transactional
     public AcademicYearResponse create(AcademicYearRequest request) {
         validateDateRange(request);
+        validateNameFormat(request.name());
 
         Boolean isCurrent = request.isCurrent() != null ? request.isCurrent() : false;
 
@@ -42,6 +49,7 @@ public class AcademicYearService {
             isCurrent
         );
         AcademicYear saved = academicYearRepository.save(academicYear);
+        termInstanceService.createTermInstancesForAcademicYear(saved);
         return toResponse(saved);
     }
 
@@ -69,6 +77,7 @@ public class AcademicYearService {
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + id));
 
         validateDateRange(request);
+        validateNameFormat(request.name());
 
         if (academicYearRepository.existsByNameAndIdNot(request.name(), id)) {
             throw new IllegalArgumentException(
@@ -105,6 +114,21 @@ public class AcademicYearService {
     private void validateDateRange(AcademicYearRequest request) {
         if (!request.endDate().isAfter(request.startDate())) {
             throw new IllegalArgumentException("End date must be after start date");
+        }
+    }
+
+    private void validateNameFormat(String name) {
+        if (name == null) return;
+        if (!YEAR_RANGE_PATTERN.matcher(name).matches()) {
+            throw new IllegalArgumentException(
+                "Academic year name must be in YYYY-YYYY format (e.g. 2026-2027)");
+        }
+        String[] parts = name.split("-");
+        int startYear = Integer.parseInt(parts[0]);
+        int endYear = Integer.parseInt(parts[1]);
+        if (endYear != startYear + 1) {
+            throw new IllegalArgumentException(
+                "Academic year end year must be exactly one year after start year (e.g. 2026-2027)");
         }
     }
 

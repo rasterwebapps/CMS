@@ -105,6 +105,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'academic-years/:id/detail',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-year-detail/academic-year-detail.component').then(
+        (m) => m.AcademicYearDetailComponent
+      ),
+  },
+  {
     path: 'semesters',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -470,6 +478,38 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/curriculum/co-po-mapping-form/co-po-mapping-form.component').then(
         (m) => m.CoPoMappingFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-versions',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-list/curriculum-version-list.component').then(
+        (m) => m.CurriculumVersionListComponent
+      ),
+  },
+  {
+    path: 'curriculum-versions/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
+        (m) => m.CurriculumVersionFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-versions/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
+        (m) => m.CurriculumVersionFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-map/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-map/curriculum-map.component').then(
+        (m) => m.CurriculumMapComponent
       ),
   },
   {

@@ -10,6 +10,10 @@ import {
   CalendarEventType,
   Semester,
   SemesterRequest,
+  TermInstance,
+  TermInstanceUpdateRequest,
+  TermBillingSchedule,
+  TermBillingScheduleRequest,
 } from './academic-year.model';
 
 @Injectable({
@@ -96,5 +100,27 @@ export class AcademicYearService {
 
   deleteCalendarEvent(id: number): Observable<void> {
     return this.http.delete<void>(`${this.calendarEventUrl}/${id}`);
+  }
+
+  // TermInstance methods
+  getTermInstancesByAcademicYear(academicYearId: number): Observable<TermInstance[]> {
+    return this.http.get<TermInstance[]>(`${environment.apiUrl}/term-instances`, {
+      params: { academicYearId: academicYearId.toString() }
+    });
+  }
+
+  updateTermInstance(id: number, request: TermInstanceUpdateRequest): Observable<TermInstance> {
+    return this.http.put<TermInstance>(`${environment.apiUrl}/term-instances/${id}`, request);
+  }
+
+  // TermBillingSchedule methods
+  getTermBillingSchedulesByAcademicYear(academicYearId: number): Observable<TermBillingSchedule[]> {
+    return this.http.get<TermBillingSchedule[]>(`${environment.apiUrl}/term-billing-schedules`, {
+      params: { academicYearId: academicYearId.toString() }
+    });
+  }
+
+  createOrUpdateTermBillingSchedule(request: TermBillingScheduleRequest): Observable<TermBillingSchedule> {
+    return this.http.post<TermBillingSchedule>(`${environment.apiUrl}/term-billing-schedules`, request);
   }
 }

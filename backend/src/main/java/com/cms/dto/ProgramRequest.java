@@ -1,5 +1,7 @@
 package com.cms.dto;
 
+import com.cms.model.enums.ProgramStatus;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,5 +20,7 @@ public record ProgramRequest(
     @NotNull(message = "Duration years is required")
     @Min(value = 1, message = "Duration must be at least 1 year")
     @Max(value = 10, message = "Duration must not exceed 10 years")
-    Integer durationYears
+    Integer durationYears,
+
+    ProgramStatus status
 ) {}

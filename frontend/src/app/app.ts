@@ -196,6 +196,7 @@ export class App implements OnInit {
         { label: 'Syllabi', icon: 'library_books', route: '/syllabi' },
         { label: 'Experiments', icon: 'biotech', route: '/experiments' },
         { label: 'CO/PO Mapping', icon: 'account_tree', route: '/curriculum-mappings' },
+        { label: 'Curriculum Versions', icon: 'layers', route: '/curriculum-versions' },
         { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules' },
         { label: 'Attendance', icon: 'fact_check', route: '/attendance' },
       ],

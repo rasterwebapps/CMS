@@ -1,0 +1,90 @@
+<div class="curriculum-map-page">
+  <div class="entry-form-header">
+    <button mat-icon-button (click)="backToVersions()" class="back-btn" aria-label="Back to versions">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">Curriculum Map</h1>
+      @if (curriculum()) {
+        <p class="page-subtitle">{{ curriculum()!.programName }} — {{ curriculum()!.versionName }}</p>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else if (curriculum()) {
+    <div class="semesters-grid">
+      @for (sem of getSemesterNumbers(); track sem) {
+        <div class="semester-card">
+          <div class="semester-card__header">
+            <h3 class="semester-card__title">Semester {{ sem }}</h3>
+            <button class="add-course-btn" (click)="toggleAddForm(sem)" type="button"
+              [attr.aria-label]="showAddForm() === sem ? 'Cancel add course' : 'Add course to semester ' + sem">
+              @if (showAddForm() === sem) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              }
+              {{ showAddForm() === sem ? 'Cancel' : 'Add Course' }}
+            </button>
+          </div>
+
+          <!-- Course list -->
+          @if (getCoursesForSemester(sem).length === 0) {
+            <p class="semester-card__empty">No courses assigned</p>
+          } @else {
+            <ul class="course-list">
+              @for (course of getCoursesForSemester(sem); track course.id) {
+                <li class="course-item">
+                  <div class="course-item__info">
+                    <span class="course-item__code">{{ course.subjectCode }}</span>
+                    <span class="course-item__name">{{ course.subjectName }}</span>
+                  </div>
+                  <button class="remove-btn" matTooltip="Remove" (click)="removeCourse(course.id)"
+                    [disabled]="removing() === course.id" type="button" aria-label="Remove course">
+                    @if (removing() === course.id) {
+                      <mat-spinner diameter="12"></mat-spinner>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <!-- Add course form -->
+          @if (showAddForm() === sem) {
+            <div class="add-form">
+              <form [formGroup]="addCourseForm" (ngSubmit)="submitAddCourse(sem)">
+                <div class="field-group">
+                  <label class="field-label">Subject / Course</label>
+                  <select class="field-input" formControlName="subjectId">
+                    <option [value]="null">-- Select --</option>
+                    @for (subject of subjects(); track subject.id) {
+                      <option [value]="subject.id">{{ subject.code }} — {{ subject.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Sort Order (optional)</label>
+                  <input type="number" class="field-input field-input--narrow" formControlName="sortOrder" min="0" />
+                </div>
+                <button type="submit" class="btn-add-submit" [disabled]="adding() === sem">
+                  @if (adding() === sem) {
+                    <mat-spinner diameter="14"></mat-spinner>
+                  } @else {
+                    Add
+                  }
+                </button>
+              </form>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

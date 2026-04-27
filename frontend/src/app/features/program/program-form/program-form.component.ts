@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ProgramService } from '../program.service';
-import { ProgramRequest } from '../program.model';
+import { ProgramRequest, ProgramStatus } from '../program.model';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -38,6 +38,7 @@ export class ProgramFormComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(100)]],
     code: ['', [Validators.required, Validators.maxLength(20)]],
     durationYears: [4, [Validators.required, Validators.min(1), Validators.max(10)]],
+    status: ['ACTIVE' as ProgramStatus, Validators.required],
   });
 
   ngOnInit(): void {
@@ -60,6 +61,7 @@ export class ProgramFormComponent implements OnInit {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
       durationYears: this.form.value.durationYears,
+      status: this.form.value.status as ProgramStatus,
     };
 
     this.saving.set(true);
@@ -115,6 +117,7 @@ export class ProgramFormComponent implements OnInit {
       name: 'Name',
       code: 'Code',
       durationYears: 'Duration',
+      status: 'Status',
     };
     return labels[fieldName] || fieldName;
   }
@@ -129,6 +132,7 @@ export class ProgramFormComponent implements OnInit {
           name: program.name,
           code: program.code,
           durationYears: program.durationYears,
+          status: program.status,
         });
         this.loading.set(false);
       },

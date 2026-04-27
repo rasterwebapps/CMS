@@ -9,6 +9,7 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -27,10 +28,12 @@ public class ProgramService {
 
     @Transactional
     public ProgramResponse create(ProgramRequest request) {
+        validateCode(request.code());
         Program program = new Program(
             request.name(),
             request.code(),
-            request.durationYears()
+            request.durationYears(),
+            request.status()
         );
         return toResponse(programRepository.save(program));
     }
@@ -52,6 +55,8 @@ public class ProgramService {
         Program program = programRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + id));
 
+        validateCode(request.code());
+
         if (programRepository.existsByNameAndIdNot(request.name(), id)) {
             throw new IllegalArgumentException(
                 "A program with the name '" + request.name() + "' already exists");
@@ -64,6 +69,9 @@ public class ProgramService {
         program.setName(request.name());
         program.setCode(request.code());
         program.setDurationYears(request.durationYears());
+        if (request.status() != null) {
+            program.setStatus(request.status());
+        }
 
         return toResponse(programRepository.save(program));
     }
@@ -86,9 +94,21 @@ public class ProgramService {
             program.getName(),
             program.getCode(),
             program.getDurationYears(),
+            program.getTotalSemesters(),
+            program.getStatus(),
             program.getCreatedAt(),
             program.getUpdatedAt()
         );
+    }
+
+    private void validateCode(String code) {
+        if (code == null) return;
+        if (!code.equals(code.toUpperCase())) {
+            throw new IllegalArgumentException("Program code must be uppercase");
+        }
+        if (code.contains(" ")) {
+            throw new IllegalArgumentException("Program code must not contain spaces");
+        }
     }
 }
 

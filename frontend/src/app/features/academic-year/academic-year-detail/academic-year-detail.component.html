@@ -1,0 +1,146 @@
+<div class="detail-page">
+  <div class="entry-form-header">
+    <button mat-icon-button routerLink="/academic-years" class="back-btn" aria-label="Back to academic years">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">Academic Year Detail</h1>
+      <p class="page-subtitle">Manage term instances and billing schedules</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else if (academicYear()) {
+    <!-- AY Header -->
+    <div class="detail-card ay-header-card">
+      <div class="ay-header-card__info">
+        <h2 class="ay-header-card__name">{{ academicYear()!.name }}</h2>
+        <div class="ay-header-card__dates">
+          {{ academicYear()!.startDate | date:'mediumDate' }} – {{ academicYear()!.endDate | date:'mediumDate' }}
+        </div>
+      </div>
+      @if (academicYear()!.isCurrent) {
+        <span class="cms-badge cms-badge--soft-success">Current</span>
+      } @else {
+        <span class="cms-badge cms-badge--soft-default">Past</span>
+      }
+    </div>
+
+    <!-- Term Instances -->
+    <h3 class="section-title">Term Instances</h3>
+    <div class="terms-grid">
+      @for (termType of ['ODD', 'EVEN']; track termType) {
+        @let term = termType === 'ODD' ? oddTermInstance() : evenTermInstance();
+        @let termForm = termType === 'ODD' ? oddTermForm : evenTermForm;
+        <div class="detail-card term-card">
+          <div class="term-card__header">
+            <h4 class="term-card__title">{{ termType }} Term</h4>
+            @if (term) {
+              <span class="cms-badge"
+                [class.cms-badge--soft-default]="term.status === 'PLANNED'"
+                [class.cms-badge--soft-warning]="term.status === 'OPEN'"
+                [class.cms-badge--soft-success]="term.status === 'LOCKED'">
+                {{ getStatusLabel(term.status) }}
+              </span>
+            } @else {
+              <span class="cms-badge cms-badge--soft-default">Not Created</span>
+            }
+          </div>
+
+          @if (term) {
+            <!-- Status Stepper -->
+            <div class="status-stepper">
+              @for (step of ['PLANNED', 'OPEN', 'LOCKED']; track step) {
+                <div class="step" [class]="getStatusStepClass(term.status, $any(step))">
+                  <div class="step__dot"></div>
+                  <span class="step__label">{{ step }}</span>
+                </div>
+                @if (step !== 'LOCKED') {
+                  <div class="step__connector"></div>
+                }
+              }
+            </div>
+
+            <!-- Dates Form -->
+            <form [formGroup]="termForm" class="term-dates-form">
+              <div class="dates-row">
+                <div class="field-group field-group--inline">
+                  <label class="field-label">Start Date</label>
+                  <input type="date" class="field-input" formControlName="startDate" />
+                </div>
+                <div class="field-group field-group--inline">
+                  <label class="field-label">End Date</label>
+                  <input type="date" class="field-input" formControlName="endDate" />
+                </div>
+              </div>
+              <div class="term-card__actions">
+                <button type="button" class="btn-secondary" (click)="saveTermDates($any(termType))">
+                  Save Dates
+                </button>
+                @if (getNextStatus(term.status)) {
+                  <button type="button" class="btn-primary" (click)="advanceTermStatus(term)">
+                    Advance to {{ getNextStatus(term.status) }}
+                  </button>
+                }
+              </div>
+            </form>
+          } @else {
+            <p class="term-card__empty">Term instances are created automatically by the backend.</p>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Billing Schedules -->
+    <h3 class="section-title">Term Billing Schedules</h3>
+    <div class="terms-grid">
+      @for (termType of ['ODD', 'EVEN']; track termType) {
+        @let billingForm = termType === 'ODD' ? oddBillingForm : evenBillingForm;
+        @let billing = termType === 'ODD' ? oddBilling() : evenBilling();
+        <div class="detail-card billing-card">
+          <h4 class="billing-card__title">{{ termType }} Term Billing</h4>
+          @if (billing) {
+            <p class="billing-card__existing">
+              Due: <strong>{{ billing.dueDate | date:'mediumDate' }}</strong> ·
+              Late fee: <strong>{{ billing.lateFeeType === 'FLAT' ? '₹' + billing.lateFeeAmount : '₹' + billing.lateFeeAmount + '/day' }}</strong> ·
+              Grace: <strong>{{ billing.graceDays }} days</strong>
+            </p>
+          }
+          <form [formGroup]="billingForm" (ngSubmit)="saveBillingSchedule($any(termType))">
+            <div class="field-group">
+              <label class="field-label">Due Date</label>
+              <input type="date" class="field-input field-input--narrow" formControlName="dueDate" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Late Fee Type</label>
+              <select class="field-input field-input--narrow" formControlName="lateFeeType">
+                <option value="FLAT">Flat Amount</option>
+                <option value="PER_DAY">Per Day</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Late Fee Amount (₹)</label>
+              <input type="number" class="field-input field-input--narrow" formControlName="lateFeeAmount" min="0" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Grace Days</label>
+              <input type="number" class="field-input field-input--narrow" formControlName="graceDays" min="0" />
+            </div>
+            <div class="form-footer">
+              <button type="submit" class="btn-primary" [disabled]="saving()">
+                @if (saving()) {
+                  <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                } @else {
+                  {{ billing ? 'Update' : 'Create' }} Billing Schedule
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+    </div>
+  }
+</div>
