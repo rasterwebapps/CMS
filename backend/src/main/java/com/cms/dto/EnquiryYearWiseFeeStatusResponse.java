@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public record EnquiryYearWiseFeeStatusResponse(
@@ -23,6 +24,7 @@ public record EnquiryYearWiseFeeStatusResponse(
         String semesterLabel,
         BigDecimal allocatedFee,
         BigDecimal paidAmount,
-        BigDecimal outstanding
+        BigDecimal outstanding,
+        LocalDate dueDate
     ) {}
 }
