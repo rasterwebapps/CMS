@@ -11,6 +11,7 @@ import com.cms.dto.SemesterResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Semester;
+import com.cms.model.enums.SemesterStatus;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.SemesterRepository;
 
@@ -35,6 +36,7 @@ public class SemesterService {
 
         validateDateRange(request);
         validateDatesWithinAcademicYear(request, academicYear);
+        validateNoOverlap(request.academicYearId(), request, null);
 
         Semester semester = new Semester(
             request.name(),
@@ -79,6 +81,7 @@ public class SemesterService {
 
         validateDateRange(request);
         validateDatesWithinAcademicYear(request, academicYear);
+        validateNoOverlap(request.academicYearId(), request, id);
 
         if (semesterRepository.existsByNameAndAcademicYearIdAndIdNot(
                 request.name(), request.academicYearId(), id)) {
@@ -92,6 +95,7 @@ public class SemesterService {
         semester.setStartDate(request.startDate());
         semester.setEndDate(request.endDate());
         semester.setSemesterNumber(request.semesterNumber());
+        semester.setStatus(Semester.deriveStatus(request.startDate(), request.endDate()));
 
         Semester updated = semesterRepository.save(semester);
         return toResponse(updated);
@@ -122,6 +126,15 @@ public class SemesterService {
         }
     }
 
+    private void validateNoOverlap(Long academicYearId, SemesterRequest request, Long excludeId) {
+        long resolvedExcludeId = excludeId != null ? excludeId : -1L;
+        if (semesterRepository.existsOverlappingInAcademicYear(
+                academicYearId, request.startDate(), request.endDate(), resolvedExcludeId)) {
+            throw new IllegalArgumentException(
+                "The semester dates overlap with an existing semester in this academic year");
+        }
+    }
+
     private SemesterResponse toResponse(Semester semester) {
         AcademicYear academicYear = semester.getAcademicYear();
         AcademicYearResponse academicYearResponse = new AcademicYearResponse(
@@ -134,6 +147,10 @@ public class SemesterService {
             academicYear.getUpdatedAt()
         );
 
+        SemesterStatus status = semester.getStatus() != null
+            ? semester.getStatus()
+            : Semester.deriveStatus(semester.getStartDate(), semester.getEndDate());
+
         return new SemesterResponse(
             semester.getId(),
             semester.getName(),
@@ -141,6 +158,7 @@ public class SemesterService {
             semester.getStartDate(),
             semester.getEndDate(),
             semester.getSemesterNumber(),
+            status,
             semester.getCreatedAt(),
             semester.getUpdatedAt()
         );

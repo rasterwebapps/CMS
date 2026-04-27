@@ -54,6 +54,7 @@ tasks.jacocoTestReport {
             fileTree(it) {
                 exclude("com/cms/CmsApplication.class")
                 exclude("com/cms/config/DataLoader.class")
+                exclude("com/cms/config/LocalDataSeeder.class")
                 exclude("com/cms/model/**")
             }
         })
@@ -69,8 +70,8 @@ tasks.jacocoTestCoverageVerification {
             }
         }
     }
-    // Exclude the main application class, seed data loader, and model entities
-    // from coverage. The main class and DataLoader only contain Spring Boot
+    // Exclude the main application class, seed data loaders, and model entities
+    // from coverage. The main class and data seeders only contain Spring Boot
     // entry/startup hooks which cannot be meaningfully unit tested.
     // Model entities are primarily boilerplate getters/setters validated
     // through integration tests.
@@ -79,6 +80,7 @@ tasks.jacocoTestCoverageVerification {
             fileTree(it) {
                 exclude("com/cms/CmsApplication.class")
                 exclude("com/cms/config/DataLoader.class")
+                exclude("com/cms/config/LocalDataSeeder.class")
                 exclude("com/cms/model/**")
             }
         })
