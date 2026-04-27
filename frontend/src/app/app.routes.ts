@@ -537,6 +537,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'fee-reports',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/fee-reports/fee-reports-dashboard/fee-reports-dashboard.component').then(
+        (m) => m.FeeReportsDashboardComponent
+      ),
+  },
+  {
     path: 'reports',
     canActivate: [authGuard],
     loadComponent: () =>

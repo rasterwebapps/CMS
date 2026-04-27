@@ -1,23 +1,29 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, CurrencyPipe, NgClass, DecimalPipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { AcademicYearService } from '../academic-year.service';
 import {
   AcademicYear,
   CourseOffering,
   CourseRegistration,
+  DemandStatus,
+  FeeDemand,
   StudentTermEnrollment,
   TermInstance,
   TermInstanceStatus,
   TermBillingSchedule,
   TermBillingScheduleRequest,
+  TermFeePayment,
+  TermFeePaymentRequest,
   LateFeeType,
 } from '../academic-year.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
 
 @Component({
   selector: 'app-academic-year-detail',
@@ -25,10 +31,15 @@ import { ToastService } from '../../../core/toast/toast.service';
   imports: [
     RouterLink,
     DatePipe,
+    CurrencyPipe,
+    NgClass,
+    DecimalPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatDialogModule,
+    FeePaymentDialogComponent,
   ],
   templateUrl: './academic-year-detail.component.html',
   styleUrl: './academic-year-detail.component.scss',
@@ -39,6 +50,7 @@ export class AcademicYearDetailComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -55,6 +67,25 @@ export class AcademicYearDetailComponent implements OnInit {
 
   protected readonly courseRegistrations = signal<CourseRegistration[]>([]);
   protected readonly generatingRegistrations = signal(false);
+
+  protected readonly feeDemands = signal<FeeDemand[]>([]);
+  protected readonly generatingDemands = signal(false);
+  protected readonly demandStatusFilter = signal<DemandStatus | ''>('');
+
+  protected readonly filteredDemands = computed(() => {
+    const filter = this.demandStatusFilter();
+    return filter
+      ? this.feeDemands().filter(d => d.status === filter)
+      : this.feeDemands();
+  });
+
+  protected readonly openOrLockedTerm = computed<TermInstance | null>(() => {
+    const odd = this.oddTermInstance();
+    const even = this.evenTermInstance();
+    if (odd && (odd.status === 'OPEN' || odd.status === 'LOCKED')) return odd;
+    if (even && (even.status === 'OPEN' || even.status === 'LOCKED')) return even;
+    return null;
+  });
 
   protected readonly oddTermInstance = computed(() =>
     this.termInstances().find(t => t.termType === 'ODD') ?? null
@@ -142,6 +173,7 @@ export class AcademicYearDetailComponent implements OnInit {
           if (odd.status === 'OPEN' || odd.status === 'LOCKED') {
             this.loadCourseOfferings(odd.id);
             this.loadCourseRegistrations(odd.id);
+            this.loadFeeDemands(odd.id);
           }
         }
         if (even) {
@@ -149,6 +181,7 @@ export class AcademicYearDetailComponent implements OnInit {
           if (even.status === 'OPEN' || even.status === 'LOCKED') {
             this.loadCourseOfferings(even.id);
             this.loadCourseRegistrations(even.id);
+            this.loadFeeDemands(even.id);
           }
         }
         this.loadBillingSchedules();
@@ -354,6 +387,59 @@ export class AcademicYearDetailComponent implements OnInit {
         this.generatingRegistrations.set(false);
       },
     });
+  }
+
+  protected loadFeeDemands(termInstanceId: number): void {
+    this.academicYearService.getFeeDemandsByTermInstance(termInstanceId).subscribe({
+      next: (data) => this.feeDemands.set(data),
+      error: () => this.toast.error('Failed to load fee demands'),
+    });
+  }
+
+  protected generateFeeDemands(term: TermInstance): void {
+    this.generatingDemands.set(true);
+    this.academicYearService.generateFeeDemands(term.id).subscribe({
+      next: (result) => {
+        this.toast.success(`Generated ${result.demandsCreated} fee demand(s)`);
+        this.loadFeeDemands(term.id);
+        this.generatingDemands.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to generate fee demands');
+        this.generatingDemands.set(false);
+      },
+    });
+  }
+
+  protected openPaymentDialog(demand: FeeDemand, term: TermInstance): void {
+    const ref = this.dialog.open(FeePaymentDialogComponent, {
+      width: '480px',
+      data: { demand },
+    });
+    ref.afterClosed().subscribe((result: TermFeePaymentRequest | null) => {
+      if (result) {
+        this.academicYearService.recordFeePayment(result).subscribe({
+          next: (payment) => {
+            this.toast.success(`Payment recorded! Receipt: ${payment.receiptNumber}`);
+            this.loadFeeDemands(term.id);
+          },
+          error: () => this.toast.error('Failed to record payment'),
+        });
+      }
+    });
+  }
+
+  protected setDemandStatusFilter(value: string): void {
+    this.demandStatusFilter.set(value as DemandStatus | '');
+  }
+
+  protected getDemandStatusClass(status: DemandStatus): string {
+    switch (status) {
+      case 'PAID': return 'cms-badge--soft-success';
+      case 'PARTIAL': return 'cms-badge--soft-warning';
+      case 'UNPAID': return 'cms-badge--soft-error';
+      case 'WAIVED': return 'cms-badge--soft-default';
+    }
   }
 
   protected getNextStatus(current: TermInstanceStatus): TermInstanceStatus | null {

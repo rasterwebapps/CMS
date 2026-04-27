@@ -304,5 +304,84 @@
         }
       </div>
     }
+
+    <!-- Fee Demands Section -->
+    @if (openOrLockedTerm()) {
+      <h3 class="section-title">Fee Demands</h3>
+      <div class="detail-card">
+        <div class="offerings-header">
+          <div class="offerings-filter">
+            <label class="field-label">Filter by Status</label>
+            <select class="field-input field-input--narrow"
+              (change)="setDemandStatusFilter($any($event.target).value)">
+              <option value="">All</option>
+              <option value="UNPAID">Unpaid</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="PAID">Paid</option>
+              <option value="WAIVED">Waived</option>
+            </select>
+          </div>
+          @if (openOrLockedTerm()?.status === 'OPEN') {
+            <button class="btn-secondary"
+              (click)="generateFeeDemands(openOrLockedTerm()!)"
+              [disabled]="generatingDemands()">
+              <mat-icon>request_quote</mat-icon>
+              Generate Fee Demands
+            </button>
+          }
+        </div>
+
+        @if (filteredDemands().length === 0) {
+          <p class="no-data">No fee demands found.
+            @if (openOrLockedTerm()?.status === 'OPEN') {
+              Click "Generate Fee Demands" to create them.
+            }
+          </p>
+        } @else {
+          <div class="offerings-table-wrapper">
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Cohort</th>
+                  <th>Total</th>
+                  <th>Due Date</th>
+                  <th>Paid</th>
+                  <th>Outstanding</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (demand of filteredDemands(); track demand.id) {
+                  <tr>
+                    <td>{{ demand.studentName }}</td>
+                    <td><span class="code-value">{{ demand.cohortCode }}</span></td>
+                    <td>₹{{ demand.totalAmount | number:'1.2-2' }}</td>
+                    <td>{{ demand.dueDate | date:'mediumDate' }}</td>
+                    <td>₹{{ demand.paidAmount | number:'1.2-2' }}</td>
+                    <td>₹{{ demand.outstandingAmount | number:'1.2-2' }}</td>
+                    <td>
+                      <span class="cms-badge" [ngClass]="getDemandStatusClass(demand.status)">
+                        {{ demand.status }}
+                      </span>
+                    </td>
+                    <td>
+                      @if (demand.status !== 'PAID' && demand.status !== 'WAIVED') {
+                        <button class="btn-ghost btn-xs"
+                          (click)="openPaymentDialog(demand, openOrLockedTerm()!)">
+                          <mat-icon>payments</mat-icon>
+                          Pay
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
   }
 </div>

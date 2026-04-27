@@ -172,3 +172,60 @@ export interface GenerateCourseRegistrationsResponse {
   registrationsCreated: number;
 }
 
+export type DemandStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'WAIVED';
+
+export interface FeeDemand {
+  id: number;
+  enrollmentId: number;
+  studentId: number;
+  studentName: string;
+  cohortCode: string;
+  termInstanceId: number;
+  termInstanceLabel: string;
+  academicYearId: number;
+  academicYearName: string;
+  totalAmount: number;
+  dueDate: string;
+  paidAmount: number;
+  outstandingAmount: number;
+  status: DemandStatus;
+}
+
+export interface GenerateDemandsResponse {
+  demandsCreated: number;
+}
+
+export type PaymentMode =
+  | 'CASH'
+  | 'CARD'
+  | 'UPI'
+  | 'NET_BANKING'
+  | 'BANK_TRANSFER'
+  | 'CHEQUE'
+  | 'DEMAND_DRAFT'
+  | 'SCHOLARSHIP';
+
+export interface TermFeePaymentRequest {
+  feeDemandId: number;
+  paymentDate: string;
+  amountPaid: number;
+  paymentMode: PaymentMode;
+  remarks?: string;
+}
+
+export interface TermFeePayment {
+  id: number;
+  feeDemandId: number;
+  studentName: string;
+  paymentDate: string;
+  amountPaid: number;
+  lateFeeApplied: number;
+  totalCollected: number;
+  paymentMode: PaymentMode;
+  receiptNumber: string;
+  remarks?: string;
+  demandStatus: DemandStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+

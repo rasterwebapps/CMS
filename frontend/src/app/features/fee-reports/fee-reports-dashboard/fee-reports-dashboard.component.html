@@ -1,0 +1,341 @@
+<div class="detail-page">
+  <div class="entry-form-header">
+    <div>
+      <h1 class="page-title">Fee Reports</h1>
+      <p class="page-subtitle">View outstanding fees, collection summaries, late fee data, and student ledgers</p>
+    </div>
+  </div>
+
+  <mat-tab-group class="detail-tabs">
+    <!-- Tab 1: Outstanding Fees -->
+    <mat-tab label="Outstanding Fees">
+      <div class="tab-content">
+        <div class="report-filter-bar">
+          <form [formGroup]="termFilterForm" class="filter-row">
+            <div class="field-group field-group--inline">
+              <label class="field-label">Academic Year</label>
+              <select class="field-input field-input--narrow"
+                formControlName="academicYearId"
+                (change)="onAcademicYearChange($any($event.target).value)">
+                <option value="">Select AY</option>
+                @for (ay of academicYears(); track ay.id) {
+                  <option [value]="ay.id">{{ ay.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group field-group--inline">
+              <label class="field-label">Term</label>
+              <select class="field-input field-input--narrow" formControlName="termInstanceId">
+                <option value="">Select Term</option>
+                @for (term of termInstances(); track term.id) {
+                  <option [value]="term.id">{{ term.termType }} – {{ term.status }}</option>
+                }
+              </select>
+            </div>
+            <button type="button" class="btn-primary" (click)="loadOutstanding()"
+              [disabled]="termFilterForm.invalid || loading()">
+              @if (loading()) {
+                <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+              } @else {
+                Load Report
+              }
+            </button>
+          </form>
+          @if (outstandingDemands().length > 0) {
+            <div class="report-actions">
+              <button class="btn-secondary" (click)="exportOutstandingCsv()">
+                <mat-icon>download</mat-icon> CSV
+              </button>
+              <button class="btn-secondary" (click)="printReport()">
+                <mat-icon>print</mat-icon> Print
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (outstandingDemands().length === 0) {
+          <p class="no-data">Select a term and click "Load Report" to view outstanding demands.</p>
+        } @else {
+          <div class="report-table-wrapper">
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Cohort</th>
+                  <th>Total (₹)</th>
+                  <th>Paid (₹)</th>
+                  <th>Outstanding (₹)</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (d of outstandingDemands(); track d.id) {
+                  <tr>
+                    <td>{{ d.studentName }}</td>
+                    <td><span class="code-value">{{ d.cohortCode }}</span></td>
+                    <td>{{ d.totalAmount | number:'1.2-2' }}</td>
+                    <td>{{ d.paidAmount | number:'1.2-2' }}</td>
+                    <td class="outstanding-cell">{{ d.outstandingAmount | number:'1.2-2' }}</td>
+                    <td>{{ d.dueDate | date:'mediumDate' }}</td>
+                    <td>
+                      <span class="cms-badge"
+                        [class.cms-badge--soft-warning]="d.status === 'PARTIAL'"
+                        [class.cms-badge--soft-error]="d.status === 'UNPAID'"
+                        [class.cms-badge--soft-default]="d.status === 'WAIVED'">
+                        {{ d.status }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Collection Summary -->
+    <mat-tab label="Collection Summary">
+      <div class="tab-content">
+        <div class="report-filter-bar">
+          <form [formGroup]="termFilterForm" class="filter-row">
+            <div class="field-group field-group--inline">
+              <label class="field-label">Academic Year</label>
+              <select class="field-input field-input--narrow"
+                formControlName="academicYearId"
+                (change)="onAcademicYearChange($any($event.target).value)">
+                <option value="">Select AY</option>
+                @for (ay of academicYears(); track ay.id) {
+                  <option [value]="ay.id">{{ ay.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group field-group--inline">
+              <label class="field-label">Term</label>
+              <select class="field-input field-input--narrow" formControlName="termInstanceId">
+                <option value="">Select Term</option>
+                @for (term of termInstances(); track term.id) {
+                  <option [value]="term.id">{{ term.termType }} – {{ term.status }}</option>
+                }
+              </select>
+            </div>
+            <button type="button" class="btn-primary" (click)="loadCollectionSummary()"
+              [disabled]="termFilterForm.invalid || loading()">
+              @if (loading()) {
+                <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+              } @else {
+                Load Report
+              }
+            </button>
+          </form>
+          @if (collectionSummary().length > 0) {
+            <div class="report-actions">
+              <button class="btn-secondary" (click)="exportSummaryCsv()">
+                <mat-icon>download</mat-icon> CSV
+              </button>
+              <button class="btn-secondary" (click)="printReport()">
+                <mat-icon>print</mat-icon> Print
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (collectionSummary().length === 0) {
+          <p class="no-data">Select a term and click "Load Report" to view collection summary.</p>
+        } @else {
+          <div class="report-table-wrapper">
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Program</th>
+                  <th>Code</th>
+                  <th>Demands</th>
+                  <th>Total (₹)</th>
+                  <th>Collected (₹)</th>
+                  <th>Outstanding (₹)</th>
+                  <th>Paid</th>
+                  <th>Partial</th>
+                  <th>Unpaid</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of collectionSummary(); track s.programCode) {
+                  <tr>
+                    <td>{{ s.programName }}</td>
+                    <td><span class="code-value">{{ s.programCode }}</span></td>
+                    <td>{{ s.totalDemands }}</td>
+                    <td>{{ s.totalAmount | number:'1.2-2' }}</td>
+                    <td class="collected-cell">{{ s.collectedAmount | number:'1.2-2' }}</td>
+                    <td class="outstanding-cell">{{ s.outstandingAmount | number:'1.2-2' }}</td>
+                    <td>{{ s.paidCount }}</td>
+                    <td>{{ s.partialCount }}</td>
+                    <td>{{ s.unpaidCount }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab 3: Late Fee Collection -->
+    <mat-tab label="Late Fees">
+      <div class="tab-content">
+        <div class="report-filter-bar">
+          <form [formGroup]="termFilterForm" class="filter-row">
+            <div class="field-group field-group--inline">
+              <label class="field-label">Academic Year</label>
+              <select class="field-input field-input--narrow"
+                formControlName="academicYearId"
+                (change)="onAcademicYearChange($any($event.target).value)">
+                <option value="">Select AY</option>
+                @for (ay of academicYears(); track ay.id) {
+                  <option [value]="ay.id">{{ ay.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group field-group--inline">
+              <label class="field-label">Term</label>
+              <select class="field-input field-input--narrow" formControlName="termInstanceId">
+                <option value="">Select Term</option>
+                @for (term of termInstances(); track term.id) {
+                  <option [value]="term.id">{{ term.termType }} – {{ term.status }}</option>
+                }
+              </select>
+            </div>
+            <button type="button" class="btn-primary" (click)="loadLateFees()"
+              [disabled]="termFilterForm.invalid || loading()">
+              @if (loading()) {
+                <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+              } @else {
+                Load Report
+              }
+            </button>
+          </form>
+          @if (lateFeePayments().length > 0) {
+            <div class="report-actions">
+              <button class="btn-secondary" (click)="printReport()">
+                <mat-icon>print</mat-icon> Print
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (lateFeePayments().length === 0) {
+          <p class="no-data">No late fee payments found, or select a term and click "Load Report".</p>
+        } @else {
+          <div class="report-table-wrapper">
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Receipt</th>
+                  <th>Student</th>
+                  <th>Payment Date</th>
+                  <th>Amount (₹)</th>
+                  <th>Late Fee (₹)</th>
+                  <th>Mode</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of lateFeePayments(); track p.id) {
+                  <tr>
+                    <td><span class="code-value">{{ p.receiptNumber }}</span></td>
+                    <td>{{ p.studentName }}</td>
+                    <td>{{ p.paymentDate | date:'mediumDate' }}</td>
+                    <td>{{ p.amountPaid | number:'1.2-2' }}</td>
+                    <td class="late-fee-cell">{{ p.lateFeeApplied | number:'1.2-2' }}</td>
+                    <td>{{ p.paymentMode }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab 4: Student Ledger -->
+    <mat-tab label="Student Ledger">
+      <div class="tab-content">
+        <form [formGroup]="studentLedgerForm" class="filter-row">
+          <div class="field-group field-group--inline">
+            <label class="field-label">Student ID</label>
+            <input type="number" class="field-input field-input--narrow"
+              formControlName="studentId" placeholder="Enter student ID" min="1" />
+          </div>
+          <button type="button" class="btn-primary" (click)="loadStudentLedger()"
+            [disabled]="studentLedgerForm.invalid || loading()">
+            @if (loading()) {
+              <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+            } @else {
+              Load Ledger
+            }
+          </button>
+          @if (ledger()) {
+            <button type="button" class="btn-secondary" (click)="printReport()">
+              <mat-icon>print</mat-icon> Print
+            </button>
+          }
+        </form>
+
+        @if (!ledger()) {
+          <p class="no-data">Enter a student ID and click "Load Ledger".</p>
+        } @else {
+          <div class="ledger-header">
+            <h3>{{ ledger()!.studentName }}</h3>
+            <span class="cms-badge cms-badge--soft-default">ID: {{ ledger()!.studentId }}</span>
+          </div>
+
+          @for (entry of ledger()!.entries; track entry.demandId) {
+            <div class="ledger-entry">
+              <div class="ledger-entry__header">
+                <h4 class="ledger-entry__term">{{ entry.termLabel }}</h4>
+                <span class="cms-badge"
+                  [class.cms-badge--soft-success]="entry.status === 'PAID'"
+                  [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
+                  [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
+                  [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                  {{ entry.status }}
+                </span>
+              </div>
+              <div class="ledger-summary">
+                <span>Total: <strong>₹{{ entry.totalAmount | number:'1.2-2' }}</strong></span>
+                <span>Paid: <strong class="text-success">₹{{ entry.paidAmount | number:'1.2-2' }}</strong></span>
+                <span>Outstanding: <strong class="text-danger">₹{{ entry.outstandingAmount | number:'1.2-2' }}</strong></span>
+                <span>Due: <strong>{{ entry.dueDate | date:'mediumDate' }}</strong></span>
+              </div>
+              @if (entry.payments.length > 0) {
+                <table class="enrollments-table payments-sub-table">
+                  <thead>
+                    <tr>
+                      <th>Receipt</th>
+                      <th>Date</th>
+                      <th>Amount (₹)</th>
+                      <th>Late Fee (₹)</th>
+                      <th>Mode</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of entry.payments; track p.id) {
+                      <tr>
+                        <td><span class="code-value">{{ p.receiptNumber }}</span></td>
+                        <td>{{ p.paymentDate | date:'mediumDate' }}</td>
+                        <td>{{ p.amountPaid | number:'1.2-2' }}</td>
+                        <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
+                        <td>{{ p.paymentMode }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <p class="no-payments-msg">No payments yet.</p>
+              }
+            </div>
+          }
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

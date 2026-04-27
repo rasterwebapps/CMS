@@ -64,6 +64,36 @@ export interface CourseRegistration {
   updatedAt: string;
 }
 
+export type DemandStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'WAIVED';
+
+export interface TermFeePaymentSummary {
+  id: number;
+  paymentDate: string;
+  amountPaid: number;
+  lateFeeApplied: number;
+  totalCollected: number;
+  paymentMode: string;
+  receiptNumber: string;
+  remarks?: string;
+}
+
+export interface StudentLedgerEntry {
+  demandId: number;
+  termLabel: string;
+  totalAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  dueDate: string;
+  status: DemandStatus;
+  payments: TermFeePaymentSummary[];
+}
+
+export interface StudentFeeLedger {
+  studentId: number;
+  studentName: string;
+  entries: StudentLedgerEntry[];
+}
+
 export interface StudentRequest {
   rollNumber: string;
   firstName: string;

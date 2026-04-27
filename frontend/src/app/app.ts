@@ -235,6 +235,7 @@ export class App implements OnInit {
       ],
     },
     { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
+    { label: 'Fee Reports', icon: 'request_quote', route: '/fee-reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
   ];
 
   protected readonly expandedGroups = signal<Record<string, boolean>>(this.loadExpandedGroups());
