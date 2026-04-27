@@ -126,4 +126,9 @@ public class TermInstanceService {
             ti.getUpdatedAt()
         );
     }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setStudentTermEnrollmentService(StudentTermEnrollmentService studentTermEnrollmentService) {
+        this.studentTermEnrollmentService = studentTermEnrollmentService;
+    }
 }

@@ -151,7 +151,7 @@ public class AdmissionService {
         Cohort cohort = cohortRepository
             .findByProgramIdAndAdmissionAcademicYearId(program.getId(), rule.getMappedAcademicYear().getId())
             .orElseGet(() -> {
-                int startYear = Integer.parseInt(rule.getMappedAcademicYear().getName().split("-")[0]);
+                int startYear = rule.getMappedAcademicYear().getStartYear();
                 int durationYears = program.getDurationYears();
                 String cohortCode = program.getCode() + "-" + startYear + "-" + (startYear + durationYears);
                 String displayName = program.getName() + " (" + startYear + "-" + (startYear + durationYears) + ")";

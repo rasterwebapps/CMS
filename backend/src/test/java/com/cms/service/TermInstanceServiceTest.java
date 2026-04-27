@@ -47,12 +47,9 @@ class TermInstanceServiceTest {
     private AcademicYear testAcademicYear;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         termInstanceService = new TermInstanceService(termInstanceRepository, academicYearRepository);
-        // Inject the lazy-wired StudentTermEnrollmentService to avoid NPE on OPEN transitions
-        java.lang.reflect.Field field = TermInstanceService.class.getDeclaredField("studentTermEnrollmentService");
-        field.setAccessible(true);
-        field.set(termInstanceService, studentTermEnrollmentService);
+        termInstanceService.setStudentTermEnrollmentService(studentTermEnrollmentService);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
     }

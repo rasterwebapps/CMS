@@ -78,8 +78,8 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
 
     @Override
     public Integer computeSemesterNumber(Cohort cohort, TermInstance termInstance) {
-        int admissionStartYear = Integer.parseInt(cohort.getAdmissionAcademicYear().getName().split("-")[0]);
-        int currentStartYear = Integer.parseInt(termInstance.getAcademicYear().getName().split("-")[0]);
+        int admissionStartYear = cohort.getAdmissionAcademicYear().getStartYear();
+        int currentStartYear = termInstance.getAcademicYear().getStartYear();
         int k = currentStartYear - admissionStartYear;
 
         int semesterNumber;
