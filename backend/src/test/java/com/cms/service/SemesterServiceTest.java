@@ -175,6 +175,28 @@ class SemesterServiceTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenSemesterOverlapsExistingOne() {
+        SemesterRequest request = new SemesterRequest(
+            "Overlapping",
+            1L,
+            LocalDate.of(2024, 9, 1),
+            LocalDate.of(2024, 11, 30),
+            1
+        );
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(semesterRepository.existsOverlappingInAcademicYear(1L,
+            LocalDate.of(2024, 9, 1), LocalDate.of(2024, 11, 30), -1L))
+            .thenReturn(true);
+
+        assertThatThrownBy(() -> semesterService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The semester dates overlap with an existing semester in this academic year");
+
+        verify(semesterRepository, never()).save(any(Semester.class));
+    }
+
+    @Test
     void shouldFindAllSemesters() {
         Semester sem1 = createSemester(1L, "Fall 2024", academicYear,
             LocalDate.of(2024, 8, 1), LocalDate.of(2024, 12, 15), 1);

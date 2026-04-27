@@ -7,7 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.SemesterStatus;
+import com.cms.model.enums.CalendarEventType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,20 +23,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "semesters")
+@Table(name = "calendar_events")
 @EntityListeners(AuditingEntityListener.class)
-public class Semester {
+public class CalendarEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String title;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "academic_year_id", nullable = false)
-    private AcademicYear academicYear;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -44,12 +43,17 @@ public class Semester {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "semester_number", nullable = false)
-    private Integer semesterNumber;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private SemesterStatus status = SemesterStatus.UPCOMING;
+    @Column(name = "event_type", nullable = false)
+    private CalendarEventType eventType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_year_id", nullable = false)
+    private AcademicYear academicYear;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id")
+    private Semester semester;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -59,17 +63,7 @@ public class Semester {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Semester() {
-    }
-
-    public Semester(String name, AcademicYear academicYear, LocalDate startDate, LocalDate endDate,
-                    Integer semesterNumber) {
-        this.name = name;
-        this.academicYear = academicYear;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.semesterNumber = semesterNumber;
-        this.status = deriveStatus(startDate, endDate);
+    public CalendarEvent() {
     }
 
     public Long getId() {
@@ -80,20 +74,20 @@ public class Semester {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getTitle() {
+        return title;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
-    public AcademicYear getAcademicYear() {
-        return academicYear;
+    public String getDescription() {
+        return description;
     }
 
-    public void setAcademicYear(AcademicYear academicYear) {
-        this.academicYear = academicYear;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public LocalDate getStartDate() {
@@ -112,35 +106,28 @@ public class Semester {
         this.endDate = endDate;
     }
 
-    public Integer getSemesterNumber() {
-        return semesterNumber;
+    public CalendarEventType getEventType() {
+        return eventType;
     }
 
-    public void setSemesterNumber(Integer semesterNumber) {
-        this.semesterNumber = semesterNumber;
+    public void setEventType(CalendarEventType eventType) {
+        this.eventType = eventType;
     }
 
-    public SemesterStatus getStatus() {
-        return status;
+    public AcademicYear getAcademicYear() {
+        return academicYear;
     }
 
-    public void setStatus(SemesterStatus status) {
-        this.status = status;
+    public void setAcademicYear(AcademicYear academicYear) {
+        this.academicYear = academicYear;
     }
 
-    /**
-     * Derives the semester status from the provided date range relative to today.
-     * UPCOMING if today is before startDate; COMPLETED if today is after endDate; ONGOING otherwise.
-     */
-    public static SemesterStatus deriveStatus(LocalDate startDate, LocalDate endDate) {
-        LocalDate today = LocalDate.now();
-        if (today.isBefore(startDate)) {
-            return SemesterStatus.UPCOMING;
-        } else if (today.isAfter(endDate)) {
-            return SemesterStatus.COMPLETED;
-        } else {
-            return SemesterStatus.ONGOING;
-        }
+    public Semester getSemester() {
+        return semester;
+    }
+
+    public void setSemester(Semester semester) {
+        this.semester = semester;
     }
 
     public Instant getCreatedAt() {
