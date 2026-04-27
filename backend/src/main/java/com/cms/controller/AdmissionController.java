@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.AcademicQualificationRequest;
 import com.cms.dto.AcademicQualificationResponse;
+import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
@@ -88,6 +90,13 @@ public class AdmissionController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         admissionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    public ResponseEntity<AdmissionConfirmationDto> confirm(@PathVariable Long id,
+                                                            @RequestParam LocalDate admissionDate) {
+        return ResponseEntity.ok(admissionService.confirm(id, admissionDate));
     }
 
     @PostMapping("/{admissionId}/qualifications")

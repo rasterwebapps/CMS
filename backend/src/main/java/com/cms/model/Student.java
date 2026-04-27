@@ -11,6 +11,8 @@ import com.cms.model.enums.BloodGroup;
 import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.Cohort;
+import com.cms.model.TermInstance;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -108,6 +110,14 @@ public class Student {
 
     @Column(name = "parent_mobile")
     private String parentMobile;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cohort_id")
+    private Cohort cohort;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expected_graduation_term_instance_id")
+    private TermInstance expectedGraduationTermInstance;
 
     // Address
     @Embedded
@@ -354,5 +364,21 @@ public class Student {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Cohort getCohort() {
+        return cohort;
+    }
+
+    public void setCohort(Cohort cohort) {
+        this.cohort = cohort;
+    }
+
+    public TermInstance getExpectedGraduationTermInstance() {
+        return expectedGraduationTermInstance;
+    }
+
+    public void setExpectedGraduationTermInstance(TermInstance expectedGraduationTermInstance) {
+        this.expectedGraduationTermInstance = expectedGraduationTermInstance;
     }
 }
