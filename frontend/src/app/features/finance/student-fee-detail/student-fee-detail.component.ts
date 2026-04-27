@@ -1,16 +1,16 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
-import { StudentFeeAllocation, SemesterFeeDetail, Receipt } from '../finance.model';
+import {
+  StudentFeeAllocation, SemesterFeeDetail, Receipt,
+  EnquiryYearFee, CreateAllocationYearFee,
+} from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
@@ -29,8 +29,8 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatIconModule, MatProgressSpinnerModule, MatButtonModule,
+    DecimalPipe, RouterLink, ReactiveFormsModule,
+    MatIconModule, MatProgressSpinnerModule,
     MatDialogModule, MatTooltipModule,
     PageHeaderComponent, CmsStatusBadgeComponent,
   ],
@@ -38,38 +38,49 @@ export interface ReceiptGroup {
   styleUrl: './student-fee-detail.component.scss',
 })
 export class StudentFeeDetailComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly financeService = inject(FinanceService);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
+  private readonly route   = inject(ActivatedRoute);
+  private readonly finance = inject(FinanceService);
+  private readonly toast   = inject(ToastService);
+  private readonly dialog  = inject(MatDialog);
+  private readonly fb      = inject(FormBuilder);
 
-  @ViewChild(MatPaginator) set paginator(v: MatPaginator) {
-    if (v) this.receiptDataSource.paginator = v;
-  }
-  @ViewChild(MatSort) set sort(v: MatSort) {
-    if (v) this.receiptDataSource.sort = v;
-  }
+  protected readonly loading         = signal(true);
+  protected readonly noAllocation    = signal(false);
+  protected readonly setupLoading    = signal(false);
+  protected readonly savingAlloc     = signal(false);
+  protected readonly allocation      = signal<StudentFeeAllocation | null>(null);
+  protected readonly receiptGroups   = signal<ReceiptGroup[]>([]);
+  protected readonly enquiryYearFees = signal<EnquiryYearFee[]>([]);
+  protected readonly yearFeeRows     = signal<{ yearNumber: number; amount: number; dueDate: string }[]>([]);
 
-  protected readonly semesterLoading = signal(true);
-  protected readonly allocation = signal<StudentFeeAllocation | null>(null);
-  protected readonly receiptGroups = signal<ReceiptGroup[]>([]);
-  protected readonly receiptDataSource = new MatTableDataSource<Receipt>([]);
-  protected readonly receiptColumns = [
-    'receiptNumber', 'semesterLabel', 'amountPaid', 'paymentDate', 'paymentMode', 'transactionReference',
-  ];
+  protected readonly setupForm: FormGroup = this.fb.group({
+    discountAmount: [0, [Validators.min(0)]],
+    discountReason: [''],
+  });
 
-  /** Total fee amount across all semesters. */
+  // ── Computed totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
     this.allocation()?.semesterFees.reduce((s, sf) => s + sf.amount, 0) ?? 0
   );
-  /** Total outstanding across all semesters. */
-  protected readonly totalOutstanding = computed(() =>
-    this.allocation()?.semesterFees.reduce((s, sf) => s + sf.pendingAmount, 0) ?? 0
-  );
-  /** Total paid across all semesters. */
   protected readonly totalPaid = computed(() =>
     this.allocation()?.semesterFees.reduce((s, sf) => s + sf.amountPaid, 0) ?? 0
   );
+  protected readonly totalOutstanding = computed(() =>
+    this.allocation()?.semesterFees.reduce((s, sf) => s + sf.pendingAmount, 0) ?? 0
+  );
+
+  /** The first semester with a pending balance — next to receive payment. */
+  protected readonly nextDueSemester = computed(() =>
+    this.allocation()?.semesterFees.find(sf => sf.pendingAmount > 0) ?? null
+  );
+
+  protected readonly setupTotal = computed(() =>
+    this.yearFeeRows().reduce((s, r) => s + r.amount, 0)
+  );
+  protected readonly setupNetFee = computed(() => {
+    const discount = Number(this.setupForm.get('discountAmount')?.value) || 0;
+    return Math.max(0, this.setupTotal() - discount);
+  });
 
   private studentId!: number;
 
@@ -82,6 +93,11 @@ export class StudentFeeDetailComponent implements OnInit {
     return sem.pendingAmount > 0 && new Date(sem.dueDate) < new Date();
   }
 
+  protected isNextDue(sem: SemesterFeeDetail): boolean {
+    return this.nextDueSemester()?.id === sem.id;
+  }
+
+  // ── Payment dialog ────────────────────────────────────────────────────────────
   protected openCollectPaymentDialog(): void {
     const ref = this.dialog.open(CollectPaymentDialogComponent, {
       width: '520px',
@@ -98,24 +114,105 @@ export class StudentFeeDetailComponent implements OnInit {
     });
   }
 
-  private loadAll(): void {
-    this.semesterLoading.set(true);
+  // ── Setup: year fee row editing ───────────────────────────────────────────────
+  protected updateYearAmount(index: number, value: string): void {
+    const rows = [...this.yearFeeRows()];
+    rows[index] = { ...rows[index], amount: Math.max(0, parseFloat(value) || 0) };
+    this.yearFeeRows.set(rows);
+  }
 
-    this.financeService.getSemesterStatus(this.studentId).subscribe({
+  protected updateYearDueDate(index: number, value: string): void {
+    const rows = [...this.yearFeeRows()];
+    rows[index] = { ...rows[index], dueDate: value };
+    this.yearFeeRows.set(rows);
+  }
+
+  // ── Setup: create allocation ──────────────────────────────────────────────────
+  protected createAllocation(): void {
+    if (this.yearFeeRows().some(r => !r.dueDate)) {
+      this.toast.error('Please set a due date for all years');
+      return;
+    }
+    const discount = Number(this.setupForm.get('discountAmount')?.value) || 0;
+    const reason   = this.setupForm.get('discountReason')?.value?.trim() || undefined;
+
+    const yearFees: CreateAllocationYearFee[] = this.yearFeeRows().map(r => ({
+      yearNumber: r.yearNumber,
+      amount: r.amount,
+      dueDate: r.dueDate,
+    }));
+
+    const request = {
+      studentId: this.studentId,
+      totalFee: this.setupTotal(),
+      discountAmount: discount || undefined,
+      discountReason: reason,
+      agentCommission: undefined,
+      yearFees,
+    };
+
+    this.savingAlloc.set(true);
+    this.finance.createStudentFeeAllocation(request).subscribe({
       next: (data) => {
         this.allocation.set(data);
-        this.semesterLoading.set(false);
+        this.noAllocation.set(false);
+        this.savingAlloc.set(false);
+        this.toast.success('Fee allocation created — semesters generated automatically');
+        this.loadAll();
       },
       error: () => {
-        this.toast.error('Failed to load fee details');
-        this.semesterLoading.set(false);
+        this.toast.error('Failed to create fee allocation');
+        this.savingAlloc.set(false);
+      },
+    });
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────────
+  private loadAll(): void {
+    this.loading.set(true);
+    this.noAllocation.set(false);
+
+    this.finance.getSemesterStatus(this.studentId).subscribe({
+      next: (data) => {
+        this.allocation.set(data);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        if (err.status === 404) {
+          // No allocation yet — load enquiry year fees to pre-fill the setup form
+          this.noAllocation.set(true);
+          this.loadEnquiryYearFees();
+        } else {
+          this.toast.error('Failed to load fee details');
+        }
+        this.loading.set(false);
       },
     });
 
-    this.financeService.getReceipts(this.studentId).subscribe({
-      next: (data) => {
-        this.receiptDataSource.data = data;
-        this.receiptGroups.set(this.groupReceipts(data));
+    this.finance.getReceipts(this.studentId).subscribe({
+      next: (data) => this.receiptGroups.set(this.groupReceipts(data)),
+    });
+  }
+
+  private loadEnquiryYearFees(): void {
+    this.setupLoading.set(true);
+    this.finance.getEnquiryYearFees(this.studentId).subscribe({
+      next: (fees) => {
+        this.enquiryYearFees.set(fees);
+        this.yearFeeRows.set(fees.map(f => ({
+          yearNumber: f.yearNumber,
+          amount: f.amount,
+          dueDate: f.suggestedDueDate,
+        })));
+        this.setupLoading.set(false);
+      },
+      error: () => {
+        // No linked enquiry — show empty setup form with default rows
+        this.yearFeeRows.set([
+          { yearNumber: 1, amount: 0, dueDate: '' },
+          { yearNumber: 2, amount: 0, dueDate: '' },
+        ]);
+        this.setupLoading.set(false);
       },
     });
   }

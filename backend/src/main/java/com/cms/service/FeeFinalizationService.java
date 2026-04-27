@@ -3,25 +3,34 @@ package com.cms.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.StudentFeeAllocationRequest;
 import com.cms.dto.StudentFeeAllocationResponse;
+import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Enquiry;
 import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
@@ -32,17 +41,56 @@ public class FeeFinalizationService {
     private final FeeInstallmentRepository installmentRepository;
     private final PenaltyRepository penaltyRepository;
     private final StudentRepository studentRepository;
+    private final EnquiryRepository enquiryRepository;
+    private final ObjectMapper objectMapper;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
                                    SemesterFeeRepository semesterFeeRepository,
                                    FeeInstallmentRepository installmentRepository,
                                    PenaltyRepository penaltyRepository,
-                                   StudentRepository studentRepository) {
+                                   StudentRepository studentRepository,
+                                   EnquiryRepository enquiryRepository,
+                                   ObjectMapper objectMapper) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
         this.penaltyRepository = penaltyRepository;
         this.studentRepository = studentRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.objectMapper = objectMapper;
+    }
+
+    /** Returns year-wise fees from the enquiry linked to this student (pre-fill data). */
+    public List<YearFeeFromEnquiry> getEnquiryYearFees(Long studentId) {
+        Enquiry enquiry = enquiryRepository.findByConvertedStudentId(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "No linked enquiry found for student: " + studentId));
+
+        String json = enquiry.getYearWiseFees();
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            List<Map<String, Object>> parsed = objectMapper.readValue(json, new TypeReference<>() {});
+            LocalDate baseDate = LocalDate.now().withDayOfMonth(1);
+            return parsed.stream()
+                .map(item -> {
+                    int year   = ((Number) item.get("yearNumber")).intValue();
+                    BigDecimal amount = new BigDecimal(item.get("amount").toString());
+                    LocalDate dueDate = baseDate.plusMonths((long) (year - 1) * 12);
+                    return new YearFeeFromEnquiry(year, amount, dueDate);
+                })
+                .sorted(Comparator.comparingInt(YearFeeFromEnquiry::yearNumber))
+                .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /** Returns true if a fee allocation already exists for this student. */
+    public boolean allocationExists(Long studentId) {
+        return allocationRepository.existsByStudentId(studentId);
     }
 
     @Transactional

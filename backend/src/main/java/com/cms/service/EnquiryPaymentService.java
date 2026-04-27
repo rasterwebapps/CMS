@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -133,6 +134,11 @@ public class EnquiryPaymentService {
         BigDecimal totalPaid = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
             .orElse(BigDecimal.ZERO);
 
+        // Base date for computing due dates: finalization date or today
+        LocalDate baseDate = enquiry.getFinalizedAt() != null
+            ? enquiry.getFinalizedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            : LocalDate.now();
+
         // --- Year-wise breakdown (backward-compatible) ---
         List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
         yearEntries.sort(Comparator.comparingInt(YearWiseFeeEntry::yearNumber));
@@ -168,9 +174,41 @@ public class EnquiryPaymentService {
                 BigDecimal allocated = entry.amount();
                 BigDecimal paid = semesterRemaining.min(allocated);
                 BigDecimal outstanding = allocated.subtract(paid);
+                int yearNumber = (entry.semesterNumber() + 1) / 2;
+                int semSeq = ((entry.semesterNumber() - 1) % 2) + 1;
+                LocalDate dueDate = baseDate
+                    .plusMonths((long) (yearNumber - 1) * 12)
+                    .plusMonths(semSeq == 2 ? 6 : 0);
                 semesterBreakdown.add(new SemesterFeeStatus(
-                    entry.semesterNumber(), entry.semesterLabel(), allocated, paid, outstanding));
+                    entry.semesterNumber(), entry.semesterLabel(), allocated, paid, outstanding, dueDate));
                 semesterRemaining = semesterRemaining.subtract(paid);
+            }
+        } else if (!yearEntries.isEmpty()) {
+            // No explicit semester data — auto-split each year into 2 semesters
+            totalFee = yearTotalFee;
+            BigDecimal semRem = totalPaid;
+
+            for (YearWiseFeeEntry entry : yearEntries) {
+                BigDecimal sem1Amount = entry.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+                BigDecimal sem2Amount = entry.amount().subtract(sem1Amount);
+
+                int sem1Seq = (entry.yearNumber() - 1) * 2 + 1;
+                int sem2Seq = sem1Seq + 1;
+                String sem1Label = "Year " + entry.yearNumber() + " - Semester 1";
+                String sem2Label = "Year " + entry.yearNumber() + " - Semester 2";
+
+                LocalDate sem1Due = baseDate.plusMonths((long) (entry.yearNumber() - 1) * 12);
+                LocalDate sem2Due = sem1Due.plusMonths(6);
+
+                BigDecimal paid1 = semRem.min(sem1Amount);
+                semesterBreakdown.add(new SemesterFeeStatus(
+                    sem1Seq, sem1Label, sem1Amount, paid1, sem1Amount.subtract(paid1), sem1Due));
+                semRem = semRem.subtract(paid1).max(BigDecimal.ZERO);
+
+                BigDecimal paid2 = semRem.min(sem2Amount);
+                semesterBreakdown.add(new SemesterFeeStatus(
+                    sem2Seq, sem2Label, sem2Amount, paid2, sem2Amount.subtract(paid2), sem2Due));
+                semRem = semRem.subtract(paid2).max(BigDecimal.ZERO);
             }
         } else {
             totalFee = yearTotalFee;
