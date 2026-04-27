@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,11 +70,22 @@ public class FeeFinalizationService {
 
         List<SemesterFee> semesterFees = new ArrayList<>();
         for (StudentFeeAllocationRequest.YearFee yearFee : request.yearFees()) {
-            SemesterFee sf = new SemesterFee(
+            BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+            BigDecimal sem2Amount = yearFee.amount().subtract(sem1Amount);
+
+            SemesterFee sf1 = new SemesterFee(
                 saved, yearFee.yearNumber(),
-                "Year " + yearFee.yearNumber(), yearFee.amount(), yearFee.dueDate()
+                "Year " + yearFee.yearNumber() + " - Semester 1",
+                sem1Amount, yearFee.dueDate(), 1
             );
-            semesterFees.add(semesterFeeRepository.save(sf));
+            semesterFees.add(semesterFeeRepository.save(sf1));
+
+            SemesterFee sf2 = new SemesterFee(
+                saved, yearFee.yearNumber(),
+                "Year " + yearFee.yearNumber() + " - Semester 2",
+                sem2Amount, yearFee.dueDate().plusMonths(6), 2
+            );
+            semesterFees.add(semesterFeeRepository.save(sf2));
         }
 
         return toResponse(saved, semesterFees);
@@ -83,7 +95,7 @@ public class FeeFinalizationService {
         StudentFeeAllocation allocation = allocationRepository.findByStudentId(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Fee allocation not found for student id: " + studentId));
 
-        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumber(allocation.getId());
+        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
         return toResponse(allocation, semesterFees);
     }
 
@@ -91,7 +103,7 @@ public class FeeFinalizationService {
         StudentFeeAllocation allocation = allocationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Fee allocation not found with id: " + id));
 
-        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumber(allocation.getId());
+        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
         return toResponse(allocation, semesterFees);
     }
 
@@ -115,7 +127,7 @@ public class FeeFinalizationService {
                 }
 
                 return new StudentFeeAllocationResponse.SemesterFeeDetail(
-                    sf.getId(), sf.getYearNumber(), sf.getSemesterLabel(),
+                    sf.getId(), sf.getYearNumber(), sf.getSemesterSequence(), sf.getSemesterLabel(),
                     sf.getAmount(), sf.getDueDate(), paid, pending, penaltyAmount, paymentStatus
                 );
             })

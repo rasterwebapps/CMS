@@ -169,7 +169,9 @@
               </mat-expansion-panel-header>
               <mat-nav-list dense>
                 @for (item of entry.items; track item.route) {
-                  <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link"
+                  <a mat-list-item [routerLink]="item.route"
+                     routerLinkActive="active-link"
+                     [routerLinkActiveOptions]="{exact: true}"
                      [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
                      [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
                      matBadgeColor="warn" matBadgeSize="small">
@@ -205,7 +207,7 @@
                 matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
         </button>
-        <a href="https://rasterimages.in" target="_blank" rel="noopener noreferrer"
+        <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
            class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" aria-label="Raster Images Private Limited">
           <img src="assets/images/cms-logo.svg" alt="OneCMS by Raster" class="sidenav-footer-logo"/>
         </a>
@@ -214,7 +216,7 @@
                 matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
         </button>
-        <a href="https://rasterimages.in" target="_blank" rel="noopener noreferrer"
+        <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
            class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" matTooltipPosition="right"
            aria-label="Raster Images Private Limited">
           <img src="assets/images/cms-icon.svg" alt="OneCMS" class="sidenav-footer-icon-logo"/>

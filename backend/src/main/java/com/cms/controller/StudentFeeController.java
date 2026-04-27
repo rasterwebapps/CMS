@@ -61,8 +61,13 @@ public class StudentFeeController {
     @GetMapping("/{studentId}/semester-breakdown")
     public ResponseEntity<StudentFeeAllocationResponse> getSemesterBreakdown(
             @PathVariable Long studentId) {
-        StudentFeeAllocationResponse response = feeFinalizationService.getByStudentId(studentId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(feeFinalizationService.getByStudentId(studentId));
+    }
+
+    @GetMapping("/{studentId}/semester-status")
+    public ResponseEntity<StudentFeeAllocationResponse> getSemesterStatus(
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(feeFinalizationService.getByStudentId(studentId));
     }
 
     @PostMapping("/{studentId}/collect")

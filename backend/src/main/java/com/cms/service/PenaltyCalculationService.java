@@ -51,7 +51,7 @@ public class PenaltyCalculationService {
         var allocation = allocationRepository.findByStudentId(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Fee allocation not found for student: " + student.getRollNumber()));
 
-        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumber(allocation.getId());
+        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
         LocalDate today = LocalDate.now();
 
         for (SemesterFee sf : semesterFees) {

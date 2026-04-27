@@ -75,7 +75,7 @@ class FeeExplorerServiceTest {
 
         when(studentRepository.findByRollNumber("CS2024001")).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(allocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(sf));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(sf));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("50000"));
         when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of());
 
@@ -147,7 +147,7 @@ class FeeExplorerServiceTest {
 
         when(studentRepository.findByRollNumber("CS2024001")).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(allocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(sf));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(sf));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of(penalty));
 

@@ -2,7 +2,6 @@ package com.cms.repository;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +15,7 @@ public interface FeeInstallmentRepository extends JpaRepository<FeeInstallment, 
 
     List<FeeInstallment> findByStudentId(Long studentId);
 
-    Optional<FeeInstallment> findByReceiptNumber(String receiptNumber);
+    List<FeeInstallment> findByReceiptNumber(String receiptNumber);
 
     @Query("SELECT COALESCE(SUM(fi.amountPaid), 0) FROM FeeInstallment fi " +
            "WHERE fi.semesterFee.id = :semesterFeeId")

@@ -117,6 +117,7 @@ export interface StudentFeeAllocation {
 export interface SemesterFeeDetail {
   id: number;
   yearNumber: number;
+  semesterSequence: number;
   semesterLabel: string;
   amount: number;
   dueDate: string;
@@ -124,6 +125,13 @@ export interface SemesterFeeDetail {
   pendingAmount: number;
   penaltyAmount: number;
   paymentStatus: string;
+}
+
+export interface SemesterPaymentDetail {
+  semesterLabel: string;
+  yearNumber: number;
+  semesterSequence: number;
+  amountApplied: number;
 }
 
 export interface StudentFeeAllocationRequest {
@@ -160,6 +168,7 @@ export interface CollectPaymentResponse {
   transactionReference: string;
   remarks: string;
   allocationSummary: string;
+  semesterBreakdown: SemesterPaymentDetail[];
   createdAt: string;
 }
 

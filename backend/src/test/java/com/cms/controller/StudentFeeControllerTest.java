@@ -109,9 +109,10 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.studentName").value("John Doe"))
             .andExpect(jsonPath("$.semesterFees.length()").value(2))
             .andExpect(jsonPath("$.semesterFees[0].yearNumber").value(1))
-            .andExpect(jsonPath("$.semesterFees[0].semesterLabel").value("Year 1"))
+            .andExpect(jsonPath("$.semesterFees[0].semesterSequence").value(1))
+            .andExpect(jsonPath("$.semesterFees[0].semesterLabel").value("Year 1 - Semester 1"))
             .andExpect(jsonPath("$.semesterFees[0].amount").value(100000.00))
-            .andExpect(jsonPath("$.semesterFees[1].yearNumber").value(2));
+            .andExpect(jsonPath("$.semesterFees[1].semesterSequence").value(2));
 
         verify(feeFinalizationService).getByStudentId(1L);
     }
@@ -125,6 +126,19 @@ class StudentFeeControllerTest {
             .andExpect(status().isNotFound());
 
         verify(feeFinalizationService).getByStudentId(999L);
+    }
+
+    @Test
+    void shouldGetSemesterStatus() throws Exception {
+        StudentFeeAllocationResponse response = createAllocationResponse();
+        when(feeFinalizationService.getByStudentId(1L)).thenReturn(response);
+
+        mockMvc.perform(get("/student-fees/1/semester-status"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.semesterFees.length()").value(2));
+
+        verify(feeFinalizationService).getByStudentId(1L);
     }
 
     @Test
@@ -345,14 +359,14 @@ class StudentFeeControllerTest {
             now, "admin",
             List.of(
                 new StudentFeeAllocationResponse.SemesterFeeDetail(
-                    10L, 1, "Year 1", new BigDecimal("100000.00"),
+                    10L, 1, 1, "Year 1 - Semester 1", new BigDecimal("100000.00"),
                     LocalDate.of(2025, 6, 1), new BigDecimal("50000.00"),
                     new BigDecimal("50000.00"), BigDecimal.ZERO, "PARTIAL"
                 ),
                 new StudentFeeAllocationResponse.SemesterFeeDetail(
-                    11L, 2, "Year 2", new BigDecimal("100000.00"),
-                    LocalDate.of(2026, 6, 1), BigDecimal.ZERO,
-                    new BigDecimal("100000.00"), BigDecimal.ZERO, "UNPAID"
+                    11L, 1, 2, "Year 1 - Semester 2", new BigDecimal("100000.00"),
+                    LocalDate.of(2025, 12, 1), BigDecimal.ZERO,
+                    new BigDecimal("100000.00"), BigDecimal.ZERO, "PENDING"
                 )
             ),
             now, now
@@ -364,7 +378,11 @@ class StudentFeeControllerTest {
             "RCP-2025-0001", 1L, "John Doe", "CS2024001",
             new BigDecimal("50000.00"), LocalDate.of(2025, 1, 15),
             PaymentMode.UPI, "TXN-UPI-12345", "First installment",
-            "Year 1: 50000.00 paid", Instant.now()
+            "Year 1 - Semester 1: ₹50000.00",
+            List.of(new com.cms.dto.SemesterPaymentDetail(
+                "Year 1 - Semester 1", 1, 1, new BigDecimal("50000.00")
+            )),
+            Instant.now()
         );
     }
 

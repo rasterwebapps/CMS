@@ -106,7 +106,6 @@
                 formControlName="studentType"
                 (change)="onStudentTypeChange()"
               >
-                <option [ngValue]="null">— Not Specified —</option>
                 @for (st of studentTypeOptions; track st.value) {
                   <option [value]="st.value">{{ st.label }}</option>
                 }

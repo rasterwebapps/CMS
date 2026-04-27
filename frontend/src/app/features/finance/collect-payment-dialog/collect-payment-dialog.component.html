@@ -1,74 +1,126 @@
-<h2 mat-dialog-title>Collect Payment</h2>
-<mat-dialog-content>
-  <form [formGroup]="form" class="dialog-form">
+@if (result) {
+  <!-- ── Receipt confirmation view ── -->
+  <h2 mat-dialog-title class="dialog-title dialog-title--success">
+    <mat-icon>check_circle</mat-icon>
+    Payment Collected
+  </h2>
 
-    <div class="field-group">
-      <label for="cpd-amount" class="field-label">Amount (₹) <span class="field-required">*</span></label>
-      <input
-        id="cpd-amount"
-        class="field-input"
-        type="number"
-        formControlName="amount"
-        min="1"
-        placeholder="0"
-        [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched"
-      />
-      @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-        <p class="field-error">Valid amount is required</p>
+  <mat-dialog-content class="receipt-view">
+    <div class="receipt-header">
+      <div class="receipt-number">{{ result.receiptNumber }}</div>
+      <div class="receipt-total">₹{{ result.amountPaid | number }}</div>
+    </div>
+
+    <div class="receipt-meta">
+      <span>{{ result.paymentDate }} &bull; {{ result.paymentMode }}</span>
+      @if (result.transactionReference) {
+        <span>Ref: {{ result.transactionReference }}</span>
       }
     </div>
 
-    <div class="field-group">
-      <label for="cpd-date" class="field-label">Payment Date <span class="field-required">*</span></label>
-      <input
-        id="cpd-date"
-        class="field-input"
-        type="date"
-        formControlName="paymentDate"
-        [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched"
-      />
-      @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
-        <p class="field-error">Payment date is required</p>
+    <div class="receipt-breakdown">
+      <div class="receipt-breakdown__title">Semester Allocation</div>
+      @for (s of result.semesterBreakdown; track s.semesterLabel) {
+        <div class="receipt-breakdown__row">
+          <span>{{ s.semesterLabel }}</span>
+          <span class="receipt-breakdown__amt">₹{{ s.amountApplied | number }}</span>
+        </div>
       }
     </div>
+  </mat-dialog-content>
 
-    <div class="field-group">
-      <label for="cpd-mode" class="field-label">Payment Mode <span class="field-required">*</span></label>
-      <select
-        id="cpd-mode"
-        class="field-select"
-        formControlName="paymentMode"
-        [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched"
-      >
-        <option value="" disabled>Select mode</option>
-        @for (mode of paymentModes; track mode) {
-          <option [value]="mode">{{ mode }}</option>
+  <mat-dialog-actions align="end">
+    <button mat-flat-button color="primary" (click)="onDone()">Done</button>
+  </mat-dialog-actions>
+
+} @else {
+  <!-- ── Payment form view ── -->
+  <h2 mat-dialog-title class="dialog-title">Collect Payment</h2>
+
+  <mat-dialog-content>
+    <form [formGroup]="form" class="dialog-form">
+
+      <div class="field-group">
+        <label for="cpd-amount" class="field-label">
+          Amount (₹) <span class="field-required">*</span>
+        </label>
+        <input
+          id="cpd-amount"
+          class="field-input"
+          type="number"
+          formControlName="amount"
+          min="1"
+          placeholder="0"
+          [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched"
+        />
+        @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+          <p class="field-error">Valid amount is required</p>
         }
-      </select>
-      @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
-        <p class="field-error">Payment mode is required</p>
+      </div>
+
+      <div class="field-group">
+        <label for="cpd-date" class="field-label">
+          Payment Date <span class="field-required">*</span>
+        </label>
+        <input
+          id="cpd-date"
+          class="field-input"
+          type="date"
+          formControlName="paymentDate"
+          [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched"
+        />
+        @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+          <p class="field-error">Payment date is required</p>
+        }
+      </div>
+
+      <div class="field-group">
+        <label for="cpd-mode" class="field-label">
+          Payment Mode <span class="field-required">*</span>
+        </label>
+        <select
+          id="cpd-mode"
+          class="field-select"
+          formControlName="paymentMode"
+          [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched"
+        >
+          <option value="" disabled>Select mode</option>
+          @for (mode of paymentModes; track mode) {
+            <option [value]="mode">{{ mode }}</option>
+          }
+        </select>
+        @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
+          <p class="field-error">Payment mode is required</p>
+        }
+      </div>
+
+      <div class="field-group">
+        <label for="cpd-ref" class="field-label">Transaction Reference</label>
+        <input id="cpd-ref" class="field-input" formControlName="transactionReference"
+               placeholder="UTR / Cheque No." />
+      </div>
+
+      <div class="field-group">
+        <label for="cpd-remarks" class="field-label">Remarks</label>
+        <textarea id="cpd-remarks" class="field-textarea" formControlName="remarks"
+                  rows="2" placeholder="Optional notes"></textarea>
+      </div>
+
+      <p class="cascade-hint">
+        <mat-icon>info</mat-icon>
+        Payment fills Semester 1 first, then cascades to subsequent semesters automatically.
+      </p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancel()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="saving">
+      @if (saving) {
+        <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+      } @else {
+        Pay
       }
-    </div>
-
-    <div class="field-group">
-      <label for="cpd-ref" class="field-label">Transaction Reference</label>
-      <input id="cpd-ref" class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No." />
-    </div>
-
-    <div class="field-group">
-      <label for="cpd-remarks" class="field-label">Remarks</label>
-      <textarea id="cpd-remarks" class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
-    </div>
-
-  </form>
-</mat-dialog-content>
-<mat-dialog-actions align="end">
-  <button mat-stroked-button (click)="onCancel()">Cancel</button>
-  <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="saving">
-    @if (saving) {
-      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-    } @else {
-      Pay
-    }
-  </button>
-</mat-dialog-actions>
+    </button>
+  </mat-dialog-actions>
+}

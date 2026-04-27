@@ -578,10 +578,48 @@ Step 7: STUDENT EXPLORER
 
 ---
 
+---
+
+## BR-13: Semester-Wise Fee Collection
+
+### Business Rule
+
+Fee structures are defined **yearly** (one amount per program year), but actual payment tracking is done **semester-wise**. Each yearly fee is automatically split into two equal semesters at the point of fee finalization.
+
+### Key Points
+
+1. When a fee allocation is finalized for a student, the system automatically splits each year's fee into two semesters:
+   - **Semester 1**: 50% of the year fee (floor-rounded), due at the year start date.
+   - **Semester 2**: remaining 50% (handles odd amounts), due 6 months after Semester 1.
+
+2. A student can pay **any amount** at any time — the system does not enforce minimum semester amounts.
+
+3. Payment cascades across semesters in order (Semester 1 first, then Semester 2, then Year 2 Semester 1, etc.). A single payment may partially or fully cover multiple semesters in one transaction.
+
+4. **One receipt is issued per payment** (not per semester). A single receipt number appears across all semester installment lines created by that payment, making the receipt the atomic unit of accounting.
+
+5. The semester-wise fee status table **must always be the first section shown** when opening a student's fee payment screen, even before the page is fully loaded (skeleton state). It shows: semester label, fee amount, amount paid, outstanding, due date, and payment status.
+
+6. Each semester displays a status: `PAID`, `PARTIAL`, or `PENDING`. A semester is also flagged as `OVERDUE` (visual indicator only) when its due date has passed and there is an outstanding balance.
+
+7. Receipts are displayed grouped by receipt number, showing which semesters were covered in each payment transaction.
+
+### Semester Label Format
+- `Year 1 - Semester 1`, `Year 1 - Semester 2`, `Year 2 - Semester 1`, etc.
+
+### API Endpoints
+- `POST /api/v1/student-fees/finalize` — finalizes fee and creates 2 semester records per year
+- `GET /api/v1/student-fees/{studentId}/semester-status` — returns semester-wise status (always shown first in UI)
+- `POST /api/v1/student-fees/{studentId}/collect` — collects any amount, cascades across semesters, returns ONE receipt with semester breakdown
+- `GET /api/v1/student-fees/{studentId}/receipts` — returns all installments; UI groups by receipt number
+
+---
+
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-04-27 | BR-13 | Added semester-wise fee collection: yearly fees auto-split into 2 semesters on finalization, payment cascade logic, single receipt per payment (fixed multiple-receipt bug), semester status as primary view in UI, receipt grouping by receipt number | — |
 | 2026-04-17 | BR-1, BR-2, BR-3, BR-12 | Fee structure and enquiry enhancements: (1) BR-1 updated — one fee structure group per course+academic year enforced; (2) BR-2 updated — year boxes based on program durationYears, all 8 fee types shown; (3) BR-3 updated — enquiry shows total fee only (no split), filtered by student type; (4) BR-12 added — student type (DAY_SCHOLAR/HOSTELER) on enquiry, controls fee inclusion | — |
 | 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |
 | 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, document submission, and student explorer | — |

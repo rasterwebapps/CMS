@@ -1,41 +1,301 @@
-.detail-container { padding: 24px 32px; }
-.header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.loading-container { display: flex; justify-content: center; padding: 48px; }
-
-.student-info { margin-bottom: 24px; }
-.student-info h3 { margin: 0 0 4px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
-.student-info p { margin: 0; color: var(--cms-text-muted); }
-
-.summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.summary-card { text-align: center; }
-.summary-label { font-size: 14px; color: var(--cms-text-muted); margin-bottom: 4px; }
-.summary-value { font-size: 24px; font-weight: 500; }
-.summary-value.penalty { color: var(--cms-danger); }
-
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
-.section-title { margin: 24px 0 16px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
-
-.semester-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.semester-card mat-card-content { padding-top: 8px; }
-.semester-detail { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
-.semester-status { display: flex; justify-content: flex-end; margin-top: 8px; }
-
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
+// ── Student summary strip ────────────────────────────────────────────────────
+.student-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
 }
-// Use global CMS badge tokens so colours respond correctly in dark mode
-// and remain semantically correct regardless of the chosen accent colour.
-.status-paid    { background-color: var(--cms-badge-green-bg);  color: var(--cms-badge-green-text); }
-.status-partial { background-color: var(--cms-badge-amber-bg);  color: var(--cms-badge-amber-text); }
-.status-overdue { background-color: var(--cms-badge-red-bg);    color: var(--cms-badge-red-text); }
-.status-pending { background-color: var(--cms-badge-blue-bg);   color: var(--cms-badge-blue-text); }
 
-.table-container { overflow-x: auto; }
-.data-table { width: 100%; }
-.no-data-cell { text-align: center; padding: 48px 16px; color: var(--cms-text-muted); }
+.student-summary__name {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cms-text-primary);
+}
+
+.student-summary__meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.student-summary__stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 18px;
+  background: var(--cms-bg-surface-2);
+  border: 1px solid var(--cms-line);
+  border-radius: 12px;
+  min-width: 110px;
+  text-align: center;
+
+  &--warn  { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06); }
+  &--danger { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+}
+
+.stat-pill__label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-pill__val {
+  font-family: var(--cms-font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+
+  &--green { color: #22C55E; }
+}
+
+// ── Section header ───────────────────────────────────────────────────────────
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cms-line);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+
+  &__icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--cms-primary);
+  }
+}
+
+// ── Skeleton loading ─────────────────────────────────────────────────────────
+.skeleton-table {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  animation: shimmer 1.4s infinite linear;
+  background: linear-gradient(
+    90deg,
+    var(--cms-bg-surface-2) 25%,
+    var(--cms-bg-surface-3) 50%,
+    var(--cms-bg-surface-2) 75%
+  );
+  background-size: 800px 100%;
+  border-radius: 8px;
+  height: 40px;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeleton-cell {
+  height: 16px;
+  border-radius: 6px;
+  background: var(--cms-bg-surface-3);
+  flex: 1;
+
+  &--wide   { flex: 2; }
+  &--badge  { flex: 0.8; }
+}
+
+// ── Semester table ───────────────────────────────────────────────────────────
+.table-wrapper { overflow-x: auto; }
+
+.semester-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 11px 16px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    border-bottom: 1px solid var(--cms-line);
+    white-space: nowrap;
+    background: var(--cms-bg-subtle);
+  }
+
+  td {
+    padding: 12px 16px;
+    color: var(--cms-text-secondary);
+    border-bottom: 1px solid var(--cms-line);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tfoot td {
+    padding: 13px 16px;
+    border-top: 2px solid var(--cms-line-strong);
+    border-bottom: none;
+    font-size: 13.5px;
+    background: var(--cms-bg-subtle);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tbody tr {
+    transition: background 0.15s;
+
+    &:hover td { background: rgba(var(--cms-primary-rgb), 0.03); }
+
+    &.row--overdue td { background: rgba(239,68,68,0.04); }
+    &.row--paid td { opacity: 0.7; }
+  }
+}
+
+.semester-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--cms-text-primary) !important;
+  min-width: 220px;
+}
+
+.semester-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  color: var(--cms-primary);
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.overdue-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #EF4444;
+  background: rgba(239,68,68,0.10);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.text-right { text-align: right !important; }
+.mono { font-family: var(--cms-font-mono); font-weight: 500; }
+.mono-sm { font-family: var(--cms-font-mono); font-size: 12px; }
+.text-green { color: #22C55E !important; }
+.text-red { color: #EF4444 !important; }
+.text-muted { color: var(--cms-text-muted); font-weight: 400; }
+
+// ── Receipt list ─────────────────────────────────────────────────────────────
+.receipt-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.receipt-group {
+  border: 1px solid var(--cms-line);
+  border-radius: 12px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--cms-bg-surface-2);
+    border-bottom: 1px solid var(--cms-line);
+  }
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__total {
+    font-family: var(--cms-font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+}
+
+.receipt-number {
+  font-family: var(--cms-font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--cms-primary);
+  letter-spacing: 0.02em;
+}
+
+.receipt-meta {
+  font-size: 11.5px;
+  color: var(--cms-text-muted);
+}
+
+.receipt-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--cms-line);
+  font-size: 13px;
+
+  &:last-child { border-bottom: none; }
+
+  &__semester { color: var(--cms-text-secondary); }
+
+  &__amount {
+    font-family: var(--cms-font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+}
+
+.empty-receipts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--cms-text-muted);
+
+  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.4; }
+  p { margin: 0; font-size: 13px; }
+}

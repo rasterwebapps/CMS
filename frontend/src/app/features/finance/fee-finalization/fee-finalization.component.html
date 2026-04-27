@@ -1,54 +1,63 @@
-<div class="form-container">
+<div class="finalization-page">
   @if (!layoutService.isFocusMode()) {
-    <app-page-header title="Fee Finalization" subtitle="Select an enquiry to finalize fees." />
+    <app-page-header
+      title="Fee Finalization"
+      subtitle="Set year-wise fees and apply discounts before converting to student." />
   }
 
+  <!-- ──────────────────── Enquiry list ──────────────────── -->
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+    <div class="loading-center"><mat-spinner diameter="40" /></div>
+
   } @else if (!selectedEnquiry()) {
-    <!-- Enquiry List -->
-    <p class="page-subtitle">Select an enquiry with status INTERESTED to finalize fees.</p>
     <div class="content-card">
       @if (dataSource.data.length === 0) {
         <div class="empty-state">
-          <mat-icon class="empty-state__icon-mat">hourglass_empty</mat-icon>
-          <p class="empty-state__text">No enquiries in INTERESTED status</p>
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>No enquiries in <strong>INTERESTED</strong> status</p>
         </div>
       } @else {
         <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" class="modern-table">
+
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Name</th>
-              <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.name }}</span></td>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-primary">{{ row.name }}</span>
+              </td>
             </ng-container>
+
             <ng-container matColumnDef="programName">
               <th mat-header-cell *matHeaderCellDef>Program</th>
               <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
             </ng-container>
+
             <ng-container matColumnDef="courseName">
               <th mat-header-cell *matHeaderCellDef>Course</th>
               <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
             </ng-container>
+
             <ng-container matColumnDef="referralTypeName">
-              <th mat-header-cell *matHeaderCellDef>Referral Type</th>
+              <th mat-header-cell *matHeaderCellDef>Referral</th>
               <td mat-cell *matCellDef="let row">{{ row.referralTypeName || '—' }}</td>
             </ng-container>
+
             <ng-container matColumnDef="finalCalculatedFee">
               <th mat-header-cell *matHeaderCellDef>Proposed Fee</th>
               <td mat-cell *matCellDef="let row">
                 @if (row.finalCalculatedFee) {
-                  <span class="cell-currency">{{ row.finalCalculatedFee | currency:'INR':'₹':'1.0-0' }}</span>
-                } @else {
-                  <span>—</span>
-                }
+                  <span class="cell-amount">{{ row.finalCalculatedFee | currency:'INR':'₹':'1.0-0' }}</span>
+                } @else { — }
               </td>
             </ng-container>
+
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+              <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let row">
-                <div class="row-actions">
-                  <button class="btn-primary btn-small" (click)="selectEnquiry(row)">Finalize</button>
-                </div>
+                <button class="btn-primary btn-sm" (click)="selectEnquiry(row)">
+                  <mat-icon>edit_note</mat-icon>
+                  Finalize
+                </button>
               </td>
             </ng-container>
 
@@ -58,129 +67,253 @@
         </div>
       }
     </div>
+
   } @else {
-    <!-- Finalization Form -->
-    <div class="finalize-layout">
-      <div class="entry-form-card">
-          <form [formGroup]="form" (ngSubmit)="onSubmit()">
-            <!-- Enquiry Summary -->
-            <div class="enquiry-summary">
-              <div class="summary-row">
-                <span class="summary-label">Name</span>
-                <span class="summary-value">{{ selectedEnquiry()!.name }}</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Program</span>
-                <span class="summary-value">{{ selectedEnquiry()!.programName || '—' }}</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Course</span>
-                <span class="summary-value">{{ selectedEnquiry()!.courseName || '—' }}</span>
-              </div>
-              @if (selectedEnquiry()!.referralTypeName) {
-                <div class="summary-row">
-                  <span class="summary-label">Referral Type</span>
-                  <span class="summary-value">{{ selectedEnquiry()!.referralTypeName }}</span>
-                </div>
-              }
-              @if (selectedEnquiry()!.referralHasCommission) {
-                <div class="summary-row">
-                  <span class="summary-label">Commission Amount</span>
-                  <span class="summary-value commission-value">{{ selectedEnquiry()!.referralCommissionAmount | currency:'INR':'₹':'1.0-0' }}</span>
-                </div>
-              }
-              @if (selectedEnquiry()!.studentType) {
-                <div class="summary-row">
-                  <span class="summary-label">Student Type</span>
-                  <span class="summary-value">{{ selectedEnquiry()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}</span>
-                </div>
-              }
-              @if (selectedEnquiry()!.feeGuidelineTotal) {
-                <div class="summary-row">
-                  <span class="summary-label">Guideline Fee (from structure)</span>
-                  <span class="summary-value">{{ selectedEnquiry()!.feeGuidelineTotal | currency:'INR':'₹':'1.0-0' }}</span>
-                </div>
-              }
+    <!-- ──────────────────── Finalization form ──────────────────── -->
+    <div class="finalize-grid">
+
+      <!-- LEFT: Student/enquiry info -->
+      <div class="info-panel content-card">
+        <div class="card-section-hdr">
+          <div class="card-section-hdr__title">
+            <mat-icon>person_outline</mat-icon>
+            Enquiry Details
+          </div>
+        </div>
+
+        <div class="info-rows">
+          <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-val info-val--strong">{{ selectedEnquiry()!.name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Program</span>
+            <span class="info-val">{{ selectedEnquiry()!.programName || '—' }}</span>
+          </div>
+          @if (selectedEnquiry()!.courseName) {
+            <div class="info-row">
+              <span class="info-label">Course</span>
+              <span class="info-val">{{ selectedEnquiry()!.courseName }}</span>
             </div>
-
-            <div class="field-group">
-              <label for="ff-total-fee" class="field-label">Total Fee (₹)</label>
-              <input id="ff-total-fee" class="field-input" type="number" formControlName="totalFee" min="0" readonly />
-              <p class="field-hint">Pre-populated from fee structure — not editable</p>
-              @if (form.get('totalFee')?.invalid && form.get('totalFee')?.touched) {
-                <p class="field-error">Total fee is required</p>
-              }
+          }
+          @if (selectedEnquiry()!.referralTypeName) {
+            <div class="info-row">
+              <span class="info-label">Referral</span>
+              <span class="info-val">{{ selectedEnquiry()!.referralTypeName }}</span>
             </div>
-
-            <div class="form-row">
-              <div class="field-group">
-                <label for="ff-discount" class="field-label">Discount Amount (₹)</label>
-                <input id="ff-discount" class="field-input" type="number" formControlName="discountAmount" min="0" placeholder="0" />
-                @if (form.hasError('discountExceedsTotal')) {
-                  <p class="field-error">Discount cannot exceed the total fee</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="ff-reason" class="field-label">Discount Reason</label>
-                <input id="ff-reason" class="field-input" formControlName="discountReason" placeholder="e.g., Merit scholarship" />
-              </div>
+          }
+          @if (selectedEnquiry()!.referralHasCommission) {
+            <div class="info-row">
+              <span class="info-label">Commission</span>
+              <span class="info-val info-val--warn info-val--amount">
+                {{ selectedEnquiry()!.referralCommissionAmount | currency:'INR':'₹':'1.0-0' }}
+              </span>
             </div>
-
-            <div class="net-fee-preview">
-              <strong>Net Fee: ₹{{ netFee() | number }}</strong>
+          }
+          @if (selectedEnquiry()!.studentType) {
+            <div class="info-row">
+              <span class="info-label">Student Type</span>
+              <span class="info-val">
+                {{ selectedEnquiry()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
+              </span>
             </div>
-
-            <!-- Semester-wise Fee Breakdown -->
-            @if (semesterFees().length > 0) {
-              <div class="semester-fees-section">
-                <div class="semester-fees-hdr">
-                  <h3 class="semester-fees-title">Semester-wise Fee Breakdown</h3>
-                  <button type="button" class="btn-redistribute" (click)="redistributeSemesters()" matTooltip="Split net fee equally across semesters">
-                    <mat-icon>autorenew</mat-icon>
-                    Redistribute
-                  </button>
-                </div>
-                <p class="semester-fees-hint">Enter the fee amount due for each semester. The sum should equal the net fee.</p>
-
-                <div class="semester-grid">
-                  @for (sf of semesterFees(); track sf.semesterNumber; let i = $index) {
-                    <div class="semester-row">
-                      <span class="semester-label">{{ sf.semesterLabel }}</span>
-                      <input
-                        class="field-input semester-amount-input"
-                        type="number"
-                        min="0"
-                        [value]="sf.amount"
-                        (change)="updateSemesterAmount(i, $any($event.target).value)"
-                      />
-                    </div>
-                  }
-                </div>
-
-                <div class="semester-total-row" [class.semester-total--mismatch]="semesterSumMismatch()">
-                  <span class="semester-total-label">Sum of Semester Fees</span>
-                  <span class="semester-total-value">{{ semesterTotal() | currency:'INR':'₹':'1.0-0' }}</span>
-                  @if (semesterSumMismatch()) {
-                    <span class="semester-mismatch-note">⚠ Does not match Net Fee ({{ netFee() | currency:'INR':'₹':'1.0-0' }})</span>
-                  } @else {
-                    <span class="semester-match-note">✓ Matches net fee</span>
-                  }
-                </div>
-              </div>
-            }
-
-            <div class="form-footer">
-              <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
-              <button type="submit" class="btn-submit" [disabled]="saving()">
-                @if (saving()) {
-                  <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-                } @else {
-                  Finalize Fee
-                }
-              </button>
+          }
+          @if (selectedEnquiry()!.feeGuidelineTotal) {
+            <div class="info-row info-row--highlight">
+              <span class="info-label">Guideline Total</span>
+              <span class="info-val info-val--strong info-val--amount">
+                {{ selectedEnquiry()!.feeGuidelineTotal | currency:'INR':'₹':'1.0-0' }}
+              </span>
             </div>
-          </form>
+          }
+          @if (selectedEnquiry()!.remarks) {
+            <div class="info-row info-row--remarks">
+              <span class="info-label">Remarks</span>
+              <span class="info-val info-val--remark">{{ selectedEnquiry()!.remarks }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Fee summary strip -->
+        <div class="fee-summary">
+          <div class="fee-summary__item">
+            <span class="fee-summary__label">Original Fee</span>
+            <span class="fee-summary__val">₹{{ totalOriginal() | number }}</span>
+          </div>
+          @if (hasDiscount()) {
+            <div class="fee-summary__item fee-summary__item--discount">
+              <span class="fee-summary__label">Total Discount</span>
+              <span class="fee-summary__val fee-summary__val--red">
+                − ₹{{ totalDiscount() | number }}
+                <small>({{ discountPct() | percent:'1.1-1' }})</small>
+              </span>
+            </div>
+          }
+          <div class="fee-summary__item fee-summary__item--net">
+            <span class="fee-summary__label">Net Fee</span>
+            <span class="fee-summary__val fee-summary__val--primary">₹{{ totalFinal() | number }}</span>
+          </div>
+        </div>
       </div>
+
+      <!-- RIGHT: Year-wise fee table + discount controls -->
+      <div class="fee-panel">
+
+        <!-- Year-wise table -->
+        <div class="content-card">
+          <div class="card-section-hdr">
+            <div class="card-section-hdr__title">
+              <mat-icon>calendar_view_month</mat-icon>
+              Year-wise Fee Breakdown
+            </div>
+            <button class="btn-ghost btn-sm" type="button"
+                    (click)="resetDiscount()"
+                    [disabled]="!hasDiscount()"
+                    matTooltip="Reset all year amounts to original">
+              <mat-icon>restart_alt</mat-icon>
+              Reset
+            </button>
+          </div>
+
+          <div class="year-table-wrap">
+            <table class="year-table">
+              <colgroup>
+                <col class="col-year" />
+                <col class="col-original" />
+                <col class="col-final" />
+                <col class="col-discount" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Original Fee</th>
+                  <th>Final Fee</th>
+                  <th>Discount</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of yearRows(); track row.yearNumber; let i = $index) {
+                  <tr>
+                    <td>
+                      <span class="year-badge">Y{{ row.yearNumber }}</span>
+                      {{ row.yearLabel }}
+                    </td>
+                    <td class="mono">₹{{ row.originalAmount | number }}</td>
+                    <td class="text-right">
+                      <div class="amount-input-wrap">
+                        <span class="amount-prefix">₹</span>
+                        <input
+                          class="amount-input"
+                          type="number"
+                          min="0"
+                          [max]="row.originalAmount"
+                          [value]="row.finalAmount"
+                          (change)="updateYearAmount(i, $any($event.target).value)"
+                          [class.amount-input--reduced]="row.finalAmount < row.originalAmount"
+                        />
+                      </div>
+                    </td>
+                    <td class="text-right">
+                      @if (row.originalAmount - row.finalAmount > 0) {
+                        <span class="discount-chip">
+                          − ₹{{ (row.originalAmount - row.finalAmount) | number }}
+                        </span>
+                      } @else {
+                        <span class="no-discount">—</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td><strong>Total</strong></td>
+                  <td class="mono"><strong>₹{{ totalOriginal() | number }}</strong></td>
+                  <td class="mono net-total">
+                    <strong>₹{{ totalFinal() | number }}</strong>
+                  </td>
+                  <td class="text-right">
+                    @if (hasDiscount()) {
+                      <strong class="discount-chip">− ₹{{ totalDiscount() | number }}</strong>
+                    } @else {
+                      <span class="no-discount">—</span>
+                    }
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          @if (anyYearBelowZero()) {
+            <p class="field-error-block">Year fee cannot be negative</p>
+          }
+        </div>
+
+        <!-- Global discount control -->
+        <div class="content-card discount-card">
+          <div class="card-section-hdr">
+            <div class="card-section-hdr__title">
+              <mat-icon>discount</mat-icon>
+              Apply Global Discount
+            </div>
+            <span class="discount-hint">Distributed proportionally across all years</span>
+          </div>
+
+          <div class="discount-controls">
+            <div class="discount-amount-col">
+              <label class="field-label">Discount Amount (₹)</label>
+              <div class="discount-amount-row">
+                <div class="amount-input-wrap">
+                  <span class="amount-prefix">₹</span>
+                  <input
+                    class="amount-input amount-input--lg"
+                    type="number"
+                    min="0"
+                    [max]="totalOriginal()"
+                    [value]="globalDiscount()"
+                    placeholder="0"
+                    (change)="applyGlobalDiscount($any($event.target).value)"
+                  />
+                </div>
+                @if (hasDiscount()) {
+                  <span class="discount-pct-badge">{{ discountPct() | percent:'1.1-1' }} off</span>
+                }
+              </div>
+            </div>
+
+            <div class="discount-reason-col">
+              <label class="field-label">Discount Reason</label>
+              <input
+                class="field-input"
+                [formControl]="discountReasonCtrl"
+                placeholder="e.g., Merit scholarship, Management quota…"
+              />
+            </div>
+          </div>
+
+          @if (discountExceedsTotal()) {
+            <p class="field-error-block">Discount cannot exceed the total fee</p>
+          }
+        </div>
+
+      </div><!-- /fee-panel -->
+    </div><!-- /finalize-grid -->
+
+    <!-- Action bar — outside the grid so it doesn't affect card heights -->
+    <div class="action-bar">
+      <button class="btn-cancel" type="button" (click)="backToList()">Cancel</button>
+      <button
+        class="btn-primary"
+        type="button"
+        [disabled]="!canSubmit() || saving()"
+        (click)="onSubmit()">
+        @if (saving()) {
+          <mat-spinner diameter="18" class="btn-spinner" />
+        } @else {
+          <mat-icon>check_circle</mat-icon>
+          Finalize Fee
+        }
+      </button>
     </div>
   }
 </div>

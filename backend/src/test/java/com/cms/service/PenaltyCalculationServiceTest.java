@@ -81,7 +81,7 @@ class PenaltyCalculationServiceTest {
     void shouldCalculatePenaltyForOverdueSemester() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(semesterFee1));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of());
         when(penaltyRepository.save(any(Penalty.class))).thenAnswer(inv -> {
@@ -108,7 +108,7 @@ class PenaltyCalculationServiceTest {
     void shouldNotCreatePenaltyWhenFullyPaid() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(semesterFee1));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(penaltyRepository.findByStudentId(1L)).thenReturn(List.of());
 
@@ -127,7 +127,7 @@ class PenaltyCalculationServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(semesterFee1));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of(existingPenalty));
         when(penaltyRepository.save(any(Penalty.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -148,7 +148,7 @@ class PenaltyCalculationServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(semesterFee1));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of(paidPenalty));
         when(penaltyRepository.findByStudentId(1L)).thenReturn(List.of(paidPenalty));
@@ -167,7 +167,7 @@ class PenaltyCalculationServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(futureFee));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L)).thenReturn(List.of(futureFee));
         when(penaltyRepository.findByStudentId(1L)).thenReturn(List.of());
 
         PenaltyResponse response = service.calculatePenalties(1L);

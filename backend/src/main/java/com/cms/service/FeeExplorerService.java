@@ -49,7 +49,7 @@ public class FeeExplorerService {
             if (allocationOpt.isPresent()) {
                 StudentFeeAllocation allocation = allocationOpt.get();
                 List<SemesterFee> semesterFees = semesterFeeRepository
-                    .findByAllocationIdOrderByYearNumber(allocation.getId());
+                    .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
                 BigDecimal totalPaid = BigDecimal.ZERO;
                 BigDecimal totalPenalty = BigDecimal.ZERO;

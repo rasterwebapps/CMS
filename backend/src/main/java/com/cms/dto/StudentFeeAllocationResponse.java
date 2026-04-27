@@ -27,6 +27,7 @@ public record StudentFeeAllocationResponse(
     public record SemesterFeeDetail(
         Long id,
         Integer yearNumber,
+        Integer semesterSequence,
         String semesterLabel,
         BigDecimal amount,
         LocalDate dueDate,

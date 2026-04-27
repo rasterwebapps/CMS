@@ -44,6 +44,9 @@ public class SemesterFee {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
+    @Column(name = "semester_sequence", nullable = false)
+    private Integer semesterSequence = 1;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -62,6 +65,13 @@ public class SemesterFee {
         this.semesterLabel = semesterLabel;
         this.amount = amount;
         this.dueDate = dueDate;
+    }
+
+    public SemesterFee(StudentFeeAllocation allocation, Integer yearNumber,
+                       String semesterLabel, BigDecimal amount, LocalDate dueDate,
+                       Integer semesterSequence) {
+        this(allocation, yearNumber, semesterLabel, amount, dueDate);
+        this.semesterSequence = semesterSequence;
     }
 
     public Long getId() {
@@ -110,6 +120,14 @@ public class SemesterFee {
 
     public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
+    }
+
+    public Integer getSemesterSequence() {
+        return semesterSequence;
+    }
+
+    public void setSemesterSequence(Integer semesterSequence) {
+        this.semesterSequence = semesterSequence;
     }
 
     public Instant getCreatedAt() {

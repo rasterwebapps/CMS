@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.ReceiptResponse;
+import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.FeeInstallment;
 import com.cms.model.SemesterFee;
@@ -48,16 +49,21 @@ public class PaymentCollectionService {
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
         StudentFeeAllocation allocation = allocationRepository.findByStudentId(studentId)
-            .orElseThrow(() -> new ResourceNotFoundException("Fee allocation not found for student: " + student.getRollNumber()));
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Fee allocation not found for student: " + student.getRollNumber()));
 
         if (allocation.getStatus() != FeeAllocationStatus.FINALIZED) {
-            throw new IllegalStateException("Fee allocation is not finalized for student: " + student.getRollNumber());
+            throw new IllegalStateException(
+                "Fee allocation is not finalized for student: " + student.getRollNumber());
         }
 
-        List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumber(allocation.getId());
+        List<SemesterFee> semesterFees = semesterFeeRepository
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
         BigDecimal remaining = request.amount();
         List<String> allocationDetails = new ArrayList<>();
+        List<SemesterPaymentDetail> semesterBreakdown = new ArrayList<>();
+        // One receipt number for the entire payment regardless of how many semesters it covers
         String receiptNumber = generateReceiptNumber();
 
         for (SemesterFee sf : semesterFees) {
@@ -83,24 +89,22 @@ public class PaymentCollectionService {
             installmentRepository.save(installment);
 
             allocationDetails.add(sf.getSemesterLabel() + ": ₹" + payForThisSemester.toPlainString());
+            semesterBreakdown.add(new SemesterPaymentDetail(
+                sf.getSemesterLabel(), sf.getYearNumber(), sf.getSemesterSequence(), payForThisSemester
+            ));
             remaining = remaining.subtract(payForThisSemester);
-
-            // For subsequent semesters in the same payment, generate new receipt numbers
-            if (remaining.compareTo(BigDecimal.ZERO) > 0) {
-                receiptNumber = generateReceiptNumber();
-            }
         }
 
         if (allocationDetails.isEmpty()) {
             throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
         }
 
-        String summary = String.join("; ", allocationDetails);
-
         return new CollectPaymentResponse(
             receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
             request.amount().subtract(remaining), request.paymentDate(), request.paymentMode(),
-            request.transactionReference(), request.remarks(), summary,
+            request.transactionReference(), request.remarks(),
+            String.join("; ", allocationDetails),
+            semesterBreakdown,
             java.time.Instant.now()
         );
     }

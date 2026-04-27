@@ -10,8 +10,9 @@ import com.cms.model.SemesterFee;
 
 public interface SemesterFeeRepository extends JpaRepository<SemesterFee, Long> {
 
-    List<SemesterFee> findByAllocationIdOrderByYearNumber(Long allocationId);
+    List<SemesterFee> findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(Long allocationId);
 
-    @Query("SELECT sf FROM SemesterFee sf WHERE sf.allocation.student.id = :studentId ORDER BY sf.yearNumber")
-    List<SemesterFee> findByStudentIdOrderByYearNumber(@Param("studentId") Long studentId);
+    @Query("SELECT sf FROM SemesterFee sf WHERE sf.allocation.student.id = :studentId " +
+           "ORDER BY sf.yearNumber ASC, sf.semesterSequence ASC")
+    List<SemesterFee> findByStudentIdOrderByYearNumberAndSemesterSequence(@Param("studentId") Long studentId);
 }

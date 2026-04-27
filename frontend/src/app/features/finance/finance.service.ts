@@ -95,6 +95,10 @@ export class FinanceService {
     return this.http.get<StudentFeeAllocation>(`${this.studentFeeUrl}/${studentId}/semester-breakdown`);
   }
 
+  getSemesterStatus(studentId: number): Observable<StudentFeeAllocation> {
+    return this.http.get<StudentFeeAllocation>(`${this.studentFeeUrl}/${studentId}/semester-status`);
+  }
+
   collectPayment(studentId: number, request: CollectPaymentRequest): Observable<CollectPaymentResponse> {
     return this.http.post<CollectPaymentResponse>(`${this.studentFeeUrl}/${studentId}/collect`, request);
   }

@@ -50,7 +50,7 @@ public class FeeInstallment {
     @Column(name = "payment_mode", nullable = false)
     private PaymentMode paymentMode;
 
-    @Column(name = "receipt_number", nullable = false, unique = true)
+    @Column(name = "receipt_number", nullable = false)
     private String receiptNumber;
 
     @Column(name = "transaction_reference")

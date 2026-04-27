@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -14,6 +16,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -37,14 +40,10 @@ import com.cms.repository.StudentRepository;
 @ExtendWith(MockitoExtension.class)
 class PaymentCollectionServiceTest {
 
-    @Mock
-    private StudentFeeAllocationRepository allocationRepository;
-    @Mock
-    private SemesterFeeRepository semesterFeeRepository;
-    @Mock
-    private FeeInstallmentRepository installmentRepository;
-    @Mock
-    private StudentRepository studentRepository;
+    @Mock private StudentFeeAllocationRepository allocationRepository;
+    @Mock private SemesterFeeRepository semesterFeeRepository;
+    @Mock private FeeInstallmentRepository installmentRepository;
+    @Mock private StudentRepository studentRepository;
 
     private PaymentCollectionService service;
 
@@ -74,10 +73,13 @@ class PaymentCollectionServiceTest {
         );
         testAllocation.setId(1L);
 
-        semesterFee1 = new SemesterFee(testAllocation, 1, "Year 1", new BigDecimal("200000"), LocalDate.of(2024, 7, 31));
+        // Year 1, Semester 1 and 2 — 200000 each
+        semesterFee1 = new SemesterFee(testAllocation, 1, "Year 1 - Semester 1",
+            new BigDecimal("200000"), LocalDate.of(2024, 7, 31), 1);
         semesterFee1.setId(1L);
 
-        semesterFee2 = new SemesterFee(testAllocation, 2, "Year 2", new BigDecimal("200000"), LocalDate.of(2025, 7, 31));
+        semesterFee2 = new SemesterFee(testAllocation, 1, "Year 1 - Semester 2",
+            new BigDecimal("200000"), LocalDate.of(2025, 1, 31), 2);
         semesterFee2.setId(2L);
     }
 
@@ -89,34 +91,69 @@ class PaymentCollectionServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1, semesterFee2));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
 
-        assertThat(response.amountPaid()).isEqualTo(new BigDecimal("100000"));
+        assertThat(response.amountPaid()).isEqualByComparingTo("100000");
         assertThat(response.studentName()).isEqualTo("John Doe");
+        assertThat(response.semesterBreakdown()).hasSize(1);
+        assertThat(response.semesterBreakdown().get(0).semesterLabel()).isEqualTo("Year 1 - Semester 1");
+        assertThat(response.semesterBreakdown().get(0).amountApplied()).isEqualByComparingTo("100000");
     }
 
     @Test
-    void shouldCarryForwardExcessPayment() {
+    void shouldCarryForwardExcessPaymentWithSameReceiptNumber() {
         CollectPaymentRequest request = new CollectPaymentRequest(
             new BigDecimal("300000"), LocalDate.now(), PaymentMode.CASH, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1, semesterFee2));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
 
-        assertThat(response.amountPaid()).isEqualTo(new BigDecimal("300000"));
-        assertThat(response.allocationSummary()).contains("Year 1");
-        assertThat(response.allocationSummary()).contains("Year 2");
+        assertThat(response.amountPaid()).isEqualByComparingTo("300000");
+        assertThat(response.semesterBreakdown()).hasSize(2);
+        assertThat(response.allocationSummary()).contains("Year 1 - Semester 1");
+        assertThat(response.allocationSummary()).contains("Year 1 - Semester 2");
+
+        // Verify both installments share the SAME receipt number
+        ArgumentCaptor<FeeInstallment> captor = ArgumentCaptor.forClass(FeeInstallment.class);
+        verify(installmentRepository, times(2)).save(captor.capture());
+        List<FeeInstallment> saved = captor.getAllValues();
+        assertThat(saved.get(0).getReceiptNumber()).isEqualTo(saved.get(1).getReceiptNumber());
+    }
+
+    @Test
+    void shouldReturnSemesterBreakdownInResponse() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("350000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectPayment(1L, request);
+
+        assertThat(response.semesterBreakdown()).hasSize(2);
+        assertThat(response.semesterBreakdown().get(0).semesterSequence()).isEqualTo(1);
+        assertThat(response.semesterBreakdown().get(0).amountApplied()).isEqualByComparingTo("200000");
+        assertThat(response.semesterBreakdown().get(1).semesterSequence()).isEqualTo(2);
+        assertThat(response.semesterBreakdown().get(1).amountApplied()).isEqualByComparingTo("150000");
     }
 
     @Test
@@ -127,15 +164,18 @@ class PaymentCollectionServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1, semesterFee2));
-        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000")); // fully paid
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
 
-        assertThat(response.allocationSummary()).contains("Year 2");
-        assertThat(response.allocationSummary()).doesNotContain("Year 1");
+        assertThat(response.allocationSummary()).contains("Year 1 - Semester 2");
+        assertThat(response.allocationSummary()).doesNotContain("Year 1 - Semester 1");
+        assertThat(response.semesterBreakdown()).hasSize(1);
+        assertThat(response.semesterBreakdown().get(0).semesterSequence()).isEqualTo(2);
     }
 
     @Test
@@ -143,7 +183,6 @@ class PaymentCollectionServiceTest {
         CollectPaymentRequest request = new CollectPaymentRequest(
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
         );
-
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.collectPayment(999L, request))
@@ -155,7 +194,6 @@ class PaymentCollectionServiceTest {
         CollectPaymentRequest request = new CollectPaymentRequest(
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
         );
-
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
 
@@ -169,7 +207,6 @@ class PaymentCollectionServiceTest {
         CollectPaymentRequest request = new CollectPaymentRequest(
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
         );
-
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
 
@@ -183,10 +220,10 @@ class PaymentCollectionServiceTest {
         CollectPaymentRequest request = new CollectPaymentRequest(
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
         );
-
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
-        when(semesterFeeRepository.findByAllocationIdOrderByYearNumber(1L)).thenReturn(List.of(semesterFee1, semesterFee2));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("200000"));
 
