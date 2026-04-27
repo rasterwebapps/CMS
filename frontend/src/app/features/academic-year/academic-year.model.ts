@@ -61,3 +61,47 @@ export interface CalendarEventRequest {
   academicYearId: number;
   semesterId?: number;
 }
+
+export type TermType = 'ODD' | 'EVEN';
+export type TermInstanceStatus = 'PLANNED' | 'OPEN' | 'LOCKED';
+export type LateFeeType = 'FLAT' | 'PER_DAY';
+
+export interface TermInstance {
+  id: number;
+  academicYearId: number;
+  academicYearName: string;
+  termType: TermType;
+  startDate: string;
+  endDate: string;
+  status: TermInstanceStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TermInstanceUpdateRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+  status?: TermInstanceStatus | null;
+}
+
+export interface TermBillingSchedule {
+  id: number;
+  academicYearId: number;
+  academicYearName: string;
+  termType: TermType;
+  dueDate: string;
+  lateFeeType: LateFeeType;
+  lateFeeAmount: number;
+  graceDays: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TermBillingScheduleRequest {
+  academicYearId: number;
+  termType: TermType;
+  dueDate: string;
+  lateFeeType: LateFeeType;
+  lateFeeAmount: number;
+  graceDays: number;
+}

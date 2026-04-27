@@ -39,7 +39,7 @@ export class ProgramListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'totalSemesters', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
