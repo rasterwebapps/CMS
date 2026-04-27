@@ -239,6 +239,25 @@ class FeeDemandServiceImplTest {
     }
 
     @Test
+    void shouldThrowWhenNoFeeAmountsForYearOfStudy() {
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(billingScheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(billingSchedule));
+        when(enrollmentRepository.findByTermInstanceIdAndStatus(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(enrollment));
+        when(feeDemandRepository.findByStudentTermEnrollmentId(400L))
+            .thenReturn(Optional.empty());
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(100L, 1L))
+            .thenReturn(List.of(feeStructure));
+        when(yearAmountRepository.findByFeeStructureIdAndYearNumber(500L, 1))
+            .thenReturn(List.of()); // no amounts for yearOfStudy=1
+
+        assertThatThrownBy(() -> service.generateDemandsForTermInstance(10L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("No fee amounts configured for year of study");
+    }
+
+    @Test
     void shouldGetDemandsByTermInstance() {
         FeeDemand demand = buildSampleDemand(1L);
         when(feeDemandRepository.findByTermInstanceId(10L)).thenReturn(List.of(demand));

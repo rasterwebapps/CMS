@@ -173,6 +173,14 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         for (FeeStructureYearAmount ya : matchingAmounts) {
             total = total.add(ya.getAmount());
         }
+
+        if (matchingAmounts.isEmpty()) {
+            throw new IllegalStateException(
+                "No fee amounts configured for year of study " + yearOfStudy
+                + " in program " + enrollment.getCohort().getProgram().getCode()
+                + ". Please configure fee amounts for this year.");
+        }
+
         return total;
     }
 

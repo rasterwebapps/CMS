@@ -306,11 +306,7 @@
     }
 
     <!-- Fee Demands Section -->
-    @let openOrLockedTerm = oddTermInstance()?.status === 'OPEN' || oddTermInstance()?.status === 'LOCKED'
-      ? oddTermInstance()
-      : (evenTermInstance()?.status === 'OPEN' || evenTermInstance()?.status === 'LOCKED'
-          ? evenTermInstance() : null);
-    @if (openOrLockedTerm) {
+    @if (openOrLockedTerm()) {
       <h3 class="section-title">Fee Demands</h3>
       <div class="detail-card">
         <div class="offerings-header">
@@ -325,9 +321,9 @@
               <option value="WAIVED">Waived</option>
             </select>
           </div>
-          @if (openOrLockedTerm?.status === 'OPEN') {
+          @if (openOrLockedTerm()?.status === 'OPEN') {
             <button class="btn-secondary"
-              (click)="generateFeeDemands(openOrLockedTerm!)"
+              (click)="generateFeeDemands(openOrLockedTerm()!)"
               [disabled]="generatingDemands()">
               <mat-icon>request_quote</mat-icon>
               Generate Fee Demands
@@ -337,7 +333,7 @@
 
         @if (filteredDemands().length === 0) {
           <p class="no-data">No fee demands found.
-            @if (openOrLockedTerm?.status === 'OPEN') {
+            @if (openOrLockedTerm()?.status === 'OPEN') {
               Click "Generate Fee Demands" to create them.
             }
           </p>
@@ -373,7 +369,7 @@
                     <td>
                       @if (demand.status !== 'PAID' && demand.status !== 'WAIVED') {
                         <button class="btn-ghost btn-xs"
-                          (click)="openPaymentDialog(demand, openOrLockedTerm!)">
+                          (click)="openPaymentDialog(demand, openOrLockedTerm()!)">
                           <mat-icon>payments</mat-icon>
                           Pay
                         </button>

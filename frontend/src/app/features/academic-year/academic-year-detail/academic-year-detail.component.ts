@@ -79,6 +79,14 @@ export class AcademicYearDetailComponent implements OnInit {
       : this.feeDemands();
   });
 
+  protected readonly openOrLockedTerm = computed<TermInstance | null>(() => {
+    const odd = this.oddTermInstance();
+    const even = this.evenTermInstance();
+    if (odd && (odd.status === 'OPEN' || odd.status === 'LOCKED')) return odd;
+    if (even && (even.status === 'OPEN' || even.status === 'LOCKED')) return even;
+    return null;
+  });
+
   protected readonly oddTermInstance = computed(() =>
     this.termInstances().find(t => t.termType === 'ODD') ?? null
   );
