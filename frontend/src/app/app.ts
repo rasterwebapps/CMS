@@ -216,7 +216,7 @@ export class App implements OnInit {
       roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'],
       items: [
         { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Fee Payments', icon: 'payments', route: '/fee-payments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
+        { label: 'Fee Collection', icon: 'payments', route: '/fee-collection', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
         {
           label: 'Fee Finalization',
           icon: 'lock',

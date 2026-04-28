@@ -289,11 +289,19 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'fee-collection',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/fee-collection/fee-collection.component').then(
+        (m) => m.FeeCollectionComponent
+      ),
+  },
+  {
     path: 'fee-payments',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/finance/enquiry-payment-collection/enquiry-payment-collection.component').then(
-        (m) => m.EnquiryPaymentCollectionComponent
+      import('./features/finance/fee-collection/fee-collection.component').then(
+        (m) => m.FeeCollectionComponent
       ),
   },
   {
@@ -716,8 +724,8 @@ export const routes: Routes = [
     path: 'student-fees/collect-payment',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/finance/enquiry-payment-collection/enquiry-payment-collection.component').then(
-        (m) => m.EnquiryPaymentCollectionComponent
+      import('./features/finance/fee-collection/fee-collection.component').then(
+        (m) => m.FeeCollectionComponent
       ),
   },
   {
