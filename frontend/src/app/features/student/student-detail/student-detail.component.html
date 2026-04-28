@@ -156,6 +156,153 @@
           </div>
         </div>
       </mat-tab>
+      <!-- Tab 5: Term Enrollments -->
+      <mat-tab label="Term Enrollments">
+        <div class="tab-content">
+          @if (loadingEnrollments()) {
+            <cms-skeleton></cms-skeleton>
+          } @else if (enrollments().length === 0) {
+            <p class="no-data">No term enrollments found.</p>
+          } @else {
+            <table class="enrollments-table">
+              <thead>
+                <tr>
+                  <th>Term</th>
+                  <th>Semester</th>
+                  <th>Year of Study</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of sortedEnrollments(); track e.id) {
+                  <tr>
+                    <td>{{ e.termInstanceLabel }}</td>
+                    <td>{{ e.semesterNumber }}</td>
+                    <td>Year {{ e.yearOfStudy }}</td>
+                    <td><cms-status-badge [status]="e.status" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- Tab 6: Course Registrations -->
+      <mat-tab label="Course Registrations">
+        <div class="tab-content">
+          @if (loadingRegistrations()) {
+            <cms-skeleton></cms-skeleton>
+          } @else if (enrollments().length === 0) {
+            <p class="no-data">No term enrollments found.</p>
+          } @else {
+            @for (enrollment of sortedEnrollments(); track enrollment.id) {
+              @let regs = getRegistrationsForEnrollment(enrollment.id);
+              <div class="enrollment-section">
+                <div class="enrollment-section__header">
+                  <strong>{{ enrollment.termInstanceLabel }}</strong>
+                  <span class="cms-badge cms-badge--gray">Sem {{ enrollment.semesterNumber }}</span>
+                  <cms-status-badge [status]="enrollment.status" />
+                </div>
+                @if (regs.length === 0) {
+                  <p class="no-data">No course registrations for this term.</p>
+                } @else {
+                  <table class="enrollments-table enrollments-table--compact">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Code</th>
+                        <th>Semester</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (reg of regs; track reg.id) {
+                        <tr>
+                          <td>{{ reg.subjectName }}</td>
+                          <td><span class="code-value">{{ reg.subjectCode }}</span></td>
+                          <td>{{ reg.semesterNumber }}</td>
+                          <td><cms-status-badge [status]="reg.status" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            }
+          }
+        </div>
+      </mat-tab>
+
+      <!-- Tab: Fee Ledger -->
+      <mat-tab label="Fee Ledger">
+        <div class="tab-content">
+          @if (loadingLedger()) {
+            <cms-skeleton [lines]="4" height="48px"></cms-skeleton>
+          } @else if (!feeLedger() || feeLedger()!.entries.length === 0) {
+            <p class="empty-tab-message">No fee demands found for this student.</p>
+          } @else {
+            @for (entry of feeLedger()!.entries; track entry.demandId) {
+              <div class="ledger-entry">
+                <div class="ledger-entry__header">
+                  <h4 class="ledger-entry__term">{{ entry.termLabel }}</h4>
+                  <span class="cms-badge"
+                    [class.cms-badge--soft-success]="entry.status === 'PAID'"
+                    [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
+                    [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
+                    [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                    {{ entry.status }}
+                  </span>
+                </div>
+                <div class="ledger-entry__summary">
+                  <div class="ledger-stat">
+                    <span class="ledger-stat__label">Total</span>
+                    <span class="ledger-stat__value">₹{{ entry.totalAmount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="ledger-stat">
+                    <span class="ledger-stat__label">Paid</span>
+                    <span class="ledger-stat__value text-success">₹{{ entry.paidAmount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="ledger-stat">
+                    <span class="ledger-stat__label">Outstanding</span>
+                    <span class="ledger-stat__value text-danger">₹{{ entry.outstandingAmount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="ledger-stat">
+                    <span class="ledger-stat__label">Due Date</span>
+                    <span class="ledger-stat__value">{{ entry.dueDate | date:'mediumDate' }}</span>
+                  </div>
+                </div>
+                @if (entry.payments.length > 0) {
+                  <table class="payments-table">
+                    <thead>
+                      <tr>
+                        <th>Receipt</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Late Fee</th>
+                        <th>Mode</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (payment of entry.payments; track payment.id) {
+                        <tr>
+                          <td><span class="code-value">{{ payment.receiptNumber }}</span></td>
+                          <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
+                          <td>₹{{ payment.amountPaid | number:'1.2-2' }}</td>
+                          <td>{{ payment.lateFeeApplied > 0 ? '₹' + (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
+                          <td>{{ payment.paymentMode }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="no-payments-msg">No payments recorded yet.</p>
+                }
+              </div>
+            }
+          }
+        </div>
+      </mat-tab>
     </mat-tab-group>
   }
 </div>

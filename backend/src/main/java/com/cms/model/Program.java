@@ -6,13 +6,18 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.ProgramStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "programs")
@@ -32,6 +37,10 @@ public class Program {
     @Column(name = "duration_years", nullable = false)
     private Integer durationYears;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProgramStatus status = ProgramStatus.ACTIVE;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -47,6 +56,14 @@ public class Program {
         this.name = name;
         this.code = code;
         this.durationYears = durationYears;
+        this.status = ProgramStatus.ACTIVE;
+    }
+
+    public Program(String name, String code, Integer durationYears, ProgramStatus status) {
+        this.name = name;
+        this.code = code;
+        this.durationYears = durationYears;
+        this.status = status != null ? status : ProgramStatus.ACTIVE;
     }
 
     public Long getId() {
@@ -79,6 +96,19 @@ public class Program {
 
     public void setDurationYears(Integer durationYears) {
         this.durationYears = durationYears;
+    }
+
+    public ProgramStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProgramStatus status) {
+        this.status = status;
+    }
+
+    @Transient
+    public Integer getTotalSemesters() {
+        return durationYears != null ? durationYears * 2 : null;
     }
 
     public Instant getCreatedAt() {

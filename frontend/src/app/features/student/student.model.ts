@@ -32,6 +32,68 @@ export interface Student {
   updatedAt: string;
 }
 
+export type EnrollmentStatus = 'ENROLLED' | 'COMPLETED' | 'DROPPED';
+
+export interface StudentTermEnrollment {
+  id: number;
+  studentId: number;
+  studentName: string;
+  cohortId: number;
+  cohortCode: string;
+  termInstanceId: number;
+  termInstanceLabel: string;
+  semesterNumber: number;
+  yearOfStudy: number;
+  status: EnrollmentStatus;
+}
+
+export type RegistrationStatus = 'REGISTERED' | 'DROPPED' | 'COMPLETED';
+
+export interface CourseRegistration {
+  id: number;
+  enrollmentId: number;
+  studentId: number;
+  studentName: string;
+  cohortCode: string;
+  courseOfferingId: number;
+  subjectName: string;
+  subjectCode: string;
+  semesterNumber: number;
+  status: RegistrationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DemandStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'WAIVED';
+
+export interface TermFeePaymentSummary {
+  id: number;
+  paymentDate: string;
+  amountPaid: number;
+  lateFeeApplied: number;
+  totalCollected: number;
+  paymentMode: string;
+  receiptNumber: string;
+  remarks?: string;
+}
+
+export interface StudentLedgerEntry {
+  demandId: number;
+  termLabel: string;
+  totalAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  dueDate: string;
+  status: DemandStatus;
+  payments: TermFeePaymentSummary[];
+}
+
+export interface StudentFeeLedger {
+  studentId: number;
+  studentName: string;
+  entries: StudentLedgerEntry[];
+}
+
 export interface StudentRequest {
   rollNumber: string;
   firstName: string;

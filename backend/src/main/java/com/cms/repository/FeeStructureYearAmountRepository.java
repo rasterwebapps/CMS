@@ -10,5 +10,7 @@ public interface FeeStructureYearAmountRepository extends JpaRepository<FeeStruc
 
     List<FeeStructureYearAmount> findByFeeStructureIdOrderByYearNumber(Long feeStructureId);
 
+    List<FeeStructureYearAmount> findByFeeStructureIdAndYearNumber(Long feeStructureId, Integer yearNumber);
+
     void deleteByFeeStructureId(Long feeStructureId);
 }

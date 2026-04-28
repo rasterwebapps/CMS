@@ -53,7 +53,7 @@ class CourseServiceTest {
         courseService = new CourseService(courseRepository, programRepository, programService, feeStructureRepository);
         program = createProgram(1L, "Bachelor", "BACHELOR", 4);
         Instant now = Instant.now();
-        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, now, now);
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, now, now);
         org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
     }
 
@@ -209,7 +209,7 @@ class CourseServiceTest {
         Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
 
         Instant now = Instant.now();
-        ProgramResponse newProgResponse = new ProgramResponse(2L, "Master", "MASTER", 2, now, now);
+        ProgramResponse newProgResponse = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, now, now);
         when(programService.toResponse(newProgram)).thenReturn(newProgResponse);
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));

@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record YearFeeFromEnquiry(
-    Integer yearNumber,
+    int yearNumber,
     BigDecimal amount,
-    LocalDate suggestedDueDate
+    LocalDate dueDate
 ) {}

@@ -1,10 +1,18 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { StudentService } from '../student.service';
-import { Student } from '../student.model';
+import {
+  CourseRegistration,
+  DemandStatus,
+  Student,
+  StudentFeeLedger,
+  StudentTermEnrollment,
+} from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -15,6 +23,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     RouterLink,
+    DatePipe,
+    DecimalPipe,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
@@ -31,9 +41,20 @@ export class StudentDetailComponent implements OnInit {
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
+  protected readonly enrollments = signal<StudentTermEnrollment[]>([]);
+  protected readonly loadingEnrollments = signal(false);
+  protected readonly registrationsByEnrollment = signal<Map<number, CourseRegistration[]>>(new Map());
+  protected readonly loadingRegistrations = signal(false);
+
+  protected readonly feeLedger = signal<StudentFeeLedger | null>(null);
+  protected readonly loadingLedger = signal(false);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
+
+  protected readonly sortedEnrollments = computed(() =>
+    [...this.enrollments()].sort((a, b) => b.semesterNumber - a.semesterNumber),
+  );
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -55,11 +76,77 @@ export class StudentDetailComponent implements OnInit {
       next: (student) => {
         this.student.set(student);
         this.loading.set(false);
+        this.loadEnrollments(id);
+        this.loadFeeLedger(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
         void this.router.navigate(['/students']);
       },
     });
+  }
+
+  private loadEnrollments(studentId: number): void {
+    this.loadingEnrollments.set(true);
+    this.studentService.getEnrollmentsByStudent(studentId).subscribe({
+      next: (data) => {
+        this.enrollments.set(data);
+        this.loadingEnrollments.set(false);
+        this.loadAllRegistrations(data);
+      },
+      error: () => {
+        this.loadingEnrollments.set(false);
+      },
+    });
+  }
+
+  private loadAllRegistrations(enrollments: StudentTermEnrollment[]): void {
+    if (enrollments.length === 0) return;
+    this.loadingRegistrations.set(true);
+
+    const requests = enrollments.map(enrollment =>
+      this.studentService.getRegistrationsByEnrollment(enrollment.id)
+    );
+
+    forkJoin(requests).subscribe({
+      next: (results) => {
+        const map = new Map<number, CourseRegistration[]>();
+        enrollments.forEach((enrollment, index) => {
+          map.set(enrollment.id, results[index]);
+        });
+        this.registrationsByEnrollment.set(map);
+        this.loadingRegistrations.set(false);
+      },
+      error: () => {
+        this.loadingRegistrations.set(false);
+      },
+    });
+  }
+
+  protected getRegistrationsForEnrollment(enrollmentId: number): CourseRegistration[] {
+    return this.registrationsByEnrollment().get(enrollmentId) ?? [];
+  }
+
+  private loadFeeLedger(studentId: number): void {
+    this.loadingLedger.set(true);
+    this.studentService.getStudentFeeLedger(studentId).subscribe({
+      next: (ledger) => {
+        this.feeLedger.set(ledger);
+        this.loadingLedger.set(false);
+      },
+      error: () => {
+        // Fee ledger may not exist yet — not a fatal error
+        this.loadingLedger.set(false);
+      },
+    });
+  }
+
+  protected getDemandStatusClass(status: DemandStatus): string {
+    switch (status) {
+      case 'PAID': return 'success';
+      case 'PARTIAL': return 'warning';
+      case 'UNPAID': return 'danger';
+      case 'WAIVED': return 'default';
+    }
   }
 }

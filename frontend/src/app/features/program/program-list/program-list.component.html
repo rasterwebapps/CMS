@@ -95,6 +95,14 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {{ program.durationYears }} {{ program.durationYears === 1 ? 'Year' : 'Years' }}
             </div>
+            <div class="prog-card__semesters">
+              {{ program.totalSemesters }} Semesters
+            </div>
+            <span class="cms-badge"
+              [class.cms-badge--soft-success]="program.status === 'ACTIVE'"
+              [class.cms-badge--soft-default]="program.status === 'INACTIVE'">
+              {{ program.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
+            </span>
           </div>
         }
       </div>
@@ -124,6 +132,24 @@
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration</th>
           <td mat-cell *matCellDef="let program">
             <span class="cms-badge cms-badge--gray">{{ program.durationYears }} {{ program.durationYears === 1 ? 'Year' : 'Years' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="totalSemesters">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Semesters</th>
+          <td mat-cell *matCellDef="let program">
+            <span class="cms-badge cms-badge--gray">{{ program.totalSemesters }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let program">
+            @if (program.status === 'ACTIVE') {
+              <span class="cms-badge cms-badge--soft-success">Active</span>
+            } @else {
+              <span class="cms-badge cms-badge--soft-default">Inactive</span>
+            }
           </td>
         </ng-container>
 

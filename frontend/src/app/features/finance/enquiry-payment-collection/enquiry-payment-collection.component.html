@@ -165,22 +165,29 @@
 
               <div class="sem-status-table">
                 <div class="sem-status-header">
+                  <span>#</span>
                   <span>Semester</span>
-                  <span>Fee</span>
-                  <span>Paid</span>
-                  <span>Outstanding</span>
+                  <span class="align-right">Fee</span>
+                  <span class="align-right">Paid</span>
+                  <span class="align-right">Outstanding</span>
                   <span>Status</span>
                 </div>
-                @for (sf of fs.semesterBreakdown; track sf.semesterNumber) {
+                @for (sf of fs.semesterBreakdown; track sf.semesterNumber; let first = $first) {
                   <div class="sem-status-row"
                        [class.sem-status-row--paid]="sf.outstanding === 0"
-                       [class.sem-status-row--partial]="sf.paidAmount > 0 && sf.outstanding > 0"
-                       [class.sem-status-row--pending]="sf.paidAmount === 0">
-                    <span class="sem-label">{{ sf.semesterLabel }}</span>
-                    <span class="sem-fee">{{ sf.allocatedFee | currency:'INR':'₹':'1.0-0' }}</span>
-                    <span class="sem-paid">{{ sf.paidAmount | currency:'INR':'₹':'1.0-0' }}</span>
-                    <span class="sem-outstanding" [class.outstanding-zero]="sf.outstanding === 0">
-                      {{ sf.outstanding | currency:'INR':'₹':'1.0-0' }}
+                       [class.sem-status-row--next]="sf.outstanding > 0 && (first || fs.semesterBreakdown[$index - 1]?.outstanding === 0)"
+                       [class.sem-status-row--pending]="sf.paidAmount === 0 && sf.outstanding > 0">
+                    <span class="sem-seq">{{ sf.semesterNumber }}</span>
+                    <span class="sem-label">
+                      {{ sf.semesterLabel }}
+                      @if (sf.outstanding > 0 && (first || fs.semesterBreakdown[$index - 1]?.outstanding === 0)) {
+                        <span class="next-pill">Next →</span>
+                      }
+                    </span>
+                    <span class="sem-fee align-right mono">₹{{ sf.allocatedFee | number:'1.0-0' }}</span>
+                    <span class="sem-paid align-right mono">₹{{ sf.paidAmount | number:'1.0-0' }}</span>
+                    <span class="sem-outstanding align-right mono" [class.outstanding-zero]="sf.outstanding === 0">
+                      ₹{{ sf.outstanding | number:'1.0-0' }}
                     </span>
                     <span class="sem-badge"
                           [class.sem-badge--paid]="sf.outstanding === 0"
@@ -191,11 +198,12 @@
                   </div>
                 }
                 <div class="sem-status-footer">
-                  <span>Total</span>
-                  <span>{{ fs.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
-                  <span class="total-paid">{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
-                  <span class="total-outstanding" [class.outstanding-zero]="fs.totalOutstanding === 0">
-                    {{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
+                  <span></span>
+                  <span><strong>Total</strong></span>
+                  <span class="align-right mono"><strong>₹{{ fs.totalFee | number:'1.0-0' }}</strong></span>
+                  <span class="total-paid align-right mono"><strong>₹{{ fs.totalPaid | number:'1.0-0' }}</strong></span>
+                  <span class="total-outstanding align-right mono" [class.outstanding-zero]="fs.totalOutstanding === 0">
+                    <strong>₹{{ fs.totalOutstanding | number:'1.0-0' }}</strong>
                   </span>
                   <span></span>
                 </div>

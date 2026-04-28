@@ -68,6 +68,18 @@
           }
         </div>
 
+        <div class="field-group">
+          <label for="program-status" class="field-label">Status</label>
+          <select
+            id="program-status"
+            class="field-input field-input--narrow"
+            formControlName="status"
+          >
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
+        </div>
+
         <div class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/programs">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">

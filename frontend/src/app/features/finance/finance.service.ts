@@ -7,7 +7,7 @@ import {
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, BulkFeeStructureRequest,
-  GroupedFeeStructure,
+  GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest,
 } from './finance.model';
 
 @Injectable({
@@ -97,6 +97,18 @@ export class FinanceService {
 
   getSemesterStatus(studentId: number): Observable<StudentFeeAllocation> {
     return this.http.get<StudentFeeAllocation>(`${this.studentFeeUrl}/${studentId}/semester-status`);
+  }
+
+  allocationExists(studentId: number): Observable<boolean> {
+    return this.http.get<boolean>(`${this.studentFeeUrl}/${studentId}/allocation-exists`);
+  }
+
+  getEnquiryYearFees(studentId: number): Observable<EnquiryYearFee[]> {
+    return this.http.get<EnquiryYearFee[]>(`${this.studentFeeUrl}/${studentId}/enquiry-year-fees`);
+  }
+
+  createStudentFeeAllocation(request: CreateAllocationRequest): Observable<StudentFeeAllocation> {
+    return this.http.post<StudentFeeAllocation>(`${this.studentFeeUrl}/finalize`, request);
   }
 
   collectPayment(studentId: number, request: CollectPaymentRequest): Observable<CollectPaymentResponse> {

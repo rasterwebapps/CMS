@@ -105,6 +105,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'academic-years/:id/detail',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/academic-year/academic-year-detail/academic-year-detail.component').then(
+        (m) => m.AcademicYearDetailComponent
+      ),
+  },
+  {
     path: 'semesters',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -473,6 +481,38 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'curriculum-versions',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-list/curriculum-version-list.component').then(
+        (m) => m.CurriculumVersionListComponent
+      ),
+  },
+  {
+    path: 'curriculum-versions/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
+        (m) => m.CurriculumVersionFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-versions/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
+        (m) => m.CurriculumVersionFormComponent
+      ),
+  },
+  {
+    path: 'curriculum-map/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/curriculum/curriculum-map/curriculum-map.component').then(
+        (m) => m.CurriculumMapComponent
+      ),
+  },
+  {
     path: 'lab-schedules',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -494,6 +534,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
         (m) => m.LabScheduleFormComponent
+      ),
+  },
+  {
+    path: 'fee-reports',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/fee-reports/fee-reports-dashboard/fee-reports-dashboard.component').then(
+        (m) => m.FeeReportsDashboardComponent
       ),
   },
   {

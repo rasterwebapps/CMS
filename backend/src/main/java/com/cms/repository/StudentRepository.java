@@ -33,4 +33,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByProgramIdAndRollNumberIsNull(Long programId);
 
     List<Student> findByRollNumberContainingIgnoreCase(String rollNumber);
+
+    List<Student> findByCohortIdAndStatus(Long cohortId, StudentStatus status);
+
+    List<Student> findByCohortId(Long cohortId);
 }
