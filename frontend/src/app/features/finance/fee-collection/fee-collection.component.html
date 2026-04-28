@@ -45,15 +45,93 @@
     </div>
 
   } @else if (!selectedEntry()) {
+    <!-- Toolbar -->
+    <div class="list-toolbar">
+      <div class="toolbar-filters">
+        <div class="search-box">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input class="search-input" type="text" placeholder="Search by name or program…"
+                 [value]="searchTerm()" (input)="onSearch($event)" />
+        </div>
+
+        <select class="filter-select" [value]="filterType()" (change)="setFilterType($any($event.target).value)">
+          <option value="ALL">All types</option>
+          <option value="ENQUIRY">Pre-enrollment only</option>
+          <option value="STUDENT">Students only</option>
+        </select>
+
+        <select class="filter-select" [value]="filterStatus()" (change)="setFilterStatus($any($event.target).value)">
+          <option value="ALL">Any status</option>
+          <option value="OUTSTANDING">Has outstanding</option>
+          <option value="OVERDUE">Overdue</option>
+        </select>
+      </div>
+
+      <div class="view-toggle">
+        <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" title="Table view">
+          <mat-icon>table_rows</mat-icon>
+        </button>
+        <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" title="Card view">
+          <mat-icon>grid_view</mat-icon>
+        </button>
+      </div>
+    </div>
+
     <!-- People List -->
-    @if (feeEntries().length === 0) {
+    @if (filteredEntries().length === 0) {
       <div class="empty-state">
         <mat-icon>check_circle_outline</mat-icon>
-        <p>No outstanding fees found.</p>
+        <p>{{ feeEntries().length === 0 ? 'No outstanding fees found.' : 'No entries match the current filters.' }}</p>
       </div>
+
+    } @else if (viewMode() === 'table') {
+      <!-- Table View (default) -->
+      <div class="list-table-wrap">
+        <div class="list-table">
+          <div class="lt-head">
+            <span>Name</span>
+            <span>Type</span>
+            <span>Program / Course</span>
+            <span class="align-right">Total Fee</span>
+            <span class="align-right">Paid</span>
+            <span class="align-right">Outstanding</span>
+            <span class="align-right">Next Due</span>
+            <span></span>
+          </div>
+
+          @for (entry of filteredEntries(); track entry.id + entry.type) {
+            <div class="lt-row" (click)="selectEntry(entry)">
+              <span class="lt-name">{{ entry.name }}</span>
+              <span>
+                <span class="type-badge" [class.type-badge--student]="entry.type === 'STUDENT'">
+                  {{ entry.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
+                </span>
+              </span>
+              <span class="lt-meta">
+                {{ entry.programName }}
+                @if (entry.courseName) { <span class="lt-course">· {{ entry.courseName }}</span> }
+              </span>
+              <span class="align-right mono">{{ entry.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="align-right mono lt-paid">{{ entry.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="align-right mono lt-outstanding">{{ entry.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="align-right lt-due">
+                {{ entry.nextDueDate ? (entry.nextDueDate | date:'dd MMM yy') : '—' }}
+              </span>
+              <span class="lt-action">
+                <button class="btn-collect" (click)="selectEntry(entry); $event.stopPropagation()">
+                  Collect
+                </button>
+              </span>
+            </div>
+          }
+        </div>
+        <div class="list-count">Showing {{ filteredEntries().length }} of {{ feeEntries().length }} entries</div>
+      </div>
+
     } @else {
+      <!-- Card View -->
       <div class="entries-grid">
-        @for (entry of feeEntries(); track entry.id + entry.type) {
+        @for (entry of filteredEntries(); track entry.id + entry.type) {
           <div class="entry-card" (click)="selectEntry(entry)">
             <div class="entry-header">
               <div class="entry-name">{{ entry.name }}</div>
@@ -77,6 +155,7 @@
           </div>
         }
       </div>
+      <div class="list-count">Showing {{ filteredEntries().length }} of {{ feeEntries().length }} entries</div>
     }
 
   } @else {
@@ -162,7 +241,7 @@
             <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
             <input class="field-input" type="number" formControlName="amount" min="1" placeholder="0"
                    [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
-            <p class="field-hint">Enter any amount — fills semesters in order</p>
+            <p class="field-hint">Pre-filled with current semester outstanding · any amount fills semesters in order</p>
             @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
               <p class="field-error">Valid amount is required</p>
             }

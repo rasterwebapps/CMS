@@ -194,8 +194,8 @@ public class EnquiryPaymentService {
 
                 int sem1Seq = (entry.yearNumber() - 1) * 2 + 1;
                 int sem2Seq = sem1Seq + 1;
-                String sem1Label = "Year " + entry.yearNumber() + " - Semester 1";
-                String sem2Label = "Year " + entry.yearNumber() + " - Semester 2";
+                String sem1Label = "Year " + entry.yearNumber() + " - " + semesterOrdinalLabel(sem1Seq);
+                String sem2Label = "Year " + entry.yearNumber() + " - " + semesterOrdinalLabel(sem2Seq);
 
                 LocalDate sem1Due = baseDate.plusMonths((long) (entry.yearNumber() - 1) * 12);
                 LocalDate sem2Due = sem1Due.plusMonths(6);
@@ -261,4 +261,16 @@ public class EnquiryPaymentService {
     record YearWiseFeeEntry(int yearNumber, BigDecimal amount) {}
 
     record SemesterWiseFeeEntry(int semesterNumber, String semesterLabel, BigDecimal amount) {}
+
+    private static final String[] ORDINALS = {
+        "First", "Second", "Third", "Fourth", "Fifth", "Sixth",
+        "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"
+    };
+
+    private static String semesterOrdinalLabel(int globalSeq) {
+        if (globalSeq >= 1 && globalSeq <= ORDINALS.length) {
+            return ORDINALS[globalSeq - 1] + " Semester";
+        }
+        return "Semester " + globalSeq;
+    }
 }

@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,7 +15,6 @@ import { environment } from '../../../../environments';
   selector: 'app-curriculum-map',
   standalone: true,
   imports: [
-    RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,

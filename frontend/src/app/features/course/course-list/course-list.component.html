@@ -103,7 +103,7 @@
             @if (course.specialization) {
               <span class="crs-card__spec">{{ course.specialization }}</span>
             }
-            <div class="crs-card__program">{{ course.program?.name || '—' }}</div>
+            <div class="crs-card__program">{{ course.program.name || '—' }}</div>
           </div>
         }
       </div>

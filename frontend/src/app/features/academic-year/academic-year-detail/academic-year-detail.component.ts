@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe, CurrencyPipe, NgClass, DecimalPipe } from '@angular/common';
+import { DatePipe, NgClass, DecimalPipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -31,7 +31,6 @@ import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
   imports: [
     RouterLink,
     DatePipe,
-    CurrencyPipe,
     NgClass,
     DecimalPipe,
     ReactiveFormsModule,
@@ -39,7 +38,6 @@ import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
     MatIconModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    FeePaymentDialogComponent,
   ],
   templateUrl: './academic-year-detail.component.html',
   styleUrl: './academic-year-detail.component.scss',

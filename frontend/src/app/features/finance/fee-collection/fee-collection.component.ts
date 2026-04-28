@@ -11,6 +11,10 @@ import { StudentFeeSummary, SemesterFeeDetail } from '../finance.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
+export type ViewMode = 'table' | 'card';
+export type FilterType = 'ALL' | 'ENQUIRY' | 'STUDENT';
+export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
+
 export type PersonType = 'ENQUIRY' | 'STUDENT';
 
 export interface FeeEntry {
@@ -51,6 +55,26 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly studentSemesters = signal<SemesterFeeDetail[]>([]);
   protected readonly saving           = signal(false);
   protected readonly receipt          = signal<{ receiptNumber: string; name: string; amount: number; paymentDate: string; paymentMode: string; transactionRef: string | null } | null>(null);
+
+  protected readonly viewMode      = signal<ViewMode>('table');
+  protected readonly searchTerm    = signal('');
+  protected readonly filterType    = signal<FilterType>('ALL');
+  protected readonly filterStatus  = signal<FilterStatus>('ALL');
+
+  protected readonly filteredEntries = computed(() => {
+    const term   = this.searchTerm().toLowerCase().trim();
+    const type   = this.filterType();
+    const status = this.filterStatus();
+    const today  = new Date();
+
+    return this.feeEntries().filter(e => {
+      if (term && !e.name.toLowerCase().includes(term) && !e.programName.toLowerCase().includes(term)) return false;
+      if (type !== 'ALL' && e.type !== type) return false;
+      if (status === 'OVERDUE' && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
+      if (status === 'OUTSTANDING' && e.totalOutstanding <= 0) return false;
+      return true;
+    });
+  });
 
   protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
 
@@ -186,9 +210,11 @@ export class FeeCollectionComponent implements OnInit {
       this.enquiryService.getYearWiseFeeStatus(entry.id).subscribe({
         next: (fs) => {
           this.feeStatus.set(fs);
-          const outstanding = fs.totalOutstanding;
+          const sems = fs.semesterBreakdown;
+          const nextSem = sems.find((s, i) => s.outstanding > 0 && (i === 0 || sems[i - 1].outstanding === 0));
+          const prefill = nextSem ? nextSem.outstanding : fs.totalOutstanding;
           if (!this.form.get('amount')?.value) {
-            this.form.patchValue({ amount: outstanding > 0 ? outstanding : null });
+            this.form.patchValue({ amount: prefill > 0 ? prefill : null });
           }
         },
         error: () => {
@@ -199,9 +225,11 @@ export class FeeCollectionComponent implements OnInit {
       this.financeService.getSemesterStatus(entry.id).subscribe({
         next: (alloc) => {
           this.studentSemesters.set(alloc.semesterFees);
-          const outstanding = alloc.semesterFees.reduce((s, sf) => s + sf.pendingAmount, 0);
+          const sems = alloc.semesterFees;
+          const nextSem = sems.find((s, i) => s.pendingAmount > 0 && (i === 0 || sems[i - 1].pendingAmount === 0));
+          const prefill = nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0);
           if (!this.form.get('amount')?.value) {
-            this.form.patchValue({ amount: outstanding > 0 ? outstanding : null });
+            this.form.patchValue({ amount: prefill > 0 ? prefill : null });
           }
         },
         error: () => {
@@ -286,6 +314,22 @@ export class FeeCollectionComponent implements OnInit {
     this.receipt.set(null);
     this.loadAll();
     this.backToList();
+  }
+
+  protected setViewMode(mode: ViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  protected onSearch(event: Event): void {
+    this.searchTerm.set((event.target as HTMLInputElement).value);
+  }
+
+  protected setFilterType(value: FilterType): void {
+    this.filterType.set(value);
+  }
+
+  protected setFilterStatus(value: FilterStatus): void {
+    this.filterStatus.set(value);
   }
 
   protected isOverdue(dueDate: string | null): boolean {

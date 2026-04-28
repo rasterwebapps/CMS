@@ -121,16 +121,19 @@ public class FeeFinalizationService {
             BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
             BigDecimal sem2Amount = yearFee.amount().subtract(sem1Amount);
 
+            int globalSem1 = (yearFee.yearNumber() - 1) * 2 + 1;
+            int globalSem2 = globalSem1 + 1;
+
             SemesterFee sf1 = new SemesterFee(
                 saved, yearFee.yearNumber(),
-                "Year " + yearFee.yearNumber() + " - Semester 1",
+                "Year " + yearFee.yearNumber() + " - " + semesterOrdinalLabel(globalSem1),
                 sem1Amount, yearFee.dueDate(), 1
             );
             semesterFees.add(semesterFeeRepository.save(sf1));
 
             SemesterFee sf2 = new SemesterFee(
                 saved, yearFee.yearNumber(),
-                "Year " + yearFee.yearNumber() + " - Semester 2",
+                "Year " + yearFee.yearNumber() + " - " + semesterOrdinalLabel(globalSem2),
                 sem2Amount, yearFee.dueDate().plusMonths(6), 2
             );
             semesterFees.add(semesterFeeRepository.save(sf2));
@@ -153,6 +156,18 @@ public class FeeFinalizationService {
 
         List<SemesterFee> semesterFees = semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
         return toResponse(allocation, semesterFees);
+    }
+
+    private static final String[] ORDINALS = {
+        "First", "Second", "Third", "Fourth", "Fifth", "Sixth",
+        "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"
+    };
+
+    private static String semesterOrdinalLabel(int globalSeq) {
+        if (globalSeq >= 1 && globalSeq <= ORDINALS.length) {
+            return ORDINALS[globalSeq - 1] + " Semester";
+        }
+        return "Semester " + globalSeq;
     }
 
     private StudentFeeAllocationResponse toResponse(StudentFeeAllocation allocation, List<SemesterFee> semesterFees) {

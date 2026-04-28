@@ -3,13 +3,13 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FeeDemand, PaymentMode, TermFeePaymentRequest } from '../academic-year.model';
 
 @Component({
   selector: 'app-fee-payment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, DatePipe, DecimalPipe],
   template: `
     <h2 mat-dialog-title>Record Fee Payment</h2>
     <mat-dialog-content>

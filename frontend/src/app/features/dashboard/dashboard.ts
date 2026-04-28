@@ -5,7 +5,7 @@ import { AdminDashboardComponent } from './admin/admin-dashboard.component';
 import { FrontOfficeDashboardComponent } from './front-office/front-office-dashboard.component';
 import { FacultyDashboardComponent } from './faculty/faculty-dashboard.component';
 import { CashierDashboardComponent } from './cashier/cashier-dashboard.component';
-import { DashboardTabsComponent, DashboardTab } from './shared/tabs/dashboard-tabs.component';
+import { DashboardTab } from './shared/tabs/dashboard-tabs.component';
 
 const SESSION_KEY = 'cms_dashboard_active_role';
 
@@ -17,7 +17,6 @@ const SESSION_KEY = 'cms_dashboard_active_role';
     FrontOfficeDashboardComponent,
     FacultyDashboardComponent,
     CashierDashboardComponent,
-    DashboardTabsComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
