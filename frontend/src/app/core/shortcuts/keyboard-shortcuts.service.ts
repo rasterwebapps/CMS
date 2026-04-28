@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { LayoutService } from '../layout/layout.service';
+import { TourService } from '../tour/tour.service';
 
 export interface ShortcutDefinition {
   /** Display label for the shortcut, e.g. `g d`. */
@@ -40,6 +41,7 @@ export class KeyboardShortcutsService {
   private readonly layoutService = inject(LayoutService);
   private readonly dialog = inject(MatDialog);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly tourService = inject(TourService);
 
   private leaderActive = false;
   private leaderTimer: ReturnType<typeof setTimeout> | null = null;
@@ -55,6 +57,7 @@ export class KeyboardShortcutsService {
     // Listed for completeness in the cheat-sheet — actually handled by GlobalSearchComponent.
     { keys: 'Ctrl/⌘ K', description: 'Focus global search' },
     { keys: '?', description: 'Show this keyboard shortcuts dialog' },
+    { keys: 'h', description: 'Start Help tour' },
   ];
 
   /** Installs the global `keydown` listener. Safe to call more than once. */
@@ -101,6 +104,14 @@ export class KeyboardShortcutsService {
       event.preventDefault();
       this.cancelLeader();
       this.openCheatSheet();
+      return;
+    }
+
+    // h  →  start Help tour (works even in focus mode).
+    if (event.key === 'h' || event.key === 'H') {
+      event.preventDefault();
+      this.cancelLeader();
+      this.tourService.startTour('onboarding');
       return;
     }
 

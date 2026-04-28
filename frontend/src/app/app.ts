@@ -22,6 +22,8 @@ import { ThemePickerComponent } from './shared/theme-picker/theme-picker.compone
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
 import { ToastHostComponent } from './core/toast/toast-host.component';
+import { TourService } from './core/tour/tour.service';
+import { ONBOARDING_TOUR_STEPS } from './core/tour/tours/onboarding.tour';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -78,6 +80,7 @@ export class App implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
+  private readonly tourService = inject(TourService);
 
   protected readonly darkTheme = signal(false);
   /**
@@ -321,6 +324,12 @@ export class App implements OnInit {
     // Install global keyboard shortcuts (g-leader navigation + ? cheat-sheet).
     this.shortcutsService.install();
 
+    // Register the onboarding tour and auto-start it for first-time users.
+    if (isPlatformBrowser(this.platformId)) {
+      this.tourService.registerTour('onboarding', ONBOARDING_TOUR_STEPS);
+      this.tourService.maybeAutoStart('onboarding');
+    }
+
     // Auto-close the mobile drawer on route changes.
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
       if (this.isMobile()) {
@@ -398,6 +407,11 @@ export class App implements OnInit {
 
   protected openKeyboardShortcuts(): void {
     this.shortcutsService.openCheatSheet();
+  }
+
+  /** Starts the onboarding tour regardless of the "don't show again" preference. */
+  protected startTour(): void {
+    this.tourService.startTour('onboarding');
   }
 
   private loadCollapsedState(): boolean {

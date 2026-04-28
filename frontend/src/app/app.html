@@ -207,6 +207,10 @@
                 matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
         </button>
+        <button type="button" class="sidenav-footer-shortcut-btn" (click)="startTour()"
+                matTooltip="Help tour" aria-label="Start help tour">
+          <mat-icon>help_outline</mat-icon>
+        </button>
         <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
            class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" aria-label="Raster Images Private Limited">
           <img src="assets/images/cms-logo.svg" alt="OneCMS by Raster" class="sidenav-footer-logo"/>
@@ -215,6 +219,10 @@
         <button type="button" class="sidenav-footer-icon-btn" (click)="openKeyboardShortcuts()"
                 matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
           <mat-icon>keyboard</mat-icon>
+        </button>
+        <button type="button" class="sidenav-footer-icon-btn" (click)="startTour()"
+                matTooltip="Help tour" matTooltipPosition="right" aria-label="Start help tour">
+          <mat-icon>help_outline</mat-icon>
         </button>
         <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
            class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" matTooltipPosition="right"

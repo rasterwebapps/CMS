@@ -1,0 +1,35 @@
+// Full-screen dim overlay for the tour spotlight effect.
+// The `.spotlight-hole` uses a large box-shadow to dim everything *outside*
+// the highlighted element while keeping the element itself fully visible
+// and interactive.
+
+:host {
+  // Ensure the host fills the CDK overlay panel exactly.
+  display: block;
+  position: fixed;
+  inset: 0;
+  pointer-events: none; // let clicks fall through by default
+  z-index: 0; // the CDK overlay container handles the global z-index
+}
+
+.spotlight-mask {
+  position: fixed;
+  inset: 0;
+  pointer-events: all; // capture clicks on the dim region
+}
+
+.spotlight-hole {
+  position: fixed;
+  border-radius: var(--cms-radius-md);
+  // The giant box-shadow is the dim effect; the element itself stays clear.
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none; // clicks pass through to the real target element
+  transition:
+    top var(--cms-duration-md) var(--cms-ease-out),
+    left var(--cms-duration-md) var(--cms-ease-out),
+    width var(--cms-duration-md) var(--cms-ease-out),
+    height var(--cms-duration-md) var(--cms-ease-out);
+  // Outline ring to make the spotlight boundary obvious.
+  outline: 2px solid rgba(var(--cms-primary-rgb), 0.6);
+  outline-offset: 1px;
+}
