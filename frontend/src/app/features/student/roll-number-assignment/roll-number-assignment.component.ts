@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
@@ -27,6 +28,7 @@ interface RollAssignment {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
+    MatSortModule,
     MatProgressSpinnerModule],
   templateUrl: './roll-number-assignment.component.html',
   styleUrl: './roll-number-assignment.component.scss',

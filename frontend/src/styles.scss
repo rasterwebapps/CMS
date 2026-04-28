@@ -1444,6 +1444,16 @@ app-root {
 }
 
 // ── Professional Data Table Alignment (2026) ──────
+// Context-aware sort icon positioning for clean vertical alignment:
+//   - Right-aligned columns (numbers) → Sort icon LEFT of text
+//   - Center-aligned columns (status) → Sort icon centered
+//   - Left-aligned columns (text) → Sort icon RIGHT of text (default)
+//
+// Visual examples:
+//   Right (numeric):  [↑] Total Amount (₹)     ensures numbers align perfectly
+//   Center (status):     [↑] Status            creates visual spine
+//   Left (text):      Student Name [↑]         follows reading flow
+
 // Right-align all numeric data (currency, counts, percentages) for vertical rhythm
 .mat-column-totalAmount,
 .mat-column-amountPaid,
@@ -1461,8 +1471,9 @@ app-root {
 .mat-column-feeCount {
   text-align: right !important;
 
+  // Sort icon on LEFT of text for right-aligned columns
   .mat-sort-header-container {
-    justify-content: flex-end;
+    justify-content: flex-end;  // Icon: [↑] Amount (₹)
   }
 }
 
@@ -1473,8 +1484,9 @@ app-root {
 .mat-column-hasCommission {
   text-align: center !important;
 
+  // Sort icon centered with text
   .mat-sort-header-container {
-    justify-content: center;
+    justify-content: center;  // Icon: [↑] Status
   }
 }
 
@@ -1490,19 +1502,31 @@ app-root {
 .mat-column-paymentDate,
 .mat-column-dueDate {
   text-align: left !important;
+  // Sort icon on RIGHT of text (default Material behavior): Name [↑]
 }
 
 // Utility classes for manual alignment control
 .cell-align-right {
   text-align: right !important;
+
+  // Sort icon on LEFT for manually right-aligned columns
+  .mat-sort-header-container {
+    justify-content: flex-end;
+  }
 }
 
 .cell-align-center {
   text-align: center !important;
+
+  // Sort icon centered for manually center-aligned columns
+  .mat-sort-header-container {
+    justify-content: center;
+  }
 }
 
 .cell-align-left {
   text-align: left !important;
+  // Sort icon on RIGHT (default Material behavior)
 }
 
 // Empty state indicator (en-dash for missing data)

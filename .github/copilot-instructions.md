@@ -177,13 +177,15 @@ CollegeManagementSystem/
    - **Why**: Tabular figures ensure that "1" and "8" take the same horizontal space, preventing text shifting when numbers update and improving visual alignment in columns
    - **Required in**: Table cells, stat cards, KPI displays, receipt numbers, roll numbers, employee codes, fee amounts, currency values
    - This property is already applied to all standard currency/numeric classes in `styles.scss` — always use these classes rather than creating custom number displays without this property
-   - **Data Table Alignment Standards (2026)**:
+     - **Data Table Alignment Standards (2026)**:
      - **Numeric columns** (currency, counts, IDs): Right-align for vertical rhythm. Decimal points and commas line up perfectly for instant magnitude comparison.
      - **Status badges**: Center-align for visual balance. Creates a clear vertical spine.
      - **Text columns** (names, descriptions): Left-align for natural reading flow.
      - **Dates**: Left-align with fixed-width format (`dd MMM yyyy`).
      - **Empty cells**: Use en-dash `'—'` (not blank).
      - **Column headers**: Must mirror data alignment (right headers for right data).
+     - **Sort icons**: Context-aware positioning — right-aligned columns have icon on LEFT, center columns have icon CENTERED, left columns have icon on RIGHT (default).
+     - **Sortable columns**: ALL data columns must have `mat-sort-header` directive (except actions column). Table must have `matSort` directive. Import `MatSortModule` in component.
      - See `docs/DATA_TABLE_ALIGNMENT_STANDARDS.md` for full specification.
 
 9. **Date Formatting**: All dates **must** use the shared `AppDatePipe` from `shared/pipes/app-date.pipe.ts` — never use Angular's `date` pipe directly.

@@ -32,21 +32,21 @@
       </div>
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="assignments()" class="modern-table">
+        <table mat-table [dataSource]="assignments()" matSort class="modern-table">
           <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Student</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
             <td mat-cell *matCellDef="let row">{{ row.student.fullName }}</td>
           </ng-container>
           <ng-container matColumnDef="programName">
-            <th mat-header-cell *matHeaderCellDef>Program</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
             <td mat-cell *matCellDef="let row">{{ row.student.programName }}</td>
           </ng-container>
           <ng-container matColumnDef="admissionDate">
-            <th mat-header-cell *matHeaderCellDef>Admission Date</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Admission Date</th>
             <td mat-cell *matCellDef="let row">{{ row.student.admissionDate }}</td>
           </ng-container>
           <ng-container matColumnDef="rollNumber">
-            <th mat-header-cell *matHeaderCellDef>Roll Number</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
             <td mat-cell *matCellDef="let row">
               <input class="field-input field-input--inline roll-input" [(ngModel)]="row.rollNumber" placeholder="Enter roll number" />
             </td>

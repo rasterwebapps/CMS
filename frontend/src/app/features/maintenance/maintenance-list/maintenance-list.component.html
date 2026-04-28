@@ -93,12 +93,12 @@
           </ng-container>
 
           <ng-container matColumnDef="assignedTechnician">
-            <th mat-header-cell *matHeaderCellDef>Assigned Technician</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Assigned Technician</th>
             <td mat-cell *matCellDef="let row">{{ row.assignedTechnician || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="createdAt">
-            <th mat-header-cell *matHeaderCellDef>Created At</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Created At</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-date">{{ row.createdAt }}</span>
             </td>

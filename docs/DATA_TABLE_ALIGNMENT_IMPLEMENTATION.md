@@ -69,7 +69,41 @@ Added manual override utilities:
 - `.cell-empty` - Empty state with en-dash (—)
 - `.cell-accounting` - Accounting format (symbol left, number right) - for future use
 
-### 3. Documentation
+**Note**: Utility classes also include sort icon positioning rules:
+```scss
+.cell-align-right .mat-sort-header-container {
+  justify-content: flex-end;  // Icon on left
+}
+```
+
+### 3. Context-Aware Sort Icon Positioning
+
+**Feature**: Sort icons automatically position based on column alignment type.
+
+**Rules**:
+- **Right-aligned columns** (numeric/currency) → Icon on **LEFT** of header text
+- **Center-aligned columns** (status) → Icon **CENTERED**
+- **Left-aligned columns** (text) → Icon on **RIGHT** of header text (default)
+
+**Why**: Maintains clean vertical alignment with data. For right-aligned numeric columns, placing the icon on the left ensures the header text aligns with the rightmost digits.
+
+**Visual Example**:
+```
+┌─────────────────────┬─────────────┬────────────────────┐
+│ [↑] Amount (₹)      │ [↑] Status  │ Student Name [↑]   │
+├─────────────────────┼─────────────┼────────────────────┤
+│          1,23,456   │   ⬤ Paid    │ Rajesh Kumar       │
+│             45,000  │ ⬤ Pending   │ Priya Sharma       │
+└─────────────────────┴─────────────┴────────────────────┘
+        ↑                   ↑                ↑
+   Icon LEFT          Icon CENTERED    Icon RIGHT
+```
+
+**Automatic**: Works out of the box for standard column names (`totalAmount`, `status`, `studentName`).
+
+**Complete Guide**: See `docs/SORT_ICON_POSITIONING_GUIDE.md` for visual examples and detailed implementation.
+
+### 4. Documentation
 
 #### Created
 - ✅ **`docs/DATA_TABLE_ALIGNMENT_STANDARDS.md`** (350+ lines)

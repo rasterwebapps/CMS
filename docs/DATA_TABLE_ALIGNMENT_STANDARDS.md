@@ -259,28 +259,126 @@ Column headers **must** match the alignment of the data below:
 | Data Type | Data Alignment | Header Alignment | Sort Icon Position |
 |-----------|----------------|------------------|-------------------|
 | Numbers   | Right          | Right            | Left of text      |
-| Status    | Center         | Center           | Left of text      |
+| Status    | Center         | Center           | Centered          |
 | Text      | Left           | Left             | Right of text     |
 
-### Material Table Sort Header
-Angular Material's `mat-sort-header` requires adjusting the flexbox container:
+### Context-Aware Sort Icon Positioning
+
+**Why it matters**: Sort icons must maintain clean vertical alignment with the data below. Placing the icon contextually prevents visual disruption of the numeric columns.
+
+#### Visual Examples
+
+**Right-Aligned (Numeric/Currency)**:
+```
+┌─────────────────────────┐
+│ [↑] Total Amount (₹)    │  ← Icon LEFT of text
+├─────────────────────────┤
+│              1,23,456   │  ← Right-aligned data
+│                 45,000  │
+│              9,87,654   │
+└─────────────────────────┘
+```
+Icon on left ensures the header text aligns with the rightmost digits.
+
+**Center-Aligned (Status Badges)**:
+```
+┌─────────────────────────┐
+│       [↑] Status        │  ← Icon centered
+├─────────────────────────┤
+│         ⬤ Paid          │  ← Center-aligned badge
+│       ⬤ Pending         │
+│         ⬤ Paid          │
+└─────────────────────────┘
+```
+Icon centered creates a visual spine.
+
+**Left-Aligned (Text/Dates)**:
+```
+┌─────────────────────────┐
+│ Student Name [↑]        │  ← Icon RIGHT of text (default)
+├─────────────────────────┤
+│ Rajesh Kumar            │  ← Left-aligned text
+│ Priya Sharma            │
+│ Amit Patel              │
+└─────────────────────────┘
+```
+Icon on right follows natural reading flow.
+
+### Material Table Sort Header Implementation
+
+Angular Material's `mat-sort-header` uses a flexbox container. Adjust `justify-content` to position the icon:
 
 ```scss
-// Right-aligned headers
+// Right-aligned headers (numeric/currency)
 .mat-column-totalAmount {
   text-align: right;
   
   .mat-sort-header-container {
-    justify-content: flex-end; // Moves sort icon to left of text
+    justify-content: flex-end;  // Icon: [↑] Amount (₹)
   }
 }
 
-// Center-aligned headers
+// Center-aligned headers (status badges)
 .mat-column-status {
   text-align: center;
   
   .mat-sort-header-container {
-    justify-content: center;
+    justify-content: center;  // Icon: [↑] Status
+  }
+}
+
+// Left-aligned headers (text/dates) - default behavior
+.mat-column-studentName {
+  text-align: left;
+  // Icon automatically appears on right: Name [↑]
+}
+```
+
+### Automatic Implementation
+
+The global CSS rules in `styles.scss` automatically apply correct sort icon positioning based on column names:
+
+**Automatically handled** (no additional code needed):
+- `mat-column-totalAmount`, `mat-column-amountPaid`, etc. → Icon left
+- `mat-column-status`, `mat-column-paymentStatus`, etc. → Icon centered
+- `mat-column-studentName`, `mat-column-programName`, etc. → Icon right (default)
+
+**Example usage** (works automatically):
+```html
+<ng-container matColumnDef="totalAmount">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Amount (₹)</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-currency">{{ row.totalAmount | inr:false:false }}</span>
+  </td>
+</ng-container>
+```
+
+Sort icon appears on **left** automatically because column name is `totalAmount`.
+
+### Manual Sort Icon Positioning
+
+For custom column names, manually adjust the sort header:
+
+```html
+<ng-container matColumnDef="customNumericColumn">
+  <!-- Add class to force right alignment and correct icon position -->
+  <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-right">
+    Custom Amount (₹)
+  </th>
+  <td mat-cell *matCellDef="let row" class="cell-align-right">
+    {{ row.customAmount | inr:false:false }}
+  </td>
+</ng-container>
+```
+
+The `.cell-align-right` utility class includes sort icon positioning:
+
+```scss
+.cell-align-right {
+  text-align: right !important;
+  
+  .mat-sort-header-container {
+    justify-content: flex-end;
   }
 }
 ```
@@ -311,10 +409,168 @@ For one-off cases where column name doesn't match the standard:
 
 ---
 
+## Sortable Columns (Required)
+
+### All Data Columns Must Be Sortable
+
+**Rule**: Every data column in the table **must** have a sort option, except the actions column.
+
+**Why**: Users expect to be able to sort any data they can see. Sorting is a fundamental table interaction that improves data discovery and analysis.
+
+### Implementation
+
+#### 1. Add `matSort` Directive to Table
+
+```html
+<table mat-table [dataSource]="dataSource" matSort class="modern-table">
+  <!-- ↑ Add matSort directive -->
+</table>
+```
+
+#### 2. Add `mat-sort-header` to All Data Columns
+
+```html
+<ng-container matColumnDef="studentName">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
+  <!--                                    ↑ Add mat-sort-header -->
+  <td mat-cell *matCellDef="let row">{{ row.studentName }}</td>
+</ng-container>
+
+<ng-container matColumnDef="totalAmount">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Amount (₹)</th>
+  <!--                                    ↑ Add mat-sort-header -->
+  <td mat-cell *matCellDef="let row">{{ row.totalAmount | inr:false:false }}</td>
+</ng-container>
+
+<ng-container matColumnDef="status">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+  <!--                                    ↑ Add mat-sort-header -->
+  <td mat-cell *matCellDef="let row">
+    <cms-status-badge [status]="row.status" />
+  </td>
+</ng-container>
+```
+
+#### 3. Actions Column (No Sort)
+
+The actions column should **not** have sorting:
+
+```html
+<ng-container matColumnDef="actions">
+  <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+  <!--                                    ↑ NO mat-sort-header -->
+  <td mat-cell *matCellDef="let row">
+    <div class="row-actions">
+      <!-- Edit/Delete buttons -->
+    </div>
+  </td>
+</ng-container>
+```
+
+### Component Setup
+
+#### Import MatSortModule
+
+```typescript
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';  // ← Add this
+
+@Component({
+  imports: [
+    MatTableModule,
+    MatSortModule,  // ← Add this
+    // ...other imports
+  ],
+})
+export class MyListComponent {
+  // Component logic
+}
+```
+
+### Complete Example
+
+```html
+<table mat-table [dataSource]="dataSource" matSort class="modern-table">
+  
+  <!-- Text column: sortable -->
+  <ng-container matColumnDef="studentName">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
+    <td mat-cell *matCellDef="let row">{{ row.studentName }}</td>
+  </ng-container>
+  
+  <!-- Numeric column: sortable -->
+  <ng-container matColumnDef="totalAmount">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Amount (₹)</th>
+    <td mat-cell *matCellDef="let row">
+      <span class="cell-currency">{{ row.totalAmount | inr:false:false }}</span>
+    </td>
+  </ng-container>
+  
+  <!-- Status column: sortable -->
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+    <td mat-cell *matCellDef="let row">
+      <cms-status-badge [status]="row.status" />
+    </td>
+  </ng-container>
+  
+  <!-- Date column: sortable -->
+  <ng-container matColumnDef="paymentDate">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>Payment Date</th>
+    <td mat-cell *matCellDef="let row">
+      <span class="cell-date">{{ row.paymentDate | appDate }}</span>
+    </td>
+  </ng-container>
+  
+  <!-- Actions column: NOT sortable -->
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+    <td mat-cell *matCellDef="let row">
+      <div class="row-actions">
+        <button class="action-btn" (click)="edit(row)">Edit</button>
+        <button class="action-btn action-btn--danger" (click)="delete(row)">Delete</button>
+      </div>
+    </td>
+  </ng-container>
+  
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+</table>
+```
+
+### Visual Indicator
+
+Material Design automatically shows a sort arrow when a column is sorted:
+
+```
+┌──────────────────┬────────────────────┬─────────────┐
+│ Student Name [↑] │ [↑] Total Amount(₹)│   Status    │
+├──────────────────┼────────────────────┼─────────────┤
+│ Amit Patel       │          9,87,654  │   ⬤ Paid    │
+│ Priya Sharma     │             45,000 │ ⬤ Pending   │
+│ Rajesh Kumar     │          1,23,456  │   ⬤ Paid    │
+└──────────────────┴────────────────────┴─────────────┘
+        ↑ Active sort indicator
+```
+
+Clicking the header toggles between ascending, descending, and no sort.
+
+### Exceptions
+
+Only **one** type of column should not have sorting:
+
+1. **Actions column** – Contains buttons, not sortable data
+
+All other columns (text, numbers, dates, status) should have `mat-sort-header`.
+
+---
+
 ## Best Practices Checklist
 
 ### When Creating New Tables
 
+- [ ] Table has `matSort` directive: `<table mat-table matSort>`
+- [ ] All data columns have `mat-sort-header` directive (except actions column)
 - [ ] Numeric columns use right-alignment (`mat-column-*Amount`, `mat-column-*Total`)
 - [ ] Status columns use center-alignment (`mat-column-status`)
 - [ ] Text columns use left-alignment (default)
@@ -324,7 +580,7 @@ For one-off cases where column name doesn't match the standard:
 - [ ] Currency column headers include `(₹)` suffix
 - [ ] All numeric cells have `font-variant-numeric: tabular-nums`
 - [ ] Column headers mirror data alignment
-- [ ] Sort icons positioned correctly (left for right-aligned, right for left-aligned)
+- [ ] Sort icons positioned correctly (left for right-aligned, center for center-aligned, right for left-aligned)
 
 ### Example Perfect Column
 
