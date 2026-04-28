@@ -45,10 +45,7 @@
         </button>
       }
     </div>
-    <div class="mlp-seg" role="group" aria-label="View mode">
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" type="button" aria-label="Card view">Cards</button>
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" type="button" aria-label="Table view">Table</button>
-    </div>
+    <cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" />
   </div>
 
   @if (loading()) {

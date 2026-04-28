@@ -16,33 +16,64 @@ All components must follow the CMS modern design language. The global design tok
 
 ### Component Patterns
 
-#### Page Layout (List Pages)
+#### Page Layout (List Pages) — MLP Pattern
+
+**All list/master-entry screens use the MLP (Master List Page) layout.** Never use the old `feature-list-page` / `page-header` structure. Never use focus mode.
 
 ```html
-<div class="feature-list-page">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="page-header__left">
-      <nav class="breadcrumb">
-        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
-        <span class="breadcrumb__sep">/</span>
-        <span class="breadcrumb__current">Feature</span>
-      </nav>
-      <h1 class="page-title">Feature Name</h1>
-      <p class="page-subtitle">Brief description of this section</p>
+<div class="mlp-page">
+  <!-- Page header -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Resource <em>Name</em></h1>
+      <p class="mlp-sub">Brief description</p>
+      @if (!loading()) {
+        <div class="mlp-meta">
+          <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ total() }} Total</span>
+        </div>
+      }
     </div>
-    <button class="btn-primary" routerLink="/feature/new">
-      <mat-icon>add</mat-icon>
-      Add Item
+    <button class="btn-primary" routerLink="/resource/new">
+      <svg ...><!-- plus icon --></svg>
+      Add Resource
     </button>
   </div>
 
-  <!-- Content Card -->
-  <div class="content-card">
-    <!-- Toolbar, Table, Pagination... -->
+  <!-- Toolbar: filters + search + view toggle -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" aria-label="Filter by ...">
+      <option value="">All</option>
+    </select>
+    <div class="search-bar" role="search">
+      <!-- SVG search icon, input, clear button -->
+    </div>
+    <!-- ALWAYS use <cms-view-toggle> last in the toolbar — never raw mlp-seg -->
+    <cms-view-toggle [mode]="viewMode()" storageKey="resource-list-view-mode" (modeChange)="setViewMode($event)" />
+  </div>
+
+  <!-- Table view — content-card + mlp-table-card fills full screen height, paginator at bottom -->
+  <div class="content-card mlp-table-card">
+    <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <!-- columns -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+          <cms-empty-state icon="category" title="No items yet" subtitle="Add your first item to get started" />
+        </td>
+      </tr>
+    </table>
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="10" showFirstLastButtons />
   </div>
 </div>
 ```
+
+**Layout guarantees provided by global CSS (do not override):**
+- `.mlp-page` → `min-height: calc(100vh - 91px)` — page fills the full viewport.
+- `.content-card.mlp-table-card` → `flex: 1` + `mat-paginator { margin-top: auto }` — card stretches to bottom of screen; paginator is always pinned at the bottom regardless of row count.
+- `CmsViewToggleComponent :host` → `margin-left: auto` — toggle is always right-aligned in the toolbar.
+
+**No component-level SCSS is needed for these layout concerns.** Global styles handle them.
 
 #### Content Card
 
@@ -311,62 +342,80 @@ export class ExampleComponent {
 
 ### 3. Template Pattern (List Page)
 
+Use the MLP pattern — see "Page Layout (List Pages)" above. Minimal example:
+
 ```html
-<div class="example-list-page">
-  <div class="page-header">
-    <div class="page-header__left">
-      <nav class="breadcrumb">
-        <a routerLink="/dashboard" class="breadcrumb__link">Home</a>
-        <span class="breadcrumb__sep">/</span>
-        <span class="breadcrumb__current">Examples</span>
-      </nav>
-      <h1 class="page-title">Examples</h1>
-      <p class="page-subtitle">Manage all examples</p>
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Examples <em>List</em></h1>
+      <p class="mlp-sub">Manage all examples</p>
     </div>
-    <button class="btn-primary" routerLink="/examples/new">
-      <mat-icon>add</mat-icon>
-      Add Example
-    </button>
+    <button class="btn-primary" routerLink="/examples/new">Add Example</button>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
-    } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <!-- columns -->
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
-        </table>
-      </div>
-    }
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
+             placeholder="Search examples..." type="text" aria-label="Search examples" />
+    </div>
+    <cms-view-toggle [mode]="viewMode()" storageKey="example-list-view-mode" (modeChange)="setViewMode($event)" />
   </div>
+
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) { <div class="mlp-card-skeleton"></div> }
+    </div>
+  } @else if (viewMode() === 'card') {
+    <div class="mlp-cards-grid">
+      @for (item of filteredItems(); track item.id) {
+        <div class="mlp-card">{{ item.name }}</div>
+      }
+    </div>
+  } @else {
+    <div class="content-card mlp-table-card">
+      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let item">{{ item.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let item">
+            <div class="row-actions">
+              <button class="action-btn" (click)="edit(item)">Edit</button>
+              <button class="action-btn action-btn--danger" (click)="delete(item)">Delete</button>
+            </div>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0">
+            <cms-empty-state icon="category" title="No examples yet" subtitle="Add your first example" />
+          </td>
+        </tr>
+      </table>
+      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="10" showFirstLastButtons />
+    </div>
+  }
 </div>
 ```
 
 ### 4. Style Pattern (SCSS)
 
+For list screens, **no page-level SCSS padding or layout is needed** — all layout is handled by global MLP classes in `styles.scss`. Only add component-specific overrides (card content, custom badge colors, etc.):
+
 ```scss
-.example-list-page {
-  padding: 32px 40px;
-  max-width: 1400px;
-  margin: 0 auto;
+// ✅ Correct — only component-specific styles
+.resource-card__title { font-weight: 600; }
 
-  @media (max-width: 768px) {
-    padding: 20px 16px;
-  }
-}
-
-// Use the standard classes documented above:
-// .page-header, .breadcrumb, .page-title, .page-subtitle
-// .content-card, .table-toolbar, .search-bar
-// .modern-table, .table-row, .row-actions, .action-btn
-// .btn-primary, .btn-secondary
-// .empty-state, .loading-container, .pagination-wrapper
+// ❌ Wrong — do not override MLP layout in component SCSS
+// .mlp-page { padding: ... }
+// .content-card { flex: ... }
 ```
+
+For form/detail pages, use the `.detail-page` global class and add local card styles as needed.
 
 ### 5. Unit Test Pattern
 

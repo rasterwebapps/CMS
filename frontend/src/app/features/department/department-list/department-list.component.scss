@@ -82,44 +82,6 @@
   flex-wrap: wrap;
 }
 
-// ── Segmented Control ─────────────────────────────────────────
-.dept-seg {
-  display: flex;
-  background: var(--cms-bg-muted);
-  border: 1px solid var(--cms-border-default);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 5px 12px;
-  border-radius: 7px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--cms-text-muted);
-  font-family: var(--cms-font-ui);
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  white-space: nowrap;
-
-  &--active {
-    background: var(--cms-bg-card);
-    color: var(--cms-text-primary);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  }
-
-  &:not(.seg-btn--active):hover {
-    color: var(--cms-text-primary);
-  }
-}
-
 // ── Card Grid ─────────────────────────────────────────────────
 .dept-grid {
   display: grid;

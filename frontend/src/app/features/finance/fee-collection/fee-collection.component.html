@@ -1,8 +1,81 @@
-<div class="page-wrap">
-  <app-page-header title="Fee Collection" subtitle="All outstanding fees — enquiries and students — in one place." />
+<div class="mlp-page">
 
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  @if (!selectedEntry() && !receipt()) {
+    <div class="mlp-hdr">
+      <div class="mlp-hdr-left">
+        <h1 class="mlp-title">Fee <em>Collection</em></h1>
+        <p class="mlp-sub">All outstanding fees — enquiries and students — in one place.</p>
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+            {{ feeEntries().length }} pending
+          </span>
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--red"></span>
+            ₹{{ totalOutstandingSum() | number }} outstanding
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+    <div class="mlp-toolbar">
+      <select
+        class="mlp-filter-select"
+        [value]="filterType()"
+        (change)="setFilterType($any($event.target).value)"
+        aria-label="Filter by type"
+      >
+        <option value="ALL">All Types</option>
+        <option value="ENQUIRY">Pre-enrollment</option>
+        <option value="STUDENT">Students</option>
+      </select>
+
+      <select
+        class="mlp-filter-select"
+        [value]="filterStatus()"
+        (change)="setFilterStatus($any($event.target).value)"
+        aria-label="Filter by status"
+      >
+        <option value="ALL">Any Status</option>
+        <option value="OUTSTANDING">Has Outstanding</option>
+        <option value="OVERDUE">Overdue</option>
+      </select>
+
+      @if (hasActiveFilters) {
+        <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear
+        </button>
+      }
+
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+          placeholder="Search by name or program…"
+          type="text"
+          aria-label="Search fee entries"
+        />
+        @if (searchTerm()) {
+          <button class="search-bar__clear" (click)="searchTerm.set('')" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ──────────────────── List ──────────────────── -->
   @if (loading()) {
-    <div class="loading-box"><mat-spinner diameter="36"></mat-spinner></div>
+    <div class="mlp-loading-grid">
+      @for (_ of [1,2,3,4,5,6]; track $index) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
 
   } @else if (receipt(); as r) {
     <!-- Receipt -->
@@ -12,10 +85,7 @@
         <h2 class="receipt-title">Payment Successful</h2>
         <p class="receipt-sub">Receipt No: <strong>{{ r.receiptNumber }}</strong></p>
         <div class="receipt-body">
-          <div class="receipt-row">
-            <span class="r-label">Name</span>
-            <span class="r-value">{{ r.name }}</span>
-          </div>
+          <div class="receipt-row"><span class="r-label">Name</span><span class="r-value">{{ r.name }}</span></div>
           <div class="receipt-row">
             <span class="r-label">Amount Paid</span>
             <span class="r-value r-amount">{{ r.amount | currency:'INR':'₹':'1.0-0' }}</span>
@@ -45,117 +115,105 @@
     </div>
 
   } @else if (!selectedEntry()) {
-    <!-- Toolbar -->
-    <div class="list-toolbar">
-      <div class="toolbar-filters">
-        <div class="search-box">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input class="search-input" type="text" placeholder="Search by name or program…"
-                 [value]="searchTerm()" (input)="onSearch($event)" />
-        </div>
-
-        <select class="filter-select" [value]="filterType()" (change)="setFilterType($any($event.target).value)">
-          <option value="ALL">All types</option>
-          <option value="ENQUIRY">Pre-enrollment only</option>
-          <option value="STUDENT">Students only</option>
-        </select>
-
-        <select class="filter-select" [value]="filterStatus()" (change)="setFilterStatus($any($event.target).value)">
-          <option value="ALL">Any status</option>
-          <option value="OUTSTANDING">Has outstanding</option>
-          <option value="OVERDUE">Overdue</option>
-        </select>
-      </div>
-
-      <div class="view-toggle">
-        <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" title="Table view">
-          <mat-icon>table_rows</mat-icon>
-        </button>
-        <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" title="Card view">
-          <mat-icon>grid_view</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    <!-- People List -->
     @if (filteredEntries().length === 0) {
-      <div class="empty-state">
-        <mat-icon>check_circle_outline</mat-icon>
-        <p>{{ feeEntries().length === 0 ? 'No outstanding fees found.' : 'No entries match the current filters.' }}</p>
-      </div>
-
-    } @else if (viewMode() === 'table') {
-      <!-- Table View (default) -->
-      <div class="list-table-wrap">
-        <div class="list-table">
-          <div class="lt-head">
-            <span>Name</span>
-            <span>Type</span>
-            <span>Program / Course</span>
-            <span class="align-right">Total Fee</span>
-            <span class="align-right">Paid</span>
-            <span class="align-right">Outstanding</span>
-            <span class="align-right">Next Due</span>
-            <span></span>
-          </div>
-
-          @for (entry of filteredEntries(); track entry.id + entry.type) {
-            <div class="lt-row" (click)="selectEntry(entry)">
-              <span class="lt-name">{{ entry.name }}</span>
-              <span>
-                <span class="type-badge" [class.type-badge--student]="entry.type === 'STUDENT'">
-                  {{ entry.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
-                </span>
-              </span>
-              <span class="lt-meta">
-                {{ entry.programName }}
-                @if (entry.courseName) { <span class="lt-course">· {{ entry.courseName }}</span> }
-              </span>
-              <span class="align-right mono">{{ entry.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
-              <span class="align-right mono lt-paid">{{ entry.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
-              <span class="align-right mono lt-outstanding">{{ entry.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</span>
-              <span class="align-right lt-due">
-                {{ entry.nextDueDate ? (entry.nextDueDate | date:'dd MMM yy') : '—' }}
-              </span>
-              <span class="lt-action">
-                <button class="btn-collect" (click)="selectEntry(entry); $event.stopPropagation()">
-                  Collect
-                </button>
-              </span>
-            </div>
-          }
-        </div>
-        <div class="list-count">Showing {{ filteredEntries().length }} of {{ feeEntries().length }} entries</div>
-      </div>
-
+      <cms-empty-state
+        icon="check_circle_outline"
+        [title]="hasActiveFilters ? 'No entries match your filters' : 'No outstanding fees found'"
+        [subtitle]="hasActiveFilters ? 'Try adjusting or clearing your filters.' : 'All fees are up to date.'"
+        [actionLabel]="hasActiveFilters ? 'Clear Filters' : ''"
+        (actionClick)="clearFilters()"
+      />
     } @else {
-      <!-- Card View -->
-      <div class="entries-grid">
-        @for (entry of filteredEntries(); track entry.id + entry.type) {
-          <div class="entry-card" (click)="selectEntry(entry)">
-            <div class="entry-header">
-              <div class="entry-name">{{ entry.name }}</div>
-              <span class="type-badge" [class.type-badge--student]="entry.type === 'STUDENT'">
-                {{ entry.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
-              </span>
-            </div>
-            <div class="entry-meta">
-              <span>{{ entry.programName }}</span>
-              @if (entry.courseName) { <span>· {{ entry.courseName }}</span> }
-            </div>
-            <div class="entry-footer">
-              <div class="entry-outstanding">
-                <span class="outstanding-label">Outstanding</span>
-                <span class="outstanding-amount">{{ entry.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</span>
-              </div>
-              <button class="btn-collect" (click)="selectEntry(entry); $event.stopPropagation()">
-                Collect
-              </button>
-            </div>
-          </div>
-        }
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-name">{{ row.name }}</span>
+                @if (row.courseName) {
+                  <span class="cell-sub">{{ row.courseName }}</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="type-badge" [class.type-badge--student]="row.type === 'STUDENT'">
+                  {{ row.type === 'STUDENT' ? 'Student' : 'Pre-enroll' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="programName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+              <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.programName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalFee">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-mono">₹{{ row.totalFee | number:'1.0-0' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalPaid">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Paid</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-mono cell-paid">₹{{ row.totalPaid | number:'1.0-0' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalOutstanding">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Outstanding</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cell-mono cell-outstanding">₹{{ row.totalOutstanding | number:'1.0-0' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="nextDueDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Next Due</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.nextDueDate) {
+                  <span [class.cell-overdue]="isOverdue(row.nextDueDate)">
+                    {{ row.nextDueDate | date:'dd MMM yy' }}
+                  </span>
+                } @else { <span class="cell-muted">—</span> }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+              <td mat-cell *matCellDef="let row">
+                <div class="row-actions">
+                  <button class="action-btn action-btn--primary" (click)="selectEntry(row)" aria-label="Collect payment">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Collect
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+                <cms-empty-state
+                  icon="check_circle_outline"
+                  title="No entries match your filters"
+                  subtitle="Try adjusting your search or filters."
+                />
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="pagination-wrapper">
+          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="10" showFirstLastButtons />
+        </div>
       </div>
-      <div class="list-count">Showing {{ filteredEntries().length }} of {{ feeEntries().length }} entries</div>
     }
 
   } @else {
@@ -166,7 +224,9 @@
         <div class="panel-header">
           <div>
             <div class="panel-name">{{ selectedEntry()!.name }}</div>
-            <div class="panel-sub">{{ selectedEntry()!.programName }}{{ selectedEntry()!.courseName ? ' · ' + selectedEntry()!.courseName : '' }}</div>
+            <div class="panel-sub">
+              {{ selectedEntry()!.programName }}{{ selectedEntry()!.courseName ? ' · ' + selectedEntry()!.courseName : '' }}
+            </div>
           </div>
           <span class="type-badge" [class.type-badge--student]="selectedEntry()!.type === 'STUDENT'">
             {{ selectedEntry()!.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
@@ -197,9 +257,7 @@
                   @if (row.isNext) { <span class="next-pill">Next →</span> }
                   @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
                 </span>
-                <span class="sem-due align-right mono">
-                  {{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}
-                </span>
+                <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}</span>
                 <span class="sem-fee align-right mono">₹{{ row.fee | number:'1.0-0' }}</span>
                 <span class="sem-paid align-right mono">₹{{ row.paid | number:'1.0-0' }}</span>
                 <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0">

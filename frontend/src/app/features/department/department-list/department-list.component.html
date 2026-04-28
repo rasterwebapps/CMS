@@ -43,23 +43,7 @@
       }
     </div>
 
-    <div class="dept-seg" role="group" aria-label="View mode">
-      <button class="seg-btn" [class.seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-        </svg>
-        Cards
-      </button>
-      <button class="seg-btn" [class.seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path d="M1 3.5h12M1 7h12M1 10.5h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-        Table
-      </button>
-    </div>
+    <cms-view-toggle [mode]="viewMode()" storageKey="department-view" (modeChange)="setViewMode($event)" />
   </div>
 
   <!-- ── Loading: skeleton cards ─────────────────────────────── -->

@@ -165,6 +165,60 @@ CollegeManagementSystem/
    });
    ```
 
+7. **List Screen Layout (MLP Pattern)**: All list/master-entry screens **must** use the MLP layout classes defined in `styles.scss`. Never use the old `feature-list-page` / `page-header` pattern in new screens.
+
+   ```html
+   <div class="mlp-page">
+     <!-- Header -->
+     <div class="mlp-hdr anim-rise">
+       <div class="mlp-hdr-left">
+         <h1 class="mlp-title">Resource <em>Name</em></h1>
+         <p class="mlp-sub">Brief description</p>
+         @if (!loading()) {
+           <div class="mlp-meta">
+             <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ total() }} Total</span>
+           </div>
+         }
+       </div>
+       <button class="btn-primary" routerLink="/resource/new">
+         <svg ...><!-- plus icon --></svg>
+         Add Resource
+       </button>
+     </div>
+
+     <!-- Toolbar: filters + search + view toggle (right-aligned automatically) -->
+     <div class="mlp-toolbar anim-rise anim-rise--d1">
+       <select class="mlp-filter-select" ...>...</select>
+       <div class="search-bar" role="search">...</div>
+       <!-- ALWAYS use <cms-view-toggle> — never inline mlp-seg -->
+       <cms-view-toggle [mode]="viewMode()" storageKey="resource-list-view-mode" (modeChange)="setViewMode($event)" />
+     </div>
+
+     <!-- Table view -->
+     <div class="content-card mlp-table-card">
+       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+         <!-- columns -->
+         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+         <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+         <tr class="mat-row" *matNoDataRow>
+           <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+             <cms-empty-state icon="inventory_2" title="No items found" subtitle="..." />
+           </td>
+         </tr>
+       </table>
+       <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="10" showFirstLastButtons />
+     </div>
+   </div>
+   ```
+
+   **Key layout rules:**
+   - `mlp-page` fills `min-height: calc(100vh - 91px)` — ensures content always fills the screen.
+   - `content-card mlp-table-card` has `flex: 1` — grows to fill remaining height so the paginator is always at the bottom of the screen, even with few rows.
+   - **Never** use `focus mode` — all screens use the regular `mlp-page` layout.
+   - **View toggle**: always use `<cms-view-toggle>` component (import `CmsViewToggleComponent` from `shared/view-toggle/view-toggle.component`). Never create raw `<div class="mlp-seg">` inline. The component handles icons, localStorage persistence, and right-alignment automatically.
+   - **Empty state**: always use `<cms-empty-state>` component (import `CmsEmptyStateComponent` from `shared/empty-state/empty-state.component`) — never write raw empty-state markup.
+   - For screens with card+table toggle, the component class has `viewMode = signal<'card' | 'table'>()` driven by a `VIEW_MODE_KEY` constant and localStorage.
+
 ## Authentication & Authorization
 
 ### User Roles
@@ -364,6 +418,7 @@ When generating code for this project, adhere to these quality rules to prevent 
 ### Deterministic Patterns
 - DTOs: Always Java records. Services: `@Transactional(readOnly = true)` at class level. Controllers: constructor injection with `/api/v1` prefix.
 - Angular components: standalone with `inject()`, signals for state, `@if`/`@for` control flow, separate `.html` templates.
+- List screens: Always use the **MLP layout pattern** (`mlp-page` → `mlp-hdr` → `mlp-toolbar` → `content-card mlp-table-card`). Never use `feature-list-page` or focus mode. View toggle always via `<cms-view-toggle>`. Empty state always via `<cms-empty-state>`.
 - Tests: `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories.
 
 ### Quality Verification

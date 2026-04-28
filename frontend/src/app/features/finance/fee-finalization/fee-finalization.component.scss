@@ -1,35 +1,52 @@
-.finalization-page {
-  padding: 16px 24px 40px;
+// ── mlp-page skeleton loading ────────────────────────────────────────────────
+.mlp-loading-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.loading-center {
-  display: flex;
-  justify-content: center;
-  padding: 60px;
-}
-
-// ── Enquiry list empty state ─────────────────────────────────────────────────
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 10px;
-  padding: 60px 20px;
-  color: var(--cms-text-muted);
-  text-align: center;
-
-  mat-icon { font-size: 36px; width: 36px; height: 36px; opacity: 0.4; }
-  p { margin: 0; font-size: 13.5px; }
+  padding: 8px 0;
 }
+.mlp-card-skeleton {
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--cms-bg-muted) 25%, var(--cms-bg-surface-2) 50%, var(--cms-bg-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+// ── Table ────────────────────────────────────────────────────────────────────
 .table-wrapper { overflow-x: auto; }
 .modern-table  { width: 100%; }
-.cell-primary  { font-weight: 700; color: var(--cms-text-primary); }
+.cell-name     { font-weight: 700; color: var(--cms-text-primary); }
 .cell-amount   { font-family: var(--cms-font-mono); font-weight: 700; color: var(--cms-primary); }
 .table-row:hover { background: var(--cms-bg-muted); }
+.actions-header { width: 120px; }
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--cms-line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--cms-font-ui);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &--primary {
+    border-color: rgba(var(--cms-primary-rgb), 0.3);
+    color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.05);
+    &:hover { background: rgba(var(--cms-primary-rgb), 0.12); }
+  }
+}
+
+.pagination-wrapper { border-top: 1px solid var(--cms-line); }
 
 // ── Two-column finalization layout ───────────────────────────────────────────
 .finalize-grid {

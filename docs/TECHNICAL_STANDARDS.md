@@ -8,6 +8,11 @@
 
 - [1. Frontend (Angular 21) Instructions](#1-frontend-angular-21-instructions)
 - [2. Angular UI/UX & Design Standards (Material 3)](#2-angular-uiux--design-standards-material-3)
+  - [2.1 Material 3 (M3)](#21-material-3-m3)
+  - [2.2 Dynamic Theming](#22-dynamic-theming)
+  - [2.3 Component Tokens](#23-component-tokens)
+  - [2.4 High-Density Accounting UI](#24-high-density-accounting-ui)
+  - [2.5 List Screen Layout Standards (MLP Pattern)](#25-list-screen-layout-standards-mlp-pattern)
 - [3. Backend (Java 21 & Spring Boot 3.x)](#3-backend-java-21--spring-boot-3x)
 - [4. General Coding & Security Guidelines](#4-general-coding--security-guidelines)
 - [5. Database Profiles](#5-database-profiles)
@@ -169,6 +174,156 @@ $dense-theme: mat.theme(
 ```
 
 - Ensure compact layouts remain accessible — maintain minimum touch target sizes of 44×44px for interactive elements.
+
+---
+
+### 2.5 List Screen Layout Standards (MLP Pattern)
+
+All list / master-entry screens **must** follow the **MLP (Master List Page) layout pattern**. Never use the legacy `feature-list-page` / `page-header` structure or "focus mode" for list screens.
+
+#### 2.5.1 HTML Structure
+
+```html
+<div class="mlp-page">
+
+  <!-- ① Page Header ─────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Resource <em>Name</em></h1>
+      <p class="mlp-sub">Brief description of this section</p>
+      @if (!loading()) {
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+            {{ total() }} Total
+          </span>
+        </div>
+      }
+    </div>
+    <button class="btn-primary" routerLink="/resource/new" aria-label="Add new resource">
+      <!-- SVG plus icon (16×16) -->
+      Add Resource
+    </button>
+  </div>
+
+  <!-- ② Toolbar: filters + search + view toggle ──────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <!-- Optional filter dropdowns -->
+    <select class="mlp-filter-select" aria-label="Filter by ...">
+      <option value="">All Items</option>
+    </select>
+
+    <!-- Search bar -->
+    <div class="search-bar" role="search">
+      <!-- SVG search icon -->
+      <input class="search-bar__input" placeholder="Search..." type="text" aria-label="Search" />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <!-- SVG ✕ icon -->
+        </button>
+      }
+    </div>
+
+    <!-- View toggle — ALWAYS use the shared component, right-aligned automatically -->
+    <cms-view-toggle
+      [mode]="viewMode()"
+      storageKey="resource-list-view-mode"
+      (modeChange)="setViewMode($event)" />
+  </div>
+
+  <!-- ③ Loading skeleton ─────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+
+  <!-- ④a Card view ──────────────────────────────────── -->
+  } @else if (viewMode() === 'card') {
+    @if (filteredItems().length === 0) {
+      <cms-empty-state icon="category" title="No items yet" subtitle="Add your first item to get started" />
+    } @else {
+      <div class="mlp-cards-grid">
+        @for (item of filteredItems(); track item.id) {
+          <div class="mlp-card"> ... </div>
+        }
+      </div>
+    }
+
+  <!-- ④b Table view ─────────────────────────────────── -->
+  } @else {
+    <div class="content-card mlp-table-card">
+      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <!-- column definitions -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0">
+            <cms-empty-state icon="category"
+              [title]="searchValue() ? 'No results found' : 'No items yet'"
+              [subtitle]="searchValue() ? 'Try a different search term' : 'Add your first item to get started'" />
+          </td>
+        </tr>
+      </table>
+      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="10" showFirstLastButtons />
+    </div>
+  }
+
+</div>
+```
+
+#### 2.5.2 TypeScript Component Pattern
+
+```typescript
+private static readonly VIEW_MODE_KEY = 'resource-list-view-mode';
+
+// View mode — persisted to localStorage
+readonly viewMode = signal<'card' | 'table'>(
+  (localStorage.getItem(ResourceListComponent.VIEW_MODE_KEY) as 'card' | 'table') ?? 'card'
+);
+
+// MatTableDataSource wired in ngAfterViewInit via @ViewChild
+dataSource = new MatTableDataSource<Resource>([]);
+@ViewChild(MatPaginator) paginator!: MatPaginator;
+@ViewChild(MatSort) sort!: MatSort;
+
+ngAfterViewInit(): void {
+  this.dataSource.paginator = this.paginator;
+  this.dataSource.sort = this.sort;
+}
+
+// Keep MatTableDataSource in sync with the filtered signal
+constructor() {
+  effect(() => { this.dataSource.data = this.filteredItems(); });
+}
+
+setViewMode(mode: 'card' | 'table'): void {
+  this.viewMode.set(mode);
+  localStorage.setItem(ResourceListComponent.VIEW_MODE_KEY, mode);
+}
+```
+
+#### 2.5.3 Required Imports
+
+```typescript
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+```
+
+#### 2.5.4 Layout Rules (Non-negotiable)
+
+| Rule | Reason |
+|------|--------|
+| Use `mlp-page` as the root container | Provides `min-height: calc(100vh - 91px)` so content fills the full screen |
+| Use `content-card mlp-table-card` for table | `flex: 1` causes the card to grow and fill remaining height; `mat-paginator` gets `margin-top: auto` via global CSS, pinning it to the bottom of the screen at all times |
+| Use `<cms-view-toggle>` — never raw `<div class="mlp-seg">` | Shared component ensures uniform icons, localStorage persistence, and automatic right-alignment |
+| Use `<cms-empty-state>` — never raw empty-state markup | Consistent empty state presentation across all screens |
+| **Never** use focus mode on list screens | Focus mode was removed system-wide; all screens use the regular `mlp-page` layout |
+| View toggle must always be the **last item** in `mlp-toolbar` | `CmsViewToggleComponent` has `:host { margin-left: auto }` which pushes it to the right edge automatically |
 
 ---
 

@@ -10,6 +10,7 @@ import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, Semester } from '../academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -17,6 +18,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     RouterLink,
     DatePipe,
     MatTableModule,

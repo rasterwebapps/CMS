@@ -11,7 +11,7 @@ import { Department } from '../department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
-import { CmsViewMode } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsViewMode, CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
@@ -25,7 +25,7 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent,
+    CmsEmptyStateComponent, CmsViewToggleComponent,
   ],
   templateUrl: './department-list.component.html',
   styleUrl: './department-list.component.scss',

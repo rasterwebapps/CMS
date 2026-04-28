@@ -1,2 +1,8 @@
-// View toggle styles live in global styles.scss (.view-toggle) so the
-// segmented control can be reused outside this component.
+// View toggle styles live in global styles.scss (.mlp-seg / .mlp-seg-btn).
+// The host rule pushes the component to the right end of any flex toolbar
+// and prevents it from shrinking when sibling items consume available space.
+:host {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex; // lets the inner mlp-seg size to its content
+}

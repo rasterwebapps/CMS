@@ -1,25 +1,27 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse, SemesterFeeStatus } from '../../enquiry/enquiry.model';
 import { StudentFeeSummary, SemesterFeeDetail } from '../finance.model';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
-export type ViewMode = 'table' | 'card';
-export type FilterType = 'ALL' | 'ENQUIRY' | 'STUDENT';
+export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
-
-export type PersonType = 'ENQUIRY' | 'STUDENT';
+export type PersonType   = 'ENQUIRY' | 'STUDENT';
 
 export interface FeeEntry {
   type: PersonType;
-  id: number;                    // enquiryId or studentId
+  id: number;
   name: string;
   programName: string;
   courseName: string | null;
@@ -37,7 +39,8 @@ export interface FeeEntry {
     CurrencyPipe, DatePipe, DecimalPipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
-    PageHeaderComponent,
+    MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,
+    CmsEmptyStateComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
@@ -48,18 +51,32 @@ export class FeeCollectionComponent implements OnInit {
   private readonly toast          = inject(ToastService);
   private readonly fb             = inject(FormBuilder);
 
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) this.dataSource.paginator = value;
+  }
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
+
   protected readonly loading          = signal(true);
   protected readonly feeEntries       = signal<FeeEntry[]>([]);
   protected readonly selectedEntry    = signal<FeeEntry | null>(null);
   protected readonly feeStatus        = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly studentSemesters = signal<SemesterFeeDetail[]>([]);
   protected readonly saving           = signal(false);
-  protected readonly receipt          = signal<{ receiptNumber: string; name: string; amount: number; paymentDate: string; paymentMode: string; transactionRef: string | null } | null>(null);
+  protected readonly receipt          = signal<{
+    receiptNumber: string; name: string; amount: number;
+    paymentDate: string; paymentMode: string; transactionRef: string | null;
+  } | null>(null);
 
-  protected readonly viewMode      = signal<ViewMode>('table');
-  protected readonly searchTerm    = signal('');
-  protected readonly filterType    = signal<FilterType>('ALL');
-  protected readonly filterStatus  = signal<FilterStatus>('ALL');
+  protected readonly searchTerm   = signal('');
+  protected readonly filterType   = signal<FilterType>('ALL');
+  protected readonly filterStatus = signal<FilterStatus>('ALL');
+
+  protected readonly displayedColumns = [
+    'name', 'type', 'programName', 'totalFee', 'totalPaid', 'totalOutstanding', 'nextDueDate', 'actions',
+  ];
+  protected readonly dataSource = new MatTableDataSource<FeeEntry>([]);
 
   protected readonly filteredEntries = computed(() => {
     const term   = this.searchTerm().toLowerCase().trim();
@@ -70,11 +87,15 @@ export class FeeCollectionComponent implements OnInit {
     return this.feeEntries().filter(e => {
       if (term && !e.name.toLowerCase().includes(term) && !e.programName.toLowerCase().includes(term)) return false;
       if (type !== 'ALL' && e.type !== type) return false;
-      if (status === 'OVERDUE' && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
+      if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
       if (status === 'OUTSTANDING' && e.totalOutstanding <= 0) return false;
       return true;
     });
   });
+
+  protected readonly totalOutstandingSum = computed(() =>
+    this.feeEntries().reduce((s, e) => s + e.totalOutstanding, 0)
+  );
 
   protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
 
@@ -86,7 +107,10 @@ export class FeeCollectionComponent implements OnInit {
     remarks:              [''],
   });
 
-  protected readonly semesterRows = computed<Array<{ label: string; fee: number; paid: number; outstanding: number; dueDate: string | null; isPaid: boolean; isNext: boolean }>>(() => {
+  protected readonly semesterRows = computed<Array<{
+    label: string; fee: number; paid: number; outstanding: number;
+    dueDate: string | null; isPaid: boolean; isNext: boolean;
+  }>>(() => {
     const entry = this.selectedEntry();
     if (!entry) return [];
 
@@ -94,38 +118,43 @@ export class FeeCollectionComponent implements OnInit {
       const fs = this.feeStatus();
       if (!fs) return [];
       const sems = fs.semesterBreakdown;
-      return sems.map((s, i) => {
-        const prevAllPaid = i === 0 || sems[i - 1].outstanding === 0;
-        return {
-          label:       s.semesterLabel,
-          fee:         s.allocatedFee,
-          paid:        s.paidAmount,
-          outstanding: s.outstanding,
-          dueDate:     s.dueDate,
-          isPaid:      s.outstanding === 0,
-          isNext:      s.outstanding > 0 && prevAllPaid,
-        };
-      });
+      return sems.map((s, i) => ({
+        label:       s.semesterLabel,
+        fee:         s.allocatedFee,
+        paid:        s.paidAmount,
+        outstanding: s.outstanding,
+        dueDate:     s.dueDate,
+        isPaid:      s.outstanding === 0,
+        isNext:      s.outstanding > 0 && (i === 0 || sems[i - 1].outstanding === 0),
+      }));
     } else {
       const sems = this.studentSemesters();
-      return sems.map((s, i) => {
-        const prevAllPaid = i === 0 || sems[i - 1].pendingAmount === 0;
-        return {
-          label:       s.semesterLabel,
-          fee:         s.amount,
-          paid:        s.amountPaid,
-          outstanding: s.pendingAmount,
-          dueDate:     s.dueDate,
-          isPaid:      s.pendingAmount === 0,
-          isNext:      s.pendingAmount > 0 && prevAllPaid,
-        };
-      });
+      return sems.map((s, i) => ({
+        label:       s.semesterLabel,
+        fee:         s.amount,
+        paid:        s.amountPaid,
+        outstanding: s.pendingAmount,
+        dueDate:     s.dueDate,
+        isPaid:      s.pendingAmount === 0,
+        isNext:      s.pendingAmount > 0 && (i === 0 || sems[i - 1].pendingAmount === 0),
+      }));
     }
   });
 
   protected readonly totalFee         = computed(() => this.semesterRows().reduce((s, r) => s + r.fee, 0));
   protected readonly totalPaid        = computed(() => this.semesterRows().reduce((s, r) => s + r.paid, 0));
   protected readonly totalOutstanding = computed(() => this.semesterRows().reduce((s, r) => s + r.outstanding, 0));
+
+  protected get hasActiveFilters(): boolean {
+    return !!this.searchTerm() || this.filterType() !== 'ALL' || this.filterStatus() !== 'ALL';
+  }
+
+  constructor() {
+    effect(() => {
+      this.dataSource.data = this.filteredEntries();
+      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    });
+  }
 
   ngOnInit(): void {
     this.loadAll();
@@ -146,7 +175,6 @@ export class FeeCollectionComponent implements OnInit {
           .filter(s => s.totalPending > 0)
           .map(s => this.studentToEntry(s));
 
-        // Sort by nextDueDate ascending (nulls last), then name
         const all = [...enquiryEntries, ...studentEntries].sort((a, b) => {
           if (!a.nextDueDate && !b.nextDueDate) return a.name.localeCompare(b.name);
           if (!a.nextDueDate) return 1;
@@ -165,34 +193,21 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {
-    const paid = 0; // will be filled when detail is loaded
-    const outstanding = e.finalizedNetFee ?? 0;
     return {
-      type:            'ENQUIRY',
-      id:              e.id,
-      name:            e.name,
-      programName:     e.programName ?? '—',
-      courseName:      e.courseName,
-      totalFee:        e.finalizedNetFee ?? 0,
-      totalPaid:       paid,
-      totalOutstanding: outstanding,
-      nextDueDate:     null,
-      nextDueLabel:    null,
+      type: 'ENQUIRY', id: e.id, name: e.name,
+      programName: e.programName ?? '—', courseName: e.courseName,
+      totalFee: e.finalizedNetFee ?? 0, totalPaid: 0,
+      totalOutstanding: e.finalizedNetFee ?? 0,
+      nextDueDate: null, nextDueLabel: null,
     };
   }
 
   private studentToEntry(s: StudentFeeSummary): FeeEntry {
     return {
-      type:             'STUDENT',
-      id:               s.studentId,
-      name:             s.studentName,
-      programName:      s.programName ?? '—',
-      courseName:       null,
-      totalFee:         s.totalFee,
-      totalPaid:        s.totalPaid,
-      totalOutstanding: s.totalPending,
-      nextDueDate:      null,
-      nextDueLabel:     null,
+      type: 'STUDENT', id: s.studentId, name: s.studentName,
+      programName: s.programName ?? '—', courseName: null,
+      totalFee: s.totalFee, totalPaid: s.totalPaid, totalOutstanding: s.totalPending,
+      nextDueDate: null, nextDueLabel: null,
     };
   }
 
@@ -201,10 +216,7 @@ export class FeeCollectionComponent implements OnInit {
     this.feeStatus.set(null);
     this.studentSemesters.set([]);
     this.receipt.set(null);
-
-    this.form.patchValue({
-      paymentDate: new Date().toISOString().split('T')[0],
-    });
+    this.form.patchValue({ paymentDate: new Date().toISOString().split('T')[0] });
 
     if (entry.type === 'ENQUIRY') {
       this.enquiryService.getYearWiseFeeStatus(entry.id).subscribe({
@@ -248,10 +260,7 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const entry = this.selectedEntry();
     if (!entry) return;
 
@@ -270,42 +279,28 @@ export class FeeCollectionComponent implements OnInit {
         next: (res) => {
           this.saving.set(false);
           this.receipt.set({
-            receiptNumber: res.receiptNumber,
-            name:          res.enquiryName,
-            amount:        res.amountPaid,
-            paymentDate:   res.paymentDate,
-            paymentMode:   res.paymentMode,
-            transactionRef: res.transactionReference,
+            receiptNumber: res.receiptNumber, name: res.enquiryName,
+            amount: res.amountPaid, paymentDate: res.paymentDate,
+            paymentMode: res.paymentMode, transactionRef: res.transactionReference,
           });
         },
-        error: () => {
-          this.toast.error('Failed to collect payment');
-          this.saving.set(false);
-        },
+        error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
       });
     } else {
       this.financeService.collectPayment(entry.id, {
-        amount:               v.amount,
-        paymentDate:          v.paymentDate,
-        paymentMode:          v.paymentMode,
+        amount: v.amount, paymentDate: v.paymentDate, paymentMode: v.paymentMode,
         transactionReference: v.transactionReference || undefined,
-        remarks:              v.remarks || undefined,
+        remarks: v.remarks || undefined,
       }).subscribe({
         next: (res) => {
           this.saving.set(false);
           this.receipt.set({
-            receiptNumber: res.receiptNumber,
-            name:          res.studentName,
-            amount:        res.amountPaid,
-            paymentDate:   res.paymentDate,
-            paymentMode:   res.paymentMode,
-            transactionRef: res.transactionReference,
+            receiptNumber: res.receiptNumber, name: res.studentName,
+            amount: res.amountPaid, paymentDate: res.paymentDate,
+            paymentMode: res.paymentMode, transactionRef: res.transactionReference,
           });
         },
-        error: () => {
-          this.toast.error('Failed to collect payment');
-          this.saving.set(false);
-        },
+        error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
       });
     }
   }
@@ -314,10 +309,6 @@ export class FeeCollectionComponent implements OnInit {
     this.receipt.set(null);
     this.loadAll();
     this.backToList();
-  }
-
-  protected setViewMode(mode: ViewMode): void {
-    this.viewMode.set(mode);
   }
 
   protected onSearch(event: Event): void {
@@ -330,6 +321,12 @@ export class FeeCollectionComponent implements OnInit {
 
   protected setFilterStatus(value: FilterStatus): void {
     this.filterStatus.set(value);
+  }
+
+  protected clearFilters(): void {
+    this.searchTerm.set('');
+    this.filterType.set('ALL');
+    this.filterStatus.set('ALL');
   }
 
   protected isOverdue(dueDate: string | null): boolean {

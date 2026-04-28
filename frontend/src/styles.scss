@@ -3107,6 +3107,10 @@ html.dark-theme body::after {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  // Fill at least the full content area so the table card (flex: 1) can
+  // stretch to the bottom and keep the paginator pinned there.
+  // Breakdown: 56px toolbar + 35px breadcrumb bar (34px + 1px border) = 91px.
+  min-height: calc(100vh - 91px);
 
   @media (max-width: 768px) {
     padding: 20px 16px;
@@ -3359,8 +3363,18 @@ html.dark-theme body::after {
 }
 
 // ── Table Card ────────────────────────────────────────────────
+// Always used alongside .content-card (which already adds flex: 1 and
+// display: flex / flex-direction: column).  The extra flex: 1 here ensures
+// the card grows to fill the remaining height inside .mlp-page, and
+// margin-top: auto on mat-paginator pins it to the bottom of the card so it
+// always appears at the bottom of the visible screen even with few rows.
 .mlp-table-card {
   padding: 0;
   overflow: hidden;
   border-radius: 16px;
+  flex: 1;
+
+  mat-paginator {
+    margin-top: auto;
+  }
 }
