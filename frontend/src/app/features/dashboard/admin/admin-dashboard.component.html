@@ -90,7 +90,7 @@
           <circle cx="6" cy="13" r="1" fill="currentColor"/>
         </svg>
       </div>
-      <div class="sc-val">₹{{ (summary()?.feeCollectedThisMonth ?? 0) | number }}</div>
+      <div class="sc-val">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</div>
       <div class="sc-label">Fee Collected</div>
       <div class="sc-meta">Current month</div>
     </div>
@@ -103,7 +103,7 @@
           <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/>
         </svg>
       </div>
-      <div class="sc-val">₹{{ (summary()?.feeOutstanding ?? 0) | number }}</div>
+      <div class="sc-val">{{ (summary()?.feeOutstanding ?? 0) | inr }}</div>
       <div class="sc-label">Outstanding</div>
       <div class="sc-meta">Needs collection</div>
     </div>
@@ -283,14 +283,14 @@
             <span class="fee-dot fee-dot--green"></span>
             Collected this month
           </span>
-          <span class="fee-val col">₹{{ (summary()?.feeCollectedThisMonth ?? 0) | number }}</span>
+          <span class="fee-val col">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</span>
         </div>
         <div class="fee-item">
           <span class="fee-name">
             <span class="fee-dot fee-dot--red"></span>
             Total outstanding
           </span>
-          <span class="fee-val out">₹{{ (summary()?.feeOutstanding ?? 0) | number }}</span>
+          <span class="fee-val out">{{ (summary()?.feeOutstanding ?? 0) | inr }}</span>
         </div>
         <div class="fee-item">
           <span class="fee-name">

@@ -4,7 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { DecimalPipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
 import { CollectPaymentRequest, CollectPaymentResponse } from '../finance.model';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -13,8 +13,9 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-collect-payment-dialog',
   standalone: true,
   imports: [
+    InrPipe,
     ReactiveFormsModule, MatDialogModule,
-    MatButtonModule, MatProgressSpinnerModule, MatIconModule, DecimalPipe,
+    MatButtonModule, MatProgressSpinnerModule, MatIconModule,
   ],
   templateUrl: './collect-payment-dialog.component.html',
   styleUrl: './collect-payment-dialog.component.scss',

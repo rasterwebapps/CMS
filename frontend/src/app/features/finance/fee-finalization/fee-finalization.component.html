@@ -107,7 +107,7 @@
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Proposed Fee</th>
               <td mat-cell *matCellDef="let row">
                 @if (row.finalCalculatedFee) {
-                  <span class="cell-amount">{{ row.finalCalculatedFee | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="cell-amount">{{ row.finalCalculatedFee | inr }}</span>
                 } @else { — }
               </td>
             </ng-container>
@@ -182,7 +182,7 @@
             <div class="info-row">
               <span class="info-label">Commission</span>
               <span class="info-val info-val--warn info-val--amount">
-                {{ selectedEnquiry()!.referralCommissionAmount | currency:'INR':'₹':'1.0-0' }}
+                {{ selectedEnquiry()!.referralCommissionAmount | inr }}
               </span>
             </div>
           }
@@ -198,7 +198,7 @@
             <div class="info-row info-row--highlight">
               <span class="info-label">Guideline Total</span>
               <span class="info-val info-val--strong info-val--amount">
-                {{ selectedEnquiry()!.feeGuidelineTotal | currency:'INR':'₹':'1.0-0' }}
+                {{ selectedEnquiry()!.feeGuidelineTotal | inr }}
               </span>
             </div>
           }
@@ -213,20 +213,20 @@
         <div class="fee-summary">
           <div class="fee-summary__item">
             <span class="fee-summary__label">Original Fee</span>
-            <span class="fee-summary__val">₹{{ totalOriginal() | number }}</span>
+            <span class="fee-summary__val">{{ totalOriginal() | inr }}</span>
           </div>
           @if (hasDiscount()) {
             <div class="fee-summary__item fee-summary__item--discount">
               <span class="fee-summary__label">Total Discount</span>
               <span class="fee-summary__val fee-summary__val--red">
-                − ₹{{ totalDiscount() | number }}
+                − {{ totalDiscount() | inr }}
                 <small>({{ discountPct() | percent:'1.1-1' }})</small>
               </span>
             </div>
           }
           <div class="fee-summary__item fee-summary__item--net">
             <span class="fee-summary__label">Net Fee</span>
-            <span class="fee-summary__val fee-summary__val--primary">₹{{ totalFinal() | number }}</span>
+            <span class="fee-summary__val fee-summary__val--primary">{{ totalFinal() | inr }}</span>
           </div>
         </div>
       </div>
@@ -272,7 +272,7 @@
                       <span class="year-badge">Y{{ row.yearNumber }}</span>
                       {{ row.yearLabel }}
                     </td>
-                    <td class="mono">₹{{ row.originalAmount | number }}</td>
+                    <td class="mono">{{ row.originalAmount | inr }}</td>
                     <td class="text-right">
                       <div class="amount-input-wrap">
                         <span class="amount-prefix">₹</span>
@@ -290,7 +290,7 @@
                     <td class="text-right">
                       @if (row.originalAmount - row.finalAmount > 0) {
                         <span class="discount-chip">
-                          − ₹{{ (row.originalAmount - row.finalAmount) | number }}
+                          − {{ (row.originalAmount - row.finalAmount) | inr }}
                         </span>
                       } @else {
                         <span class="no-discount">—</span>
@@ -302,11 +302,11 @@
               <tfoot>
                 <tr class="total-row">
                   <td><strong>Total</strong></td>
-                  <td class="mono"><strong>₹{{ totalOriginal() | number }}</strong></td>
-                  <td class="mono net-total"><strong>₹{{ totalFinal() | number }}</strong></td>
+                  <td class="mono"><strong>{{ totalOriginal() | inr }}</strong></td>
+                  <td class="mono net-total"><strong>{{ totalFinal() | inr }}</strong></td>
                   <td class="text-right">
                     @if (hasDiscount()) {
-                      <strong class="discount-chip">− ₹{{ totalDiscount() | number }}</strong>
+                      <strong class="discount-chip">− {{ totalDiscount() | inr }}</strong>
                     } @else {
                       <span class="no-discount">—</span>
                     }

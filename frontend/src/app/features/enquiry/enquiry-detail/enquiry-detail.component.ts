@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -21,13 +22,13 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-enquiry-detail',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
     MatTableModule,
     MatTooltipModule,
-    CurrencyPipe,
     DatePipe,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,

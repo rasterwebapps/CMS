@@ -122,7 +122,7 @@
                     <span class="fee-type-hint">(Hosteler)</span>
                   }
                 </span>
-                <span class="fee-amount-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+                <span class="fee-amount-value">{{ totalFees() | inr }}</span>
               </div>
             }
           </div>
@@ -253,7 +253,7 @@
                   <span class="fee-type-hint">(Hosteler)</span>
                 }
               </span>
-              <span class="fee-total-value">{{ totalFees() | currency:'INR':'symbol':'1.0-0' }}</span>
+              <span class="fee-total-value">{{ totalFees() | inr }}</span>
             </div>
           } @else {
             <p class="no-fee-hint">No fee structures configured for this course.</p>

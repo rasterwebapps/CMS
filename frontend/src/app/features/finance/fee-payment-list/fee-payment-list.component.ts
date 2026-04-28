@@ -11,7 +11,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
 import { FeePayment } from '../finance.model';
-import { DecimalPipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
@@ -21,9 +21,9 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-fee-payment-list',
   standalone: true,
   imports: [
+    InrPipe,
     PageHeaderComponent,
-    CmsStatusBadgeComponent,
-    DecimalPipe, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    CmsStatusBadgeComponent, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './fee-payment-list.component.html',

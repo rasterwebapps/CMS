@@ -33,4 +33,3 @@ export class CmsTipsCardComponent {
   @Input() tips: CmsTip[] = [];
 }
 
-

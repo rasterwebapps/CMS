@@ -64,15 +64,15 @@
                     <input class="date-input" type="date" [value]="row.dueDate"
                       (change)="updateYearDueDate(i, $any($event.target).value)" />
                   </td>
-                  <td class="text-right muted">₹{{ (row.amount / 2) | number:'1.0-0' }}</td>
-                  <td class="text-right muted">₹{{ (row.amount - row.amount / 2) | number:'1.0-0' }}</td>
+                  <td class="text-right muted">{{ (row.amount / 2) | inr }}</td>
+                  <td class="text-right muted">{{ (row.amount - row.amount / 2) | inr }}</td>
                 </tr>
               }
             </tbody>
             <tfoot>
               <tr class="total-row">
                 <td><strong>Total</strong></td>
-                <td class="text-right mono"><strong>₹{{ setupTotal() | number }}</strong></td>
+                <td class="text-right mono"><strong>{{ setupTotal() | inr }}</strong></td>
                 <td colspan="3"></td>
               </tr>
             </tfoot>
@@ -96,7 +96,7 @@
           </div>
           <div class="field-col net-fee-col">
             <label class="field-label">Net Fee</label>
-            <div class="net-fee-val">₹{{ setupNetFee() | number }}</div>
+            <div class="net-fee-val">{{ setupNetFee() | inr }}</div>
           </div>
         </div>
 
@@ -138,22 +138,22 @@
         <div class="student-summary__stats">
           <div class="stat-pill">
             <span class="stat-pill__label">Total Fee</span>
-            <span class="stat-pill__val mono">₹{{ totalFee() | number }}</span>
+            <span class="stat-pill__val mono">{{ totalFee() | inr }}</span>
           </div>
           <div class="stat-pill">
             <span class="stat-pill__label">Paid</span>
-            <span class="stat-pill__val mono text-green">₹{{ totalPaid() | number }}</span>
+            <span class="stat-pill__val mono text-green">{{ totalPaid() | inr }}</span>
           </div>
           <div class="stat-pill" [class.stat-pill--danger]="totalOutstanding() > 0">
             <span class="stat-pill__label">Outstanding</span>
             <span class="stat-pill__val mono" [class.text-red]="totalOutstanding() > 0">
-              ₹{{ totalOutstanding() | number }}
+              {{ totalOutstanding() | inr }}
             </span>
           </div>
           @if (alloc.discountAmount > 0) {
             <div class="stat-pill">
               <span class="stat-pill__label">Discount</span>
-              <span class="stat-pill__val mono">₹{{ alloc.discountAmount | number }}</span>
+              <span class="stat-pill__val mono">{{ alloc.discountAmount | inr }}</span>
             </div>
           }
         </div>
@@ -206,10 +206,10 @@
                       }
                     </div>
                   </td>
-                  <td class="text-right mono">₹{{ sem.amount | number }}</td>
-                  <td class="text-right mono text-green">₹{{ sem.amountPaid | number }}</td>
+                  <td class="text-right mono">{{ sem.amount | inr }}</td>
+                  <td class="text-right mono text-green">{{ sem.amountPaid | inr }}</td>
                   <td class="text-right mono" [class.text-red]="sem.pendingAmount > 0">
-                    ₹{{ sem.pendingAmount | number }}
+                    {{ sem.pendingAmount | inr }}
                   </td>
                   <td class="mono-sm">{{ sem.dueDate }}</td>
                   <td>
@@ -228,10 +228,10 @@
             <tfoot>
               <tr class="total-row">
                 <td><strong>Total</strong></td>
-                <td class="text-right mono"><strong>₹{{ totalFee() | number }}</strong></td>
-                <td class="text-right mono text-green"><strong>₹{{ totalPaid() | number }}</strong></td>
+                <td class="text-right mono"><strong>{{ totalFee() | inr }}</strong></td>
+                <td class="text-right mono text-green"><strong>{{ totalPaid() | inr }}</strong></td>
                 <td class="text-right mono" [class.text-red]="totalOutstanding() > 0">
-                  <strong>₹{{ totalOutstanding() | number }}</strong>
+                  <strong>{{ totalOutstanding() | inr }}</strong>
                 </td>
                 <td colspan="2"></td>
               </tr>
@@ -280,12 +280,12 @@
                     }
                   </span>
                 </div>
-                <span class="receipt-total">₹{{ group.totalAmount | number }}</span>
+                <span class="receipt-total">{{ group.totalAmount | inr }}</span>
               </div>
               @for (line of group.lines; track line.id) {
                 <div class="receipt-line">
                   <span class="receipt-line__sem">{{ line.semesterLabel }}</span>
-                  <span class="receipt-line__amt mono">₹{{ line.amountPaid | number }}</span>
+                  <span class="receipt-line__amt mono">{{ line.amountPaid | inr }}</span>
                 </div>
               }
             </div>

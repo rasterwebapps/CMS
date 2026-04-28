@@ -1,3 +1,4 @@
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DecimalPipe } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { BulkFeeStructureRequest, FeeStructureItemRequest } from '../finance.model';
 import { environment } from '../../../../environments';
@@ -34,8 +34,9 @@ interface AcademicYear {
   selector: 'app-fee-structure-form',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
     PageHeaderComponent],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',

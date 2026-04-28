@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { formatCurrency } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -53,7 +54,7 @@ export class CashierDashboardComponent implements OnInit {
     return [
       {
         title: 'Fee Collected',
-        value: d ? '₹' + d.feeCollectedThisMonth.toLocaleString('en-IN') : '—',
+        value: d ? formatCurrency(d.feeCollectedThisMonth, 'en-IN', '₹', 'INR', '1.0-0') : '—',
         icon: 'payments',
         color: 'teal',
         subtitle: 'This month',
@@ -62,7 +63,7 @@ export class CashierDashboardComponent implements OnInit {
       },
       {
         title: 'Fee Outstanding',
-        value: d ? '₹' + d.feeOutstanding.toLocaleString('en-IN') : '—',
+        value: d ? formatCurrency(d.feeOutstanding, 'en-IN', '₹', 'INR', '1.0-0') : '—',
         icon: 'account_balance',
         color: 'amber',
         subtitle: 'Pending amount',

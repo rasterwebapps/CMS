@@ -257,15 +257,15 @@
                 <div class="ledger-entry__summary">
                   <div class="ledger-stat">
                     <span class="ledger-stat__label">Total</span>
-                    <span class="ledger-stat__value">₹{{ entry.totalAmount | number:'1.2-2' }}</span>
+                    <span class="ledger-stat__value">{{ entry.totalAmount | inr:true }}</span>
                   </div>
                   <div class="ledger-stat">
                     <span class="ledger-stat__label">Paid</span>
-                    <span class="ledger-stat__value text-success">₹{{ entry.paidAmount | number:'1.2-2' }}</span>
+                    <span class="ledger-stat__value text-success">{{ entry.paidAmount | inr:true }}</span>
                   </div>
                   <div class="ledger-stat">
                     <span class="ledger-stat__label">Outstanding</span>
-                    <span class="ledger-stat__value text-danger">₹{{ entry.outstandingAmount | number:'1.2-2' }}</span>
+                    <span class="ledger-stat__value text-danger">{{ entry.outstandingAmount | inr:true }}</span>
                   </div>
                   <div class="ledger-stat">
                     <span class="ledger-stat__label">Due Date</span>
@@ -288,7 +288,7 @@
                         <tr>
                           <td><span class="code-value">{{ payment.receiptNumber }}</span></td>
                           <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
-                          <td>₹{{ payment.amountPaid | number:'1.2-2' }}</td>
+                          <td>{{ payment.amountPaid | inr:true }}</td>
                           <td>{{ payment.lateFeeApplied > 0 ? '₹' + (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                           <td>{{ payment.paymentMode }}</td>
                         </tr>

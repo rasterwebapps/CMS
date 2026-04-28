@@ -267,6 +267,32 @@ tr.table-row:hover .row-actions { opacity: 1; }
 </div>
 ```
 
+#### Indian Currency Formatting (INR — ₹)
+
+The application is built for Indian colleges. All monetary values **must** use the shared `InrPipe`.
+
+**Never use:** `| currency:'INR':'₹'`, `₹{{ val | number }}`, `toLocaleString('en-IN')`, or `CurrencyPipe`.
+
+```typescript
+// Import in component:
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
+// Add to @Component imports[]:
+InrPipe,
+```
+
+```html
+<!-- Whole rupees (default) — e.g. ₹1,23,456 -->
+{{ amount | inr }}
+
+<!-- With paise for receipts/ledgers — e.g. ₹1,23,456.00 -->
+{{ amount | inr:true }}
+
+<!-- Handles null/undefined gracefully — outputs '—' -->
+{{ nullableAmount | inr }}
+```
+
+The `en-IN` locale is registered globally in `app.config.ts` and set as `LOCALE_ID`, so the `| number` and `| date` pipes also use Indian grouping automatically. For TypeScript-level formatting (e.g. in dashboard stat strings), use `formatCurrency(value, 'en-IN', '₹', 'INR', '1.0-0')` from `@angular/common`.
+
 ### Dark Mode
 
 All `--cms-*` tokens automatically adapt to dark mode via CSS custom property overrides in `styles.scss`. Never hardcode light-mode colors; always use the design tokens.

@@ -8,8 +8,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { CurrencyPipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { PercentPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -35,7 +36,7 @@ interface Program { id: number; name: string; }
   selector: 'app-fee-finalization',
   standalone: true,
   imports: [
-    CurrencyPipe, DecimalPipe, PercentPipe,
+    InrPipe, PercentPipe,
     ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatTooltipModule,

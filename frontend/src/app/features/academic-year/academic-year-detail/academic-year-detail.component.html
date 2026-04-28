@@ -357,10 +357,10 @@
                   <tr>
                     <td>{{ demand.studentName }}</td>
                     <td><span class="code-value">{{ demand.cohortCode }}</span></td>
-                    <td>₹{{ demand.totalAmount | number:'1.2-2' }}</td>
+                    <td>{{ demand.totalAmount | inr:true }}</td>
                     <td>{{ demand.dueDate | date:'mediumDate' }}</td>
-                    <td>₹{{ demand.paidAmount | number:'1.2-2' }}</td>
-                    <td>₹{{ demand.outstandingAmount | number:'1.2-2' }}</td>
+                    <td>{{ demand.paidAmount | inr:true }}</td>
+                    <td>{{ demand.outstandingAmount | inr:true }}</td>
                     <td>
                       <span class="cms-badge" [ngClass]="getDemandStatusClass(demand.status)">
                         {{ demand.status }}

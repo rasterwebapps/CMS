@@ -1,11 +1,12 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe, NgClass, DecimalPipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AcademicYearService } from '../academic-year.service';
 import {
   AcademicYear,
@@ -29,10 +30,10 @@ import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
   selector: 'app-academic-year-detail',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink,
     DatePipe,
     NgClass,
-    DecimalPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,

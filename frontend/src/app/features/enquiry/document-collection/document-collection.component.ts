@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe } from '@angular/common';
+
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryDocument, EnquiryDocumentRequest } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -61,12 +62,12 @@ interface ChecklistRow {
   selector: 'app-document-collection',
   standalone: true,
   imports: [
+    InrPipe,
     FormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CurrencyPipe,
     PageHeaderComponent,
     CmsStatusBadgeComponent],
   templateUrl: './document-collection.component.html',

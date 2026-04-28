@@ -81,7 +81,7 @@
               @if (selectedEnquiry()!.finalizedNetFee != null) {
                 <div class="enquiry-summary__item">
                   <span class="enquiry-summary__label">Net Fee</span>
-                  <span class="enquiry-summary__value">{{ selectedEnquiry()!.finalizedNetFee | currency:'INR':'symbol':'1.0-0' }}</span>
+                  <span class="enquiry-summary__value">{{ selectedEnquiry()!.finalizedNetFee | inr }}</span>
                 </div>
               }
               <div class="enquiry-summary__item">

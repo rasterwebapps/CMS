@@ -6,7 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe } from '@angular/common';
+
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -17,13 +18,13 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-document-submission-list',
   standalone: true,
   imports: [
+    InrPipe,
     FormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CurrencyPipe,
     PageHeaderComponent,
   ],
   templateUrl: './document-submission-list.component.html',

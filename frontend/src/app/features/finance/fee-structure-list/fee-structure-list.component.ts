@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -22,8 +22,8 @@ interface AcademicYear { id: number; name: string; }
   selector: 'app-fee-structure-list',
   standalone: true,
   imports: [
+    InrPipe,
     CmsEmptyStateComponent,
-    DecimalPipe,
     RouterLink,
     MatTableModule,
     MatPaginatorModule,

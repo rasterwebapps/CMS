@@ -5,6 +5,7 @@ import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { StudentService } from '../student.service';
 import {
   CourseRegistration,
@@ -22,6 +23,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-student-detail',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink,
     DatePipe,
     DecimalPipe,

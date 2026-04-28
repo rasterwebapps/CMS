@@ -6,7 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryPaymentResponse, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
 import { LayoutService } from '../../../core/layout/layout.service';
@@ -17,9 +18,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-enquiry-payment-collection',
   standalone: true,
   imports: [
-    CurrencyPipe,
+    InrPipe,
     DatePipe,
-    DecimalPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,

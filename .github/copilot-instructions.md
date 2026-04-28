@@ -165,7 +165,14 @@ CollegeManagementSystem/
    });
    ```
 
-7. **List Screen Layout (MLP Pattern)**: All list/master-entry screens **must** use the MLP layout classes defined in `styles.scss`. Never use the old `feature-list-page` / `page-header` pattern in new screens.
+7. **Indian Currency (INR)**: This app is for Indian colleges. All monetary values **must** use the shared `InrPipe` — never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString()`.
+   - Import: `import { InrPipe } from '../../../shared/pipes/inr.pipe';`
+   - Add to `@Component imports[]`: `InrPipe`
+   - Template: `{{ amount | inr }}` (whole rupees) or `{{ amount | inr:true }}` (with paise)
+   - TypeScript: `formatCurrency(value, 'en-IN', '₹', 'INR', '1.0-0')` from `@angular/common`
+   - The `en-IN` locale is globally registered in `app.config.ts` (`LOCALE_ID = 'en-IN'`), so `| number` uses Indian grouping (₹1,23,456) automatically.
+
+8. **List Screen Layout (MLP Pattern)**: All list/master-entry screens **must** use the MLP layout classes defined in `styles.scss`. Never use the old `feature-list-page` / `page-header` pattern in new screens.
 
    ```html
    <div class="mlp-page">
@@ -418,6 +425,7 @@ When generating code for this project, adhere to these quality rules to prevent 
 ### Deterministic Patterns
 - DTOs: Always Java records. Services: `@Transactional(readOnly = true)` at class level. Controllers: constructor injection with `/api/v1` prefix.
 - Angular components: standalone with `inject()`, signals for state, `@if`/`@for` control flow, separate `.html` templates.
+- **Currency**: Always `| inr` pipe (import `InrPipe` from `shared/pipes/inr.pipe`). Never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString`. Locale `en-IN` is global.
 - List screens: Always use the **MLP layout pattern** (`mlp-page` → `mlp-hdr` → `mlp-toolbar` → `content-card mlp-table-card`). Never use `feature-list-page` or focus mode. View toggle always via `<cms-view-toggle>`. Empty state always via `<cms-empty-state>`.
 - Tests: `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories.
 

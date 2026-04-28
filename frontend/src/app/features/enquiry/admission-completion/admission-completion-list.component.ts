@@ -5,7 +5,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CurrencyPipe } from '@angular/common';
+
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -16,12 +17,12 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
   selector: 'app-admission-completion-list',
   standalone: true,
   imports: [
+    InrPipe,
     FormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
-    CurrencyPipe,
     PageHeaderComponent,
   ],
   templateUrl: './admission-completion-list.component.html',

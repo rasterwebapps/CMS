@@ -5,6 +5,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FeeReportsService } from '../fee-reports.service';
 import {
   FeeCollectionSummary,
@@ -22,6 +23,7 @@ import { CsvExporterService, CsvColumn } from '../../../core/export/csv-exporter
   selector: 'app-fee-reports-dashboard',
   standalone: true,
   imports: [
+    InrPipe,
     DatePipe,
     DecimalPipe,
     ReactiveFormsModule,

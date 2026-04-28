@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
 import { FrontOfficeDashboard } from '../dashboard.models';
@@ -17,7 +17,7 @@ import { FrontOfficeDashboard } from '../dashboard.models';
 @Component({
   selector: 'app-front-office-dashboard',
   standalone: true,
-  imports: [RouterLink, DecimalPipe],
+  imports: [ InrPipe,RouterLink],
   templateUrl: './front-office-dashboard.component.html',
   styleUrl: './front-office-dashboard.component.scss',
 })

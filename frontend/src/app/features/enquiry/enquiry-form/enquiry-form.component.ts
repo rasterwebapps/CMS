@@ -5,7 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CurrencyPipe } from '@angular/common';
+
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { EnquiryRequest } from '../enquiry.model';
 import { Agent } from '../../agent/agent.model';
@@ -51,9 +52,9 @@ interface FeeStructureInfo {
   selector: 'app-enquiry-form',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, CurrencyPipe,
-    PageHeaderComponent],
+    MatProgressSpinnerModule, PageHeaderComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })

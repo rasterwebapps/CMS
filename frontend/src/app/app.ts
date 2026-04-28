@@ -45,7 +45,6 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 }
 
 
-
 @Component({
   selector: 'app-root',
   imports: [

@@ -5,7 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DecimalPipe } from '@angular/common';
+import { formatCurrency } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
 import {
   StudentFeeAllocation, SemesterFeeDetail, Receipt,
@@ -29,7 +30,7 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, ReactiveFormsModule,
+    InrPipe, RouterLink, ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
     MatDialogModule, MatTooltipModule,
     PageHeaderComponent, CmsStatusBadgeComponent,
@@ -106,7 +107,7 @@ export class StudentFeeDetailComponent implements OnInit {
     ref.afterClosed().subscribe((result) => {
       if (result) {
         const breakdown = result.semesterBreakdown
-          ?.map((s: any) => `${s.semesterLabel}: ₹${s.amountApplied.toLocaleString('en-IN')}`)
+          ?.map((s: any) => `${s.semesterLabel}: ${formatCurrency(s.amountApplied, 'en-IN', '₹', 'INR', '1.0-0')}`)
           .join(', ') ?? result.allocationSummary;
         this.toast.success(`Receipt ${result.receiptNumber} — ${breakdown}`);
         this.loadAll();

@@ -161,7 +161,7 @@
                     <!-- Row Total Cell -->
                     <div class="g-cell g-cell--total">
                       <span [class.g-total--nonzero]="getItemRowTotal(i) > 0">
-                        ₹{{ getItemRowTotal(i) | number }}
+                        {{ getItemRowTotal(i) | inr }}
                       </span>
                     </div>
                   </div>
@@ -185,9 +185,9 @@
                   <span>Total Course Fees</span>
                 </div>
                 @for (yt of yearTotals(); track $index) {
-                  <div class="g-cell g-cell--year g-cell--total-value">₹{{ yt | number }}</div>
+                  <div class="g-cell g-cell--year g-cell--total-value">{{ yt | inr }}</div>
                 }
-                <div class="g-cell g-cell--total g-cell--grand-total">₹{{ grandTotal() | number }}</div>
+                <div class="g-cell g-cell--total g-cell--grand-total">{{ grandTotal() | inr }}</div>
               </div>
 
             </div>
@@ -251,7 +251,7 @@
                     <!-- Row Total Cell -->
                     <div class="g-cell g-cell--total">
                       <span [class.g-total--nonzero]="getItemRowTotal(i) > 0" class="g-total--additional">
-                        ₹{{ getItemRowTotal(i) | number }}
+                        {{ getItemRowTotal(i) | inr }}
                       </span>
                     </div>
                   </div>
@@ -275,9 +275,9 @@
                   <span>Total Additional Fees</span>
                 </div>
                 @for (yt of additionalYearTotals(); track $index) {
-                  <div class="g-cell g-cell--year g-cell--total-value g-cell--total-value-additional">₹{{ yt | number }}</div>
+                  <div class="g-cell g-cell--year g-cell--total-value g-cell--total-value-additional">{{ yt | inr }}</div>
                 }
-                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total-additional">₹{{ additionalTotal() | number }}</div>
+                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total-additional">{{ additionalTotal() | inr }}</div>
               </div>
 
             </div>

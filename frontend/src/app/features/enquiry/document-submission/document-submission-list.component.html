@@ -176,7 +176,7 @@
             <th mat-header-cell *matHeaderCellDef>Net Fee</th>
             <td mat-cell *matCellDef="let row">
               @if (row.finalizedNetFee) {
-                <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+                <span class="cell-currency">{{ row.finalizedNetFee | inr }}</span>
               } @else {
                 <span class="cell-muted">—</span>
               }

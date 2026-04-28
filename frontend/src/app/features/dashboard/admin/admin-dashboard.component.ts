@@ -1,7 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
+import { formatCurrency } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
 import {
@@ -46,7 +47,7 @@ interface EquipmentRow {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [RouterLink, DecimalPipe],
+  imports: [ InrPipe,RouterLink],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss',
 })
@@ -107,7 +108,7 @@ export class AdminDashboardComponent implements OnInit {
       rows.push({
         title: 'Outstanding Fee Balance',
         subtitle: `${studentsWithDues} student${studentsWithDues === 1 ? '' : 's'} · Immediate review required`,
-        amount: '₹' + s.feeOutstanding.toLocaleString('en-IN'),
+        amount: formatCurrency(s.feeOutstanding, 'en-IN', '₹', 'INR', '1.0-0'),
         severity: 'red',
       });
     }

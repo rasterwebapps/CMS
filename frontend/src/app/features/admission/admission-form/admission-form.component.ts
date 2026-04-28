@@ -1,12 +1,13 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CurrencyPipe } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AdmissionService } from '../admission.service';
 import { ADMISSION_STATUSES, AdmissionRequest, QUALIFICATION_TYPES } from '../admission.model';
 import { StudentService } from '../../student/student.service';
@@ -23,9 +24,9 @@ type Mode = 'from-enquiry' | 'manual';
   selector: 'app-admission-form',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink,
     ReactiveFormsModule,
-    CurrencyPipe,
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,

@@ -39,7 +39,7 @@
           }
           <cms-status-badge [status]="enquiry()!.status"></cms-status-badge>
           @if (enquiry()!.finalizedNetFee) {
-            <span class="meta-fee">{{ enquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+            <span class="meta-fee">{{ enquiry()!.finalizedNetFee | inr }}</span>
           }
         </div>
       </div>

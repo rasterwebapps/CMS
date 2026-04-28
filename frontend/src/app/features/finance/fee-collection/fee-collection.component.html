@@ -13,7 +13,7 @@
           </span>
           <span class="mlp-stat">
             <span class="mlp-stat-dot mlp-stat-dot--red"></span>
-            ₹{{ totalOutstandingSum() | number }} outstanding
+            {{ totalOutstandingSum() | inr }} outstanding
           </span>
         </div>
       </div>
@@ -88,7 +88,7 @@
           <div class="receipt-row"><span class="r-label">Name</span><span class="r-value">{{ r.name }}</span></div>
           <div class="receipt-row">
             <span class="r-label">Amount Paid</span>
-            <span class="r-value r-amount">{{ r.amount | currency:'INR':'₹':'1.0-0' }}</span>
+            <span class="r-value r-amount">{{ r.amount | inr }}</span>
           </div>
           <div class="receipt-row">
             <span class="r-label">Payment Date</span>
@@ -155,21 +155,21 @@
             <ng-container matColumnDef="totalFee">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee</th>
               <td mat-cell *matCellDef="let row">
-                <span class="cell-mono">₹{{ row.totalFee | number:'1.0-0' }}</span>
+                <span class="cell-mono">{{ row.totalFee | inr }}</span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="totalPaid">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Paid</th>
               <td mat-cell *matCellDef="let row">
-                <span class="cell-mono cell-paid">₹{{ row.totalPaid | number:'1.0-0' }}</span>
+                <span class="cell-mono cell-paid">{{ row.totalPaid | inr }}</span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="totalOutstanding">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Outstanding</th>
               <td mat-cell *matCellDef="let row">
-                <span class="cell-mono cell-outstanding">₹{{ row.totalOutstanding | number:'1.0-0' }}</span>
+                <span class="cell-mono cell-outstanding">{{ row.totalOutstanding | inr }}</span>
               </td>
             </ng-container>
 
@@ -258,10 +258,10 @@
                   @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
                 </span>
                 <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}</span>
-                <span class="sem-fee align-right mono">₹{{ row.fee | number:'1.0-0' }}</span>
-                <span class="sem-paid align-right mono">₹{{ row.paid | number:'1.0-0' }}</span>
+                <span class="sem-fee align-right mono">{{ row.fee | inr }}</span>
+                <span class="sem-paid align-right mono">{{ row.paid | inr }}</span>
                 <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0">
-                  ₹{{ row.outstanding | number:'1.0-0' }}
+                  {{ row.outstanding | inr }}
                 </span>
                 <span class="sem-badge align-center"
                       [class.sem-badge--paid]="row.isPaid"
@@ -277,10 +277,10 @@
               <span></span>
               <span><strong>Total</strong></span>
               <span></span>
-              <span class="align-right mono"><strong>₹{{ totalFee() | number:'1.0-0' }}</strong></span>
-              <span class="total-paid align-right mono"><strong>₹{{ totalPaid() | number:'1.0-0' }}</strong></span>
+              <span class="align-right mono"><strong>{{ totalFee() | inr }}</strong></span>
+              <span class="total-paid align-right mono"><strong>{{ totalPaid() | inr }}</strong></span>
               <span class="total-outstanding align-right mono" [class.outstanding-zero]="totalOutstanding() === 0">
-                <strong>₹{{ totalOutstanding() | number:'1.0-0' }}</strong>
+                <strong>{{ totalOutstanding() | inr }}</strong>
               </span>
               <span></span>
             </div>

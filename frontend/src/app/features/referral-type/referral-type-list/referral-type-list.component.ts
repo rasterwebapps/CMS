@@ -1,11 +1,12 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
+
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { ReferralTypeService } from '../referral-type.service';
 import { ReferralType } from '../referral-type.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -16,8 +17,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-referral-type-list',
   standalone: true,
   imports: [
+    InrPipe,
     RouterLink,
-    CurrencyPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,

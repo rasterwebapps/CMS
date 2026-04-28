@@ -301,9 +301,9 @@
                 </span>
               </div>
               <div class="ledger-summary">
-                <span>Total: <strong>₹{{ entry.totalAmount | number:'1.2-2' }}</strong></span>
-                <span>Paid: <strong class="text-success">₹{{ entry.paidAmount | number:'1.2-2' }}</strong></span>
-                <span>Outstanding: <strong class="text-danger">₹{{ entry.outstandingAmount | number:'1.2-2' }}</strong></span>
+                <span>Total: <strong>{{ entry.totalAmount | inr:true }}</strong></span>
+                <span>Paid: <strong class="text-success">{{ entry.paidAmount | inr:true }}</strong></span>
+                <span>Outstanding: <strong class="text-danger">{{ entry.outstandingAmount | inr:true }}</strong></span>
                 <span>Due: <strong>{{ entry.dueDate | date:'mediumDate' }}</strong></span>
               </div>
               @if (entry.payments.length > 0) {

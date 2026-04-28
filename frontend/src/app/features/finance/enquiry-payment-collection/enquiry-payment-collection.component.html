@@ -22,7 +22,7 @@
             </div>
             <div class="receipt-row">
               <span class="receipt-label">Amount Paid</span>
-              <span class="receipt-value receipt-amount">{{ receipt.amountPaid | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="receipt-value receipt-amount">{{ receipt.amountPaid | inr }}</span>
             </div>
             <div class="receipt-row">
               <span class="receipt-label">Payment Date</span>
@@ -86,7 +86,7 @@
               <th mat-header-cell *matHeaderCellDef>Net Fee</th>
               <td mat-cell *matCellDef="let row">
                 @if (row.finalizedNetFee) {
-                  <span class="cell-currency">{{ row.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span class="cell-currency">{{ row.finalizedNetFee | inr }}</span>
                 } @else {
                   <span>—</span>
                 }
@@ -135,18 +135,18 @@
             @if (selectedEnquiry()!.finalizedTotalFee) {
               <div class="summary-row">
                 <span class="summary-label">Total Fee</span>
-                <span class="summary-value">{{ selectedEnquiry()!.finalizedTotalFee | currency:'INR':'₹':'1.0-0' }}</span>
+                <span class="summary-value">{{ selectedEnquiry()!.finalizedTotalFee | inr }}</span>
               </div>
             }
             @if (selectedEnquiry()!.finalizedDiscountAmount) {
               <div class="summary-row">
                 <span class="summary-label">Discount</span>
-                <span class="summary-value discount-value">-{{ selectedEnquiry()!.finalizedDiscountAmount | currency:'INR':'₹':'1.0-0' }}</span>
+                <span class="summary-value discount-value">-{{ selectedEnquiry()!.finalizedDiscountAmount | inr }}</span>
               </div>
             }
             <div class="summary-row summary-total">
               <span class="summary-label">Net Fee Payable</span>
-              <span class="summary-value">{{ selectedEnquiry()!.finalizedNetFee | currency:'INR':'₹':'1.0-0' }}</span>
+              <span class="summary-value">{{ selectedEnquiry()!.finalizedNetFee | inr }}</span>
             </div>
           </div>
 
@@ -158,8 +158,8 @@
               <!-- Payment progress summary -->
               @if (fs.totalPaid > 0) {
                 <p class="paid-through-label">
-                  Total paid: <strong>{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</strong>
-                  &nbsp;·&nbsp; Outstanding: <strong>{{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</strong>
+                  Total paid: <strong>{{ fs.totalPaid | inr }}</strong>
+                  &nbsp;·&nbsp; Outstanding: <strong>{{ fs.totalOutstanding | inr }}</strong>
                 </p>
               }
 
@@ -184,10 +184,10 @@
                         <span class="next-pill">Next →</span>
                       }
                     </span>
-                    <span class="sem-fee align-right mono">₹{{ sf.allocatedFee | number:'1.0-0' }}</span>
-                    <span class="sem-paid align-right mono">₹{{ sf.paidAmount | number:'1.0-0' }}</span>
+                    <span class="sem-fee align-right mono">{{ sf.allocatedFee | inr }}</span>
+                    <span class="sem-paid align-right mono">{{ sf.paidAmount | inr }}</span>
                     <span class="sem-outstanding align-right mono" [class.outstanding-zero]="sf.outstanding === 0">
-                      ₹{{ sf.outstanding | number:'1.0-0' }}
+                      {{ sf.outstanding | inr }}
                     </span>
                     <span class="sem-badge"
                           [class.sem-badge--paid]="sf.outstanding === 0"
@@ -200,10 +200,10 @@
                 <div class="sem-status-footer">
                   <span></span>
                   <span><strong>Total</strong></span>
-                  <span class="align-right mono"><strong>₹{{ fs.totalFee | number:'1.0-0' }}</strong></span>
-                  <span class="total-paid align-right mono"><strong>₹{{ fs.totalPaid | number:'1.0-0' }}</strong></span>
+                  <span class="align-right mono"><strong>{{ fs.totalFee | inr }}</strong></span>
+                  <span class="total-paid align-right mono"><strong>{{ fs.totalPaid | inr }}</strong></span>
                   <span class="total-outstanding align-right mono" [class.outstanding-zero]="fs.totalOutstanding === 0">
-                    <strong>₹{{ fs.totalOutstanding | number:'1.0-0' }}</strong>
+                    <strong>{{ fs.totalOutstanding | inr }}</strong>
                   </span>
                   <span></span>
                 </div>
@@ -221,19 +221,19 @@
                 @for (yf of fs.yearBreakdown; track yf.yearNumber) {
                   <div class="year-status-row" [class.year-status-row--paid]="yf.outstanding === 0" [class.year-status-row--partial]="yf.paidAmount > 0 && yf.outstanding > 0">
                     <span class="year-label">Year {{ yf.yearNumber }}</span>
-                    <span class="year-fee">{{ yf.allocatedFee | currency:'INR':'₹':'1.0-0' }}</span>
-                    <span class="year-paid">{{ yf.paidAmount | currency:'INR':'₹':'1.0-0' }}</span>
+                    <span class="year-fee">{{ yf.allocatedFee | inr }}</span>
+                    <span class="year-paid">{{ yf.paidAmount | inr }}</span>
                     <span class="year-outstanding" [class.outstanding-zero]="yf.outstanding === 0">
-                      {{ yf.outstanding | currency:'INR':'₹':'1.0-0' }}
+                      {{ yf.outstanding | inr }}
                     </span>
                   </div>
                 }
                 <div class="year-status-footer">
                   <span>Total</span>
-                  <span>{{ fs.totalFee | currency:'INR':'₹':'1.0-0' }}</span>
-                  <span class="total-paid">{{ fs.totalPaid | currency:'INR':'₹':'1.0-0' }}</span>
+                  <span>{{ fs.totalFee | inr }}</span>
+                  <span class="total-paid">{{ fs.totalPaid | inr }}</span>
                   <span class="total-outstanding" [class.outstanding-zero]="fs.totalOutstanding === 0">
-                    {{ fs.totalOutstanding | currency:'INR':'₹':'1.0-0' }}
+                    {{ fs.totalOutstanding | inr }}
                   </span>
                 </div>
               </div>

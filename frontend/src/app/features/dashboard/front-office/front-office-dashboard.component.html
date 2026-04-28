@@ -69,7 +69,7 @@
           <circle cx="6" cy="13" r="1" fill="currentColor"/>
         </svg>
       </div>
-      <div class="sc-val">₹{{ (foData()?.feeCollectedToday ?? 0) | number }}</div>
+      <div class="sc-val">{{ (foData()?.feeCollectedToday ?? 0) | inr }}</div>
       <div class="sc-label">Fees Collected</div>
     </div>
 

@@ -8,7 +8,7 @@
   <mat-dialog-content class="receipt-view">
     <div class="receipt-header">
       <div class="receipt-number">{{ result.receiptNumber }}</div>
-      <div class="receipt-total">₹{{ result.amountPaid | number }}</div>
+      <div class="receipt-total">{{ result.amountPaid | inr }}</div>
     </div>
 
     <div class="receipt-meta">
@@ -23,7 +23,7 @@
       @for (s of result.semesterBreakdown; track s.semesterLabel) {
         <div class="receipt-breakdown__row">
           <span>{{ s.semesterLabel }}</span>
-          <span class="receipt-breakdown__amt">₹{{ s.amountApplied | number }}</span>
+          <span class="receipt-breakdown__amt">{{ s.amountApplied | inr }}</span>
         </div>
       }
     </div>

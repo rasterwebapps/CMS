@@ -1,12 +1,13 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { forkJoin } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
@@ -36,7 +37,8 @@ export interface FeeEntry {
   selector: 'app-fee-collection',
   standalone: true,
   imports: [
-    CurrencyPipe, DatePipe, DecimalPipe,
+    InrPipe,
+    DatePipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,

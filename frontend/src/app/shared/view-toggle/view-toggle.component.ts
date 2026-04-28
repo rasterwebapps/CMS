@@ -55,4 +55,3 @@ export class CmsViewToggleComponent implements OnInit {
   }
 }
 
-
