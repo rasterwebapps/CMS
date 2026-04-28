@@ -1,0 +1,219 @@
+<div class="page-wrap">
+  <app-page-header title="Fee Collection" subtitle="All outstanding fees — enquiries and students — in one place." />
+
+  @if (loading()) {
+    <div class="loading-box"><mat-spinner diameter="36"></mat-spinner></div>
+
+  } @else if (receipt(); as r) {
+    <!-- Receipt -->
+    <div class="receipt-wrap">
+      <div class="receipt-card">
+        <div class="receipt-icon"><mat-icon>check_circle</mat-icon></div>
+        <h2 class="receipt-title">Payment Successful</h2>
+        <p class="receipt-sub">Receipt No: <strong>{{ r.receiptNumber }}</strong></p>
+        <div class="receipt-body">
+          <div class="receipt-row">
+            <span class="r-label">Name</span>
+            <span class="r-value">{{ r.name }}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="r-label">Amount Paid</span>
+            <span class="r-value r-amount">{{ r.amount | currency:'INR':'₹':'1.0-0' }}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="r-label">Payment Date</span>
+            <span class="r-value">{{ r.paymentDate | date:'dd MMM yyyy' }}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="r-label">Payment Mode</span>
+            <span class="r-value">{{ r.paymentMode }}</span>
+          </div>
+          @if (r.transactionRef) {
+            <div class="receipt-row">
+              <span class="r-label">Transaction Ref</span>
+              <span class="r-value">{{ r.transactionRef }}</span>
+            </div>
+          }
+        </div>
+        <div class="receipt-actions">
+          <button class="btn-submit" (click)="doneWithReceipt()">
+            <mat-icon>arrow_back</mat-icon>
+            Back to Fee Collection
+          </button>
+        </div>
+      </div>
+    </div>
+
+  } @else if (!selectedEntry()) {
+    <!-- People List -->
+    @if (feeEntries().length === 0) {
+      <div class="empty-state">
+        <mat-icon>check_circle_outline</mat-icon>
+        <p>No outstanding fees found.</p>
+      </div>
+    } @else {
+      <div class="entries-grid">
+        @for (entry of feeEntries(); track entry.id + entry.type) {
+          <div class="entry-card" (click)="selectEntry(entry)">
+            <div class="entry-header">
+              <div class="entry-name">{{ entry.name }}</div>
+              <span class="type-badge" [class.type-badge--student]="entry.type === 'STUDENT'">
+                {{ entry.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
+              </span>
+            </div>
+            <div class="entry-meta">
+              <span>{{ entry.programName }}</span>
+              @if (entry.courseName) { <span>· {{ entry.courseName }}</span> }
+            </div>
+            <div class="entry-footer">
+              <div class="entry-outstanding">
+                <span class="outstanding-label">Outstanding</span>
+                <span class="outstanding-amount">{{ entry.totalOutstanding | currency:'INR':'₹':'1.0-0' }}</span>
+              </div>
+              <button class="btn-collect" (click)="selectEntry(entry); $event.stopPropagation()">
+                Collect
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  } @else {
+    <!-- Payment Panel -->
+    <div class="payment-layout">
+      <!-- Left: Fee Status -->
+      <div class="summary-col">
+        <div class="panel-header">
+          <div>
+            <div class="panel-name">{{ selectedEntry()!.name }}</div>
+            <div class="panel-sub">{{ selectedEntry()!.programName }}{{ selectedEntry()!.courseName ? ' · ' + selectedEntry()!.courseName : '' }}</div>
+          </div>
+          <span class="type-badge" [class.type-badge--student]="selectedEntry()!.type === 'STUDENT'">
+            {{ selectedEntry()!.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
+          </span>
+        </div>
+
+        <!-- Semester Table -->
+        @if (semesterRows().length > 0) {
+          <div class="sem-table">
+            <div class="sem-head">
+              <span>#</span>
+              <span>Semester</span>
+              <span class="align-right">Due Date</span>
+              <span class="align-right">Fee</span>
+              <span class="align-right">Paid</span>
+              <span class="align-right">Outstanding</span>
+              <span class="align-center">Status</span>
+            </div>
+
+            @for (row of semesterRows(); track row.label; let i = $index) {
+              <div class="sem-row"
+                   [class.sem-row--paid]="row.isPaid"
+                   [class.sem-row--next]="row.isNext"
+                   [class.sem-row--overdue]="!row.isPaid && isOverdue(row.dueDate)">
+                <span class="sem-seq" [class.sem-seq--next]="row.isNext">{{ i + 1 }}</span>
+                <span class="sem-label">
+                  {{ row.label }}
+                  @if (row.isNext) { <span class="next-pill">Next →</span> }
+                  @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
+                </span>
+                <span class="sem-due align-right mono">
+                  {{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}
+                </span>
+                <span class="sem-fee align-right mono">₹{{ row.fee | number:'1.0-0' }}</span>
+                <span class="sem-paid align-right mono">₹{{ row.paid | number:'1.0-0' }}</span>
+                <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0">
+                  ₹{{ row.outstanding | number:'1.0-0' }}
+                </span>
+                <span class="sem-badge align-center"
+                      [class.sem-badge--paid]="row.isPaid"
+                      [class.sem-badge--partial]="!row.isPaid && row.paid > 0"
+                      [class.sem-badge--overdue]="!row.isPaid && isOverdue(row.dueDate)"
+                      [class.sem-badge--pending]="!row.isPaid && row.paid === 0 && !isOverdue(row.dueDate)">
+                  {{ row.isPaid ? 'Paid' : row.paid > 0 ? 'Partial' : isOverdue(row.dueDate) ? 'Overdue' : 'Pending' }}
+                </span>
+              </div>
+            }
+
+            <div class="sem-footer">
+              <span></span>
+              <span><strong>Total</strong></span>
+              <span></span>
+              <span class="align-right mono"><strong>₹{{ totalFee() | number:'1.0-0' }}</strong></span>
+              <span class="total-paid align-right mono"><strong>₹{{ totalPaid() | number:'1.0-0' }}</strong></span>
+              <span class="total-outstanding align-right mono" [class.outstanding-zero]="totalOutstanding() === 0">
+                <strong>₹{{ totalOutstanding() | number:'1.0-0' }}</strong>
+              </span>
+              <span></span>
+            </div>
+          </div>
+        } @else {
+          <div class="loading-box"><mat-spinner diameter="24"></mat-spinner></div>
+        }
+      </div>
+
+      <!-- Right: Payment Form -->
+      <div class="form-col">
+        <h3 class="form-title">Payment Details</h3>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <div class="field-group">
+            <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
+            <input class="field-input" type="number" formControlName="amount" min="1" placeholder="0"
+                   [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
+            <p class="field-hint">Enter any amount — fills semesters in order</p>
+            @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+              <p class="field-error">Valid amount is required</p>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label class="field-label">Payment Date <span class="field-required">*</span></label>
+              <input class="field-input" type="date" formControlName="paymentDate"
+                     [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched" />
+              @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+                <p class="field-error">Payment date is required</p>
+              }
+            </div>
+            <div class="field-group">
+              <label class="field-label">Payment Mode <span class="field-required">*</span></label>
+              <select class="field-select" formControlName="paymentMode"
+                      [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched">
+                <option value="" disabled>Select mode</option>
+                @for (mode of paymentModes; track mode) {
+                  <option [value]="mode">{{ mode }}</option>
+                }
+              </select>
+              @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
+                <p class="field-error">Payment mode is required</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Transaction Reference</label>
+            <input class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No." />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Remarks</label>
+            <textarea class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
+          </div>
+
+          <div class="form-footer">
+            <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                Collect Payment
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

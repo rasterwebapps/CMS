@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SKS College of Nursing</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+  <link rel="stylesheet" href="assets/guide-style.css" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">SKS College of Nursing</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#sks-college-of-nursing">SKS College of Nursing</a></li>
+<li><a href="#college-administrator-user-guide">College Administrator — User Guide</a>
+<ul>
+<li><a href="#table-of-contents">Table of Contents</a></li>
+<li><a href="#introduction">1. Introduction</a></li>
+<li><a href="#your-role-at-sks-college-of-nursing">2. Your Role at SKS College of Nursing</a>
+<ul>
+<li><a href="#permissions-at-a-glance">Permissions at a Glance</a></li>
+<li><a href="#enquiry-shortcut-actions-available-to-you">Enquiry Shortcut Actions Available to You</a></li>
+</ul></li>
+<li><a href="#getting-started-login">3. Getting Started &amp; Login</a>
+<ul>
+<li><a href="#how-to-log-in">How to Log In</a></li>
+<li><a href="#first-time-checklist">First-Time Checklist</a></li>
+</ul></li>
+<li><a href="#admin-dashboard">4. Admin Dashboard</a>
+<ul>
+<li><a href="#dashboard-widgets">Dashboard Widgets</a></li>
+<li><a href="#quick-action-shortcuts">Quick Action Shortcuts</a></li>
+</ul></li>
+<li><a href="#preferences-academic-setup">5. Preferences — Academic Setup</a>
+<ul>
+<li><a href="#departments">5.1 Departments</a></li>
+<li><a href="#programs">5.2 Programs</a></li>
+<li><a href="#courses-subjects">5.3 Courses (Subjects)</a></li>
+<li><a href="#academic-years">5.4 Academic Years</a></li>
+<li><a href="#semesters">5.5 Semesters</a></li>
+<li><a href="#fee-structures">5.6 Fee Structures</a></li>
+<li><a href="#faculty">5.7 Faculty</a></li>
+<li><a href="#agents-referral-types">5.8 Agents &amp; Referral Types</a></li>
+</ul></li>
+<li><a href="#admission-management">6. Admission Management</a>
+<ul>
+<li><a href="#admission-status-lifecycle">6.1 Admission Status Lifecycle</a></li>
+<li><a href="#enquiries">6.2 Enquiries</a></li>
+<li><a href="#document-submission">6.3 Document Submission</a></li>
+<li><a href="#admission-completion">6.4 Admission Completion</a></li>
+<li><a href="#admissions-list">6.5 Admissions List</a></li>
+<li><a href="#students-list">6.6 Students List</a></li>
+</ul></li>
+<li><a href="#finance-management">7. Finance Management</a>
+<ul>
+<li><a href="#fee-finalization">7.1 Fee Finalization</a></li>
+<li><a href="#payment-collection">7.2 Payment Collection</a></li>
+</ul></li>
+<li><a href="#reports">8. Reports</a>
+<ul>
+<li><a href="#reports-available-to-college-admin">Reports Available to College Admin</a></li>
+<li><a href="#how-to-generate-a-report">How to Generate a Report</a></li>
+</ul></li>
+<li><a href="#complete-admission-workflow">9. Complete Admission Workflow</a></li>
+<li><a href="#troubleshooting">10. Troubleshooting</a>
+<ul>
+<li><a href="#cannot-see-finalize-fee-button">Cannot see 💰 Finalize Fee button</a></li>
+<li><a href="#admission-creation-is-disabled-greyed-out">Admission Creation is disabled / greyed out</a></li>
+<li><a href="#fee-amount-shows-as-0-or-incorrect-amount">Fee amount shows as ₹0 or incorrect amount</a></li>
+<li><a href="#document-rejected-medical-fitness-certificate">Document rejected — Medical Fitness Certificate</a></li>
+<li><a href="#student-has-duplicate-enquiries">Student has duplicate enquiries</a></li>
+<li><a href="#keycloak-session-expired">Keycloak session expired</a></li>
+</ul></li>
+<li><a href="#quick-reference">11. Quick Reference</a>
+<ul>
+<li><a href="#sks-programs-at-a-glance">SKS Programs at a Glance</a></li>
+<li><a href="#status-cheat-sheet">Status Cheat Sheet</a></li>
+<li><a href="#admin-daily-checklist">Admin Daily Checklist</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="sks-college-of-nursing">SKS College of Nursing</h1>
+<h1 id="college-administrator-user-guide">College Administrator — User Guide</h1>
+<p><strong>Version 2.0 | April 27, 2026</strong></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#1-introduction">Introduction</a></li>
+<li><a href="#2-your-role-at-sks-college-of-nursing">Your Role at SKS College of Nursing</a></li>
+<li><a href="#3-getting-started--login">Getting Started &amp; Login</a></li>
+<li><a href="#4-admin-dashboard">Admin Dashboard</a></li>
+<li><a href="#5-preferences--academic-setup">Preferences — Academic Setup</a>
+<ul>
+<li><a href="#51-departments">5.1 Departments</a></li>
+<li><a href="#52-programs">5.2 Programs</a></li>
+<li><a href="#53-courses-subjects">5.3 Courses (Subjects)</a></li>
+<li><a href="#54-academic-years">5.4 Academic Years</a></li>
+<li><a href="#55-semesters">5.5 Semesters</a></li>
+<li><a href="#56-fee-structures">5.6 Fee Structures</a></li>
+<li><a href="#57-faculty">5.7 Faculty</a></li>
+<li><a href="#58-agents--referral-types">5.8 Agents &amp; Referral Types</a></li>
+</ul></li>
+<li><a href="#6-admission-management">Admission Management</a>
+<ul>
+<li><a href="#61-admission-status-lifecycle">6.1 Status Lifecycle</a></li>
+<li><a href="#62-enquiries">6.2 Enquiries</a></li>
+<li><a href="#63-document-submission">6.3 Document Submission</a></li>
+<li><a href="#64-admission-completion">6.4 Admission Completion</a></li>
+<li><a href="#65-admissions-list">6.5 Admissions List</a></li>
+<li><a href="#66-students-list">6.6 Students List</a></li>
+</ul></li>
+<li><a href="#7-finance-management">Finance Management</a>
+<ul>
+<li><a href="#71-fee-finalization">7.1 Fee Finalization</a></li>
+<li><a href="#72-payment-collection">7.2 Payment Collection</a></li>
+</ul></li>
+<li><a href="#8-reports">Reports</a></li>
+<li><a href="#9-complete-admission-workflow">Complete Admission Workflow</a></li>
+<li><a href="#10-troubleshooting">Troubleshooting</a></li>
+<li><a href="#11-quick-reference">Quick Reference</a></li>
+</ol>
+<hr />
+<h2 id="introduction">1. Introduction</h2>
+<p>Welcome to the <strong>SKS College of Nursing Management System</strong>. This guide is written for <strong>College Administrators</strong> who are responsible for configuring academic operations, managing admissions from enquiry to enrollment, and overseeing financial collections.</p>
+<p>SKS College of Nursing offers INC-approved programs in nursing and allied health sciences. The system is designed to help you manage the entire student journey from the first phone call to graduation.</p>
+<hr />
+<h2 id="your-role-at-sks-college-of-nursing">2. Your Role at SKS College of Nursing</h2>
+<h3 id="permissions-at-a-glance">Permissions at a Glance</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Menu Section</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Dashboard</td>
+<td>✅ Full access</td>
+</tr>
+<tr class="even">
+<td>Preferences — Academic Setup</td>
+<td>✅ Full access</td>
+</tr>
+<tr class="odd">
+<td>Admission Management</td>
+<td>✅ Full access</td>
+</tr>
+<tr class="even">
+<td>Finance — Fee Finalization</td>
+<td>✅ College Admin only</td>
+</tr>
+<tr class="odd">
+<td>Finance — Fee Payments</td>
+<td>✅ Full access</td>
+</tr>
+<tr class="even">
+<td>Reports</td>
+<td>✅ Full access</td>
+</tr>
+<tr class="odd">
+<td>System Settings</td>
+<td>❌ System Admin only</td>
+</tr>
+</tbody>
+</table>
+<h3 id="enquiry-shortcut-actions-available-to-you">Enquiry Shortcut Actions Available to You</h3>
+<p>From the <strong>Enquiries list</strong>, you can trigger key workflow steps with a single button:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 60%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Button</th>
+<th>Enquiry Status Required</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>💰 Finalize Fee</td>
+<td><code>INTERESTED</code></td>
+<td>Set student’s fee amount, apply scholarships</td>
+</tr>
+<tr class="even">
+<td>💳 Collect Payment</td>
+<td><code>FEES_FINALIZED</code> or <code>PARTIALLY_PAID</code></td>
+<td>Record a cash/online/cheque payment</td>
+</tr>
+<tr class="odd">
+<td>📁 Submit Documents</td>
+<td><code>FEES_PAID</code> or <code>PARTIALLY_PAID</code></td>
+<td>Open document upload workflow</td>
+</tr>
+<tr class="even">
+<td>🎓 Create Admission</td>
+<td><code>DOCUMENTS_SUBMITTED</code> (via enquiry detail)</td>
+<td>Create admission and student record</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="getting-started-login">3. Getting Started &amp; Login</h2>
+<h3 id="how-to-log-in">How to Log In</h3>
+<ol type="1">
+<li>Open your browser and navigate to the CMS application URL</li>
+<li>You are automatically redirected to the <strong>Keycloak login screen</strong></li>
+<li>Enter:
+<ul>
+<li><strong>Username</strong>: Your college email (e.g., <code>admin@sksnursing.edu.in</code>)</li>
+<li><strong>Password</strong>: Your Keycloak password</li>
+</ul></li>
+<li>Click <strong>“Log In”</strong></li>
+<li>The <strong>College Admin Dashboard</strong> loads</li>
+</ol>
+<h3 id="first-time-checklist">First-Time Checklist</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+Verify your name and role display correctly (avatar → top-right)</li>
+<li><input type="checkbox" disabled="" />
+Check that “College Admin” appears in your profile</li>
+<li><input type="checkbox" disabled="" />
+Explore the left navigation sidebar</li>
+<li><input type="checkbox" disabled="" />
+Complete Step 5 (Preferences) before processing first admission</li>
+</ul>
+<hr />
+<h2 id="admin-dashboard">4. Admin Dashboard</h2>
+<h3 id="dashboard-widgets">Dashboard Widgets</h3>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 63%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Widget</th>
+<th>What It Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>New Enquiries This Month</td>
+<td>Count of prospective students who enquired</td>
+</tr>
+<tr class="even">
+<td>Pending Fee Finalizations</td>
+<td>Enquiries in <code>INTERESTED</code> status awaiting fee setup</td>
+</tr>
+<tr class="odd">
+<td>Ready for Admission</td>
+<td>Enquiries in <code>DOCUMENTS_SUBMITTED</code> status</td>
+</tr>
+<tr class="even">
+<td>Monthly Collections</td>
+<td>Total fees received this calendar month</td>
+</tr>
+<tr class="odd">
+<td>Outstanding Balance</td>
+<td>Total fees yet to be collected across all students</td>
+</tr>
+<tr class="even">
+<td>Active Academic Year</td>
+<td>Currently configured academic year (e.g., 2026–27)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quick-action-shortcuts">Quick Action Shortcuts</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Button</th>
+<th>Takes You To</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>+ New Enquiry</td>
+<td>Create enquiry screen</td>
+</tr>
+<tr class="even">
+<td>Finalize Fee</td>
+<td>Student fees finalization</td>
+</tr>
+<tr class="odd">
+<td>View Reports</td>
+<td>Reports dashboard</td>
+</tr>
+<tr class="even">
+<td>Record Payment</td>
+<td>Fee payment recording</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="preferences-academic-setup">5. Preferences — Academic Setup</h2>
+<p>This section configures the academic and operational backbone of SKS College of Nursing. Set up Preferences <strong>before</strong> processing any admissions.</p>
+<hr />
+<h3 id="departments">5.1 Departments</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Departments</p>
+<p>SKS College of Nursing organizes its faculty and curriculum into the following departments:</p>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 17%" />
+<col style="width: 37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Department Name</th>
+<th>Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Medical-Surgical Nursing</td>
+<td>MSN</td>
+<td>Adult inpatient and surgical care nursing</td>
+</tr>
+<tr class="even">
+<td>Community Health Nursing</td>
+<td>CHN</td>
+<td>Public health, epidemiology, and rural health nursing</td>
+</tr>
+<tr class="odd">
+<td>Child Health Nursing</td>
+<td>CHD</td>
+<td>Paediatric and neonatal nursing</td>
+</tr>
+<tr class="even">
+<td>Psychiatric &amp; Mental Health Nursing</td>
+<td>PMH</td>
+<td>Psychiatry care and mental wellness nursing</td>
+</tr>
+<tr class="odd">
+<td>OBG Nursing</td>
+<td>OBG</td>
+<td>Obstetrics, Gynaecology, and Midwifery</td>
+</tr>
+<tr class="even">
+<td>Nursing Foundations</td>
+<td>NF</td>
+<td>Fundamentals of nursing and clinical skills</td>
+</tr>
+<tr class="odd">
+<td>Basic Sciences</td>
+<td>BSC</td>
+<td>Anatomy, Physiology, Biochemistry, Microbiology</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-a-department">How to Create a Department</h4>
+<ol type="1">
+<li>Click <strong>“+ New Department”</strong> button (top-right of the screen)</li>
+<li>Fill in:
+<ul>
+<li><strong>Department Name</strong>: e.g., <code>Medical-Surgical Nursing</code></li>
+<li><strong>Department Code</strong>: e.g., <code>MSN</code></li>
+<li><strong>Description</strong>: Brief description of scope</li>
+</ul></li>
+<li>Click <strong>“Save Department”</strong></li>
+<li>New department appears in the list</li>
+</ol>
+<hr />
+<h3 id="programs">5.2 Programs</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Programs</p>
+<p>SKS College of Nursing offers the following INC-approved programs:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Program Name</th>
+<th>Code</th>
+<th>Duration</th>
+<th>Intake Seats</th>
+<th>Department</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bachelor of Science in Nursing</td>
+<td>BSC-NUR</td>
+<td>4 Years</td>
+<td>60</td>
+<td>Nursing Foundations</td>
+</tr>
+<tr class="even">
+<td>Master of Science in Nursing</td>
+<td>MSC-NUR</td>
+<td>2 Years</td>
+<td>30</td>
+<td>Medical-Surgical Nursing</td>
+</tr>
+<tr class="odd">
+<td>General Nursing &amp; Midwifery</td>
+<td>GNM</td>
+<td>3½ Years</td>
+<td>60</td>
+<td>Nursing Foundations</td>
+</tr>
+<tr class="even">
+<td>Post Basic B.Sc Nursing</td>
+<td>PBB-NUR</td>
+<td>2 Years</td>
+<td>30</td>
+<td>Nursing Foundations</td>
+</tr>
+<tr class="odd">
+<td>Diploma in OT Technician</td>
+<td>DOTT</td>
+<td>2 Years</td>
+<td>30</td>
+<td>Basic Sciences</td>
+</tr>
+<tr class="even">
+<td>Diploma in Medical Lab Technology</td>
+<td>DMLT</td>
+<td>2 Years</td>
+<td>30</td>
+<td>Basic Sciences</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-a-program">How to Create a Program</h4>
+<ol type="1">
+<li>Click <strong>“+ New Program”</strong></li>
+<li>Fill in:
+<ul>
+<li><strong>Program Name</strong>: <code>Bachelor of Science in Nursing</code></li>
+<li><strong>Program Code</strong>: <code>BSC-NUR</code></li>
+<li><strong>Department</strong>: <code>Nursing Foundations</code></li>
+<li><strong>Duration (Years)</strong>: <code>4</code></li>
+<li><strong>Intake Capacity</strong>: <code>60</code></li>
+<li><strong>Description</strong>: <code>INC-approved 4-year nursing degree program</code></li>
+</ul></li>
+<li>Click <strong>“Save Program”</strong></li>
+</ol>
+<hr />
+<h3 id="courses-subjects">5.3 Courses (Subjects)</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Courses</p>
+<p>Courses are individual subjects taught within programs. Below is the complete curriculum for <strong>B.Sc Nursing (BSC-NUR)</strong>:</p>
+<h4 id="semester-wise-course-list-b.sc-nursing">Semester-wise Course List — B.Sc Nursing</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Semester</th>
+<th>Subject</th>
+<th>Code</th>
+<th>Credits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sem 1</td>
+<td>Anatomy and Physiology</td>
+<td>BSC-NUR-101</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td>Sem 1</td>
+<td>Biochemistry</td>
+<td>BSC-NUR-102</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>Sem 1</td>
+<td>Nursing Foundations I</td>
+<td>BSC-NUR-103</td>
+<td>6</td>
+</tr>
+<tr class="even">
+<td>Sem 1</td>
+<td>Nutrition and Dietetics</td>
+<td>BSC-NUR-104</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>Sem 2</td>
+<td>Psychology</td>
+<td>BSC-NUR-105</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>Sem 2</td>
+<td>Microbiology</td>
+<td>BSC-NUR-106</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<td>Sem 2</td>
+<td>Nursing Foundations II</td>
+<td>BSC-NUR-107</td>
+<td>6</td>
+</tr>
+<tr class="even">
+<td>Sem 2</td>
+<td>Sociology</td>
+<td>BSC-NUR-108</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td>Sem 3</td>
+<td>Medical-Surgical Nursing I</td>
+<td>BSC-NUR-201</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td>Sem 3</td>
+<td>Pharmacology</td>
+<td>BSC-NUR-202</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<td>Sem 3</td>
+<td>Pathology and Genetics</td>
+<td>BSC-NUR-203</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>Sem 4</td>
+<td>Medical-Surgical Nursing II</td>
+<td>BSC-NUR-204</td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td>Sem 4</td>
+<td>Community Health Nursing I</td>
+<td>BSC-NUR-205</td>
+<td>6</td>
+</tr>
+<tr class="even">
+<td>Sem 4</td>
+<td>Mental Health Nursing</td>
+<td>BSC-NUR-206</td>
+<td>5</td>
+</tr>
+<tr class="odd">
+<td>Sem 5</td>
+<td>Child Health Nursing</td>
+<td>BSC-NUR-301</td>
+<td>6</td>
+</tr>
+<tr class="even">
+<td>Sem 5</td>
+<td>Midwifery &amp; OBG Nursing I</td>
+<td>BSC-NUR-302</td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td>Sem 6</td>
+<td>Midwifery &amp; OBG Nursing II</td>
+<td>BSC-NUR-303</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td>Sem 6</td>
+<td>Community Health Nursing II</td>
+<td>BSC-NUR-304</td>
+<td>5</td>
+</tr>
+<tr class="odd">
+<td>Sem 7</td>
+<td>Nursing Research &amp; Statistics</td>
+<td>BSC-NUR-401</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td>Sem 7</td>
+<td>Management of Nursing Services</td>
+<td>BSC-NUR-402</td>
+<td>5</td>
+</tr>
+<tr class="odd">
+<td>Sem 8</td>
+<td>Nursing Education</td>
+<td>BSC-NUR-403</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td>Sem 8</td>
+<td>Clinical Internship</td>
+<td>BSC-NUR-404</td>
+<td>20</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-a-course">How to Create a Course</h4>
+<ol type="1">
+<li>Click <strong>“+ New Course”</strong></li>
+<li>Fill in:
+<ul>
+<li><strong>Course Name</strong>: <code>Anatomy and Physiology</code></li>
+<li><strong>Course Code</strong>: <code>BSC-NUR-101</code></li>
+<li><strong>Program</strong>: <code>Bachelor of Science in Nursing</code></li>
+<li><strong>Semester</strong>: <code>1</code></li>
+<li><strong>Credits</strong>: <code>4</code></li>
+</ul></li>
+<li>Click <strong>“Save Course”</strong></li>
+</ol>
+<hr />
+<h3 id="academic-years">5.4 Academic Years</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Academic Years</p>
+<p>SKS College follows the <strong>INC academic calendar</strong> (August to July).</p>
+<table>
+<thead>
+<tr class="header">
+<th>Academic Year</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2023–24</td>
+<td>Archived</td>
+</tr>
+<tr class="even">
+<td>2024–25</td>
+<td>Archived</td>
+</tr>
+<tr class="odd">
+<td>2025–26</td>
+<td>Archived</td>
+</tr>
+<tr class="even">
+<td>2026–27</td>
+<td>✅ <strong>Active</strong></td>
+</tr>
+<tr class="odd">
+<td>2027–28</td>
+<td>Future</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-an-academic-year">How to Create an Academic Year</h4>
+<ol type="1">
+<li>Click <strong>“+ New Academic Year”</strong></li>
+<li>Enter:
+<ul>
+<li><strong>Start Year</strong>: <code>2026</code></li>
+<li><strong>End Year</strong>: <code>2027</code></li>
+<li><strong>Status</strong>: <code>Active</code></li>
+</ul></li>
+<li>Click <strong>“Save”</strong></li>
+</ol>
+<blockquote>
+<p><strong>Note</strong>: Only one academic year should be set to <code>Active</code> at a time.</p>
+</blockquote>
+<hr />
+<h3 id="semesters">5.5 Semesters</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Semesters</p>
+<p>Each academic year has two semesters for degree programs and three blocks for GNM.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Semester Name</th>
+<th>Number</th>
+<th>Period</th>
+<th>Exam Dates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sem 1 — Foundation (Odd) 2026</td>
+<td>1</td>
+<td>01 Aug – 12 Dec 2026</td>
+<td>15 Dec – 28 Dec 2026</td>
+</tr>
+<tr class="even">
+<td>Sem 2 — Foundation (Even) 2027</td>
+<td>2</td>
+<td>03 Jan – 10 May 2027</td>
+<td>12 May – 25 May 2027</td>
+</tr>
+<tr class="odd">
+<td>Sem 3 — Clinical I (Odd) 2027</td>
+<td>3</td>
+<td>01 Aug – 12 Dec 2027</td>
+<td>15 Dec – 28 Dec 2027</td>
+</tr>
+<tr class="even">
+<td>Sem 4 — Clinical I (Even) 2028</td>
+<td>4</td>
+<td>03 Jan – 10 May 2028</td>
+<td>12 May – 25 May 2028</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-a-semester">How to Create a Semester</h4>
+<ol type="1">
+<li>Click <strong>“+ New Semester”</strong></li>
+<li>Enter:
+<ul>
+<li><strong>Name</strong>: <code>Sem 1 — Foundation (Odd) 2026</code></li>
+<li><strong>Semester Number</strong>: <code>1</code></li>
+<li><strong>Academic Year</strong>: <code>2026–27</code></li>
+<li><strong>Start Date</strong>: <code>01-08-2026</code></li>
+<li><strong>End Date</strong>: <code>12-12-2026</code></li>
+<li><strong>Exam Start Date</strong>: <code>15-12-2026</code></li>
+<li><strong>Exam End Date</strong>: <code>28-12-2026</code></li>
+</ul></li>
+<li>Click <strong>“Save”</strong></li>
+</ol>
+<hr />
+<h3 id="fee-structures">5.6 Fee Structures</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Fee Structures</p>
+<p>SKS College of Nursing fee structures comply with INC regulations and state government guidelines.</p>
+<h4 id="b.sc-nursing-fee-structure-202627">B.Sc Nursing Fee Structure — 2026–27</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Fee Component</th>
+<th>Year 1</th>
+<th>Year 2</th>
+<th>Year 3</th>
+<th>Year 4</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tuition Fee</td>
+<td>₹60,000</td>
+<td>₹60,000</td>
+<td>₹60,000</td>
+<td>₹60,000</td>
+<td>₹2,40,000</td>
+</tr>
+<tr class="even">
+<td>Clinical Training Fee</td>
+<td>₹20,000</td>
+<td>₹25,000</td>
+<td>₹30,000</td>
+<td>₹25,000</td>
+<td>₹1,00,000</td>
+</tr>
+<tr class="odd">
+<td>Lab &amp; Practical Fee</td>
+<td>₹10,000</td>
+<td>₹10,000</td>
+<td>₹10,000</td>
+<td>₹10,000</td>
+<td>₹40,000</td>
+</tr>
+<tr class="even">
+<td>Exam Fee</td>
+<td>₹5,000</td>
+<td>₹5,000</td>
+<td>₹5,000</td>
+<td>₹5,000</td>
+<td>₹20,000</td>
+</tr>
+<tr class="odd">
+<td>Uniform &amp; Kit (Year 1)</td>
+<td>₹8,000</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>₹8,000</td>
+</tr>
+<tr class="even">
+<td><strong>Annual Total</strong></td>
+<td><strong>₹1,03,000</strong></td>
+<td><strong>₹1,00,000</strong></td>
+<td><strong>₹1,05,000</strong></td>
+<td><strong>₹1,00,000</strong></td>
+<td><strong>₹4,08,000</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Hostel fee (₹36,000/year) is additional and optional.</p>
+</blockquote>
+<h4 id="m.sc-nursing-fee-structure-202627">M.Sc Nursing Fee Structure — 2026–27</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Fee Component</th>
+<th>Year 1</th>
+<th>Year 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tuition Fee</td>
+<td>₹80,000</td>
+<td>₹80,000</td>
+</tr>
+<tr class="even">
+<td>Research Lab Fee</td>
+<td>₹15,000</td>
+<td>₹20,000</td>
+</tr>
+<tr class="odd">
+<td>Clinical Placement Fee</td>
+<td>₹25,000</td>
+<td>₹30,000</td>
+</tr>
+<tr class="even">
+<td>Exam Fee</td>
+<td>₹5,000</td>
+<td>₹5,000</td>
+</tr>
+<tr class="odd">
+<td><strong>Annual Total</strong></td>
+<td><strong>₹1,25,000</strong></td>
+<td><strong>₹1,35,000</strong></td>
+</tr>
+</tbody>
+</table>
+<h4 id="gnm-fee-structure-202627">GNM Fee Structure — 2026–27</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Fee Component</th>
+<th>Year 1</th>
+<th>Year 2</th>
+<th>Year 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tuition Fee</td>
+<td>₹45,000</td>
+<td>₹45,000</td>
+<td>₹45,000</td>
+</tr>
+<tr class="even">
+<td>Clinical Training</td>
+<td>₹15,000</td>
+<td>₹18,000</td>
+<td>₹20,000</td>
+</tr>
+<tr class="odd">
+<td>Uniform &amp; Kit</td>
+<td>₹6,000</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td>Exam Fee</td>
+<td>₹4,000</td>
+<td>₹4,000</td>
+<td>₹4,000</td>
+</tr>
+<tr class="odd">
+<td><strong>Annual Total</strong></td>
+<td><strong>₹70,000</strong></td>
+<td><strong>₹67,000</strong></td>
+<td><strong>₹69,000</strong></td>
+</tr>
+</tbody>
+</table>
+<h4 id="scholarship-concession-categories">Scholarship / Concession Categories</h4>
+<table>
+<colgroup>
+<col style="width: 37%" />
+<col style="width: 37%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Scholarship</th>
+<th>Eligibility</th>
+<th>Discount</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Merit Scholarship</td>
+<td>95%+ in 12th Grade</td>
+<td>₹30,000/year</td>
+</tr>
+<tr class="even">
+<td>SC/ST Government Concession</td>
+<td>Caste certificate</td>
+<td>As per Govt norms</td>
+</tr>
+<tr class="odd">
+<td>Staff Ward Concession</td>
+<td>Child of SKS staff</td>
+<td>25% tuition fee</td>
+</tr>
+<tr class="even">
+<td>Hospital Referral Concession</td>
+<td>Referred by affiliated hospital</td>
+<td>15% tuition fee</td>
+</tr>
+<tr class="odd">
+<td>Financial Hardship Concession</td>
+<td>Income certificate &lt; ₹3 lakh</td>
+<td>Case by case</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-create-a-fee-structure">How to Create a Fee Structure</h4>
+<ol type="1">
+<li>Click <strong>“+ New Fee Structure”</strong></li>
+<li>Select:
+<ul>
+<li><strong>Program</strong>: <code>Bachelor of Science in Nursing</code></li>
+<li><strong>Academic Year</strong>: <code>2026–27</code></li>
+<li><strong>Fee Type</strong>: <code>Tuition Fee</code></li>
+</ul></li>
+<li>Add Year Amounts:
+<ul>
+<li>Year 1: <code>60000</code>, Year 2: <code>60000</code>, Year 3: <code>60000</code>, Year 4: <code>60000</code></li>
+</ul></li>
+<li>Click <strong>“Save Fee Structure”</strong></li>
+</ol>
+<blockquote>
+<p><strong>Tip</strong>: Create separate fee structure entries for each component (Tuition, Clinical, Lab, Exam) and the system aggregates them.</p>
+</blockquote>
+<hr />
+<h3 id="faculty">5.7 Faculty</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Faculty</p>
+<h4 id="sks-college-of-nursing-faculty-register-sample">SKS College of Nursing — Faculty Register (Sample)</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Designation</th>
+<th>Department</th>
+<th>Qualification</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ms. Anita Rao</td>
+<td>Principal &amp; Professor</td>
+<td>Nursing Foundations</td>
+<td>M.Sc Nursing, Ph.D</td>
+</tr>
+<tr class="even">
+<td>Dr. Kavitha M</td>
+<td>Reader</td>
+<td>Medical-Surgical Nursing</td>
+<td>M.Sc Nursing (Critical Care)</td>
+</tr>
+<tr class="odd">
+<td>Ms. Priya Sundaram</td>
+<td>Lecturer</td>
+<td>Community Health Nursing</td>
+<td>M.Sc Nursing</td>
+</tr>
+<tr class="even">
+<td>Ms. Deepa Nair</td>
+<td>Lecturer</td>
+<td>OBG Nursing</td>
+<td>M.Sc Nursing (Midwifery)</td>
+</tr>
+<tr class="odd">
+<td>Ms. Lakshmi K</td>
+<td>Tutor</td>
+<td>Child Health Nursing</td>
+<td>B.Sc Nursing</td>
+</tr>
+<tr class="even">
+<td>Mr. Arun Kumar</td>
+<td>Tutor</td>
+<td>Basic Sciences</td>
+<td>M.Sc Anatomy</td>
+</tr>
+<tr class="odd">
+<td>Ms. Sindhu G</td>
+<td>Clinical Instructor</td>
+<td>Medical-Surgical Nursing</td>
+<td>B.Sc Nursing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-add-faculty">How to Add Faculty</h4>
+<ol type="1">
+<li>Click <strong>“+ New Faculty”</strong></li>
+<li>Enter:
+<ul>
+<li><strong>First Name / Last Name</strong>: e.g., <code>Kavitha M</code></li>
+<li><strong>Email</strong>: <code>kavitha.m@sksnursing.edu.in</code></li>
+<li><strong>Phone</strong>: <code>+91-98XXXXXXXX</code></li>
+<li><strong>Employee ID</strong>: <code>FAC-001</code></li>
+<li><strong>Department</strong>: <code>Medical-Surgical Nursing</code></li>
+<li><strong>Designation</strong>: <code>Reader</code></li>
+<li><strong>Specialization</strong>: <code>Critical Care Nursing</code></li>
+</ul></li>
+<li>Click <strong>“Save Faculty”</strong></li>
+</ol>
+<hr />
+<h3 id="agents-referral-types">5.8 Agents &amp; Referral Types</h3>
+<p><strong>Navigate</strong>: Sidenav → Preferences → Agents and Referral Types</p>
+<h4 id="sks-college-referral-type-setup">SKS College — Referral Type Setup</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Referral Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Direct Walk-In</td>
+<td>Walk-in student — no referral</td>
+</tr>
+<tr class="even">
+<td>Hospital Referral</td>
+<td>Staff from affiliated hospital recommends</td>
+</tr>
+<tr class="odd">
+<td>Alumni Network</td>
+<td>SKS alumni refers prospective student</td>
+</tr>
+<tr class="even">
+<td>Advertisement</td>
+<td>Newspaper, TV, or Radio ad</td>
+</tr>
+<tr class="odd">
+<td>Social Media</td>
+<td>Facebook, Instagram, WhatsApp group</td>
+</tr>
+<tr class="even">
+<td>INC / State Nursing Board</td>
+<td>Via INC or TNMSC notice board</td>
+</tr>
+<tr class="odd">
+<td>School / PU College</td>
+<td>Referred by a 12th-grade institution</td>
+</tr>
+<tr class="even">
+<td>Education Agent</td>
+<td>Commission-based recruitment agent</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="admission-management">6. Admission Management</h2>
+<h3 id="admission-status-lifecycle">6.1 Admission Status Lifecycle</h3>
+<p>Every prospective student passes through the following statuses, each unlocking new actions:</p>
+<pre><code>╔══════════════════════════════════════════════════════════════════════╗
+║         ENQUIRY STATUS LIFECYCLE — SKS COLLEGE OF NURSING           ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+  [ENQUIRED]
+    │  Student expressed interest (walk-in, call, social media)
+    │  Action: Front Office records enquiry details
+    │
+    ▼
+  [INTERESTED]
+    │  Student confirmed they want to join
+    │  Action: Notify College Admin to finalize fees
+    │
+    ▼
+  [FEES_FINALIZED]
+    │  College Admin has set the fee amount, applied scholarships
+    │  Action: Cashier / Front Office / Admin collects payment
+    │
+    ▼
+  [FEES_PAID] ──── or ──── [PARTIALLY_PAID]
+    │                              │
+    │  Full payment received       │  First instalment received
+    │                              │  (Remaining &gt; 0)
+    └──────────┬───────────────────┘
+               │
+               │  Action: Collect 7 mandatory documents
+               ▼
+  [DOCUMENTS_SUBMITTED]
+    │  All 7 documents uploaded and verified
+    │  Action: College Admin / Front Office creates admission
+    │
+    ▼
+  [ADMITTED] ✅
+       Student ID generated — Admission is complete!</code></pre>
+<p><strong>What happens if a student changes their mind?</strong> - From <code>ENQUIRED</code> or <code>INTERESTED</code> → Change status to <code>NOT_INTERESTED</code> - From <code>NOT_INTERESTED</code> → Can return to <code>INTERESTED</code> later - From <code>FEES_FINALIZED</code> onwards → Status change requires College Admin action</p>
+<hr />
+<h3 id="enquiries">6.2 Enquiries</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Enquiries</p>
+<h4 id="creating-a-new-enquiry">Creating a New Enquiry</h4>
+<ol type="1">
+<li><p>Click <strong>“+ New Enquiry”</strong> (top-right)</p></li>
+<li><p>Fill in the form:</p>
+<p><strong>Student Information</strong>: | Field | Example | |——-|———| | Name | <code>Meena Rajendran</code> | | Email | <code>meena@gmail.com</code> | | Phone | <code>+91-99XXXXXXXX</code> | | Program | <code>Bachelor of Science in Nursing</code> | | Student Type | <code>General</code> / <code>SC/ST</code> / <code>OBC</code> / <code>NRI</code> / <code>Lateral Entry</code> | | Referral Type | <code>Hospital Referral</code> | | Agent | (if referred through an agent) | | Remarks | <code>Interested in critical care specialization</code> |</p></li>
+<li><p>Click <strong>“Create Enquiry”</strong></p></li>
+<li><p>Status automatically set to <code>ENQUIRED</code></p></li>
+</ol>
+<h4 id="searching-and-filtering-enquiries">Searching and Filtering Enquiries</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Filter</th>
+<th>Options</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Search Box</td>
+<td>Name / Phone / Email</td>
+<td>Find specific student</td>
+</tr>
+<tr class="even">
+<td>Status Filter</td>
+<td>All statuses or specific</td>
+<td>See students at a stage</td>
+</tr>
+<tr class="odd">
+<td>Program Filter</td>
+<td>BSC-NUR / GNM / etc.</td>
+<td>See by program</td>
+</tr>
+<tr class="even">
+<td>Date Range</td>
+<td>From – To</td>
+<td>Enquiries in a period</td>
+</tr>
+</tbody>
+</table>
+<h4 id="quick-action-buttons-in-list-view">Quick Action Buttons in List View</h4>
+<p>From the enquiry list, these buttons appear automatically when the enquiry is in the correct status:</p>
+<ul>
+<li><strong>💰 Finalize Fee</strong> → Click to set student’s fee (status: <code>INTERESTED</code>)</li>
+<li><strong>💳 Collect Payment</strong> → Click to record a payment (status: <code>FEES_FINALIZED</code> / <code>PARTIALLY_PAID</code>)</li>
+<li><strong>📁 Submit Documents</strong> → Click to collect docs (status: <code>FEES_PAID</code> / <code>PARTIALLY_PAID</code>)</li>
+</ul>
+<hr />
+<h3 id="document-submission">6.3 Document Submission</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Document Submission</p>
+<p>SKS College of Nursing is affiliated with the <strong>Indian Nursing Council (INC)</strong> and <strong>State Nurses Registration Council</strong>, which mandates specific documents for admission:</p>
+<h4 id="mandatory-document-checklist-7-documents">Mandatory Document Checklist (7 Documents)</h4>
+<table>
+<colgroup>
+<col style="width: 6%" />
+<col style="width: 32%" />
+<col style="width: 45%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Document Type</th>
+<th>Minimum Requirement</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>10th Grade Marksheet</td>
+<td>Min 45% aggregate</td>
+<td>SSC / CBSE / State Board</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>12th Grade Marksheet</td>
+<td>Science stream — Biology compulsory</td>
+<td>Min 45% for General, 40% SC/ST</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Transfer Certificate</td>
+<td>Original from last institution</td>
+<td>Clear conduct stated</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Aadhar Card</td>
+<td>Valid government ID</td>
+<td>Or Voter ID / Passport</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>Passport Photo</td>
+<td>White background, recent</td>
+<td>4×6 cm, 2 copies scanned</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>Medical Fitness Certificate</td>
+<td>From registered medical practitioner</td>
+<td>Dated within 6 months</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Blood Group Report</td>
+<td>From accredited lab/hospital</td>
+<td>Required for clinical posting</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Optional</strong>: NEET scorecard (required if state mandates it), Caste certificate (for reservations), Income certificate (for concessions).</p>
+</blockquote>
+<h4 id="document-collection-steps">Document Collection Steps</h4>
+<ol type="1">
+<li>Navigate to <strong>Admission Management → Document Submission</strong></li>
+<li>Find the eligible enquiry (<code>FEES_PAID</code> or <code>PARTIALLY_PAID</code> status)</li>
+<li>Click on the enquiry</li>
+<li>For each of the 7 documents:
+<ul>
+<li>Select document type from dropdown</li>
+<li>Click <strong>“Upload File”</strong> → Browse and select file (PDF or JPG, max 5 MB)</li>
+<li>Click <strong>“Verify”</strong> if document meets requirements</li>
+<li>Click <strong>“Reject”</strong> if document is unacceptable → Add rejection reason</li>
+</ul></li>
+<li>When all 7 documents are <code>UPLOADED</code> or <code>VERIFIED</code>:
+<ul>
+<li>Click <strong>“Submit Documents”</strong> button</li>
+<li>System validates completeness</li>
+<li>Status changes to <code>DOCUMENTS_SUBMITTED</code></li>
+</ul></li>
+</ol>
+<h4 id="document-verification-standards">Document Verification Standards</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Status</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>VERIFIED ✅</td>
+<td>Document is clear, original-looking, and meets requirements</td>
+</tr>
+<tr class="even">
+<td>PENDING ⏳</td>
+<td>Uploaded but not yet reviewed</td>
+</tr>
+<tr class="odd">
+<td>REJECTED ❌</td>
+<td>Document is blurry, expired, incorrect, or tampered</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Common Rejection Reasons for Nursing</strong>: - Medical fitness certificate older than 6 months - 12th marksheet without Biology/Chemistry/Physics - Passport photo with coloured background - Blood group certificate not from accredited lab - Transfer certificate with “conduct: poor” remark</p>
+<hr />
+<h3 id="admission-completion">6.4 Admission Completion</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Admission Completion</p>
+<p>This screen shows <strong>only</strong> enquiries in <code>DOCUMENTS_SUBMITTED</code> status — i.e., students ready for admission creation.</p>
+<h4 id="how-to-create-an-admission">How to Create an Admission</h4>
+<ol type="1">
+<li><p>Find the student’s enquiry in the list</p></li>
+<li><p>Click to open enquiry detail</p></li>
+<li><p>Click <strong>“Create Admission”</strong> button</p></li>
+<li><p>Fill in the <strong>Admission Form</strong>:</p>
+<p><strong>Auto-filled from enquiry</strong>:</p>
+<ul>
+<li>Student Name, Email, Phone, Program</li>
+</ul>
+<p><strong>Required Fields</strong>: | Field | Example | |——-|———| | Semester | <code>Semester 1</code> | | Admission Date | <code>01-08-2026</code> | | Academic Year From | <code>2026</code> | | Academic Year To | <code>2027</code> | | Application Date | <code>05-07-2026</code> |</p>
+<p><strong>Student Personal Details</strong>: | Field | Example | |——-|———| | Date of Birth | <code>15-03-2007</code> | | Gender | <code>Female</code> | | Aadhar Number | <code>XXXX XXXX XXXX</code> | | Blood Group | <code>B+</code> | | Community Category | <code>OC</code> / <code>BC</code> / <code>SC</code> / <code>ST</code> / <code>MBC</code> / <code>DNC</code> / <code>EWS</code> | | Nationality | <code>Indian</code> | | Religion | <code>Hindu</code> / <code>Christian</code> / <code>Muslim</code> / etc. |</p>
+<p><strong>Family Information</strong>: | Field | Example | |——-|———| | Father’s Name | <code>Mr. K Rajendran</code> | | Mother’s Name | <code>Mrs. S Rajendran</code> | | Parent Mobile | <code>+91-98XXXXXXXX</code> |</p></li>
+<li><p>Click <strong>“Create Admission”</strong></p></li>
+</ol>
+<h4 id="what-happens-after-admission-creation">What Happens After Admission Creation</h4>
+<pre><code>System creates:
+  ✅ Admission Record   → Admission ID: ADM-2026-XXX
+  ✅ Student Record     → Student ID:   SKS-NUR-2026-XXX
+  ✅ Enquiry            → Status transitions to: ADMITTED
+  ✅ Fee Allocation     → Linked to student for payment tracking</code></pre>
+<hr />
+<h3 id="admissions-list">6.5 Admissions List</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Admissions</p>
+<p>View and manage all created admissions:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Admission ID</td>
+<td>e.g., <code>ADM-2026-001</code></td>
+</tr>
+<tr class="even">
+<td>Student Name</td>
+<td>Full name</td>
+</tr>
+<tr class="odd">
+<td>Program</td>
+<td>B.Sc Nursing, GNM, etc.</td>
+</tr>
+<tr class="even">
+<td>Admission Date</td>
+<td>Date of joining</td>
+</tr>
+<tr class="odd">
+<td>Status</td>
+<td>PENDING / APPROVED / ENROLLED / GRADUATED</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Actions</strong>: - View full admission details including qualifications - Update admission status - View linked documents and fee records</p>
+<hr />
+<h3 id="students-list">6.6 Students List</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Students</p>
+<p>All admitted and enrolled students appear here with their Student IDs (e.g., <code>SKS-NUR-2026-001</code>).</p>
+<hr />
+<h2 id="finance-management">7. Finance Management</h2>
+<h3 id="fee-finalization">7.1 Fee Finalization</h3>
+<p><strong>Navigate</strong>: Finance → Student Fees → Finalize<br />
+<em>Or click 💰 Finalize Fee button from enquiry list</em></p>
+<h4 id="fee-finalization-flow">Fee Finalization Flow</h4>
+<pre><code>╔═══════════════════════════════════════════════════════╗
+║            FEE FINALIZATION WORKFLOW                  ║
+╚═══════════════════════════════════════════════════════╝
+
+  College Admin clicks &quot;Finalize Fee&quot;
+  for enquiry: Meena Rajendran (BSC-NUR)
+         │
+         ▼
+  System loads INC fee structure:
+  ┌──────────────────────────────────────────────┐
+  │  Program: B.Sc Nursing (BSC-NUR)             │
+  │  Academic Year: 2026–27                      │
+  │                                              │
+  │  Year 1:  ₹1,03,000  (Tuition+Clinical+Lab) │
+  │  Year 2:  ₹1,00,000                         │
+  │  Year 3:  ₹1,05,000                         │
+  │  Year 4:  ₹1,00,000                         │
+  │  ─────────────────────────────────────────── │
+  │  Original Total:  ₹4,08,000                  │
+  └──────────────────────────────────────────────┘
+         │
+         ▼
+  Apply Scholarship?
+         │
+  ┌─────┴─────┐
+  │YES        │NO
+  ▼           ▼
+  Enter:      Skip
+  ₹30,000 discount
+  Reason: &quot;Merit — 96% in 12th&quot;
+         │
+         ▼
+  ┌──────────────────────────────────────────────┐
+  │  Final Fee:   ₹4,08,000 − ₹30,000           │
+  │             = ₹3,78,000  ✅                  │
+  └──────────────────────────────────────────────┘
+         │
+         ▼
+  Click &quot;Finalize Fee&quot;
+         │
+         ▼
+  ✅ Status → FEES_FINALIZED
+  Student is notified of amount due</code></pre>
+<h4 id="step-by-step-finalize-a-fee">Step-by-Step: Finalize a Fee</h4>
+<ol type="1">
+<li>Navigate to <strong>Finance → Student Fees</strong> or click 💰 button in enquiry list</li>
+<li>Find the enquiry by student name</li>
+<li>Review the year-wise fee breakdown</li>
+<li>To apply a discount:
+<ul>
+<li>Enter amount in “Global Discount” field (e.g., <code>30000</code>)</li>
+<li>Enter reason: <code>Merit Scholarship — 96% in 12th Grade</code></li>
+</ul></li>
+<li>Verify the <strong>Final Total</strong> shown</li>
+<li>Click <strong>“Finalize Fee”</strong></li>
+<li>Enquiry status changes to <code>FEES_FINALIZED</code></li>
+</ol>
+<hr />
+<h3 id="payment-collection">7.2 Payment Collection</h3>
+<p><strong>Navigate</strong>: Finance → Fee Payments<br />
+<em>Or click 💳 Collect Payment from enquiry list</em></p>
+<h4 id="accepted-payment-modes-at-sks-college-of-nursing">Accepted Payment Modes at SKS College of Nursing</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Reference Required</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CASH</td>
+<td>No</td>
+<td>Receipt issued immediately</td>
+</tr>
+<tr class="even">
+<td>CHEQUE</td>
+<td>Cheque number</td>
+<td>Payable to “SKS College of Nursing”</td>
+</tr>
+<tr class="odd">
+<td>NEFT / RTGS</td>
+<td>UTR number</td>
+<td>Bank transfer reference</td>
+</tr>
+<tr class="even">
+<td>UPI</td>
+<td>Transaction ID</td>
+<td>Google Pay, PhonePe, BHIM UPI</td>
+</tr>
+<tr class="odd">
+<td>CARD</td>
+<td>Terminal Auth code</td>
+<td>Card swipe at campus terminal</td>
+</tr>
+<tr class="even">
+<td>Demand Draft (DD)</td>
+<td>DD number</td>
+<td>Payable at local bank</td>
+</tr>
+</tbody>
+</table>
+<h4 id="how-to-record-a-payment">How to Record a Payment</h4>
+<ol type="1">
+<li><p>Navigate to Fee Payments or click Collect Payment from enquiry</p></li>
+<li><p>Fill in:</p>
+<ul>
+<li><strong>Student / Enquiry</strong>: Auto-filled if from shortcut</li>
+<li><strong>Amount Paid</strong>: e.g., <code>50000</code></li>
+<li><strong>Payment Date</strong>: <code>27-04-2026</code></li>
+<li><strong>Payment Method</strong>: <code>NEFT</code></li>
+<li><strong>Transaction Reference</strong>: e.g., <code>UTR123456789</code></li>
+<li><strong>Remarks</strong>: e.g., <code>First instalment — Year 1 fee</code></li>
+</ul></li>
+<li><p>Click <strong>“Collect Payment”</strong></p></li>
+<li><p>Receipt is generated:</p>
+<pre><code>Receipt No: RCP-SKS-20260427-001
+Student:    Meena Rajendran
+Program:    B.Sc Nursing
+Amount:     ₹50,000
+Method:     NEFT — UTR123456789
+Date:       27-Apr-2026
+Collected by: Ms. N Kumar (Admin)
+Balance:    ₹53,000 remaining</code></pre></li>
+</ol>
+<hr />
+<h2 id="reports">8. Reports</h2>
+<p><strong>Navigate</strong>: Sidenav → Reports</p>
+<h3 id="reports-available-to-college-admin">Reports Available to College Admin</h3>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 35%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Report Name</th>
+<th>Description</th>
+<th>Useful For</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Admissions Report</td>
+<td>Total admissions by date range, by program</td>
+<td>INC annual compliance</td>
+</tr>
+<tr class="even">
+<td>Fee Collections Report</td>
+<td>All payments by period and method</td>
+<td>Finance monthly review</td>
+</tr>
+<tr class="odd">
+<td>Program-wise Enrollment</td>
+<td>Current students per program</td>
+<td>Capacity planning</td>
+</tr>
+<tr class="even">
+<td>Outstanding Fees Report</td>
+<td>Students with pending balances</td>
+<td>Collections drive</td>
+</tr>
+<tr class="odd">
+<td>Enquiry Conversion Report</td>
+<td>Enquiry to admission ratio</td>
+<td>Marketing analysis</td>
+</tr>
+<tr class="even">
+<td>Document Verification Report</td>
+<td>Docs verified vs. pending</td>
+<td>Pre-registration audit</td>
+</tr>
+<tr class="odd">
+<td>Faculty Workload Report</td>
+<td>Courses per faculty</td>
+<td>Semester planning</td>
+</tr>
+<tr class="even">
+<td>Department Report</td>
+<td>Student count per department</td>
+<td>Administrative review</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-to-generate-a-report">How to Generate a Report</h3>
+<ol type="1">
+<li>Click the desired report name</li>
+<li>Set filters:
+<ul>
+<li><strong>Date Range</strong>: Start and end date</li>
+<li><strong>Program</strong>: All or specific (e.g., <code>Bachelor of Science in Nursing</code>)</li>
+<li><strong>Academic Year</strong>: <code>2026–27</code></li>
+</ul></li>
+<li>Click <strong>“Generate Report”</strong></li>
+<li>View on screen or export:
+<ul>
+<li><strong>Export to PDF</strong> → Download formatted file</li>
+<li><strong>Export to Excel</strong> → Download for further analysis</li>
+<li><strong>Print</strong> → Send to printer</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="complete-admission-workflow">9. Complete Admission Workflow</h2>
+<pre><code>╔══════════════════════════════════════════════════════════════════════════╗
+║     SKS COLLEGE OF NURSING — FULL ADMISSION WORKFLOW (ALL ROLES)        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+   PROSPECTIVE STUDENT
+          │ Enquires by walk-in / phone / social media
+          ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 1 — ENQUIRY CREATION                    [Front Office]       │
+  │  • Student name, phone, email collected                           │
+  │  • Program selected: B.Sc Nursing / M.Sc / GNM / PBB / DOTT / DMLT │
+  │  • Referral type noted                                            │
+  │  • Status = ENQUIRED                                              │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student confirms interest
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 2 — INTEREST CONFIRMATION               [Front Office]       │
+  │  • Discuss program details, duration, career prospects            │
+  │  • Change status to INTERESTED                                    │
+  │  • Notify College Admin to set fees                               │
+  │  • Status = INTERESTED                                            │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ (College Admin action)
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 3 — FEE FINALIZATION                    [College Admin ONLY] │
+  │  • Load fee structure for program + academic year                 │
+  │  • Apply scholarship / concession if applicable                   │
+  │  • Confirm final fee amount                                       │
+  │  • Status = FEES_FINALIZED                                        │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student pays
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 4 — PAYMENT COLLECTION    [Cashier / Front Office / Admin]  │
+  │  • Accept CASH / CHEQUE / NEFT / UPI / CARD / DD                 │
+  │  • Record in system with transaction reference                    │
+  │  • Issue printed receipt                                          │
+  │  • Full pay → FEES_PAID                                           │
+  │  • Partial pay → PARTIALLY_PAID (can still proceed to docs)        │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │ Student brings documents
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 5 — DOCUMENT COLLECTION   [Front Office / College Admin]    │
+  │  Upload &amp; verify 7 mandatory documents:                           │
+  │    ✓ 10th Marksheet                  ✓ Medical Fitness Certificate │
+  │    ✓ 12th Marksheet (Science stream)  ✓ Blood Group Report         │
+  │    ✓ Transfer Certificate             ✓ Aadhar Card                │
+  │    ✓ Passport Photo                                               │
+  │  Click &quot;Submit Documents&quot; once all 7 are verified                 │
+  │  Status = DOCUMENTS_SUBMITTED                                     │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 6 — ADMISSION CREATION    [College Admin / Front Office]    │
+  │  • Open Admission Completion screen                               │
+  │  • Auto-fill from enquiry: Name, Program, Phone                   │
+  │  • Enter: Semester, Admission date, DOB, Blood Group, Community   │
+  │  • Click &quot;Create Admission&quot;                                       │
+  │  • Student ID: SKS-NUR-2026-XXX                                   │
+  │  • Status = ADMITTED ✅                                            │
+  └────────────────────────────────────────────────────────────────────┘
+
+  Typical Timeline: 1–3 weeks from enquiry to admission</code></pre>
+<hr />
+<h2 id="troubleshooting">10. Troubleshooting</h2>
+<h3 id="cannot-see-finalize-fee-button">Cannot see 💰 Finalize Fee button</h3>
+<ul>
+<li>Enquiry must be in <code>INTERESTED</code> status</li>
+<li>If status is <code>ENQUIRED</code> → Update status to <code>INTERESTED</code> first from the status dropdown</li>
+<li>If status is already <code>FEES_FINALIZED</code> → Fee is already done, skip to payment</li>
+</ul>
+<h3 id="admission-creation-is-disabled-greyed-out">Admission Creation is disabled / greyed out</h3>
+<ul>
+<li>Check that <strong>all 7 mandatory documents</strong> are uploaded (UPLOADED or VERIFIED status)</li>
+<li>Verify enquiry status is <code>DOCUMENTS_SUBMITTED</code></li>
+<li>If stuck at <code>FEES_PAID</code>, go to Document Submission, upload docs, then submit</li>
+</ul>
+<h3 id="fee-amount-shows-as-0-or-incorrect-amount">Fee amount shows as ₹0 or incorrect amount</h3>
+<ul>
+<li>Check fee structure exists for the student’s program and academic year</li>
+<li>Navigate to Preferences → Fee Structures → Search program</li>
+<li>If missing, create fee structure with correct year amounts</li>
+<li>Then re-attempt fee finalization</li>
+</ul>
+<h3 id="document-rejected-medical-fitness-certificate">Document rejected — Medical Fitness Certificate</h3>
+<ul>
+<li>Must be from State Medical Council registered doctor</li>
+<li>Certificate must be dated within last 6 months</li>
+<li>Must mention “fit for nursing study” explicitly</li>
+<li>Must have doctor’s stamp and signature</li>
+<li>Ask student to get a fresh certificate</li>
+</ul>
+<h3 id="student-has-duplicate-enquiries">Student has duplicate enquiries</h3>
+<ul>
+<li>Search student’s phone number in enquiry list</li>
+<li>Identify the correct (most recent) enquiry</li>
+<li>On the duplicate, change status to <code>CLOSED</code></li>
+<li>Continue processing the correct enquiry</li>
+</ul>
+<h3 id="keycloak-session-expired">Keycloak session expired</h3>
+<ul>
+<li>You see “Session expired / unauthorized” error</li>
+<li>Refresh the browser page (F5)</li>
+<li>You should be automatically redirected to Keycloak login</li>
+<li>Log in again with your credentials</li>
+<li>Session typically lasts 8 hours</li>
+</ul>
+<hr />
+<h2 id="quick-reference">11. Quick Reference</h2>
+<h3 id="sks-programs-at-a-glance">SKS Programs at a Glance</h3>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 20%" />
+<col style="width: 22%" />
+<col style="width: 15%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Program</th>
+<th>Duration</th>
+<th>Seats</th>
+<th>Key Subjects</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>BSC-NUR</td>
+<td>B.Sc Nursing</td>
+<td>4 years</td>
+<td>60</td>
+<td>Anatomy, MSN, Community, OBG, Paediatrics</td>
+</tr>
+<tr class="even">
+<td>MSC-NUR</td>
+<td>M.Sc Nursing</td>
+<td>2 years</td>
+<td>30</td>
+<td>Advanced nursing, Research, Leadership</td>
+</tr>
+<tr class="odd">
+<td>GNM</td>
+<td>Gen. Nursing &amp; Midwifery</td>
+<td>3.5 years</td>
+<td>60</td>
+<td>Nursing basics, Midwifery, Community</td>
+</tr>
+<tr class="even">
+<td>PBB-NUR</td>
+<td>Post Basic B.Sc Nursing</td>
+<td>2 years</td>
+<td>30</td>
+<td>Bridge to degree for GNM nurses</td>
+</tr>
+<tr class="odd">
+<td>DOTT</td>
+<td>Diploma OT Technician</td>
+<td>2 years</td>
+<td>30</td>
+<td>OT procedures, instruments, sterile technique</td>
+</tr>
+<tr class="even">
+<td>DMLT</td>
+<td>Diploma Med. Lab Technology</td>
+<td>2 years</td>
+<td>30</td>
+<td>Haematology, Biochemistry, Microbiology</td>
+</tr>
+</tbody>
+</table>
+<h3 id="status-cheat-sheet">Status Cheat Sheet</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Status</th>
+<th>What it Means</th>
+<th>Your Action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ENQUIRED</td>
+<td>Just enquired</td>
+<td>Assess interest, guide</td>
+</tr>
+<tr class="even">
+<td>INTERESTED</td>
+<td>Confirmed interest</td>
+<td>💰 Finalize fees</td>
+</tr>
+<tr class="odd">
+<td>FEES_FINALIZED</td>
+<td>Fees set</td>
+<td>Wait for payment</td>
+</tr>
+<tr class="even">
+<td>FEES_PAID</td>
+<td>Fully paid</td>
+<td>📁 Collect documents</td>
+</tr>
+<tr class="odd">
+<td>PARTIALLY_PAID</td>
+<td>Partially paid</td>
+<td>Collect documents, collect remaining fee</td>
+</tr>
+<tr class="even">
+<td>DOCUMENTS_SUBMITTED</td>
+<td>All docs uploaded</td>
+<td>🎓 Create admission</td>
+</tr>
+<tr class="odd">
+<td>ADMITTED</td>
+<td>✅ Done!</td>
+<td>Enroll in semester</td>
+</tr>
+</tbody>
+</table>
+<h3 id="admin-daily-checklist">Admin Daily Checklist</h3>
+<pre><code>MORNING:
+  [ ] Review dashboard — any new enquiries?
+  [ ] Check enquiries awaiting fee finalization (status: INTERESTED)
+  [ ] Check document submissions awaiting verification
+
+AFTERNOON:
+  [ ] Process fee finalizations for interested students
+  [ ] Review and follow up on outstanding payments
+  [ ] Handle admissions for DOCUMENTS_SUBMITTED enquiries
+
+END OF DAY:
+  [ ] Generate daily collections summary
+  [ ] Check pending document verifications
+  [ ] Log out securely</code></pre>
+<hr />
+<p><strong>SKS College of Nursing | College Administrator User Guide</strong> <strong>Version 2.0 | April 27, 2026 | Next Review: July 2026</strong></p>
+</body>
+</html>
