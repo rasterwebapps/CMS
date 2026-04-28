@@ -274,10 +274,17 @@ The application is built for Indian colleges. All monetary values **must** use t
 **Never use:** `| currency:'INR':'₹'`, `₹{{ val | number }}`, `toLocaleString('en-IN')`, or `CurrencyPipe`.
 
 ```typescript
-// Import in component:
+// 1. Add the import statement:
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-// Add to @Component imports[]:
-InrPipe,
+
+// 2. Add InrPipe to the @Component imports array:
+@Component({
+  imports: [
+    InrPipe,
+    // ...other imports
+  ],
+})
+export class MyComponent {}
 ```
 
 ```html
@@ -520,6 +527,280 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTabsModule } from '@angular/material/tabs';
 ```
+
+## Indian Currency Formatting
+
+All monetary values in this app **must** use the shared `InrPipe` — never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString()`.
+
+### Setup
+
+1. Import the pipe:
+```typescript
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
+```
+
+2. Add to component imports:
+```typescript
+@Component({
+  // ...
+  imports: [
+    InrPipe,
+    // ...other imports
+  ],
+})
+```
+
+### Usage Patterns
+
+#### Cards, Dialogs, and Summaries
+Show the ₹ symbol to ensure context:
+
+```html
+<!-- Whole rupees (default) -->
+<div class="card-amount">{{ totalFee | inr }}</div>  
+<!-- Output: ₹1,23,456 -->
+
+<!-- With paise for receipts/ledgers -->
+<div class="receipt-amount">{{ amountPaid | inr:true }}</div>  
+<!-- Output: ₹1,23,456.50 -->
+```
+
+#### Table Cells (2026 UX Pattern)
+**Don't repeat the symbol** in table cells — hide it and put "(₹)" in the column header:
+
+```html
+<ng-container matColumnDef="totalAmount">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Amount (₹)</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-currency">{{ row.totalAmount | inr:false:false }}</span>
+    <!-- Output: 1,23,456 (no symbol, no paise) -->
+  </td>
+</ng-container>
+
+<ng-container matColumnDef="paidAmount">
+  <th mat-header-cell *matHeaderCellDef>Paid (₹)</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-currency">{{ row.paidAmount | inr:false:false }}</span>
+  </td>
+</ng-container>
+```
+
+**Why?** Modern UX (2026 best practices) avoids repeating symbols in dense tabular data. The header annotation ensures users know the unit without cluttering every cell. This reduces visual noise and improves scannability.
+
+#### TypeScript Formatting
+For programmatic currency formatting:
+
+```typescript
+import { formatCurrency } from '@angular/common';
+
+const formatted = formatCurrency(amount, 'en-IN', '₹', 'INR', '1.0-0');
+```
+
+### Locale
+The `en-IN` locale is globally registered in `app.config.ts` via `LOCALE_ID = 'en-IN'`. This ensures:
+- All `| number` pipes use Indian grouping (2-2-3): `1,23,45,678`
+- Currency formatting respects Indian conventions
+- Date formatting uses Indian locale
+
+### Tabular Figures
+All currency cells must use the `.cell-currency` or `.cell-mono` classes (or similar) to ensure tabular figures (`font-variant-numeric: tabular-nums;`). This keeps decimal points vertically aligned even when digits change width.
+
+### Data Table Alignment (2026 Professional Standards)
+
+For optimal scannability and vertical rhythm, follow these alignment rules:
+
+#### Numeric Columns → Right-Align
+**Currency, counts, IDs, measurements**
+
+```html
+<ng-container matColumnDef="totalAmount">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Amount (₹)</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-currency">{{ row.totalAmount | inr:false:false }}</span>
+  </td>
+</ng-container>
+```
+
+Right alignment ensures decimal points and commas line up vertically for instant magnitude comparison. Automatic via CSS for columns named: `totalAmount`, `amountPaid`, `totalFee`, `count`, etc.
+
+#### Status Badges → Center-Align
+**Status indicators, boolean flags**
+
+```html
+<ng-container matColumnDef="status">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+  <td mat-cell *matCellDef="let row">
+    <cms-status-badge [status]="row.status"></cms-status-badge>
+  </td>
+</ng-container>
+```
+
+Centering creates a clear vertical spine that breaks up text/number monotony. Automatic via CSS for columns named: `status`, `paymentStatus`, `isActive`, etc.
+
+#### Text Columns → Left-Align
+**Names, descriptions, addresses**
+
+```html
+<ng-container matColumnDef="studentName">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-name">{{ row.studentName }}</span>
+  </td>
+</ng-container>
+```
+
+Left alignment follows natural reading flow. Default behavior for text columns.
+
+#### Dates → Left-Align (Fixed-Width)
+**Date columns**
+
+```html
+<ng-container matColumnDef="paymentDate">
+  <th mat-header-cell *matHeaderCellDef mat-sort-header>Payment Date</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="cell-date">{{ row.paymentDate | date:'dd MMM yyyy' }}</span>
+  </td>
+</ng-container>
+```
+
+Use fixed-width format (`dd MMM yyyy`) to prevent shifting. Dates are identifiers, not numeric values.
+
+#### Empty Cells → En-Dash
+**Missing data**
+
+```html
+<td mat-cell *matCellDef="let row">
+  {{ row.value || '—' }}
+</td>
+
+<!-- Or with CSS class -->
+<td mat-cell *matCellDef="let row">
+  @if (row.value) {
+    {{ row.value }}
+  } @else {
+    <span class="cell-empty"></span>
+  }
+</td>
+```
+
+Never leave cells blank. Use en-dash (—) to signal intentional absence.
+
+#### Column Headers Mirror Data
+Headers must match data alignment:
+- Right-aligned numbers → Right-aligned header
+- Center-aligned status → Center-aligned header
+- Left-aligned text → Left-aligned header (default)
+
+**Full specification**: See `docs/DATA_TABLE_ALIGNMENT_STANDARDS.md`
+
+## Date Formatting
+
+All dates in this app **must** use the shared `AppDatePipe` — never use Angular's built-in `date` pipe directly.
+
+### Setup
+
+1. Import the pipe:
+```typescript
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+```
+
+2. Add to component imports:
+```typescript
+@Component({
+  // ...
+  imports: [
+    AppDatePipe,
+    // ...other imports
+  ],
+})
+```
+
+### Usage Patterns
+
+#### Standard Format (Most Common)
+```html
+<td mat-cell *matCellDef="let row">
+  <span class="cell-date">{{ row.paymentDate | appDate }}</span>
+</td>
+<!-- Output: 28-04-2026 (DD-MM-YYYY) -->
+```
+
+#### Short Format (Compact Tables)
+```html
+<td mat-cell *matCellDef="let row">
+  {{ row.dueDate | appDate:'short' }}
+</td>
+<!-- Output: 28-04-26 (DD-MM-YY) -->
+```
+
+#### DateTime Format (Timestamps)
+```html
+<td mat-cell *matCellDef="let row">
+  {{ row.createdAt | appDate:'dateTime' }}
+</td>
+<!-- Output: 28-04-2026 14:30 -->
+```
+
+#### Date Ranges
+```html
+<span>
+  {{ startDate | appDate }} – {{ endDate | appDate }}
+</span>
+<!-- Output: 28-04-2026 – 15-05-2026 -->
+```
+
+#### Null Dates
+The pipe automatically handles null/undefined values:
+```html
+<td mat-cell *matCellDef="let row">
+  {{ row.optionalDate | appDate }}
+</td>
+<!-- Output: — (en-dash if null) -->
+```
+
+### Why Not Use Angular's Date Pipe?
+
+**❌ Don't do this**:
+```html
+{{ date | date:'dd/MM/yyyy' }}
+{{ date | date:'mediumDate' }}
+{{ date | date:'dd MMM yyyy' }}
+```
+
+**✅ Do this**:
+```html
+{{ date | appDate }}
+{{ date | appDate }}
+{{ date | appDate }}
+```
+
+**Benefits**:
+- **Consistency**: All dates look identical across the app
+- **Configurability**: Change format globally from one file (`date-format.config.ts`)
+- **Null Handling**: Automatic en-dash (—) for missing dates
+- **Localization**: Uses `en-IN` locale for Indian conventions
+
+### Global Configuration
+
+To change the date format for the entire app, edit:
+
+```typescript
+// frontend/src/app/shared/config/date-format.config.ts
+export const DATE_FORMATS = {
+  standard: 'dd-MM-yyyy',  // Change this to apply globally
+  short: 'dd-MM-yy',
+  long: 'dd-MM-yyyy',
+  dateTime: 'dd-MM-yyyy HH:mm',
+};
+```
+
+**Examples**:
+- `'dd-MM-yyyy'` → `28-04-2026` (hyphen separator)
+- `'dd/MM/yyyy'` → `28/04/2026` (slash separator)
+- `'dd MMM yyyy'` → `28 Apr 2026` (readable format)
+- `'yyyy-MM-dd'` → `2026-04-28` (ISO format)
+
+**Full guide**: See `docs/DATE_FORMATTING_STANDARD.md`
 
 ## Authentication Integration
 

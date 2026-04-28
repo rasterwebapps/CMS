@@ -240,9 +240,9 @@
               <span>#</span>
               <span>Semester</span>
               <span class="align-right">Due Date</span>
-              <span class="align-right">Fee</span>
-              <span class="align-right">Paid</span>
-              <span class="align-right">Outstanding</span>
+              <span class="align-right">Fee (₹)</span>
+              <span class="align-right">Paid (₹)</span>
+              <span class="align-right">Outstanding (₹)</span>
               <span class="align-center">Status</span>
             </div>
 
@@ -258,10 +258,10 @@
                   @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
                 </span>
                 <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}</span>
-                <span class="sem-fee align-right mono">{{ row.fee | inr }}</span>
-                <span class="sem-paid align-right mono">{{ row.paid | inr }}</span>
+                <span class="sem-fee align-right mono">{{ row.fee | inr:false:false }}</span>
+                <span class="sem-paid align-right mono">{{ row.paid | inr:false:false }}</span>
                 <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0">
-                  {{ row.outstanding | inr }}
+                  {{ row.outstanding | inr:false:false }}
                 </span>
                 <span class="sem-badge align-center"
                       [class.sem-badge--paid]="row.isPaid"
@@ -277,10 +277,10 @@
               <span></span>
               <span><strong>Total</strong></span>
               <span></span>
-              <span class="align-right mono"><strong>{{ totalFee() | inr }}</strong></span>
-              <span class="total-paid align-right mono"><strong>{{ totalPaid() | inr }}</strong></span>
+              <span class="align-right mono"><strong>{{ totalFee() | inr:false:false }}</strong></span>
+              <span class="total-paid align-right mono"><strong>{{ totalPaid() | inr:false:false }}</strong></span>
               <span class="total-outstanding align-right mono" [class.outstanding-zero]="totalOutstanding() === 0">
-                <strong>{{ totalOutstanding() | inr }}</strong>
+                <strong>{{ totalOutstanding() | inr:false:false }}</strong>
               </span>
               <span></span>
             </div>

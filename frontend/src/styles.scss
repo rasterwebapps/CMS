@@ -1398,6 +1398,7 @@ app-root {
 // ── Cell Styles ──────────────────────────────────
 .cell-code {
   font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.8125rem;
   font-weight: 500;
   color: #ffffff;
@@ -1440,6 +1441,99 @@ app-root {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+
+// ── Professional Data Table Alignment (2026) ──────
+// Right-align all numeric data (currency, counts, percentages) for vertical rhythm
+.mat-column-totalAmount,
+.mat-column-amountPaid,
+.mat-column-totalFee,
+.mat-column-totalPaid,
+.mat-column-totalOutstanding,
+.mat-column-paidAmount,
+.mat-column-pendingAmount,
+.mat-column-outstandingAmount,
+.mat-column-finalizedNetFee,
+.mat-column-commissionAmount,
+.mat-column-amount,
+.mat-column-count,
+.mat-column-total,
+.mat-column-feeCount {
+  text-align: right !important;
+
+  .mat-sort-header-container {
+    justify-content: flex-end;
+  }
+}
+
+// Center-align status badges for visual balance
+.mat-column-status,
+.mat-column-paymentStatus,
+.mat-column-isActive,
+.mat-column-hasCommission {
+  text-align: center !important;
+
+  .mat-sort-header-container {
+    justify-content: center;
+  }
+}
+
+// Left-align text data (names, descriptions, dates) - natural reading flow
+.mat-column-name,
+.mat-column-studentName,
+.mat-column-programName,
+.mat-column-courseName,
+.mat-column-departmentName,
+.mat-column-description,
+.mat-column-date,
+.mat-column-enquiryDate,
+.mat-column-paymentDate,
+.mat-column-dueDate {
+  text-align: left !important;
+}
+
+// Utility classes for manual alignment control
+.cell-align-right {
+  text-align: right !important;
+}
+
+.cell-align-center {
+  text-align: center !important;
+}
+
+.cell-align-left {
+  text-align: left !important;
+}
+
+// Empty state indicator (en-dash for missing data)
+.cell-empty {
+  color: var(--cms-text-muted);
+  text-align: center;
+  font-weight: 400;
+
+  &::before {
+    content: '—'; // en-dash (not hyphen)
+  }
+}
+
+// Accounting Format: currency symbol at far left, number at far right
+.cell-accounting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+
+  .currency-symbol {
+    color: var(--cms-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .currency-value {
+    font-weight: 600;
+    color: var(--cms-primary);
+  }
 }
 
 // ── Status Badge ─────────────────────────────────
@@ -2951,6 +3045,7 @@ html.dark-theme body::after {
 
 .receipt-card__number {
   font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
   color: var(--cms-text-muted);
   align-self: center;
@@ -3085,6 +3180,7 @@ html.dark-theme body::after {
   padding: 3px 10px;
   border-radius: 8px;
   font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
   font-weight: 600;
   background: rgba(var(--cms-primary-rgb), 0.10);
@@ -3171,6 +3267,7 @@ html.dark-theme body::after {
   border: 1px solid var(--cms-border-default);
   padding: 4px 12px;
   border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mlp-stat-dot {

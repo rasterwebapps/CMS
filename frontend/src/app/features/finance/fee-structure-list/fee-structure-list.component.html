@@ -175,9 +175,9 @@
           </ng-container>
 
           <ng-container matColumnDef="totalAmount">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee (₹)</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-currency">{{ row.totalAmount | inr }}</span>
+              <span class="cell-currency">{{ row.totalAmount | inr:false:false }}</span>
             </td>
           </ng-container>
 

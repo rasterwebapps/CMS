@@ -327,6 +327,125 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 
 ---
 
+### 2.6 Typography & Numeric Formatting
+
+#### 2.6.1 Tabular Figures (Monospaced Digits)
+
+All numeric and currency displays **must** use `font-variant-numeric: tabular-nums;` to ensure monospaced digits that align vertically in tables and lists.
+
+**Why tabular figures matter:**
+- Proportional digits (default) have variable widths: "1" is narrow, "8" is wide
+- This causes text shifting when numbers update dynamically
+- Vertical misalignment in columns makes financial data hard to scan
+- Tabular figures ensure every digit occupies the same horizontal space
+
+**Where to use:**
+- All table cells displaying numbers, amounts, codes, or IDs
+- KPI cards and stat displays (`.kpi-value`, `.stat-value`, `.mlp-stat`)
+- Currency amounts (`.cell-currency`, `.cell-number`)
+- Receipt numbers, roll numbers, employee codes (`.receipt-card__number`, `.cell-code`, `.code-chip`, `.code-value`)
+- Any monospace font usage (`.font-mono`)
+
+**Standard classes (already configured in `styles.scss`):**
+```scss
+.cell-currency {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;  // ✅ Ensures digits align
+  font-weight: 600;
+  color: var(--cms-primary);
+}
+
+.cell-number {
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;  // ✅ Ensures digits align
+  font-weight: 500;
+}
+
+.mlp-stat {
+  font-variant-numeric: tabular-nums;  // ✅ For "123 Total" badges
+}
+```
+
+**Implementation rule:**
+Always use existing classes (`.cell-currency`, `.cell-number`, `.mlp-stat`, etc.) for numeric displays. If creating a custom class for numbers, **always include** `font-variant-numeric: tabular-nums;`.
+
+#### 2.6.2 Indian Currency (INR) Formatting
+
+All monetary values **must** use the shared `InrPipe` — never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString()`.
+
+- Import: `import { InrPipe } from '../../../shared/pipes/inr.pipe';`
+- Add to `@Component imports[]`: `InrPipe`
+- **Template usage**:
+  - **Cards/Dialogs/Summaries**: `{{ amount | inr }}` (with ₹ symbol) or `{{ amount | inr:true }}` (with paise)
+  - **Table cells (2026 UX pattern)**: `{{ amount | inr:false:false }}` (no symbol, no paise) — put "(₹)" in column header instead
+  - **Example**:
+    ```html
+    <ng-container matColumnDef="totalAmount">
+      <th mat-header-cell *matHeaderCellDef>Total Amount (₹)</th>
+      <td mat-cell *matCellDef="let row">{{ row.totalAmount | inr:false:false }}</td>
+    </ng-container>
+    ```
+- TypeScript: `formatCurrency(value, 'en-IN', '₹', 'INR', '1.0-0')` from `@angular/common`
+- The `en-IN` locale is globally registered in `app.config.ts` (`LOCALE_ID = 'en-IN'`), so `| number` uses Indian grouping (₹1,23,456) automatically.
+- **Why no symbol in tables**: Following 2026 best practices — reduces visual noise in dense tabular data while maintaining clarity via header annotation.
+
+#### 2.6.3 Data Table Alignment Standards (2026)
+
+For professional, high-performance data interfaces, alignment is critical for scannability and vertical rhythm:
+
+**Numeric Columns** (currency, counts, IDs)  
+→ **Right-align** for vertical rhythm. Decimal points and commas line up perfectly, enabling instant magnitude comparison.
+
+**Status Badges**  
+→ **Center-align** for visual balance. Creates a clear vertical spine that breaks up text/number monotony.
+
+**Text Columns** (names, descriptions)  
+→ **Left-align** for natural reading flow. Prevents "ragged left" edge.
+
+**Dates**  
+→ **Left-align** with fixed-width format (`dd MMM yyyy`). Dates are chronological identifiers, not numeric values.
+
+**Empty Cells**  
+→ Use en-dash `'—'` (not blank). Signals intentional absence rather than loading state.
+
+**Column Headers**  
+→ **Must mirror data alignment**. Right-aligned numbers demand right-aligned headers for visual coherence.
+
+**Implementation**: Global CSS rules automatically apply correct alignment based on column names (`mat-column-totalAmount`, `mat-column-status`, etc.). See `docs/DATA_TABLE_ALIGNMENT_STANDARDS.md` for complete specification, examples, and checklist.
+
+#### 2.6.4 Date Formatting Standard
+
+All dates **must** use the shared `AppDatePipe` — never use Angular's `date` pipe directly.
+
+- Import: `import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';`
+- Add to `@Component imports[]`: `AppDatePipe`
+- **Template usage**:
+  - **Standard**: `{{ date | appDate }}` → `28-04-2026` (DD-MM-YYYY)
+  - **Short**: `{{ date | appDate:'short' }}` → `28-04-26` (compact tables)
+  - **DateTime**: `{{ date | appDate:'dateTime' }}` → `28-04-2026 14:30` (timestamps)
+  - **Null**: `{{ null | appDate }}` → `—` (en-dash)
+  - **Example**:
+    ```html
+    <ng-container matColumnDef="paymentDate">
+      <th mat-header-cell *matHeaderCellDef>Payment Date</th>
+      <td mat-cell *matCellDef="let row">
+        <span class="cell-date">{{ row.paymentDate | appDate }}</span>
+      </td>
+    </ng-container>
+    ```
+- **Configuration**: Change format globally in `frontend/src/app/shared/config/date-format.config.ts`:
+  ```typescript
+  export const DATE_FORMATS = {
+    standard: 'dd-MM-yyyy',  // Change to 'dd/MM/yyyy' or 'dd MMM yyyy' as needed
+    short: 'dd-MM-yy',
+    long: 'dd-MM-yyyy',
+    dateTime: 'dd-MM-yyyy HH:mm',
+  };
+  ```
+- **Why standardized**: Single global format ensures consistency across all screens. DD-MM-YYYY matches Indian regional expectations. See `docs/DATE_FORMATTING_STANDARD.md` for complete guide.
+
+---
+
 ## 3. Backend (Java 21 & Spring Boot 3.x)
 
 ### 3.1 Virtual Threads (Project Loom)

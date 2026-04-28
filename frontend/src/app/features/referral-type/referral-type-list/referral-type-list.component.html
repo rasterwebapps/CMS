@@ -137,8 +137,8 @@
         </ng-container>
 
         <ng-container matColumnDef="commissionAmount">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Commission Amount</th>
-          <td mat-cell *matCellDef="let row">{{ row.commissionAmount | inr }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Commission Amount (₹)</th>
+          <td mat-cell *matCellDef="let row">{{ row.commissionAmount | inr:false:false }}</td>
         </ng-container>
 
         <ng-container matColumnDef="isActive">

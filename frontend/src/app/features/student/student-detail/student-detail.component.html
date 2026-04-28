@@ -278,8 +278,8 @@
                       <tr>
                         <th>Receipt</th>
                         <th>Date</th>
-                        <th>Amount</th>
-                        <th>Late Fee</th>
+                        <th>Amount (₹)</th>
+                        <th>Late Fee (₹)</th>
                         <th>Mode</th>
                       </tr>
                     </thead>
@@ -288,8 +288,8 @@
                         <tr>
                           <td><span class="code-value">{{ payment.receiptNumber }}</span></td>
                           <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
-                          <td>{{ payment.amountPaid | inr:true }}</td>
-                          <td>{{ payment.lateFeeApplied > 0 ? '₹' + (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
+                          <td>{{ payment.amountPaid | inr:true:false }}</td>
+                          <td>{{ payment.lateFeeApplied > 0 ? (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                           <td>{{ payment.paymentMode }}</td>
                         </tr>
                       }

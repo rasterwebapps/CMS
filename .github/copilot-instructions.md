@@ -172,7 +172,32 @@ CollegeManagementSystem/
    - TypeScript: `formatCurrency(value, 'en-IN', '₹', 'INR', '1.0-0')` from `@angular/common`
    - The `en-IN` locale is globally registered in `app.config.ts` (`LOCALE_ID = 'en-IN'`), so `| number` uses Indian grouping (₹1,23,456) automatically.
 
-8. **List Screen Layout (MLP Pattern)**: All list/master-entry screens **must** use the MLP layout classes defined in `styles.scss`. Never use the old `feature-list-page` / `page-header` pattern in new screens.
+8. **Tabular Figures**: All numeric and currency displays **must** use `font-variant-numeric: tabular-nums;` to ensure monospaced digits that align vertically in tables and lists.
+   - **Where to use**: All classes that display numbers, amounts, codes, IDs, or statistics (`.cell-currency`, `.cell-number`, `.cell-code`, `.code-chip`, `.mlp-stat`, `.kpi-value`, `.stat-value`, `.receipt-card__number`, `.font-mono`, `.code-value`)
+   - **Why**: Tabular figures ensure that "1" and "8" take the same horizontal space, preventing text shifting when numbers update and improving visual alignment in columns
+   - **Required in**: Table cells, stat cards, KPI displays, receipt numbers, roll numbers, employee codes, fee amounts, currency values
+   - This property is already applied to all standard currency/numeric classes in `styles.scss` — always use these classes rather than creating custom number displays without this property
+   - **Data Table Alignment Standards (2026)**:
+     - **Numeric columns** (currency, counts, IDs): Right-align for vertical rhythm. Decimal points and commas line up perfectly for instant magnitude comparison.
+     - **Status badges**: Center-align for visual balance. Creates a clear vertical spine.
+     - **Text columns** (names, descriptions): Left-align for natural reading flow.
+     - **Dates**: Left-align with fixed-width format (`dd MMM yyyy`).
+     - **Empty cells**: Use en-dash `'—'` (not blank).
+     - **Column headers**: Must mirror data alignment (right headers for right data).
+     - See `docs/DATA_TABLE_ALIGNMENT_STANDARDS.md` for full specification.
+
+9. **Date Formatting**: All dates **must** use the shared `AppDatePipe` from `shared/pipes/app-date.pipe.ts` — never use Angular's `date` pipe directly.
+   - Import: `import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';`
+   - Add to `@Component imports[]`: `AppDatePipe`
+   - **Template usage**:
+     - **Standard format**: `{{ date | appDate }}` → `28-04-2026` (DD-MM-YYYY)
+     - **Short format**: `{{ date | appDate:'short' }}` → `28-04-26` (compact tables)
+     - **DateTime format**: `{{ date | appDate:'dateTime' }}` → `28-04-2026 14:30` (timestamps)
+     - **Null dates**: `{{ null | appDate }}` → `—` (en-dash, not blank)
+   - **Configuration**: Change format globally in `frontend/src/app/shared/config/date-format.config.ts`
+   - **Why standardized**: Single format ensures consistency, professionalism, and localization (DD-MM-YYYY matches Indian expectations). See `docs/DATE_FORMATTING_STANDARD.md` for full guide.
+
+9. **List Screen Layout (MLP Pattern)**: All list/master-entry screens **must** use the MLP layout classes defined in `styles.scss`. Never use the old `feature-list-page` / `page-header` pattern in new screens.
 
    ```html
    <div class="mlp-page">
@@ -425,7 +450,9 @@ When generating code for this project, adhere to these quality rules to prevent 
 ### Deterministic Patterns
 - DTOs: Always Java records. Services: `@Transactional(readOnly = true)` at class level. Controllers: constructor injection with `/api/v1` prefix.
 - Angular components: standalone with `inject()`, signals for state, `@if`/`@for` control flow, separate `.html` templates.
-- **Currency**: Always `| inr` pipe (import `InrPipe` from `shared/pipes/inr.pipe`). Never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString`. Locale `en-IN` is global.
+- **Currency**: Always `| inr` pipe (import `InrPipe` from `shared/pipes/inr.pipe`). Never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString`. Locale `en-IN` is global. **Use `| inr:false:false` in table cells** and put "(₹)" in column headers (2026 pattern — don't repeat symbol).
+- **Dates**: Always `| appDate` pipe (import `AppDatePipe` from `shared/pipes/app-date.pipe`). Never use Angular's `date` pipe directly. Standard format: `DD-MM-YYYY` (configurable in `date-format.config.ts`). Null dates show `—`.
+- **Tabular figures**: All numeric displays must include `font-variant-numeric: tabular-nums;`. Use existing classes (`.cell-currency`, `.cell-number`, `.mlp-stat`, etc.) — never create custom number styles without this property.
 - List screens: Always use the **MLP layout pattern** (`mlp-page` → `mlp-hdr` → `mlp-toolbar` → `content-card mlp-table-card`). Never use `feature-list-page` or focus mode. View toggle always via `<cms-view-toggle>`. Empty state always via `<cms-empty-state>`.
 - Tests: `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories.
 

@@ -7,9 +7,13 @@ import { formatCurrency } from '@angular/common';
  * Indian number system uses 2-2-3 grouping (e.g. ₹12,34,567).
  *
  * Usage:
- *   {{ amount | inr }}          → ₹1,23,456  (no paise, default)
- *   {{ amount | inr:true }}     → ₹1,23,456.00  (with paise for receipts/ledgers)
- *   {{ null | inr }}            → —
+ *   {{ amount | inr }}              → ₹1,23,456  (no paise, with symbol — cards/dialogs/summaries)
+ *   {{ amount | inr:true }}         → ₹1,23,456.00  (with paise, with symbol — receipts/ledgers)
+ *   {{ amount | inr:false:false }}  → 1,23,456  (no paise, no symbol — table cells)
+ *   {{ amount | inr:true:false }}   → 1,23,456.00  (with paise, no symbol — rare)
+ *   {{ null | inr }}                → —
+ *
+ * **2026 UX Pattern**: Don't repeat the symbol in table cells. Show "(₹)" in column headers instead.
  *
  * Always import `InrPipe` in the component's `imports[]` array.
  * Never use `CurrencyPipe`, `| currency:'INR'`, or raw `₹{{ val | number }}` in templates.
@@ -20,11 +24,16 @@ import { formatCurrency } from '@angular/common';
   pure: true,
 })
 export class InrPipe implements PipeTransform {
-  transform(value: number | string | null | undefined, showPaise: boolean = false): string {
+  transform(
+    value: number | string | null | undefined,
+    showPaise: boolean = false,
+    showSymbol: boolean = true
+  ): string {
     if (value == null || value === '') return '—';
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '—';
-    return formatCurrency(num, 'en-IN', '₹', 'INR', showPaise ? '1.2-2' : '1.0-0');
+    const symbol = showSymbol ? '₹' : '';
+    return formatCurrency(num, 'en-IN', symbol, 'INR', showPaise ? '1.2-2' : '1.0-0');
   }
 }
 
