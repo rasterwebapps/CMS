@@ -28,6 +28,9 @@ import { TourTooltipComponent } from './tour-tooltip.component';
 /** localStorage key for the "don't show again" preference. */
 const PREF_KEY = 'cms_tour_show_onboarding';
 
+/** Delay in ms before auto-advancing after a successful event-driven interaction. */
+const EVENT_ADVANCE_DELAY_MS = 600;
+
 /** Named sets of tour steps indexed by tour id. */
 const tourRegistry = new Map<string, TourStep[]>();
 
@@ -212,7 +215,7 @@ export class TourService {
         .subscribe(() => {
           this.isWaiting.set(false);
           // Short delay so the user sees feedback before advancing.
-          setTimeout(() => this.advance(), 600);
+          setTimeout(() => this.advance(), EVENT_ADVANCE_DELAY_MS);
         });
     }
   }
@@ -231,7 +234,7 @@ export class TourService {
   private updateSpotlight(target: HTMLElement | null): void {
     if (!this.spotlightRef) {
       this.spotlightRef = this.overlay.create({
-        positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+        positionStrategy: this.createCenteredPositionStrategy(),
         hasBackdrop: false,
         panelClass: 'cms-tour-spotlight-panel',
       });
@@ -267,7 +270,7 @@ export class TourService {
         .withViewportMargin(16);
     } else {
       // No target — centre the tooltip on screen.
-      positionStrategy = this.overlay.position().global().centerHorizontally().centerVertically();
+      positionStrategy = this.createCenteredPositionStrategy();
     }
 
     this.tooltipRef = this.overlay.create({
@@ -279,6 +282,11 @@ export class TourService {
 
     const portal = new ComponentPortal(TourTooltipComponent, null, this.injector);
     this.tooltipRef.attach(portal);
+  }
+
+  /** Returns a `GlobalPositionStrategy` centred horizontally and vertically. */
+  private createCenteredPositionStrategy(): GlobalPositionStrategy {
+    return this.overlay.position().global().centerHorizontally().centerVertically();
   }
 
   private buildPositions(preferred: 'top' | 'bottom' | 'left' | 'right'): ConnectedPosition[] {

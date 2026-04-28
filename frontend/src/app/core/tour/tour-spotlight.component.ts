@@ -37,6 +37,9 @@ export class TourSpotlightComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
 
+  /** px breathing room around the highlighted target element. */
+  private static readonly SPOTLIGHT_PADDING = 6;
+
   /** Set by {@link TourService} after the component is attached. */
   set targetEl(el: HTMLElement | null) {
     this._targetEl = el;
@@ -81,12 +84,12 @@ export class TourSpotlightComponent implements OnInit, OnDestroy {
     }
 
     const rect = this._targetEl.getBoundingClientRect();
-    const padding = 6; // px breathing room around the target
+    const p = TourSpotlightComponent.SPOTLIGHT_PADDING;
     this.holeStyle = {
-      top: `${rect.top - padding}px`,
-      left: `${rect.left - padding}px`,
-      width: `${rect.width + padding * 2}px`,
-      height: `${rect.height + padding * 2}px`,
+      top: `${rect.top - p}px`,
+      left: `${rect.left - p}px`,
+      width: `${rect.width + p * 2}px`,
+      height: `${rect.height + p * 2}px`,
     };
     this.cdr.markForCheck();
   }

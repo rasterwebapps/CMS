@@ -35,7 +35,7 @@ export const ONBOARDING_TOUR_STEPS: TourStep[] = [
     targetSelector: '.sidenav-search-input',
     placement: 'right',
     advanceOn: { event: 'input' },
-    validatorFn: (e) => ((e.target as HTMLInputElement).value.trim().length > 0),
+    validatorFn: (e) => ((e.target as HTMLInputElement).value.trim() !== ''),
   },
   {
     id: 'onboarding-alignment-currency',
