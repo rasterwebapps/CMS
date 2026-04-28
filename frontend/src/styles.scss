@@ -3475,3 +3475,26 @@ html.dark-theme body::after {
     margin-top: auto;
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// 🎓  LIVE TOUR WALKTHROUGH — Global Overlay Panel Styles
+//     The CDK overlay portal renders outside Angular component
+//     scope, so panel classes must be declared globally here.
+// ══════════════════════════════════════════════════════════════
+
+// Spotlight panel: full-screen, above the sidenav but below tooltip.
+.cms-tour-spotlight-panel {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  pointer-events: none; // the inner .spotlight-mask re-enables pointer-events
+  z-index: 1000;
+}
+
+// Tooltip panel: sits above the spotlight.
+.cms-tour-tooltip-panel {
+  z-index: 1001;
+  pointer-events: all;
+}

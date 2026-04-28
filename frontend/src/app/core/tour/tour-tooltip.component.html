@@ -1,0 +1,101 @@
+<div
+  class="tour-tooltip"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'tour-title-' + (stepIndex())"
+  (keydown.escape)="onEscape()">
+
+  <!-- Step counter -->
+  <div class="tour-header">
+    <span class="tour-counter">Step {{ stepIndex() + 1 }} of {{ totalSteps() }}</span>
+    <button type="button" class="tour-close-btn" (click)="onDismiss()" aria-label="Close tour">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Title -->
+  <h3 class="tour-title" [id]="'tour-title-' + stepIndex()">{{ step()?.title }}</h3>
+
+  <!-- Body -->
+  <p class="tour-body">{{ step()?.body }}</p>
+
+  <!-- Alignment demo (shown when alignmentHint is set) -->
+  @if (step()?.alignmentHint) {
+    <div class="tour-alignment-demo">
+      <div class="demo-label">Column alignment guide</div>
+      <table class="demo-table">
+        <thead>
+          <tr>
+            <th class="demo-th demo-th--left">Column type</th>
+            <th class="demo-th demo-th--right">Alignment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'right' || step()?.alignmentHint === 'all'">
+            <td class="demo-td demo-td--left">
+              <span class="cell-secondary">Currency / Amount</span>
+            </td>
+            <td class="demo-td demo-td--right">
+              <span class="cell-currency">₹1,23,456</span>
+              <span class="demo-align-tag">Right-aligned</span>
+            </td>
+          </tr>
+          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'center' || step()?.alignmentHint === 'all'">
+            <td class="demo-td demo-td--left">
+              <span class="cell-secondary">Status / Badge</span>
+            </td>
+            <td class="demo-td demo-td--center">
+              <span class="status-badge status-badge--active">Active</span>
+              <span class="demo-align-tag">Centered</span>
+            </td>
+          </tr>
+          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'left' || step()?.alignmentHint === 'all'">
+            <td class="demo-td demo-td--left">
+              <span class="cell-secondary">Name / Text</span>
+            </td>
+            <td class="demo-td demo-td--left">
+              <span class="cell-name">Dr. Priya Sharma</span>
+              <span class="demo-align-tag">Left-aligned</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Event-driven hint -->
+  @if (isWaiting()) {
+    <div class="tour-waiting-hint" role="status" aria-live="polite">
+      <span class="tour-waiting-dot"></span>
+      <span>Waiting for your interaction…</span>
+    </div>
+  }
+
+  <!-- Primary navigation -->
+  <div class="tour-actions">
+    <button
+      type="button"
+      class="btn-ghost tour-btn"
+      [disabled]="stepIndex() === 0"
+      (click)="onPrevious()">
+      Previous
+    </button>
+
+    <button
+      type="button"
+      class="btn-primary tour-btn"
+      [disabled]="isWaiting()"
+      (click)="onNext()">
+      {{ isLastStep() ? 'Done' : 'Next' }}
+    </button>
+  </div>
+
+  <!-- Dismiss row -->
+  <div class="tour-dismiss-row">
+    <button type="button" class="tour-link-btn" (click)="onDismiss()">Dismiss</button>
+    <span class="tour-dismiss-sep" aria-hidden="true">·</span>
+    <button type="button" class="tour-link-btn" (click)="onHardClose()">Don't show again</button>
+  </div>
+</div>

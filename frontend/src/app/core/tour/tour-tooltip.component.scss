@@ -1,0 +1,238 @@
+:host {
+  display: block;
+}
+
+.tour-tooltip {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-line-strong);
+  border-radius: var(--cms-radius-xl);
+  box-shadow:
+    var(--cms-shadow-xl),
+    0 0 0 1px rgba(var(--cms-primary-rgb), 0.08);
+  padding: 20px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  font-family: var(--cms-font-ui);
+  animation: tour-tooltip-in var(--cms-duration-md) var(--cms-ease-spring) both;
+}
+
+@keyframes tour-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// ── Header row ───────────────────────────────────
+.tour-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tour-counter {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-primary);
+  background: var(--cms-primary-alpha-8, rgba(var(--cms-primary-rgb), 0.08));
+  padding: 3px 8px;
+  border-radius: var(--cms-radius-full);
+}
+
+.tour-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--cms-line-strong);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  transition: var(--cms-transition);
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--cms-bg-surface-2);
+    color: var(--cms-text-primary);
+  }
+}
+
+// ── Content ──────────────────────────────────────
+.tour-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.tour-body {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--cms-text-secondary);
+  margin: 0 0 14px;
+}
+
+// ── Alignment demo table ─────────────────────────
+.tour-alignment-demo {
+  background: var(--cms-bg-surface-2);
+  border: 1px solid var(--cms-line);
+  border-radius: var(--cms-radius-md);
+  padding: 10px;
+  margin-bottom: 14px;
+
+  .demo-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    margin-bottom: 8px;
+  }
+}
+
+.demo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.demo-th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cms-text-table-header, #64748b);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--cms-line);
+
+  &.demo-th--left { text-align: left; }
+  &.demo-th--right { text-align: right; }
+}
+
+.demo-td {
+  padding: 6px 6px;
+  vertical-align: middle;
+
+  &.demo-td--left { text-align: left; }
+  &.demo-td--right { text-align: right; }
+  &.demo-td--center { text-align: center; }
+}
+
+.demo-row--highlight {
+  background: rgba(var(--cms-primary-rgb), 0.05);
+  border-radius: var(--cms-radius-sm);
+
+  .demo-align-tag {
+    display: inline;
+    font-weight: 700;
+    color: var(--cms-primary);
+  }
+}
+
+.demo-align-tag {
+  display: none;
+  font-size: 0.625rem;
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--cms-text-muted);
+}
+
+// ── Waiting hint ─────────────────────────────────
+.tour-waiting-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--cms-primary);
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  background: rgba(var(--cms-primary-rgb), 0.06);
+  border-radius: var(--cms-radius-sm);
+}
+
+.tour-waiting-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cms-primary);
+  flex-shrink: 0;
+  animation: tour-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tour-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+// ── Primary actions ──────────────────────────────
+.tour-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  .tour-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 16px;
+    font-size: 0.8125rem;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none !important;
+      pointer-events: none;
+    }
+  }
+}
+
+// ── Dismiss row ──────────────────────────────────
+.tour-dismiss-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tour-dismiss-sep {
+  color: var(--cms-text-muted);
+  font-size: 0.75rem;
+}
+
+.tour-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color var(--cms-duration-sm) var(--cms-ease-out);
+
+  &:hover {
+    color: var(--cms-text-secondary);
+    text-decoration: underline;
+  }
+}
+
+// ── Status badge variant used inside the demo table ─
+// (mirrors .status-badge--active from global styles)
+.status-badge--active {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--cms-radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: var(--cms-badge-green-bg);
+  color: var(--cms-badge-green-text);
+}
