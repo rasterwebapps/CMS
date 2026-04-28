@@ -99,7 +99,7 @@
               <div class="pending-row">
                 <div class="pending-row__info">
                   <span class="pending-row__course">{{ s.courseName }}</span>
-                  <span class="pending-row__date">{{ s.date | date: 'mediumDate' }}</span>
+                  <span class="pending-row__date">{{ s.date | appDate }}</span>
                   <span class="pending-row__students">{{ s.studentCount }} students</span>
                 </div>
                 <a class="btn-sm-secondary" [routerLink]="s.linkPath">Mark →</a>

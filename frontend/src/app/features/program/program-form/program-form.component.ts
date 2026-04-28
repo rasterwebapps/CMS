@@ -7,6 +7,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ProgramService } from '../program.service';
 import { ProgramRequest, ProgramStatus } from '../program.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { PROGRAM_FORM_TOUR } from '../../../shared/tour/tours/program.tours';
 
 @Component({
   selector: 'app-program-form',
@@ -16,7 +19,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './program-form.component.html',
   styleUrl: './program-form.component.scss',
 })
@@ -26,6 +31,7 @@ export class ProgramFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -42,6 +48,7 @@ export class ProgramFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('program-form', PROGRAM_FORM_TOUR);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.programId = Number(idParam);
@@ -143,4 +150,3 @@ export class ProgramFormComponent implements OnInit {
     });
   }
 }
-

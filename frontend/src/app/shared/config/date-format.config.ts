@@ -46,11 +46,19 @@ export const DATE_FORMATS = {
   long: 'dd-MM-yyyy',
 
   /**
-   * Date with time for timestamps (audit logs, payment records)
-   * Default: 'dd-MM-yyyy HH:mm' → "28-04-2026 14:30"
-   * Alternative: 'dd MMM yyyy, hh:mm a' → "28 Apr 2026, 02:30 PM"
+   * Date with time for timestamps (audit logs, payment records).
+   * Uses 12-hour AM/PM format. The AppDatePipe automatically converts
+   * UTC ISO-8601 timestamps from the API to the user's local timezone.
+   * Default: 'dd-MM-yyyy hh:mm a' → "28-04-2026 02:30 PM"
    */
-  dateTime: 'dd-MM-yyyy HH:mm',
+  dateTime: 'dd-MM-yyyy hh:mm a',
+
+  /**
+   * Time-only format (e.g., for audit trail "last updated at" displays).
+   * Uses 12-hour AM/PM. Timezone conversion handled by AppDatePipe.
+   * Default: 'hh:mm a' → "02:30 PM"
+   */
+  time: 'hh:mm a',
 
   /**
    * Date range separator for displaying date ranges

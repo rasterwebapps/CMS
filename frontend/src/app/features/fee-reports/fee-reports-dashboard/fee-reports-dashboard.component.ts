@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,13 +18,14 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService, CsvColumn } from '../../../core/export/csv-exporter.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-fee-reports-dashboard',
   standalone: true,
   imports: [
+    AppDatePipe,
     InrPipe,
-    DatePipe,
     DecimalPipe,
     ReactiveFormsModule,
     MatTabsModule,

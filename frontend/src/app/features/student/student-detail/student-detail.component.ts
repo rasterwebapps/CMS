@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,14 +18,15 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-student-detail',
   standalone: true,
   imports: [
+    AppDatePipe,
     InrPipe,
     RouterLink,
-    DatePipe,
     DecimalPipe,
     MatTabsModule,
     MatButtonModule,

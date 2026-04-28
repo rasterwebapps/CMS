@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { DatePipe } from '@angular/common';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, DESIGNATION_OPTIONS, FACULTY_STATUS_OPTIONS } from '../faculty.model';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -11,16 +10,17 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-faculty-detail',
   standalone: true,
   imports: [
+    AppDatePipe,
     RouterLink,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
-    DatePipe,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent],
   templateUrl: './faculty-detail.component.html',

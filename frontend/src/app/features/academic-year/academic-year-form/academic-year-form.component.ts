@@ -8,6 +8,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYearRequest } from '../academic-year.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-year.tours';
 
 @Component({
   selector: 'app-academic-year-form',
@@ -18,7 +21,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSlideToggleModule],
+    MatSlideToggleModule,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './academic-year-form.component.html',
   styleUrl: './academic-year-form.component.scss',
 })
@@ -28,6 +33,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -44,6 +50,7 @@ export class AcademicYearFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('academic-year-form', ACADEMIC_YEAR_FORM_TOUR);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.academicYearId = Number(idParam);

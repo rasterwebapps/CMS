@@ -12,6 +12,9 @@ import { ReferralType } from '../referral-type.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-type.tours';
 
 @Component({
   selector: 'app-referral-type-list',
@@ -25,6 +28,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './referral-type-list.component.html',
   styleUrl: './referral-type-list.component.scss',
@@ -34,6 +38,7 @@ export class ReferralTypeListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -66,6 +71,7 @@ export class ReferralTypeListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('referral-type-list', REFERRAL_TYPE_LIST_TOUR);
     this.load();
   }
 

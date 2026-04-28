@@ -1,6 +1,6 @@
 <div class="mlp-page">
   <!-- Header -->
-  <div class="mlp-hdr">
+  <div id="tour-fac-header" class="mlp-hdr">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Faculty <em>Members</em></h1>
       <p class="mlp-sub">Manage faculty members, designations, and department assignments</p>
@@ -9,7 +9,8 @@
         <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--green"></span>{{ activeCount() }} active</span>
       </div>
     </div>
-    <button class="btn-primary" routerLink="/faculty/new" aria-label="Add new faculty">
+    <cms-tour-button tourKey="faculty-list" />
+    <button id="tour-fac-add-btn" class="btn-primary" routerLink="/faculty/new" aria-label="Add new faculty">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Faculty
     </button>
@@ -18,6 +19,7 @@
   <!-- Toolbar -->
   <div class="mlp-toolbar">
     <select
+      id="tour-fac-filters"
       class="mlp-filter-select"
       [value]="selectedDepartmentId() ?? ''"
       (change)="onDepartmentChange(+$any($event.target).value || null)"
@@ -41,7 +43,7 @@
       }
     </select>
 
-    <div class="search-bar" role="search">
+    <div id="tour-fac-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
         class="search-bar__input"
@@ -62,7 +64,7 @@
       <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
     }
 
-    <div class="mlp-seg" role="group" aria-label="View mode">
+    <div id="tour-fac-view-toggle" class="mlp-seg" role="group" aria-label="View mode">
       <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Cards
@@ -91,7 +93,7 @@
         (actionClick)="handleEmptyAction()"
       ></cms-empty-state>
     } @else {
-      <div class="mlp-cards-grid">
+      <div id="tour-fac-content" class="mlp-cards-grid">
         @for (item of filteredFaculty(); track item.id) {
           <div class="mlp-card anim-rise" (click)="viewFaculty(item)" style="cursor: pointer" role="button" [attr.aria-label]="'View ' + item.fullName">
             <div class="mlp-card__actions" (click)="$event.stopPropagation()">

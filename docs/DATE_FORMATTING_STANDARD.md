@@ -38,11 +38,12 @@ April 28, 2026
 
 ```typescript
 export const DATE_FORMATS = {
-  standard: 'dd-MM-yyyy',     // 28-04-2026 (tables, forms, displays)
-  short: 'dd-MM-yy',          // 28-04-26 (compact displays)
-  long: 'dd-MM-yyyy',         // 28-04-2026 (detailed views)
-  dateTime: 'dd-MM-yyyy HH:mm', // 28-04-2026 14:30 (timestamps)
-  rangeSeparator: ' – ',       // en-dash for date ranges
+  standard: 'dd-MM-yyyy',          // 28-04-2026 (tables, forms, displays)
+  short: 'dd-MM-yy',               // 28-04-26 (compact displays)
+  long: 'dd-MM-yyyy',              // 28-04-2026 (detailed views)
+  dateTime: 'dd-MM-yyyy hh:mm a',  // 28-04-2026 02:30 PM (timestamps, local TZ, AM/PM)
+  time: 'hh:mm a',                 // 02:30 PM (time-only displays, local TZ, AM/PM)
+  rangeSeparator: ' – ',            // en-dash for date ranges
 } as const;
 ```
 

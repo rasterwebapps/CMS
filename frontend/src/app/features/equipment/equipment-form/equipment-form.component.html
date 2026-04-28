@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the equipment details below.' : 'Fill in the details below to register a new equipment item.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="equipment-form" />
   </div>
 
   @if (loading()) {
@@ -139,7 +140,7 @@
           />
         </div>
 
-        <div class="form-footer">
+        <div id="tour-eq-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/equipment">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

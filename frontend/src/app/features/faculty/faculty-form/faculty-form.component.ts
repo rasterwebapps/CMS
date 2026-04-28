@@ -15,6 +15,9 @@ import {
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FACULTY_FORM_TOUR } from '../../../shared/tour/tours/faculty.tours';
 
 @Component({
   selector: 'app-faculty-form',
@@ -24,7 +27,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',
 })
@@ -35,6 +40,7 @@ export class FacultyFormComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly departmentService = inject(DepartmentService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -61,6 +67,7 @@ export class FacultyFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('faculty-form', FACULTY_FORM_TOUR);
     this.loadDepartments();
 
     const idParam = this.route.snapshot.paramMap.get('id');

@@ -14,6 +14,9 @@ import { Experiment } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { EXPERIMENT_LIST_TOUR } from '../../../shared/tour/tours/experiment.tours';
 
 @Component({
   selector: 'app-experiment-list',
@@ -29,7 +32,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+    CmsTourButtonComponent],
   templateUrl: './experiment-list.component.html',
   styleUrl: './experiment-list.component.scss',
 })
@@ -38,6 +42,7 @@ export class ExperimentListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -65,6 +70,7 @@ export class ExperimentListComponent implements OnInit {
   protected readonly searchValue = signal('');
 
   ngOnInit(): void {
+    this.tourService.register('experiment-list', EXPERIMENT_LIST_TOUR);
     this.load();
   }
 

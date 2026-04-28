@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the experiment details below.' : 'Fill in the details to add a new experiment.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="experiment-form" />
   </div>
 
   @if (loading()) {
@@ -108,7 +109,7 @@
           </label>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-exp-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/experiments">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

@@ -1,6 +1,6 @@
 <div class="mlp-page">
   <!-- Page header -->
-  <div class="mlp-hdr anim-rise">
+  <div id="tour-sem-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Academic <em>Semesters</em></h1>
       <p class="mlp-sub">Manage semester periods within academic years</p>
@@ -10,7 +10,8 @@
         </div>
       }
     </div>
-    <button class="btn-primary" routerLink="/semesters/new" aria-label="Add new semester">
+    <cms-tour-button tourKey="semester-list" />
+    <button id="tour-sem-add-btn" class="btn-primary" routerLink="/semesters/new" aria-label="Add new semester">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Semester
     </button>
@@ -19,6 +20,7 @@
   <!-- Toolbar -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
     <select
+      id="tour-sem-filters"
       class="mlp-filter-select"
       [value]="selectedAcademicYearId() ?? ''"
       (change)="onAcademicYearChange(+$any($event.target).value || null)"
@@ -29,7 +31,7 @@
         <option [value]="ay.id">{{ ay.name }}</option>
       }
     </select>
-    <div class="search-bar" role="search">
+    <div id="tour-sem-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
         class="search-bar__input"
@@ -45,7 +47,7 @@
         </button>
       }
     </div>
-    <cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" />
+    <div id="tour-sem-view-toggle"><cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" /></div>
   </div>
 
   @if (loading()) {
@@ -62,7 +64,7 @@
         [subtitle]="searchValue() ? 'Try a different search term' : 'Add your first semester to get started'"
       ></cms-empty-state>
     } @else {
-      <div class="mlp-cards-grid">
+      <div id="tour-sem-content" class="mlp-cards-grid">
         @for (sem of filteredSemesters(); track sem.id) {
           <div class="mlp-card">
             <div class="mlp-card__actions">
@@ -82,7 +84,7 @@
             }
             <div class="sem-card__dates">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              {{ sem.startDate | date:'mediumDate' }} – {{ sem.endDate | date:'mediumDate' }}
+              {{ sem.startDate | appDate }} – {{ sem.endDate | appDate }}
             </div>
           </div>
         }
@@ -108,14 +110,14 @@
         <ng-container matColumnDef="startDate">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Start Date</th>
           <td mat-cell *matCellDef="let semester">
-            <span class="cell-date">{{ semester.startDate | date:'mediumDate' }}</span>
+            <span class="cell-date">{{ semester.startDate | appDate }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="endDate">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>End Date</th>
           <td mat-cell *matCellDef="let semester">
-            <span class="cell-date">{{ semester.endDate | date:'mediumDate' }}</span>
+            <span class="cell-date">{{ semester.endDate | appDate }}</span>
           </td>
         </ng-container>
 

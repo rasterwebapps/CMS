@@ -13,12 +13,16 @@ import { Department } from '../../department/department.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
 
 @Component({
   selector: 'app-faculty-list',
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
     RouterLink,
     TitleCasePipe,
     MatTableModule,
@@ -36,6 +40,7 @@ export class FacultyListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'faculty-view-mode';
 
@@ -87,6 +92,7 @@ export class FacultyListComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.tourService.register('faculty-list', FACULTY_LIST_TOUR);
     this.loadDepartments();
     this.loadFaculty();
   }

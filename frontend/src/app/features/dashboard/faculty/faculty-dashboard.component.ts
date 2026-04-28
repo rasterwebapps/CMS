@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
 import { FacultyDashboard } from '../dashboard.models';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Faculty role dashboard. Renders the faculty member's classes for the day,
@@ -18,7 +19,8 @@ import { FacultyDashboard } from '../dashboard.models';
 @Component({
   selector: 'app-faculty-dashboard',
   standalone: true,
-  imports: [RouterLink, DatePipe, MatIconModule],
+  imports: [
+    AppDatePipe,RouterLink, DatePipe, MatIconModule],
   templateUrl: './faculty-dashboard.component.html',
   styleUrl: './faculty-dashboard.component.scss',
 })

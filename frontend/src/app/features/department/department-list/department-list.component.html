@@ -1,7 +1,7 @@
 <div class="dept-list-page">
 
   <!-- ── Page Header ─────────────────────────────────────────── -->
-  <div class="dept-pg-hdr anim-rise">
+  <div id="tour-dept-header" class="dept-pg-hdr anim-rise">
     <div class="dept-pg-left">
       <h1 class="dept-pg-title">Academic <em>Departments</em></h1>
       <p class="dept-pg-sub">Manage departments and their heads across the college</p>
@@ -18,15 +18,18 @@
         </div>
       }
     </div>
-    <button class="btn-primary" routerLink="/departments/new" aria-label="Add new department">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Department
-    </button>
+    <div class="dept-pg-actions">
+      <cms-tour-button tourKey="dept-list" />
+      <button id="tour-dept-add-btn" class="btn-primary" routerLink="/departments/new" aria-label="Add new department">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Department
+      </button>
+    </div>
   </div>
 
   <!-- ── Toolbar: search + view toggle ───────────────────────── -->
   <div class="dept-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search">
+    <div id="tour-dept-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
         class="search-bar__input"
@@ -43,7 +46,9 @@
       }
     </div>
 
-    <cms-view-toggle [mode]="viewMode()" storageKey="department-view" (modeChange)="setViewMode($event)" />
+    <div id="tour-dept-view-toggle">
+      <cms-view-toggle [mode]="viewMode()" storageKey="department-view" (modeChange)="setViewMode($event)" />
+    </div>
   </div>
 
   <!-- ── Loading: skeleton cards ─────────────────────────────── -->
@@ -66,7 +71,7 @@
         (actionClick)="handleEmptyAction()"
       ></cms-empty-state>
     } @else {
-      <div class="dept-grid">
+      <div id="tour-dept-content" class="dept-grid">
         @for (dept of filteredDepts(); track dept.id; let i = $index) {
           <div class="dept-card" [style.animation-delay]="(i * 0.05) + 's'">
             <!-- Hover action buttons -->

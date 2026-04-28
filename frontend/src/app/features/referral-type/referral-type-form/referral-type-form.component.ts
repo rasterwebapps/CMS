@@ -8,6 +8,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReferralTypeService } from '../referral-type.service';
 import { ReferralTypeRequest } from '../referral-type.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { REFERRAL_TYPE_FORM_TOUR } from '../../../shared/tour/tours/referral-type.tours';
 
 @Component({
   selector: 'app-referral-type-form',
@@ -18,7 +21,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSlideToggleModule],
+    MatSlideToggleModule,
+    CmsTourButtonComponent],
   templateUrl: './referral-type-form.component.html',
   styleUrl: './referral-type-form.component.scss',
 })
@@ -28,6 +32,7 @@ export class ReferralTypeFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -47,6 +52,7 @@ export class ReferralTypeFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('referral-type-form', REFERRAL_TYPE_FORM_TOUR);
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);

@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the curriculum version details below.' : 'Fill in the details to create a new curriculum version.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="curriculum-version-form" />
   </div>
 
   @if (loading()) {
@@ -62,7 +63,7 @@
           }
         </div>
 
-        <div class="field-group">
+        <div id="tour-cv-active-toggle" class="field-group">
           <label class="field-label checkbox-label">
             <input type="checkbox" formControlName="isActive" class="field-checkbox" />
             Active
@@ -70,7 +71,7 @@
           <p class="field-hint">When active, this version is used for enrollment</p>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-cv-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/curriculum-versions">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

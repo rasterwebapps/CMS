@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the referral type details below.' : 'Define a new referral type and its commission structure.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="referral-type-form" />
   </div>
 
   @if (loading()) {
@@ -57,7 +58,7 @@
           </div>
         </div>
 
-        <div class="field-group">
+        <div id="tour-rt-commission-toggle" class="field-group">
           <mat-slide-toggle formControlName="hasCommission">Has Commission</mat-slide-toggle>
         </div>
 
@@ -90,11 +91,11 @@
           ></textarea>
         </div>
 
-        <div class="field-group">
+        <div id="tour-rt-active-toggle" class="field-group">
           <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-rt-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/referral-types">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

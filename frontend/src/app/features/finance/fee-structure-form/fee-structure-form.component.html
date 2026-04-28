@@ -3,7 +3,9 @@
     <app-page-header
       [title]="pageTitle()"
       [subtitle]="isEditMode() ? 'Update the fee schedule below.' : 'Configure fee schedules for a program and course.'"
-    />
+    >
+      <cms-tour-button actions tourKey="fee-structure-form" />
+    </app-page-header>
   }
 
   @if (loading()) {
@@ -16,7 +18,7 @@
     <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
       <!-- ── Selection Criteria (3-column horizontal row) ────────── -->
-      <div class="selection-panel">
+      <div id="tour-fs-criteria" class="selection-panel">
         <div class="selection-panel__header">
           <mat-icon>tune</mat-icon>
           <span>Select Criteria</span>
@@ -104,7 +106,7 @@
           </div>
 
           <!-- ══ Course Fees ════════════════════════════════════════ -->
-          <div class="grid-section">
+          <div id="tour-fs-course-fees" class="grid-section">
             <div class="grid-section__label">
               <mat-icon>payments</mat-icon>
               <span>Course Fees</span>
@@ -194,7 +196,7 @@
           </div>
 
           <!-- ══ Additional Fees ════════════════════════════════════ -->
-          <div class="grid-section grid-section--additional">
+          <div id="tour-fs-additional-fees" class="grid-section grid-section--additional">
             <div class="grid-section__label grid-section__label--additional">
               <mat-icon>add_home</mat-icon>
               <span>Additional Fees</span>
@@ -286,7 +288,7 @@
         </div>
 
         <!-- ── Actions ─────────────────────────────────────────────── -->
-        <div class="form-actions">
+        <div id="tour-fs-submit" class="form-actions">
           <button mat-stroked-button type="button" class="cancel-btn" routerLink="/fee-structures">
             <mat-icon>close</mat-icon>
             Cancel

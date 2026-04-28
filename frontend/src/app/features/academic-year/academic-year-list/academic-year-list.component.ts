@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -12,15 +11,20 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ACADEMIC_YEAR_LIST_TOUR } from '../../../shared/tour/tours/academic-year.tours';
 
 @Component({
   selector: 'app-academic-year-list',
   standalone: true,
   imports: [
+    AppDatePipe,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsTourButtonComponent,
     RouterLink,
-    DatePipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -35,6 +39,7 @@ export class AcademicYearListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -63,6 +68,7 @@ export class AcademicYearListComponent implements OnInit {
   protected readonly currentCount = computed(() => this.allAcademicYears().filter(ay => ay.isCurrent).length);
 
   ngOnInit(): void {
+    this.tourService.register('academic-year-list', ACADEMIC_YEAR_LIST_TOUR);
     this.loadAcademicYears();
   }
 

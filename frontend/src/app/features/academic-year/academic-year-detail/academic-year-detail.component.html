@@ -19,7 +19,7 @@
       <div class="ay-header-card__info">
         <h2 class="ay-header-card__name">{{ academicYear()!.name }}</h2>
         <div class="ay-header-card__dates">
-          {{ academicYear()!.startDate | date:'mediumDate' }} – {{ academicYear()!.endDate | date:'mediumDate' }}
+          {{ academicYear()!.startDate | appDate }} – {{ academicYear()!.endDate | appDate }}
         </div>
       </div>
       @if (academicYear()!.isCurrent) {
@@ -116,7 +116,7 @@
           <h4 class="billing-card__title">{{ termType }} Term Billing</h4>
           @if (billing) {
             <p class="billing-card__existing">
-              Due: <strong>{{ billing.dueDate | date:'mediumDate' }}</strong> ·
+              Due: <strong>{{ billing.dueDate | appDate }}</strong> ·
               Late fee: <strong>{{ billing.lateFeeType === 'FLAT' ? '₹' + billing.lateFeeAmount : '₹' + billing.lateFeeAmount + '/day' }}</strong> ·
               Grace: <strong>{{ billing.graceDays }} days</strong>
             </p>
@@ -358,7 +358,7 @@
                     <td>{{ demand.studentName }}</td>
                     <td><span class="code-value">{{ demand.cohortCode }}</span></td>
                     <td>{{ demand.totalAmount | inr:true:false }}</td>
-                    <td>{{ demand.dueDate | date:'mediumDate' }}</td>
+                    <td>{{ demand.dueDate | appDate }}</td>
                     <td>{{ demand.paidAmount | inr:true:false }}</td>
                     <td>{{ demand.outstandingAmount | inr:true:false }}</td>
                     <td>

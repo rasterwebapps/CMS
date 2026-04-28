@@ -9,13 +9,16 @@ import { AgentService } from '../agent.service';
 import { AgentRequest } from '../agent.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { AGENT_FORM_TOUR } from '../../../shared/tour/tours/agent.tours';
 
 @Component({
   selector: 'app-agent-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSlideToggleModule],
+    MatProgressSpinnerModule, MatSlideToggleModule, CmsTourButtonComponent],
   templateUrl: './agent-form.component.html',
   styleUrl: './agent-form.component.scss',
 })
@@ -26,6 +29,7 @@ export class AgentFormComponent implements OnInit {
   private readonly agentService = inject(AgentService);
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -46,6 +50,7 @@ export class AgentFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('agent-form', AGENT_FORM_TOUR);
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);

@@ -9,6 +9,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/department.tours';
 
 @Component({
   selector: 'app-department-form',
@@ -20,17 +23,19 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './department-form.component.html',
   styleUrl: './department-form.component.scss',
 })
 export class DepartmentFormComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  private readonly fb                = inject(FormBuilder);
+  private readonly route             = inject(ActivatedRoute);
+  private readonly router            = inject(Router);
   private readonly departmentService = inject(DepartmentService);
-  private readonly snackBar = inject(MatSnackBar);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly snackBar          = inject(MatSnackBar);
+  private readonly destroyRef        = inject(DestroyRef);
+  private readonly tourService       = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -72,6 +77,7 @@ export class DepartmentFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('dept-form', DEPT_FORM_TOUR);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.departmentId = Number(idParam);

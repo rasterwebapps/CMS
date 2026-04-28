@@ -9,6 +9,9 @@ import { CourseRequest } from '../course.model';
 import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { COURSE_FORM_TOUR } from '../../../shared/tour/tours/course.tours';
 
 @Component({
   selector: 'app-course-form',
@@ -18,7 +21,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './course-form.component.html',
   styleUrl: './course-form.component.scss',
 })
@@ -29,6 +34,7 @@ export class CourseFormComponent implements OnInit {
   private readonly courseService = inject(CourseService);
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -46,6 +52,7 @@ export class CourseFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('course-form', COURSE_FORM_TOUR);
     this.loadPrograms();
 
     const idParam = this.route.snapshot.paramMap.get('id');

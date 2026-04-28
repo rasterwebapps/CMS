@@ -9,13 +9,17 @@ import { EquipmentService } from '../equipment.service';
 import { EquipmentRequest } from '../equipment.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours';
 
 @Component({
   selector: 'app-equipment-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    CmsTourButtonComponent],
   templateUrl: './equipment-form.component.html',
   styleUrl: './equipment-form.component.scss',
 })
@@ -26,6 +30,7 @@ export class EquipmentFormComponent implements OnInit {
   private readonly equipmentService = inject(EquipmentService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -50,6 +55,7 @@ export class EquipmentFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('equipment-form', EQUIPMENT_FORM_TOUR);
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({
       next: (data) => this.labs.set(data),
       error: () => { this.toast.error('Failed to load labs'); },

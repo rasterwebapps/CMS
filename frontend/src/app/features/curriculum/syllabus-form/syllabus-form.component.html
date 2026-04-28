@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the syllabus details below.' : 'Fill in the details below to create a new syllabus.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="syllabus-form" />
   </div>
 
   @if (loading()) {
@@ -97,7 +98,7 @@
           </label>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-syl-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/syllabi">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

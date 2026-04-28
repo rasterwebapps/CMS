@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the academic year details below.' : 'Fill in the details below to register a new academic year.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="academic-year-form" />
   </div>
 
   @if (loading()) {
@@ -64,11 +65,11 @@
           </div>
         </div>
 
-        <div class="field-group">
+        <div id="tour-ay-current-toggle" class="field-group">
           <mat-slide-toggle formControlName="isCurrent">Set as Current Academic Year</mat-slide-toggle>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-ay-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/academic-years">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

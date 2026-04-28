@@ -37,6 +37,13 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Run tests with JVM in UTC so date/time assertions are timezone-independent
+    jvmArgs("-Duser.timezone=UTC")
+}
+
+tasks.withType<JavaExec> {
+    // Ensure the Spring Boot process itself runs in UTC
+    jvmArgs("-Duser.timezone=UTC")
 }
 
 jacoco {

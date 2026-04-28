@@ -5,7 +5,7 @@
     <a class="dept-back-btn" routerLink="/departments" aria-label="Back to departments">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <div>
+    <div class="dept-form-hdr-text">
       <h1 class="dept-form-title">
         {{ isEditMode() ? 'Edit' : 'Add' }} <em>Department</em>
       </h1>
@@ -13,6 +13,7 @@
         {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new academic department.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="dept-form" />
   </div>
 
   @if (loading()) {
@@ -57,7 +58,7 @@
             </div>
 
             <!-- Code -->
-            <div class="field-group">
+            <div id="tour-dept-code-group" class="field-group">
               <label for="dept-code" class="field-label">
                 Department Code
                 <span class="required-star">*</span>
@@ -117,7 +118,7 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="form-footer dept-form-footer">
+            <div id="tour-dept-submit" class="form-footer dept-form-footer">
               <button type="button" class="btn-cancel" routerLink="/departments">Cancel</button>
               <button type="submit" class="btn-submit" [disabled]="saving()">
                 @if (saving()) {
@@ -136,7 +137,7 @@
       <div class="dept-side-panel">
 
         <!-- Live Preview Card -->
-        <div class="dept-preview-card">
+        <div id="tour-dept-preview" class="dept-preview-card">
           <div class="dept-preview-hdr">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             <span class="dept-preview-label">Live Preview</span>
@@ -159,7 +160,7 @@
         </div>
 
         <!-- Guidance Tips Card -->
-        <div class="dept-tip-card">
+        <div id="tour-dept-tips" class="dept-tip-card">
           <div class="dept-tip-title">Guidance</div>
 
           <div class="dept-tip-item">

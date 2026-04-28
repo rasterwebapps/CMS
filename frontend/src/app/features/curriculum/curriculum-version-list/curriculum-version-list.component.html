@@ -1,10 +1,11 @@
 <div class="mlp-page">
-  <div class="mlp-hdr anim-rise">
+  <div id="tour-cv-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Curriculum <em>Versions</em></h1>
       <p class="mlp-sub">Manage curriculum versions per program</p>
     </div>
-    <button class="btn-primary" (click)="navigateToNew()" [disabled]="!selectedProgramId()" aria-label="Add new curriculum version">
+    <cms-tour-button tourKey="curriculum-version-list" />
+    <button id="tour-cv-add-btn" class="btn-primary" (click)="navigateToNew()" [disabled]="!selectedProgramId()" aria-label="Add new curriculum version">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New Version
     </button>
@@ -12,7 +13,7 @@
 
   <!-- Program selector -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div class="field-group" style="max-width: 320px; margin: 0;">
+    <div id="tour-cv-program-select" class="field-group" style="max-width: 320px; margin: 0;">
       <label class="field-label">Select Program</label>
       <select class="field-input" (change)="onProgramChange($event)">
         <option value="">-- Select a program --</option>
@@ -44,7 +45,7 @@
       (actionClick)="navigateToNew()"
     ></cms-empty-state>
   } @else {
-    <div class="mlp-cards-grid">
+    <div id="tour-cv-content" class="mlp-cards-grid">
       @for (version of versions(); track version.id; let i = $index) {
         <div class="mlp-card" [style.animation-delay]="(i * 0.05) + 's'">
           <div class="mlp-card__actions">

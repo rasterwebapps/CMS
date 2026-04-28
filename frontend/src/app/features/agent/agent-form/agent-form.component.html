@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the agent details below.' : 'Fill in the details below to register a new agent.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="agent-form" />
   </div>
 
   @if (loading()) {
@@ -113,11 +114,11 @@
           }
         </div>
 
-        <div class="field-group">
+        <div id="tour-agent-active-toggle" class="field-group">
           <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
         </div>
 
-        <div class="form-footer">
+        <div id="tour-agent-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

@@ -12,6 +12,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewMode, CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/department.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
@@ -25,14 +28,15 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent, CmsViewToggleComponent,
+    CmsEmptyStateComponent, CmsViewToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './department-list.component.html',
   styleUrl: './department-list.component.scss',
 })
 export class DepartmentListComponent implements OnInit {
   private readonly departmentService = inject(DepartmentService);
-  private readonly router = inject(Router);
+  private readonly router            = inject(Router);
+  private readonly tourService       = inject(TourService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
@@ -95,6 +99,7 @@ export class DepartmentListComponent implements OnInit {
   protected readonly computeInitials = computeInitials;
 
   ngOnInit(): void {
+    this.tourService.register('dept-list', DEPT_LIST_TOUR);
     this.loadDepartments();
   }
 

@@ -7,7 +7,6 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,6 +32,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService } from '../../../core/export/csv-exporter.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 export type CalendarViewMode = 'timeline' | 'grid';
 
@@ -75,7 +75,7 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
   selector: 'app-academic-calendar',
   standalone: true,
   imports: [
-    DatePipe,
+    AppDatePipe,
     FormsModule,
     ReactiveFormsModule,
     RouterLink,

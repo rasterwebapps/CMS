@@ -1,6 +1,5 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -15,6 +14,7 @@ import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse, Semes
 import { StudentFeeSummary, SemesterFeeDetail } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -37,8 +37,8 @@ export interface FeeEntry {
   selector: 'app-fee-collection',
   standalone: true,
   imports: [
+    AppDatePipe,
     InrPipe,
-    DatePipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,

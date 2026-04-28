@@ -9,6 +9,9 @@ import { CurriculumVersionService } from '../curriculum-version.service';
 import { CurriculumVersionRequest } from '../curriculum-version.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CURRICULUM_VERSION_FORM_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
 
 @Component({
   selector: 'app-curriculum-version-form',
@@ -19,6 +22,7 @@ import { environment } from '../../../../environments';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './curriculum-version-form.component.html',
   styleUrl: './curriculum-version-form.component.scss',
@@ -30,6 +34,7 @@ export class CurriculumVersionFormComponent implements OnInit {
   private readonly service = inject(CurriculumVersionService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -48,6 +53,8 @@ export class CurriculumVersionFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('curriculum-version-form', CURRICULUM_VERSION_FORM_TOUR);
+
     this.http.get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/programs`)
       .subscribe({ next: (data) => this.programs.set(data) });
 

@@ -23,6 +23,13 @@
   flex-wrap: wrap;
 }
 
+.dept-pg-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .dept-pg-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);

@@ -269,7 +269,7 @@
                   </div>
                   <div class="ledger-stat">
                     <span class="ledger-stat__label">Due Date</span>
-                    <span class="ledger-stat__value">{{ entry.dueDate | date:'mediumDate' }}</span>
+                    <span class="ledger-stat__value">{{ entry.dueDate | appDate }}</span>
                   </div>
                 </div>
                 @if (entry.payments.length > 0) {
@@ -287,7 +287,7 @@
                       @for (payment of entry.payments; track payment.id) {
                         <tr>
                           <td><span class="code-value">{{ payment.receiptNumber }}</span></td>
-                          <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
+                          <td>{{ payment.paymentDate | appDate }}</td>
                           <td>{{ payment.amountPaid | inr:true:false }}</td>
                           <td>{{ payment.lateFeeApplied > 0 ? (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                           <td>{{ payment.paymentMode }}</td>

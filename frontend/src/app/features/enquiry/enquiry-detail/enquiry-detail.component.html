@@ -246,7 +246,7 @@
                       p.amountPaid | inr
                     }}</span>
                     <span class="receipt-card__meta">
-                      <span>{{ p.paymentDate | date: 'dd MMM yyyy' }}</span>
+                      <span>{{ p.paymentDate | appDate }}</span>
                       <span>via {{ p.paymentMode }}</span>
                       @if (p.collectedBy) {
                         <span>collected by {{ p.collectedBy }}</span>
@@ -284,7 +284,7 @@
                       <div class="status-timeline__body">
                         <span class="status-timeline__label">{{ h.toStatus }}</span>
                         <span class="status-timeline__date">{{
-                          h.changedAt | date: 'dd MMM yyyy, HH:mm'
+                          h.changedAt | appDate:'dateTime'
                         }}</span>
                       </div>
                     </li>
@@ -299,7 +299,7 @@
                   <table mat-table [dataSource]="statusHistory()" class="modern-table">
                     <ng-container matColumnDef="changedAt">
                       <th mat-header-cell *matHeaderCellDef>Changed At</th>
-                      <td mat-cell *matCellDef="let row">{{ row.changedAt | date: 'short' }}</td>
+                      <td mat-cell *matCellDef="let row">{{ row.changedAt | appDate:'dateTime' }}</td>
                     </ng-container>
                     <ng-container matColumnDef="fromStatus">
                       <th mat-header-cell *matHeaderCellDef>From</th>

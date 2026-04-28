@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -25,14 +25,15 @@ import {
 } from '../academic-year.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-academic-year-detail',
   standalone: true,
   imports: [
+    AppDatePipe,
     InrPipe,
     RouterLink,
-    DatePipe,
     NgClass,
     ReactiveFormsModule,
     MatButtonModule,

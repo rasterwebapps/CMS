@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use 'tailwindcss';
+@import 'driver.js/dist/driver.css';
 
 // ──────────────────────────────────────────────────
 // 🎨 Dynamic Primary Palette — Tailwind v4
@@ -3502,23 +3503,146 @@ html.dark-theme body::after {
 
 // ══════════════════════════════════════════════════════════════
 // 🎓  LIVE TOUR WALKTHROUGH — Global Overlay Panel Styles
-//     The CDK overlay portal renders outside Angular component
-//     scope, so panel classes must be declared globally here.
+// ══════════════════════════════════════════════════════════════
+// Driver.js tour — theme override to match the app design system
 // ══════════════════════════════════════════════════════════════
 
-// Spotlight panel: full-screen, above the sidenav but below tooltip.
-.cms-tour-spotlight-panel {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  pointer-events: none; // the inner .spotlight-mask re-enables pointer-events
-  z-index: 1000;
+.cms-tour-popover.driver-popover {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 14px;
+  box-shadow: var(--cms-shadow-xl);
+  padding: 20px 22px 18px;
+  min-width: 280px;
+  max-width: 360px;
+  font-family: var(--cms-font-ui);
+
+  // Title
+  .driver-popover-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  // Description
+  .driver-popover-description {
+    font-size: 0.8125rem;
+    color: var(--cms-text-secondary);
+    line-height: 1.55;
+    margin-bottom: 0;
+
+    strong { color: var(--cms-text-primary); font-weight: 600; }
+    em     { color: var(--cms-primary); font-style: normal; font-weight: 500; }
+  }
+
+  // Footer row
+  .driver-popover-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    gap: 8px;
+  }
+
+  // Progress text
+  .driver-popover-progress-text {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--cms-text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex: 1;
+  }
+
+  // Navigation buttons wrapper
+  .driver-popover-navigation-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  // Shared button base
+  .driver-popover-prev-btn,
+  .driver-popover-next-btn,
+  .driver-popover-close-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--cms-font-ui);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    line-height: 1;
+  }
+
+  // Prev / Back button — ghost style
+  .driver-popover-prev-btn {
+    background: var(--cms-bg-surface);
+    border-color: var(--cms-border-default);
+    color: var(--cms-text-secondary);
+
+    &:hover:not(:disabled) {
+      border-color: var(--cms-primary);
+      color: var(--cms-primary);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  // Next / Done button — primary filled
+  .driver-popover-next-btn {
+    background: var(--cms-primary);
+    color: #fff;
+    border-color: var(--cms-primary);
+
+    &:hover {
+      background: var(--cms-primary-hover);
+      border-color: var(--cms-primary-hover);
+    }
+  }
+
+  // Close × button — top right
+  .driver-popover-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    justify-content: center;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--cms-text-muted);
+    font-size: 1rem;
+
+    &:hover {
+      background: var(--cms-bg-muted);
+      color: var(--cms-text-primary);
+    }
+  }
+
+  // Arrow (caret pointing to highlighted element)
+  .driver-popover-arrow {
+    &-side-top    .driver-popover-arrow-btn { border-top-color:    var(--cms-bg-card); }
+    &-side-bottom .driver-popover-arrow-btn { border-bottom-color: var(--cms-bg-card); }
+    &-side-left   .driver-popover-arrow-btn { border-left-color:   var(--cms-bg-card); }
+    &-side-right  .driver-popover-arrow-btn { border-right-color:  var(--cms-bg-card); }
+  }
 }
 
-// Tooltip panel: sits above the spotlight.
-.cms-tour-tooltip-panel {
-  z-index: 1001;
-  pointer-events: all;
+// Highlight ring around the spotlighted element
+.driver-active .driver-highlighted-element {
+  border-radius: 10px !important;
+}
+
+.driver-overlay {
+  background: rgba(0, 0, 0, 0.42) !important;
 }

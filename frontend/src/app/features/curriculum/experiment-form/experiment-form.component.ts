@@ -10,6 +10,9 @@ import { CurriculumService } from '../curriculum.service';
 import { ExperimentRequest } from '../curriculum.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tours';
 
 @Component({
   selector: 'app-experiment-form',
@@ -20,7 +23,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent],
   templateUrl: './experiment-form.component.html',
   styleUrl: './experiment-form.component.scss',
 })
@@ -31,6 +35,7 @@ export class ExperimentFormComponent implements OnInit {
   private readonly curriculumService = inject(CurriculumService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -55,6 +60,7 @@ export class ExperimentFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('experiment-form', EXPERIMENT_FORM_TOUR);
     this.http
       .get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses`)
       .subscribe({

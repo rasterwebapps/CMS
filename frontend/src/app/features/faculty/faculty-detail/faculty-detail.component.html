@@ -33,7 +33,7 @@
             <span class="profile-stat__label">Department</span>
           </div>
           <div class="profile-stat">
-            <span class="profile-stat__value">{{ faculty()!.joiningDate | date:'dd MMM yyyy' }}</span>
+            <span class="profile-stat__value">{{ faculty()!.joiningDate | appDate }}</span>
             <span class="profile-stat__label">Joining Date</span>
           </div>
           <div class="profile-stat">
@@ -84,7 +84,7 @@
               </div>
               <div class="detail-item">
                 <span class="detail-label">Joining Date</span>
-                <span class="detail-value">{{ faculty()!.joiningDate | date:'dd MMM yyyy' }}</span>
+                <span class="detail-value">{{ faculty()!.joiningDate | appDate }}</span>
               </div>
             </div>
           </div>

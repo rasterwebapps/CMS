@@ -194,8 +194,10 @@ CollegeManagementSystem/
    - **Template usage**:
      - **Standard format**: `{{ date | appDate }}` → `28-04-2026` (DD-MM-YYYY)
      - **Short format**: `{{ date | appDate:'short' }}` → `28-04-26` (compact tables)
-     - **DateTime format**: `{{ date | appDate:'dateTime' }}` → `28-04-2026 14:30` (timestamps)
+     - **DateTime format**: `{{ date | appDate:'dateTime' }}` → `28-04-2026 02:30 PM` (timestamps, AM/PM, local timezone)
+     - **Time only**: `{{ date | appDate:'time' }}` → `02:30 PM` (time-only displays)
      - **Null dates**: `{{ null | appDate }}` → `—` (en-dash, not blank)
+   - **Timezone**: The pipe automatically detects the user's browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` and converts UTC ISO-8601 timestamps from the API to local time. All backend timestamps are stored/serialized in UTC.
    - **Configuration**: Change format globally in `frontend/src/app/shared/config/date-format.config.ts`
    - **Why standardized**: Single format ensures consistency, professionalism, and localization (DD-MM-YYYY matches Indian expectations). See `docs/DATE_FORMATTING_STANDARD.md` for full guide.
 
@@ -453,7 +455,7 @@ When generating code for this project, adhere to these quality rules to prevent 
 - DTOs: Always Java records. Services: `@Transactional(readOnly = true)` at class level. Controllers: constructor injection with `/api/v1` prefix.
 - Angular components: standalone with `inject()`, signals for state, `@if`/`@for` control flow, separate `.html` templates.
 - **Currency**: Always `| inr` pipe (import `InrPipe` from `shared/pipes/inr.pipe`). Never `CurrencyPipe`, `| currency:'INR'`, or `toLocaleString`. Locale `en-IN` is global. **Use `| inr:false:false` in table cells** and put "(₹)" in column headers (2026 pattern — don't repeat symbol).
-- **Dates**: Always `| appDate` pipe (import `AppDatePipe` from `shared/pipes/app-date.pipe`). Never use Angular's `date` pipe directly. Standard format: `DD-MM-YYYY` (configurable in `date-format.config.ts`). Null dates show `—`.
+- **Dates**: Always `| appDate` pipe (import `AppDatePipe` from `shared/pipes/app-date.pipe`). Never use Angular's `date` pipe directly. Standard format: `DD-MM-YYYY` (configurable in `date-format.config.ts`). Null dates show `—`. Time formats use AM/PM (`hh:mm a`). The pipe auto-converts UTC → browser local timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`. New `time` format available: `{{ ts | appDate:'time' }}` → `02:30 PM`.
 - **Tabular figures**: All numeric displays must include `font-variant-numeric: tabular-nums;`. Use existing classes (`.cell-currency`, `.cell-number`, `.mlp-stat`, etc.) — never create custom number styles without this property.
 - List screens: Always use the **MLP layout pattern** (`mlp-page` → `mlp-hdr` → `mlp-toolbar` → `content-card mlp-table-card`). Never use `feature-list-page` or focus mode. View toggle always via `<cms-view-toggle>`. Empty state always via `<cms-empty-state>`.
 - Tests: `@WebMvcTest` for controllers, `@ExtendWith(MockitoExtension.class)` for services, `@DataJpaTest` for repositories.

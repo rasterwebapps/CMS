@@ -228,6 +228,72 @@ built on Angular CDK Overlay (`TourService`, `TourSpotlightComponent`, `TourTool
 
 ---
 
+## TC-TOUR-020: Master list screens expose and launch Take a Tour
+
+**Preconditions:**
+- User is logged in with a role that can access master setup screens, such as `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- Application is running.
+
+**Steps:**
+1. Open each list screen: Programs, Courses, Academic Years, Semesters, Faculty, Agents, Referral Types, Fee Structures, Equipment, Curriculum Versions, Experiments, and Syllabus.
+2. Verify a **Take a Tour** button is visible in the page header/actions area.
+3. Click **Take a Tour** on each screen.
+4. Step through the tour until the final confirmation step.
+
+**Expected Result:**
+- Each list screen starts its own tour without console errors.
+- The tour highlights stable anchors for header/actions, filters/search where available, view toggle where available, and list/table content.
+- The final step confirms that the user can replay the tour later.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-TOUR-021: Master entry/form screens expose and launch Take a Tour
+
+**Preconditions:**
+- User is logged in with a role that can create or edit master records.
+- Application is running.
+
+**Steps:**
+1. Open each create form: Program, Course, Academic Year, Semester, Faculty, Agent, Referral Type, Fee Structure, Equipment, Curriculum Version, Experiment, and Syllabus.
+2. Verify a **Take a Tour** button is visible in the form header or page-header actions slot.
+3. Click **Take a Tour**.
+4. Step through the tour and verify each highlighted field/section matches the current form.
+5. Repeat on an edit route for at least one standard form and Fee Structure edit mode.
+
+**Expected Result:**
+- Each form tour launches without console errors.
+- Field-specific steps highlight the actual form controls or section anchors.
+- Submit/action footer steps highlight the correct save area.
+- Fee Structure form tour highlights criteria, course-fee grid, additional-fee grid, and save actions.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-TOUR-022: Tour seen-state and replay behavior works for master tours
+
+**Preconditions:**
+- User is logged in.
+- Browser localStorage is available.
+
+**Steps:**
+1. Open any newly enabled master list screen, such as Fee Structures.
+2. Click **Take a Tour** and complete the tour.
+3. Inspect localStorage for the tour seen key used by the shared tour service.
+4. Reload the screen.
+5. Click **Take a Tour** again.
+
+**Expected Result:**
+- Completing the tour records the seen state for that specific tour key.
+- Reloading the page does not break the button.
+- Clicking **Take a Tour** manually replays the tour even after completion.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-TOUR-013: Event-driven step (Step 3) — "Next" is disabled until interaction
 
 **Preconditions:**

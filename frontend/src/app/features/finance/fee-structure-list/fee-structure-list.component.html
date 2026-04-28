@@ -1,7 +1,7 @@
 <div class="mlp-page">
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
-  <div class="mlp-hdr">
+  <div id="tour-fs-header" class="mlp-hdr">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Fee <em>Structures</em></h1>
       <p class="mlp-sub">Define fee structures for programs and courses</p>
@@ -16,7 +16,8 @@
         </span>
       </div>
     </div>
-    <a class="btn-primary" routerLink="/fee-structures/new" aria-label="Add new fee structure">
+    <cms-tour-button tourKey="fee-structure-list" />
+    <a id="tour-fs-add-btn" class="btn-primary" routerLink="/fee-structures/new" aria-label="Add new fee structure">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Fee Structure
     </a>
@@ -25,6 +26,7 @@
   <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
   <div class="mlp-toolbar">
     <select
+      id="tour-fs-filters"
       class="mlp-filter-select"
       [value]="selectedAcademicYearId() ?? ''"
       (change)="onAcademicYearChange(+$any($event.target).value || null)"
@@ -69,7 +71,7 @@
       </button>
     }
 
-    <div class="search-bar" role="search">
+    <div id="tour-fs-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
         class="search-bar__input"
@@ -86,7 +88,7 @@
       }
     </div>
 
-    <div class="mlp-seg" role="group" aria-label="View mode">
+    <div id="tour-fs-view-toggle" class="mlp-seg" role="group" aria-label="View mode">
       <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         Cards
@@ -117,7 +119,7 @@
 
   } @else if (viewMode() === 'card') {
     <!-- ── Card grid ───────────────────────────────────────────────────── -->
-    <div class="mlp-cards-grid">
+    <div id="tour-fs-content" class="mlp-cards-grid">
       @for (fs of filteredFeeStructures(); track fs.programId + '-' + fs.academicYearId + '-' + (fs.courseId ?? 0)) {
         <div class="mlp-card anim-rise">
           <div class="mlp-card__actions">

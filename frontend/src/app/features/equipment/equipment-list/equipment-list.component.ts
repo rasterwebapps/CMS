@@ -11,6 +11,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
 
 @Component({
   selector: 'app-equipment-list',
@@ -20,6 +23,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
     CmsStatusBadgeComponent,
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',
@@ -29,6 +33,7 @@ export class EquipmentListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'equipment-view-mode';
 
@@ -60,7 +65,10 @@ export class EquipmentListComponent implements OnInit {
 
   protected readonly totalCount = computed(() => this.allEquipment().length);
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('equipment-list', EQUIPMENT_LIST_TOUR);
+    this.load();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;

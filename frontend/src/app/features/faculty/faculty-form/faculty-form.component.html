@@ -9,6 +9,7 @@
         {{ isEditMode() ? 'Update the faculty member details below.' : 'Fill in the details below to register a new faculty member.' }}
       </p>
     </div>
+    <cms-tour-button tourKey="faculty-form" />
   </div>
 
   @if (loading()) {
@@ -182,7 +183,7 @@
           </div>
         }
 
-        <div class="form-footer">
+        <div id="tour-fac-submit" class="form-footer">
           <button type="button" class="btn-cancel" routerLink="/faculty">Cancel</button>
           <button type="submit" class="btn-submit" [disabled]="saving()">
             @if (saving()) {

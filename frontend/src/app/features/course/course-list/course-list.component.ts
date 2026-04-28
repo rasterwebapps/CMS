@@ -12,6 +12,9 @@ import { Program } from '../../program/program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { COURSE_LIST_TOUR } from '../../../shared/tour/tours/course.tours';
 
 @Component({
   selector: 'app-course-list',
@@ -24,6 +27,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './course-list.component.html',
   styleUrl: './course-list.component.scss',
@@ -34,6 +38,7 @@ export class CourseListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -75,6 +80,7 @@ export class CourseListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('course-list', COURSE_LIST_TOUR);
     this.loadPrograms();
     this.loadCourses();
   }

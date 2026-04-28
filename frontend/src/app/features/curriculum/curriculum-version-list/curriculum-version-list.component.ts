@@ -11,6 +11,9 @@ import { CurriculumVersion } from '../curriculum-version.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CURRICULUM_VERSION_LIST_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
 
 @Component({
   selector: 'app-curriculum-version-list',
@@ -22,6 +25,7 @@ import { environment } from '../../../../environments';
     MatProgressSpinnerModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './curriculum-version-list.component.html',
   styleUrl: './curriculum-version-list.component.scss',
@@ -33,6 +37,7 @@ export class CurriculumVersionListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly cloning = signal<number | null>(null);
@@ -49,6 +54,8 @@ export class CurriculumVersionListComponent implements OnInit {
   protected readonly academicYears = signal<{ id: number; name: string }[]>([]);
 
   ngOnInit(): void {
+    this.tourService.register('curriculum-version-list', CURRICULUM_VERSION_LIST_TOUR);
+
     const programIdParam = this.route.snapshot.queryParamMap.get('programId');
     if (programIdParam) {
       this.selectedProgramId.set(Number(programIdParam));

@@ -92,7 +92,7 @@
           </div>
           <div class="receipt-row">
             <span class="r-label">Payment Date</span>
-            <span class="r-value">{{ r.paymentDate | date:'dd MMM yyyy' }}</span>
+            <span class="r-value">{{ r.paymentDate | appDate }}</span>
           </div>
           <div class="receipt-row">
             <span class="r-label">Payment Mode</span>
@@ -178,7 +178,7 @@
               <td mat-cell *matCellDef="let row">
                 @if (row.nextDueDate) {
                   <span [class.cell-overdue]="isOverdue(row.nextDueDate)">
-                    {{ row.nextDueDate | date:'dd MMM yy' }}
+                    {{ row.nextDueDate | appDate:'short' }}
                   </span>
                 } @else { <span class="cell-muted">—</span> }
               </td>
@@ -257,7 +257,7 @@
                   @if (row.isNext) { <span class="next-pill">Next →</span> }
                   @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
                 </span>
-                <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | date:'dd MMM yy') : '—' }}</span>
+                <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | appDate:'short') : '—' }}</span>
                 <span class="sem-fee align-right mono">{{ row.fee | inr:false:false }}</span>
                 <span class="sem-paid align-right mono">{{ row.paid | inr:false:false }}</span>
                 <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0">

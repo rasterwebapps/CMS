@@ -13,6 +13,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
 
 interface Program { id: number; name: string; }
 interface Course { id: number; name: string; }
@@ -30,6 +33,7 @@ interface AcademicYear { id: number; name: string; }
     MatSortModule,
     MatDialogModule,
     MatTooltipModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',
@@ -40,6 +44,7 @@ export class FeeStructureListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly http = inject(HttpClient);
+  private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'fee-structure-view-mode';
 
@@ -100,6 +105,7 @@ export class FeeStructureListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (d) => this.programs.set(d),
     });
@@ -205,4 +211,3 @@ export class FeeStructureListComponent implements OnInit {
     });
   }
 }
-

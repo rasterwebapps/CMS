@@ -10,6 +10,9 @@ import { Agent } from '../agent.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
 
 @Component({
   selector: 'app-agent-list',
@@ -22,6 +25,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './agent-list.component.html',
   styleUrl: './agent-list.component.scss',
@@ -31,6 +35,7 @@ export class AgentListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -64,7 +69,10 @@ export class AgentListComponent implements OnInit {
     );
   });
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('agent-list', AGENT_LIST_TOUR);
+    this.load();
+  }
 
   protected setViewMode(mode: 'card' | 'table'): void {
     this.viewMode.set(mode);

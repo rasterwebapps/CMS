@@ -13,6 +13,9 @@ import { environment } from '../../../../environments';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_STRUCTURE_FORM_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
 
 interface Program {
   id: number;
@@ -37,7 +40,8 @@ interface AcademicYear {
     InrPipe,
     RouterLink, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
-    PageHeaderComponent],
+    PageHeaderComponent,
+    CmsTourButtonComponent],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',
 })
@@ -49,6 +53,7 @@ export class FeeStructureFormComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -248,6 +253,7 @@ export class FeeStructureFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('fee-structure-form', FEE_STRUCTURE_FORM_TOUR);
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({
       next: (data) => this.academicYears.set(data),
     });
