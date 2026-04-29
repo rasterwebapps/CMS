@@ -1,10 +1,13 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/lab-schedules" class="back-btn" aria-label="Back to lab schedules">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/lab-schedules" aria-label="Back to lab schedules">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Lab Schedule</em></h1>
+        <cms-tour-button tourKey="lab-schedule-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the lab schedule details below.' : 'Fill in the details to create a new lab schedule.' }}
       </p>
@@ -14,155 +17,160 @@
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="ls-lab" class="field-label">Lab <span class="field-required">*</span></label>
-            <select
-              id="ls-lab"
-              class="field-select"
-              formControlName="labId"
-              [class.field-input--error]="form.get('labId')?.invalid && form.get('labId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a lab</option>
-              @for (lab of labs(); track lab.id) {
-                <option [ngValue]="lab.id">{{ lab.name }}</option>
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Schedule Information</div>
+            <div class="entry-form-card__hdr-sub">Lab, course, faculty & weekly slot</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="ls-lab" class="field-label">Lab <span class="required-star">*</span></label>
+                <select id="ls-lab" class="field-select" formControlName="labId"
+                  [class.field-select--error]="form.get('labId')?.invalid && form.get('labId')?.touched">
+                  <option [ngValue]="null" disabled>Select a lab</option>
+                  @for (lab of labs(); track lab.id) {
+                    <option [ngValue]="lab.id">{{ lab.name }}</option>
+                  }
+                </select>
+                @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
+                  <p class="field-error">Lab is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="ls-course" class="field-label">Course <span class="required-star">*</span></label>
+                <select id="ls-course" class="field-select" formControlName="courseId"
+                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+                  <option [ngValue]="null" disabled>Select a course</option>
+                  @for (course of courses(); track course.id) {
+                    <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+                  }
+                </select>
+                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+                  <p class="field-error">Course is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="ls-faculty" class="field-label">Faculty <span class="required-star">*</span></label>
+                <select id="ls-faculty" class="field-select" formControlName="facultyId"
+                  [class.field-select--error]="form.get('facultyId')?.invalid && form.get('facultyId')?.touched">
+                  <option [ngValue]="null" disabled>Select faculty</option>
+                  @for (f of faculty(); track f.id) {
+                    <option [ngValue]="f.id">{{ f.name }}</option>
+                  }
+                </select>
+                @if (form.get('facultyId')?.invalid && form.get('facultyId')?.touched) {
+                  <p class="field-error">Faculty is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="ls-slot" class="field-label">Lab Slot <span class="required-star">*</span></label>
+                <select id="ls-slot" class="field-select" formControlName="labSlotId"
+                  [class.field-select--error]="form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched">
+                  <option [ngValue]="null" disabled>Select a slot</option>
+                  @for (slot of labSlots(); track slot.id) {
+                    <option [ngValue]="slot.id">{{ slot.name }} ({{ slot.startTime }} - {{ slot.endTime }})</option>
+                  }
+                </select>
+                @if (form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched) {
+                  <p class="field-error">Lab slot is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="ls-batch" class="field-label">Batch Name <span class="required-star">*</span></label>
+                <input id="ls-batch" class="field-input" formControlName="batchName"
+                  placeholder="e.g., Batch A"
+                  [class.field-input--error]="form.get('batchName')?.invalid && form.get('batchName')?.touched" />
+                @if (form.get('batchName')?.invalid && form.get('batchName')?.touched) {
+                  <p class="field-error">Batch name is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="ls-day" class="field-label">Day of Week <span class="required-star">*</span></label>
+                <select id="ls-day" class="field-select" formControlName="dayOfWeek"
+                  [class.field-select--error]="form.get('dayOfWeek')?.invalid && form.get('dayOfWeek')?.touched">
+                  <option value="" disabled>Select day</option>
+                  @for (day of daysOfWeek; track day) {
+                    <option [value]="day">{{ day }}</option>
+                  }
+                </select>
+                @if (form.get('dayOfWeek')?.invalid && form.get('dayOfWeek')?.touched) {
+                  <p class="field-error">Day is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="ls-semester" class="field-label">Semester <span class="required-star">*</span></label>
+              <select id="ls-semester" class="field-select" formControlName="semesterId"
+                [class.field-select--error]="form.get('semesterId')?.invalid && form.get('semesterId')?.touched">
+                <option [ngValue]="null" disabled>Select semester</option>
+                @for (sem of semesters(); track sem.id) {
+                  <option [ngValue]="sem.id">{{ sem.name }}</option>
+                }
+              </select>
+              @if (form.get('semesterId')?.invalid && form.get('semesterId')?.touched) {
+                <p class="field-error">Semester is required</p>
               }
-            </select>
-            @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
-              <p class="field-error">Lab is required</p>
-            }
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+            </div>
           </div>
 
-          <div class="field-group">
-            <label for="ls-course" class="field-label">Course <span class="field-required">*</span></label>
-            <select
-              id="ls-course"
-              class="field-select"
-              formControlName="courseId"
-              [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a course</option>
-              @for (course of courses(); track course.id) {
-                <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/lab-schedules">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Schedule' : 'Create Schedule' }}
               }
-            </select>
-            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-              <p class="field-error">Course is required</p>
-            }
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="ls-faculty" class="field-label">Faculty <span class="field-required">*</span></label>
-            <select
-              id="ls-faculty"
-              class="field-select"
-              formControlName="facultyId"
-              [class.field-input--error]="form.get('facultyId')?.invalid && form.get('facultyId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select faculty</option>
-              @for (f of faculty(); track f.id) {
-                <option [ngValue]="f.id">{{ f.name }}</option>
-              }
-            </select>
-            @if (form.get('facultyId')?.invalid && form.get('facultyId')?.touched) {
-              <p class="field-error">Faculty is required</p>
-            }
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewBatch()">
+            {{ previewBatch() || 'Batch will appear here' }}
           </div>
-
-          <div class="field-group">
-            <label for="ls-slot" class="field-label">Lab Slot <span class="field-required">*</span></label>
-            <select
-              id="ls-slot"
-              class="field-select"
-              formControlName="labSlotId"
-              [class.field-input--error]="form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a slot</option>
-              @for (slot of labSlots(); track slot.id) {
-                <option [ngValue]="slot.id">{{ slot.name }} ({{ slot.startTime }} - {{ slot.endTime }})</option>
-              }
-            </select>
-            @if (form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched) {
-              <p class="field-error">Lab slot is required</p>
-            }
+          @if (previewCourseName()) { <div class="prev-sub">{{ previewCourseName() }}</div> }
+          @if (previewFacultyName()) { <div class="prev-sub">Faculty: {{ previewFacultyName() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewLabName()) { <span class="prev-pill prev-pill--primary">{{ previewLabName() }}</span> }
+            @if (previewDay()) { <span class="prev-pill">{{ previewDay() }}</span> }
+            @if (previewSlotLabel()) { <span class="prev-pill">{{ previewSlotLabel() }}</span> }
+            @if (previewSemName()) { <span class="prev-pill">{{ previewSemName() }}</span> }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
           </div>
-        </div>
+        </cms-preview-card>
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="ls-batch" class="field-label">Batch Name <span class="field-required">*</span></label>
-            <input
-              id="ls-batch"
-              class="field-input"
-              formControlName="batchName"
-              placeholder="e.g., Batch A"
-              [class.field-input--error]="form.get('batchName')?.invalid && form.get('batchName')?.touched"
-            />
-            @if (form.get('batchName')?.invalid && form.get('batchName')?.touched) {
-              <p class="field-error">Batch name is required</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="ls-day" class="field-label">Day of Week <span class="field-required">*</span></label>
-            <select
-              id="ls-day"
-              class="field-select"
-              formControlName="dayOfWeek"
-              [class.field-input--error]="form.get('dayOfWeek')?.invalid && form.get('dayOfWeek')?.touched"
-            >
-              <option value="" disabled>Select day</option>
-              @for (day of daysOfWeek; track day) {
-                <option [value]="day">{{ day }}</option>
-              }
-            </select>
-            @if (form.get('dayOfWeek')?.invalid && form.get('dayOfWeek')?.touched) {
-              <p class="field-error">Day is required</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="ls-semester" class="field-label">Semester <span class="field-required">*</span></label>
-          <select
-            id="ls-semester"
-            class="field-select"
-            formControlName="semesterId"
-            [class.field-input--error]="form.get('semesterId')?.invalid && form.get('semesterId')?.touched"
-          >
-            <option [ngValue]="null" disabled>Select semester</option>
-            @for (sem of semesters(); track sem.id) {
-              <option [ngValue]="sem.id">{{ sem.name }}</option>
-            }
-          </select>
-          @if (form.get('semesterId')?.invalid && form.get('semesterId')?.touched) {
-            <p class="field-error">Semester is required</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label class="checkbox-label">
-            <mat-checkbox formControlName="isActive">Active</mat-checkbox>
-          </label>
-        </div>
-
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/lab-schedules">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Schedule' : 'Create Schedule' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

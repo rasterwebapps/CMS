@@ -13,7 +13,7 @@
         {{ isEditMode() ? 'Update the department details below.' : 'Fill in the details below to register a new academic department.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="dept-form" />
+    <cms-tour-button tourKey="dept-form" [iconOnly]="true" />
   </div>
 
   @if (loading()) {

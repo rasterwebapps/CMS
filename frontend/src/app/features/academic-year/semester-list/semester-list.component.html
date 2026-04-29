@@ -2,7 +2,10 @@
   <!-- Page header -->
   <div id="tour-sem-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Academic <em>Semesters</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Academic <em>Semesters</em></h1>
+        <cms-tour-button tourKey="semester-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage semester periods within academic years</p>
       @if (!loading()) {
         <div class="mlp-meta">
@@ -10,7 +13,6 @@
         </div>
       }
     </div>
-    <cms-tour-button tourKey="semester-list" />
     <button id="tour-sem-add-btn" class="btn-primary" routerLink="/semesters/new" aria-label="Add new semester">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Semester

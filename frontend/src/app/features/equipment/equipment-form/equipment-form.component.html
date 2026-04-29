@@ -1,157 +1,151 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/equipment" class="back-btn" aria-label="Back to equipment">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/equipment" aria-label="Back to equipment">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Equipment</em></h1>
+        <cms-tour-button tourKey="equipment-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the equipment details below.' : 'Fill in the details below to register a new equipment item.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="equipment-form" />
   </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="eq-name" class="field-label">Name</label>
-          <input
-            id="eq-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Dell Optiplex Desktop"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">Name is required</p>
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Equipment Information</div>
+            <div class="entry-form-card__hdr-sub">Identification, location & lifecycle</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="eq-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="eq-name" class="field-input" formControlName="name"
+                placeholder="e.g., Dell Optiplex Desktop" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">Name is required</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="eq-model" class="field-label">Model</label>
+                <input id="eq-model" class="field-input" formControlName="model"
+                  placeholder="e.g., OptiPlex 7090" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="eq-serial" class="field-label">Serial Number</label>
+                <input id="eq-serial" class="field-input" formControlName="serialNumber"
+                  placeholder="e.g., SN123456" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="eq-lab" class="field-label">Lab <span class="required-star">*</span></label>
+                <select id="eq-lab" class="field-select" formControlName="labId"
+                  [class.field-select--error]="form.get('labId')?.invalid && form.get('labId')?.touched">
+                  <option [ngValue]="null" disabled>Select a lab</option>
+                  @for (lab of labs(); track lab.id) {
+                    <option [ngValue]="lab.id">{{ lab.name }}</option>
+                  }
+                </select>
+                @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
+                  <p class="field-error">Lab is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="eq-category" class="field-label">Category <span class="required-star">*</span></label>
+                <select id="eq-category" class="field-select" formControlName="category"
+                  [class.field-select--error]="form.get('category')?.invalid && form.get('category')?.touched">
+                  <option value="" disabled>Select a category</option>
+                  @for (cat of categories; track cat) {
+                    <option [value]="cat">{{ cat }}</option>
+                  }
+                </select>
+                @if (form.get('category')?.invalid && form.get('category')?.touched) {
+                  <p class="field-error">Category is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="eq-status" class="field-label">Status</label>
+              <select id="eq-status" class="field-select" formControlName="status">
+                @for (s of statuses; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="eq-purchase-date" class="field-label">Purchase Date</label>
+                <input id="eq-purchase-date" type="date" class="field-input" formControlName="purchaseDate" />
+              </div>
+              <div class="field-group">
+                <label for="eq-warranty" class="field-label">Warranty Expiry</label>
+                <input id="eq-warranty" type="date" class="field-input" formControlName="warrantyExpiry" />
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="eq-cost" class="field-label">Purchase Cost (₹)</label>
+              <input id="eq-cost" type="number" class="field-input field-input--narrow"
+                formControlName="purchaseCost" min="0" placeholder="0.00" />
+            </div>
+          </div>
+
+          <div id="tour-eq-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/equipment">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Equipment' : 'Create Equipment' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Equipment name will appear here' }}
+          </div>
+          @if (previewModel() || previewSerial()) {
+            <div class="prev-sub">
+              {{ previewModel() }}{{ previewModel() && previewSerial() ? ' · ' : '' }}{{ previewSerial() }}
+            </div>
           }
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="eq-model" class="field-label">Model</label>
-            <input
-              id="eq-model"
-              class="field-input"
-              formControlName="model"
-              placeholder="e.g., OptiPlex 7090"
-              autocomplete="off"
-            />
+          <div class="prev-meta-row">
+            @if (previewCategory()) { <span class="prev-pill prev-pill--primary">{{ previewCategory() }}</span> }
+            @if (previewLabName()) { <span class="prev-pill">{{ previewLabName() }}</span> }
+            @if (previewStatus()) { <span class="prev-pill" [class.prev-pill--green]="previewStatus() === 'AVAILABLE'" [class.prev-pill--amber]="previewStatus() === 'UNDER_REPAIR'" [class.prev-pill--muted]="previewStatus() === 'DAMAGED' || previewStatus() === 'DISPOSED'">{{ previewStatus() }}</span> }
+            @if (previewCost()) { <span class="prev-pill prev-pill--amber">₹ {{ previewCost() }}</span> }
           </div>
+        </cms-preview-card>
 
-          <div class="field-group">
-            <label for="eq-serial" class="field-label">Serial Number</label>
-            <input
-              id="eq-serial"
-              class="field-input"
-              formControlName="serialNumber"
-              placeholder="e.g., SN123456"
-              autocomplete="off"
-            />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="eq-lab" class="field-label">Lab</label>
-            <select
-              id="eq-lab"
-              class="field-select"
-              formControlName="labId"
-              [class.field-select--error]="form.get('labId')?.invalid && form.get('labId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a lab</option>
-              @for (lab of labs(); track lab.id) {
-                <option [ngValue]="lab.id">{{ lab.name }}</option>
-              }
-            </select>
-            @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
-              <p class="field-error">Lab is required</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="eq-category" class="field-label">Category</label>
-            <select
-              id="eq-category"
-              class="field-select"
-              formControlName="category"
-              [class.field-select--error]="form.get('category')?.invalid && form.get('category')?.touched"
-            >
-              <option value="" disabled>Select a category</option>
-              @for (cat of categories; track cat) {
-                <option [value]="cat">{{ cat }}</option>
-              }
-            </select>
-            @if (form.get('category')?.invalid && form.get('category')?.touched) {
-              <p class="field-error">Category is required</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="eq-status" class="field-label">Status</label>
-          <select id="eq-status" class="field-select" formControlName="status">
-            @for (s of statuses; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="eq-purchase-date" class="field-label">Purchase Date</label>
-            <input
-              id="eq-purchase-date"
-              type="date"
-              class="field-input"
-              formControlName="purchaseDate"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="eq-warranty" class="field-label">Warranty Expiry</label>
-            <input
-              id="eq-warranty"
-              type="date"
-              class="field-input"
-              formControlName="warrantyExpiry"
-            />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="eq-cost" class="field-label">Purchase Cost (₹)</label>
-          <input
-            id="eq-cost"
-            type="number"
-            class="field-input field-input--narrow"
-            formControlName="purchaseCost"
-            min="0"
-            placeholder="0.00"
-          />
-        </div>
-
-        <div id="tour-eq-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/equipment">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Equipment' : 'Create Equipment' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

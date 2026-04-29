@@ -12,6 +12,9 @@ import { Enquiry } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 @Component({
   selector: 'app-admission-completion-list',
@@ -24,6 +27,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
     MatIconModule,
     MatTooltipModule,
     PageHeaderComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './admission-completion-list.component.html',
   styleUrl: './admission-completion-list.component.scss',
@@ -33,6 +37,7 @@ export class AdmissionCompletionListComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(true);
   protected readonly enquiries = signal<Enquiry[]>([]);
@@ -78,6 +83,7 @@ export class AdmissionCompletionListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
     this.load();
   }
 

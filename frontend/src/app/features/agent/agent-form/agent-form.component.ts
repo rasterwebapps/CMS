@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,13 +12,18 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { AGENT_FORM_TOUR } from '../../../shared/tour/tours/agent.tours';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-agent-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatSlideToggleModule, CmsTourButtonComponent],
+    MatProgressSpinnerModule, MatSlideToggleModule, CmsTourButtonComponent,
+    CmsPreviewCardComponent, CmsTipsCardComponent,
+  ],
   templateUrl: './agent-form.component.html',
   styleUrl: './agent-form.component.scss',
 })
@@ -30,11 +35,33 @@ export class AgentFormComponent implements OnInit {
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Agent');
+
+  protected readonly previewName     = signal('');
+  protected readonly previewPhone    = signal('');
+  protected readonly previewEmail    = signal('');
+  protected readonly previewArea     = signal('');
+  protected readonly previewLocality = signal('');
+  protected readonly previewSeats    = signal<number | null>(null);
+  protected readonly previewComm     = signal<number | null>(null);
+  protected readonly previewActive   = signal(true);
+  protected readonly previewInitials = computed(() => {
+    const n = this.previewName();
+    if (!n) return '';
+    const parts = n.split(/\s+/).filter(Boolean);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'person',         title: 'Identity',   subtitle: 'Use the agent\'s legal name as it should appear on receipts and reports.' },
+    { icon: 'location_on',    title: 'Coverage',   subtitle: 'Area + Locality help cluster admissions geographically for analytics.' },
+    { icon: 'currency_rupee', title: 'Commission', subtitle: 'Override the master Referral Type amount only if this agent has a special rate.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -48,6 +75,21 @@ export class AgentFormComponent implements OnInit {
     commissionAmount: [null as number | null, [Validators.min(0)]],
     isActive: [true],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewPhone.set((v.phone ?? '').trim());
+        this.previewEmail.set((v.email ?? '').trim());
+        this.previewArea.set((v.area ?? '').trim());
+        this.previewLocality.set((v.locality ?? '').trim());
+        this.previewSeats.set(v.allottedSeats != null && v.allottedSeats !== '' ? Number(v.allottedSeats) : null);
+        this.previewComm.set(v.commissionAmount != null && v.commissionAmount !== '' ? Number(v.commissionAmount) : null);
+        this.previewActive.set(!!v.isActive);
+      });
+  }
 
   ngOnInit(): void {
     this.tourService.register('agent-form', AGENT_FORM_TOUR);

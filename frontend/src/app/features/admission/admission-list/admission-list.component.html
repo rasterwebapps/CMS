@@ -1,11 +1,12 @@
 <div class="list-page">
   <app-page-header title="Admissions" subtitle="Manage student admission applications">
-    <button actions class="btn-primary" routerLink="/admissions/new">
+    <cms-tour-button titleAction tourKey="admission-list" [iconOnly]="true" iconVariant="info-circle" />
+    <button id="tour-adm-add-btn" actions class="btn-primary" routerLink="/admissions/new">
       <mat-icon>add</mat-icon> New Admission
     </button>
   </app-page-header>
 
-  <div class="command-bar">
+  <div id="tour-adm-toolbar" class="command-bar">
     <div class="command-bar__left">
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} admissions</span>
@@ -46,7 +47,7 @@
     @if (loading()) {
       <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
     } @else {
-      <div class="table-wrapper">
+      <div id="tour-adm-content" class="table-wrapper">
         <table mat-table [dataSource]="dataSource" class="modern-table">
           <ng-container matColumnDef="studentName">
             <th mat-header-cell *matHeaderCellDef>Student</th>

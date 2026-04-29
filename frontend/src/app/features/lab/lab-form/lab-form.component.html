@@ -1,10 +1,13 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/labs" class="back-btn" aria-label="Back to labs">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/labs" aria-label="Back to labs">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Lab</em></h1>
+        <cms-tour-button tourKey="lab-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the lab details below.' : 'Fill in the details below to register a new lab.' }}
       </p>
@@ -16,133 +19,141 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="lab-name" class="field-label">Name</label>
-          <input
-            id="lab-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Computer Lab A"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">{{ getErrorMessage('name') }}</p>
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v6l-4 8a2 2 0 0 0 1.79 2.89H17.2A2 2 0 0 0 19 16l-4-8V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Lab Information</div>
+            <div class="entry-form-card__hdr-sub">Type, location, capacity & status</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="lab-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="lab-name" class="field-input" formControlName="name"
+                placeholder="e.g., Computer Lab A" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="lab-type" class="field-label">Lab Type <span class="required-star">*</span></label>
+                <select id="lab-type" class="field-select" formControlName="labType"
+                  [class.field-select--error]="form.get('labType')?.invalid && form.get('labType')?.touched">
+                  <option value="" disabled>Select lab type</option>
+                  @for (type of labTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                  }
+                </select>
+                @if (form.get('labType')?.invalid && form.get('labType')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('labType') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="lab-dept" class="field-label">Department <span class="required-star">*</span></label>
+                <select id="lab-dept" class="field-select" formControlName="departmentId"
+                  [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
+                  <option value="" disabled>Select department</option>
+                  @for (dept of departments(); track dept.id) {
+                    <option [value]="dept.id">{{ dept.name }}</option>
+                  }
+                </select>
+                @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="lab-building" class="field-label">Building</label>
+                <input id="lab-building" class="field-input" formControlName="building"
+                  placeholder="e.g., Block A" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="lab-room" class="field-label">Room Number</label>
+                <input id="lab-room" class="field-input" formControlName="roomNumber"
+                  placeholder="e.g., 101" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="lab-capacity" class="field-label">Capacity <span class="required-star">*</span></label>
+                <input id="lab-capacity" type="number" class="field-input" formControlName="capacity"
+                  placeholder="e.g., 30"
+                  [class.field-input--error]="form.get('capacity')?.invalid && form.get('capacity')?.touched" />
+                <p class="field-hint">Number of workstations / seats</p>
+                @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('capacity') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="lab-status" class="field-label">Status <span class="required-star">*</span></label>
+                <select id="lab-status" class="field-select" formControlName="status"
+                  [class.field-select--error]="form.get('status')?.invalid && form.get('status')?.touched">
+                  @for (status of labStatuses; track status.value) {
+                    <option [value]="status.value">{{ status.label }}</option>
+                  }
+                </select>
+                @if (form.get('status')?.invalid && form.get('status')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('status') }}</p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/labs">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Lab' : 'Create Lab' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Lab name will appear here' }}
+          </div>
+          @if (previewLocation()) {
+            <div class="prev-sub">{{ previewLocation() }}</div>
           }
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="lab-type" class="field-label">Lab Type</label>
-            <select
-              id="lab-type"
-              class="field-select"
-              formControlName="labType"
-              [class.field-select--error]="form.get('labType')?.invalid && form.get('labType')?.touched"
-            >
-              <option value="" disabled>Select lab type</option>
-              @for (type of labTypes; track type.value) {
-                <option [value]="type.value">{{ type.label }}</option>
-              }
-            </select>
-            @if (form.get('labType')?.invalid && form.get('labType')?.touched) {
-              <p class="field-error">{{ getErrorMessage('labType') }}</p>
+          <div class="prev-meta-row">
+            @if (previewTypeLabel()) {
+              <span class="prev-pill prev-pill--primary">{{ previewTypeLabel() }}</span>
+            }
+            @if (previewDeptName()) {
+              <span class="prev-pill">{{ previewDeptName() }}</span>
+            }
+            @if (previewCapacity()) {
+              <span class="prev-pill">{{ previewCapacity() }} seats</span>
+            }
+            @if (previewStatusLabel()) {
+              <span class="prev-pill" [class.prev-pill--green]="previewStatus() === 'ACTIVE'" [class.prev-pill--muted]="previewStatus() !== 'ACTIVE'">{{ previewStatusLabel() }}</span>
             }
           </div>
+        </cms-preview-card>
 
-          <div class="field-group">
-            <label for="lab-dept" class="field-label">Department</label>
-            <select
-              id="lab-dept"
-              class="field-select"
-              formControlName="departmentId"
-              [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched"
-            >
-              <option value="" disabled>Select department</option>
-              @for (dept of departments(); track dept.id) {
-                <option [value]="dept.id">{{ dept.name }}</option>
-              }
-            </select>
-            @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-              <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="lab-building" class="field-label">Building</label>
-            <input
-              id="lab-building"
-              class="field-input"
-              formControlName="building"
-              placeholder="e.g., Block A"
-              autocomplete="off"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="lab-room" class="field-label">Room Number</label>
-            <input
-              id="lab-room"
-              class="field-input"
-              formControlName="roomNumber"
-              placeholder="e.g., 101"
-              autocomplete="off"
-            />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="lab-capacity" class="field-label">Capacity</label>
-            <input
-              id="lab-capacity"
-              type="number"
-              class="field-input"
-              formControlName="capacity"
-              placeholder="e.g., 30"
-              [class.field-input--error]="form.get('capacity')?.invalid && form.get('capacity')?.touched"
-            />
-            <p class="field-hint">Number of workstations / seats</p>
-            @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
-              <p class="field-error">{{ getErrorMessage('capacity') }}</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="lab-status" class="field-label">Status</label>
-            <select
-              id="lab-status"
-              class="field-select"
-              formControlName="status"
-              [class.field-select--error]="form.get('status')?.invalid && form.get('status')?.touched"
-            >
-              @for (status of labStatuses; track status.value) {
-                <option [value]="status.value">{{ status.label }}</option>
-              }
-            </select>
-            @if (form.get('status')?.invalid && form.get('status')?.touched) {
-              <p class="field-error">{{ getErrorMessage('status') }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/labs">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Lab' : 'Create Lab' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

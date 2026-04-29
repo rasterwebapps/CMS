@@ -19,6 +19,9 @@ import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.componen
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
 
 @Component({
   selector: 'app-student-detail',
@@ -32,7 +35,8 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
     MatButtonModule,
     MatIconModule,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent],
+    CmsSkeletonComponent,
+    CmsTourButtonComponent],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
 })
@@ -41,6 +45,7 @@ export class StudentDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
@@ -60,6 +65,7 @@ export class StudentDetailComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.tourService.register('student-detail', STUDENT_DETAIL_TOUR);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.loadStudent(Number(idParam));

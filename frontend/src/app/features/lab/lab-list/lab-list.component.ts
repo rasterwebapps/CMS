@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -20,7 +21,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   imports: [
     CmsEmptyStateComponent,
     NgClass,
-    RouterLink,
+    RouterLink, CmsTourButtonComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,

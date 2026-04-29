@@ -1,10 +1,13 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/settings" class="back-btn" aria-label="Back to settings">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/settings" aria-label="Back to settings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Configuration</em></h1>
+        <cms-tour-button tourKey="system-configuration-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the configuration entry below.' : 'Define a new system configuration key and value.' }}
       </p>
@@ -12,104 +15,115 @@
   </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="cfg-key" class="field-label">Config Key</label>
-          <input
-            id="cfg-key"
-            class="field-input"
-            formControlName="configKey"
-            placeholder="e.g., MAX_STUDENTS_PER_LAB"
-            autocomplete="off"
-            [class.field-input--error]="form.get('configKey')?.invalid && form.get('configKey')?.touched"
-          />
-          @if (form.get('configKey')?.invalid && form.get('configKey')?.touched) {
-            <p class="field-error">Config key is required</p>
-          }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Configuration</div>
+            <div class="entry-form-card__hdr-sub">Key, value, data type & access control</div>
+          </div>
         </div>
 
-        <div class="field-group">
-          <label for="cfg-value" class="field-label">Config Value</label>
-          <input
-            id="cfg-value"
-            class="field-input"
-            formControlName="configValue"
-            placeholder="Enter value"
-            autocomplete="off"
-            [class.field-input--error]="form.get('configValue')?.invalid && form.get('configValue')?.touched"
-          />
-          @if (form.get('configValue')?.invalid && form.get('configValue')?.touched) {
-            <p class="field-error">Config value is required</p>
-          }
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-        <div class="field-group">
-          <label for="cfg-description" class="field-label">Description</label>
-          <textarea
-            id="cfg-description"
-            class="field-textarea"
-            formControlName="description"
-            placeholder="Describe what this configuration controls"
-            rows="3"
-          ></textarea>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="cfg-datatype" class="field-label">Data Type</label>
-            <select
-              id="cfg-datatype"
-              class="field-select"
-              formControlName="dataType"
-              [class.field-select--error]="form.get('dataType')?.invalid && form.get('dataType')?.touched"
-            >
-              @for (dt of dataTypes; track dt) {
-                <option [value]="dt">{{ dt }}</option>
+            <div class="field-group">
+              <label for="cfg-key" class="field-label">Config Key <span class="required-star">*</span></label>
+              <input id="cfg-key" class="field-input" formControlName="configKey"
+                placeholder="e.g., MAX_STUDENTS_PER_LAB" autocomplete="off"
+                [class.field-input--error]="form.get('configKey')?.invalid && form.get('configKey')?.touched" />
+              @if (form.get('configKey')?.invalid && form.get('configKey')?.touched) {
+                <p class="field-error">Config key is required</p>
               }
-            </select>
-            @if (form.get('dataType')?.invalid && form.get('dataType')?.touched) {
-              <p class="field-error">Data type is required</p>
-            }
+            </div>
+
+            <div class="field-group">
+              <label for="cfg-value" class="field-label">Config Value <span class="required-star">*</span></label>
+              <input id="cfg-value" class="field-input" formControlName="configValue"
+                placeholder="Enter value" autocomplete="off"
+                [class.field-input--error]="form.get('configValue')?.invalid && form.get('configValue')?.touched" />
+              @if (form.get('configValue')?.invalid && form.get('configValue')?.touched) {
+                <p class="field-error">Config value is required</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="cfg-description" class="field-label">Description</label>
+              <textarea id="cfg-description" class="field-textarea" formControlName="description"
+                placeholder="Describe what this configuration controls" rows="3"></textarea>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="cfg-datatype" class="field-label">Data Type <span class="required-star">*</span></label>
+                <select id="cfg-datatype" class="field-select" formControlName="dataType"
+                  [class.field-select--error]="form.get('dataType')?.invalid && form.get('dataType')?.touched">
+                  @for (dt of dataTypes; track dt) {
+                    <option [value]="dt">{{ dt }}</option>
+                  }
+                </select>
+                @if (form.get('dataType')?.invalid && form.get('dataType')?.touched) {
+                  <p class="field-error">Data type is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="cfg-category" class="field-label">Category <span class="required-star">*</span></label>
+                <input id="cfg-category" class="field-input" formControlName="category"
+                  placeholder="e.g., ACADEMIC, SYSTEM" autocomplete="off"
+                  [class.field-input--error]="form.get('category')?.invalid && form.get('category')?.touched" />
+                @if (form.get('category')?.invalid && form.get('category')?.touched) {
+                  <p class="field-error">Category is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isEditable">Editable</mat-slide-toggle>
+            </div>
           </div>
 
-          <div class="field-group">
-            <label for="cfg-category" class="field-label">Category</label>
-            <input
-              id="cfg-category"
-              class="field-input"
-              formControlName="category"
-              placeholder="e.g., ACADEMIC, SYSTEM"
-              autocomplete="off"
-              [class.field-input--error]="form.get('category')?.invalid && form.get('category')?.touched"
-            />
-            @if (form.get('category')?.invalid && form.get('category')?.touched) {
-              <p class="field-error">Category is required</p>
-            }
+          <div id="tour-cfg-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/settings">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Configuration' : 'Create Configuration' }}
+              }
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
 
-        <div class="field-group">
-          <mat-slide-toggle formControlName="isEditable">Editable</mat-slide-toggle>
-        </div>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewKey()">
+            {{ previewKey() || 'CONFIG_KEY' }}
+          </div>
+          @if (previewValue()) {
+            <div class="prev-sub" style="word-break: break-all;">{{ previewValue() }}</div>
+          }
+          <div class="prev-meta-row">
+            <span class="prev-pill">{{ previewType() }}</span>
+            @if (previewCategory()) { <span class="prev-pill">{{ previewCategory() }}</span> }
+            <span class="prev-pill" [class.prev-pill--green]="previewEditable()" [class.prev-pill--muted]="!previewEditable()">
+              {{ previewEditable() ? 'Editable' : 'Locked' }}
+            </span>
+          </div>
+          @if (previewDescription()) {
+            <div class="prev-sub" style="margin-top: 8px;">{{ previewDescription() }}</div>
+          }
+        </cms-preview-card>
 
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/settings">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Configuration' : 'Create Configuration' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

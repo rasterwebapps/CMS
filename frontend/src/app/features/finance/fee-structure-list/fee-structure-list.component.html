@@ -3,7 +3,10 @@
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div id="tour-fs-header" class="mlp-hdr">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Fee <em>Structures</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Fee <em>Structures</em></h1>
+        <cms-tour-button tourKey="fee-structure-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Define fee structures for programs and courses</p>
       <div class="mlp-meta">
         <span class="mlp-stat">
@@ -16,7 +19,6 @@
         </span>
       </div>
     </div>
-    <cms-tour-button tourKey="fee-structure-list" />
     <a id="tour-fs-add-btn" class="btn-primary" routerLink="/fee-structures/new" aria-label="Add new fee structure">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Fee Structure

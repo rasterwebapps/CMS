@@ -1,12 +1,13 @@
 <div class="list-page">
   <app-page-header title="Students" subtitle="View and manage enrolled students across all programs">
-    <button actions class="btn-primary" routerLink="/students/new" aria-label="Add new student">
+    <cms-tour-button titleAction tourKey="student-list" [iconOnly]="true" iconVariant="info-circle" />
+    <button id="tour-stu-add-btn" actions class="btn-primary" routerLink="/students/new" aria-label="Add new student">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Student
     </button>
   </app-page-header>
 
-  <div class="command-bar">
+  <div id="tour-stu-toolbar" class="command-bar">
     <div class="command-bar__left">
       <div class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -64,7 +65,7 @@
         <mat-spinner diameter="36"></mat-spinner>
       </div>
     } @else {
-      <div class="table-wrapper">
+      <div id="tour-stu-table" class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
           <ng-container matColumnDef="rollNumber">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll No.</th>

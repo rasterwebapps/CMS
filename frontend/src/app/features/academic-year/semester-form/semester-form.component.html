@@ -1,15 +1,17 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/semesters" class="back-btn" aria-label="Back to semesters">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/semesters" aria-label="Back to semesters">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Semester</em></h1>
+        <cms-tour-button tourKey="semester-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the semester details below.' : 'Fill in the details below to register a new semester.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="semester-form" />
   </div>
 
   @if (loading()) {
@@ -17,102 +19,114 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="sem-ay" class="field-label">Academic Year</label>
-          <select
-            id="sem-ay"
-            class="field-select"
-            formControlName="academicYearId"
-            [class.field-select--error]="form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched"
-          >
-            <option [ngValue]="null" disabled>Select an academic year</option>
-            @for (academicYear of academicYears(); track academicYear.id) {
-              <option [ngValue]="academicYear.id">{{ academicYear.name }}</option>
-            }
-          </select>
-          @if (form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched) {
-            <p class="field-error">{{ getErrorMessage('academicYearId') }}</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label for="sem-name" class="field-label">Name</label>
-          <input
-            id="sem-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Fall 2024"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">{{ getErrorMessage('name') }}</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label for="sem-number" class="field-label">Semester Number</label>
-          <select
-            id="sem-number"
-            class="field-select"
-            formControlName="semesterNumber"
-            [class.field-select--error]="form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched"
-          >
-            <option [ngValue]="null" disabled>Select semester number</option>
-            @for (num of semesterNumbers; track num) {
-              <option [ngValue]="num">Semester {{ num }}</option>
-            }
-          </select>
-          @if (form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched) {
-            <p class="field-error">{{ getErrorMessage('semesterNumber') }}</p>
-          }
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="sem-start" class="field-label">Start Date</label>
-            <input
-              id="sem-start"
-              type="date"
-              class="field-input"
-              formControlName="startDate"
-              [class.field-input--error]="form.get('startDate')?.invalid && form.get('startDate')?.touched"
-            />
-            @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
-              <p class="field-error">{{ getErrorMessage('startDate') }}</p>
-            }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
-
-          <div class="field-group">
-            <label for="sem-end" class="field-label">End Date</label>
-            <input
-              id="sem-end"
-              type="date"
-              class="field-input"
-              formControlName="endDate"
-              [class.field-input--error]="form.get('endDate')?.invalid && form.get('endDate')?.touched"
-            />
-            @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
-              <p class="field-error">{{ getErrorMessage('endDate') }}</p>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">Semester Information</div>
+            <div class="entry-form-card__hdr-sub">Define a term within an academic year</div>
           </div>
         </div>
 
-        <div id="tour-sem-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/semesters">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Semester' : 'Create Semester' }}
-            }
-          </button>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-      </form>
+            <div class="field-group">
+              <label for="sem-ay" class="field-label">Academic Year <span class="required-star">*</span></label>
+              <select id="sem-ay" class="field-select" formControlName="academicYearId"
+                [class.field-select--error]="form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched">
+                <option [ngValue]="null" disabled>Select an academic year</option>
+                @for (academicYear of academicYears(); track academicYear.id) {
+                  <option [ngValue]="academicYear.id">{{ academicYear.name }}</option>
+                }
+              </select>
+              @if (form.get('academicYearId')?.invalid && form.get('academicYearId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('academicYearId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="sem-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="sem-name" class="field-input" formControlName="name"
+                placeholder="e.g., Fall 2024" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="sem-number" class="field-label">Semester Number <span class="required-star">*</span></label>
+              <select id="sem-number" class="field-select" formControlName="semesterNumber"
+                [class.field-select--error]="form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched">
+                <option [ngValue]="null" disabled>Select semester number</option>
+                @for (num of semesterNumbers; track num) {
+                  <option [ngValue]="num">Semester {{ num }}</option>
+                }
+              </select>
+              @if (form.get('semesterNumber')?.invalid && form.get('semesterNumber')?.touched) {
+                <p class="field-error">{{ getErrorMessage('semesterNumber') }}</p>
+              }
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="sem-start" class="field-label">Start Date <span class="required-star">*</span></label>
+                <input id="sem-start" type="date" class="field-input" formControlName="startDate"
+                  [class.field-input--error]="form.get('startDate')?.invalid && form.get('startDate')?.touched" />
+                @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('startDate') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="sem-end" class="field-label">End Date <span class="required-star">*</span></label>
+                <input id="sem-end" type="date" class="field-input" formControlName="endDate"
+                  [class.field-input--error]="form.get('endDate')?.invalid && form.get('endDate')?.touched" />
+                @if (form.get('endDate')?.invalid && form.get('endDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('endDate') }}</p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div id="tour-sem-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/semesters">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Semester' : 'Create Semester' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          @if (previewSemNumber()) {
+            <div class="prev-code">SEM {{ previewSemNumber() }}</div>
+          }
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Semester name will appear here' }}
+          </div>
+          @if (previewAyName()) {
+            <div class="prev-sub">{{ previewAyName() }}</div>
+          }
+          @if (previewStart() || previewEnd()) {
+            <div class="prev-meta-row">
+              <span class="prev-pill">{{ previewStart() | appDate }} → {{ previewEnd() | appDate }}</span>
+            </div>
+          }
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

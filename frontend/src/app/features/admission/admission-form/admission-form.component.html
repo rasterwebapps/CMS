@@ -3,7 +3,9 @@
     <app-page-header
       [title]="isEdit() ? 'Edit Admission' : 'New Admission'"
       [subtitle]="isEdit() ? 'Update the admission record below.' : 'Fill in the details below to create a new admission record.'"
-    />
+    >
+      <cms-tour-button titleAction tourKey="admission-form" [iconOnly]="true" iconVariant="info-circle" />
+    </app-page-header>
   }
 
   @if (loading()) {
@@ -12,7 +14,7 @@
 
     <!-- Mode toggle — only shown when creating a new admission -->
     @if (!isEdit()) {
-      <div class="mode-toggle">
+      <div id="tour-adm-form-mode" class="mode-toggle">
         <button
           type="button"
           class="mode-btn"
@@ -34,7 +36,7 @@
       </div>
     }
 
-    <div class="entry-form-card">
+    <div id="tour-adm-form-body" class="entry-form-card">
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
         <!-- ════════════════════════════════════════════════════════

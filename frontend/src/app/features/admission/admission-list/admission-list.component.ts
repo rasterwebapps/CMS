@@ -14,6 +14,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ADMISSION_LIST_TOUR } from '../../../shared/tour/tours/admission.tours';
 
 @Component({
   selector: 'app-admission-list',
@@ -29,7 +32,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+    CmsTourButtonComponent],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',
 })
@@ -38,6 +42,7 @@ export class AdmissionListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -61,6 +66,7 @@ export class AdmissionListComponent implements OnInit {
   protected selectedStatus = '';
 
   ngOnInit(): void {
+    this.tourService.register('admission-list', ADMISSION_LIST_TOUR);
     this.load();
   }
 

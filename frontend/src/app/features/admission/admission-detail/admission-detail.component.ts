@@ -14,6 +14,9 @@ import {
   AdmissionDocumentResponse,
 } from '../admission.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tours';
 
 @Component({
   selector: 'app-admission-detail',
@@ -26,7 +29,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
-    MatChipsModule],
+    MatChipsModule,
+    CmsTourButtonComponent],
   templateUrl: './admission-detail.component.html',
   styleUrl: './admission-detail.component.scss',
 })
@@ -35,6 +39,7 @@ export class AdmissionDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly admissionService = inject(AdmissionService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(true);
   protected readonly admission = signal<AdmissionResponse | null>(null);
@@ -48,6 +53,7 @@ export class AdmissionDetailComponent implements OnInit {
   protected readonly verificationStatuses = ['UPLOADED', 'VERIFIED', 'REJECTED', 'NOT_UPLOADED'];
 
   ngOnInit(): void {
+    this.tourService.register('admission-detail', ADMISSION_DETAIL_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.loadAll(id);
   }

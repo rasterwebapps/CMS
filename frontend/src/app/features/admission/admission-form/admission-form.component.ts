@@ -17,6 +17,9 @@ import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } f
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
 
 type Mode = 'from-enquiry' | 'manual';
 
@@ -32,7 +35,8 @@ type Mode = 'from-enquiry' | 'manual';
     MatCheckboxModule,
     MatTableModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent],
+    PageHeaderComponent,
+    CmsTourButtonComponent],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
 })
@@ -45,6 +49,7 @@ export class AdmissionFormComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
+  private readonly tourService = inject(TourService);
 
   protected readonly students = signal<Student[]>([]);
   protected readonly pendingEnquiries = signal<Enquiry[]>([]);
@@ -126,6 +131,7 @@ export class AdmissionFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('admission-form', ADMISSION_FORM_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) {
       this.isEdit.set(true);

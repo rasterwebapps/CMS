@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -9,16 +11,21 @@ import { LabRequest, LAB_TYPES, LAB_STATUSES } from '../lab.model';
 import { DepartmentService } from '../../department/department.service';
 import { Department } from '../../department/department.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-lab-form',
   standalone: true,
   imports: [
-    RouterLink,
+    RouterLink, CmsTourButtonComponent,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+  ],
   templateUrl: './lab-form.component.html',
   styleUrl: './lab-form.component.scss',
 })
@@ -29,6 +36,7 @@ export class LabFormComponent implements OnInit {
   private readonly labService = inject(LabService);
   private readonly departmentService = inject(DepartmentService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -38,6 +46,34 @@ export class LabFormComponent implements OnInit {
 
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
+
+  // Preview signals
+  protected readonly previewName     = signal('');
+  protected readonly previewType     = signal<string>('');
+  protected readonly previewDeptId   = signal<number | null>(null);
+  protected readonly previewBuilding = signal('');
+  protected readonly previewRoom     = signal('');
+  protected readonly previewCapacity = signal<number | null>(null);
+  protected readonly previewStatus   = signal<string>('ACTIVE');
+  protected readonly previewLocation = computed(() => {
+    const b = this.previewBuilding();
+    const r = this.previewRoom();
+    if (b && r) return `${b}, Room ${r}`;
+    return b || (r ? `Room ${r}` : '');
+  });
+  protected readonly previewTypeLabel = computed(() => LAB_TYPES.find(t => t.value === this.previewType())?.label ?? '');
+  protected readonly previewDeptName = computed(() => {
+    const id = this.previewDeptId();
+    if (!id) return '';
+    return this.departments().find(d => d.id === id)?.name ?? '';
+  });
+  protected readonly previewStatusLabel = computed(() => LAB_STATUSES.find(s => s.value === this.previewStatus())?.label ?? '');
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'category',   title: 'Lab Type',  subtitle: 'Choose the closest matching type so equipment requests are routed correctly.' },
+    { icon: 'place',      title: 'Location',  subtitle: 'Building + Room helps faculty and students find the lab quickly.' },
+    { icon: 'event_seat', title: 'Capacity',  subtitle: 'Used for scheduling — the lab cannot be booked beyond this seat count.' },
+  ];
 
   private labId: number | null = null;
 
@@ -50,6 +86,20 @@ export class LabFormComponent implements OnInit {
     capacity: [1, [Validators.required, Validators.min(1), Validators.max(500)]],
     status: ['ACTIVE', [Validators.required]],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewType.set(v.labType ?? '');
+        this.previewDeptId.set(v.departmentId ? Number(v.departmentId) : null);
+        this.previewBuilding.set((v.building ?? '').trim());
+        this.previewRoom.set((v.roomNumber ?? '').trim());
+        this.previewCapacity.set(v.capacity ? Number(v.capacity) : null);
+        this.previewStatus.set(v.status ?? 'ACTIVE');
+      });
+  }
 
   ngOnInit(): void {
     this.loadDepartments();

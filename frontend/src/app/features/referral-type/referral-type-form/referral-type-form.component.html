@@ -1,15 +1,17 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/referral-types" class="back-btn" aria-label="Back to referral types">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/referral-types" aria-label="Back to referral types">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Referral Type</em></h1>
+        <cms-tour-button tourKey="referral-type-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the referral type details below.' : 'Define a new referral type and its commission structure.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="referral-type-form" />
   </div>
 
   @if (loading()) {
@@ -17,96 +19,113 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      @if (isSystemDefined()) {
-        <div class="field-hint" style="margin-bottom: 1rem; color: var(--cms-warning, #b45309);">
-          <strong>System-defined type:</strong> The code and commission toggle cannot be changed. You may update the name, commission amount, and description.
-        </div>
-      }
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-row">
-          <div class="field-group">
-            <label for="rt-name" class="field-label">Name</label>
-            <input
-              id="rt-name"
-              class="field-input"
-              formControlName="name"
-              placeholder="e.g., Walk-in"
-              autocomplete="off"
-              [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-            />
-            @if (form.get('name')?.invalid && form.get('name')?.touched) {
-              <p class="field-error">Name is required</p>
-            }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </div>
-
-          <div class="field-group">
-            <label for="rt-code" class="field-label">Code</label>
-            <input
-              id="rt-code"
-              class="field-input"
-              formControlName="code"
-              placeholder="e.g., WALK_IN"
-              autocomplete="off"
-              [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
-            />
-            <p class="field-hint">Unique uppercase code</p>
-            @if (form.get('code')?.invalid && form.get('code')?.touched) {
-              <p class="field-error">Code is required</p>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">Referral Type Information</div>
+            <div class="entry-form-card__hdr-sub">Source category and commission settings</div>
           </div>
         </div>
 
-        <div id="tour-rt-commission-toggle" class="field-group">
-          <mat-slide-toggle formControlName="hasCommission">Has Commission</mat-slide-toggle>
-        </div>
-
-        @if (form.get('hasCommission')?.value) {
-          <div class="field-group">
-            <label for="rt-commission" class="field-label">Commission Amount (₹)</label>
-            <input
-              id="rt-commission"
-              type="number"
-              class="field-input field-input--narrow"
-              formControlName="commissionAmount"
-              min="0"
-              placeholder="0"
-              [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched"
-            />
-            @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
-              <p class="field-error">Commission amount must be 0 or greater</p>
-            }
+        @if (isSystemDefined()) {
+          <div style="padding: 12px 24px; background: rgba(245,158,11,0.08); border-bottom: 1px solid var(--cms-border-default); font-size: 0.75rem; color: #b45309;">
+            <strong>System-defined type:</strong> The code and commission toggle cannot be changed. You may update the name, commission amount, and description.
           </div>
         }
 
-        <div class="field-group">
-          <label for="rt-description" class="field-label">Description</label>
-          <textarea
-            id="rt-description"
-            class="field-textarea"
-            formControlName="description"
-            placeholder="Optional description"
-            rows="3"
-          ></textarea>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-        <div id="tour-rt-active-toggle" class="field-group">
-          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
-        </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="rt-name" class="field-label">Name <span class="required-star">*</span></label>
+                <input id="rt-name" class="field-input" formControlName="name"
+                  placeholder="e.g., Walk-in" autocomplete="off"
+                  [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+                @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                  <p class="field-error">Name is required</p>
+                }
+              </div>
 
-        <div id="tour-rt-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/referral-types">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Referral Type' : 'Create Referral Type' }}
+              <div class="field-group">
+                <label for="rt-code" class="field-label">Code <span class="required-star">*</span></label>
+                <input id="rt-code" class="field-input" formControlName="code"
+                  placeholder="e.g., WALK_IN" autocomplete="off"
+                  (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
+                <p class="field-hint">Unique uppercase code</p>
+                @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                  <p class="field-error">Code is required</p>
+                }
+              </div>
+            </div>
+
+            <div id="tour-rt-commission-toggle" class="field-group">
+              <mat-slide-toggle formControlName="hasCommission">Has Commission</mat-slide-toggle>
+            </div>
+
+            @if (form.get('hasCommission')?.value) {
+              <div class="field-group">
+                <label for="rt-commission" class="field-label">Commission Amount (₹)</label>
+                <input id="rt-commission" type="number" class="field-input field-input--narrow"
+                  formControlName="commissionAmount" min="0" placeholder="0"
+                  [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched" />
+                @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
+                  <p class="field-error">Commission amount must be 0 or greater</p>
+                }
+              </div>
             }
-          </button>
-        </div>
 
-      </form>
+            <div class="field-group">
+              <label for="rt-description" class="field-label">Description</label>
+              <textarea id="rt-description" class="field-textarea" formControlName="description"
+                placeholder="Optional description" rows="3"></textarea>
+            </div>
+
+            <div id="tour-rt-active-toggle" class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+            </div>
+          </div>
+
+          <div id="tour-rt-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/referral-types">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Referral Type' : 'Create Referral Type' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Referral type name will appear here' }}
+          </div>
+          @if (previewDesc()) {
+            <p class="prev-desc">{{ previewDesc() }}</p>
+          }
+          <div class="prev-meta-row">
+            @if (previewHasComm() && previewComm() > 0) {
+              <span class="prev-pill prev-pill--amber">₹ {{ previewComm() }}</span>
+            }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

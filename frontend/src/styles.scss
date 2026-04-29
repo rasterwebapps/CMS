@@ -1803,9 +1803,10 @@ app-root {
 .entry-form-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 24px;
 
+  // Legacy mat-icon-button back-btn support (keeps older forms working)
   .back-btn {
     flex-shrink: 0;
     margin-top: 4px;
@@ -1820,10 +1821,54 @@ app-root {
   }
 
   .page-title {
-    margin: 0 0 2px;
-    font-size: 1.75rem;
+    margin: 0 0 4px;
+    font-family: var(--cms-font-display);
+    font-size: 1.875rem;
+    font-weight: 400 !important;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+
+    em {
+      font-style: italic;
+      color: var(--cms-primary);
+    }
+  }
+
+  .page-subtitle {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--cms-text-muted);
   }
 }
+
+// Modern arrow-icon back button (preferred over .back-btn)
+.entry-form-back-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-top: 6px;
+  border-radius: 10px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--cms-text-secondary);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.08);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    color: var(--cms-primary);
+    transform: translateX(-2px);
+  }
+}
+
+.entry-form-hdr-text { flex: 1; min-width: 0; }
 
 // ── Flat Form Card (no shadow, whisper-thin border) ─
 .entry-form-card {
@@ -1837,6 +1882,304 @@ app-root {
     padding: 20px 16px;
     border-radius: var(--cms-radius-md);
   }
+
+  // Sectioned variant — when card has explicit header/body/footer children,
+  // remove its own padding so the children own the spacing.
+  &--sectioned {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 18px;
+  }
+}
+
+// Card sections (used inside .entry-form-card--sectioned)
+.entry-form-card__hdr {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.entry-form-card__hdr-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cms-primary);
+}
+
+.entry-form-card__hdr-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.entry-form-card__hdr-sub {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin-top: 1px;
+}
+
+.entry-form-card__body {
+  padding: 24px;
+
+  @media (max-width: 640px) { padding: 20px 16px; }
+}
+
+.entry-form-card__footer {
+  border-top: 1px solid var(--cms-border-default);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  @media (max-width: 640px) { padding: 14px 16px; }
+}
+
+// ── Two-column Form Layout (form left + side panel right) ─────────────
+// Used by master add/edit screens that include a Live Preview card.
+// Mirrors the .dept-form-layout pattern from department-form.
+.entry-form-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+
+  // When the form-card lives inside the two-column layout, drop max-width
+  // so it can stretch to fill its grid column.
+  .entry-form-card {
+    max-width: none;
+  }
+}
+
+.entry-form-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: cms-rise-up 0.5s 0.12s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 👁  LIVE PREVIEW CARD  (used in form side-panels)
+// ══════════════════════════════════════════════════
+.preview-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+.preview-card__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cms-primary);
+}
+
+.preview-card__live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cms-primary);
+  box-shadow: 0 0 0 0 rgba(var(--cms-primary-rgb), 0.5);
+  animation: preview-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes preview-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--cms-primary-rgb), 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(var(--cms-primary-rgb), 0); }
+}
+
+.preview-card__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+.preview-card__body {
+  padding: 22px 20px;
+}
+
+// ── Re-usable preview body building blocks ─────────────────────────
+.prev-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.20);
+  font-family: var(--cms-font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cms-primary);
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+}
+
+.prev-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+  min-height: 24px;
+
+  &--empty {
+    color: var(--cms-text-muted);
+    font-weight: 400;
+    font-size: 0.875rem;
+  }
+}
+
+.prev-sub {
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+  margin: 0 0 6px;
+}
+
+.prev-desc {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+
+.prev-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.prev-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+
+  &--primary {
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    color: var(--cms-primary);
+  }
+
+  &--green  { background: rgba(34, 197, 94, 0.12);  color: #15803d; }
+  &--amber  { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+  &--red    { background: rgba(239, 68, 68, 0.12);  color: #dc2626; }
+  &--blue   { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+  &--muted  { background: var(--cms-bg-muted);      color: var(--cms-text-muted); }
+}
+
+// ══════════════════════════════════════════════════
+// 💡  TIPS CARD  (used in form side-panels)
+// ══════════════════════════════════════════════════
+.tip-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 16px;
+  padding: 18px;
+  margin: 0;
+}
+
+.tip-card__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+  margin: 0 0 12px;
+}
+
+.tip-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tip-card__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.tip-card__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cms-primary);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+  }
+}
+
+.tip-card__text { flex: 1; min-width: 0; }
+
+.tip-card__heading {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.tip-card__sub {
+  font-size: 0.6875rem;
+  color: var(--cms-text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 // ── Field Group (wrapper per field) ──────────────
@@ -3252,6 +3595,62 @@ html.dark-theme body::after {
   display: flex;
   flex-direction: column;
 }
+
+// ── Page title row: h1 + inline circle-i help icon ────────────
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  cms-tour-button {
+    flex-shrink: 0;
+    line-height: 0;
+  }
+}
+
+// ── Force inline icon styles with maximum specificity to override component styles ──
+body ::ng-deep .page-title-row .cms-tour-icon-btn,
+body .page-title-row button.cms-tour-icon-btn,
+body ::ng-deep .mlp-hdr .page-title-row .cms-tour-icon-btn,
+body .mlp-hdr .page-title-row button.cms-tour-icon-btn,
+body ::ng-deep .entry-form-header .page-title-row .cms-tour-icon-btn,
+body .entry-form-header .page-title-row button.cms-tour-icon-btn,
+body ::ng-deep .mlp-hdr-left .page-title-row .cms-tour-icon-btn,
+body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn {
+  width: 22px !important;
+  height: 22px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--cms-text-muted) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  opacity: 0.55 !important;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  transition: color 0.2s ease, opacity 0.2s ease !important;
+
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+body ::ng-deep .page-title-row .cms-tour-icon-btn:hover,
+body .page-title-row button.cms-tour-icon-btn:hover,
+body ::ng-deep .mlp-hdr .page-title-row .cms-tour-icon-btn:hover,
+body .mlp-hdr .page-title-row button.cms-tour-icon-btn:hover,
+body ::ng-deep .entry-form-header .page-title-row .cms-tour-icon-btn:hover,
+body .entry-form-header .page-title-row button.cms-tour-icon-btn:hover,
+body ::ng-deep .mlp-hdr-left .page-title-row .cms-tour-icon-btn:hover,
+body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
+  color: var(--cms-primary) !important;
+  opacity: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 
 .mlp-title {
   margin: 0 0 4px;

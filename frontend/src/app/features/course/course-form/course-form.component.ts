@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -12,6 +13,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { COURSE_FORM_TOUR } from '../../../shared/tour/tours/course.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-course-form',
@@ -23,6 +26,8 @@ import { COURSE_FORM_TOUR } from '../../../shared/tour/tours/course.tours';
     MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
   ],
   templateUrl: './course-form.component.html',
   styleUrl: './course-form.component.scss',
@@ -35,12 +40,30 @@ export class CourseFormComponent implements OnInit {
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Course');
   protected readonly programs = signal<Program[]>([]);
+
+  // Live preview signals
+  protected readonly previewName = signal('');
+  protected readonly previewCode = signal('');
+  protected readonly previewSpec = signal('');
+  protected readonly previewProgramId = signal<number | null>(null);
+  protected readonly previewProgramName = computed(() => {
+    const id = this.previewProgramId();
+    if (!id) return '';
+    return this.programs().find(p => p.id === id)?.name ?? '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'tag',     title: 'Course Code',    subtitle: 'Use a short uppercase identifier unique within the parent program.' },
+    { icon: 'school',  title: 'Parent Program', subtitle: 'Every course must belong to one program (e.g., Bachelor, Master).' },
+    { icon: 'science', title: 'Specialization', subtitle: 'Optional — name the focus area for general programs (e.g., Cardiac, Pediatric).' },
+  ];
 
   private courseId: number | null = null;
 
@@ -50,6 +73,25 @@ export class CourseFormComponent implements OnInit {
     specialization: [''],
     programId: [null as number | null, [Validators.required]],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewCode.set((v.code ?? '').toUpperCase().trim());
+        this.previewSpec.set((v.specialization ?? '').trim());
+        this.previewProgramId.set(v.programId ?? null);
+      });
+  }
+
+  protected onCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const upper = input.value.toUpperCase();
+    if (upper !== input.value) {
+      this.form.get('code')?.setValue(upper, { emitEvent: true });
+    }
+  }
 
   ngOnInit(): void {
     this.tourService.register('course-form', COURSE_FORM_TOUR);

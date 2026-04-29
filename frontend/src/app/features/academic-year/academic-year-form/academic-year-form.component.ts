@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -11,6 +12,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-year.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-academic-year-form',
@@ -23,6 +27,9 @@ import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-yea
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+    AppDatePipe,
   ],
   templateUrl: './academic-year-form.component.html',
   styleUrl: './academic-year-form.component.scss',
@@ -34,11 +41,24 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Academic Year');
+
+  // Preview signals
+  protected readonly previewName      = signal('');
+  protected readonly previewStart     = signal<string | null>(null);
+  protected readonly previewEnd       = signal<string | null>(null);
+  protected readonly previewIsCurrent = signal(false);
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'label',       title: 'Naming convention', subtitle: 'Use a hyphenated range like "2024-2025" so it sorts naturally.' },
+    { icon: 'date_range',  title: 'Period',            subtitle: 'Start and end dates define the full academic calendar window.' },
+    { icon: 'check_circle',title: 'Current Year',      subtitle: 'Only one year can be marked Current — used as the default across the app.' },
+  ];
 
   private academicYearId: number | null = null;
 
@@ -48,6 +68,17 @@ export class AcademicYearFormComponent implements OnInit {
     endDate: ['', [Validators.required]],
     isCurrent: [false],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewStart.set(v.startDate || null);
+        this.previewEnd.set(v.endDate || null);
+        this.previewIsCurrent.set(!!v.isCurrent);
+      });
+  }
 
   ngOnInit(): void {
     this.tourService.register('academic-year-form', ACADEMIC_YEAR_FORM_TOUR);

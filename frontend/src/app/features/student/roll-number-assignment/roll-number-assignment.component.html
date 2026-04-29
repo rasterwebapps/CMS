@@ -1,11 +1,12 @@
 <div class="list-page">
   <app-page-header title="Roll Number Assignment" subtitle="Assign roll numbers to students">
-    <button actions mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
+    <cms-tour-button titleAction tourKey="roll-number-assignment" [iconOnly]="true" iconVariant="info-circle" />
+    <button id="tour-rollno-save" actions mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
       @if (saving()) { <mat-spinner diameter="18"></mat-spinner> } @else { Save All }
     </button>
   </app-page-header>
 
-  <div class="command-bar">
+  <div id="tour-rollno-filters" class="command-bar">
     <div class="filter-pill-group">
       <select class="filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()" aria-label="Filter by program">
         <option [ngValue]="null">All Programs</option>
@@ -31,7 +32,7 @@
         <p class="empty-state__text">All students have roll numbers assigned.</p>
       </div>
     } @else {
-      <div class="table-wrapper">
+      <div id="tour-rollno-table" class="table-wrapper">
         <table mat-table [dataSource]="assignments()" matSort class="modern-table">
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>

@@ -15,6 +15,9 @@ import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -22,6 +25,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     PageHeaderComponent,
+    CmsTourButtonComponent,
     NgClass,
     RouterLink,
     FormsModule,
@@ -42,6 +46,7 @@ export class StudentListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -69,6 +74,7 @@ export class StudentListComponent implements OnInit {
   protected readonly searchValue = signal('');
 
   ngOnInit(): void {
+    this.tourService.register('student-list', STUDENT_LIST_TOUR);
     this.loadStudents();
   }
 

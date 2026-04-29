@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -16,7 +17,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
-    RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
+    RouterLink, MatTableModule, MatPaginatorModule, MatSortModule, CmsTourButtonComponent,
     MatDialogModule, MatTooltipModule,
   ],
   templateUrl: './system-configuration-list.component.html',

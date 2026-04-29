@@ -1,6 +1,9 @@
 <header class="page-header-strip">
   <div class="page-header-strip__left">
-    <h1 class="page-header-title">{{ title }}</h1>
+    <div class="page-title-row">
+      <h1 class="page-header-title">{{ title }}</h1>
+      <ng-content select="[titleAction]" />
+    </div>
     @if (subtitle) {
       <p class="page-header-subtitle">{{ subtitle }}</p>
     }

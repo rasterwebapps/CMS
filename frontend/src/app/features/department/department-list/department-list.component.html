@@ -3,7 +3,10 @@
   <!-- ── Page Header ─────────────────────────────────────────── -->
   <div id="tour-dept-header" class="dept-pg-hdr anim-rise">
     <div class="dept-pg-left">
-      <h1 class="dept-pg-title">Academic <em>Departments</em></h1>
+      <div class="page-title-row">
+        <h1 class="dept-pg-title">Academic <em>Departments</em></h1>
+        <cms-tour-button tourKey="dept-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="dept-pg-sub">Manage departments and their heads across the college</p>
       @if (!loading()) {
         <div class="dept-pg-meta">
@@ -19,7 +22,6 @@
       }
     </div>
     <div class="dept-pg-actions">
-      <cms-tour-button tourKey="dept-list" />
       <button id="tour-dept-add-btn" class="btn-primary" routerLink="/departments/new" aria-label="Add new department">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Department

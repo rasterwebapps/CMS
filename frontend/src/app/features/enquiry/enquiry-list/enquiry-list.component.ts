@@ -1,11 +1,9 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -13,56 +11,111 @@ import { MatMenuModule } from '@angular/material/menu';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { AuthService } from '../../../core/auth/auth.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { computeInitials } from '../../../shared/utils/initials';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+
+export const STATUS_LABELS: Record<string, string> = {
+  ENQUIRED:             'Enquired',
+  INTERESTED:           'Interested',
+  NOT_INTERESTED:       'Not Interested',
+  FEES_FINALIZED:       'Fees Finalized',
+  FEES_PAID:            'Fees Paid',
+  PARTIALLY_PAID:       'Partially Paid',
+  DOCUMENTS_SUBMITTED:  'Docs Submitted',
+  ADMITTED:             'Admitted',
+  CLOSED:               'Closed',
+};
+
+const STATUS_COLOURS: Record<string, string> = {
+  ENQUIRED:             '#3b82f6',
+  INTERESTED:           'var(--cms-primary)',
+  NOT_INTERESTED:       '#ef4444',
+  FEES_FINALIZED:       '#d97706',
+  FEES_PAID:            '#16a34a',
+  PARTIALLY_PAID:       '#d97706',
+  DOCUMENTS_SUBMITTED:  '#0284c7',
+  ADMITTED:             '#15803d',
+  CLOSED:               'var(--cms-text-muted)',
+};
 
 @Component({
   selector: 'app-enquiry-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
-    RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
-    MatMenuModule],
+    RouterLink, FormsModule, AppDatePipe,
+    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule, MatMenuModule,
+    CmsEmptyStateComponent,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
 })
 export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
-  private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
+  private readonly authService    = inject(AuthService);
+  private readonly router         = inject(Router);
+  private readonly toast          = inject(ToastService);
+  private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
 
-  private _sort?: MatSort;
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    this._sort = value;
-    if (value) {
-      this.dataSource.sort = value;
-      if (!value.active) {
-        value.active = 'enquiryDate';
-        value.direction = 'asc';
-        value.sortChange.emit({ active: 'enquiryDate', direction: 'asc' });
-      }
+  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
+  @ViewChild(MatSort) set sort(v: MatSort) {
+    if (v) {
+      this.dataSource.sort = v;
+      if (!v.active) { v.active = 'enquiryDate'; v.direction = 'asc'; v.sortChange.emit({ active: 'enquiryDate', direction: 'asc' }); }
     }
   }
 
-  protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
-  protected readonly loading = signal(false);
-  protected readonly searchValue = signal('');
-  protected readonly statusFilter = signal('');
+  protected readonly dataSource      = new MatTableDataSource<Enquiry>([]);
+  protected readonly loading         = signal(false);
+  protected readonly searchValue     = signal('');
+  protected readonly selectedStatuses = signal<Set<string>>(new Set());
+  protected readonly selectedProgramId = signal<number | null>(null);
+  protected readonly selectedCourseId  = signal<number | null>(null);
+  protected readonly computeInitials  = computeInitials;
+  protected readonly STATUS_LABELS    = STATUS_LABELS;
+  protected readonly STATUS_COLOURS   = STATUS_COLOURS;
+  protected statusMenuOpen  = false;
+  protected colMenuOpen     = false;
 
-  // ── Column visibility ────────────────────────────────────────────────────
+  // ── Unique program/course lists derived from loaded data ──────────────────
+  protected readonly programOptions = computed(() => {
+    const seen = new Map<number, string>();
+    for (const e of this.dataSource.data) {
+      if (e.programId && e.programName && !seen.has(e.programId)) {
+        seen.set(e.programId, e.programName);
+      }
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  protected readonly courseOptions = computed(() => {
+    const progId = this.selectedProgramId();
+    const seen = new Map<number, string>();
+    for (const e of this.dataSource.data) {
+      if (e.courseId && e.courseName && !seen.has(e.courseId)) {
+        if (!progId || e.programId === progId) {
+          seen.set(e.courseId, e.courseName);
+        }
+      }
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  // ── Column visibility ─────────────────────────────────────────────────────
   protected readonly ALL_COLS = [
     'name', 'phone', 'programName', 'studentType',
-    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions'];
+    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions',
+  ];
   protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name', phone: 'Phone', programName: 'Program', studentType: 'Type',
+    name: 'Name', phone: 'Phone', programName: 'Course', studentType: 'Type',
     enquiryDate: 'Date', referralTypeName: 'Referral', status: 'Status',
     agentName: 'Agent', actions: 'Actions',
   };
@@ -70,6 +123,84 @@ export class EnquiryListComponent implements OnInit {
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
 
+  protected readonly ALL_STATUSES = [
+    'ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED',
+    'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED',
+  ];
+
+  // ── Per-status counts from full loaded data ───────────────────────────────
+  protected readonly statusCounts = computed<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const row of this.dataSource.data) {
+      map[row.status] = (map[row.status] ?? 0) + 1;
+    }
+    return map;
+  });
+
+  // ── Aggregate stats ───────────────────────────────────────────────────────
+  protected readonly totalCount     = computed(() => this.dataSource.data.length);
+  protected readonly filteredCount  = computed(() => this.dataSource.filteredData.length);
+  protected readonly pipelineCount  = computed(() =>
+    this.dataSource.data.filter(e => !['NOT_INTERESTED', 'CLOSED', 'ADMITTED'].includes(e.status)).length);
+  protected readonly interestedCount = computed(() =>
+    this.dataSource.data.filter(e => e.status === 'INTERESTED').length);
+  protected readonly admittedCount  = computed(() =>
+    this.dataSource.data.filter(e => e.status === 'ADMITTED').length);
+
+  // ── Status dropdown label ─────────────────────────────────────────────────
+  protected readonly statusFilterLabel = computed(() => {
+    const sel = this.selectedStatuses();
+    if (sel.size === 0) return 'Status';
+    if (sel.size === 1) return STATUS_LABELS[[...sel][0]] ?? [...sel][0];
+    return `${sel.size} statuses`;
+  });
+
+  // ── Date range ────────────────────────────────────────────────────────────
+  protected dateFrom: string;
+  protected dateTo:   string;
+
+  constructor() {
+    const now = new Date();
+    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
+    // Combined filter: "<search>|<STATUS1,STATUS2>|<programId>|<courseId>"
+    this.dataSource.filterPredicate = (row, filter) => {
+      const parts    = filter.split('|');
+      const search   = parts[0] ?? '';
+      const statuses = new Set((parts[1] ?? '').split(',').filter(Boolean));
+      const progId   = parts[2] ? Number(parts[2]) : null;
+      const courseId = parts[3] ? Number(parts[3]) : null;
+
+      const matchSearch = !search ||
+        row.name.toLowerCase().includes(search) ||
+        (row.phone ?? '').includes(search) ||
+        (row.courseName ?? '').toLowerCase().includes(search) ||
+        (row.agentName ?? '').toLowerCase().includes(search);
+
+      const matchStatus  = statuses.size === 0 || statuses.has(row.status);
+      const matchProgram = !progId   || row.programId === progId;
+      const matchCourse  = !courseId || row.courseId  === courseId;
+      return matchSearch && matchStatus && matchProgram && matchCourse;
+    };
+
+    // Reactively update the Material filter whenever any filter changes
+    effect(() => {
+      const search   = this.searchValue().toLowerCase().trim();
+      const statuses = [...this.selectedStatuses()].join(',');
+      const progId   = this.selectedProgramId() ?? '';
+      const courseId = this.selectedCourseId() ?? '';
+      this.dataSource.filter = `${search}|${statuses}|${progId}|${courseId}`;
+      this.dataSource.paginator?.firstPage();
+    });
+  }
+
+  ngOnInit(): void {
+    this.tourService.register('enquiry-list', ENQUIRY_LIST_TOUR);
+    this.load();
+  }
+
+  // ── Column prefs ──────────────────────────────────────────────────────────
   private _loadColPrefs(): Set<string> {
     try {
       const s = localStorage.getItem(this.COLS_KEY);
@@ -89,131 +220,108 @@ export class EnquiryListComponent implements OnInit {
 
   protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
-  // ── Search debounce ──────────────────────────────────────────────────────
-  private _searchTimer: ReturnType<typeof setTimeout> | null = null;
-  protected readonly statuses = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED'];
-
-  /** Date range filter — defaults to current month (YYYY-MM-DD strings for native date inputs) */
-  protected dateFrom: string;
-  protected dateTo: string;
-
-  constructor() {
-    const now = new Date();
-    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
-    this.dateTo = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-  }
-
-  ngOnInit(): void {
-    this.load();
-  }
-
+  // ── Search ────────────────────────────────────────────────────────────────
   protected applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchValue.set(value);
-    if (this._searchTimer) clearTimeout(this._searchTimer);
-    this._searchTimer = setTimeout(() => {
-      this.dataSource.filter = value.trim().toLowerCase();
-      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
-    }, 300);
+    this.searchValue.set((event.target as HTMLInputElement).value);
   }
 
-  protected clearFilter(): void {
-    if (this._searchTimer) clearTimeout(this._searchTimer);
-    this.searchValue.set('');
-    this.dataSource.filter = '';
-  }
+  protected clearFilter(): void { this.searchValue.set(''); }
 
-  protected onStatusFilterChange(status: string): void {
-    this.statusFilter.set(status);
-    this.load();
-  }
-
-  protected onDateRangeChange(): void {
-    if (this.dateFrom && this.dateTo) {
-      this.load();
-    }
-  }
-
-  protected clearDateFilter(): void {
-    const now = new Date();
-    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
-    this.dateTo = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-    this.load();
-  }
-
-  protected getStatusColor(status: string): string {
-    switch (status) {
-      case 'ENQUIRED': return 'primary';
-      case 'INTERESTED': return 'accent';
-      case 'NOT_INTERESTED': return 'warn';
-      case 'FEES_FINALIZED': return 'primary';
-      case 'FEES_PAID': return 'primary';
-      case 'PARTIALLY_PAID': return 'accent';
-      case 'DOCUMENTS_SUBMITTED': return 'primary';
-      case 'ADMITTED': return 'primary';
-      case 'CLOSED': return '';
-      default: return '';
-    }
-  }
-
-  /** Returns the list of allowed next statuses for the given current status (manual transitions only). */
-  protected getNextStatuses(currentStatus: string): string[] {
-    switch (currentStatus) {
-      case 'ENQUIRED': return ['INTERESTED', 'NOT_INTERESTED'];
-      case 'INTERESTED': return [];
-      case 'NOT_INTERESTED': return ['INTERESTED'];
-      case 'FEES_FINALIZED': return ['NOT_INTERESTED'];
-      case 'FEES_PAID': return [];
-      case 'PARTIALLY_PAID': return [];
-      case 'DOCUMENTS_SUBMITTED': return [];
-      case 'ADMITTED': return [];
-      case 'CLOSED': return ['ENQUIRED'];
-      default: return [];
-    }
-  }
-
-  protected canChangeStatus(item: Enquiry): boolean {
-    return item.status !== 'ADMITTED' && item.status !== 'CONVERTED' && this.getNextStatuses(item.status).length > 0;
-  }
-
-  protected onStatusUpdate(item: Enquiry, newStatus: string): void {
-    this.enquiryService.updateStatus(item.id, newStatus).subscribe({
-      next: (updated) => {
-        const data = this.dataSource.data;
-        const idx = data.findIndex((e) => e.id === item.id);
-        if (idx >= 0) {
-          data[idx] = { ...data[idx], status: updated.status };
-          this.dataSource.data = [...data];
-        }
-        this.toast.success(`Status updated to ${updated.status}`);
-      },
-      error: () => {
-        this.toast.error('Failed to update status');
-      },
+  // ── Status multiselect ────────────────────────────────────────────────────
+  protected toggleStatus(s: string): void {
+    this.selectedStatuses.update(set => {
+      const next = new Set(set);
+      if (next.has(s)) { next.delete(s); } else { next.add(s); }
+      return next;
     });
   }
 
-  protected canConvert(item: Enquiry): boolean {
-    return item.status === 'DOCUMENTS_SUBMITTED';
+  protected isStatusSelected(s: string): boolean { return this.selectedStatuses().has(s); }
+
+  protected clearStatuses(): void { this.selectedStatuses.set(new Set()); }
+
+  // ── Date range ────────────────────────────────────────────────────────────
+  protected onDateRangeChange(): void { if (this.dateFrom && this.dateTo) this.load(); }
+
+  // ── Filters ───────────────────────────────────────────────────────────────
+  protected clearAllFilters(): void {
+    const now = new Date();
+    this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    this.selectedStatuses.set(new Set());
+    this.selectedProgramId.set(null);
+    this.selectedCourseId.set(null);
+    this.searchValue.set('');
+    this.load();
   }
 
-  protected convert(item: Enquiry): void {
-    void this.router.navigate(['/enquiries', item.id, 'convert']);
+  protected get hasActiveFilters(): boolean {
+    return this.selectedStatuses().size > 0 || !!this.searchValue()
+      || this.selectedProgramId() !== null || this.selectedCourseId() !== null;
   }
 
-   protected canFinalizeFee(item: Enquiry): boolean {
-     return item.status === 'INTERESTED' && (this.authService.isAdmin() || this.authService.isCollegeAdmin());
-   }
+  // ── Program / Course filter handlers ─────────────────────────────────────
+  protected onProgramChange(value: string): void {
+    const id = value ? Number(value) : null;
+    this.selectedProgramId.set(id);
+    this.selectedCourseId.set(null); // reset course when program changes
+  }
 
-   protected canCollectPayment(item: Enquiry): boolean {
-     return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
-       (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isCashier());
-   }
+  protected onCourseChange(value: string): void {
+    this.selectedCourseId.set(value ? Number(value) : null);
+  }
 
-   protected canSubmitDocuments(item: Enquiry): boolean {
-     return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
-       (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice());
-   }
+  // ── Status helpers ────────────────────────────────────────────────────────
+  protected statusLabel(s: string): string { return STATUS_LABELS[s] ?? s; }
+
+  protected getNextStatuses(currentStatus: string): string[] {
+    switch (currentStatus) {
+      case 'ENQUIRED':       return ['INTERESTED', 'NOT_INTERESTED'];
+      case 'NOT_INTERESTED': return ['INTERESTED'];
+      case 'FEES_FINALIZED': return ['NOT_INTERESTED'];
+      case 'CLOSED':         return ['ENQUIRED'];
+      default:               return [];
+    }
+  }
+
+  protected canChangeStatus(item: Enquiry): boolean { return this.getNextStatuses(item.status).length > 0; }
+
+  protected onStatusUpdate(item: Enquiry, newStatus: string): void {
+    this.enquiryService.updateStatus(item.id, newStatus).subscribe({
+      next: updated => {
+        const data = this.dataSource.data;
+        const idx  = data.findIndex(e => e.id === item.id);
+        if (idx >= 0) { data[idx] = { ...data[idx], status: updated.status }; this.dataSource.data = [...data]; }
+        this.toast.success(`Status → ${this.statusLabel(updated.status)}`);
+      },
+      error: () => this.toast.error('Failed to update status'),
+    });
+  }
+
+  // ── Action guards ─────────────────────────────────────────────────────────
+  protected canConvert(item: Enquiry): boolean { return item.status === 'DOCUMENTS_SUBMITTED'; }
+
+  protected canFinalizeFee(item: Enquiry): boolean {
+    return item.status === 'INTERESTED' &&
+      (this.authService.isAdmin() || this.authService.isCollegeAdmin());
+  }
+
+  protected canCollectPayment(item: Enquiry): boolean {
+    return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
+      (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isCashier());
+  }
+
+  protected canSubmitDocuments(item: Enquiry): boolean {
+    return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
+      (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice());
+  }
+
+  protected canDelete(item: Enquiry): boolean { return item.status === 'ENQUIRED'; }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  protected edit(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id, 'edit']); }
+  protected view(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id]); }
+  protected convert(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'convert']); }
 
   protected finalizeFee(item: Enquiry): void {
     void this.router.navigate(['/student-fees/finalize'], { queryParams: { enquiryId: item.id } });
@@ -227,63 +335,46 @@ export class EnquiryListComponent implements OnInit {
     void this.router.navigate(['/enquiries/document-submission', item.id]);
   }
 
-  protected edit(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'edit']); }
-
-  protected view(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id]); }
-
-  protected canDelete(item: Enquiry): boolean {
-    return item.status === 'ENQUIRED';
-  }
-
   protected delete(item: Enquiry): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Enquiry', message: `Delete enquiry for "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
-    }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
+      data: { title: 'Delete Enquiry', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(ok => { if (ok) this.doDelete(item); });
   }
 
   private doDelete(item: Enquiry): void {
     this.loading.set(true);
     this.enquiryService.deleteEnquiry(item.id).subscribe({
-      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      next:  () => { this.toast.success('Deleted'); this.load(); },
       error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
 
+  // ── Export ────────────────────────────────────────────────────────────────
   protected exportCsv(): void {
-    const rows = this.dataSource.filteredData;
-    const headers = ['Name', 'Phone', 'Program', 'Type', 'Date', 'Referral', 'Status', 'Agent'];
-    const cells = rows.map(e => [
-      e.name, e.phone ?? '', e.programName ?? '', e.studentType ?? '',
-      e.enquiryDate, e.referralTypeName ?? '', e.status, e.agentName ?? '']);
-    const csv = [headers, ...cells]
-      .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+    const rows    = this.dataSource.filteredData;
+    const headers = ['Name', 'Phone', 'Course', 'Type', 'Date', 'Referral', 'Status', 'Agent'];
+    const cells   = rows.map(e => [
+      e.name, e.phone ?? '', e.courseName ?? '', e.studentType ?? '',
+      e.enquiryDate, e.referralTypeName ?? '', this.statusLabel(e.status), e.agentName ?? '',
+    ]);
+    const csv = [headers, ...cells].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const a   = Object.assign(document.createElement('a'), { href: url, download: `enquiries-${new Date().toISOString().slice(0, 10)}.csv` });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
+  // ── Load ──────────────────────────────────────────────────────────────────
   private toDateString(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   private load(): void {
     this.loading.set(true);
-    const fromStr = this.dateFrom;
-    const toStr = this.dateTo;
-    const status = this.statusFilter();
-
-    this.enquiryService.getEnquiriesByDateRange(fromStr, toStr, status || undefined).subscribe({
-      next: (data) => {
-        this.dataSource.data = data;
-        this.loading.set(false);
-      },
-      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
+    // Load all data for the date range; status filtering is done client-side
+    this.enquiryService.getEnquiriesByDateRange(this.dateFrom, this.dateTo).subscribe({
+      next:  data => { this.dataSource.data = data; this.loading.set(false); },
+      error: ()   => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }
 }

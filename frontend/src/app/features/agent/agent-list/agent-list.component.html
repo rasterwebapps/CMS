@@ -3,7 +3,10 @@
   <!-- ── Page Header ─────────────────────────────────────────── -->
   <div id="tour-agent-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Referral <em>Agents</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Referral <em>Agents</em></h1>
+        <cms-tour-button tourKey="agent-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage referral agents and their contact details</p>
       @if (!loading()) {
         <div class="mlp-meta">
@@ -18,7 +21,6 @@
         </div>
       }
     </div>
-    <cms-tour-button tourKey="agent-list" />
     <button id="tour-agent-add-btn" class="btn-primary" routerLink="/agents/new" aria-label="Add new agent">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Agent

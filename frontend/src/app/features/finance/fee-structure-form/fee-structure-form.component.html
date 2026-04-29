@@ -4,7 +4,7 @@
       [title]="pageTitle()"
       [subtitle]="isEditMode() ? 'Update the fee schedule below.' : 'Configure fee schedules for a program and course.'"
     >
-      <cms-tour-button actions tourKey="fee-structure-form" />
+      <cms-tour-button titleAction tourKey="fee-structure-form" [iconOnly]="true" iconVariant="info-circle" />
     </app-page-header>
   }
 

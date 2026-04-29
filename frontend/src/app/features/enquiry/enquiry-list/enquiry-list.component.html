@@ -1,213 +1,336 @@
-<div class="list-page">
-  <app-page-header title="Enquiries" subtitle="Track and manage prospective student enquiries">
-    <button actions class="btn-primary" routerLink="/enquiries/new" aria-label="Add new enquiry">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Enquiry
-    </button>
-  </app-page-header>
+<div class="enq-list-page">
 
-  <div class="command-bar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search enquiries..."
-          type="text"
-          aria-label="Search enquiries"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
+  <!-- ── Header (matches Department list style) ──────────────────────────── -->
+  <div id="tour-enq-header" class="enq-pg-hdr anim-rise">
+    <div class="enq-pg-left">
+      <div class="page-title-row">
+        <h1 class="enq-pg-title">Student <em>Enquiries</em></h1>
+        <cms-tour-button tourKey="enquiry-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-
+      <p class="enq-pg-sub">Track and manage prospective student enquiries</p>
       @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          enquiries
-        </span>
+        <div class="enq-pg-meta">
+          <span class="enq-pg-stat">
+            <span class="enq-stat-dot enq-stat-dot--blue"></span>
+            {{ totalCount() }} Total
+          </span>
+          <span class="enq-pg-stat">
+            <span class="enq-stat-dot enq-stat-dot--amber"></span>
+            {{ pipelineCount() }} Pipeline
+          </span>
+          <span class="enq-pg-stat">
+            <span class="enq-stat-dot enq-stat-dot--violet"></span>
+            {{ interestedCount() }} Interested
+          </span>
+          <span class="enq-pg-stat">
+            <span class="enq-stat-dot enq-stat-dot--green"></span>
+            {{ admittedCount() }} Admitted
+          </span>
+        </div>
       }
     </div>
-
-    <div class="command-bar__right">
-      <div class="filter-pill-group">
-        <select class="filter-select" [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)" aria-label="Filter by status">
-          <option value="">All Statuses</option>
-          @for (s of statuses; track s) {
-            <option [value]="s">{{ s }}</option>
-          }
-        </select>
-
-        <label class="filter-date-label">
-          From
-          <input class="filter-date-input" type="date" [(ngModel)]="dateFrom" (change)="onDateRangeChange()" aria-label="From date" />
-        </label>
-
-        <label class="filter-date-label">
-          To
-          <input class="filter-date-input" type="date" [(ngModel)]="dateTo" (change)="onDateRangeChange()" aria-label="To date" />
-        </label>
-
-        @if (statusFilter() || searchValue()) {
-          <button class="btn-clear-filters" (click)="clearDateFilter()" aria-label="Reset filters">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Clear Filters
-          </button>
-        }
-      </div>
-
-      <!-- Column visibility toggle -->
-      <details class="col-toggle">
-        <summary class="btn-toolbar" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </summary>
-        <div class="col-toggle__panel" (click)="$event.stopPropagation()">
-          @for (col of ALL_COLS; track col) {
-            <label class="col-toggle__item">
-              <input
-                type="checkbox"
-                class="col-toggle__checkbox"
-                [checked]="isColumnVisible(col)"
-                (change)="toggleColumn(col)"
-              />
-              {{ COLUMN_LABELS[col] }}
-            </label>
-          }
-        </div>
-      </details>
-
-      <!-- CSV export -->
-      <button class="btn-toolbar" (click)="exportCsv()" matTooltip="Export visible rows to CSV" aria-label="Export to CSV">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <div class="enq-pg-actions">
+      <button class="btn-export" (click)="exportCsv()" matTooltip="Export to CSV" aria-label="Export CSV">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export
+      </button>
+      <button class="btn-primary" routerLink="/enquiries/new" aria-label="Add new enquiry" id="tour-enq-add-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Enquiry
       </button>
     </div>
   </div>
 
-  <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading enquiries"></mat-spinner>
+  <!-- ── Row 2: Filters ──────────────────────────────────────────────────── -->
+  <div id="tour-enq-toolbar" class="enq-filterbar anim-rise anim-rise--d1">
+
+    <!-- Search -->
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search name, phone, course…"
+        type="text"
+        aria-label="Search enquiries"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <!-- Date range -->
+    <div class="date-range-group">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <input class="date-input" type="date" [(ngModel)]="dateFrom" (change)="onDateRangeChange()" aria-label="From date" />
+      <span class="date-sep">—</span>
+      <input class="date-input" type="date" [(ngModel)]="dateTo" (change)="onDateRangeChange()" aria-label="To date" />
+    </div>
+
+    <!-- Program filter -->
+    <select
+      class="enq-filter-select"
+      [value]="selectedProgramId() ?? ''"
+      (change)="onProgramChange($any($event.target).value)"
+      aria-label="Filter by program"
+      [class.enq-filter-select--active]="selectedProgramId() !== null"
+    >
+      <option value="">All Programs</option>
+      @for (p of programOptions(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    <!-- Course filter -->
+    <select
+      class="enq-filter-select"
+      [value]="selectedCourseId() ?? ''"
+      (change)="onCourseChange($any($event.target).value)"
+      aria-label="Filter by course"
+      [class.enq-filter-select--active]="selectedCourseId() !== null"
+    >
+      <option value="">All Courses</option>
+      @for (c of courseOptions(); track c.id) {
+        <option [value]="c.id">{{ c.name }}</option>
+      }
+    </select>
+
+    <!-- Status multiselect dropdown -->
+    <div class="status-drop-wrap">
+      <button
+        class="status-drop-btn"
+        [class.status-drop-btn--active]="selectedStatuses().size > 0"
+        (click)="statusMenuOpen = !statusMenuOpen"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="statusMenuOpen"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/></svg>
+        {{ statusFilterLabel() }}
+        @if (selectedStatuses().size > 0) {
+          <span class="status-drop-count">{{ selectedStatuses().size }}</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        }
+      </button>
+
+      @if (statusMenuOpen) {
+        <div class="status-drop-panel" role="listbox" (click)="$event.stopPropagation()">
+          <div class="status-drop-list">
+            @for (s of ALL_STATUSES; track s) {
+              <label class="status-drop-item" role="option" [attr.aria-selected]="isStatusSelected(s)">
+                <span class="status-check" [class.status-check--on]="isStatusSelected(s)">
+                  @if (isStatusSelected(s)) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </span>
+                <input type="checkbox" class="sr-only" [checked]="isStatusSelected(s)" (change)="toggleStatus(s)" />
+                <span class="status-drop-badge" [attr.data-status]="s">{{ STATUS_LABELS[s] }}</span>
+                @if (statusCounts()[s]) {
+                  <span class="status-drop-cnt">{{ statusCounts()[s] }}</span>
+                }
+              </label>
+            }
+          </div>
+          @if (selectedStatuses().size > 0) {
+            <div class="status-drop-footer">
+              <button class="status-drop-clear" (click)="clearStatuses()">Clear selection</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="filterbar-right">
+      @if (hasActiveFilters) {
+        <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear
+        </button>
+      }
+      <div class="col-menu-wrap">
+        <button class="btn-toolbar" (click)="colMenuOpen = !colMenuOpen" [class.btn-toolbar--active]="colMenuOpen" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </button>
+        @if (colMenuOpen) {
+          <div class="col-menu" (click)="$event.stopPropagation()">
+            @for (col of ALL_COLS; track col) {
+              <label class="col-menu__item">
+                <span class="col-menu__check" [class.col-menu__check--on]="isColumnVisible(col)">
+                  @if (isColumnVisible(col)) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </span>
+                <input type="checkbox" class="sr-only" [checked]="isColumnVisible(col)" (change)="toggleColumn(col)" />
+                {{ COLUMN_LABELS[col] }}
+              </label>
+            }
+          </div>
+        }
       </div>
+    </div>
+  </div>
+
+  <!-- ── Content Card ───────────────────────────────────────────────────────── -->
+  <div class="content-card enq-table-card">
+
+    @if (loading()) {
+      <!-- Skeleton rows -->
+      <div class="enq-skeleton">
+        @for (_ of [1,2,3,4,5,6,7,8]; track $index) {
+          <div class="enq-skeleton-row">
+            <div class="skel skel--avatar"></div>
+            <div class="skel skel--name"></div>
+            <div class="skel skel--pill"></div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--text skel--short"></div>
+            <div class="skel skel--pill skel--status"></div>
+          </div>
+        }
+      </div>
+
     } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <div id="tour-enq-content" class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table enq-table">
+
+          <!-- Name -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.name }}</span>
+              <div class="name-cell">
+                <span class="name-av" [attr.data-initial]="computeInitials(row.name).charAt(0)">
+                  {{ computeInitials(row.name) }}
+                </span>
+                <div>
+                  <div class="cell-name">{{ row.name }}</div>
+                  @if (row.email) {
+                    <div class="cell-sub">{{ row.email }}</div>
+                  }
+                </div>
+              </div>
             </td>
           </ng-container>
 
+          <!-- Phone -->
           <ng-container matColumnDef="phone">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
-            <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-mono">{{ row.phone || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Course -->
           <ng-container matColumnDef="programName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-muted">{{ row.courseName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Type -->
           <ng-container matColumnDef="studentType">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+            <th mat-header-cell *matHeaderCellDef>Type</th>
             <td mat-cell *matCellDef="let row">
               @if (row.studentType === 'DAY_SCHOLAR') {
-                <span class="cms-badge cms-badge--info">Day Scholar</span>
+                <span class="type-badge type-badge--day">Day Scholar</span>
               } @else if (row.studentType === 'HOSTELER') {
-                <span class="cms-badge cms-badge--accent">Hosteler</span>
+                <span class="type-badge type-badge--host">Hosteler</span>
               } @else {
-                <span>—</span>
+                <span class="cell-muted">—</span>
               }
             </td>
           </ng-container>
 
+          <!-- Date -->
           <ng-container matColumnDef="enquiryDate">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-date">{{ row.enquiryDate }}</span>
+              <span class="cell-date">{{ row.enquiryDate | appDate }}</span>
             </td>
           </ng-container>
 
+          <!-- Referral -->
           <ng-container matColumnDef="referralTypeName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Referral</th>
-            <td mat-cell *matCellDef="let row">{{ row.referralTypeName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-muted">{{ row.referralTypeName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Status -->
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               @if (canChangeStatus(row)) {
-                <span class="status-badge status-badge--clickable"
-                      [class.status-active]="row.status === 'ADMITTED' || row.status === 'FEES_PAID' || row.status === 'DOCUMENTS_SUBMITTED'"
-                      [class.status-pending]="row.status === 'ENQUIRED' || row.status === 'FEES_FINALIZED' || row.status === 'PARTIALLY_PAID'"
-                      [class.status-current]="row.status === 'INTERESTED'"
-                      [class.status-inactive]="row.status === 'NOT_INTERESTED' || row.status === 'CLOSED'"
-                      [matMenuTriggerFor]="statusMenu">
-                  {{ row.status }}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-                <mat-menu #statusMenu="matMenu">
+                <button class="enq-status-badge enq-status-badge--clickable"
+                        [attr.data-status]="row.status"
+                        [matMenuTriggerFor]="statusMenu">
+                  {{ statusLabel(row.status) }}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <mat-menu #statusMenu="matMenu" class="enq-status-menu">
                   @for (s of getNextStatuses(row.status); track s) {
-                    <button mat-menu-item (click)="onStatusUpdate(row, s)">{{ s }}</button>
+                    <button mat-menu-item (click)="onStatusUpdate(row, s)">
+                      <span class="menu-status-dot" [attr.data-status]="s"></span>
+                      {{ statusLabel(s) }}
+                    </button>
                   }
                 </mat-menu>
               } @else {
-                <span class="status-badge"
-                      [class.status-active]="row.status === 'ADMITTED' || row.status === 'FEES_PAID' || row.status === 'DOCUMENTS_SUBMITTED'"
-                      [class.status-pending]="row.status === 'ENQUIRED' || row.status === 'FEES_FINALIZED' || row.status === 'PARTIALLY_PAID'"
-                      [class.status-current]="row.status === 'INTERESTED'"
-                      [class.status-inactive]="row.status === 'NOT_INTERESTED' || row.status === 'CLOSED'">
-                  {{ row.status }}
+                <span class="enq-status-badge" [attr.data-status]="row.status">
+                  {{ statusLabel(row.status) }}
                 </span>
               }
             </td>
           </ng-container>
 
+          <!-- Agent -->
           <ng-container matColumnDef="agentName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Agent</th>
-            <td mat-cell *matCellDef="let row">{{ row.agentName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-muted">{{ row.agentName || '—' }}</span>
+            </td>
           </ng-container>
 
+          <!-- Actions -->
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit enquiry">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <button class="action-btn" matTooltip="View details" (click)="view(row)" aria-label="View enquiry">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
+                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit enquiry">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+
+                <!-- Contextual primary actions -->
                 @if (canFinalizeFee(row)) {
                   <button class="action-btn action-btn--primary" matTooltip="Finalize Fee" (click)="finalizeFee(row)" aria-label="Finalize fee">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </button>
                 }
                 @if (canCollectPayment(row)) {
                   <button class="action-btn action-btn--success" matTooltip="Collect Payment" (click)="collectPayment(row)" aria-label="Collect payment">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                   </button>
                 }
                 @if (canSubmitDocuments(row)) {
-                  <button class="action-btn action-btn--info" matTooltip="Collect &amp; Submit Documents" (click)="submitDocuments(row)" aria-label="Collect and submit documents">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 8 13"/><line x1="12" y1="17" x2="12" y2="11"/></svg>
+                  <button class="action-btn action-btn--info" matTooltip="Submit Documents" (click)="submitDocuments(row)" aria-label="Submit documents">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 8 13"/><line x1="12" y1="17" x2="12" y2="11"/></svg>
                   </button>
                 }
                 @if (canConvert(row)) {
                   <button class="action-btn action-btn--convert" matTooltip="Create Admission" (click)="convert(row)" aria-label="Create admission">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
                   </button>
                 }
                 @if (canDelete(row)) {
                   <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete enquiry">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
                 }
               </div>
@@ -215,24 +338,32 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row table-row--clickable" (click)="view(row)"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()"
+              class="table-row table-row--clickable"
+              (click)="view(row)"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No enquiries found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No enquiries available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0; border:none;">
+              <cms-empty-state
+                [icon]="searchValue() ? 'search_off' : 'person_search'"
+                [title]="searchValue() ? 'No enquiries match your search' : 'No enquiries found'"
+                [subtitle]="searchValue() ? 'Try adjusting the search term or clear filters.' : 'Add a new enquiry to get started.'"
+                [actionLabel]="searchValue() ? 'Clear Search' : 'Add Enquiry'"
+                (actionClick)="searchValue() ? clearFilter() : null"
+              />
             </td>
           </tr>
         </table>
       </div>
 
-      <div class="pagination-wrapper">
+      <div class="table-footer">
+        <span class="row-count">
+          @if (filteredCount() < totalCount()) {
+            {{ filteredCount() }} of {{ totalCount() }} enquiries
+          } @else {
+            {{ totalCount() }} enquiries
+          }
+        </span>
         <mat-paginator
           [pageSizeOptions]="[10, 25, 50, 100]"
           [pageSize]="25"

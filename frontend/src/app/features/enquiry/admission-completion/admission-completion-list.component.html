@@ -3,7 +3,9 @@
 <app-page-header
   title="Admission Completion"
   subtitle="Enquiries with documents submitted — choose one to complete admission"
-/>
+>
+  <cms-tour-button titleAction tourKey="admission-completion-list" [iconOnly]="true" iconVariant="info-circle" />
+</app-page-header>
 
 @if (loading()) {
   <div class="skeleton-screen">
@@ -19,7 +21,7 @@
   </div>
 } @else {
   <!-- ── Stats Bar ─────────────────────────────── -->
-  <div class="stats-bar" aria-label="Summary statistics">
+  <div id="tour-adcomp-stats" class="stats-bar" aria-label="Summary statistics">
     <div class="stat-chip">
       <div class="stat-chip__icon stat-chip__icon--default">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
@@ -101,7 +103,7 @@
         <button class="btn-ghost" style="margin-top: 12px" (click)="searchQuery.set('')">Clear search</button>
       </div>
     } @else {
-      <div class="table-wrapper">
+      <div id="tour-adcomp-table" class="table-wrapper">
         <table mat-table [dataSource]="filteredData()" class="modern-table">
 
           <!-- Student -->

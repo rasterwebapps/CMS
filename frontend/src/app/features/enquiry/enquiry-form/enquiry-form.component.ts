@@ -15,8 +15,10 @@ import { ReferralType } from '../../referral-type/referral-type.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { environment } from '../../../../environments';
 import { LayoutService } from '../../../core/layout/layout.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 interface ProgramInfo {
   id: number;
@@ -54,7 +56,8 @@ interface FeeStructureInfo {
   imports: [
     InrPipe,
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, PageHeaderComponent],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })
@@ -68,6 +71,7 @@ export class EnquiryFormComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -109,7 +113,46 @@ export class EnquiryFormComponent implements OnInit {
     studentType: ['DAY_SCHOLAR' as 'DAY_SCHOLAR' | 'HOSTELER', Validators.required],
   });
 
+  // ── Live summary helpers ──────────────────────────────────────────────────
+  protected readonly summaryName = computed(() =>
+    (this.form.get('name')?.value as string)?.trim() || null
+  );
+
+  protected readonly summaryInitials = computed(() => {
+    const n = this.summaryName();
+    if (!n) return null;
+    const parts = n.trim().split(/\s+/);
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase();
+  });
+
+  protected readonly summaryProgram = computed(() =>
+    this.selectedProgram()?.name ?? null
+  );
+
+  protected readonly summaryCourse = computed(() => {
+    const cId = this.form.get('courseId')?.value as number | null;
+    return this.courses().find(c => c.id === cId)?.name ?? null;
+  });
+
+  protected readonly summaryReferral = computed(() => {
+    const rtId = this.form.get('referralTypeId')?.value as number | null;
+    return this.referralTypes().find(r => r.id === rtId)?.name ?? null;
+  });
+
+  protected readonly summaryAgent = computed(() => {
+    const aId = this.form.get('agentId')?.value as number | null;
+    return this.agents().find(a => a.id === aId)?.name ?? null;
+  });
+
+  protected setStudentType(type: 'DAY_SCHOLAR' | 'HOSTELER'): void {
+    this.form.patchValue({ studentType: type });
+    this.onStudentTypeChange();
+  }
+
   ngOnInit(): void {
+    this.tourService.register('enquiry-form', ENQUIRY_FORM_TOUR);
     this.http.get<ProgramInfo[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (data) => this.programs.set(data),
     });

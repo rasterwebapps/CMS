@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -11,6 +12,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { REFERRAL_TYPE_FORM_TOUR } from '../../../shared/tour/tours/referral-type.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-referral-type-form',
@@ -22,7 +25,10 @@ import { REFERRAL_TYPE_FORM_TOUR } from '../../../shared/tour/tours/referral-typ
     MatIconModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+  ],
   templateUrl: './referral-type-form.component.html',
   styleUrl: './referral-type-form.component.scss',
 })
@@ -33,12 +39,27 @@ export class ReferralTypeFormComponent implements OnInit {
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Referral Type');
   protected readonly isSystemDefined = signal(false);
+
+  // Preview signals
+  protected readonly previewName    = signal('');
+  protected readonly previewCode    = signal('');
+  protected readonly previewDesc    = signal('');
+  protected readonly previewHasComm = signal(false);
+  protected readonly previewComm    = signal<number>(0);
+  protected readonly previewActive  = signal(true);
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'tag',           title: 'Code',       subtitle: 'Use uppercase + underscores (e.g., WALK_IN, AGENT). Used by the API.' },
+    { icon: 'currency_rupee',title: 'Commission', subtitle: 'When enabled, this amount is paid per successful admission via this referral.' },
+    { icon: 'visibility',    title: 'Active',     subtitle: 'Inactive types are hidden from new enquiries but kept for historical records.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -50,6 +71,28 @@ export class ReferralTypeFormComponent implements OnInit {
     description: [''],
     isActive: [true],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const v = this.form.getRawValue();
+        this.previewName.set((v.name ?? '').trim());
+        this.previewCode.set((v.code ?? '').toUpperCase().trim());
+        this.previewDesc.set((v.description ?? '').trim());
+        this.previewHasComm.set(!!v.hasCommission);
+        this.previewComm.set(Number(v.commissionAmount) || 0);
+        this.previewActive.set(!!v.isActive);
+      });
+  }
+
+  protected onCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const upper = input.value.toUpperCase();
+    if (upper !== input.value) {
+      this.form.get('code')?.setValue(upper, { emitEvent: true });
+    }
+  }
 
   ngOnInit(): void {
     this.tourService.register('referral-type-form', REFERRAL_TYPE_FORM_TOUR);

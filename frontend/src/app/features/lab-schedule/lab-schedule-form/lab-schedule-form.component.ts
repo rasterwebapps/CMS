@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,13 +12,17 @@ import { LabScheduleService } from '../lab-schedule.service';
 import { DAYS_OF_WEEK, LabScheduleRequest, LabSlot } from '../lab-schedule.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-lab-schedule-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule,
-    MatCheckboxModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+    RouterLink, ReactiveFormsModule, CmsTourButtonComponent,
+    MatCheckboxModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    CmsPreviewCardComponent, CmsTipsCardComponent,
+  ],
   templateUrl: './lab-schedule-form.component.html',
   styleUrl: './lab-schedule-form.component.scss',
 })
@@ -27,6 +33,7 @@ export class LabScheduleFormComponent implements OnInit {
   private readonly labScheduleService = inject(LabScheduleService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -38,6 +45,33 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly labSlots = signal<LabSlot[]>([]);
   protected readonly semesters = signal<{ id: number; name: string }[]>([]);
   protected readonly daysOfWeek = DAYS_OF_WEEK;
+
+  // Preview signals
+  protected readonly previewLabId     = signal<number | null>(null);
+  protected readonly previewCourseId  = signal<number | null>(null);
+  protected readonly previewFacultyId = signal<number | null>(null);
+  protected readonly previewSlotId    = signal<number | null>(null);
+  protected readonly previewBatch     = signal('');
+  protected readonly previewDay       = signal('');
+  protected readonly previewSemId     = signal<number | null>(null);
+  protected readonly previewActive    = signal(true);
+  protected readonly previewLabName     = computed(() => this.labs().find(l => l.id === this.previewLabId())?.name ?? '');
+  protected readonly previewCourseName  = computed(() => {
+    const c = this.courses().find(x => x.id === this.previewCourseId());
+    return c ? `${c.name} (${c.code})` : '';
+  });
+  protected readonly previewFacultyName = computed(() => this.faculty().find(f => f.id === this.previewFacultyId())?.name ?? '');
+  protected readonly previewSemName     = computed(() => this.semesters().find(s => s.id === this.previewSemId())?.name ?? '');
+  protected readonly previewSlotLabel   = computed(() => {
+    const s = this.labSlots().find(x => x.id === this.previewSlotId());
+    return s ? `${s.startTime}-${s.endTime}` : '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'group',          title: 'Batch',     subtitle: 'Use a clear name (e.g., "Batch A") so students know which schedule applies to them.' },
+    { icon: 'today',          title: 'Day & Slot', subtitle: 'Each lab can host one schedule per Day + Slot — conflicts are blocked by the system.' },
+    { icon: 'manage_accounts',title: 'Faculty',   subtitle: 'Pick a faculty member with subject expertise; they receive automatic calendar reminders.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -51,6 +85,21 @@ export class LabScheduleFormComponent implements OnInit {
     semesterId: [null, Validators.required],
     isActive: [true],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewLabId.set(v.labId ?? null);
+        this.previewCourseId.set(v.courseId ?? null);
+        this.previewFacultyId.set(v.facultyId ?? null);
+        this.previewSlotId.set(v.labSlotId ?? null);
+        this.previewBatch.set((v.batchName ?? '').trim());
+        this.previewDay.set(v.dayOfWeek ?? '');
+        this.previewSemId.set(v.semesterId ?? null);
+        this.previewActive.set(!!v.isActive);
+      });
+  }
 
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({

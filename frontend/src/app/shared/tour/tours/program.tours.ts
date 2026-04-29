@@ -89,7 +89,7 @@ export const PROGRAM_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Program Name',
         description:
-          'Enter the full official name of the programme — e.g., <em>Bachelor of Computer Science</em>. This field is required.',
+          'Enter the full official name of the programme — e.g., <em>Bachelor</em>. This field is required.',
         side: 'bottom',
         align: 'start',
       },

@@ -5,6 +5,7 @@
       title="Collect Documents"
       subtitle="Upload and verify documents submitted by the candidate"
     >
+      <cms-tour-button titleAction tourKey="document-collection" [iconOnly]="true" iconVariant="info-circle" />
       <button class="btn-ghost" type="button" (click)="backToList()">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         Back to list
@@ -20,7 +21,7 @@
   } @else if (enquiry()) {
 
     <!-- ── Candidate Banner ─────────────────────────────────────────────── -->
-    <div class="candidate-banner">
+    <div id="tour-doccol-banner" class="candidate-banner">
       <div class="candidate-banner__avatar">{{ initials(enquiry()!.name) }}</div>
       <div class="candidate-banner__info">
         <h2 class="candidate-banner__name">{{ enquiry()!.name }}</h2>
@@ -84,7 +85,7 @@
         <p class="doc-section__subtitle">All documents below must be uploaded or verified before submission.</p>
       </div>
 
-      <div class="doc-list">
+      <div id="tour-doccol-list" class="doc-list">
         @for (row of mandatoryRows(); track row.documentType) {
           <div
             class="doc-card"

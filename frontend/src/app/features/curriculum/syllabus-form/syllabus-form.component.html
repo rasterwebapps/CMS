@@ -1,115 +1,141 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/syllabi" class="back-btn" aria-label="Back to syllabi">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/syllabi" aria-label="Back to syllabi">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Syllabus</em></h1>
+        <cms-tour-button tourKey="syllabus-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the syllabus details below.' : 'Fill in the details below to create a new syllabus.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="syllabus-form" />
   </div>
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="syl-course" class="field-label">Course <span class="field-required">*</span></label>
-          <select
-            id="syl-course"
-            class="field-select"
-            formControlName="courseId"
-            [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched"
-          >
-            <option [ngValue]="null" disabled>Select a course</option>
-            @for (course of courses(); track course.id) {
-              <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
-            }
-          </select>
-          @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-            <p class="field-error">Course is required</p>
-          }
-        </div>
-
-        <div class="field-group">
-          <label for="syl-version" class="field-label">Version <span class="field-required">*</span></label>
-          <input
-            id="syl-version"
-            class="field-input field-input--narrow"
-            type="number"
-            formControlName="version"
-            min="1"
-            placeholder="e.g., 1"
-            [class.field-input--error]="form.get('version')?.invalid && form.get('version')?.touched"
-          />
-          @if (form.get('version')?.invalid && form.get('version')?.touched) {
-            <p class="field-error">Version is required (minimum 1)</p>
-          }
-        </div>
-
-        <div class="form-row">
-          <div class="field-group">
-            <label for="syl-theory" class="field-label">Theory Hours</label>
-            <input id="syl-theory" class="field-input" type="number" formControlName="theoryHours" min="0" placeholder="0" />
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           </div>
-          <div class="field-group">
-            <label for="syl-lab" class="field-label">Lab Hours</label>
-            <input id="syl-lab" class="field-input" type="number" formControlName="labHours" min="0" placeholder="0" />
-          </div>
-          <div class="field-group">
-            <label for="syl-tutorial" class="field-label">Tutorial Hours</label>
-            <input id="syl-tutorial" class="field-input" type="number" formControlName="tutorialHours" min="0" placeholder="0" />
+          <div>
+            <div class="entry-form-card__hdr-title">Syllabus</div>
+            <div class="entry-form-card__hdr-sub">Course content, hours & references</div>
           </div>
         </div>
 
-        <div class="field-group">
-          <label for="syl-objectives" class="field-label">Objectives</label>
-          <textarea id="syl-objectives" class="field-textarea" formControlName="objectives" rows="3" placeholder="Enter course objectives"></textarea>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-        <div class="field-group">
-          <label for="syl-content" class="field-label">Content</label>
-          <textarea id="syl-content" class="field-textarea" formControlName="content" rows="3" placeholder="Enter syllabus content"></textarea>
-        </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="syl-course" class="field-label">Course <span class="required-star">*</span></label>
+                <select id="syl-course" class="field-select" formControlName="courseId"
+                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+                  <option [ngValue]="null" disabled>Select a course</option>
+                  @for (course of courses(); track course.id) {
+                    <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+                  }
+                </select>
+                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+                  <p class="field-error">Course is required</p>
+                }
+              </div>
 
-        <div class="field-group">
-          <label for="syl-textbooks" class="field-label">Text Books</label>
-          <textarea id="syl-textbooks" class="field-textarea" formControlName="textBooks" rows="3" placeholder="List text books, one per line"></textarea>
-        </div>
+              <div class="field-group">
+                <label for="syl-version" class="field-label">Version <span class="required-star">*</span></label>
+                <input id="syl-version" class="field-input" type="number" formControlName="version"
+                  min="1" placeholder="e.g., 1"
+                  [class.field-input--error]="form.get('version')?.invalid && form.get('version')?.touched" />
+                @if (form.get('version')?.invalid && form.get('version')?.touched) {
+                  <p class="field-error">Version is required (minimum 1)</p>
+                }
+              </div>
+            </div>
 
-        <div class="field-group">
-          <label for="syl-refbooks" class="field-label">Reference Books</label>
-          <textarea id="syl-refbooks" class="field-textarea" formControlName="referenceBooks" rows="3" placeholder="List reference books, one per line"></textarea>
-        </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="syl-theory" class="field-label">Theory Hours</label>
+                <input id="syl-theory" class="field-input" type="number" formControlName="theoryHours" min="0" placeholder="0" />
+              </div>
+              <div class="field-group">
+                <label for="syl-lab" class="field-label">Lab Hours</label>
+                <input id="syl-lab" class="field-input" type="number" formControlName="labHours" min="0" placeholder="0" />
+              </div>
+              <div class="field-group">
+                <label for="syl-tutorial" class="field-label">Tutorial Hours</label>
+                <input id="syl-tutorial" class="field-input" type="number" formControlName="tutorialHours" min="0" placeholder="0" />
+              </div>
+            </div>
 
-        <div class="field-group">
-          <label for="syl-outcomes" class="field-label">Course Outcomes</label>
-          <textarea id="syl-outcomes" class="field-textarea" formControlName="courseOutcomes" rows="3" placeholder="Enter expected course outcomes"></textarea>
-        </div>
+            <div class="field-group">
+              <label for="syl-objectives" class="field-label">Objectives</label>
+              <textarea id="syl-objectives" class="field-textarea" formControlName="objectives" rows="3" placeholder="Enter course objectives"></textarea>
+            </div>
 
-        <div class="field-group">
-          <label class="checkbox-label">
-            <mat-checkbox formControlName="isActive">Active</mat-checkbox>
-          </label>
-        </div>
+            <div class="field-group">
+              <label for="syl-content" class="field-label">Content</label>
+              <textarea id="syl-content" class="field-textarea" formControlName="content" rows="3" placeholder="Enter syllabus content"></textarea>
+            </div>
 
-        <div id="tour-syl-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/syllabi">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Syllabus' : 'Create Syllabus' }}
-            }
-          </button>
-        </div>
+            <div class="field-group">
+              <label for="syl-textbooks" class="field-label">Text Books</label>
+              <textarea id="syl-textbooks" class="field-textarea" formControlName="textBooks" rows="3" placeholder="List text books, one per line"></textarea>
+            </div>
 
-      </form>
+            <div class="field-group">
+              <label for="syl-refbooks" class="field-label">Reference Books</label>
+              <textarea id="syl-refbooks" class="field-textarea" formControlName="referenceBooks" rows="3" placeholder="List reference books, one per line"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="syl-outcomes" class="field-label">Course Outcomes</label>
+              <textarea id="syl-outcomes" class="field-textarea" formControlName="courseOutcomes" rows="3" placeholder="Enter expected course outcomes"></textarea>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+            </div>
+          </div>
+
+          <div id="tour-syl-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/syllabi">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Syllabus' : 'Create Syllabus' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewCourseName()">
+            {{ previewCourseName() || 'Course will appear here' }}
+          </div>
+          @if (previewVersionNum()) { <div class="prev-sub">Version {{ previewVersionNum() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewTheory()) { <span class="prev-pill">{{ previewTheory() }}h Theory</span> }
+            @if (previewLab()) { <span class="prev-pill">{{ previewLab() }}h Lab</span> }
+            @if (previewTutorial()) { <span class="prev-pill">{{ previewTutorial() }}h Tut</span> }
+            @if (totalHours()) { <span class="prev-pill prev-pill--primary">Σ {{ totalHours() }}h</span> }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

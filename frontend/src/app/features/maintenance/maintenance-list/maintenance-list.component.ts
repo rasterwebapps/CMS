@@ -13,6 +13,7 @@ import { MaintenanceService } from '../maintenance.service';
 import { MaintenanceRequest } from '../maintenance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -21,6 +22,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     PageHeaderComponent,
+    CmsTourButtonComponent,
     CmsStatusBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,

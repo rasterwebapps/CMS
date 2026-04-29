@@ -13,6 +13,7 @@ import { LabScheduleService } from '../lab-schedule.service';
 import { LabSchedule } from '../lab-schedule.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -20,6 +21,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     PageHeaderComponent,
+    CmsTourButtonComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './lab-schedule-list.component.html',

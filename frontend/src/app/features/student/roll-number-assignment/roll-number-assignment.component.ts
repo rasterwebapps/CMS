@@ -13,6 +13,9 @@ import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ROLL_NUMBER_ASSIGNMENT_TOUR } from '../../../shared/tour/tours/student.tours';
 
 interface RollAssignment {
   student: Student;
@@ -29,7 +32,8 @@ interface RollAssignment {
     MatIconModule,
     MatTableModule,
     MatSortModule,
-    MatProgressSpinnerModule],
+    MatProgressSpinnerModule,
+    CmsTourButtonComponent],
   templateUrl: './roll-number-assignment.component.html',
   styleUrl: './roll-number-assignment.component.scss',
 })
@@ -38,6 +42,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   private readonly programService = inject(ProgramService);
   private readonly courseService = inject(CourseService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly programs = signal<Program[]>([]);
   protected readonly courses = signal<Course[]>([]);
@@ -51,6 +56,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   protected readonly displayedColumns = ['name', 'programName', 'admissionDate', 'rollNumber', 'actions'];
 
   ngOnInit(): void {
+    this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);
     this.programService.getAll().subscribe({ next: (p) => this.programs.set(p) });
     this.courseService.getAll().subscribe({ next: (c) => this.courses.set(c) });
     this.loadStudents();

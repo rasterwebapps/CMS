@@ -10,6 +10,9 @@ import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } f
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -21,7 +24,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent],
+    PageHeaderComponent,
+    CmsTourButtonComponent],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
 })
@@ -32,6 +36,7 @@ export class EnquiryConvertComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
+  private readonly tourService = inject(TourService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly prefill = signal<EnquiryConversionPrefillResponse | null>(null);
@@ -98,6 +103,7 @@ export class EnquiryConvertComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('enquiry-convert', ENQUIRY_CONVERT_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
   }

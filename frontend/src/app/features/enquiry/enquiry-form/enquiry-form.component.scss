@@ -1,140 +1,271 @@
-// ── Enquiry Form Page Layout ──────────────────────
-.enquiry-form-page {
-  padding: 28px 32px;
-  max-width: 960px;
+// ─────────────────────────────────────────────────────────────
+// Enquiry Form
+// ─────────────────────────────────────────────────────────────
 
-  @media (max-width: 768px) {
-    padding: 20px 16px;
-  }
-}
-
-.enquiry-layout {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
-  align-items: start;
-  margin-top: 24px;
-
-  @media (max-width: 960px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Inline read-only fee amount display inside the form */
-.fee-amount-display {
+.enq-form-page {
+  padding: 24px 32px 40px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (max-width: 768px) { padding: 16px; gap: 14px; }
+}
+
+.loading-box {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  padding: 14px 16px;
-  background: var(--cms-primary-alpha-8);
-  border: 1.5px solid var(--cms-primary);
+  min-height: 300px;
+}
+
+// ── Header ────────────────────────────────────────────────────
+
+.enq-form-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 680px;
+}
+
+.back-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-top: 6px;
   border-radius: 10px;
-  margin: 4px 0 8px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--cms-text-secondary);
+  transition: background 0.18s, border-color 0.18s, transform 0.18s, color 0.18s;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.07);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    color: var(--cms-primary);
+    transform: translateX(-2px);
+  }
 }
 
-.fee-amount-label {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--cms-primary);
+.enq-form-hdr-text { flex: 1; }
+
+.enq-form-title {
+  margin: 0 0 4px;
+  font-family: var(--cms-font-display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+
+  em { font-style: italic; color: var(--cms-primary); }
+}
+
+.enq-form-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.enq-form-hdr-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  padding-top: 6px;
+  flex-shrink: 0;
 }
 
-.fee-amount-value {
-  font-size: 1.2rem;
+// ── Form card — single centred column ─────────────────────────
+
+.enq-form-card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 14px;
+  box-shadow: var(--cms-shadow-sm);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @media (max-width: 768px) { padding: 16px; gap: 12px; }
+}
+
+// ── Field groups ──────────────────────────────────────────────
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+}
+
+.field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+}
+
+.field-required { color: #ef4444; }
+
+.field-input,
+.field-select,
+.field-textarea {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-primary);
+  font-family: var(--cms-font-ui);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+
+  &:focus {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+    background: var(--cms-bg-card);
+  }
+
+  &--error { border-color: #ef4444; }
+}
+
+.field-textarea { resize: vertical; min-height: 80px; }
+.field-error { font-size: 0.72rem; color: #ef4444; margin: 0; }
+.field-select--error { border-color: #ef4444; }
+
+// ── Divider ───────────────────────────────────────────────────
+
+.form-divider {
+  height: 1px;
+  background: var(--cms-border-light);
+  margin: 2px 0;
+}
+
+// ── Student type toggle ────────────────────────────────────────
+
+.stt-toggle {
+  display: flex;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.stt-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--cms-font-ui);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { color: var(--cms-text-primary); }
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
+    font-weight: 600;
+    box-shadow: var(--cms-shadow-sm);
+  }
+}
+
+// ── Fee banner ────────────────────────────────────────────────
+
+.fee-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: rgba(var(--cms-primary-rgb), 0.06);
+  border: 1.5px solid rgba(var(--cms-primary-rgb), 0.18);
+  border-radius: 9px;
+}
+
+.fee-banner-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+}
+
+.fee-banner-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(var(--cms-primary-rgb), 0.12);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.fee-banner-val {
+  font-size: 1.0625rem;
   font-weight: 800;
   color: var(--cms-primary);
   letter-spacing: -0.02em;
 }
 
-.fee-type-hint {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--cms-primary);
-  opacity: 0.7;
-}
+// ── Buttons ───────────────────────────────────────────────────
 
-// ── Fee Sidebar Card ──────────────────────────────
-.fee-sidebar-card {
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-light);
-  border-radius: var(--cms-radius-md);
-  padding: 20px;
-  box-shadow: var(--cms-shadow-sm);
-}
-
-.fee-sidebar-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.fee-icon {
-  // Decorative sidebar icon — secondary colour keeps visual hierarchy clear.
-  color: var(--cms-text-secondary);
-  margin-top: 2px;
-}
-
-.fee-sidebar-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--cms-text-primary);
-}
-
-.fee-sidebar-sub {
-  margin: 2px 0 0;
-  font-size: 0.8125rem;
-  color: var(--cms-text-muted);
-}
-
-.fee-total {
-  display: flex;
-  justify-content: space-between;
+.btn-cancel {
+  display: inline-flex;
   align-items: center;
-  padding: 16px;
-  margin: 12px 0;
-  background: var(--cms-primary-alpha-8);
-  border-radius: 12px;
+  padding: 9px 18px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--cms-font-ui);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: var(--cms-primary); color: var(--cms-primary); }
 }
 
-.fee-total-label {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--cms-primary);
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 22px;
+  border: none;
+  border-radius: 9px;
+  background: var(--cms-primary);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--cms-font-ui);
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+
+  &:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
-.fee-total-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--cms-primary);
-}
-
-.no-fee-hint {
-  text-align: center;
-  color: var(--cms-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 16px 0;
-}
-
-// ── Form sections ──────────────────────────────────────────────────────────
-.form-section {
-  & + & {
-    margin-top: 8px;
-    padding-top: 20px;
-    border-top: 1px solid var(--cms-border-light);
-  }
-}
-
-.form-section-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--cms-text-muted);
-  margin: 0 0 14px;
-}
+.btn-spinner { display: inline-block; }

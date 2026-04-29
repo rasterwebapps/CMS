@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +13,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-equipment-form',
@@ -19,7 +22,8 @@ import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours'
   imports: [
     RouterLink, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent, CmsPreviewCardComponent, CmsTipsCardComponent,
+  ],
   templateUrl: './equipment-form.component.html',
   styleUrl: './equipment-form.component.scss',
 })
@@ -31,6 +35,7 @@ export class EquipmentFormComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -39,6 +44,26 @@ export class EquipmentFormComponent implements OnInit {
   protected readonly labs = signal<{ id: number; name: string }[]>([]);
   protected readonly categories = ['COMPUTER', 'NETWORKING', 'ELECTRONICS', 'MECHANICAL', 'GENERAL'];
   protected readonly statuses = ['AVAILABLE', 'IN_USE', 'UNDER_REPAIR', 'DAMAGED', 'DISPOSED'];
+
+  // Preview signals
+  protected readonly previewName     = signal('');
+  protected readonly previewModel    = signal('');
+  protected readonly previewSerial   = signal('');
+  protected readonly previewLabId    = signal<number | null>(null);
+  protected readonly previewCategory = signal<string>('');
+  protected readonly previewStatus   = signal<string>('AVAILABLE');
+  protected readonly previewCost     = signal<number | null>(null);
+  protected readonly previewLabName  = computed(() => {
+    const id = this.previewLabId();
+    if (!id) return '';
+    return this.labs().find(l => l.id === id)?.name ?? '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'qr_code',     title: 'Serial Number', subtitle: 'Critical for warranty claims and asset tracking — match the manufacturer label.' },
+    { icon: 'category',    title: 'Category',      subtitle: 'Group items so technicians can filter and report by class.' },
+    { icon: 'event_busy',  title: 'Warranty',      subtitle: 'Setting an expiry date enables alerts in the inventory dashboard before it lapses.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -53,6 +78,20 @@ export class EquipmentFormComponent implements OnInit {
     purchaseCost: [null, [Validators.min(0)]],
     warrantyExpiry: [''],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewModel.set((v.model ?? '').trim());
+        this.previewSerial.set((v.serialNumber ?? '').trim());
+        this.previewLabId.set(v.labId ?? null);
+        this.previewCategory.set(v.category ?? '');
+        this.previewStatus.set(v.status ?? 'AVAILABLE');
+        this.previewCost.set(v.purchaseCost != null && v.purchaseCost !== '' ? Number(v.purchaseCost) : null);
+      });
+  }
 
   ngOnInit(): void {
     this.tourService.register('equipment-form', EQUIPMENT_FORM_TOUR);

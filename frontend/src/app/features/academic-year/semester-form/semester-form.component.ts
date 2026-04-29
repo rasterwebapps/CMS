@@ -1,8 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../academic-year.service';
 import { AcademicYear, SemesterRequest } from '../academic-year.model';
@@ -10,6 +9,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SEMESTER_FORM_TOUR } from '../../../shared/tour/tours/semester.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-semester-form',
@@ -17,10 +19,11 @@ import { SEMESTER_FORM_TOUR } from '../../../shared/tour/tours/semester.tours';
   imports: [
     RouterLink,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+    AppDatePipe,
   ],
   templateUrl: './semester-form.component.html',
   styleUrl: './semester-form.component.scss',
@@ -32,6 +35,7 @@ export class SemesterFormComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -39,6 +43,24 @@ export class SemesterFormComponent implements OnInit {
   protected readonly pageTitle = signal('Add Semester');
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly semesterNumbers = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  // Preview signals
+  protected readonly previewName       = signal('');
+  protected readonly previewSemNumber  = signal<number | null>(null);
+  protected readonly previewStart      = signal<string | null>(null);
+  protected readonly previewEnd        = signal<string | null>(null);
+  protected readonly previewAyId       = signal<number | null>(null);
+  protected readonly previewAyName     = computed(() => {
+    const id = this.previewAyId();
+    if (!id) return '';
+    return this.academicYears().find(ay => ay.id === id)?.name ?? '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'school',     title: 'Parent Year', subtitle: 'Each semester must belong to one academic year.' },
+    { icon: 'looks_one',  title: 'Numbering',   subtitle: 'Semester numbers should sequence the program (1 = first term).' },
+    { icon: 'date_range', title: 'Date range',  subtitle: 'Start/End must fall within the parent academic year window.' },
+  ];
 
   private semesterId: number | null = null;
 
@@ -49,6 +71,18 @@ export class SemesterFormComponent implements OnInit {
     endDate: ['', [Validators.required]],
     academicYearId: [null as number | null, [Validators.required]],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewSemNumber.set(v.semesterNumber ?? null);
+        this.previewStart.set(v.startDate || null);
+        this.previewEnd.set(v.endDate || null);
+        this.previewAyId.set(v.academicYearId ?? null);
+      });
+  }
 
   ngOnInit(): void {
     this.tourService.register('semester-form', SEMESTER_FORM_TOUR);

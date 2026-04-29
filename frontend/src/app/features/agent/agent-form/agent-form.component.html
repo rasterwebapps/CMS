@@ -1,15 +1,17 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/agents" class="back-btn" aria-label="Back to agents">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/agents" aria-label="Back to agents">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Agent</em></h1>
+        <cms-tour-button tourKey="agent-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the agent details below.' : 'Fill in the details below to register a new agent.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="agent-form" />
   </div>
 
   @if (loading()) {
@@ -17,119 +19,128 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="agent-name" class="field-label">Name</label>
-          <input
-            id="agent-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="Enter agent name"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">Name is required</p>
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Agent Information</div>
+            <div class="entry-form-card__hdr-sub">Contact, area, allotment & commission</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="agent-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="agent-name" class="field-input" formControlName="name"
+                placeholder="Enter agent name" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">Name is required</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="agent-phone" class="field-label">Phone</label>
+                <input id="agent-phone" class="field-input" formControlName="phone"
+                  placeholder="+91 9876543210" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="agent-email" class="field-label">Email</label>
+                <input id="agent-email" type="email" class="field-input" formControlName="email"
+                  placeholder="agent@example.com" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="agent-area" class="field-label">Area</label>
+                <input id="agent-area" class="field-input" formControlName="area"
+                  placeholder="e.g., South Zone" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="agent-locality" class="field-label">Locality</label>
+                <input id="agent-locality" class="field-input" formControlName="locality"
+                  placeholder="e.g., Anna Nagar" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="agent-seats" class="field-label">Allotted Seats</label>
+                <input id="agent-seats" type="number" class="field-input"
+                  formControlName="allottedSeats" min="0" placeholder="0" />
+                <p class="field-hint">Number of seats assigned</p>
+              </div>
+              <div class="field-group">
+                <label for="agent-commission" class="field-label">Commission (₹)</label>
+                <input id="agent-commission" type="number" class="field-input"
+                  formControlName="commissionAmount" min="0" placeholder="0"
+                  [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched" />
+                <p class="field-hint">Blank = use Referral Type default</p>
+                @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
+                  <p class="field-error">Must be 0 or greater</p>
+                }
+              </div>
+            </div>
+
+            <div id="tour-agent-active-toggle" class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+            </div>
+          </div>
+
+          <div id="tour-agent-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Agent' : 'Create Agent' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-avatar">{{ previewInitials() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Agent name will appear here' }}
+          </div>
+          @if (previewArea() || previewLocality()) {
+            <div class="prev-sub">
+              {{ previewLocality() }}{{ previewLocality() && previewArea() ? ', ' : '' }}{{ previewArea() }}
+            </div>
           }
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="agent-phone" class="field-label">Phone</label>
-            <input
-              id="agent-phone"
-              class="field-input"
-              formControlName="phone"
-              placeholder="+91 9876543210"
-              autocomplete="off"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="agent-email" class="field-label">Email</label>
-            <input
-              id="agent-email"
-              type="email"
-              class="field-input"
-              formControlName="email"
-              placeholder="agent@example.com"
-              autocomplete="off"
-            />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="agent-area" class="field-label">Area</label>
-            <input
-              id="agent-area"
-              class="field-input"
-              formControlName="area"
-              placeholder="e.g., South Zone"
-              autocomplete="off"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="agent-locality" class="field-label">Locality</label>
-            <input
-              id="agent-locality"
-              class="field-input"
-              formControlName="locality"
-              placeholder="e.g., Anna Nagar"
-              autocomplete="off"
-            />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="agent-seats" class="field-label">Allotted Seats</label>
-          <input
-            id="agent-seats"
-            type="number"
-            class="field-input field-input--narrow"
-            formControlName="allottedSeats"
-            min="0"
-            placeholder="0"
-          />
-          <p class="field-hint">Number of seats assigned to this agent</p>
-        </div>
-
-        <div class="field-group">
-          <label for="agent-commission" class="field-label">Commission Amount (₹)</label>
-          <input
-            id="agent-commission"
-            type="number"
-            class="field-input field-input--narrow"
-            formControlName="commissionAmount"
-            min="0"
-            placeholder="0"
-            [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched"
-          />
-          <p class="field-hint">Leave blank to use the default from the Referral Type master</p>
-          @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
-            <p class="field-error">Commission amount must be 0 or greater</p>
+          @if (previewPhone() || previewEmail()) {
+            <div class="prev-sub" style="margin-top: 4px;">
+              @if (previewPhone()) { <span>{{ previewPhone() }}</span> }
+              @if (previewPhone() && previewEmail()) { <span> · </span> }
+              @if (previewEmail()) { <span>{{ previewEmail() }}</span> }
+            </div>
           }
-        </div>
-
-        <div id="tour-agent-active-toggle" class="field-group">
-          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
-        </div>
-
-        <div id="tour-agent-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Agent' : 'Create Agent' }}
+          <div class="prev-meta-row">
+            @if (previewSeats() != null) {
+              <span class="prev-pill">{{ previewSeats() }} seats</span>
             }
-          </button>
-        </div>
+            @if (previewComm() != null && previewComm()! > 0) {
+              <span class="prev-pill prev-pill--amber">₹ {{ previewComm() }}</span>
+            }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
 
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

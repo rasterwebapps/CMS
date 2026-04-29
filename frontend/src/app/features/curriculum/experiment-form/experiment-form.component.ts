@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +14,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tours';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-experiment-form',
@@ -24,7 +27,10 @@ import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tour
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+  ],
   templateUrl: './experiment-form.component.html',
   styleUrl: './experiment-form.component.scss',
 })
@@ -36,12 +42,30 @@ export class ExperimentFormComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Experiment');
   protected readonly courses = signal<{ id: number; name: string; code: string }[]>([]);
+
+  // Preview signals
+  protected readonly previewCourseId = signal<number | null>(null);
+  protected readonly previewNumber   = signal<number | null>(null);
+  protected readonly previewName     = signal('');
+  protected readonly previewDuration = signal<number | null>(null);
+  protected readonly previewActive   = signal(true);
+  protected readonly previewCourseName = computed(() => {
+    const c = this.courses().find(x => x.id === this.previewCourseId());
+    return c ? `${c.name} (${c.code})` : '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'numbers',   title: 'Numbering',  subtitle: 'Maintain sequential numbers within a course — students follow them in order.' },
+    { icon: 'task_alt',  title: 'Outcomes',   subtitle: 'Specific, measurable learning outcomes are required for CO-PO mapping.' },
+    { icon: 'timer',     title: 'Duration',   subtitle: 'Helps faculty budget time within a single lab session.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -58,6 +82,18 @@ export class ExperimentFormComponent implements OnInit {
     estimatedDurationMinutes: [null, [Validators.min(0)]],
     isActive: [true],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewCourseId.set(v.courseId ?? null);
+        this.previewNumber.set(v.experimentNumber ? Number(v.experimentNumber) : null);
+        this.previewName.set((v.name ?? '').trim());
+        this.previewDuration.set(v.estimatedDurationMinutes != null && v.estimatedDurationMinutes !== '' ? Number(v.estimatedDurationMinutes) : null);
+        this.previewActive.set(!!v.isActive);
+      });
+  }
 
   ngOnInit(): void {
     this.tourService.register('experiment-form', EXPERIMENT_FORM_TOUR);

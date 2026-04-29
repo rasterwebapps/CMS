@@ -1,14 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
-import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
-import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import {
   Enquiry,
   EnquiryDocument,
@@ -17,21 +14,20 @@ import {
 } from '../enquiry.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { STATUS_LABELS } from '../enquiry-list/enquiry-list.component';
+import { computeInitials } from '../../../shared/utils/initials';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 @Component({
   selector: 'app-enquiry-detail',
   standalone: true,
   imports: [
-    AppDatePipe,
-    InrPipe,
-    RouterLink,
-    MatTabsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatTooltipModule,
-    CmsStatusBadgeComponent,
-    CmsSkeletonComponent,
+    AppDatePipe, InrPipe, RouterLink,
+    MatTableModule, MatTooltipModule, MatProgressSpinnerModule,
+    CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
@@ -41,6 +37,7 @@ export class EnquiryDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly documents = signal<EnquiryDocument[]>([]);
@@ -49,24 +46,13 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly historyColumns = [
-    'changedAt',
-    'fromStatus',
-    'toStatus',
-    'changedBy',
-    'remarks',
-  ];
+  protected readonly historyColumns = ['changedAt', 'fromStatus', 'toStatus', 'changedBy', 'remarks'];
+  protected readonly activeTab = signal<'overview' | 'documents' | 'payments' | 'history'>('overview');
+  protected readonly computeInitials = computeInitials;
+  protected readonly STATUS_LABELS   = STATUS_LABELS;
+  protected readonly Math            = Math;
 
-  // Quick-stat computed signals (Phase 3 §2.3 / §2.8)
-  protected readonly initials = computed(() => {
-    const name = this.enquiry()?.name ?? '';
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase() ?? '')
-      .join('');
-  });
+  protected readonly initials = computed(() => computeInitials(this.enquiry()?.name));
 
   protected readonly daysActive = computed(() => {
     const e = this.enquiry();
@@ -83,6 +69,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly docsTotal = computed(() => this.documents().length);
 
   ngOnInit(): void {
+    this.tourService.register('enquiry-detail', ENQUIRY_DETAIL_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
   }
@@ -130,6 +117,10 @@ export class EnquiryDetailComponent implements OnInit {
         this.submitting.set(false);
       },
     });
+  }
+
+  protected statusLabel(s: string | null | undefined): string {
+    return STATUS_LABELS[s ?? ''] ?? (s ?? '');
   }
 
   protected navigateToConvert(): void {

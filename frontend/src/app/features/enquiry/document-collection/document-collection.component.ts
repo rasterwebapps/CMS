@@ -14,6 +14,9 @@ import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DOCUMENT_COLLECTION_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 /**
  * All document types supported by the system. Mirrors the backend
@@ -69,7 +72,8 @@ interface ChecklistRow {
     MatProgressSpinnerModule,
     MatTooltipModule,
     PageHeaderComponent,
-    CmsStatusBadgeComponent],
+    CmsStatusBadgeComponent,
+    CmsTourButtonComponent],
   templateUrl: './document-collection.component.html',
   styleUrl: './document-collection.component.scss',
 })
@@ -79,6 +83,7 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
   protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(true);
@@ -142,6 +147,7 @@ export class DocumentCollectionComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('document-collection', DOCUMENT_COLLECTION_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id || Number.isNaN(id)) {
       this.toast.warning('Invalid enquiry id');

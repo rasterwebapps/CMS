@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,13 +9,16 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SettingsService } from '../settings.service';
 import { SystemConfigurationRequest } from '../settings.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-system-configuration-form',
   standalone: true,
   imports: [
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSlideToggleModule],
+    MatSlideToggleModule, CmsTourButtonComponent, CmsPreviewCardComponent, CmsTipsCardComponent],
   templateUrl: './system-configuration-form.component.html',
   styleUrl: './system-configuration-form.component.scss',
 })
@@ -24,6 +28,7 @@ export class SystemConfigurationFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -31,6 +36,20 @@ export class SystemConfigurationFormComponent implements OnInit {
   protected readonly pageTitle = signal('Add Configuration');
 
   protected readonly dataTypes = ['STRING', 'INTEGER', 'DECIMAL', 'BOOLEAN'];
+
+  // Preview signals
+  protected readonly previewKey = signal('');
+  protected readonly previewValue = signal('');
+  protected readonly previewType = signal('STRING');
+  protected readonly previewCategory = signal('');
+  protected readonly previewEditable = signal(true);
+  protected readonly previewDescription = signal('');
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'key',          title: 'Naming',     subtitle: 'Use UPPER_SNAKE_CASE keys (e.g. MAX_STUDENTS_PER_LAB) for consistency.' },
+    { icon: 'category',     title: 'Category',   subtitle: 'Group related keys (ACADEMIC, SYSTEM, FINANCE) so they can be filtered.' },
+    { icon: 'lock',         title: 'Editable',   subtitle: 'Lock infrastructure keys to prevent accidental admin overrides.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -42,6 +61,19 @@ export class SystemConfigurationFormComponent implements OnInit {
     category: ['', [Validators.required, Validators.maxLength(255)]],
     isEditable: [true],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewKey.set((v.configKey ?? '').trim());
+        this.previewValue.set((v.configValue ?? '').trim());
+        this.previewType.set(v.dataType || 'STRING');
+        this.previewCategory.set((v.category ?? '').trim());
+        this.previewEditable.set(!!v.isEditable);
+        this.previewDescription.set((v.description ?? '').trim());
+      });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

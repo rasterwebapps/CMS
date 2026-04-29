@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,9 +9,12 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
 import { StudentRequest } from '../student.model';
-import { LayoutService } from '../../../core/layout/layout.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { STUDENT_FORM_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 
 interface Program {
   id: number;
@@ -26,7 +30,10 @@ interface Program {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent],
+    CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+  ],
   templateUrl: './student-form.component.html',
   styleUrl: './student-form.component.scss',
 })
@@ -37,7 +44,8 @@ export class StudentFormComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
-  protected readonly layoutService = inject(LayoutService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -49,6 +57,39 @@ export class StudentFormComponent implements OnInit {
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'];
   protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'];
   protected readonly bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  // Preview signals
+  protected readonly previewFirstName = signal('');
+  protected readonly previewLastName = signal('');
+  protected readonly previewRoll = signal('');
+  protected readonly previewEmail = signal('');
+  protected readonly previewPhone = signal('');
+  protected readonly previewProgramId = signal<number | null>(null);
+  protected readonly previewSemester = signal<number | null>(null);
+  protected readonly previewLabBatch = signal('');
+  protected readonly previewStatus = signal('ACTIVE');
+  protected readonly previewBloodGroup = signal('');
+
+  protected readonly previewFullName = computed(() => {
+    const f = this.previewFirstName();
+    const l = this.previewLastName();
+    return `${f} ${l}`.trim();
+  });
+  protected readonly previewInitials = computed(() => {
+    const f = this.previewFirstName();
+    const l = this.previewLastName();
+    return ((f[0] || '') + (l[0] || '')).toUpperCase() || '?';
+  });
+  protected readonly previewProgramName = computed(() => {
+    const p = this.programs().find(x => x.id === this.previewProgramId());
+    return p ? p.name : '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'badge',          title: 'Roll Number',   subtitle: 'Use the program-prefixed roll (e.g. CS2024001) to keep batches sortable.' },
+    { icon: 'school',         title: 'Program & Sem', subtitle: 'Both required — used for fee allocation and lab grouping.' },
+    { icon: 'family_restroom',title: 'Family Details',subtitle: 'Parent mobile is essential for attendance and fee notifications.' },
+  ];
 
   private studentId: number | null = null;
 
@@ -81,7 +122,25 @@ export class StudentFormComponent implements OnInit {
     pincode: [''],
   });
 
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewFirstName.set((v.firstName ?? '').trim());
+        this.previewLastName.set((v.lastName ?? '').trim());
+        this.previewRoll.set((v.rollNumber ?? '').trim());
+        this.previewEmail.set((v.email ?? '').trim());
+        this.previewPhone.set((v.phone ?? '').trim());
+        this.previewProgramId.set(v.programId ?? null);
+        this.previewSemester.set(v.semester != null && v.semester !== '' ? Number(v.semester) : null);
+        this.previewLabBatch.set((v.labBatch ?? '').trim());
+        this.previewStatus.set(v.status || 'ACTIVE');
+        this.previewBloodGroup.set(v.bloodGroup || '');
+      });
+  }
+
   ngOnInit(): void {
+    this.tourService.register('student-form', STUDENT_FORM_TOUR);
     this.loadPrograms();
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {

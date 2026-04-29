@@ -2,7 +2,10 @@
   <!-- Header -->
   <div class="mlp-hdr">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">System <em>Configuration</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">System <em>Configuration</em></h1>
+        <cms-tour-button tourKey="system-configuration-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage application settings, data types, and access controls</p>
       <div class="mlp-meta">
         <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ totalCount() }} total</span>

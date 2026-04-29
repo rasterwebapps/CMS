@@ -3,14 +3,16 @@
     <app-page-header
       title="Create Admission"
       subtitle="Create admission and enrol the student from this enquiry."
-    />
+    >
+      <cms-tour-button titleAction tourKey="enquiry-convert" [iconOnly]="true" iconVariant="info-circle" />
+    </app-page-header>
   }
   @if (loading()) {
     <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
   } @else {
     <div class="convert-layout">
       <!-- Left: Enquiry Summary -->
-      <div class="summary-card">
+      <div id="tour-conv-summary" class="summary-card">
         <p class="summary-card__heading">Enquiry Summary</p>
         @if (enquiry()) {
           <div class="info-list">
@@ -26,7 +28,7 @@
       </div>
 
       <!-- Right: Admission + Student Creation Form -->
-      <div class="entry-form-card">
+      <div id="tour-conv-form" class="entry-form-card">
         <h2 class="form-title">Create Admission &amp; Enrol Student</h2>
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 

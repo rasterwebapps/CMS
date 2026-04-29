@@ -1,10 +1,13 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/inventory" class="back-btn" aria-label="Back to inventory">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/inventory" aria-label="Back to inventory">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Inventory Item</em></h1>
+        <cms-tour-button tourKey="inventory-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the inventory item details below.' : 'Fill in the details to add a new inventory item.' }}
       </p>
@@ -14,124 +17,142 @@
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="inv-name" class="field-label">Name <span class="field-required">*</span></label>
-          <input
-            id="inv-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Beakers, Microscope"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">Name is required</p>
-          }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Inventory Item</div>
+            <div class="entry-form-card__hdr-sub">Stock, location & reorder threshold</div>
+          </div>
         </div>
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="inv-lab" class="field-label">Lab <span class="field-required">*</span></label>
-            <select
-              id="inv-lab"
-              class="field-select"
-              formControlName="labId"
-              [class.field-input--error]="form.get('labId')?.invalid && form.get('labId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a lab</option>
-              @for (lab of labs(); track lab.id) {
-                <option [ngValue]="lab.id">{{ lab.name }}</option>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="inv-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="inv-name" class="field-input" formControlName="name"
+                placeholder="e.g., Beakers, Microscope"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">Name is required</p>
               }
-            </select>
-            @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
-              <p class="field-error">Lab is required</p>
-            }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="inv-lab" class="field-label">Lab <span class="required-star">*</span></label>
+                <select id="inv-lab" class="field-select" formControlName="labId"
+                  [class.field-select--error]="form.get('labId')?.invalid && form.get('labId')?.touched">
+                  <option [ngValue]="null" disabled>Select a lab</option>
+                  @for (lab of labs(); track lab.id) {
+                    <option [ngValue]="lab.id">{{ lab.name }}</option>
+                  }
+                </select>
+                @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
+                  <p class="field-error">Lab is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="inv-category" class="field-label">Category <span class="required-star">*</span></label>
+                <select id="inv-category" class="field-select" formControlName="category"
+                  [class.field-select--error]="form.get('category')?.invalid && form.get('category')?.touched">
+                  <option value="" disabled>Select category</option>
+                  @for (cat of categories; track cat) {
+                    <option [value]="cat">{{ cat }}</option>
+                  }
+                </select>
+                @if (form.get('category')?.invalid && form.get('category')?.touched) {
+                  <p class="field-error">Category is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="inv-qty" class="field-label">Quantity <span class="required-star">*</span></label>
+                <input id="inv-qty" class="field-input" type="number" formControlName="quantity"
+                  min="0" placeholder="0"
+                  [class.field-input--error]="form.get('quantity')?.invalid && form.get('quantity')?.touched" />
+                @if (form.get('quantity')?.invalid && form.get('quantity')?.touched) {
+                  <p class="field-error">Quantity is required (min 0)</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="inv-unit" class="field-label">Unit <span class="required-star">*</span></label>
+                <select id="inv-unit" class="field-select" formControlName="unit"
+                  [class.field-select--error]="form.get('unit')?.invalid && form.get('unit')?.touched">
+                  <option value="" disabled>Select unit</option>
+                  @for (u of units; track u) {
+                    <option [value]="u">{{ u }}</option>
+                  }
+                </select>
+                @if (form.get('unit')?.invalid && form.get('unit')?.touched) {
+                  <p class="field-error">Unit is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="inv-min-stock" class="field-label">Min. Stock</label>
+                <input id="inv-min-stock" class="field-input" type="number"
+                  formControlName="minimumStockLevel" min="0" placeholder="0" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="inv-location" class="field-label">Location</label>
+              <input id="inv-location" class="field-input" formControlName="location"
+                placeholder="e.g., Shelf A, Cabinet 3" />
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="inv-notes" class="field-label">Notes</label>
+              <textarea id="inv-notes" class="field-textarea" formControlName="notes" rows="3"
+                placeholder="Any additional notes"></textarea>
+            </div>
           </div>
 
-          <div class="field-group">
-            <label for="inv-category" class="field-label">Category <span class="field-required">*</span></label>
-            <select
-              id="inv-category"
-              class="field-select"
-              formControlName="category"
-              [class.field-input--error]="form.get('category')?.invalid && form.get('category')?.touched"
-            >
-              <option value="" disabled>Select category</option>
-              @for (cat of categories; track cat) {
-                <option [value]="cat">{{ cat }}</option>
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/inventory">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Item' : 'Add Item' }}
               }
-            </select>
-            @if (form.get('category')?.invalid && form.get('category')?.touched) {
-              <p class="field-error">Category is required</p>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Item name will appear here' }}
+          </div>
+          @if (previewLocation()) { <div class="prev-sub">{{ previewLocation() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewCategory()) { <span class="prev-pill prev-pill--primary">{{ previewCategory() }}</span> }
+            @if (previewLabName()) { <span class="prev-pill">{{ previewLabName() }}</span> }
+            @if (previewQty() != null) {
+              <span class="prev-pill" [class.prev-pill--amber]="lowStock()" [class.prev-pill--green]="!lowStock()">
+                {{ previewQty() }} {{ previewUnit() }}
+              </span>
+            }
+            @if (previewMinStock() != null) {
+              <span class="prev-pill prev-pill--muted">Min {{ previewMinStock() }}</span>
             }
           </div>
-        </div>
+        </cms-preview-card>
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="inv-qty" class="field-label">Quantity <span class="field-required">*</span></label>
-            <input
-              id="inv-qty"
-              class="field-input"
-              type="number"
-              formControlName="quantity"
-              min="0"
-              placeholder="0"
-              [class.field-input--error]="form.get('quantity')?.invalid && form.get('quantity')?.touched"
-            />
-            @if (form.get('quantity')?.invalid && form.get('quantity')?.touched) {
-              <p class="field-error">Quantity is required (min 0)</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="inv-unit" class="field-label">Unit <span class="field-required">*</span></label>
-            <select
-              id="inv-unit"
-              class="field-select"
-              formControlName="unit"
-              [class.field-input--error]="form.get('unit')?.invalid && form.get('unit')?.touched"
-            >
-              <option value="" disabled>Select unit</option>
-              @for (u of units; track u) {
-                <option [value]="u">{{ u }}</option>
-              }
-            </select>
-            @if (form.get('unit')?.invalid && form.get('unit')?.touched) {
-              <p class="field-error">Unit is required</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="inv-min-stock" class="field-label">Minimum Stock Level</label>
-            <input id="inv-min-stock" class="field-input" type="number" formControlName="minimumStockLevel" min="0" placeholder="0" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="inv-location" class="field-label">Location</label>
-          <input id="inv-location" class="field-input" formControlName="location" placeholder="e.g., Shelf A, Cabinet 3" />
-        </div>
-
-        <div class="field-group">
-          <label for="inv-notes" class="field-label">Notes</label>
-          <textarea id="inv-notes" class="field-textarea" formControlName="notes" rows="3" placeholder="Any additional notes"></textarea>
-        </div>
-
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/inventory">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Item' : 'Add Item' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

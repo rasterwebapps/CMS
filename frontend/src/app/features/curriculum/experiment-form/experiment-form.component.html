@@ -1,126 +1,144 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/experiments" class="back-btn" aria-label="Back to experiments">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/experiments" aria-label="Back to experiments">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Experiment</em></h1>
+        <cms-tour-button tourKey="experiment-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the experiment details below.' : 'Fill in the details to add a new experiment.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="experiment-form" />
   </div>
 
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="form-row">
-          <div class="field-group">
-            <label for="exp-course" class="field-label">Course <span class="field-required">*</span></label>
-            <select
-              id="exp-course"
-              class="field-select"
-              formControlName="courseId"
-              [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a course</option>
-              @for (course of courses(); track course.id) {
-                <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v6l-4 8a2 2 0 0 0 1.79 2.89H17.2A2 2 0 0 0 19 16l-4-8V2"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Experiment</div>
+            <div class="entry-form-card__hdr-sub">Aim, apparatus, procedure & outcomes</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="exp-course" class="field-label">Course <span class="required-star">*</span></label>
+                <select id="exp-course" class="field-select" formControlName="courseId"
+                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+                  <option [ngValue]="null" disabled>Select a course</option>
+                  @for (course of courses(); track course.id) {
+                    <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+                  }
+                </select>
+                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+                  <p class="field-error">Course is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="exp-number" class="field-label">Experiment Number <span class="required-star">*</span></label>
+                <input id="exp-number" class="field-input" type="number" formControlName="experimentNumber"
+                  min="1" placeholder="e.g., 1"
+                  [class.field-input--error]="form.get('experimentNumber')?.invalid && form.get('experimentNumber')?.touched" />
+                @if (form.get('experimentNumber')?.invalid && form.get('experimentNumber')?.touched) {
+                  <p class="field-error">Experiment number is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="exp-name" class="field-input" formControlName="name"
+                placeholder="e.g., Gram Staining Technique"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">Name is required</p>
               }
-            </select>
-            @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-              <p class="field-error">Course is required</p>
-            }
+            </div>
+
+            <div class="field-group">
+              <label for="exp-description" class="field-label">Description</label>
+              <textarea id="exp-description" class="field-textarea" formControlName="description" rows="3" placeholder="Brief description"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-aim" class="field-label">Aim</label>
+              <textarea id="exp-aim" class="field-textarea" formControlName="aim" rows="3" placeholder="State the aim"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-apparatus" class="field-label">Apparatus</label>
+              <textarea id="exp-apparatus" class="field-textarea" formControlName="apparatus" rows="3" placeholder="List required apparatus and materials"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-procedure" class="field-label">Procedure</label>
+              <textarea id="exp-procedure" class="field-textarea" formControlName="procedure" rows="3" placeholder="Step-by-step procedure"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-outcome" class="field-label">Expected Outcome</label>
+              <textarea id="exp-outcome" class="field-textarea" formControlName="expectedOutcome" rows="3" placeholder="Describe the expected result"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-learning" class="field-label">Learning Outcomes</label>
+              <textarea id="exp-learning" class="field-textarea" formControlName="learningOutcomes" rows="3" placeholder="What students will learn"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="exp-duration" class="field-label">Estimated Duration (minutes)</label>
+              <input id="exp-duration" class="field-input field-input--narrow" type="number" formControlName="estimatedDurationMinutes" min="0" placeholder="e.g., 90" />
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+            </div>
           </div>
 
-          <div class="field-group">
-            <label for="exp-number" class="field-label">Experiment Number <span class="field-required">*</span></label>
-            <input
-              id="exp-number"
-              class="field-input field-input--narrow"
-              type="number"
-              formControlName="experimentNumber"
-              min="1"
-              placeholder="e.g., 1"
-              [class.field-input--error]="form.get('experimentNumber')?.invalid && form.get('experimentNumber')?.touched"
-            />
-            @if (form.get('experimentNumber')?.invalid && form.get('experimentNumber')?.touched) {
-              <p class="field-error">Experiment number is required</p>
-            }
+          <div id="tour-exp-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/experiments">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Experiment' : 'Add Experiment' }}
+              }
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
 
-        <div class="field-group">
-          <label for="exp-name" class="field-label">Name <span class="field-required">*</span></label>
-          <input
-            id="exp-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Gram Staining Technique"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">Name is required</p>
-          }
-        </div>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            @if (previewNumber()) { <span style="opacity: 0.6;">#{{ previewNumber() }}: </span> }
+            {{ previewName() || 'Experiment name will appear here' }}
+          </div>
+          @if (previewCourseName()) { <div class="prev-sub">{{ previewCourseName() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewDuration()) { <span class="prev-pill">{{ previewDuration() }} min</span> }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
 
-        <div class="field-group">
-          <label for="exp-description" class="field-label">Description</label>
-          <textarea id="exp-description" class="field-textarea" formControlName="description" rows="3" placeholder="Brief description of the experiment"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-aim" class="field-label">Aim</label>
-          <textarea id="exp-aim" class="field-textarea" formControlName="aim" rows="3" placeholder="State the aim of the experiment"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-apparatus" class="field-label">Apparatus</label>
-          <textarea id="exp-apparatus" class="field-textarea" formControlName="apparatus" rows="3" placeholder="List required apparatus and materials"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-procedure" class="field-label">Procedure</label>
-          <textarea id="exp-procedure" class="field-textarea" formControlName="procedure" rows="3" placeholder="Step-by-step procedure"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-outcome" class="field-label">Expected Outcome</label>
-          <textarea id="exp-outcome" class="field-textarea" formControlName="expectedOutcome" rows="3" placeholder="Describe the expected result"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-learning" class="field-label">Learning Outcomes</label>
-          <textarea id="exp-learning" class="field-textarea" formControlName="learningOutcomes" rows="3" placeholder="What students will learn"></textarea>
-        </div>
-
-        <div class="field-group">
-          <label for="exp-duration" class="field-label">Estimated Duration (minutes)</label>
-          <input id="exp-duration" class="field-input field-input--narrow" type="number" formControlName="estimatedDurationMinutes" min="0" placeholder="e.g., 90" />
-        </div>
-
-        <div class="field-group">
-          <label class="checkbox-label">
-            <mat-checkbox formControlName="isActive">Active</mat-checkbox>
-          </label>
-        </div>
-
-        <div id="tour-exp-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/experiments">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Experiment' : 'Add Experiment' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

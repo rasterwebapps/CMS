@@ -1,15 +1,17 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/programs" class="back-btn" aria-label="Back to programs">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/programs" aria-label="Back to programs">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Program</em></h1>
+        <cms-tour-button tourKey="program-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the program details below.' : 'Fill in the details below to register a new academic program.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="program-form" />
   </div>
 
   @if (loading()) {
@@ -17,82 +19,119 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="program-name" class="field-label">Program Name</label>
-          <input
-            id="program-name"
-            class="field-input"
-            formControlName="name"
-            placeholder="e.g., Bachelor of Computer Science"
-            autocomplete="off"
-            [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
-          />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="field-error">{{ getErrorMessage('name') }}</p>
-          }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Program Information</div>
+            <div class="entry-form-card__hdr-sub">Academic program details and configuration</div>
+          </div>
         </div>
 
-        <div class="field-group">
-          <label for="program-code" class="field-label">Program Code</label>
-          <input
-            id="program-code"
-            class="field-input field-input--narrow"
-            formControlName="code"
-            placeholder="e.g., BACH, MAST"
-            autocomplete="off"
-            [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
-          />
-          <p class="field-hint">Short uppercase code for the program (max 20 characters)</p>
-          @if (form.get('code')?.invalid && form.get('code')?.touched) {
-            <p class="field-error">{{ getErrorMessage('code') }}</p>
-          }
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-        <div class="field-group">
-          <label for="program-duration" class="field-label">Duration (Years)</label>
-          <input
-            id="program-duration"
-            class="field-input field-input--narrow"
-            type="number"
-            formControlName="durationYears"
-            placeholder="e.g., 3"
-            min="1"
-            max="10"
-            [class.field-input--error]="form.get('durationYears')?.invalid && form.get('durationYears')?.touched"
-          />
-          <p class="field-hint">Enter a value between 1 and 10</p>
-          @if (form.get('durationYears')?.invalid && form.get('durationYears')?.touched) {
-            <p class="field-error">{{ getErrorMessage('durationYears') }}</p>
-          }
-        </div>
+            <div class="field-group">
+              <label for="program-name" class="field-label">Program Name <span class="required-star">*</span></label>
+              <input
+                id="program-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., Bachelor"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
 
-        <div class="field-group">
-          <label for="program-status" class="field-label">Status</label>
-          <select
-            id="program-status"
-            class="field-input field-input--narrow"
-            formControlName="status"
-          >
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
-        </div>
+            <div class="field-group">
+              <label for="program-code" class="field-label">Program Code <span class="required-star">*</span></label>
+              <input
+                id="program-code"
+                class="field-input field-input--narrow"
+                formControlName="code"
+                placeholder="e.g., BAC, MAS"
+                autocomplete="off"
+                (input)="onCodeInput($event)"
+                [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+              />
+              <p class="field-hint">Short uppercase code for the program (max 20 characters)</p>
+              @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                <p class="field-error">{{ getErrorMessage('code') }}</p>
+              }
+            </div>
 
-        <div id="tour-program-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/programs">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Program' : 'Create Program' }}
+            <div class="field-group">
+              <label for="program-duration" class="field-label">Duration (Years) <span class="required-star">*</span></label>
+              <input
+                id="program-duration"
+                class="field-input field-input--narrow"
+                type="number"
+                formControlName="durationYears"
+                placeholder="e.g., 3"
+                min="1"
+                max="10"
+                [class.field-input--error]="form.get('durationYears')?.invalid && form.get('durationYears')?.touched"
+              />
+              <p class="field-hint">Enter a value between 1 and 10</p>
+              @if (form.get('durationYears')?.invalid && form.get('durationYears')?.touched) {
+                <p class="field-error">{{ getErrorMessage('durationYears') }}</p>
+              }
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="program-status" class="field-label">Status</label>
+              <select
+                id="program-status"
+                class="field-input field-input--narrow"
+                formControlName="status"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="tour-program-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/programs">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Program' : 'Create Program' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ── Side Panel ──────────────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Program name will appear here' }}
+          </div>
+          <div class="prev-meta-row">
+            @if (previewDuration() > 0) {
+              <span class="prev-pill prev-pill--primary">{{ previewDuration() }} {{ previewDuration() === 1 ? 'year' : 'years' }}</span>
             }
-          </button>
-        </div>
+            <span
+              class="prev-pill"
+              [class.prev-pill--green]="previewStatus() === 'ACTIVE'"
+              [class.prev-pill--muted]="previewStatus() !== 'ACTIVE'"
+            >{{ previewStatus() === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
+          </div>
+        </cms-preview-card>
 
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

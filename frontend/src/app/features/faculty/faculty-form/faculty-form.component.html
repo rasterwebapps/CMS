@@ -1,15 +1,17 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/faculty" class="back-btn" aria-label="Back to faculty">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/faculty" aria-label="Back to faculty">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Faculty</em></h1>
+        <cms-tour-button tourKey="faculty-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the faculty member details below.' : 'Fill in the details below to register a new faculty member.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="faculty-form" />
   </div>
 
   @if (loading()) {
@@ -17,184 +19,174 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-row">
-          <div class="field-group">
-            <label for="fac-code" class="field-label">Employee Code</label>
-            <input
-              id="fac-code"
-              class="field-input"
-              formControlName="employeeCode"
-              placeholder="e.g., EMP001"
-              autocomplete="off"
-              [class.field-input--error]="form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched"
-            />
-            @if (form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched) {
-              <p class="field-error">{{ getErrorMessage('employeeCode') }}</p>
-            }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
-
-          <div class="field-group">
-            <label for="fac-email" class="field-label">Email</label>
-            <input
-              id="fac-email"
-              type="email"
-              class="field-input"
-              formControlName="email"
-              placeholder="faculty@college.edu"
-              autocomplete="off"
-              [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
-            />
-            @if (form.get('email')?.invalid && form.get('email')?.touched) {
-              <p class="field-error">{{ getErrorMessage('email') }}</p>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">Faculty Information</div>
+            <div class="entry-form-card__hdr-sub">Identity, contact, designation & department</div>
           </div>
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label for="fac-first" class="field-label">First Name</label>
-            <input
-              id="fac-first"
-              class="field-input"
-              formControlName="firstName"
-              placeholder="First name"
-              autocomplete="given-name"
-              [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
-            />
-            @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-              <p class="field-error">{{ getErrorMessage('firstName') }}</p>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-code" class="field-label">Employee Code <span class="required-star">*</span></label>
+                <input id="fac-code" class="field-input" formControlName="employeeCode"
+                  placeholder="e.g., EMP001" autocomplete="off"
+                  [class.field-input--error]="form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched" />
+                @if (form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('employeeCode') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="fac-email" class="field-label">Email <span class="required-star">*</span></label>
+                <input id="fac-email" type="email" class="field-input" formControlName="email"
+                  placeholder="faculty@college.edu" autocomplete="off"
+                  [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+                @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('email') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-first" class="field-label">First Name <span class="required-star">*</span></label>
+                <input id="fac-first" class="field-input" formControlName="firstName"
+                  placeholder="First name" autocomplete="given-name"
+                  [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched" />
+                @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('firstName') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="fac-last" class="field-label">Last Name <span class="required-star">*</span></label>
+                <input id="fac-last" class="field-input" formControlName="lastName"
+                  placeholder="Last name" autocomplete="family-name"
+                  [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched" />
+                @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('lastName') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-phone" class="field-label">Phone</label>
+                <input id="fac-phone" class="field-input" formControlName="phone"
+                  placeholder="+91 9876543210" autocomplete="tel" />
+              </div>
+
+              <div class="field-group">
+                <label for="fac-dept" class="field-label">Department <span class="required-star">*</span></label>
+                <select id="fac-dept" class="field-select" formControlName="departmentId"
+                  [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
+                  <option [ngValue]="null" disabled>Select department</option>
+                  @for (dept of departments(); track dept.id) {
+                    <option [ngValue]="dept.id">{{ dept.name }}</option>
+                  }
+                </select>
+                @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-designation" class="field-label">Designation <span class="required-star">*</span></label>
+                <select id="fac-designation" class="field-select" formControlName="designation"
+                  [class.field-select--error]="form.get('designation')?.invalid && form.get('designation')?.touched">
+                  <option [ngValue]="null" disabled>Select designation</option>
+                  @for (option of designationOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+                @if (form.get('designation')?.invalid && form.get('designation')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('designation') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="fac-joining" class="field-label">Joining Date <span class="required-star">*</span></label>
+                <input id="fac-joining" type="date" class="field-input" formControlName="joiningDate"
+                  [class.field-input--error]="form.get('joiningDate')?.invalid && form.get('joiningDate')?.touched" />
+                @if (form.get('joiningDate')?.invalid && form.get('joiningDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('joiningDate') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="fac-specialization" class="field-label">Specialization</label>
+              <input id="fac-specialization" class="field-input" formControlName="specialization"
+                placeholder="e.g., Artificial Intelligence, Data Science" autocomplete="off" />
+            </div>
+
+            <div class="field-group" [style.margin-bottom]="isEditMode() ? null : '0'">
+              <label for="fac-expertise" class="field-label">Lab Expertise</label>
+              <textarea id="fac-expertise" class="field-textarea" formControlName="labExpertise"
+                placeholder="Describe lab equipment expertise and technical skills" rows="3"></textarea>
+            </div>
+
+            @if (isEditMode()) {
+              <div class="field-group" style="margin-bottom: 0;">
+                <label for="fac-status" class="field-label">Status</label>
+                <select id="fac-status" class="field-select" formControlName="status">
+                  @for (option of statusOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
             }
           </div>
 
-          <div class="field-group">
-            <label for="fac-last" class="field-label">Last Name</label>
-            <input
-              id="fac-last"
-              class="field-input"
-              formControlName="lastName"
-              placeholder="Last name"
-              autocomplete="family-name"
-              [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
-            />
-            @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-              <p class="field-error">{{ getErrorMessage('lastName') }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="fac-phone" class="field-label">Phone</label>
-            <input
-              id="fac-phone"
-              class="field-input"
-              formControlName="phone"
-              placeholder="+91 9876543210"
-              autocomplete="tel"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="fac-dept" class="field-label">Department</label>
-            <select
-              id="fac-dept"
-              class="field-select"
-              formControlName="departmentId"
-              [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select department</option>
-              @for (dept of departments(); track dept.id) {
-                <option [ngValue]="dept.id">{{ dept.name }}</option>
+          <div id="tour-fac-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/faculty">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Faculty' : 'Create Faculty' }}
               }
-            </select>
-            @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-              <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-avatar">{{ previewInitials() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewFullName()">
+            {{ previewFullName() || 'Faculty name will appear here' }}
+          </div>
+          @if (previewCode()) {
+            <div class="prev-sub">{{ previewCode() }}</div>
+          }
+          @if (previewEmail()) {
+            <div class="prev-sub">{{ previewEmail() }}</div>
+          }
+          <div class="prev-meta-row">
+            @if (previewDesignationLabel()) {
+              <span class="prev-pill prev-pill--primary">{{ previewDesignationLabel() }}</span>
+            }
+            @if (previewDeptName()) {
+              <span class="prev-pill">{{ previewDeptName() }}</span>
             }
           </div>
-        </div>
+        </cms-preview-card>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label for="fac-designation" class="field-label">Designation</label>
-            <select
-              id="fac-designation"
-              class="field-select"
-              formControlName="designation"
-              [class.field-select--error]="form.get('designation')?.invalid && form.get('designation')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select designation</option>
-              @for (option of designationOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-            @if (form.get('designation')?.invalid && form.get('designation')?.touched) {
-              <p class="field-error">{{ getErrorMessage('designation') }}</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="fac-joining" class="field-label">Joining Date</label>
-            <input
-              id="fac-joining"
-              type="date"
-              class="field-input"
-              formControlName="joiningDate"
-              [class.field-input--error]="form.get('joiningDate')?.invalid && form.get('joiningDate')?.touched"
-            />
-            @if (form.get('joiningDate')?.invalid && form.get('joiningDate')?.touched) {
-              <p class="field-error">{{ getErrorMessage('joiningDate') }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="fac-specialization" class="field-label">Specialization</label>
-          <input
-            id="fac-specialization"
-            class="field-input"
-            formControlName="specialization"
-            placeholder="e.g., Artificial Intelligence, Data Science"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="field-group">
-          <label for="fac-expertise" class="field-label">Lab Expertise</label>
-          <textarea
-            id="fac-expertise"
-            class="field-textarea"
-            formControlName="labExpertise"
-            placeholder="Describe lab equipment expertise and technical skills"
-            rows="3"
-          ></textarea>
-        </div>
-
-        @if (isEditMode()) {
-          <div class="field-group">
-            <label for="fac-status" class="field-label">Status</label>
-            <select id="fac-status" class="field-select" formControlName="status">
-              @for (option of statusOptions; track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </div>
-        }
-
-        <div id="tour-fac-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/faculty">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Faculty' : 'Create Faculty' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

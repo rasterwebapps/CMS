@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,13 +11,17 @@ import { MaintenanceService } from '../maintenance.service';
 import { MaintenanceRequestDto } from '../maintenance.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 
 @Component({
   selector: 'app-maintenance-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+    RouterLink, ReactiveFormsModule, CmsTourButtonComponent,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    CmsPreviewCardComponent, CmsTipsCardComponent, InrPipe],
   templateUrl: './maintenance-form.component.html',
   styleUrl: './maintenance-form.component.scss',
 })
@@ -26,6 +32,7 @@ export class MaintenanceFormComponent implements OnInit {
   private readonly maintenanceService = inject(MaintenanceService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -35,6 +42,26 @@ export class MaintenanceFormComponent implements OnInit {
 
   protected readonly priorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
   protected readonly statuses = ['REQUESTED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+
+  // Preview signals
+  protected readonly previewEquipmentId = signal<number | null>(null);
+  protected readonly previewRequestedBy = signal('');
+  protected readonly previewDescription = signal('');
+  protected readonly previewPriority = signal('');
+  protected readonly previewStatus = signal('REQUESTED');
+  protected readonly previewTechnician = signal('');
+  protected readonly previewCost = signal<number | null>(null);
+  protected readonly previewCompletedDate = signal('');
+  protected readonly previewEquipmentName = computed(() => {
+    const e = this.equipment().find(x => x.id === this.previewEquipmentId());
+    return e ? e.name : '';
+  });
+
+  protected readonly TIPS: CmsTip[] = [
+    { icon: 'precision_manufacturing', title: 'Equipment',  subtitle: 'Pick the affected unit so technicians know exactly what to inspect.' },
+    { icon: 'priority_high',           title: 'Priority',   subtitle: 'CRITICAL halts a lab — use sparingly. Most issues are MEDIUM.' },
+    { icon: 'description',             title: 'Description',subtitle: 'Include symptoms, error codes & when the issue started.' },
+  ];
 
   private itemId: number | null = null;
 
@@ -48,6 +75,21 @@ export class MaintenanceFormComponent implements OnInit {
     repairCost: [null, Validators.min(0)],
     completedDate: [''],
   });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewEquipmentId.set(v.equipmentId ?? null);
+        this.previewRequestedBy.set((v.requestedBy ?? '').trim());
+        this.previewDescription.set((v.description ?? '').trim());
+        this.previewPriority.set(v.priority || '');
+        this.previewStatus.set(v.status || 'REQUESTED');
+        this.previewTechnician.set((v.assignedTechnician ?? '').trim());
+        this.previewCost.set(v.repairCost != null && v.repairCost !== '' ? Number(v.repairCost) : null);
+        this.previewCompletedDate.set(v.completedDate || '');
+      });
+  }
 
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/equipment`).subscribe({

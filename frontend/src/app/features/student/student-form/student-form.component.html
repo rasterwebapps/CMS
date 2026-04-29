@@ -1,324 +1,315 @@
 <div class="entry-form-page">
-  @if (!layoutService.isFocusMode()) {
-    <app-page-header
-      [title]="pageTitle()"
-      [subtitle]="isEditMode() ? 'Update the student record below.' : 'Fill in the details below to register a new student.'"
-    />
-  }
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/students" aria-label="Back to students">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Student</em></h1>
+        <cms-tour-button tourKey="student-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the student record below.' : 'Fill in the details below to register a new student.' }}
+      </p>
+    </div>
+  </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <!-- ── Basic Information ────────────────────────────── -->
-        <p class="form-section-title">Basic Information</p>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-roll" class="field-label">Roll Number</label>
-            <input
-              id="stu-roll"
-              class="field-input"
-              formControlName="rollNumber"
-              placeholder="e.g. CS2024001"
-              autocomplete="off"
-              [class.field-input--error]="form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched"
-            />
-            @if (form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched) {
-              <p class="field-error">{{ getErrorMessage('rollNumber') }}</p>
-            }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           </div>
-
-          <div class="field-group">
-            <label for="stu-admission" class="field-label">Admission Date</label>
-            <input
-              id="stu-admission"
-              type="date"
-              class="field-input"
-              formControlName="admissionDate"
-              [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched"
-            />
-            @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
-              <p class="field-error">{{ getErrorMessage('admissionDate') }}</p>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">Student Record</div>
+            <div class="entry-form-card__hdr-sub">Identity, program, personal, family & address</div>
           </div>
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-first" class="field-label">First Name</label>
-            <input
-              id="stu-first"
-              class="field-input"
-              formControlName="firstName"
-              placeholder="First name"
-              autocomplete="given-name"
-              [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
-            />
-            @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-              <p class="field-error">{{ getErrorMessage('firstName') }}</p>
-            }
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- ── Basic Information ────────────────────────────── -->
+            <p id="tour-stu-basic" class="form-section-title">Basic Information</p>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-roll" class="field-label">Roll Number <span class="required-star">*</span></label>
+                <input id="stu-roll" class="field-input" formControlName="rollNumber"
+                  placeholder="e.g. CS2024001" autocomplete="off"
+                  [class.field-input--error]="form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched" />
+                @if (form.get('rollNumber')?.invalid && form.get('rollNumber')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('rollNumber') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="stu-admission" class="field-label">Admission Date <span class="required-star">*</span></label>
+                <input id="stu-admission" type="date" class="field-input" formControlName="admissionDate"
+                  [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched" />
+                @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('admissionDate') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-first" class="field-label">First Name <span class="required-star">*</span></label>
+                <input id="stu-first" class="field-input" formControlName="firstName"
+                  placeholder="First name" autocomplete="given-name"
+                  [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched" />
+                @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('firstName') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="stu-last" class="field-label">Last Name <span class="required-star">*</span></label>
+                <input id="stu-last" class="field-input" formControlName="lastName"
+                  placeholder="Last name" autocomplete="family-name"
+                  [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched" />
+                @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('lastName') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-email" class="field-label">Email <span class="required-star">*</span></label>
+                <input id="stu-email" type="email" class="field-input" formControlName="email"
+                  placeholder="student@example.com" autocomplete="email"
+                  [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+                @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('email') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="stu-phone" class="field-label">Phone</label>
+                <input id="stu-phone" class="field-input" formControlName="phone"
+                  placeholder="+91 9876543210" autocomplete="tel" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-program" class="field-label">Program <span class="required-star">*</span></label>
+                <select id="stu-program" class="field-select" formControlName="programId"
+                  [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
+                  <option [ngValue]="null" disabled>Select a program</option>
+                  @for (program of programs(); track program.id) {
+                    <option [ngValue]="program.id">{{ program.name }}</option>
+                  }
+                </select>
+                @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('programId') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="stu-semester" class="field-label">Semester <span class="required-star">*</span></label>
+                <input id="stu-semester" type="number" class="field-input" formControlName="semester"
+                  min="1" max="12"
+                  [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched" />
+                @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('semester') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-batch" class="field-label">Lab Batch</label>
+                <input id="stu-batch" class="field-input" formControlName="labBatch"
+                  placeholder="e.g. Batch A" autocomplete="off" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-status" class="field-label">Status</label>
+                <select id="stu-status" class="field-select" formControlName="status">
+                  @for (s of statusOptions; track s) {
+                    <option [value]="s">{{ s }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- ── Personal Details ────────────────────────────── -->
+            <hr class="form-section-divider" />
+            <p id="tour-stu-personal" class="form-section-title">Personal Details</p>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-dob" class="field-label">Date of Birth</label>
+                <input id="stu-dob" type="date" class="field-input" formControlName="dateOfBirth" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-gender" class="field-label">Gender</label>
+                <select id="stu-gender" class="field-select" formControlName="gender">
+                  <option value="">— Select —</option>
+                  @for (g of genderOptions; track g) {
+                    <option [value]="g">{{ g }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-nationality" class="field-label">Nationality</label>
+                <input id="stu-nationality" class="field-input" formControlName="nationality" autocomplete="off" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-religion" class="field-label">Religion</label>
+                <input id="stu-religion" class="field-input" formControlName="religion" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-community" class="field-label">Community Category</label>
+                <select id="stu-community" class="field-select" formControlName="communityCategory">
+                  <option value="">— Select —</option>
+                  @for (c of communityOptions; track c) {
+                    <option [value]="c">{{ c }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="stu-caste" class="field-label">Caste</label>
+                <input id="stu-caste" class="field-input" formControlName="caste" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="stu-blood" class="field-label">Blood Group</label>
+              <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
+                <option value="">— Select —</option>
+                @for (bg of bloodGroupOptions; track bg) {
+                  <option [value]="bg">{{ bg }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- ── Family Details ──────────────────────────────── -->
+            <hr class="form-section-divider" />
+            <p id="tour-stu-family" class="form-section-title">Family Details</p>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-father" class="field-label">Father's Name</label>
+                <input id="stu-father" class="field-input" formControlName="fatherName" autocomplete="off" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-mother" class="field-label">Mother's Name</label>
+                <input id="stu-mother" class="field-input" formControlName="motherName" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="stu-parent-mobile" class="field-label">Parent Mobile</label>
+              <input id="stu-parent-mobile" class="field-input field-input--narrow"
+                formControlName="parentMobile" autocomplete="off" />
+            </div>
+
+            <!-- ── Address ─────────────────────────────────────── -->
+            <hr class="form-section-divider" />
+            <p class="form-section-title">Address</p>
+
+            <div class="field-group">
+              <label for="stu-postal" class="field-label">Postal Address</label>
+              <textarea id="stu-postal" class="field-textarea" formControlName="postalAddress"
+                rows="2" placeholder="Door/Flat No., Building Name"></textarea>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-street" class="field-label">Street</label>
+                <input id="stu-street" class="field-input" formControlName="street" autocomplete="off" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-city" class="field-label">City</label>
+                <input id="stu-city" class="field-input" formControlName="city" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-district" class="field-label">District</label>
+                <input id="stu-district" class="field-input" formControlName="district" autocomplete="off" />
+              </div>
+
+              <div class="field-group">
+                <label for="stu-state" class="field-label">State</label>
+                <input id="stu-state" class="field-input" formControlName="state" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="stu-pincode" class="field-label">Pincode</label>
+              <input id="stu-pincode" class="field-input field-input--narrow"
+                formControlName="pincode" autocomplete="postal-code" />
+            </div>
           </div>
 
-          <div class="field-group">
-            <label for="stu-last" class="field-label">Last Name</label>
-            <input
-              id="stu-last"
-              class="field-input"
-              formControlName="lastName"
-              placeholder="Last name"
-              autocomplete="family-name"
-              [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
-            />
-            @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-              <p class="field-error">{{ getErrorMessage('lastName') }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-email" class="field-label">Email</label>
-            <input
-              id="stu-email"
-              type="email"
-              class="field-input"
-              formControlName="email"
-              placeholder="student@example.com"
-              autocomplete="email"
-              [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
-            />
-            @if (form.get('email')?.invalid && form.get('email')?.touched) {
-              <p class="field-error">{{ getErrorMessage('email') }}</p>
-            }
-          </div>
-
-          <div class="field-group">
-            <label for="stu-phone" class="field-label">Phone</label>
-            <input
-              id="stu-phone"
-              class="field-input"
-              formControlName="phone"
-              placeholder="+91 9876543210"
-              autocomplete="tel"
-            />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-program" class="field-label">Program</label>
-            <select
-              id="stu-program"
-              class="field-select"
-              formControlName="programId"
-              [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched"
-            >
-              <option [ngValue]="null" disabled>Select a program</option>
-              @for (program of programs(); track program.id) {
-                <option [ngValue]="program.id">{{ program.name }}</option>
+          <div id="tour-stu-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/students">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Student' : 'Create Student' }}
               }
-            </select>
-            @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-              <p class="field-error">{{ getErrorMessage('programId') }}</p>
-            }
+            </button>
           </div>
+        </form>
+      </div>
 
-          <div class="field-group">
-            <label for="stu-semester" class="field-label">Semester</label>
-            <input
-              id="stu-semester"
-              type="number"
-              class="field-input"
-              formControlName="semester"
-              min="1"
-              max="12"
-              [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
-            />
-            @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-              <p class="field-error">{{ getErrorMessage('semester') }}</p>
-            }
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewFullName()">
+            {{ previewFullName() || 'Student name will appear here' }}
           </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-batch" class="field-label">Lab Batch</label>
-            <input
-              id="stu-batch"
-              class="field-input"
-              formControlName="labBatch"
-              placeholder="e.g. Batch A"
-              autocomplete="off"
-            />
+          @if (previewRoll()) {
+            <div class="prev-sub">Roll #{{ previewRoll() }}</div>
+          }
+          @if (previewProgramName() || previewSemester()) {
+            <div class="prev-sub">
+              {{ previewProgramName() }}
+              @if (previewSemester()) { <span style="opacity: 0.7;"> · Sem {{ previewSemester() }}</span> }
+            </div>
+          }
+          <div class="prev-meta-row">
+            <span class="prev-pill"
+              [class.prev-pill--green]="previewStatus() === 'ACTIVE'"
+              [class.prev-pill--muted]="previewStatus() !== 'ACTIVE'">
+              {{ previewStatus() }}
+            </span>
+            @if (previewLabBatch()) { <span class="prev-pill">{{ previewLabBatch() }}</span> }
+            @if (previewBloodGroup()) { <span class="prev-pill">{{ previewBloodGroup() }}</span> }
           </div>
+          @if (previewEmail() || previewPhone()) {
+            <div class="prev-sub" style="margin-top: 8px;">
+              @if (previewEmail()) { {{ previewEmail() }} }
+              @if (previewEmail() && previewPhone()) { <span style="opacity: 0.5;"> · </span> }
+              @if (previewPhone()) { {{ previewPhone() }} }
+            </div>
+          }
+        </cms-preview-card>
 
-          <div class="field-group">
-            <label for="stu-status" class="field-label">Status</label>
-            <select id="stu-status" class="field-select" formControlName="status">
-              @for (s of statusOptions; track s) {
-                <option [value]="s">{{ s }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <!-- ── Personal Details ────────────────────────────── -->
-        <hr class="form-section-divider" />
-        <p class="form-section-title">Personal Details</p>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-dob" class="field-label">Date of Birth</label>
-            <input
-              id="stu-dob"
-              type="date"
-              class="field-input"
-              formControlName="dateOfBirth"
-            />
-          </div>
-
-          <div class="field-group">
-            <label for="stu-gender" class="field-label">Gender</label>
-            <select id="stu-gender" class="field-select" formControlName="gender">
-              <option value="">— Select —</option>
-              @for (g of genderOptions; track g) {
-                <option [value]="g">{{ g }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-nationality" class="field-label">Nationality</label>
-            <input id="stu-nationality" class="field-input" formControlName="nationality" autocomplete="off" />
-          </div>
-
-          <div class="field-group">
-            <label for="stu-religion" class="field-label">Religion</label>
-            <input id="stu-religion" class="field-input" formControlName="religion" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-community" class="field-label">Community Category</label>
-            <select id="stu-community" class="field-select" formControlName="communityCategory">
-              <option value="">— Select —</option>
-              @for (c of communityOptions; track c) {
-                <option [value]="c">{{ c }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="field-group">
-            <label for="stu-caste" class="field-label">Caste</label>
-            <input id="stu-caste" class="field-input" formControlName="caste" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="stu-blood" class="field-label">Blood Group</label>
-          <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
-            <option value="">— Select —</option>
-            @for (bg of bloodGroupOptions; track bg) {
-              <option [value]="bg">{{ bg }}</option>
-            }
-          </select>
-        </div>
-
-        <!-- ── Family Details ──────────────────────────────── -->
-        <hr class="form-section-divider" />
-        <p class="form-section-title">Family Details</p>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-father" class="field-label">Father's Name</label>
-            <input id="stu-father" class="field-input" formControlName="fatherName" autocomplete="off" />
-          </div>
-
-          <div class="field-group">
-            <label for="stu-mother" class="field-label">Mother's Name</label>
-            <input id="stu-mother" class="field-input" formControlName="motherName" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="stu-parent-mobile" class="field-label">Parent Mobile</label>
-          <input
-            id="stu-parent-mobile"
-            class="field-input field-input--narrow"
-            formControlName="parentMobile"
-            autocomplete="off"
-          />
-        </div>
-
-        <!-- ── Address ─────────────────────────────────────── -->
-        <hr class="form-section-divider" />
-        <p class="form-section-title">Address</p>
-
-        <div class="field-group">
-          <label for="stu-postal" class="field-label">Postal Address</label>
-          <textarea
-            id="stu-postal"
-            class="field-textarea"
-            formControlName="postalAddress"
-            rows="2"
-            placeholder="Door/Flat No., Building Name"
-          ></textarea>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-street" class="field-label">Street</label>
-            <input id="stu-street" class="field-input" formControlName="street" autocomplete="off" />
-          </div>
-
-          <div class="field-group">
-            <label for="stu-city" class="field-label">City</label>
-            <input id="stu-city" class="field-input" formControlName="city" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group">
-            <label for="stu-district" class="field-label">District</label>
-            <input id="stu-district" class="field-input" formControlName="district" autocomplete="off" />
-          </div>
-
-          <div class="field-group">
-            <label for="stu-state" class="field-label">State</label>
-            <input id="stu-state" class="field-input" formControlName="state" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label for="stu-pincode" class="field-label">Pincode</label>
-          <input
-            id="stu-pincode"
-            class="field-input field-input--narrow"
-            formControlName="pincode"
-            autocomplete="postal-code"
-          />
-        </div>
-
-        <div class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/students">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Student' : 'Create Student' }}
-            }
-          </button>
-        </div>
-
-      </form>
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>

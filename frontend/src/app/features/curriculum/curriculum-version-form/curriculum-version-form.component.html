@@ -1,88 +1,114 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/curriculum-versions" class="back-btn" aria-label="Back to curriculum versions">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">{{ pageTitle() }}</h1>
+    <a class="entry-form-back-btn" routerLink="/curriculum-versions" aria-label="Back to curriculum versions">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Curriculum Version</em></h1>
+        <cms-tour-button tourKey="curriculum-version-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         {{ isEditMode() ? 'Update the curriculum version details below.' : 'Fill in the details to create a new curriculum version.' }}
       </p>
     </div>
-    <cms-tour-button tourKey="curriculum-version-form" />
   </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
   } @else {
-    <div class="entry-form-card">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
 
-        <div class="field-group">
-          <label for="cv-program" class="field-label">Program</label>
-          <select id="cv-program" class="field-input" formControlName="programId"
-            [class.field-input--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
-            <option [value]="null">-- Select Program --</option>
-            @for (p of programs(); track p.id) {
-              <option [value]="p.id">{{ p.name }} ({{ p.code }})</option>
-            }
-          </select>
-          @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-            <p class="field-error">Program is required</p>
-          }
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Curriculum Version</div>
+            <div class="entry-form-card__hdr-sub">Program version applicable from a specific academic year</div>
+          </div>
         </div>
 
-        <div class="field-group">
-          <label for="cv-version-name" class="field-label">Version Name</label>
-          <input
-            id="cv-version-name"
-            class="field-input"
-            formControlName="versionName"
-            placeholder="e.g., 2024-25 v1"
-            autocomplete="off"
-            [class.field-input--error]="form.get('versionName')?.invalid && form.get('versionName')?.touched"
-          />
-          @if (form.get('versionName')?.invalid && form.get('versionName')?.touched) {
-            <p class="field-error">Version name is required</p>
-          }
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
-        <div class="field-group">
-          <label for="cv-ay" class="field-label">Effective From Academic Year</label>
-          <select id="cv-ay" class="field-input" formControlName="effectiveFromAcademicYearId"
-            [class.field-input--error]="form.get('effectiveFromAcademicYearId')?.invalid && form.get('effectiveFromAcademicYearId')?.touched">
-            <option [value]="null">-- Select Academic Year --</option>
-            @for (ay of academicYears(); track ay.id) {
-              <option [value]="ay.id">{{ ay.name }}</option>
-            }
-          </select>
-          @if (form.get('effectiveFromAcademicYearId')?.invalid && form.get('effectiveFromAcademicYearId')?.touched) {
-            <p class="field-error">Academic year is required</p>
-          }
-        </div>
+            <div class="field-group">
+              <label for="cv-program" class="field-label">Program <span class="required-star">*</span></label>
+              <select id="cv-program" class="field-select" formControlName="programId"
+                [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
+                <option [value]="null">-- Select Program --</option>
+                @for (p of programs(); track p.id) {
+                  <option [value]="p.id">{{ p.name }} ({{ p.code }})</option>
+                }
+              </select>
+              @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+                <p class="field-error">Program is required</p>
+              }
+            </div>
 
-        <div id="tour-cv-active-toggle" class="field-group">
-          <label class="field-label checkbox-label">
-            <input type="checkbox" formControlName="isActive" class="field-checkbox" />
-            Active
-          </label>
-          <p class="field-hint">When active, this version is used for enrollment</p>
-        </div>
+            <div class="field-group">
+              <label for="cv-version-name" class="field-label">Version Name <span class="required-star">*</span></label>
+              <input id="cv-version-name" class="field-input" formControlName="versionName"
+                placeholder="e.g., 2024-25 v1" autocomplete="off"
+                [class.field-input--error]="form.get('versionName')?.invalid && form.get('versionName')?.touched" />
+              @if (form.get('versionName')?.invalid && form.get('versionName')?.touched) {
+                <p class="field-error">Version name is required</p>
+              }
+            </div>
 
-        <div id="tour-cv-submit" class="form-footer">
-          <button type="button" class="btn-cancel" routerLink="/curriculum-versions">Cancel</button>
-          <button type="submit" class="btn-submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              {{ isEditMode() ? 'Update Version' : 'Create Version' }}
-            }
-          </button>
-        </div>
+            <div class="field-group">
+              <label for="cv-ay" class="field-label">Effective From Academic Year <span class="required-star">*</span></label>
+              <select id="cv-ay" class="field-select" formControlName="effectiveFromAcademicYearId"
+                [class.field-select--error]="form.get('effectiveFromAcademicYearId')?.invalid && form.get('effectiveFromAcademicYearId')?.touched">
+                <option [value]="null">-- Select Academic Year --</option>
+                @for (ay of academicYears(); track ay.id) {
+                  <option [value]="ay.id">{{ ay.name }}</option>
+                }
+              </select>
+              @if (form.get('effectiveFromAcademicYearId')?.invalid && form.get('effectiveFromAcademicYearId')?.touched) {
+                <p class="field-error">Academic year is required</p>
+              }
+            </div>
 
-      </form>
+            <div id="tour-cv-active-toggle" class="field-group" style="margin-bottom: 0;">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="isActive" class="field-checkbox" />
+                Active
+              </label>
+              <p class="field-hint">When active, this version is used for enrollment</p>
+            </div>
+          </div>
+
+          <div id="tour-cv-submit" class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/curriculum-versions">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Version' : 'Create Version' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewVersion()">
+            {{ previewVersion() || 'Version name will appear here' }}
+          </div>
+          @if (previewProgramName()) { <div class="prev-sub">{{ previewProgramName() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewAyName()) { <span class="prev-pill prev-pill--primary">From {{ previewAyName() }}</span> }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
     </div>
   }
 </div>
