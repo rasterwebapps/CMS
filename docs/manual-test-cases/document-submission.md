@@ -1,6 +1,6 @@
-# Document Submission — Manual Test Cases
+# Submit Documents — Manual Test Cases
 
-These test cases verify the document submission workflow for enquiries that have completed payment (`FEES_PAID` or `PARTIALLY_PAID`).
+These test cases verify the submit documents workflow for enquiries that have completed payment (`FEES_PAID` or `PARTIALLY_PAID`).
 
 The workflow is:
 
@@ -17,11 +17,11 @@ The workflow is:
 - At least one enquiry exists in `FEES_PAID` status and one in `PARTIALLY_PAID` status.
 
 **Steps:**
-1. Navigate to **Admission Management → Document Submission** in the side navigation.
+1. Navigate to **Admission Management → Submit Documents** in the side navigation.
 2. Wait for the list to load.
 
 **Expected Result:**
-- The page header reads **"Document Submission"**.
+- The page header reads **"Submit Documents"**.
 - Both the `FEES_PAID` and `PARTIALLY_PAID` enquiries appear in the table.
 - The status badge shows the correct status with the appropriate colour.
 - Enquiries in any other status (e.g. `INTERESTED`, `FEES_FINALIZED`, `DOCUMENTS_SUBMITTED`, `ADMITTED`) are **not** shown.
@@ -34,10 +34,10 @@ The workflow is:
 
 **Preconditions:**
 - TC-DOCSUB-001 passed.
-- At least one enquiry is visible in the document submission list.
+- At least one enquiry is visible in the submit documents list.
 
 **Steps:**
-1. From the document submission list, click the upload-icon action on a row.
+1. From the submit documents list, click the upload-icon action on a row.
 
 **Expected Result:**
 - The browser navigates to `/enquiries/document-submission/<id>`.

@@ -19,6 +19,7 @@ import { AcademicYear, TermInstance } from '../../academic-year/academic-year.mo
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService, CsvColumn } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-fee-reports-dashboard',
@@ -131,7 +132,7 @@ export class FeeReportsDashboardComponent {
 
   loadStudentLedger(): void {
     if (this.studentLedgerForm.invalid) {
-      this.studentLedgerForm.markAllAsTouched();
+      scrollToFirstInvalid(this.studentLedgerForm);
       return;
     }
     const studentId = this.studentLedgerForm.value.studentId;

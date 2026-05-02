@@ -179,13 +179,13 @@ export const ENQUIRY_DETAIL_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Document Submission List
+// Submit Documents List
 // ─────────────────────────────────────────────────────────────────────────────
 export const DOCUMENT_SUBMISSION_LIST_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '📂 Document Submission',
+        title: '📂 Submit Documents',
         description:
           'After candidates pay (fully or partially), the next step is collecting their documents. This screen lists everyone awaiting verification.',
         side: 'over',
@@ -272,7 +272,7 @@ export const DOCUMENT_COLLECTION_TOUR: TourDefinition = {
       popover: {
         title: '✅ Move to admission',
         description:
-          'Once all mandatory documents are verified, the candidate appears in <em>Admission Completion</em>, where you can finalise their record.',
+          'Once all mandatory documents are verified, the candidate appears in <em>Complete Admission</em>, where you can finalise their record.',
         side: 'over',
         align: 'center',
       },
@@ -281,13 +281,13 @@ export const DOCUMENT_COLLECTION_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Admission Completion List
+// Complete Admission List
 // ─────────────────────────────────────────────────────────────────────────────
 export const ADMISSION_COMPLETION_LIST_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '🎓 Admission Completion',
+        title: '🎓 Complete Admission',
         description:
           'The final step in the admission workflow. Candidates here have paid and submitted documents — they\'re ready to be promoted to active students.',
         side: 'over',
@@ -299,7 +299,7 @@ export const ADMISSION_COMPLETION_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Ready-to-Admit Counters',
         description:
-          'See at a glance how many candidates are ready for admission completion across each programme.',
+          'See at a glance how many candidates are ready for complete admission across each programme.',
         side: 'bottom',
         align: 'start',
       },

@@ -49,7 +49,7 @@ export interface FrontOfficeEnquiryItem {
 export interface FrontOfficeDashboard {
   todayEnquiryCount: number;
   totalEnquiryCount: number;
-  pendingAdmissionsCount: number;
+  totalAdmissions: number;
   feeCollectedToday: number;
   conversionsThisWeek: number;
   conversionRate: number;

@@ -23,8 +23,8 @@
 6. [Admission Management](#6-admission-management)
    - [6.1 Status Lifecycle](#61-admission-status-lifecycle)
    - [6.2 Enquiries](#62-enquiries)
-   - [6.3 Document Submission](#63-document-submission)
-   - [6.4 Admission Completion](#64-admission-completion)
+   - [6.3 Submit Documents](#63-document-submission)
+   - [6.4 Complete Admission](#64-admission-completion)
    - [6.5 Admissions List](#65-admissions-list)
    - [6.6 Students List](#66-students-list)
 7. [Finance Management](#7-finance-management)
@@ -488,9 +488,9 @@ From the enquiry list, these buttons appear automatically when the enquiry is in
 
 ---
 
-### 6.3 Document Submission
+### 6.3 Submit Documents
 
-**Navigate**: Sidenav → Admission Management → Document Submission
+**Navigate**: Sidenav → Admission Management → Submit Documents
 
 SKS College of Nursing is affiliated with the **Indian Nursing Council (INC)** and **State Nurses Registration Council**, which mandates specific documents for admission:
 
@@ -510,7 +510,7 @@ SKS College of Nursing is affiliated with the **Indian Nursing Council (INC)** a
 
 #### Document Collection Steps
 
-1. Navigate to **Admission Management → Document Submission**
+1. Navigate to **Admission Management → Submit Documents**
 2. Find the eligible enquiry (`FEES_PAID` or `PARTIALLY_PAID` status)
 3. Click on the enquiry
 4. For each of the 7 documents:
@@ -540,9 +540,9 @@ SKS College of Nursing is affiliated with the **Indian Nursing Council (INC)** a
 
 ---
 
-### 6.4 Admission Completion
+### 6.4 Complete Admission
 
-**Navigate**: Sidenav → Admission Management → Admission Completion
+**Navigate**: Sidenav → Admission Management → Complete Admission
 
 This screen shows **only** enquiries in `DOCUMENTS_SUBMITTED` status — i.e., students ready for admission creation.
 
@@ -829,7 +829,7 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
                                      ▼
   ┌────────────────────────────────────────────────────────────────────┐
   │  STEP 6 — ADMISSION CREATION    [College Admin / Front Office]    │
-  │  • Open Admission Completion screen                               │
+  │  • Open Complete Admission screen                               │
   │  • Auto-fill from enquiry: Name, Program, Phone                   │
   │  • Enter: Semester, Admission date, DOB, Blood Group, Community   │
   │  • Click "Create Admission"                                       │
@@ -854,7 +854,7 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 
 - Check that **all 7 mandatory documents** are uploaded (UPLOADED or VERIFIED status)
 - Verify enquiry status is `DOCUMENTS_SUBMITTED`
-- If stuck at `FEES_PAID`, go to Document Submission, upload docs, then submit
+- If stuck at `FEES_PAID`, go to Submit Documents, upload docs, then submit
 
 ### Fee amount shows as ₹0 or incorrect amount
 
@@ -919,7 +919,7 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 MORNING:
   [ ] Review dashboard — any new enquiries?
   [ ] Check enquiries awaiting fee finalization (status: INTERESTED)
-  [ ] Check document submissions awaiting verification
+  [ ] Check submit documentss awaiting verification
 
 AFTERNOON:
   [ ] Process fee finalizations for interested students

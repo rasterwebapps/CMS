@@ -1,11 +1,11 @@
-# Admission Completion Manual Test Cases
+# Complete Admission Manual Test Cases
 
-These tests cover the admission completion flow which lets an Admin or Front Office user
+These tests cover the complete admission flow which lets an Admin or Front Office user
 pick an enquiry that is in `DOCUMENTS_SUBMITTED` status and complete the admission by
 collecting all student and admission details. On submit, both the `students` and
 `admissions` rows are created and the enquiry is moved to `ADMITTED`.
 
-## TC-ADMCOMP-001: Admission Completion list shows only DOCUMENTS_SUBMITTED enquiries
+## TC-ADMCOMP-001: Complete Admission list shows only DOCUMENTS_SUBMITTED enquiries
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
@@ -13,12 +13,12 @@ collecting all student and admission details. On submit, both the `students` and
   (e.g. `INTERESTED`, `FEES_PAID`, `ADMITTED`).
 
 **Steps:**
-1. Open the side menu and click **Admission Management → Admission Completion**.
+1. Open the side menu and click **Admission Management → Complete Admission**.
 2. Wait for the list to load.
 
 **Expected Result:**
 - Only enquiries with status `DOCUMENTS_SUBMITTED` are shown.
-- The header reads "Admission Completion" with subtitle about choosing one to complete.
+- The header reads "Complete Admission" with subtitle about choosing one to complete.
 - The count badge matches the number of rows.
 
 **Status:** NOT TESTED
@@ -32,10 +32,10 @@ collecting all student and admission details. On submit, both the `students` and
 - No enquiry is in `DOCUMENTS_SUBMITTED` status.
 
 **Steps:**
-1. Navigate to **Admission Management → Admission Completion**.
+1. Navigate to **Admission Management → Complete Admission**.
 
 **Expected Result:**
-- Empty-state card is shown with text "No enquiries pending admission completion".
+- Empty-state card is shown with text "No enquiries pending complete admission".
 
 **Status:** NOT TESTED
 
@@ -48,7 +48,7 @@ collecting all student and admission details. On submit, both the `students` and
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
-1. Open **Admission Management → Admission Completion**.
+1. Open **Admission Management → Complete Admission**.
 2. Click the "Complete admission" action on the chosen row.
 3. On the conversion screen, confirm the prefilled fields (name, email, semester,
    academic year, application date) are correct.
@@ -83,7 +83,7 @@ collecting all student and admission details. On submit, both the `students` and
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
-1. From the Admission Completion list, click "Complete admission" on the chosen enquiry.
+1. From the Complete Admission list, click "Complete admission" on the chosen enquiry.
 2. Leave all optional sections (Personal Information, Demographics, Family Information,
    Address, Declaration) untouched.
 3. Click **Create Admission**.
@@ -126,7 +126,7 @@ collecting all student and admission details. On submit, both the `students` and
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
-1. From the Admission Completion list, click "Complete admission" on the enquiry.
+1. From the Complete Admission list, click "Complete admission" on the enquiry.
 2. Set the email field to `existing@college.edu`.
 3. Submit the form.
 
@@ -147,6 +147,6 @@ collecting all student and admission details. On submit, both the `students` and
 1. Open the side menu under **Admission Management**.
 
 **Expected Result:**
-- The "Admission Completion" item is not shown.
+- The "Complete Admission" item is not shown.
 
 **Status:** NOT TESTED

@@ -1,7 +1,6 @@
 export interface AdmissionRequest {
   studentId: number;
-  academicYearFrom: number;
-  academicYearTo: number;
+  joiningAcademicYearId: number;
   applicationDate: string;
   status?: string;
   declarationPlace?: string;
@@ -14,10 +13,15 @@ export interface AdmissionResponse {
   id: number;
   studentId: number;
   studentName: string;
-  academicYearFrom: number;
-  academicYearTo: number;
+  rollNumber: string | null;
+  programName: string | null;
+  courseName: string | null;
+  semester: number | null;
+  studentStatus: string | null;
+  joiningAcademicYearId: number;
+  joiningAcademicYearName: string;
+  expectedCompletionYear: number | null;
   applicationDate: string;
-  status: string;
   declarationPlace: string | null;
   declarationDate: string | null;
   parentConsentGiven: boolean | null;
@@ -64,6 +68,7 @@ export interface AdmissionDocumentResponse {
   createdAt: string;
   updatedAt: string;
 }
+
 
 export const ADMISSION_STATUSES = [
   'SUBMITTED',

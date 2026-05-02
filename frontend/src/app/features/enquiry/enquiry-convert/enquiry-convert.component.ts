@@ -1,18 +1,20 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { SlicePipe } from '@angular/common';
+import { forkJoin } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } from '../enquiry.model';
-import { LayoutService } from '../../../core/layout/layout.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
+import { AcademicYear } from '../../academic-year/academic-year.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { computeInitials } from '../../../shared/utils/initials';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -20,28 +22,34 @@ import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
   imports: [
     RouterLink,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCheckboxModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent,
-    CmsTourButtonComponent],
+    InrPipe,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
 })
 export class EnquiryConvertComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder);
-  private readonly enquiryService = inject(EnquiryService);
-  private readonly toast = inject(ToastService);
-  protected readonly layoutService = inject(LayoutService);
-  private readonly tourService = inject(TourService);
+  private readonly route           = inject(ActivatedRoute);
+  private readonly router          = inject(Router);
+  private readonly fb              = inject(FormBuilder);
+  private readonly enquiryService  = inject(EnquiryService);
+  private readonly academicYearSvc = inject(AcademicYearService);
+  private readonly toast           = inject(ToastService);
+  private readonly tourService     = inject(TourService);
 
-  protected readonly enquiry = signal<Enquiry | null>(null);
-  protected readonly prefill = signal<EnquiryConversionPrefillResponse | null>(null);
-  protected readonly loading = signal(true);
-  protected readonly saving = signal(false);
+  protected readonly computeInitials = computeInitials;
+
+  protected readonly enquiry          = signal<Enquiry | null>(null);
+  protected readonly prefill          = signal<EnquiryConversionPrefillResponse | null>(null);
+  protected readonly academicYears    = signal<AcademicYear[]>([]);
+  protected readonly selectedAcademicYearId = signal<number | null>(null);
+  protected readonly loading          = signal(true);
+  protected readonly saving           = signal(false);
+
+  // Consent document files
+  protected readonly parentConsentFile    = signal<File | null>(null);
+  protected readonly applicantConsentFile = signal<File | null>(null);
 
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
   protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'] as const;
@@ -53,52 +61,41 @@ export class EnquiryConvertComponent implements OnInit {
   ] as const;
 
   protected readonly form: FormGroup = this.fb.group({
-    // Student basic
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
-    phone: [''],
-    semester: [1, [Validators.required, Validators.min(1)]],
+    firstName:    ['', Validators.required],
+    lastName:     ['', Validators.required],
+    email:        ['', [Validators.required, Validators.email]],
+    phone:        [''],
     admissionDate: ['', Validators.required],
 
-    // Admission basic
-    academicYearFrom: [null, Validators.required],
-    academicYearTo: [null, Validators.required],
     applicationDate: ['', Validators.required],
 
-    // Student personal information
-    dateOfBirth: [''],
-    gender: [''],
-    aadharNumber: [''],
+    // Always 1 for new admissions — hidden from UI
+    semester: [1, [Validators.required, Validators.min(1)]],
 
-    // Student demographics
-    nationality: [''],
-    religion: [''],
+    dateOfBirth:       [''],
+    gender:            [''],
+    aadharNumber:      [''],
+    nationality:       [''],
+    religion:          [''],
     communityCategory: [''],
-    caste: [''],
-    bloodGroup: [''],
+    caste:             [''],
+    bloodGroup:        [''],
+    fatherName:        [''],
+    motherName:        [''],
+    parentMobile:      [''],
 
-    // Student family information
-    fatherName: [''],
-    motherName: [''],
-    parentMobile: [''],
-
-    // Student address
     address: this.fb.group({
       postalAddress: [''],
-      street: [''],
-      city: [''],
-      district: [''],
-      state: [''],
-      pincode: [''],
+      street:        [''],
+      city:          [''],
+      district:      [''],
+      state:         [''],
+      pincode:       [''],
     }),
 
-    // Admission declaration
     declarationPlace: [''],
-    declarationDate: [''],
-
-    // Consents
-    parentConsentGiven: [false],
+    declarationDate:  [''],
+    parentConsentGiven:    [false],
     applicantConsentGiven: [false],
   });
 
@@ -109,41 +106,82 @@ export class EnquiryConvertComponent implements OnInit {
   }
 
   private load(id: number): void {
-    this.enquiryService.getEnquiryById(id).subscribe({ next: (e) => this.enquiry.set(e) });
-    this.enquiryService.getConversionPrefill(id).subscribe({
-      next: (p) => {
-        this.prefill.set(p);
+    forkJoin({
+      enquiry: this.enquiryService.getEnquiryById(id),
+      prefill:  this.enquiryService.getConversionPrefill(id),
+      years:    this.academicYearSvc.getAllAcademicYears(),
+    }).subscribe({
+      next: ({ enquiry, prefill, years }) => {
+        this.enquiry.set(enquiry);
+        this.prefill.set(prefill);
+
+        // Sort years newest-first for the dropdown
+        const sorted = [...years].sort((a, b) =>
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        );
+        this.academicYears.set(sorted);
+
+        // Auto-select the academic year that matches the suggested year
+        const match = sorted.find(y =>
+          new Date(y.startDate).getFullYear() === prefill.suggestedAcademicYearFrom
+        ) ?? sorted.find(y => y.isCurrent) ?? sorted[0];
+        if (match) {
+          this.selectedAcademicYearId.set(match.id);
+          this.form.patchValue({
+            academicYearFrom: new Date(match.startDate).getFullYear(),
+            academicYearTo:   new Date(match.endDate).getFullYear(),
+          });
+        }
+
         this.form.patchValue({
-          firstName: p.firstName,
-          lastName: p.lastName,
-          email: p.email ?? '',
-          phone: p.phone ?? '',
-          semester: p.suggestedSemester,
-          admissionDate: new Date().toISOString().split('T')[0],
-          academicYearFrom: p.suggestedAcademicYearFrom,
-          academicYearTo: p.suggestedAcademicYearTo,
-          applicationDate: p.suggestedApplicationDate,
-          declarationDate: p.suggestedApplicationDate,
+          firstName:    prefill.firstName,
+          lastName:     prefill.lastName,
+          email:        prefill.email ?? '',
+          phone:        prefill.phone ?? '',
+          admissionDate:   new Date().toISOString().split('T')[0],
+          applicationDate: prefill.suggestedApplicationDate,
+          declarationDate: prefill.suggestedApplicationDate,
         });
+
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Failed to load prefill data');
+        this.toast.error('Failed to load admission data');
         this.loading.set(false);
       },
     });
   }
 
+  protected onAcademicYearSelect(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+    const year = this.academicYears().find(y => y.id === id);
+    if (!year) return;
+    this.selectedAcademicYearId.set(id);
+    this.form.patchValue({
+      academicYearFrom: new Date(year.startDate).getFullYear(),
+      academicYearTo:   new Date(year.endDate).getFullYear(),
+    });
+  }
+
+  protected onParentConsentFile(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.parentConsentFile.set(file);
+  }
+
+  protected onApplicantConsentFile(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.applicantConsentFile.set(file);
+  }
+
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const id = this.enquiry()?.id;
     if (!id) return;
     this.saving.set(true);
-    const request = this.buildRequest();
-    this.enquiryService.convertEnquiry(id, request).subscribe({
+
+    this.enquiryService.convertEnquiry(id, this.buildRequest()).subscribe({
       next: () => {
-        this.toast.success('Admission created and student enrolled successfully');
-        void this.router.navigate(['/students']);
+        this.uploadConsentDocs(id);
       },
       error: () => {
         this.toast.error('Failed to create admission');
@@ -152,62 +190,81 @@ export class EnquiryConvertComponent implements OnInit {
     });
   }
 
-  /** Convert empty strings to undefined so the backend treats them as null/optional. */
+  private uploadConsentDocs(enquiryId: number): void {
+    const uploads = [];
+    if (this.parentConsentFile()) {
+      uploads.push(
+        this.enquiryService.uploadDocumentFile(enquiryId, 'SIGNED_AFFIDAVIT', this.parentConsentFile()!)
+      );
+    }
+    if (this.applicantConsentFile()) {
+      uploads.push(
+        this.enquiryService.uploadDocumentFile(enquiryId, 'UNDERTAKING_DOCUMENT', this.applicantConsentFile()!)
+      );
+    }
+
+    const done = () => {
+      this.toast.success('Admission created and student enrolled successfully');
+      void this.router.navigate(['/students']);
+    };
+
+    if (uploads.length === 0) { done(); return; }
+
+    forkJoin(uploads).subscribe({
+      next: () => done(),
+      error: () => {
+        // Admission was already created — just warn about the upload failure
+        this.toast.warning('Admission created but consent document upload failed. You can re-upload from the enquiry documents screen.');
+        void this.router.navigate(['/students']);
+      },
+    });
+  }
+
   private nullable<T>(value: T): T | undefined {
     if (value === '' || value === null) return undefined;
     return value;
   }
 
   private buildRequest(): EnquiryConversionRequest {
-    const v = this.form.value as Record<string, unknown> & {
-      address?: Record<string, unknown>;
-    };
-    const addr = v.address ?? {};
+    const v = this.form.value as Record<string, unknown> & { address?: Record<string, unknown> };
+    const addr = v['address'] ?? {};
     const hasAddress = Object.values(addr).some((x) => x !== '' && x !== null && x !== undefined);
 
     return {
-      firstName: v['firstName'] as string,
-      lastName: v['lastName'] as string,
-      email: v['email'] as string,
-      phone: this.nullable(v['phone'] as string),
-      semester: v['semester'] as number,
-      admissionDate: v['admissionDate'] as string,
-      academicYearFrom: v['academicYearFrom'] as number,
-      academicYearTo: v['academicYearTo'] as number,
-      applicationDate: v['applicationDate'] as string,
-      parentConsentGiven: v['parentConsentGiven'] as boolean,
+      firstName:   v['firstName'] as string,
+      lastName:    v['lastName'] as string,
+      email:       v['email'] as string,
+      phone:       this.nullable(v['phone'] as string),
+      semester:             v['semester'] as number,
+      admissionDate:        v['admissionDate'] as string,
+      joiningAcademicYearId: this.selectedAcademicYearId()!,
+      applicationDate:      v['applicationDate'] as string,
+      parentConsentGiven:    v['parentConsentGiven'] as boolean,
       applicantConsentGiven: v['applicantConsentGiven'] as boolean,
 
-      dateOfBirth: this.nullable(v['dateOfBirth'] as string) ?? null,
-      gender: (this.nullable(v['gender']) as EnquiryConversionRequest['gender']) ?? null,
-      aadharNumber: this.nullable(v['aadharNumber'] as string) ?? null,
+      dateOfBirth:        this.nullable(v['dateOfBirth'] as string) ?? null,
+      gender:             (this.nullable(v['gender']) as EnquiryConversionRequest['gender']) ?? null,
+      aadharNumber:       this.nullable(v['aadharNumber'] as string) ?? null,
+      nationality:        this.nullable(v['nationality'] as string) ?? null,
+      religion:           this.nullable(v['religion'] as string) ?? null,
+      communityCategory:  (this.nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory']) ?? null,
+      caste:              this.nullable(v['caste'] as string) ?? null,
+      bloodGroup:         (this.nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup']) ?? null,
+      fatherName:         this.nullable(v['fatherName'] as string) ?? null,
+      motherName:         this.nullable(v['motherName'] as string) ?? null,
+      parentMobile:       this.nullable(v['parentMobile'] as string) ?? null,
 
-      nationality: this.nullable(v['nationality'] as string) ?? null,
-      religion: this.nullable(v['religion'] as string) ?? null,
-      communityCategory:
-        (this.nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory']) ?? null,
-      caste: this.nullable(v['caste'] as string) ?? null,
-      bloodGroup:
-        (this.nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup']) ?? null,
-
-      fatherName: this.nullable(v['fatherName'] as string) ?? null,
-      motherName: this.nullable(v['motherName'] as string) ?? null,
-      parentMobile: this.nullable(v['parentMobile'] as string) ?? null,
-
-      address: hasAddress
-        ? {
-            postalAddress: this.nullable(addr['postalAddress'] as string) ?? null,
-            street: this.nullable(addr['street'] as string) ?? null,
-            city: this.nullable(addr['city'] as string) ?? null,
-            district: this.nullable(addr['district'] as string) ?? null,
-            state: this.nullable(addr['state'] as string) ?? null,
-            pincode: this.nullable(addr['pincode'] as string) ?? null,
-          }
-        : null,
+      address: hasAddress ? {
+        postalAddress: this.nullable(addr['postalAddress'] as string) ?? null,
+        street:        this.nullable(addr['street'] as string) ?? null,
+        city:          this.nullable(addr['city'] as string) ?? null,
+        district:      this.nullable(addr['district'] as string) ?? null,
+        state:         this.nullable(addr['state'] as string) ?? null,
+        pincode:       this.nullable(addr['pincode'] as string) ?? null,
+      } : null,
 
       declarationPlace: this.nullable(v['declarationPlace'] as string) ?? null,
-      declarationDate: this.nullable(v['declarationDate'] as string) ?? null,
+      declarationDate:  this.nullable(v['declarationDate'] as string) ?? null,
     };
   }
 }
-

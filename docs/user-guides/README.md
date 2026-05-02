@@ -53,8 +53,8 @@ Comprehensive user guides and handbooks have been created for all primary user r
   - Agents & Referral Types
 - Admission Management (5 subsections):
   - Enquiries management
-  - Document submission
-  - Admission completion
+  - Submit Documents
+  - Complete Admission
   - Admissions list
   - Students list
 - Finance Management (3 subsections):

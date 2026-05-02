@@ -12,6 +12,7 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/department.tours';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-department-form',
@@ -111,7 +112,7 @@ export class DepartmentFormComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
 

@@ -15,6 +15,7 @@ import { StudentFeeSummary, SemesterFeeDetail } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -195,11 +196,13 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {
+    const totalFee = e.finalizedNetFee ?? 0;
+    const totalPaid = e.totalPaidAmount ?? 0;
     return {
       type: 'ENQUIRY', id: e.id, name: e.name,
       programName: e.programName ?? '—', courseName: e.courseName,
-      totalFee: e.finalizedNetFee ?? 0, totalPaid: 0,
-      totalOutstanding: e.finalizedNetFee ?? 0,
+      totalFee, totalPaid,
+      totalOutstanding: Math.max(0, totalFee - totalPaid),
       nextDueDate: null, nextDueLabel: null,
     };
   }
@@ -262,7 +265,7 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const entry = this.selectedEntry();
     if (!entry) return;
 

@@ -13,6 +13,7 @@ import { Department } from '../../department/department.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-lab-form',
@@ -115,7 +116,7 @@ export class LabFormComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
 

@@ -11,6 +11,7 @@ import { environment } from '../../../../environments/environment';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-fee-payment-form',
@@ -59,7 +60,7 @@ export class FeePaymentFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
     const request: FeePaymentRequest = { studentId: v.studentId, feeStructureId: v.feeStructureId, amountPaid: v.amountPaid, paymentDate: v.paymentDate, paymentMethod: v.paymentMethod, transactionId: v.transactionId || undefined, status: v.status };
     this.saving.set(true);

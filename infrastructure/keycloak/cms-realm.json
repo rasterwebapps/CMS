@@ -56,14 +56,18 @@
         "http://localhost:4300/*",
         "https://172.17.1.243/*",
         "https://dev.raster.in:212/*",
-        "https://122.165.219.66:212/*"
+        "https://122.165.219.66:212/*",
+        "https://172.17.1.243:8443/*",
+        "https://122.165.219.66/*"
       ],
       "webOrigins": [
         "http://localhost:4200",
         "http://localhost:4300",
         "https://172.17.1.243",
         "https://dev.raster.in:212",
-        "https://122.165.219.66:212"
+        "https://122.165.219.66:212",
+        "https://172.17.1.243:8443",
+        "https://122.165.219.66"
       ],
       "protocol": "openid-connect"
     },

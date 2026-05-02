@@ -9,14 +9,11 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.AdmissionStatus;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,18 +36,13 @@ public class Admission {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    @Column(name = "academic_year_from", nullable = false)
-    private Integer academicYearFrom;
-
-    @Column(name = "academic_year_to", nullable = false)
-    private Integer academicYearTo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "joining_academic_year_id", nullable = false)
+    private AcademicYear joiningAcademicYear;
 
     @Column(name = "application_date", nullable = false)
     private LocalDate applicationDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AdmissionStatus status;
 
     @Column(name = "declaration_place")
     private String declarationPlace;
@@ -81,13 +73,10 @@ public class Admission {
     public Admission() {
     }
 
-    public Admission(Student student, Integer academicYearFrom, Integer academicYearTo,
-                     LocalDate applicationDate, AdmissionStatus status) {
+    public Admission(Student student, AcademicYear joiningAcademicYear, LocalDate applicationDate) {
         this.student = student;
-        this.academicYearFrom = academicYearFrom;
-        this.academicYearTo = academicYearTo;
+        this.joiningAcademicYear = joiningAcademicYear;
         this.applicationDate = applicationDate;
-        this.status = status;
     }
 
     public Long getId() {
@@ -106,20 +95,12 @@ public class Admission {
         this.student = student;
     }
 
-    public Integer getAcademicYearFrom() {
-        return academicYearFrom;
+    public AcademicYear getJoiningAcademicYear() {
+        return joiningAcademicYear;
     }
 
-    public void setAcademicYearFrom(Integer academicYearFrom) {
-        this.academicYearFrom = academicYearFrom;
-    }
-
-    public Integer getAcademicYearTo() {
-        return academicYearTo;
-    }
-
-    public void setAcademicYearTo(Integer academicYearTo) {
-        this.academicYearTo = academicYearTo;
+    public void setJoiningAcademicYear(AcademicYear joiningAcademicYear) {
+        this.joiningAcademicYear = joiningAcademicYear;
     }
 
     public LocalDate getApplicationDate() {
@@ -130,13 +111,6 @@ public class Admission {
         this.applicationDate = applicationDate;
     }
 
-    public AdmissionStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(AdmissionStatus status) {
-        this.status = status;
-    }
 
     public String getDeclarationPlace() {
         return declarationPlace;

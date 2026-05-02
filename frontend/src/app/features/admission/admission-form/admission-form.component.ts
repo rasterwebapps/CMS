@@ -9,7 +9,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AdmissionService } from '../admission.service';
-import { ADMISSION_STATUSES, AdmissionRequest, QUALIFICATION_TYPES } from '../admission.model';
+import { AdmissionRequest, QUALIFICATION_TYPES } from '../admission.model';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
+import { AcademicYear } from '../../academic-year/academic-year.model';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
 import { EnquiryService } from '../../enquiry/enquiry.service';
@@ -20,6 +22,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 type Mode = 'from-enquiry' | 'manual';
 
@@ -51,16 +54,20 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly layoutService = inject(LayoutService);
   private readonly tourService = inject(TourService);
 
+  private readonly academicYearSvc = inject(AcademicYearService);
+
   protected readonly students = signal<Student[]>([]);
   protected readonly pendingEnquiries = signal<Enquiry[]>([]);
+  protected readonly academicYears = signal<AcademicYear[]>([]);
+  protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly prefill = signal<EnquiryConversionPrefillResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEdit = signal(false);
   protected readonly mode = signal<Mode>('from-enquiry');
+  protected readonly editStudentId = signal<number | null>(null);
 
-  protected readonly statuses = ADMISSION_STATUSES;
   protected readonly qualificationTypes = QUALIFICATION_TYPES;
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
   protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'] as const;
@@ -85,7 +92,6 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     // ── Manual / Edit mode ──────────────────────────────────────────────────
     studentId: [null],
-    status: ['SUBMITTED'],
     qualifications: this.fb.array([]),
 
     // ── From-Enquiry mode ───────────────────────────────────────────────────
@@ -117,8 +123,7 @@ export class AdmissionFormComponent implements OnInit {
     }),
 
     // ── Common (both modes) ─────────────────────────────────────────────────
-    academicYearFrom: [new Date().getFullYear(), Validators.required],
-    academicYearTo: [new Date().getFullYear() + 1, Validators.required],
+    joiningAcademicYearId: [null, Validators.required],
     applicationDate: [new Date().toISOString().split('T')[0], Validators.required],
     declarationPlace: [''],
     declarationDate: [''],
@@ -132,16 +137,34 @@ export class AdmissionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('admission-form', ADMISSION_FORM_TOUR);
+
+    // Always load academic years for the dropdown
+    this.academicYearSvc.getAllAcademicYears().subscribe({
+      next: (years) => {
+        const sorted = [...years].sort((a, b) =>
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        );
+        this.academicYears.set(sorted);
+        // Auto-select current year for new forms
+        const current = sorted.find(y => y.isCurrent) ?? sorted[0];
+        if (current && !this.isEdit()) {
+          this.selectedAcademicYearId.set(current.id);
+          this.form.patchValue({ joiningAcademicYearId: current.id });
+        }
+      },
+    });
+
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) {
       this.isEdit.set(true);
       this.loading.set(true);
-      // Edit mode always uses the manual flow; load students for the dropdown.
       this.studentService.getAll().subscribe({ next: (s) => this.students.set(s) });
       this.updateValidators('manual');
       this.admissionService.getById(id).subscribe({
         next: (a) => {
-          this.form.patchValue(a);
+          this.selectedAcademicYearId.set(a.joiningAcademicYearId);
+          this.editStudentId.set(a.studentId);
+          this.form.patchValue({ ...a, joiningAcademicYearId: a.joiningAcademicYearId });
           this.loading.set(false);
         },
         error: () => {
@@ -150,15 +173,19 @@ export class AdmissionFormComponent implements OnInit {
         },
       });
     } else {
-      // New admission: default to "from-enquiry" mode.
       this.updateValidators('from-enquiry');
       this.enquiryService.getAdmissionPending().subscribe({
         next: (list) => this.pendingEnquiries.set(list),
         error: () => this.toast.error('Failed to load pending enquiries'),
       });
-      // Pre-load students in background so manual mode works without an extra call.
       this.studentService.getAll().subscribe({ next: (s) => this.students.set(s) });
     }
+  }
+
+  protected onAcademicYearSelect(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+    this.selectedAcademicYearId.set(id);
+    this.form.patchValue({ joiningAcademicYearId: id });
   }
 
   protected setMode(m: Mode): void {
@@ -189,8 +216,6 @@ export class AdmissionFormComponent implements OnInit {
           phone: p.phone ?? '',
           semester: p.suggestedSemester,
           admissionDate: new Date().toISOString().split('T')[0],
-          academicYearFrom: p.suggestedAcademicYearFrom,
-          academicYearTo: p.suggestedAcademicYearTo,
           applicationDate: p.suggestedApplicationDate,
           declarationDate: p.suggestedApplicationDate,
         });
@@ -220,7 +245,7 @@ export class AdmissionFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     this.saving.set(true);
     if (!this.isEdit() && this.mode() === 'from-enquiry') {
       this.submitFromEnquiry();
@@ -275,10 +300,8 @@ export class AdmissionFormComponent implements OnInit {
     const v = this.form.value as Record<string, unknown>;
     const admissionData: AdmissionRequest = {
       studentId: v['studentId'] as number,
-      academicYearFrom: v['academicYearFrom'] as number,
-      academicYearTo: v['academicYearTo'] as number,
+      joiningAcademicYearId: v['joiningAcademicYearId'] as number,
       applicationDate: v['applicationDate'] as string,
-      status: v['status'] as string | undefined,
       declarationPlace: v['declarationPlace'] as string | undefined,
       declarationDate: v['declarationDate'] as string | undefined,
       parentConsentGiven: v['parentConsentGiven'] as boolean | undefined,
@@ -323,8 +346,7 @@ export class AdmissionFormComponent implements OnInit {
       phone: this.nullableStr(v['phone'] as string) ?? undefined,
       semester: v['semester'] as number,
       admissionDate: v['admissionDate'] as string,
-      academicYearFrom: v['academicYearFrom'] as number,
-      academicYearTo: v['academicYearTo'] as number,
+      joiningAcademicYearId: this.selectedAcademicYearId()!,
       applicationDate: v['applicationDate'] as string,
       parentConsentGiven: v['parentConsentGiven'] as boolean,
       applicantConsentGiven: v['applicantConsentGiven'] as boolean,

@@ -10,7 +10,7 @@ import java.util.Map;
 public record FrontOfficeDashboardResponse(
     long todayEnquiryCount,
     long totalEnquiryCount,
-    long pendingAdmissionsCount,
+    long totalAdmissions,
     BigDecimal feeCollectedToday,
     long conversionsThisWeek,
     double conversionRate,

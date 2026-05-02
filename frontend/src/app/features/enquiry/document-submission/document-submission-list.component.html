@@ -4,7 +4,7 @@
   <div id="tour-docsub-header" class="doc-hdr anim-rise">
     <div class="doc-hdr-left">
       <div class="page-title-row">
-        <h1 class="doc-title">Document <em>Submission</em></h1>
+        <h1 class="doc-title">Submit <em>Documents</em></h1>
         <cms-tour-button tourKey="document-submission-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="doc-sub">Collect and verify documents from candidates who have completed fee payment</p>
@@ -127,10 +127,7 @@
           <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="cell-name">{{ row.programName || '—' }}</div>
-              @if (row.courseName) { <div class="cell-sub">{{ row.courseName }}</div> }
-            </td>
+            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
           </ng-container>
 
           <!-- Course -->
@@ -217,7 +214,7 @@
       @if (totalCount() === 0) {
         <cms-empty-state
           icon="folder_open"
-          title="No pending document submissions"
+          title="No pending submissions"
           subtitle="Enquiries in Fees Paid or Partially Paid status will appear here automatically."
         />
       } @else {

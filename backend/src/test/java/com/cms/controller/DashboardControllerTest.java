@@ -101,7 +101,7 @@ class DashboardControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.todayEnquiryCount").value(3))
             .andExpect(jsonPath("$.totalEnquiryCount").value(50))
-            .andExpect(jsonPath("$.pendingAdmissionsCount").value(5))
+            .andExpect(jsonPath("$.totalAdmissions").value(5))
             .andExpect(jsonPath("$.feeCollectedToday").value(12000))
             .andExpect(jsonPath("$.conversionsThisWeek").value(4))
             .andExpect(jsonPath("$.conversionRate").value(8.0))

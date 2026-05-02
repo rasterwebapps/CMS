@@ -19,7 +19,6 @@ import com.cms.model.IntakeRule;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
@@ -58,14 +57,9 @@ public class AdmissionService {
     public AdmissionResponse create(AdmissionRequest request) {
         Student student = studentRepository.findById(request.studentId())
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
-        AdmissionStatus status = request.status() != null ? request.status() : AdmissionStatus.DRAFT;
-        Admission admission = new Admission(
-            student,
-            request.academicYearFrom(),
-            request.academicYearTo(),
-            request.applicationDate(),
-            status
-        );
+        AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found: " + request.joiningAcademicYearId()));
+        Admission admission = new Admission(student, joiningYear, request.applicationDate());
         admission.setDeclarationPlace(request.declarationPlace());
         admission.setDeclarationDate(request.declarationDate());
         admission.setParentConsentGiven(request.parentConsentGiven());
@@ -98,26 +92,15 @@ public class AdmissionService {
             .orElseThrow(() -> new ResourceNotFoundException("Admission not found with id: " + id));
         Student student = studentRepository.findById(request.studentId())
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
+        AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found: " + request.joiningAcademicYearId()));
         admission.setStudent(student);
-        admission.setAcademicYearFrom(request.academicYearFrom());
-        admission.setAcademicYearTo(request.academicYearTo());
+        admission.setJoiningAcademicYear(joiningYear);
         admission.setApplicationDate(request.applicationDate());
-        if (request.status() != null) {
-            admission.setStatus(request.status());
-        }
         admission.setDeclarationPlace(request.declarationPlace());
         admission.setDeclarationDate(request.declarationDate());
         admission.setParentConsentGiven(request.parentConsentGiven());
         admission.setApplicantConsentGiven(request.applicantConsentGiven());
-        Admission updated = admissionRepository.save(admission);
-        return toResponse(updated);
-    }
-
-    @Transactional
-    public AdmissionResponse updateStatus(Long id, AdmissionStatus status) {
-        Admission admission = admissionRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Admission not found with id: " + id));
-        admission.setStatus(status);
         Admission updated = admissionRepository.save(admission);
         return toResponse(updated);
     }
@@ -199,14 +182,25 @@ public class AdmissionService {
     }
 
     private AdmissionResponse toResponse(Admission admission) {
+        AcademicYear ay = admission.getJoiningAcademicYear();
+        Student student = admission.getStudent();
+        Integer durationYears = student.getProgram() != null
+            ? student.getProgram().getDurationYears() : null;
+        Integer expectedCompletion = (ay != null && durationYears != null)
+            ? ay.getStartYear() + durationYears : null;
         return new AdmissionResponse(
             admission.getId(),
-            admission.getStudent().getId(),
-            admission.getStudent().getFullName(),
-            admission.getAcademicYearFrom(),
-            admission.getAcademicYearTo(),
+            student.getId(),
+            student.getFullName(),
+            student.getRollNumber(),
+            student.getProgram() != null ? student.getProgram().getName() : null,
+            student.getCourse() != null ? student.getCourse().getName() : null,
+            student.getSemester(),
+            student.getStatus() != null ? student.getStatus().name() : null,
+            ay != null ? ay.getId() : null,
+            ay != null ? ay.getName() : null,
+            expectedCompletion,
             admission.getApplicationDate(),
-            admission.getStatus(),
             admission.getDeclarationPlace(),
             admission.getDeclarationDate(),
             admission.getParentConsentGiven(),

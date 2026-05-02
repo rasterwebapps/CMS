@@ -33,6 +33,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 export type CalendarViewMode = 'timeline' | 'grid';
 
@@ -349,7 +350,7 @@ export class AcademicCalendarComponent implements OnInit {
 
   protected saveEvent(): void {
     if (this.eventForm.invalid) {
-      this.eventForm.markAllAsTouched();
+      scrollToFirstInvalid(this.eventForm);
       return;
     }
     const ay = this.selectedAcademicYear();

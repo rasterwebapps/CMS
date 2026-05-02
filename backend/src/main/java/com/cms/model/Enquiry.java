@@ -10,6 +10,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.model.enums.CommissionSource;
+import com.cms.model.enums.CommissionPaymentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,15 +79,31 @@ public class Enquiry {
     @Column(name = "fee_discussed_amount", precision = 10, scale = 2)
     private BigDecimal feeDiscussedAmount;
 
-    // Fee guideline values captured at enquiry time
-    @Column(name = "fee_guideline_total", precision = 12, scale = 2)
-    private BigDecimal feeGuidelineTotal;
-
-    @Column(name = "referral_additional_amount", precision = 12, scale = 2)
-    private BigDecimal referralAdditionalAmount;
-
     @Column(name = "final_calculated_fee", precision = 12, scale = 2)
     private BigDecimal finalCalculatedFee;
+
+    // ── Commission tracking (decoupled from student fee) ─────────────────────
+    /**
+     * Commission resolved server-side at create / update time.
+     *  - If the linked agent has a non-null, &gt; 0 {@code commissionAmount} → use it.
+     *  - Else if the referral type {@code hasCommission} → use the referral type's amount.
+     *  - Else 0.
+     * Independent of the fee charged to the student.
+     */
+    @Column(name = "commission_amount", precision = 12, scale = 2)
+    private BigDecimal commissionAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commission_source", length = 20)
+    private CommissionSource commissionSource;
+
+    /** Total amount already paid out to the agent / referral source. */
+    @Column(name = "commission_paid_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal commissionPaidAmount = BigDecimal.ZERO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commission_payment_status", nullable = false, length = 20)
+    private CommissionPaymentStatus commissionPaymentStatus = CommissionPaymentStatus.NOT_APPLICABLE;
 
     // Year-wise guideline fees stored as JSON
     @Column(name = "year_wise_fees", columnDefinition = "TEXT")
@@ -255,28 +273,30 @@ public class Enquiry {
         this.feeDiscussedAmount = feeDiscussedAmount;
     }
 
-    public BigDecimal getFeeGuidelineTotal() {
-        return feeGuidelineTotal;
-    }
-
-    public void setFeeGuidelineTotal(BigDecimal feeGuidelineTotal) {
-        this.feeGuidelineTotal = feeGuidelineTotal;
-    }
-
-    public BigDecimal getReferralAdditionalAmount() {
-        return referralAdditionalAmount;
-    }
-
-    public void setReferralAdditionalAmount(BigDecimal referralAdditionalAmount) {
-        this.referralAdditionalAmount = referralAdditionalAmount;
-    }
-
     public BigDecimal getFinalCalculatedFee() {
         return finalCalculatedFee;
     }
 
     public void setFinalCalculatedFee(BigDecimal finalCalculatedFee) {
         this.finalCalculatedFee = finalCalculatedFee;
+    }
+
+    public BigDecimal getCommissionAmount() { return commissionAmount; }
+    public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
+
+    public CommissionSource getCommissionSource() { return commissionSource; }
+    public void setCommissionSource(CommissionSource commissionSource) { this.commissionSource = commissionSource; }
+
+    public BigDecimal getCommissionPaidAmount() { return commissionPaidAmount; }
+    public void setCommissionPaidAmount(BigDecimal commissionPaidAmount) {
+        this.commissionPaidAmount = commissionPaidAmount != null ? commissionPaidAmount : BigDecimal.ZERO;
+    }
+
+    public CommissionPaymentStatus getCommissionPaymentStatus() { return commissionPaymentStatus; }
+    public void setCommissionPaymentStatus(CommissionPaymentStatus commissionPaymentStatus) {
+        this.commissionPaymentStatus = commissionPaymentStatus != null
+            ? commissionPaymentStatus
+            : CommissionPaymentStatus.NOT_APPLICABLE;
     }
 
     public String getYearWiseFees() {

@@ -42,8 +42,8 @@ As a **Front Office representative**, you are the first face students and parent
 |---------|--------|
 | Dashboard | ✅ Front Office Dashboard |
 | Admission Management — Enquiries | ✅ Full (Create, Edit, Update Status) |
-| Admission Management — Document Submission | ✅ Full |
-| Admission Management — Admission Completion | ✅ Full |
+| Admission Management — Submit Documents | ✅ Full |
+| Admission Management — Complete Admission | ✅ Full |
 | Admission Management — Admissions & Students | ✅ Read |
 | Finance — Collect Payment | ✅ Full |
 | Reports | ✅ Admission & Collection reports |
@@ -381,7 +381,7 @@ After payment is recorded, the system shows a receipt like:
 If a student cannot pay the full amount:
 - Record the amount they are paying (e.g., ₹50,000 of ₹1,03,000)
 - Status changes to `PARTIALLY_PAID`
-- Student can still proceed to document submission
+- Student can still proceed to submit documents
 - System tracks balance automatically
 - Remind student of remaining balance
 
@@ -416,14 +416,14 @@ Student arrives with documents
           │
           ▼
 Navigate to:
-Admission Management → Document Submission
+Admission Management → Submit Documents
           │
           ▼
 Find student's enquiry
   (Status must be FEES_PAID or PARTIALLY_PAID)
           │
           ▼
-Open document submission screen
+Open submit documents screen
           │
           ▼
 FOR EACH of the 7 documents:
@@ -493,7 +493,7 @@ Click "Submit Documents"
 
 Once all 7 are uploaded and verified:
 
-1. Scroll to bottom of document submission screen
+1. Scroll to bottom of submit documents screen
 2. Click **"Submit Documents"** button
 3. System checks:
    - All 7 mandatory documents present?
@@ -507,9 +507,9 @@ Once all 7 are uploaded and verified:
 
 When a student's enquiry is in `DOCUMENTS_SUBMITTED` status, you can create their official admission record.
 
-### Create Admission from Admission Completion Screen
+### Create Admission from Complete Admission Screen
 
-**Navigate**: Sidenav → Admission Management → Admission Completion
+**Navigate**: Sidenav → Admission Management → Complete Admission
 
 1. Screen shows all enquiries with `DOCUMENTS_SUBMITTED` status
 2. Search for your student
@@ -631,7 +631,7 @@ Find enquiry (must be FEES_PAID or PARTIALLY_PAID)
          │
          ▼
 Click "Submit Documents" shortcut or
-navigate to Admission Management → Document Submission
+navigate to Admission Management → Submit Documents
          │
          ▼
 Go through 7 documents one by one:

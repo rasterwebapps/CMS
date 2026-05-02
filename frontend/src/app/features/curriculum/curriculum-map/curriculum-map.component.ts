@@ -10,6 +10,7 @@ import { CurriculumVersionService } from '../curriculum-version.service';
 import { CurriculumFullView, CurriculumSemesterCourseRequest } from '../curriculum-version.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-curriculum-map',
@@ -71,7 +72,7 @@ export class CurriculumMapComponent implements OnInit {
 
   protected submitAddCourse(semesterNumber: number): void {
     if (this.addCourseForm.invalid) {
-      this.addCourseForm.markAllAsTouched();
+      scrollToFirstInvalid(this.addCourseForm);
       return;
     }
     const v = this.addCourseForm.value;

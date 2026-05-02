@@ -22,9 +22,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
+import com.cms.model.AcademicYear;
 import com.cms.model.AdmissionDocument;
 import com.cms.model.Student;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.StudentStatus;
@@ -47,7 +47,9 @@ class AdmissionDocumentServiceTest {
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
             null, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
         student.setId(1L);
-        Admission admission = new Admission(student, 2024, 2025, LocalDate.of(2024, 1, 15), AdmissionStatus.DRAFT);
+        AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), true);
+        ay.setId(100L);
+        Admission admission = new Admission(student, ay, LocalDate.of(2024, 1, 15));
         admission.setId(id);
         admission.setCreatedAt(Instant.now());
         admission.setUpdatedAt(Instant.now());

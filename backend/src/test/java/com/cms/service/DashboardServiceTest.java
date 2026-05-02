@@ -162,7 +162,7 @@ class DashboardServiceTest {
 
         when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of(todayEnquiry));
         when(enquiryRepository.count()).thenReturn(5L);
-        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of(todayEnquiry));
@@ -171,7 +171,7 @@ class DashboardServiceTest {
 
         assertThat(response.todayEnquiryCount()).isEqualTo(1L);
         assertThat(response.totalEnquiryCount()).isEqualTo(5L);
-        assertThat(response.pendingAdmissionsCount()).isZero();
+        assertThat(response.totalAdmissions()).isZero();
         assertThat(response.feeCollectedToday()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(response.todaysEnquiries()).hasSize(1);
         assertThat(response.todaysEnquiries().get(0).name()).isEqualTo("Alice");
@@ -183,7 +183,7 @@ class DashboardServiceTest {
 
         when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of());
         when(enquiryRepository.count()).thenReturn(0L);
-        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
@@ -202,7 +202,7 @@ class DashboardServiceTest {
 
         when(enquiryRepository.findByEnquiryDateBetween(today, today)).thenReturn(List.of());
         when(enquiryRepository.count()).thenReturn(0L);
-        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of(todayPayment));
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());

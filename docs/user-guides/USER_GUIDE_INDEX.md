@@ -217,7 +217,7 @@ A: Yes. You can click "Collect Payment" from the enquiry list shortcut, or throu
 ### Workflow
 
 **Q: Student wants to pay in two instalments. Is that possible?**
-A: Yes. Record each payment separately. Status becomes `PARTIALLY_PAID` after first instalment. Full document submission and admission can still proceed.
+A: Yes. Record each payment separately. Status becomes `PARTIALLY_PAID` after first instalment. Full submit documents and admission can still proceed.
 
 **Q: Student lost their receipt. Can we reprint?**
 A: Yes. Find the enquiry → Payments tab → Click on the receipt → Print.

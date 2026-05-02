@@ -246,11 +246,8 @@ public class DashboardService {
         // Total enquiry count
         long totalEnquiryCount = enquiryRepository.count();
 
-        // Pending admissions: all admissions not APPROVED or REJECTED
-        long pendingAdmissionsCount = admissionRepository.findAll().stream()
-            .filter(a -> a.getStatus() != AdmissionStatus.APPROVED
-                      && a.getStatus() != AdmissionStatus.REJECTED)
-            .count();
+        // Total admissions (enrollment records)
+        long totalAdmissions = admissionRepository.count();
 
         // Fee collected today from enquiry payments
         BigDecimal feeCollectedToday = enquiryPaymentRepository.findByPaymentDate(today).stream()
@@ -285,12 +282,12 @@ public class DashboardService {
             .toList();
 
         // Pending action items (human-readable strings)
-        List<String> pendingActionItems = buildPendingActionItems(pendingAdmissionsCount, feeCollectedToday);
+        List<String> pendingActionItems = buildPendingActionItems(totalAdmissions, feeCollectedToday);
 
         return new FrontOfficeDashboardResponse(
             todayEnquiryCount,
             totalEnquiryCount,
-            pendingAdmissionsCount,
+            totalAdmissions,
             feeCollectedToday,
             conversionsThisWeek,
             conversionRate,

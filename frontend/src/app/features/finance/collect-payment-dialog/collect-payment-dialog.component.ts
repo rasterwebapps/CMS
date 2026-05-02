@@ -8,6 +8,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
 import { CollectPaymentRequest, CollectPaymentResponse } from '../finance.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-collect-payment-dialog',
@@ -42,7 +43,7 @@ export class CollectPaymentDialogComponent {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     const v = this.form.value;

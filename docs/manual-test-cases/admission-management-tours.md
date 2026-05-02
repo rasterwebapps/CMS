@@ -36,11 +36,11 @@
 
 **Status:** NOT TESTED
 
-## TC-ADM-TOUR-003: Document submission and collection tours launch
+## TC-ADM-TOUR-003: Submit Documents and collection tours launch
 
 **Preconditions:**
 - User is logged in with admission management access.
-- At least one enquiry is eligible for document submission/collection.
+- At least one enquiry is eligible for submit documents/collection.
 
 **Steps:**
 1. Navigate to `/enquiries/document-submission`.
@@ -53,7 +53,7 @@
 
 **Status:** NOT TESTED
 
-## TC-ADM-TOUR-004: Admission completion and conversion tours launch
+## TC-ADM-TOUR-004: Complete Admission and conversion tours launch
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`, `ROLE_COLLEGE_ADMIN`, or `ROLE_FRONT_OFFICE`.
@@ -66,7 +66,7 @@
 4. Click the tour icon and verify the enquiry summary and admission form steps.
 
 **Expected Result:**
-- Admission completion and conversion tours launch and complete successfully.
+- Complete Admission and conversion tours launch and complete successfully.
 
 **Status:** NOT TESTED
 

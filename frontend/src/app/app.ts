@@ -183,11 +183,12 @@ export class App implements OnInit {
       roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'],
       items: [
         { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
-        { label: 'Document Submission', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admission Completion', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Submit Documents', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
+        { label: 'Complete Admission', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         { label: 'Admissions', icon: 'assignment_ind', route: '/admissions', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         { label: 'Students', icon: 'person', route: '/students', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
         { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },
+        { label: 'Import Data', icon: 'upload', route: '/import', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
       ],
     },
     {

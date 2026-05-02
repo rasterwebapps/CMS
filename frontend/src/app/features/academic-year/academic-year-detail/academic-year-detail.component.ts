@@ -26,6 +26,7 @@ import {
 import { ToastService } from '../../../core/toast/toast.service';
 import { FeePaymentDialogComponent } from './fee-payment-dialog.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-academic-year-detail',
@@ -259,7 +260,7 @@ export class AcademicYearDetailComponent implements OnInit {
   protected saveBillingSchedule(termType: 'ODD' | 'EVEN'): void {
     const form = termType === 'ODD' ? this.oddBillingForm : this.evenBillingForm;
     if (form.invalid) {
-      form.markAllAsTouched();
+      scrollToFirstInvalid(form);
       return;
     }
     const v = form.value;

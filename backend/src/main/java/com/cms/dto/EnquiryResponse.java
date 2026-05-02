@@ -40,5 +40,6 @@ public record EnquiryResponse(
     Instant finalizedAt,
     Long convertedStudentId,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    BigDecimal totalPaidAmount
 ) {}

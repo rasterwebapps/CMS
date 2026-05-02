@@ -11,7 +11,7 @@ viewing or downloading them from the enquiry view screen.
 - An enquiry exists in `FEES_PAID` or `PARTIALLY_PAID` status.
 
 **Steps:**
-1. Navigate to **Admission Management → Document Submission**.
+1. Navigate to **Admission Management → Submit Documents**.
 2. Click **Collect Documents** for the target enquiry.
 3. In the **Document Checklist** table, locate the desired document row (e.g. *Tenth Marksheet*).
 4. Click the **Browse** button in the **File** column.

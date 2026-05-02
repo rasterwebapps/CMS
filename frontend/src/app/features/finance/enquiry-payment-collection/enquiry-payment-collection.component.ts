@@ -13,6 +13,7 @@ import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
@@ -130,7 +131,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     const enquiry = this.selectedEnquiry();

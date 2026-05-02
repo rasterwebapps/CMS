@@ -9,6 +9,56 @@
 .table-field { width: 150px; }
 .table-field-sm { width: 100px; }
 
+// ── Student profile notice banner ───────────────────────────────────────────
+.student-profile-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  background: var(--cms-info-bg, #eff6ff);
+  border: 1px solid var(--cms-info-border, #bfdbfe);
+  border-radius: var(--cms-radius-md, 8px);
+
+  &__text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--cms-info-text, #1e40af);
+    flex: 1;
+  }
+
+  &__icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--cms-info-text, #1e40af);
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--cms-primary, #4f46e5);
+    color: #fff;
+    border-radius: var(--cms-radius-sm, 6px);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+    &:hover { opacity: 0.88; }
+  }
+}
+
 // ── Mode toggle ────────────────────────────────────────────────────────────
 .mode-toggle {
   display: flex;

@@ -10,6 +10,7 @@ import { environment } from '../../../../environments';
 import { AttendanceService } from '../attendance.service';
 import { BulkAttendanceRequest } from '../attendance.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface Course {
   id: number;
@@ -67,7 +68,7 @@ export class AttendanceMarkComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     if (this.students().length === 0) {

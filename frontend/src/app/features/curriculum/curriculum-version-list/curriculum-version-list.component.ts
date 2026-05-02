@@ -14,6 +14,7 @@ import { environment } from '../../../../environments';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CURRICULUM_VERSION_LIST_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-curriculum-version-list',
@@ -107,7 +108,7 @@ export class CurriculumVersionListComponent implements OnInit {
 
   protected submitClone(versionId: number): void {
     if (this.cloneForm.invalid) {
-      this.cloneForm.markAllAsTouched();
+      scrollToFirstInvalid(this.cloneForm);
       return;
     }
     const { newVersionName, newEffectiveAcademicYearId } = this.cloneForm.value;

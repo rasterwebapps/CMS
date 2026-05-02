@@ -35,11 +35,6 @@ export class AdmissionService {
     return this.http.put<AdmissionResponse>(`${this.baseUrl}/${id}`, request);
   }
 
-  updateStatus(id: number, status: string): Observable<AdmissionResponse> {
-    return this.http.patch<AdmissionResponse>(`${this.baseUrl}/${id}/status`, null, {
-      params: new HttpParams().set('status', status),
-    });
-  }
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);

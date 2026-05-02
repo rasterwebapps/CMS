@@ -16,6 +16,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-experiment-form',
@@ -138,7 +139,7 @@ export class ExperimentFormComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     const v = this.form.value;

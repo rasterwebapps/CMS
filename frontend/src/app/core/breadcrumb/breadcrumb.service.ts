@@ -44,10 +44,11 @@ const SEGMENT_LABELS: Record<string, string> = {
   'roll-numbers': 'Roll Number Assignment',
   finalize: 'Fee Finalization',
   'collect-payment': 'Collect Payment',
-  convert: 'Convert to Student',
+  convert: 'Create Admission',
   mark: 'Mark Attendance',
   search: 'Search',
-  'document-submission': 'Document Submission',
+  'document-submission': 'Submit Documents',
+  'admission-completion': 'Complete Admission',
   'year-wise-fee-status': 'Year-wise Fee Status',
 };
 

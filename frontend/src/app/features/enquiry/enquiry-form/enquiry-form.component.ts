@@ -19,6 +19,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface ProgramInfo {
   id: number;
@@ -326,7 +327,7 @@ export class EnquiryFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
 
     const request: EnquiryRequest = {

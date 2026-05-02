@@ -621,7 +621,7 @@
 
 ---
 
-## TC-ENQ-032: Document submission tracking
+## TC-ENQ-032: Submit documents tracking
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
@@ -629,7 +629,7 @@
 - Ref: [BR-9](../BUSINESS_REQUIREMENTS.md#br-9-document-submission)
 
 **Steps:**
-1. Open document submission for the enquiry
+1. Open submit documents for the enquiry
 2. Verify the list of required documents is shown (10th, 12th, TC, etc.)
 3. Upload a 10th certificate document
 4. Verify the document status changes from PENDING to SUBMITTED
@@ -1145,7 +1145,7 @@
 
 ---
 
-## TC-ENQ-DOC-SUBMIT-SCREEN-001: Document Submission screen shows all eligible enquiries
+## TC-ENQ-DOC-SUBMIT-SCREEN-001: Submit Documents screen shows all eligible enquiries
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
@@ -1164,7 +1164,7 @@
 
 ---
 
-## TC-ENQ-DOC-SUBMIT-SCREEN-002: Submit documents from the Document Submission screen
+## TC-ENQ-DOC-SUBMIT-SCREEN-002: Submit documents from the Submit Documents screen
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
@@ -1207,7 +1207,7 @@
 
 ---
 
-## TC-ENQ-DOC-SUBMIT-SCREEN-004: Document Submission nav item visible for ADMIN and FRONT_OFFICE
+## TC-ENQ-DOC-SUBMIT-SCREEN-004: Submit Documents nav item visible for ADMIN and FRONT_OFFICE
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
@@ -1217,8 +1217,37 @@
 2. Expand the "Admission Management" group in the sidebar
 
 **Expected Result:**
-- "Document Submission" navigation item is visible
+- "Submit Documents" navigation item is visible
 
 **Status:** NOT TESTED
 
 
+---
+
+## TC-ENQ-UI-DETAIL-001: Modern enquiry detail view layout
+
+**Preconditions:**
+- User is logged in with admission management access.
+- At least one enquiry exists with programme/course data.
+- For full coverage, the enquiry has at least one payment, one document, and one status history entry.
+
+**Steps:**
+1. Navigate to an enquiry detail page, e.g. `/enquiries/{id}`.
+2. Verify the top hero section displays candidate initials, candidate name, status, programme/course chips, and the Take a Tour icon.
+3. Verify the hero KPI strip displays enquiry date, days active, fee/payment summary, and document count without duplicated sidebar cards.
+4. Verify quick actions (Edit, Submit Documents when eligible, Create Admission when eligible) remain visible in the hero action area.
+5. Open each tab: Overview, Documents, Payments, and History.
+6. Verify Overview shows only Contact & Source, Notes, and Fee Snapshot cards without repeated programme/date/payment data already shown in the hero.
+7. Verify Documents and Payments tabs show modern list cards and preserve View/Download document actions.
+8. Verify History shows a single status journey timeline instead of duplicate timeline + change-log cards.
+9. Resize to a mobile-width viewport and verify hero actions, KPI cards, tabs, and list cards wrap cleanly.
+10. Click the Take a Tour icon and verify the hero, actions, and tab bar tour steps still highlight correctly.
+
+**Expected Result:**
+- Enquiry detail page uses the modern profile-dashboard layout.
+- Redundant sidebar/duplicate cards are removed.
+- All existing actions and tabs remain functional.
+- Tour anchors continue to work.
+- Layout is responsive on desktop and mobile.
+
+**Status:** NOT TESTED

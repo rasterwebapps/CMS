@@ -32,6 +32,7 @@ export interface Enquiry {
   convertedStudentId: number | null;
   createdAt: string;
   updatedAt: string;
+  totalPaidAmount: number | null;
 }
 
 export interface EnquiryRequest {
@@ -148,8 +149,7 @@ export interface EnquiryConversionRequest {
   phone?: string;
   semester: number;
   admissionDate: string;
-  academicYearFrom: number;
-  academicYearTo: number;
+  joiningAcademicYearId: number;
   applicationDate: string;
   parentConsentGiven?: boolean;
   applicantConsentGiven?: boolean;

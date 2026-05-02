@@ -211,7 +211,16 @@ public class EnquiryPaymentService {
                 semRem = semRem.subtract(paid2).max(BigDecimal.ZERO);
             }
         } else {
-            totalFee = yearTotalFee;
+            // No year or semester breakdown configured — fall back to finalizedNetFee
+            BigDecimal fallback = enquiry.getFinalizedNetFee() != null
+                ? enquiry.getFinalizedNetFee()
+                : BigDecimal.ZERO;
+            totalFee = fallback.compareTo(BigDecimal.ZERO) > 0 ? fallback : yearTotalFee;
+            if (totalFee.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal paid = totalPaid.min(totalFee);
+                semesterBreakdown.add(new SemesterFeeStatus(
+                    1, "Full Program Fee", totalFee, paid, totalFee.subtract(paid), baseDate));
+            }
         }
 
         BigDecimal totalOutstanding = totalFee.subtract(totalPaid.min(totalFee));

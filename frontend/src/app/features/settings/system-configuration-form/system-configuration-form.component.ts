@@ -12,6 +12,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-system-configuration-form',
@@ -93,7 +94,7 @@ export class SystemConfigurationFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
     const request: SystemConfigurationRequest = { configKey: v.configKey.trim(), configValue: v.configValue.trim(), description: v.description?.trim() || undefined, dataType: v.dataType, category: v.category.trim(), isEditable: v.isEditable };
     this.saving.set(true);

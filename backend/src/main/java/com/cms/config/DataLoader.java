@@ -310,7 +310,7 @@ public class DataLoader implements CommandLineRunner {
         Student s8  = students.get(7);
 
         // ── 13. Admissions + Qualifications ─────────────────────────────────
-        Admission adm1 = admissionRepository.save(new Admission(s1, 2024, 2025, LocalDate.of(2024, 6, 10), AdmissionStatus.APPROVED));
+        Admission adm1 = admissionRepository.save(new Admission(s1, ay2425, LocalDate.of(2024, 6, 10)));
         adm1.setDeclarationPlace("Chennai");
         adm1.setDeclarationDate(LocalDate.of(2024, 6, 10));
         adm1.setParentConsentGiven(true);
@@ -319,7 +319,7 @@ public class DataLoader implements CommandLineRunner {
         academicQualificationRepository.save(new AcademicQualification(adm1, QualificationType.SSLC,  "St. Mary's Matric School",      "Science",        500, new BigDecimal("91.20"), "March 2020", "Tamil Nadu SSLC Board"));
         academicQualificationRepository.save(new AcademicQualification(adm1, QualificationType.HSC,   "St. Mary's Higher Sec School",  "Biology Group",  600, new BigDecimal("88.50"), "March 2022", "Tamil Nadu HSC Board"));
 
-        Admission adm2 = admissionRepository.save(new Admission(s2, 2024, 2025, LocalDate.of(2024, 6, 12), AdmissionStatus.APPROVED));
+        Admission adm2 = admissionRepository.save(new Admission(s2, ay2425, LocalDate.of(2024, 6, 12)));
         adm2.setDeclarationPlace("Coimbatore");
         adm2.setDeclarationDate(LocalDate.of(2024, 6, 12));
         adm2.setParentConsentGiven(true);
@@ -328,7 +328,7 @@ public class DataLoader implements CommandLineRunner {
         academicQualificationRepository.save(new AcademicQualification(adm2, QualificationType.SSLC,  "GRK Matric School",             "Science",        500, new BigDecimal("95.00"), "March 2020", "Tamil Nadu SSLC Board"));
         academicQualificationRepository.save(new AcademicQualification(adm2, QualificationType.HSC,   "GRK Higher Sec School",         "Biology Group",  600, new BigDecimal("92.00"), "March 2022", "Tamil Nadu HSC Board"));
 
-        Admission adm3 = admissionRepository.save(new Admission(s8, 2024, 2025, LocalDate.of(2024, 6, 15), AdmissionStatus.APPROVED));
+        Admission adm3 = admissionRepository.save(new Admission(s8, ay2425, LocalDate.of(2024, 6, 15)));
         adm3.setDeclarationPlace("Madurai");
         adm3.setDeclarationDate(LocalDate.of(2024, 6, 15));
         adm3.setParentConsentGiven(true);

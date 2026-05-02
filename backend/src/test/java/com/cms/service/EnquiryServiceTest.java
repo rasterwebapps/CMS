@@ -26,15 +26,18 @@ import com.cms.dto.EnquiryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
 import com.cms.model.Admission;
+import com.cms.model.AcademicYear;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.ProgramRepository;
@@ -60,6 +63,10 @@ class EnquiryServiceTest {
     private EnquiryStatusHistoryRepository statusHistoryRepository;
     @Mock
     private AdmissionRepository admissionRepository;
+    @Mock
+    private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock
+    private AcademicYearRepository academicYearRepository;
 
     private EnquiryService enquiryService;
 
@@ -69,7 +76,18 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository, enquiryPaymentRepository, academicYearRepository);
+        org.mockito.Mockito.lenient()
+            .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(java.math.BigDecimal.ZERO);
+        org.mockito.Mockito.lenient()
+            .when(enquiryPaymentRepository.paidTotalsForIds(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(java.util.Map.of());
+        AcademicYear joiningAY = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), true);
+        joiningAY.setId(100L);
+        org.mockito.Mockito.lenient()
+            .when(academicYearRepository.findById(100L))
+            .thenReturn(java.util.Optional.of(joiningAY));
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -763,8 +781,6 @@ class EnquiryServiceTest {
 
         Enquiry saved = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
-        saved.setFeeGuidelineTotal(new BigDecimal("100000.00"));
-        saved.setReferralAdditionalAmount(new BigDecimal("5000.00"));
         saved.setFinalCalculatedFee(new BigDecimal("105000.00"));
         saved.setYearWiseFees("[50000,55000]");
 
@@ -773,8 +789,6 @@ class EnquiryServiceTest {
 
         EnquiryResponse response = enquiryService.create(request);
 
-        assertThat(response.feeGuidelineTotal()).isEqualTo(new BigDecimal("100000.00"));
-        assertThat(response.referralAdditionalAmount()).isEqualTo(new BigDecimal("5000.00"));
         assertThat(response.finalCalculatedFee()).isEqualTo(new BigDecimal("105000.00"));
         assertThat(response.yearWiseFees()).isEqualTo("[50000,55000]");
     }
@@ -986,7 +1000,7 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            100L, LocalDate.of(2024, 7, 1), true, true,
             null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -1025,7 +1039,7 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            100L, LocalDate.of(2024, 7, 1), true, true,
             LocalDate.of(2005, 5, 10),
             com.cms.model.enums.Gender.MALE,
             "1234-5678-9012",
@@ -1087,8 +1101,8 @@ class EnquiryServiceTest {
         assertThat(persistedAdmission.getDeclarationDate()).isEqualTo(LocalDate.of(2024, 7, 1));
         assertThat(persistedAdmission.getParentConsentGiven()).isTrue();
         assertThat(persistedAdmission.getApplicantConsentGiven()).isTrue();
-        assertThat(persistedAdmission.getAcademicYearFrom()).isEqualTo(2024);
-        assertThat(persistedAdmission.getAcademicYearTo()).isEqualTo(2025);
+        assertThat(persistedAdmission.getJoiningAcademicYear()).isNotNull();
+        assertThat(persistedAdmission.getJoiningAcademicYear().getId()).isEqualTo(100L);
     }
 
     @Test
@@ -1117,7 +1131,7 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            100L, LocalDate.of(2024, 7, 1), null, null,
             null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -1135,7 +1149,7 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            100L, LocalDate.of(2024, 7, 1), null, null,
             null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -1154,7 +1168,7 @@ class EnquiryServiceTest {
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
-            2024, 2025, LocalDate.of(2024, 7, 1), null, null,
+            100L, LocalDate.of(2024, 7, 1), null, null,
             null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 

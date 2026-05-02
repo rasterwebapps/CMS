@@ -35,14 +35,16 @@
                   <span class="detail-value">{{ admission()!.applicationDate }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Academic Year</span>
-                  <span class="detail-value">{{ admission()!.academicYearFrom }}–{{ admission()!.academicYearTo }}</span>
+                  <span class="detail-label">Joining Year</span>
+                  <span class="detail-value">{{ admission()!.joiningAcademicYearName || '—' }}</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Status</span>
-                  <mat-chip>{{ admission()!.status }}</mat-chip>
+                @if (admission()!.expectedCompletionYear) {
+                  <div class="detail-item">
+                  <span class="detail-label">Expected Completion</span>
+                  <span class="detail-value">{{ admission()!.expectedCompletionYear }}</span>
                 </div>
-                @if (admission()!.declarationPlace) {
+              }
+              @if (admission()!.declarationPlace) {
                   <div class="detail-item">
                     <span class="detail-label">Declaration Place</span>
                     <span class="detail-value">{{ admission()!.declarationPlace }}</span>

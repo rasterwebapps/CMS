@@ -30,7 +30,6 @@ import com.cms.model.IntakeRule;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.TermInstanceStatus;
@@ -69,6 +68,15 @@ class AdmissionServiceTest {
     void setUp() {
         admissionService = new AdmissionService(admissionRepository, studentRepository,
             cohortRepository, intakeRuleRepository, academicYearRepository, termInstanceRepository);
+        org.mockito.Mockito.lenient()
+            .when(academicYearRepository.findById(100L))
+            .thenReturn(Optional.of(createAcademicYear()));
+    }
+
+    private AcademicYear createAcademicYear() {
+        AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), true);
+        ay.setId(100L);
+        return ay;
     }
 
     private Student createStudent(Long id) {
@@ -79,7 +87,7 @@ class AdmissionServiceTest {
     }
 
     private Admission createAdmission(Long id, Student student) {
-        Admission admission = new Admission(student, 2024, 2025, LocalDate.of(2024, 1, 15), AdmissionStatus.DRAFT);
+        Admission admission = new Admission(student, createAcademicYear(), LocalDate.of(2024, 1, 15));
         admission.setId(id);
         admission.setCreatedAt(Instant.now());
         admission.setUpdatedAt(Instant.now());
@@ -89,7 +97,7 @@ class AdmissionServiceTest {
     @Test
     void shouldCreateAdmission() {
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15), null, "Chennai", null, true, true
+            1L, 100L, LocalDate.of(2024, 1, 15), "Chennai", null, true, true
         );
         Student student = createStudent(1L);
         Admission saved = createAdmission(1L, student);
@@ -101,17 +109,16 @@ class AdmissionServiceTest {
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.studentId()).isEqualTo(1L);
-        assertThat(response.status()).isEqualTo(AdmissionStatus.DRAFT);
 
         ArgumentCaptor<Admission> captor = ArgumentCaptor.forClass(Admission.class);
         verify(admissionRepository).save(captor.capture());
-        assertThat(captor.getValue().getStatus()).isEqualTo(AdmissionStatus.DRAFT);
+        assertThat(captor.getValue().getStudent().getId()).isEqualTo(1L);
     }
 
     @Test
     void shouldCreateAdmissionWithDefaultDraftStatusWhenStatusIsNull() {
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15), null, null, null, null, null
+            1L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
         );
         Student student = createStudent(1L);
         Admission saved = createAdmission(1L, student);
@@ -127,7 +134,7 @@ class AdmissionServiceTest {
     @Test
     void shouldThrowExceptionWhenStudentNotFoundOnCreate() {
         AdmissionRequest request = new AdmissionRequest(
-            999L, 2024, 2025, LocalDate.of(2024, 1, 15), null, null, null, null, null
+            999L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
         );
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -200,10 +207,9 @@ class AdmissionServiceTest {
         Student student = createStudent(1L);
         Admission existing = createAdmission(1L, student);
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15), AdmissionStatus.SUBMITTED, null, null, null, null
+            1L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
         );
         Admission updated = createAdmission(1L, student);
-        updated.setStatus(AdmissionStatus.SUBMITTED);
 
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
@@ -218,7 +224,7 @@ class AdmissionServiceTest {
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentAdmission() {
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15), null, null, null, null, null
+            1L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
         );
         when(admissionRepository.findById(999L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> admissionService.update(999L, request))
@@ -226,27 +232,7 @@ class AdmissionServiceTest {
         verify(admissionRepository, never()).save(any());
     }
 
-    @Test
-    void shouldUpdateAdmissionStatus() {
-        Student student = createStudent(1L);
-        Admission existing = createAdmission(1L, student);
-        Admission updated = createAdmission(1L, student);
-        updated.setStatus(AdmissionStatus.APPROVED);
 
-        when(admissionRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(admissionRepository.save(any(Admission.class))).thenReturn(updated);
-
-        AdmissionResponse response = admissionService.updateStatus(1L, AdmissionStatus.APPROVED);
-        assertThat(response).isNotNull();
-        verify(admissionRepository).save(any(Admission.class));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenUpdatingStatusOfNonExistentAdmission() {
-        when(admissionRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> admissionService.updateStatus(999L, AdmissionStatus.APPROVED))
-            .isInstanceOf(ResourceNotFoundException.class);
-    }
 
     @Test
     void shouldDeleteAdmission() {

@@ -1,0 +1,323 @@
+<div class="imp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="imp-hdr anim-rise">
+    <div class="imp-hdr-left">
+      <h1 class="imp-title">Import <em>Student Data</em></h1>
+      <p class="imp-sub">Migrate existing students, qualifications and fee history from a spreadsheet.</p>
+    </div>
+  </div>
+
+  <!-- ── Step nav ───────────────────────────────────────────────────────── -->
+  <div class="step-nav anim-rise anim-rise--d1">
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'template'" (click)="goToStep('template')">
+      <span class="step-num">1</span> Download Template
+    </button>
+    <span class="step-arrow">→</span>
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'defaults'" (click)="goToStep('defaults')">
+      <span class="step-num">2</span> Set Defaults
+    </button>
+    <span class="step-arrow">→</span>
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'upload'" (click)="goToStep('upload')">
+      <span class="step-num">3</span> Upload &amp; Validate
+    </button>
+    <span class="step-arrow">→</span>
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'result'" (click)="goToStep('result')" [disabled]="!validationResult() && !executeResult()">
+      <span class="step-num">4</span> Results
+    </button>
+  </div>
+
+  <!-- ══════════════════ STEP 1: Template ══════════════════ -->
+  @if (activeStep() === 'template') {
+    <div class="step-card anim-rise anim-rise--d2">
+      <div class="step-card__hdr">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <h2 class="step-card__title">Download the Import Template</h2>
+      </div>
+      <p class="step-card__desc">
+        The template is generated live from your system data — it includes all valid program codes,
+        academic years and enum values in a <strong>Reference</strong> sheet, and applies dropdown
+        validation to key columns so your data entry stays error-free.
+      </p>
+      <div class="template-legend">
+        <span class="legend-chip legend-chip--req">Pink header = Required field</span>
+        <span class="legend-chip legend-chip--opt">Blue header = Optional field</span>
+        <span class="legend-chip legend-chip--type">Yellow row = Data type hint</span>
+      </div>
+      <div class="sheet-list">
+        @for (sheet of [{name:'Students', desc:'One row per student — personal, demographic and address details'}, {name:'Qualifications', desc:'Academic history — link by student email, multiple rows allowed'}, {name:'Fee History', desc:'Total fee + historical payment records per student'}, {name:'Reference', desc:'Valid codes and enum values auto-populated from your system (read-only)'}]; track sheet.name) {
+          <div class="sheet-chip">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="sheet-chip__name">{{ sheet.name }}</span>
+            <span class="sheet-chip__desc">{{ sheet.desc }}</span>
+          </div>
+        }
+      </div>
+      <div class="step-actions">
+        <button class="btn-download" (click)="downloadTemplate()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Template
+        </button>
+        <button class="btn-next" (click)="goToStep('defaults')">
+          Set Defaults
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════ STEP 2: Defaults ══════════════════ -->
+  @if (activeStep() === 'defaults') {
+    <div class="step-card anim-rise anim-rise--d2">
+      <div class="step-card__hdr">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        </div>
+        <h2 class="step-card__title">Set Default Values</h2>
+      </div>
+      <p class="step-card__desc">
+        These values fill in any blank cells in your file. Explicit values in the spreadsheet always take priority.
+      </p>
+
+      <div class="defaults-grid">
+        <div class="field-group">
+          <label class="field-label">Joining Academic Year <span class="field-required">*</span></label>
+          <select class="field-input" [(ngModel)]="defaults.defaultJoiningAcademicYearId">
+            <option [ngValue]="null">— None (must be in file) —</option>
+            @for (y of academicYears(); track y.id) {
+              <option [ngValue]="y.id">{{ y.name }}@if (y.isCurrent) { · Current }</option>
+            }
+          </select>
+          <p class="field-hint">Used when joining_academic_year column is blank.</p>
+        </div>
+
+
+        <div class="field-group">
+          <label class="field-label">Student Type</label>
+          <select class="field-input" [(ngModel)]="defaults.defaultStudentType">
+            @for (t of STUDENT_TYPES; track t) {
+              <option [value]="t">{{ t === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Nationality</label>
+          <input class="field-input" type="text" [(ngModel)]="defaults.defaultNationality" placeholder="e.g. Indian" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">State</label>
+          <input class="field-input" type="text" [(ngModel)]="defaults.defaultState" placeholder="e.g. Tamil Nadu" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Starting Semester</label>
+          <input class="field-input" type="number" min="1" max="12" [(ngModel)]="defaults.defaultSemester" />
+        </div>
+      </div>
+
+      <div class="skip-row">
+        <label class="toggle-label">
+          <input type="checkbox" class="toggle-checkbox" [(ngModel)]="defaults.skipErroredRows" />
+          <span class="toggle-text">
+            <strong>Skip errored rows</strong> — import valid rows even if some rows have errors.
+            If unchecked, any error aborts the entire import.
+          </span>
+        </label>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-ghost" (click)="goToStep('template')">← Back</button>
+        <button class="btn-next" (click)="goToStep('upload')">
+          Upload File
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════ STEP 3: Upload ══════════════════ -->
+  @if (activeStep() === 'upload') {
+    <div class="step-card anim-rise anim-rise--d2">
+      <div class="step-card__hdr">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h2 class="step-card__title">Upload &amp; Validate</h2>
+      </div>
+
+      <!-- File drop zone -->
+      <label class="file-drop" [class.file-drop--selected]="selectedFile()">
+        @if (!selectedFile()) {
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <span class="file-drop__label">Click to choose your filled Excel file</span>
+          <span class="file-drop__hint">.xlsx only</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-drop__ok" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 13 12 16 17 11"/></svg>
+          <span class="file-drop__filename">{{ selectedFile()!.name }}</span>
+          <span class="file-drop__hint">{{ (selectedFile()!.size / 1024).toFixed(0) }} KB · click to change</span>
+        }
+        <input type="file" accept=".xlsx" class="file-input-hidden" (change)="onFileChange($event)" />
+      </label>
+
+      @if (selectedFile()) {
+        <div class="upload-actions">
+          <button class="btn-ghost" (click)="clearFile()">Remove file</button>
+          <button class="btn-validate" [disabled]="phase() === 'validating'" (click)="validate()">
+            @if (phase() === 'validating') {
+              <mat-spinner diameter="16"></mat-spinner> Validating…
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Validate Only
+            }
+          </button>
+          <button class="btn-import"
+                  [disabled]="phase() === 'validating' || phase() === 'importing'"
+                  (click)="import()"
+                  matTooltip="Validates then writes to the database">
+            @if (phase() === 'importing') {
+              <mat-spinner diameter="16"></mat-spinner> Importing…
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+              Import
+            }
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════ STEP 4: Results ══════════════════ -->
+  @if (activeStep() === 'result') {
+    <div class="step-card anim-rise anim-rise--d2">
+
+      @if (executeResult(); as er) {
+        <!-- Execute result -->
+        <div class="result-header result-header--success">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+          <h2 class="result-header__title">Import Complete</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span class="summary-card__num">{{ er.studentsImported }}</span>
+            <span class="summary-card__label">Students imported</span>
+          </div>
+          <div class="summary-card summary-card--warn">
+            <span class="summary-card__num">{{ er.studentsSkipped }}</span>
+            <span class="summary-card__label">Rows skipped</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-card__num">{{ er.qualificationsImported }}</span>
+            <span class="summary-card__label">Qualifications</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-card__num">{{ er.feeAllocationsCreated }}</span>
+            <span class="summary-card__label">Fee allocations</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-card__num">{{ er.paymentsImported }}</span>
+            <span class="summary-card__label">Payments recorded</span>
+          </div>
+          <div class="summary-card summary-card--error">
+            <span class="summary-card__num">{{ allErrors(er).length }}</span>
+            <span class="summary-card__label">Errors</span>
+          </div>
+        </div>
+        @if (allErrors(er).length > 0) {
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: allErrors(er), title: 'Errors' }" />
+        }
+
+      } @else if (validationResult(); as vr) {
+        <!-- Validation result -->
+        <div class="result-header" [class.result-header--success]="allErrors(vr).length === 0" [class.result-header--warn]="allErrors(vr).length > 0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h2 class="result-header__title">Validation Complete</h2>
+        </div>
+
+        <div class="summary-grid">
+          @for (sheet of [{label:'Students', total: vr.studentsTotal, valid: vr.studentsValid}, {label:'Qualifications', total: vr.qualificationsTotal, valid: vr.qualificationsValid}, {label:'Fee History', total: vr.feeHistoryTotal, valid: vr.feeHistoryValid}]; track sheet.label) {
+            <div class="sheet-result" [class.sheet-result--ok]="sheet.total === sheet.valid" [class.sheet-result--err]="sheet.total !== sheet.valid">
+              <span class="sheet-result__name">{{ sheet.label }}</span>
+              <span class="sheet-result__count">{{ sheet.valid }}<span class="sheet-result__total"> / {{ sheet.total }} valid</span></span>
+            </div>
+          }
+          <div class="sheet-result sheet-result--warn">
+            <span class="sheet-result__name">Warnings</span>
+            <span class="sheet-result__count">{{ allWarnings(vr).length }}</span>
+          </div>
+          <div class="sheet-result" [class.sheet-result--err]="allErrors(vr).length > 0" [class.sheet-result--ok]="allErrors(vr).length === 0">
+            <span class="sheet-result__name">Errors</span>
+            <span class="sheet-result__count">{{ allErrors(vr).length }}</span>
+          </div>
+        </div>
+
+        @if (allErrors(vr).length > 0) {
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: allErrors(vr), title: 'Errors' }" />
+        }
+        @if (allWarnings(vr).length > 0) {
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: allWarnings(vr), title: 'Warnings' }" />
+        }
+
+        @if (allErrors(vr).length === 0) {
+          <div class="ready-banner">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            All rows are valid. Click <strong>Import</strong> to write to the database.
+          </div>
+          <div class="step-actions">
+            <button class="btn-ghost" (click)="goToStep('upload')">← Back</button>
+            <button class="btn-import" [disabled]="phase() === 'importing'" (click)="import()">
+              @if (phase() === 'importing') {
+                <mat-spinner diameter="16"></mat-spinner> Importing…
+              } @else {
+                Import {{ vr.studentsValid }} Students
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="step-actions">
+            <button class="btn-ghost" (click)="goToStep('upload')">← Fix & Re-upload</button>
+            @if (defaults.skipErroredRows) {
+              <button class="btn-import" [disabled]="phase() === 'importing'" (click)="import()">
+                Import Valid Rows Only ({{ vr.studentsValid }})
+              </button>
+            }
+          </div>
+        }
+      }
+
+      <button class="btn-reset" (click)="reset()">Start New Import</button>
+    </div>
+  }
+
+</div>
+
+<!-- ── Error table template ──────────────────────────────────────────────── -->
+<ng-template #errorTable let-rows let-title="title">
+  <details class="error-details" [open]="rows.length <= 15">
+    <summary class="error-details__summary">
+      {{ title }} ({{ rows.length }})
+    </summary>
+    <div class="error-table-wrap">
+      <table class="error-table">
+        <thead>
+          <tr>
+            <th>Sheet</th><th>Row</th><th>Column</th><th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of rows; track $index) {
+            <tr [class.error-row--warn]="e.severity === 'WARNING'">
+              <td>{{ e.sheet }}</td>
+              <td class="cell-num">{{ e.rowNumber }}</td>
+              <td class="cell-code">{{ e.column }}</td>
+              <td>{{ e.message }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</ng-template>

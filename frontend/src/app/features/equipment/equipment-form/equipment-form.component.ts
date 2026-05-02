@@ -15,6 +15,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-equipment-form',
@@ -116,7 +117,7 @@ export class EquipmentFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
     const request: EquipmentRequest = { name: v.name.trim(), model: v.model?.trim() || undefined, serialNumber: v.serialNumber?.trim() || undefined, labId: v.labId, category: v.category, status: v.status || undefined, purchaseDate: v.purchaseDate || undefined, purchaseCost: v.purchaseCost ?? undefined, warrantyExpiry: v.warrantyExpiry || undefined };
     this.saving.set(true);

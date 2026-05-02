@@ -561,6 +561,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'import',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/import/import.component').then((m) => m.ImportComponent),
+  },
+  {
     path: 'settings',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -678,14 +684,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admission/admission-list/admission-list.component').then(
         (m) => m.AdmissionListComponent
-      ),
-  },
-  {
-    path: 'admissions/new',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/admission/admission-form/admission-form.component').then(
-        (m) => m.AdmissionFormComponent
       ),
   },
   {

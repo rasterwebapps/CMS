@@ -1,7 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -10,8 +9,6 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryDocument, EnquiryDocumentRequest } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
-import { LayoutService } from '../../../core/layout/layout.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -67,11 +64,9 @@ interface ChecklistRow {
   imports: [
     InrPipe,
     FormsModule,
-    MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    PageHeaderComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent],
   templateUrl: './document-collection.component.html',
@@ -84,7 +79,6 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
-  protected readonly layoutService = inject(LayoutService);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);

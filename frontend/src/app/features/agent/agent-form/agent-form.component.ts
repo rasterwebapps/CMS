@@ -15,6 +15,7 @@ import { AGENT_FORM_TOUR } from '../../../shared/tour/tours/agent.tours';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-agent-form',
@@ -127,7 +128,7 @@ export class AgentFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
     const request: AgentRequest = {
       name: v.name.trim(),

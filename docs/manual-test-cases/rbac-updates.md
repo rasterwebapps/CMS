@@ -22,8 +22,8 @@ This document summarizes the role-based access control updates implemented for t
 
 **Admission Management:**
 - Enquiries (Read-only)
-- Document Submission (Read/Write)
-- Admission Completion (Read/Write)
+- Submit Documents (Read/Write)
+- Complete Admission (Read/Write)
 - Admissions (Read/Write)
 - Students (Read/Write)
 
@@ -41,8 +41,8 @@ This document summarizes the role-based access control updates implemented for t
 
 **Admission Management:**
 - Enquiries (Read-only)
-- Document Submission (Read/Write)
-- Admission Completion (Read/Write)
+- Submit Documents (Read/Write)
+- Complete Admission (Read/Write)
 - Admissions (Read/Write)
 - Students (Read/Write)
 
@@ -113,7 +113,7 @@ Updated navigation menu filtering in `/frontend/src/app/app.ts`:
 3. Verify the following menu items are visible:
    - Dashboard
    - Preferences (with sub-items: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types)
-   - Admission Management (with sub-items: Enquiries, Document Submission, Admission Completion, Admissions, Students)
+   - Admission Management (with sub-items: Enquiries, Submit Documents, Complete Admission, Admissions, Students)
    - Finance (with sub-items: Student Fees, Fee Payments, Fee Finalization)
    - Reports
 4. Verify the following menu items are NOT visible:
@@ -140,7 +140,7 @@ Updated navigation menu filtering in `/frontend/src/app/app.ts`:
 2. Verify the sidenav navigation menu is displayed
 3. Verify the following menu items are visible:
    - Dashboard
-   - Admission Management (with sub-items: Enquiries, Document Submission, Admission Completion, Admissions, Students)
+   - Admission Management (with sub-items: Enquiries, Submit Documents, Complete Admission, Admissions, Students)
    - Reports
 4. Verify the following menu items are NOT visible:
    - Preferences
@@ -173,8 +173,8 @@ Updated navigation menu filtering in `/frontend/src/app/app.ts`:
    - Reports
 4. Verify the following menu items are NOT visible:
    - Preferences
-   - Document Submission (under Admission Management)
-   - Admission Completion (under Admission Management)
+   - Submit Documents (under Admission Management)
+   - Complete Admission (under Admission Management)
    - Admissions (under Admission Management)
    - Students (under Admission Management)
    - Fee Finalization (under Finance)

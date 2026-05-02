@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
@@ -25,7 +24,7 @@ import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
   standalone: true,
   imports: [
     AppDatePipe, InrPipe, RouterLink,
-    MatTableModule, MatTooltipModule, MatProgressSpinnerModule,
+    MatTooltipModule, MatProgressSpinnerModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
   ],
@@ -46,10 +45,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly historyColumns = ['changedAt', 'fromStatus', 'toStatus', 'changedBy', 'remarks'];
   protected readonly activeTab = signal<'overview' | 'documents' | 'payments' | 'history'>('overview');
-  protected readonly computeInitials = computeInitials;
-  protected readonly STATUS_LABELS   = STATUS_LABELS;
   protected readonly Math            = Math;
 
   protected readonly initials = computed(() => computeInitials(this.enquiry()?.name));
@@ -128,35 +124,6 @@ export class EnquiryDetailComponent implements OnInit {
     if (id) void this.router.navigate(['/enquiries', id, 'convert']);
   }
 
-  /** Maps payment mode → receipt-card border-left modifier class. */
-  protected receiptModeClass(mode: string | null | undefined): string {
-    switch ((mode || '').toUpperCase()) {
-      case 'CASH':
-        return 'receipt-card--cash';
-      case 'CHEQUE':
-      case 'DD':
-        return 'receipt-card--cheque';
-      case 'ONLINE':
-      case 'UPI':
-      case 'CARD':
-      case 'NEFT':
-      case 'RTGS':
-      default:
-        return 'receipt-card--online';
-    }
-  }
-
-  /** Maps document status → doc-row icon modifier class. */
-  protected docIconClass(status: string | null | undefined): string {
-    switch ((status || '').toUpperCase()) {
-      case 'VERIFIED':
-        return 'doc-row__icon--verified';
-      case 'REJECTED':
-        return 'doc-row__icon--rejected';
-      default:
-        return 'doc-row__icon--pending';
-    }
-  }
 
   /** Opens the stored document binary in a new tab for inline viewing. */
   protected viewDocumentFile(d: EnquiryDocument): void {

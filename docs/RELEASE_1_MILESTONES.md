@@ -430,7 +430,7 @@
   - `POST /api/v1/enquiries/{id}/finalize-fees` — Admin finalizes fee structure
   - `GET /api/v1/enquiries/{id}/fee-guideline` — Get fee guideline for enquiry's program
 - [ ] **R1-4.1b.5** Enhance payment collection for enquiry-based fees (BR-7)
-- [ ] **R1-4.1b.6** Create document submission tracking for enquiries (BR-9):
+- [ ] **R1-4.1b.6** Create submit documents tracking for enquiries (BR-9):
   - `POST /api/v1/enquiries/{id}/documents` — Submit document
   - `GET /api/v1/enquiries/{id}/documents` — List submitted documents
   - `PATCH /api/v1/enquiries/{id}/documents/{docId}/verify` — Verify document
@@ -452,7 +452,7 @@
   - Display enquiry guideline values as starting point
   - Allow admin to adjust fees, provide discounts, modify year-wise split
 - [ ] **R1-4.1b.15** Enhance payment collection screen for enquiry-based workflow (BR-7)
-- [ ] **R1-4.1b.16** Create document submission tracking component (BR-9)
+- [ ] **R1-4.1b.16** Create submit documents tracking component (BR-9)
 - [ ] **R1-4.1b.17** Update enquiry list with new status workflow and automatic transitions (BR-8)
 - [ ] **R1-4.1b.18** Create student explorer screen with comprehensive filters (BR-11)
 

@@ -15,7 +15,7 @@
 - [BR-6: Admin Fee Finalization Workflow](#br-6-admin-fee-finalization-workflow)
 - [BR-7: Payment Collection by Accounting Team](#br-7-payment-collection-by-accounting-team)
 - [BR-8: Enquiry Status Workflow](#br-8-enquiry-status-workflow)
-- [BR-9: Document Submission](#br-9-document-submission)
+- [BR-9: Submit Documents](#br-9-document-submission)
 - [BR-10: Convert Enquiry to Student](#br-10-convert-enquiry-to-student)
 - [BR-11: Student Explorer with Filters](#br-11-student-explorer-with-filters)
 - [BR-12: Student Type on Enquiry](#br-12-student-type-on-enquiry)
@@ -405,7 +405,7 @@ The previous status values (`NEW`, `CONTACTED`, `FEE_DISCUSSED`) are being repla
 
 ---
 
-## BR-9: Document Submission
+## BR-9: Submit Documents
 
 ### Business Rule
 
@@ -429,13 +429,13 @@ After fees are paid (fully or partially), the student must submit required docum
 
 ### Entities Involved
 
-- `EnquiryDocument` (new or linked to existing `AdmissionDocument`) — tracks document submission per enquiry
+- `EnquiryDocument` (new or linked to existing `AdmissionDocument`) — tracks submit documents per enquiry
 - Existing `AdmissionDocument` entity already supports document types and verification workflow
 
 ### Roles
 
 - **ROLE_ADMIN** — can verify documents and track submission status
-- **ROLE_FRONT_OFFICE** — can record document submission on behalf of prospects
+- **ROLE_FRONT_OFFICE** — can record submit documents on behalf of prospects
 
 ---
 
@@ -559,7 +559,7 @@ Step 4: PAYMENT COLLECTION (Accounting/Cashier)
   ↓  Receipts generated for each payment
   ↓  Status: FEES_PAID or PARTIALLY_PAID
 
-Step 5: DOCUMENT SUBMISSION
+Step 5: SUBMIT DOCUMENTS
   ↓  Student submits required documents (10th, 12th, TC, etc.)
   ↓  Admin verifies documents
   ↓  Status: DOCUMENTS_SUBMITTED
@@ -622,7 +622,7 @@ Fee structures are defined **yearly** (one amount per program year), but actual 
 | 2026-04-27 | BR-13 | Added semester-wise fee collection: yearly fees auto-split into 2 semesters on finalization, payment cascade logic, single receipt per payment (fixed multiple-receipt bug), semester status as primary view in UI, receipt grouping by receipt number | — |
 | 2026-04-17 | BR-1, BR-2, BR-3, BR-12 | Fee structure and enquiry enhancements: (1) BR-1 updated — one fee structure group per course+academic year enforced; (2) BR-2 updated — year boxes based on program durationYears, all 8 fee types shown; (3) BR-3 updated — enquiry shows total fee only (no split), filtered by student type; (4) BR-12 added — student type (DAY_SCHOLAR/HOSTELER) on enquiry, controls fee inclusion | — |
 | 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |
-| 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, document submission, and student explorer | — |
+| 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, submit documents, and student explorer | — |
 
 ---
 

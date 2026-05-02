@@ -179,7 +179,7 @@ class EnquiryControllerTest {
             null, null, "Converted", new BigDecimal("50000.00"),
             null, null, null, null, null, null,
             null, null, null, null, null, null,
-            10L, Instant.now(), Instant.now()
+            10L, Instant.now(), Instant.now(), null
         );
 
         when(enquiryService.convertToStudent(1L, 10L)).thenReturn(response);
@@ -196,7 +196,7 @@ class EnquiryControllerTest {
     void shouldConvertToStudentWithData() throws Exception {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1,
-            LocalDate.of(2024, 7, 1), 2024, 2025, LocalDate.of(2024, 7, 1), true, true,
+            LocalDate.of(2024, 7, 1), 100L, LocalDate.of(2024, 7, 1), true, true,
             null, null, null, null, null, null, null, null, null, null, null, null, null, null
         );
 
@@ -208,7 +208,7 @@ class EnquiryControllerTest {
             null, null, "Admitted", new BigDecimal("50000.00"),
             null, null, null, null, null, null,
             null, null, null, null, null, null,
-            10L, Instant.now(), Instant.now()
+            10L, Instant.now(), Instant.now(), null
         );
 
         when(enquiryService.convertToStudentWithData(eq(1L), any(EnquiryConversionRequest.class), any()))
@@ -465,7 +465,7 @@ class EnquiryControllerTest {
             status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
-            null, now, now
+            null, now, now, null
         );
     }
 }

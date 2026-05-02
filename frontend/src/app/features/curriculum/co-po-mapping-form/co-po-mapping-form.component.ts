@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurriculumService } from '../curriculum.service';
 import { Experiment, LabCurriculumMappingRequest } from '../curriculum.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-co-po-mapping-form',
@@ -84,7 +85,7 @@ export class CoPoMappingFormComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     const v = this.form.value;

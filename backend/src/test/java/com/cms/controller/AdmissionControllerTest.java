@@ -33,7 +33,6 @@ import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.QualificationType;
@@ -63,8 +62,9 @@ class AdmissionControllerTest {
 
     private AdmissionResponse createAdmissionResponse(Long id) {
         return new AdmissionResponse(
-            id, 1L, "John Doe", 2024, 2025,
-            LocalDate.of(2024, 1, 15), AdmissionStatus.DRAFT,
+            id, 1L, "John Doe", "CS001", "Computer Science", null, 1, "ACTIVE",
+            100L, "2024-2025", 2025,
+            LocalDate.of(2024, 1, 15),
             "Chennai", LocalDate.of(2024, 1, 15), true, true,
             Instant.now(), Instant.now()
         );
@@ -73,8 +73,8 @@ class AdmissionControllerTest {
     @Test
     void shouldCreateAdmission() throws Exception {
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15),
-            AdmissionStatus.DRAFT, "Chennai", LocalDate.of(2024, 1, 15), true, true
+            1L, 100L, LocalDate.of(2024, 1, 15),
+            "Chennai", LocalDate.of(2024, 1, 15), true, true
         );
         AdmissionResponse response = createAdmissionResponse(1L);
         when(admissionService.create(any(AdmissionRequest.class))).thenReturn(response);
@@ -153,8 +153,8 @@ class AdmissionControllerTest {
     @Test
     void shouldUpdateAdmission() throws Exception {
         AdmissionRequest request = new AdmissionRequest(
-            1L, 2024, 2025, LocalDate.of(2024, 1, 15),
-            AdmissionStatus.SUBMITTED, "Mumbai", LocalDate.of(2024, 1, 15), true, true
+            1L, 100L, LocalDate.of(2024, 1, 15),
+            "Mumbai", LocalDate.of(2024, 1, 15), true, true
         );
         AdmissionResponse response = createAdmissionResponse(1L);
         when(admissionService.update(eq(1L), any(AdmissionRequest.class))).thenReturn(response);
@@ -167,15 +167,6 @@ class AdmissionControllerTest {
         verify(admissionService).update(eq(1L), any(AdmissionRequest.class));
     }
 
-    @Test
-    void shouldUpdateAdmissionStatus() throws Exception {
-        AdmissionResponse response = createAdmissionResponse(1L);
-        when(admissionService.updateStatus(1L, AdmissionStatus.SUBMITTED)).thenReturn(response);
-        mockMvc.perform(patch("/admissions/1/status")
-                .param("status", "SUBMITTED"))
-            .andExpect(status().isOk());
-        verify(admissionService).updateStatus(1L, AdmissionStatus.SUBMITTED);
-    }
 
     @Test
     void shouldDeleteAdmission() throws Exception {

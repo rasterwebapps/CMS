@@ -24,7 +24,6 @@ import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.service.AcademicQualificationService;
@@ -78,12 +77,6 @@ public class AdmissionController {
         return ResponseEntity.ok(admissionService.update(id, request));
     }
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
-    public ResponseEntity<AdmissionResponse> updateStatus(@PathVariable Long id,
-                                                          @RequestParam AdmissionStatus status) {
-        return ResponseEntity.ok(admissionService.updateStatus(id, status));
-    }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")

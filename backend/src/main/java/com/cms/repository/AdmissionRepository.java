@@ -6,15 +6,13 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cms.model.Admission;
-import com.cms.model.enums.AdmissionStatus;
 
 public interface AdmissionRepository extends JpaRepository<Admission, Long> {
 
     Optional<Admission> findByStudentId(Long studentId);
 
-    List<Admission> findByStatus(AdmissionStatus status);
 
-    List<Admission> findByAcademicYearFromAndAcademicYearTo(Integer academicYearFrom, Integer academicYearTo);
+    List<Admission> findByJoiningAcademicYearId(Long joiningAcademicYearId);
 
     boolean existsByStudentId(Long studentId);
 }

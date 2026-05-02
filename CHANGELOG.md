@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - BR-6: Admin fee finalization workflow — front office submits, admin reviews/adjusts/finalizes
   - BR-7: Payment collection by accounting team — full/partial payments, multiple modes, receipts
   - BR-8: Enhanced enquiry status workflow: ENQUIRED → INTERESTED → FEES_FINALIZED → FEES_PAID/PARTIALLY_PAID → DOCUMENTS_SUBMITTED → CONVERTED
-  - BR-9: Document submission tracking (10th, 12th certificates, etc.)
+  - BR-9: Submit Documents tracking (10th, 12th certificates, etc.)
   - BR-10: Convert enquiry to student (requires DOCUMENTS_SUBMITTED status)
   - BR-11: Student explorer screen with comprehensive filters
   - End-to-end enquiry-to-admission lifecycle documented
@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Updated `docs/README.md`**
   - Added reference to `BUSINESS_REQUIREMENTS.md` in documentation index
 - **Updated `docs/manual-test-cases/enquiry-management.md`**
-  - Added TC-ENQ-022 to TC-ENQ-035: Fee guideline display, referral type selection, additional amount box, final fee calculation, status workflow, admin finalization, payment collection, document submission, enhanced conversion, student explorer
+  - Added TC-ENQ-022 to TC-ENQ-035: Fee guideline display, referral type selection, additional amount box, final fee calculation, status workflow, admin finalization, payment collection, submit documents, enhanced conversion, student explorer
 - **Updated `docs/manual-test-cases/fee-management.md`**
   - Added TC-FEE-015 to TC-FEE-020: Year-wise fee boxes per program duration, academic year filtering
 

@@ -51,7 +51,7 @@ This guide walks you through everything you need to do your job well.
 | Reports | ✅ Collection and receipt reports |
 | Fee Finalization | ❌ College Admin only |
 | Admission Creation | ❌ Front Office / College Admin only |
-| Document Submission | ❌ Front Office / College Admin only |
+| Submit Documents | ❌ Front Office / College Admin only |
 | Preferences / Settings | ❌ Not accessible |
 
 ### What You Can and Cannot Do
@@ -347,7 +347,7 @@ Students may pay in **instalments**. Record each payment separately.
 - After 2nd payment → Still: `PARTIALLY_PAID`
 - After 3rd payment → Status changes to: `FEES_PAID`
 
-> **Note**: Students can proceed to document submission even with partial payment. However, full payment must be cleared before admission.
+> **Note**: Students can proceed to submit documents even with partial payment. However, full payment must be cleared before admission.
 
 ---
 
@@ -584,7 +584,7 @@ Print receipt → Give to student
 
 "Your payment of ₹50,000 has been recorded.
  Balance remaining: ₹53,000.
- Please clear it before starting document submission."
+ Please clear it before starting submit documents."
 ```
 
 ---

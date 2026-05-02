@@ -106,11 +106,11 @@ class FeeFinalizationServiceTest {
         assertThat(response.semesterFees()).hasSize(8);
 
         // Year 1 (₹235000) → S1 = floor(235000/2) = ₹117500.00, S2 = ₹117500.00
-        assertThat(response.semesterFees().get(0).semesterLabel()).isEqualTo("Year 1 - Semester 1");
+        assertThat(response.semesterFees().get(0).semesterLabel()).isEqualTo("Year 1 - First Semester");
         assertThat(response.semesterFees().get(0).semesterSequence()).isEqualTo(1);
         assertThat(response.semesterFees().get(0).amount()).isEqualByComparingTo("117500.00");
 
-        assertThat(response.semesterFees().get(1).semesterLabel()).isEqualTo("Year 1 - Semester 2");
+        assertThat(response.semesterFees().get(1).semesterLabel()).isEqualTo("Year 1 - Second Semester");
         assertThat(response.semesterFees().get(1).semesterSequence()).isEqualTo(2);
         assertThat(response.semesterFees().get(1).amount()).isEqualByComparingTo("117500.00");
     }

@@ -13,6 +13,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-examination-form',
@@ -108,7 +109,7 @@ export class ExaminationFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
     const request: ExaminationRequest = { name: v.name.trim(), courseId: v.courseId, examType: v.examType, date: v.date || undefined, duration: v.duration || undefined, maxMarks: v.maxMarks ?? undefined, semesterId: v.semesterId || undefined };
     this.saving.set(true);

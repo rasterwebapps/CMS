@@ -240,6 +240,7 @@ class EnquiryPaymentServiceTest {
     @Test
     void shouldReturnYearWiseFeeStatusWithNoYearData() {
         testEnquiry.setYearWiseFees(null);
+        testEnquiry.setFinalizedNetFee(null);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);

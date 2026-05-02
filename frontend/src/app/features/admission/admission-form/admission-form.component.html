@@ -176,29 +176,21 @@
 
           <div class="form-row">
             <div class="field-group">
-              <label for="conv-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
-              <input
-                id="conv-year-from"
-                class="field-input"
-                type="number"
-                formControlName="academicYearFrom"
-                [class.field-input--error]="form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched"
-              />
-              @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
-                <p class="field-error">Academic year from is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
-              <input
-                id="conv-year-to"
-                class="field-input"
-                type="number"
-                formControlName="academicYearTo"
-                [class.field-input--error]="form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched"
-              />
-              @if (form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched) {
-                <p class="field-error">Academic year to is required</p>
+              <label for="conv-joining-year" class="field-label">Joining Academic Year <span class="field-required">*</span></label>
+              <select
+                id="conv-joining-year"
+                class="field-select"
+                [value]="selectedAcademicYearId()"
+                (change)="onAcademicYearSelect($event)"
+                [class.field-input--error]="form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched"
+              >
+                <option [value]="null" disabled>— Select academic year —</option>
+                @for (y of academicYears(); track y.id) {
+                  <option [value]="y.id">{{ y.name }}@if (y.isCurrent) { (Current) }</option>
+                }
+              </select>
+              @if (form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched) {
+                <p class="field-error">Academic year is required</p>
               }
             </div>
             <div class="field-group">
@@ -354,6 +346,24 @@
              ════════════════════════════════════════════════════════ -->
         @if (isEdit() || mode() === 'manual') {
 
+          <!-- Student profile notice — shown in edit mode only -->
+          @if (isEdit() && editStudentId()) {
+            <div class="student-profile-notice">
+              <div class="student-profile-notice__text">
+                <mat-icon class="student-profile-notice__icon">info</mat-icon>
+                <span>Personal details (date of birth, demographics, address, family info) belong to the student profile and cannot be edited here.</span>
+              </div>
+              <a
+                class="student-profile-notice__link"
+                [routerLink]="['/students', editStudentId(), 'edit']"
+                target="_blank"
+              >
+                <mat-icon>open_in_new</mat-icon>
+                Edit Student Profile
+              </a>
+            </div>
+          }
+
           <div class="field-group">
             <label for="adm-student" class="field-label">Student <span class="field-required">*</span></label>
             <select
@@ -374,12 +384,22 @@
 
           <div class="form-row">
             <div class="field-group">
-              <label for="adm-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
-              <input id="adm-year-from" class="field-input" type="number" formControlName="academicYearFrom" placeholder="e.g., 2024" />
-            </div>
-            <div class="field-group">
-              <label for="adm-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
-              <input id="adm-year-to" class="field-input" type="number" formControlName="academicYearTo" placeholder="e.g., 2025" />
+              <label for="adm-joining-year" class="field-label">Joining Academic Year <span class="field-required">*</span></label>
+              <select
+                id="adm-joining-year"
+                class="field-select"
+                [value]="selectedAcademicYearId()"
+                (change)="onAcademicYearSelect($event)"
+                [class.field-input--error]="form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched"
+              >
+                <option [value]="null" disabled>— Select academic year —</option>
+                @for (y of academicYears(); track y.id) {
+                  <option [value]="y.id">{{ y.name }}@if (y.isCurrent) { (Current) }</option>
+                }
+              </select>
+              @if (form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched) {
+                <p class="field-error">Academic year is required</p>
+              }
             </div>
             <div class="field-group">
               <label for="adm-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
@@ -387,14 +407,6 @@
             </div>
           </div>
 
-          <div class="field-group">
-            <label for="adm-status" class="field-label">Status</label>
-            <select id="adm-status" class="field-select" formControlName="status">
-              @for (s of statuses; track s) {
-                <option [value]="s">{{ s }}</option>
-              }
-            </select>
-          </div>
 
           <div class="form-row">
             <div class="field-group">

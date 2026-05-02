@@ -65,7 +65,7 @@
 </ul></li>
 <li><a href="#admission-creation">8. Admission Creation</a>
 <ul>
-<li><a href="#create-admission-from-admission-completion-screen">Create Admission from Admission Completion Screen</a></li>
+<li><a href="#create-admission-from-admission-completion-screen">Create Admission from Complete Admission Screen</a></li>
 <li><a href="#admission-form-nursing-specific-fields">Admission Form — Nursing-Specific Fields</a></li>
 <li><a href="#after-submitting">After Submitting</a></li>
 </ul></li>
@@ -148,11 +148,11 @@
 <td>✅ Full (Create, Edit, Update Status)</td>
 </tr>
 <tr class="odd">
-<td>Admission Management — Document Submission</td>
+<td>Admission Management — Submit Documents</td>
 <td>✅ Full</td>
 </tr>
 <tr class="even">
-<td>Admission Management — Admission Completion</td>
+<td>Admission Management — Complete Admission</td>
 <td>✅ Full</td>
 </tr>
 <tr class="odd">
@@ -751,7 +751,7 @@ ADMITTED ✅──────────────────────�
 └─────────────────────────────────────────┘
  Print | Email | Close</code></pre>
 <h3 id="partial-payments">Partial Payments</h3>
-<p>If a student cannot pay the full amount: - Record the amount they are paying (e.g., ₹50,000 of ₹1,03,000) - Status changes to <code>PARTIALLY_PAID</code> - Student can still proceed to document submission - System tracks balance automatically - Remind student of remaining balance</p>
+<p>If a student cannot pay the full amount: - Record the amount they are paying (e.g., ₹50,000 of ₹1,03,000) - Status changes to <code>PARTIALLY_PAID</code> - Student can still proceed to submit documents - System tracks balance automatically - Remind student of remaining balance</p>
 <hr />
 <h2 id="document-management">7. Document Management</h2>
 <p>Collecting and verifying documents is one of your most important responsibilities. <strong>All 7 documents must be uploaded</strong> before a student can be admitted.</p>
@@ -817,14 +817,14 @@ Student arrives with documents
           │
           ▼
 Navigate to:
-Admission Management → Document Submission
+Admission Management → Submit Documents
           │
           ▼
 Find student&#39;s enquiry
   (Status must be FEES_PAID or PARTIALLY_PAID)
           │
           ▼
-Open document submission screen
+Open submit documents screen
           │
           ▼
 FOR EACH of the 7 documents:
@@ -897,7 +897,7 @@ Click &quot;Submit Documents&quot;
 <h3 id="submitting-documents">Submitting Documents</h3>
 <p>Once all 7 are uploaded and verified:</p>
 <ol type="1">
-<li>Scroll to bottom of document submission screen</li>
+<li>Scroll to bottom of submit documents screen</li>
 <li>Click <strong>“Submit Documents”</strong> button</li>
 <li>System checks:
 <ul>
@@ -910,8 +910,8 @@ Click &quot;Submit Documents&quot;
 <hr />
 <h2 id="admission-creation">8. Admission Creation</h2>
 <p>When a student’s enquiry is in <code>DOCUMENTS_SUBMITTED</code> status, you can create their official admission record.</p>
-<h3 id="create-admission-from-admission-completion-screen">Create Admission from Admission Completion Screen</h3>
-<p><strong>Navigate</strong>: Sidenav → Admission Management → Admission Completion</p>
+<h3 id="create-admission-from-admission-completion-screen">Create Admission from Complete Admission Screen</h3>
+<p><strong>Navigate</strong>: Sidenav → Admission Management → Complete Admission</p>
 <ol type="1">
 <li>Screen shows all enquiries with <code>DOCUMENTS_SUBMITTED</code> status</li>
 <li>Search for your student</li>
@@ -1101,7 +1101,7 @@ Find enquiry (must be FEES_PAID or PARTIALLY_PAID)
          │
          ▼
 Click &quot;Submit Documents&quot; shortcut or
-navigate to Admission Management → Document Submission
+navigate to Admission Management → Submit Documents
          │
          ▼
 Go through 7 documents one by one:

@@ -9,27 +9,17 @@ export const ADMISSION_LIST_TOUR: TourDefinition = {
       popover: {
         title: '🎓 Welcome to Admissions',
         description:
-          'This screen lists every admission record — both confirmed and in-progress applications. Use it to track the academic onboarding pipeline.',
+          'This screen lists every admission record. Admissions are created automatically when an enquiry is completed from the Complete Admission screen.',
         side: 'over',
         align: 'center',
       },
     },
     {
-      element: '#tour-adm-add-btn',
-      popover: {
-        title: 'New Admission',
-        description:
-          'Create an admission directly or convert an existing enquiry. Click here to start a new admission record from scratch or pick from the enquiry pool.',
-        side: 'bottom',
-        align: 'end',
-      },
-    },
-    {
       element: '#tour-adm-toolbar',
       popover: {
-        title: 'Filters & Columns',
+        title: 'Search & Columns',
         description:
-          'Filter admissions by status, choose which columns are visible, and refine the view to focus on what matters today.',
+          'Search for admissions by student name and choose which columns are visible to focus on what matters today.',
         side: 'bottom',
         align: 'start',
       },
@@ -48,7 +38,7 @@ export const ADMISSION_LIST_TOUR: TourDefinition = {
       popover: {
         title: '✅ All set',
         description:
-          'You\'re ready. Open an existing admission to drill down or create a new one to enrol a candidate.',
+          'You\'re ready. Open an existing admission to drill down into its details, fees, and documents.',
         side: 'over',
         align: 'center',
       },

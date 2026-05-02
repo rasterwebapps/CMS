@@ -1,17 +1,19 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
@@ -20,13 +22,10 @@ import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enqui
   selector: 'app-admission-completion-list',
   standalone: true,
   imports: [
-    InrPipe,
-    FormsModule,
-    MatTableModule,
-    MatButtonModule,
-    MatIconModule,
+    InrPipe, AppDatePipe, FormsModule,
+    MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule,
-    PageHeaderComponent,
+    CmsEmptyStateComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './admission-completion-list.component.html',
@@ -34,59 +33,61 @@ import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enqui
 })
 export class AdmissionCompletionListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
-  private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly tourService = inject(TourService);
+  private readonly authService    = inject(AuthService);
+  private readonly router         = inject(Router);
+  private readonly toast          = inject(ToastService);
+  private readonly tourService    = inject(TourService);
 
-  protected readonly loading = signal(true);
-  protected readonly enquiries = signal<Enquiry[]>([]);
+  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
+  @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
+
+  protected readonly loading     = signal(true);
   protected readonly searchQuery = signal('');
+  protected colMenuOpen          = false;
 
-  protected readonly filteredData = computed(() => {
-    const q = this.searchQuery().toLowerCase().trim();
-    if (!q) return this.enquiries();
-    return this.enquiries().filter(e =>
-      (e.name ?? '').toLowerCase().includes(q) ||
-      (e.programName ?? '').toLowerCase().includes(q) ||
-      (e.courseName ?? '').toLowerCase().includes(q) ||
-      (e.phone ?? '').toLowerCase().includes(q),
-    );
-  });
+  protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
-  // ── Column visibility ────────────────────────────────────────────────────
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  protected readonly totalCount    = computed(() => this.dataSource.data.length);
+  protected readonly filteredCount = computed(() => this.dataSource.filteredData.length);
+
+  // ── Column visibility ──────────────────────────────────────────────────────
   protected readonly ALL_COLS = ['name', 'programName', 'courseName', 'status', 'finalizedNetFee', 'enquiryDate', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name',
-    programName: 'Program',
-    courseName: 'Course',
-    status: 'Status',
-    finalizedNetFee: 'Net Fee',
-    enquiryDate: 'Enquiry Date',
-    actions: 'Actions',
+    name: 'Student', programName: 'Program', courseName: 'Course',
+    status: 'Status', finalizedNetFee: 'Net Fee', enquiryDate: 'Date', actions: 'Actions',
   };
-  private readonly COLS_KEY = 'admission-completion-list-cols';
+  private readonly COLS_KEY     = 'admission-completion-list-cols';
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
 
-  protected isAdminOrFrontOffice(): boolean {
-    return this.authService.hasRole('ROLE_ADMIN') || this.authService.hasRole('ROLE_FRONT_OFFICE');
-  }
-
-  protected initials(name: string): string {
-    return (name ?? '')
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(w => w[0].toUpperCase())
-      .join('');
-  }
+  protected readonly computeInitials = computeInitials;
 
   ngOnInit(): void {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
+    this.dataSource.filterPredicate = (row, filter) => {
+      const q = filter.toLowerCase();
+      return row.name.toLowerCase().includes(q) ||
+        (row.programName ?? '').toLowerCase().includes(q) ||
+        (row.courseName  ?? '').toLowerCase().includes(q) ||
+        (row.phone       ?? '').includes(q);
+    };
     this.load();
   }
 
+  protected onSearch(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(val);
+    this.dataSource.filter = val.trim().toLowerCase();
+    this.dataSource.paginator?.firstPage();
+  }
+
+  protected clearSearch(): void {
+    this.searchQuery.set('');
+    this.dataSource.filter = '';
+  }
+
+  // ── Column prefs ───────────────────────────────────────────────────────────
   private _loadColPrefs(): Set<string> {
     try {
       const s = localStorage.getItem(this.COLS_KEY);
@@ -106,25 +107,20 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
+  protected isAdminOrFrontOffice(): boolean {
+    return this.authService.hasRole('ROLE_ADMIN') ||
+           this.authService.hasRole('ROLE_COLLEGE_ADMIN') ||
+           this.authService.hasRole('ROLE_FRONT_OFFICE');
+  }
+
   private load(): void {
     this.loading.set(true);
     this.enquiryService.getAdmissionPending().subscribe({
-      next: (enquiries) => {
-        this.enquiries.set(enquiries);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to load enquiries');
-        this.loading.set(false);
-      },
+      next:  enquiries => { this.dataSource.data = enquiries; this.loading.set(false); },
+      error: ()        => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
     });
   }
 
-  protected viewEnquiry(item: Enquiry): void {
-    void this.router.navigate(['/enquiries', item.id]);
-  }
-
-  protected completeAdmission(item: Enquiry): void {
-    void this.router.navigate(['/enquiries', item.id, 'convert']);
-  }
+  protected viewEnquiry(item: Enquiry): void      { void this.router.navigate(['/enquiries', item.id]); }
+  protected completeAdmission(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'convert']); }
 }

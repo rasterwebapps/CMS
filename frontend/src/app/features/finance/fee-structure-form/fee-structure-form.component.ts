@@ -16,6 +16,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_STRUCTURE_FORM_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface Program {
   id: number;
@@ -485,7 +486,7 @@ export class FeeStructureFormComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.bulkForm.invalid) {
-      this.bulkForm.markAllAsTouched();
+      scrollToFirstInvalid(this.bulkForm);
       return;
     }
     if (this.feeItems.length === 0) {

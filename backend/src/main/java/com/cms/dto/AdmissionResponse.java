@@ -3,16 +3,19 @@ package com.cms.dto;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.cms.model.enums.AdmissionStatus;
-
 public record AdmissionResponse(
     Long id,
     Long studentId,
     String studentName,
-    Integer academicYearFrom,
-    Integer academicYearTo,
+    String rollNumber,
+    String programName,
+    String courseName,
+    Integer semester,
+    String studentStatus,
+    Long joiningAcademicYearId,
+    String joiningAcademicYearName,
+    Integer expectedCompletionYear,
     LocalDate applicationDate,
-    AdmissionStatus status,
     String declarationPlace,
     LocalDate declarationDate,
     Boolean parentConsentGiven,

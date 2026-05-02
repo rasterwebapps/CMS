@@ -49,15 +49,15 @@
     </div>
 
     <div class="sc c-amber">
-      <div class="sc-badge badge-warn">Needs review</div>
+      <div class="sc-badge badge-warn">All enrollments</div>
       <div class="sc-icon">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
           <path d="M3 3h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-4 3V4a1 1 0 011-1z"
                 stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="sc-val">{{ foData()?.pendingAdmissionsCount ?? 0 }}</div>
-      <div class="sc-label">Pending Admissions</div>
+      <div class="sc-val">{{ foData()?.totalAdmissions ?? 0 }}</div>
+      <div class="sc-label">Total Admissions</div>
     </div>
 
     <div class="sc c-green">

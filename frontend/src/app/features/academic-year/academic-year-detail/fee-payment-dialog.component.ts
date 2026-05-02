@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FeeDemand, PaymentMode, TermFeePaymentRequest } from '../academic-year.model';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
   selector: 'app-fee-payment-dialog',
@@ -151,7 +152,7 @@ export class FeePaymentDialogComponent {
 
   submit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      scrollToFirstInvalid(this.form);
       return;
     }
     const v = this.form.value;

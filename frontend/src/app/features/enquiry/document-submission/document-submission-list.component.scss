@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Document Submission List
+// Submit Documents List
 // 91px = 56px toolbar + 35px breadcrumb
 // ─────────────────────────────────────────────────────────────
 
@@ -251,7 +251,7 @@
 
 .student-info { display: flex; flex-direction: column; gap: 1px; }
 
-.cell-name  { font-weight: 600; color: var(--cms-text-primary); font-size: 0.875rem; }
+.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
 .cell-sub   { font-size: 0.75rem; color: var(--cms-text-muted); }
 .cell-muted { color: var(--cms-text-muted); font-size: 0.8125rem; }
 .cell-mono  { font-family: var(--cms-font-mono); font-weight: 600; font-size: 0.875rem; }

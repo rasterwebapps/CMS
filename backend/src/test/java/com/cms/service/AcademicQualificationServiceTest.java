@@ -23,9 +23,9 @@ import com.cms.dto.AcademicQualificationRequest;
 import com.cms.dto.AcademicQualificationResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicQualification;
+import com.cms.model.AcademicYear;
 import com.cms.model.Admission;
 import com.cms.model.Student;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.QualificationType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AcademicQualificationRepository;
@@ -56,8 +56,10 @@ class AcademicQualificationServiceTest {
     }
 
     private Admission createAdmission(Long id) {
-        Admission admission = new Admission(createStudent(), 2024, 2025,
-            LocalDate.of(2024, 1, 15), AdmissionStatus.DRAFT);
+        AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), true);
+        ay.setId(100L);
+        Admission admission = new Admission(createStudent(), ay,
+            LocalDate.of(2024, 1, 15));
         admission.setId(id);
         admission.setCreatedAt(Instant.now());
         admission.setUpdatedAt(Instant.now());

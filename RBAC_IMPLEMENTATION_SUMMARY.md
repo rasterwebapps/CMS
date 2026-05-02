@@ -44,8 +44,8 @@ Updated the navigation structure with role restrictions:
 | - Settings | ✗ | - | - | ✓ |
 | Admission Management | ✓ | ✓ | ✓* | ✓ |
 | - Enquiries | ✓* | ✓* | ✓* | ✓ |
-| - Document Submission | ✓ | ✓ | ✗ | ✓ |
-| - Admission Completion | ✓ | ✓ | ✗ | ✓ |
+| - Submit Documents | ✓ | ✓ | ✗ | ✓ |
+| - Complete Admission | ✓ | ✓ | ✗ | ✓ |
 | - Admissions | ✓ | ✓ | ✗ | ✓ |
 | - Students | ✓ | ✓ | ✗ | ✓ |
 | Curriculum & Academics | ✗ | ✗ | ✗ | ✓ |

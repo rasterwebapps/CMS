@@ -156,17 +156,17 @@ Feature: Column visibility toggle on all list pages
 
 ---
 
-## TC-COL-010: Document submission list — column toggle
+## TC-COL-010: Submit documents list — column toggle
 
 **Preconditions:**
 - User has `ROLE_ADMIN` or `ROLE_FACULTY`
-- Navigate to the document submission page
+- Navigate to the submit documents page
 
 **Steps:**
 1. Confirm the Columns button is visible in the top command bar
 2. Uncheck the "Net Fee" column
 
 **Expected Result:**
-- The Net Fee column is hidden from the document submission table
+- The Net Fee column is hidden from the submit documents table
 
 **Status:** NOT TESTED

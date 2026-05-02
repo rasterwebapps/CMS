@@ -49,7 +49,7 @@ Four operational roles have been defined and provisioned in this system.
 2. Verify the sidebar shows: Preferences, Admission Management, Finance, Reports
 3. Verify Preferences shows: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types
 4. Verify Preferences does NOT show: Settings, Labs, Equipment, Academic Calendar
-5. Verify Admission Management shows all items: Enquiries, Document Submission, Admission Completion, Admissions, Students, Roll Number Assignment
+5. Verify Admission Management shows all items: Enquiries, Submit Documents, Complete Admission, Admissions, Students, Roll Number Assignment
 6. Verify Finance shows: Student Fees, Fee Payments, Fee Finalization
 7. Verify Curriculum & Academics is NOT visible
 8. Verify Examinations is NOT visible
@@ -101,7 +101,7 @@ Four operational roles have been defined and provisioned in this system.
 **Steps:**
 1. Log in as `frontoffice` / `FrontOffice@123`
 2. Verify the sidebar shows ONLY: Dashboard, Admission Management, Fee Payments (under Finance)
-3. Verify Admission Management shows: Enquiries, Document Submission, Admission Completion, Admissions, Students
+3. Verify Admission Management shows: Enquiries, Submit Documents, Complete Admission, Admissions, Students
 4. Verify Admission Management does NOT show: Roll Number Assignment
 5. Verify Preferences is NOT visible
 6. Verify Curriculum & Academics is NOT visible

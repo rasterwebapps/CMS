@@ -1,247 +1,346 @@
-<div class="convert-page">
-  @if (!layoutService.isFocusMode()) {
-    <app-page-header
-      title="Create Admission"
-      subtitle="Create admission and enrol the student from this enquiry."
-    >
-      <cms-tour-button titleAction tourKey="enquiry-convert" [iconOnly]="true" iconVariant="info-circle" />
-    </app-page-header>
-  }
+<div class="conv-page">
+
   @if (loading()) {
-    <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+    <div class="loading-box">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
   } @else {
-    <div class="convert-layout">
-      <!-- Left: Enquiry Summary -->
-      <div id="tour-conv-summary" class="summary-card">
-        <p class="summary-card__heading">Enquiry Summary</p>
-        @if (enquiry()) {
-          <div class="info-list">
-            <div class="info-row"><span class="label">Name</span><span>{{ enquiry()!.name }}</span></div>
-            <div class="info-row"><span class="label">Email</span><span>{{ enquiry()!.email || '—' }}</span></div>
-            <div class="info-row"><span class="label">Phone</span><span>{{ enquiry()!.phone || '—' }}</span></div>
-            <div class="info-row"><span class="label">Program</span><span>{{ enquiry()!.programName }}</span></div>
-            <div class="info-row"><span class="label">Course</span><span>{{ enquiry()!.courseName || '—' }}</span></div>
-            <div class="info-row"><span class="label">Status</span><span>{{ enquiry()!.status }}</span></div>
-            <div class="info-row"><span class="label">Net Fee</span><span>{{ enquiry()!.finalizedNetFee ?? '—' }}</span></div>
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <div class="conv-hdr anim-rise">
+      <a class="back-btn" [routerLink]="['/enquiries', enquiry()?.id]" aria-label="Back to enquiry">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </a>
+      <div class="conv-hdr-text">
+        <div class="page-title-row">
+          <h1 class="conv-title">Create <em>Admission</em></h1>
+          <cms-tour-button tourKey="enquiry-convert" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
+        <p class="conv-sub">Convert this enquiry into an active admission and enrol the student.</p>
+      </div>
+    </div>
+
+    <!-- ── Body ───────────────────────────────────────────────────────────── -->
+    <div class="conv-body">
+
+      <!-- ── Left: Enquiry Summary ──────────────────────────────────────── -->
+      <div id="tour-conv-summary" class="conv-summary anim-rise anim-rise--d1">
+
+        <div class="cand-hero">
+          <div class="cand-avatar">{{ computeInitials(enquiry()?.name) }}</div>
+          <div class="cand-info">
+            <p class="cand-name">{{ enquiry()?.name }}</p>
+            @if (enquiry()?.email) { <p class="cand-meta">{{ enquiry()!.email }}</p> }
+            @if (enquiry()?.phone) { <p class="cand-meta">{{ enquiry()!.phone }}</p> }
+          </div>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-rows">
+          <div class="summary-row">
+            <span class="summary-row__key">Program</span>
+            <span class="summary-row__val">{{ enquiry()?.programName || '—' }}</span>
+          </div>
+          @if (enquiry()?.courseName) {
+            <div class="summary-row">
+              <span class="summary-row__key">Course</span>
+              <span class="summary-row__val">{{ enquiry()!.courseName }}</span>
+            </div>
+          }
+          <div class="summary-row">
+            <span class="summary-row__key">Student Type</span>
+            <span class="summary-row__val">
+              @if (enquiry()?.studentType) {
+                <span class="type-chip" [class.type-chip--hosteler]="enquiry()?.studentType === 'HOSTELER'">
+                  {{ enquiry()?.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
+                </span>
+              } @else { <span class="summary-row__val">—</span> }
+            </span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-row__key">Status</span>
+            <span class="status-chip">
+              <span class="status-chip__dot"></span>
+              Docs Submitted
+            </span>
+          </div>
+          @if (enquiry()?.agentName) {
+            <div class="summary-row">
+              <span class="summary-row__key">Agent</span>
+              <span class="summary-row__val">{{ enquiry()!.agentName }}</span>
+            </div>
+          }
+        </div>
+
+        @if (enquiry()?.finalizedNetFee) {
+          <div class="summary-divider"></div>
+          <div class="fee-card">
+            <p class="fee-card__label">Net Fee</p>
+            <p class="fee-card__amount">{{ enquiry()!.finalizedNetFee | inr }}</p>
           </div>
         }
+
+        <div class="summary-divider"></div>
+        <p class="summary-hint">
+          Review the candidate details carefully. Once submitted, an active student record will be created.
+        </p>
       </div>
 
-      <!-- Right: Admission + Student Creation Form -->
-      <div id="tour-conv-form" class="entry-form-card">
-        <h2 class="form-title">Create Admission &amp; Enrol Student</h2>
+      <!-- ── Right: Form ──────────────────────────────────────────────────── -->
+      <div id="tour-conv-form" class="conv-form anim-rise anim-rise--d2">
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-          <h3 class="section-heading">Student Details</h3>
+          <!-- § Student Details ──────────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Student Details</h3>
+            </div>
 
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
-              <input
-                id="conv-first-name"
-                class="field-input"
-                formControlName="firstName"
-                [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched"
-              />
-              @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-                <p class="field-error">First name is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
-              <input
-                id="conv-last-name"
-                class="field-input"
-                formControlName="lastName"
-                [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched"
-              />
-              @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-                <p class="field-error">Last name is required</p>
-              }
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
-              <input
-                id="conv-email"
-                class="field-input"
-                type="email"
-                formControlName="email"
-                [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched"
-              />
-              @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                <p class="field-error">Valid email is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-phone" class="field-label">Phone</label>
-              <input id="conv-phone" class="field-input" formControlName="phone" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-semester" class="field-label">Semester <span class="field-required">*</span></label>
-              <input
-                id="conv-semester"
-                class="field-input"
-                type="number"
-                formControlName="semester"
-                min="1"
-                [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
-              />
-              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                <p class="field-error">Semester is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
-              <input
-                id="conv-adm-date"
-                class="field-input"
-                type="date"
-                formControlName="admissionDate"
-                [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched"
-              />
-              @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
-                <p class="field-error">Admission date is required</p>
-              }
-            </div>
-          </div>
-
-          <h3 class="section-heading">Admission Details</h3>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-year-from" class="field-label">Academic Year From <span class="field-required">*</span></label>
-              <input
-                id="conv-year-from"
-                class="field-input"
-                type="number"
-                formControlName="academicYearFrom"
-                [class.field-input--error]="form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched"
-              />
-              @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
-                <p class="field-error">Academic year from is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-year-to" class="field-label">Academic Year To <span class="field-required">*</span></label>
-              <input
-                id="conv-year-to"
-                class="field-input"
-                type="number"
-                formControlName="academicYearTo"
-                [class.field-input--error]="form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched"
-              />
-              @if (form.get('academicYearTo')?.invalid && form.get('academicYearTo')?.touched) {
-                <p class="field-error">Academic year to is required</p>
-              }
-            </div>
-            <div class="field-group">
-              <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
-              <input
-                id="conv-app-date"
-                class="field-input"
-                type="date"
-                formControlName="applicationDate"
-                [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched"
-              />
-              @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
-                <p class="field-error">Application date is required</p>
-              }
-            </div>
-          </div>
-
-          <h3 class="section-heading">Personal Information</h3>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-dob" class="field-label">Date of Birth</label>
-              <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth" />
-            </div>
-            <div class="field-group">
-              <label for="conv-gender" class="field-label">Gender</label>
-              <select id="conv-gender" class="field-input" formControlName="gender">
-                <option value="">—</option>
-                @for (g of genderOptions; track g) {
-                  <option [value]="g">{{ g }}</option>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
+                <input id="conv-first-name" class="field-input" formControlName="firstName" placeholder="e.g. Priya"
+                       [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched" />
+                @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                  <p class="field-error">First name is required</p>
                 }
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="conv-aadhar" class="field-label">Aadhar Number</label>
-              <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" />
-            </div>
-          </div>
-
-          <h3 class="section-heading">Demographics</h3>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-nationality" class="field-label">Nationality</label>
-              <input id="conv-nationality" class="field-input" formControlName="nationality" />
-            </div>
-            <div class="field-group">
-              <label for="conv-religion" class="field-label">Religion</label>
-              <input id="conv-religion" class="field-input" formControlName="religion" />
-            </div>
-            <div class="field-group">
-              <label for="conv-community" class="field-label">Community Category</label>
-              <select id="conv-community" class="field-input" formControlName="communityCategory">
-                <option value="">—</option>
-                @for (c of communityOptions; track c) {
-                  <option [value]="c">{{ c }}</option>
+              </div>
+              <div class="field-group">
+                <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
+                <input id="conv-last-name" class="field-input" formControlName="lastName" placeholder="e.g. Sharma"
+                       [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched" />
+                @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                  <p class="field-error">Last name is required</p>
                 }
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-caste" class="field-label">Caste</label>
-              <input id="conv-caste" class="field-input" formControlName="caste" />
-            </div>
-            <div class="field-group">
-              <label for="conv-blood" class="field-label">Blood Group</label>
-              <select id="conv-blood" class="field-input" formControlName="bloodGroup">
-                <option value="">—</option>
-                @for (b of bloodGroupOptions; track b) {
-                  <option [value]="b">{{ b }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <h3 class="section-heading">Family Information</h3>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-father" class="field-label">Father's Name</label>
-              <input id="conv-father" class="field-input" formControlName="fatherName" />
-            </div>
-            <div class="field-group">
-              <label for="conv-mother" class="field-label">Mother's Name</label>
-              <input id="conv-mother" class="field-input" formControlName="motherName" />
-            </div>
-            <div class="field-group">
-              <label for="conv-parent-mobile" class="field-label">Parent Mobile</label>
-              <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" />
-            </div>
-          </div>
-
-          <h3 class="section-heading">Address</h3>
-
-          <div formGroupName="address">
-            <div class="form-row">
-              <div class="field-group" style="flex: 1 1 100%;">
-                <label for="conv-postal" class="field-label">Postal Address</label>
-                <input id="conv-postal" class="field-input" formControlName="postalAddress" />
               </div>
             </div>
-            <div class="form-row">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
+                <input id="conv-email" class="field-input" type="email" formControlName="email" placeholder="student@example.com"
+                       [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+                @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                  <p class="field-error">Valid email is required</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="conv-phone" class="field-label">Phone</label>
+                <input id="conv-phone" class="field-input" formControlName="phone" placeholder="e.g. 9876543210" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
+                <input id="conv-adm-date" class="field-input" type="date" formControlName="admissionDate"
+                       [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched" />
+                @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                  <p class="field-error">Admission date is required</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+                <input id="conv-app-date" class="field-input" type="date" formControlName="applicationDate"
+                       [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched" />
+                @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
+                  <p class="field-error">Application date is required</p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- § Academic Year ────────────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Academic Year</h3>
+            </div>
+
+            <div class="field-group">
+              <label for="conv-acad-year" class="field-label">Academic Year <span class="field-required">*</span></label>
+              <select
+                id="conv-acad-year"
+                class="field-input"
+                [value]="selectedAcademicYearId()"
+                (change)="onAcademicYearSelect($event)"
+                [class.field-input--error]="form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched"
+              >
+                <option [value]="null" disabled>— Select academic year —</option>
+                @for (y of academicYears(); track y.id) {
+                  <option [value]="y.id">
+                    {{ y.name }}
+                    @if (y.isCurrent) { (Current) }
+                  </option>
+                }
+              </select>
+              @if (academicYears().length === 0) {
+                <p class="field-hint">No academic years configured. Add one from the Academic Year master.</p>
+              }
+              @if (form.get('academicYearFrom')?.invalid && form.get('academicYearFrom')?.touched) {
+                <p class="field-error">Academic year is required</p>
+              }
+            </div>
+          </div>
+
+          <!-- § Personal Information ──────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Personal Information</h3>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-dob" class="field-label">Date of Birth</label>
+                <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth" />
+              </div>
+              <div class="field-group">
+                <label for="conv-gender" class="field-label">Gender</label>
+                <select id="conv-gender" class="field-input" formControlName="gender">
+                  <option value="">— Select —</option>
+                  @for (g of genderOptions; track g) {
+                    <option [value]="g">{{ g }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-aadhar" class="field-label">Aadhar Number</label>
+                <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" placeholder="12-digit number" />
+              </div>
+            </div>
+          </div>
+
+          <!-- § Demographics ───────────────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Demographics</h3>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-nationality" class="field-label">Nationality</label>
+                <input id="conv-nationality" class="field-input" formControlName="nationality" placeholder="e.g. Indian" />
+              </div>
+              <div class="field-group">
+                <label for="conv-religion" class="field-label">Religion</label>
+                <input id="conv-religion" class="field-input" formControlName="religion" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-community" class="field-label">Community</label>
+                <select id="conv-community" class="field-input" formControlName="communityCategory">
+                  <option value="">— Select —</option>
+                  @for (c of communityOptions; track c) {
+                    <option [value]="c">{{ c }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="conv-caste" class="field-label">Caste</label>
+                <input id="conv-caste" class="field-input" formControlName="caste" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-blood" class="field-label">Blood Group</label>
+                <select id="conv-blood" class="field-input" formControlName="bloodGroup">
+                  <option value="">— Select —</option>
+                  @for (b of bloodGroupOptions; track b) {
+                    <option [value]="b">{{ b }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- § Family Information ─────────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Family Information</h3>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-father" class="field-label">Father's Name</label>
+                <input id="conv-father" class="field-input" formControlName="fatherName" />
+              </div>
+              <div class="field-group">
+                <label for="conv-mother" class="field-label">Mother's Name</label>
+                <input id="conv-mother" class="field-input" formControlName="motherName" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-parent-mobile" class="field-label">Parent Mobile</label>
+                <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" />
+              </div>
+            </div>
+          </div>
+
+          <!-- § Address ──────────────────────────────────────────────────── -->
+          <div class="form-section" formGroupName="address">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Address</h3>
+            </div>
+
+            <div class="field-group">
+              <label for="conv-postal" class="field-label">Postal Address</label>
+              <input id="conv-postal" class="field-input" formControlName="postalAddress" placeholder="Full postal address" />
+            </div>
+
+            <div class="field-row">
               <div class="field-group">
                 <label for="conv-street" class="field-label">Street</label>
                 <input id="conv-street" class="field-input" formControlName="street" />
@@ -250,16 +349,20 @@
                 <label for="conv-city" class="field-label">City</label>
                 <input id="conv-city" class="field-input" formControlName="city" />
               </div>
+            </div>
+
+            <div class="field-row">
               <div class="field-group">
                 <label for="conv-district" class="field-label">District</label>
                 <input id="conv-district" class="field-input" formControlName="district" />
               </div>
-            </div>
-            <div class="form-row">
               <div class="field-group">
                 <label for="conv-state" class="field-label">State</label>
                 <input id="conv-state" class="field-input" formControlName="state" />
               </div>
+            </div>
+
+            <div class="field-row">
               <div class="field-group">
                 <label for="conv-pincode" class="field-label">Pincode</label>
                 <input id="conv-pincode" class="field-input" formControlName="pincode" />
@@ -267,37 +370,137 @@
             </div>
           </div>
 
-          <h3 class="section-heading">Declaration</h3>
-
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-decl-place" class="field-label">Declaration Place</label>
-              <input id="conv-decl-place" class="field-input" formControlName="declarationPlace" />
+          <!-- § Declaration & Consent ──────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 11 12 14 22 4"/>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Declaration &amp; Consent</h3>
             </div>
-            <div class="field-group">
-              <label for="conv-decl-date" class="field-label">Declaration Date</label>
-              <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate" />
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-decl-place" class="field-label">Declaration Place</label>
+                <input id="conv-decl-place" class="field-input" formControlName="declarationPlace" />
+              </div>
+              <div class="field-group">
+                <label for="conv-decl-date" class="field-label">Declaration Date</label>
+                <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate" />
+              </div>
+            </div>
+
+            <div class="consent-row">
+              <label class="consent-item">
+                <input type="checkbox" class="consent-checkbox" formControlName="parentConsentGiven" />
+                <span class="consent-label">Parent / Guardian consent given</span>
+              </label>
+              <label class="consent-item">
+                <input type="checkbox" class="consent-checkbox" formControlName="applicantConsentGiven" />
+                <span class="consent-label">Applicant consent given</span>
+              </label>
             </div>
           </div>
 
-          <div class="consent-row">
-            <mat-checkbox formControlName="parentConsentGiven">Parent / Guardian consent given</mat-checkbox>
-            <mat-checkbox formControlName="applicantConsentGiven">Applicant consent given</mat-checkbox>
-          </div>
+          <!-- § Consent Documents ─────────────────────────────────────────── -->
+          <div class="form-section">
+            <div class="section-hdr">
+              <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <h3 class="section-title">Consent Documents</h3>
+              <span class="section-optional">Optional</span>
+            </div>
 
-          <div class="form-footer">
-            <button type="button" class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              } @else {
-                Create Admission
-              }
-            </button>
+            <p class="section-desc">Attach scanned copies of signed consent forms if available. These can also be uploaded later from the document collection screen.</p>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="conv-parent-consent-file" class="field-label">Parent / Guardian Consent Form</label>
+                <div class="file-upload-wrap">
+                  <label for="conv-parent-consent-file" class="file-upload-btn"
+                         [class.file-upload-btn--selected]="parentConsentFile()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    @if (parentConsentFile()) {
+                      <span class="file-name">{{ parentConsentFile()!.name }}</span>
+                      <span class="file-size">{{ (parentConsentFile()!.size / 1024).toFixed(0) }} KB</span>
+                    } @else {
+                      Choose file…
+                    }
+                  </label>
+                  <input
+                    id="conv-parent-consent-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    class="file-input-hidden"
+                    (change)="onParentConsentFile($event)"
+                  />
+                </div>
+                <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
+              </div>
+
+              <div class="field-group">
+                <label for="conv-applicant-consent-file" class="field-label">Applicant Consent Form</label>
+                <div class="file-upload-wrap">
+                  <label for="conv-applicant-consent-file" class="file-upload-btn"
+                         [class.file-upload-btn--selected]="applicantConsentFile()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    @if (applicantConsentFile()) {
+                      <span class="file-name">{{ applicantConsentFile()!.name }}</span>
+                      <span class="file-size">{{ (applicantConsentFile()!.size / 1024).toFixed(0) }} KB</span>
+                    } @else {
+                      Choose file…
+                    }
+                  </label>
+                  <input
+                    id="conv-applicant-consent-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    class="file-input-hidden"
+                    (change)="onApplicantConsentFile($event)"
+                  />
+                </div>
+                <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
+              </div>
+            </div>
           </div>
 
         </form>
       </div>
     </div>
+
+    <!-- ── Sticky footer ─────────────────────────────────────────────────── -->
+    <div class="conv-footer">
+      <a class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</a>
+      <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
+        @if (saving()) {
+          <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/>
+          </svg>
+        }
+        Create Admission
+      </button>
+    </div>
+
   }
 </div>

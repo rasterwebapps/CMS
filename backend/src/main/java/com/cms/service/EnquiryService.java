@@ -8,6 +8,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
+import com.cms.model.AcademicYear;
 import com.cms.model.Agent;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
@@ -31,9 +33,11 @@ import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.ProgramRepository;
@@ -63,6 +67,8 @@ public class EnquiryService {
     private final CourseRepository courseRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final AdmissionRepository admissionRepository;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -71,7 +77,9 @@ public class EnquiryService {
                            ReferralTypeRepository referralTypeRepository,
                            CourseRepository courseRepository,
                            EnquiryStatusHistoryRepository statusHistoryRepository,
-                           AdmissionRepository admissionRepository) {
+                           AdmissionRepository admissionRepository,
+                           EnquiryPaymentRepository enquiryPaymentRepository,
+                           AcademicYearRepository academicYearRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -80,6 +88,8 @@ public class EnquiryService {
         this.courseRepository = courseRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.admissionRepository = admissionRepository;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.academicYearRepository = academicYearRepository;
     }
 
     @Transactional
@@ -115,8 +125,6 @@ public class EnquiryService {
         enquiry.setCourse(course);
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
-        enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
-        enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
         enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
         enquiry.setYearWiseFees(request.yearWiseFees());
         enquiry.setStudentType(request.studentType());
@@ -127,8 +135,11 @@ public class EnquiryService {
     }
 
     public List<EnquiryResponse> findAll() {
-        return enquiryRepository.findAll().stream()
-            .map(this::toResponse)
+        List<Enquiry> enquiries = enquiryRepository.findAll();
+        List<Long> ids = enquiries.stream().map(Enquiry::getId).toList();
+        Map<Long, BigDecimal> paidMap = enquiryPaymentRepository.paidTotalsForIds(ids);
+        return enquiries.stream()
+            .map(e -> toResponse(e, paidMap.getOrDefault(e.getId(), BigDecimal.ZERO)))
             .toList();
     }
 
@@ -192,8 +203,6 @@ public class EnquiryService {
         enquiry.setReferralType(referralType);
         enquiry.setRemarks(request.remarks());
         enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
-        enquiry.setFeeGuidelineTotal(request.feeGuidelineTotal());
-        enquiry.setReferralAdditionalAmount(request.referralAdditionalAmount());
         enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
         enquiry.setYearWiseFees(request.yearWiseFees());
         enquiry.setStudentType(request.studentType());
@@ -411,13 +420,11 @@ public class EnquiryService {
 
         Student savedStudent = studentRepository.save(student);
 
-        Admission admission = new Admission(
-            savedStudent,
-            request.academicYearFrom(),
-            request.academicYearTo(),
-            request.applicationDate(),
-            AdmissionStatus.APPROVED
-        );
+        AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Academic year not found: " + request.joiningAcademicYearId()));
+
+        Admission admission = new Admission(savedStudent, joiningYear, request.applicationDate());
         admission.setParentConsentGiven(request.parentConsentGiven());
         admission.setApplicantConsentGiven(request.applicantConsentGiven());
         admission.setDeclarationPlace(request.declarationPlace());
@@ -485,6 +492,11 @@ public class EnquiryService {
     }
 
     private EnquiryResponse toResponse(Enquiry e) {
+        BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId());
+        return toResponse(e, paid);
+    }
+
+    private EnquiryResponse toResponse(Enquiry e, BigDecimal totalPaid) {
         return new EnquiryResponse(
             e.getId(),
             e.getName(),
@@ -504,8 +516,8 @@ public class EnquiryService {
             e.getAgent() != null ? e.getAgent().getName() : null,
             e.getRemarks(),
             e.getFeeDiscussedAmount(),
-            e.getFeeGuidelineTotal(),
-            e.getReferralAdditionalAmount(),
+            null, // feeGuidelineTotal — field removed from Enquiry entity
+            null, // referralAdditionalAmount — field removed from Enquiry entity
             e.getFinalCalculatedFee(),
             e.getYearWiseFees(),
             e.getSemesterWiseFees(),
@@ -518,7 +530,8 @@ public class EnquiryService {
             e.getFinalizedAt(),
             e.getConvertedStudentId(),
             e.getCreatedAt(),
-            e.getUpdatedAt()
+            e.getUpdatedAt(),
+            totalPaid
         );
     }
 }
