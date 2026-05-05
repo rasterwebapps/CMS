@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { requiresPermission } from './core/permissions/permission.guard';
 
 export const routes: Routes = [
   {
@@ -777,7 +778,7 @@ export const routes: Routes = [
   // ── Masters: Community ───────────────────────────────────────────────────
   {
     path: 'communities',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('COMMUNITY_VIEW', 'COMMUNITY_MANAGE')],
     loadComponent: () =>
       import('./features/community/community-list/community-list.component').then(
         (m) => m.CommunityListComponent
@@ -785,7 +786,7 @@ export const routes: Routes = [
   },
   {
     path: 'communities/new',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('COMMUNITY_MANAGE')],
     loadComponent: () =>
       import('./features/community/community-form/community-form.component').then(
         (m) => m.CommunityFormComponent
@@ -793,7 +794,7 @@ export const routes: Routes = [
   },
   {
     path: 'communities/:id/edit',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('COMMUNITY_MANAGE')],
     loadComponent: () =>
       import('./features/community/community-form/community-form.component').then(
         (m) => m.CommunityFormComponent
@@ -802,7 +803,7 @@ export const routes: Routes = [
   // ── Masters: Blood Group ─────────────────────────────────────────────────
   {
     path: 'blood-groups',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE')],
     loadComponent: () =>
       import('./features/blood-group/blood-group-list/blood-group-list.component').then(
         (m) => m.BloodGroupListComponent
@@ -810,7 +811,7 @@ export const routes: Routes = [
   },
   {
     path: 'blood-groups/new',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('BLOOD_GROUP_MANAGE')],
     loadComponent: () =>
       import('./features/blood-group/blood-group-form/blood-group-form.component').then(
         (m) => m.BloodGroupFormComponent
@@ -818,7 +819,7 @@ export const routes: Routes = [
   },
   {
     path: 'blood-groups/:id/edit',
-    canActivate: [authGuard],
+    canActivate: [authGuard, requiresPermission('BLOOD_GROUP_MANAGE')],
     loadComponent: () =>
       import('./features/blood-group/blood-group-form/blood-group-form.component').then(
         (m) => m.BloodGroupFormComponent

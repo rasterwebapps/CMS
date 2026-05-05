@@ -32,7 +32,7 @@ public class CommunityController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
     public ResponseEntity<CommunityResponse> create(@Valid @RequestBody CommunityRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(communityService.create(request));
     }
@@ -52,7 +52,7 @@ public class CommunityController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
     public ResponseEntity<CommunityResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody CommunityRequest request) {
@@ -60,7 +60,7 @@ public class CommunityController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         communityService.delete(id);
         return ResponseEntity.noContent().build();

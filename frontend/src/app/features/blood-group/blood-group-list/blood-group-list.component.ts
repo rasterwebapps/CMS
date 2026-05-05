@@ -11,6 +11,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
   selector: 'app-blood-group-list',
@@ -33,6 +34,7 @@ export class BloodGroupListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -41,7 +43,10 @@ export class BloodGroupListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['name', 'code', 'isActive', 'actions'];
+  protected readonly canManage = computed(() => this.permissionService.has('BLOOD_GROUP_MANAGE'));
+  protected readonly displayedColumns = computed(() =>
+    this.canManage() ? ['name', 'code', 'isActive', 'actions'] : ['name', 'code', 'isActive'],
+  );
   protected readonly dataSource = new MatTableDataSource<BloodGroup>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -81,10 +86,18 @@ export class BloodGroupListComponent implements OnInit {
   }
 
   protected edit(item: BloodGroup): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to edit blood groups');
+      return;
+    }
     void this.router.navigate(['/blood-groups', item.id, 'edit']);
   }
 
   protected delete(item: BloodGroup): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to delete blood groups');
+      return;
+    }
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
@@ -104,6 +117,10 @@ export class BloodGroupListComponent implements OnInit {
     if (this.searchValue()) {
       this.clearFilter();
     } else {
+      if (!this.canManage()) {
+        this.toast.error('You do not have permission to add blood groups');
+        return;
+      }
       void this.router.navigate(['/blood-groups/new']);
     }
   }

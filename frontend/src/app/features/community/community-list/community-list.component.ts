@@ -11,6 +11,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
   selector: 'app-community-list',
@@ -33,6 +34,7 @@ export class CommunityListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -41,7 +43,12 @@ export class CommunityListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['name', 'code', 'description', 'isActive', 'actions'];
+  protected readonly canManage = computed(() => this.permissionService.has('COMMUNITY_MANAGE'));
+  protected readonly displayedColumns = computed(() =>
+    this.canManage()
+      ? ['name', 'code', 'description', 'isActive', 'actions']
+      : ['name', 'code', 'description', 'isActive'],
+  );
   protected readonly dataSource = new MatTableDataSource<Community>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -81,10 +88,18 @@ export class CommunityListComponent implements OnInit {
   }
 
   protected edit(item: Community): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to edit communities');
+      return;
+    }
     void this.router.navigate(['/communities', item.id, 'edit']);
   }
 
   protected delete(item: Community): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to delete communities');
+      return;
+    }
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
@@ -104,6 +119,10 @@ export class CommunityListComponent implements OnInit {
     if (this.searchValue()) {
       this.clearFilter();
     } else {
+      if (!this.canManage()) {
+        this.toast.error('You do not have permission to add communities');
+        return;
+      }
       void this.router.navigate(['/communities/new']);
     }
   }

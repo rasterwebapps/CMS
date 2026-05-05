@@ -32,7 +32,7 @@ public class BloodGroupController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('BLOOD_GROUP_MANAGE')")
     public ResponseEntity<BloodGroupResponse> create(@Valid @RequestBody BloodGroupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(bloodGroupService.create(request));
     }
@@ -52,7 +52,7 @@ public class BloodGroupController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('BLOOD_GROUP_MANAGE')")
     public ResponseEntity<BloodGroupResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody BloodGroupRequest request) {
@@ -60,7 +60,7 @@ public class BloodGroupController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('BLOOD_GROUP_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         bloodGroupService.delete(id);
         return ResponseEntity.noContent().build();

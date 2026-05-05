@@ -53,6 +53,10 @@ INSERT INTO permissions (code, display_name, category) VALUES
     ('AGENT_MANAGE',            'Manage Agents',          'MASTER'),
     ('REFERRAL_TYPE_VIEW',      'View Referral Types',    'MASTER'),
     ('REFERRAL_TYPE_MANAGE',    'Manage Referral Types',  'MASTER'),
+    ('COMMUNITY_VIEW',          'View Communities',       'MASTER'),
+    ('COMMUNITY_MANAGE',        'Manage Communities',     'MASTER'),
+    ('BLOOD_GROUP_VIEW',        'View Blood Groups',      'MASTER'),
+    ('BLOOD_GROUP_MANAGE',      'Manage Blood Groups',    'MASTER'),
     ('SETTINGS_VIEW',           'View Settings',          'MASTER'),
     ('SETTINGS_MANAGE',         'Manage Settings',        'MASTER');
 
@@ -147,6 +151,13 @@ WHERE r.name = 'COLLEGE_ADMIN'
       (p.category = 'MASTER' AND p.code LIKE '%_VIEW')
    OR p.category IN ('ADMISSION', 'CURRICULUM', 'EXAMINATION', 'FINANCE', 'INFRASTRUCTURE', 'REPORTS')
   );
+
+-- COLLEGE_ADMIN: allow managing community and blood-group masters (used in admission + student flows).
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM app_roles r, permissions p
+WHERE r.name = 'COLLEGE_ADMIN'
+  AND p.code IN ('COMMUNITY_MANAGE', 'BLOOD_GROUP_MANAGE');
 
 -- FRONT_OFFICE
 INSERT INTO role_permissions (role_id, permission_id)

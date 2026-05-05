@@ -259,3 +259,30 @@ Related: V92 migration, new `/communities` and `/blood-groups` endpoints, Comple
 
 **Status:** NOT TESTED
 
+---
+
+## TC-MASTER-NAV-001: Users with VIEW-only permission can access master lists (without manage actions)
+
+**Preconditions:**
+- A test user exists with `COMMUNITY_VIEW` and `BLOOD_GROUP_VIEW` permissions.
+- The same user does NOT have `COMMUNITY_MANAGE` / `BLOOD_GROUP_MANAGE`.
+- Application is running.
+
+**Steps:**
+1. Log in as the VIEW-only user.
+2. In the sidebar, open **Preferences**.
+3. Click **Communities**.
+4. Verify the list loads.
+5. Verify the **Add Community** button is not visible.
+6. Verify edit/delete actions are not visible (card view and table view).
+7. Navigate directly to `/communities/new`.
+8. Repeat steps 3–7 for **Blood Groups**.
+
+**Expected Result:**
+- Communities and Blood Groups appear in the **Preferences** navigation for users with VIEW permission.
+- List pages are accessible.
+- Create/edit/delete UI controls are hidden for VIEW-only users.
+- Direct navigation to the create/edit routes redirects to Dashboard / is blocked by the permission guard.
+
+**Status:** NOT TESTED
+
