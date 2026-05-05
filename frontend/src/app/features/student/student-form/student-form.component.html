@@ -178,8 +178,8 @@
                 <label for="stu-community" class="field-label">Community Category</label>
                 <select id="stu-community" class="field-select" formControlName="communityCategory">
                   <option value="">— Select —</option>
-                  @for (c of communityOptions; track c) {
-                    <option [value]="c">{{ c }}</option>
+                  @for (c of communities(); track c.id) {
+                    <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
                   }
                 </select>
               </div>
@@ -194,8 +194,8 @@
               <label for="stu-blood" class="field-label">Blood Group</label>
               <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
                 <option value="">— Select —</option>
-                @for (bg of bloodGroupOptions; track bg) {
-                  <option [value]="bg">{{ bg }}</option>
+                @for (bg of bloodGroups(); track bg.id) {
+                  <option [value]="bg.code">{{ bg.code }} — {{ bg.name }}</option>
                 }
               </select>
             </div>
@@ -204,22 +204,48 @@
             <hr class="form-section-divider" />
             <p id="tour-stu-family" class="form-section-title">Family Details</p>
 
+            <!-- Father -->
             <div class="field-row">
               <div class="field-group">
                 <label for="stu-father" class="field-label">Father's Name</label>
                 <input id="stu-father" class="field-input" formControlName="fatherName" autocomplete="off" />
               </div>
+              <div class="field-group">
+                <label for="stu-father-phone" class="field-label">Father's Phone</label>
+                <input id="stu-father-phone" class="field-input" formControlName="fatherPhone" type="tel" inputmode="tel" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="stu-father-email" class="field-label">Father's Email</label>
+                <input id="stu-father-email" class="field-input" formControlName="fatherEmail" type="email" autocomplete="off" />
+                @if (form.get('fatherEmail')?.invalid && form.get('fatherEmail')?.touched) {
+                  <span class="field-error">Enter a valid email</span>
+                }
+              </div>
+            </div>
 
+            <!-- Mother -->
+            <div class="field-row">
               <div class="field-group">
                 <label for="stu-mother" class="field-label">Mother's Name</label>
                 <input id="stu-mother" class="field-input" formControlName="motherName" autocomplete="off" />
               </div>
+              <div class="field-group">
+                <label for="stu-mother-phone" class="field-label">Mother's Phone</label>
+                <input id="stu-mother-phone" class="field-input" formControlName="motherPhone" type="tel" inputmode="tel" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="stu-mother-email" class="field-label">Mother's Email</label>
+                <input id="stu-mother-email" class="field-input" formControlName="motherEmail" type="email" autocomplete="off" />
+                @if (form.get('motherEmail')?.invalid && form.get('motherEmail')?.touched) {
+                  <span class="field-error">Enter a valid email</span>
+                }
+              </div>
             </div>
 
             <div class="field-group">
-              <label for="stu-parent-mobile" class="field-label">Parent Mobile</label>
+              <label for="stu-parent-mobile" class="field-label">Primary Parent Mobile</label>
               <input id="stu-parent-mobile" class="field-input field-input--narrow"
-                formControlName="parentMobile" autocomplete="off" />
+                formControlName="parentMobile" type="tel" inputmode="tel" autocomplete="off" />
             </div>
 
             <!-- ── Address ─────────────────────────────────────── -->

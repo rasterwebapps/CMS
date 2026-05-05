@@ -64,7 +64,7 @@ class StudentServiceTest {
             1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             LocalDate.of(2005, 5, 15), null, null,
             "Indian", null, null, null, null,
-            "Father Name", "Mother Name", "9876543210",
+            "Father Name", null, null, "Mother Name", null, null, "9876543210",
             null
         );
 
@@ -91,7 +91,7 @@ class StudentServiceTest {
             "CS2024001", "John", "Doe", "john@college.edu", "1234567890",
             999L, null, null, 1, LocalDate.of(2024, 6, 1), null, null,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -183,7 +183,7 @@ class StudentServiceTest {
             "CS2024001", "Johnny", "Doe", "johnny@college.edu", "9999999999",
             1L, null, null, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Student updatedStudent = createStudent(1L, "CS2024001", "Johnny", "Doe", "johnny@college.edu");
@@ -224,7 +224,7 @@ class StudentServiceTest {
             null, "John", "Doe", "john@college.edu", "1234567890",
             1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         Student savedStudent = createStudent(1L, null, "John", "Doe", "john@college.edu");

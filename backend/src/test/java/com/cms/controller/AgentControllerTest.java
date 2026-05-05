@@ -45,7 +45,7 @@ class AgentControllerTest {
 
     @Test
     void shouldCreateAgent() throws Exception {
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true
         );
 
@@ -121,7 +121,7 @@ class AgentControllerTest {
 
     @Test
     void shouldUpdateAgent() throws Exception {
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, null, false
         );
 
@@ -165,6 +165,20 @@ class AgentControllerTest {
                                           String area, String locality, Integer allottedSeats,
                                           java.math.BigDecimal commissionAmount, Boolean isActive) {
         Instant now = Instant.now();
-        return new AgentResponse(id, name, phone, email, area, locality, allottedSeats, commissionAmount, isActive, now, now);
+        return new AgentResponse(
+            id, name, phone, email, area, locality, allottedSeats, commissionAmount, isActive,
+            null, null, null, null, null, null, null, null,
+            now, now
+        );
+    }
+
+    /** Build an AgentRequest with the legacy 8-argument signature; identity/bank fields are null. */
+    private static AgentRequest basicAgentRequest(
+            String name, String phone, String email, String area, String locality,
+            Integer allottedSeats, java.math.BigDecimal commissionAmount, Boolean isActive) {
+        return new AgentRequest(
+            name, phone, email, area, locality, allottedSeats, commissionAmount, isActive,
+            null, null, null, null, null, null, null, null
+        );
     }
 }

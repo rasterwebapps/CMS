@@ -29,19 +29,19 @@ public class StudentMarkController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<StudentMarkDto> upsert(@Valid @RequestBody StudentMarkRequest request) {
         return ResponseEntity.ok(studentMarkService.upsert(request));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<StudentMarkDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(studentMarkService.getById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<StudentMarkDto>> getMarks(
             @RequestParam(required = false) Long examEventId,
             @RequestParam(required = false) Long enrollmentId) {

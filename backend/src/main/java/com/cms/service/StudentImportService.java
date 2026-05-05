@@ -35,8 +35,6 @@ import com.cms.model.Address;
 import com.cms.model.Course;
 import com.cms.model.Program;
 import com.cms.model.Student;
-import com.cms.model.enums.BloodGroup;
-import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.QualificationType;
@@ -236,13 +234,9 @@ public class StudentImportService {
         s.setAadharNumber(row.aadharNumber);
         s.setNationality(row.nationality);
         s.setReligion(row.religion);
-        if (row.communityCategory != null) {
-            try { s.setCommunityCategory(CommunityCategory.valueOf(row.communityCategory)); } catch (Exception ignored) {}
-        }
+        s.setCommunityCategory(row.communityCategory);
         s.setCaste(row.caste);
-        if (row.bloodGroup != null) {
-            try { s.setBloodGroup(BloodGroup.valueOf(row.bloodGroup)); } catch (Exception ignored) {}
-        }
+        s.setBloodGroup(row.bloodGroup);
         s.setFatherName(row.fatherName);
         s.setMotherName(row.motherName);
         s.setParentMobile(row.parentMobile);

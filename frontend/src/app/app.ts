@@ -14,6 +14,7 @@ import { MatDivider } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
+import { PermissionService } from './core/permissions/permission.service';
 import { BreadcrumbService } from './core/breadcrumb/breadcrumb.service';
 import { LayoutService } from './core/layout/layout.service';
 import { ResponsiveService } from './core/layout/responsive.service';
@@ -30,14 +31,16 @@ interface NavItem {
   label: string;
   icon: string;
   route: string;
-  roles?: string[];
+  /** DB permission codes — show only if user holds at least one. Empty/absent = visible to all. */
+  permissions?: string[];
 }
 
 interface NavGroup {
   label: string;
   icon: string;
   items: NavItem[];
-  roles?: string[];
+  /** DB permission codes — show only if user holds at least one. Empty/absent = visible to all. */
+  permissions?: string[];
 }
 
 type NavEntry = NavItem | NavGroup;
@@ -73,6 +76,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 })
 export class App implements OnInit {
   protected readonly authService = inject(AuthService);
+  protected readonly permissionService = inject(PermissionService);
   private readonly layoutService = inject(LayoutService);
   private readonly breadcrumbService = inject(BreadcrumbService);
   protected readonly responsiveService = inject(ResponsiveService);
@@ -151,94 +155,88 @@ export class App implements OnInit {
   });
 
   private readonly navEntries: NavEntry[] = [
-    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER', 'ROLE_FACULTY', 'ROLE_STUDENT', 'ROLE_LAB_INCHARGE', 'ROLE_TECHNICIAN', 'ROLE_PARENT'] },
+    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
     {
       label: 'Preferences',
       icon: 'tune',
-      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
       items: [
-        { label: 'Departments', icon: 'business', route: '/departments', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Programs', icon: 'school', route: '/programs', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Courses', icon: 'menu_book', route: '/courses', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Academic Years', icon: 'calendar_month', route: '/academic-years', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Semesters', icon: 'date_range', route: '/semesters', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Academic Calendar', icon: 'event_note', route: '/academic-calendar', roles: ['ROLE_ADMIN'] },
-        { label: 'Labs', icon: 'science', route: '/labs', roles: ['ROLE_ADMIN'] },
-        { label: 'Fee Structures', icon: 'account_balance', route: '/fee-structures', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Equipment', icon: 'devices', route: '/equipment', roles: ['ROLE_ADMIN'] },
-        { label: 'Faculty', icon: 'groups', route: '/faculty', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Agents', icon: 'support_agent', route: '/agents', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        {
-          label: 'Referral Types',
-          icon: 'share',
-          route: '/referral-types',
-          roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
-        },
-        { label: 'Settings', icon: 'settings', route: '/settings', roles: ['ROLE_ADMIN'] },
+        { label: 'Departments',     icon: 'business',         route: '/departments',      permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
+        { label: 'Programs',        icon: 'school',           route: '/programs',         permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
+        { label: 'Courses',         icon: 'menu_book',        route: '/courses',          permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
+        { label: 'Academic Years',  icon: 'calendar_month',   route: '/academic-years',   permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Semesters',       icon: 'date_range',       route: '/semesters',        permissions: ['SEMESTER_VIEW', 'SEMESTER_MANAGE'] },
+        { label: 'Academic Calendar', icon: 'event_note',     route: '/academic-calendar', permissions: ['ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Labs',            icon: 'science',          route: '/labs',             permissions: ['LAB_MANAGE'] },
+        { label: 'Fee Structures',  icon: 'account_balance',  route: '/fee-structures',   permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
+        { label: 'Equipment',       icon: 'devices',          route: '/equipment',        permissions: ['EQUIPMENT_MANAGE'] },
+        { label: 'Faculty',         icon: 'groups',           route: '/faculty',          permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
+        { label: 'Agents',          icon: 'support_agent',    route: '/agents',           permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
+        { label: 'Referral Types',  icon: 'share',            route: '/referral-types',   permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
+        { label: 'Communities',     icon: 'people',           route: '/communities',      permissions: ['COLLEGE_ADMIN'] },
+        { label: 'Blood Groups',    icon: 'bloodtype',        route: '/blood-groups',     permissions: ['COLLEGE_ADMIN'] },
+        { label: 'Settings',        icon: 'settings',         route: '/settings',         permissions: ['SETTINGS_MANAGE'] },
       ],
     },
     {
       label: 'Admission Management',
       icon: 'how_to_reg',
-      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'],
       items: [
-        { label: 'Enquiries', icon: 'contact_mail', route: '/enquiries', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
-        { label: 'Submit Documents', icon: 'upload_file', route: '/enquiries/document-submission', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Complete Admission', icon: 'how_to_reg', route: '/enquiries/admission-completion', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Admissions', icon: 'assignment_ind', route: '/admissions', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Students', icon: 'person', route: '/students', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE'] },
-        { label: 'Roll Number Assignment', icon: 'tag', route: '/students/roll-numbers', roles: ['ROLE_ADMIN'] },
-        { label: 'Import Data', icon: 'upload', route: '/import', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
+        { label: 'Enquiries',            icon: 'contact_mail',  route: '/enquiries',                    permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'] },
+        { label: 'Submit Documents',     icon: 'upload_file',   route: '/enquiries/document-submission', permissions: ['DOCUMENT_SUBMISSION_MANAGE'] },
+        { label: 'Complete Admission',   icon: 'how_to_reg',    route: '/enquiries/admission-completion', permissions: ['ADMISSION_CREATE'] },
+        { label: 'Admissions',           icon: 'assignment_ind', route: '/admissions',                  permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
+        { label: 'Students',             icon: 'person',        route: '/students',                     permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'] },
+        { label: 'Roll Number Assignment', icon: 'tag',         route: '/students/roll-numbers',        permissions: ['ROLL_NUMBER_ASSIGN'] },
+        { label: 'Import Data',          icon: 'upload',        route: '/import',                       permissions: ['IMPORT_DATA'] },
       ],
     },
     {
       label: 'Curriculum & Academics',
       icon: 'auto_stories',
-      roles: ['ROLE_ADMIN'],
       items: [
-        { label: 'Syllabi', icon: 'library_books', route: '/syllabi' },
-        { label: 'Experiments', icon: 'biotech', route: '/experiments' },
-        { label: 'CO/PO Mapping', icon: 'account_tree', route: '/curriculum-mappings' },
-        { label: 'Curriculum Versions', icon: 'layers', route: '/curriculum-versions' },
-        { label: 'Lab Schedules', icon: 'calendar_view_week', route: '/lab-schedules' },
-        { label: 'Attendance', icon: 'fact_check', route: '/attendance' },
+        { label: 'Syllabi',             icon: 'library_books',      route: '/syllabi',            permissions: ['SYLLABUS_VIEW', 'SYLLABUS_MANAGE'] },
+        { label: 'Experiments',         icon: 'biotech',            route: '/experiments',        permissions: ['EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'] },
+        { label: 'CO/PO Mapping',       icon: 'account_tree',       route: '/curriculum-mappings', permissions: ['COPO_VIEW', 'COPO_MANAGE', 'CURRICULUM_VIEW'] },
+        { label: 'Curriculum Versions', icon: 'layers',             route: '/curriculum-versions', permissions: ['CURRICULUM_VIEW', 'CURRICULUM_MANAGE'] },
+        { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',      permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'] },
+        { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',         permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE'] },
       ],
     },
     {
       label: 'Examinations',
       icon: 'quiz',
-      roles: ['ROLE_ADMIN'],
       items: [
-        { label: 'Examinations', icon: 'quiz', route: '/examinations' },
-        { label: 'Exam Results', icon: 'grade', route: '/exam-results' },
+        { label: 'Examinations', icon: 'quiz',  route: '/examinations', permissions: ['EXAMINATION_VIEW', 'EXAMINATION_MANAGE'] },
+        { label: 'Exam Results', icon: 'grade', route: '/exam-results',  permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'] },
       ],
     },
     {
       label: 'Finance',
       icon: 'account_balance_wallet',
-      roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'],
       items: [
-        { label: 'Student Fees', icon: 'account_balance_wallet', route: '/student-fees', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'] },
-        { label: 'Fee Collection', icon: 'payments', route: '/fee-collection', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
-        {
-          label: 'Fee Finalization',
-          icon: 'lock',
-          route: '/student-fees/finalize',
-          roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN'],
-        },
+        { label: 'Student Fees',    icon: 'account_balance_wallet', route: '/student-fees',        permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
+        { label: 'Fee Collection',  icon: 'payments',               route: '/fee-collection',      permissions: ['FEE_COLLECT'] },
+        { label: 'Fee Finalization', icon: 'lock',                  route: '/student-fees/finalize', permissions: ['FEE_FINALIZE', 'FEE_STRUCTURE_MANAGE'] },
       ],
     },
     {
       label: 'Lab & Infrastructure',
       icon: 'construction',
-      roles: ['ROLE_ADMIN'],
       items: [
-        { label: 'Inventory', icon: 'inventory_2', route: '/inventory' },
-        { label: 'Maintenance', icon: 'build', route: '/maintenance' },
+        { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
+        { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_MANAGE'] },
       ],
     },
-    { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_FRONT_OFFICE', 'ROLE_CASHIER'] },
-    { label: 'Fee Reports', icon: 'request_quote', route: '/fee-reports', roles: ['ROLE_ADMIN', 'ROLE_COLLEGE_ADMIN', 'ROLE_CASHIER'] },
+    { label: 'Reports',     icon: 'assessment',     route: '/reports',      permissions: ['REPORT_VIEW'] },
+    { label: 'Fee Reports', icon: 'request_quote',  route: '/fee-reports',  permissions: ['FEE_REPORT_VIEW'] },
+    {
+      label: 'Administration',
+      icon: 'admin_panel_settings',
+      items: [
+        { label: 'User Management',    icon: 'manage_accounts', route: '/user-management', permissions: ['USER_VIEW'] },
+        { label: 'Roles & Permissions', icon: 'shield',         route: '/role-management', permissions: ['ROLE_VIEW'] },
+      ],
+    },
   ];
 
   protected readonly expandedGroups = signal<Record<string, boolean>>(this.loadExpandedGroups());
@@ -248,18 +246,18 @@ export class App implements OnInit {
     return this.navEntries
       .map((entry) => {
         if (isNavGroup(entry)) {
-          // Check if user has access to the group itself
-          if (entry.roles && entry.roles.length > 0) {
-            if (!entry.roles.some((role) => this.authService.hasRole(role))) {
+          // Check if user has access to the group itself (group-level permission guard)
+          if (entry.permissions && entry.permissions.length > 0) {
+            if (!this.permissionService.hasAny(...entry.permissions)) {
               return null;
             }
           }
 
           let filteredItems = entry.items.filter((item) => {
-            if (!item.roles || item.roles.length === 0) {
+            if (!item.permissions || item.permissions.length === 0) {
               return true;
             }
-            return item.roles.some((role) => this.authService.hasRole(role));
+            return this.permissionService.hasAny(...item.permissions);
           });
 
           if (search) {
@@ -274,11 +272,11 @@ export class App implements OnInit {
           }
           return { ...entry, items: filteredItems };
         }
-        if (!entry.roles || entry.roles.length === 0) {
+        if (!entry.permissions || entry.permissions.length === 0) {
           if (search && !entry.label.toLowerCase().includes(search)) return null;
           return entry;
         }
-        if (!entry.roles.some((role) => this.authService.hasRole(role))) return null;
+        if (!this.permissionService.hasAny(...entry.permissions)) return null;
         if (search && !entry.label.toLowerCase().includes(search)) return null;
         return entry;
       })

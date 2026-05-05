@@ -46,9 +46,39 @@ class FacultyControllerTest {
     @MockitoBean
     private FacultyService facultyService;
 
+    /** Build a FacultyRequest with the legacy 11-argument signature; extended profile fields are null. */
+    private static FacultyRequest basicFacultyRequest(
+            String employeeCode, String firstName, String lastName, String email, String phone,
+            Long departmentId, Designation designation, String specialization, String labExpertise,
+            LocalDate joiningDate, FacultyStatus status) {
+        return new FacultyRequest(
+            employeeCode, firstName, lastName, email, phone, departmentId, designation,
+            specialization, labExpertise, joiningDate, status,
+            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null,
+            null, null, null, null, null, null
+        );
+    }
+
+    /** Build a FacultyResponse with the legacy 16-argument signature; extended profile fields are null. */
+    private static FacultyResponse basicFacultyResponse(
+            Long id, String employeeCode, String firstName, String lastName, String fullName,
+            String email, String phone, Long departmentId, String departmentName,
+            Designation designation, String specialization, String labExpertise,
+            LocalDate joiningDate, FacultyStatus status, Instant createdAt, Instant updatedAt) {
+        return new FacultyResponse(
+            id, employeeCode, firstName, lastName, fullName, email, phone, departmentId,
+            departmentName, designation, specialization, labExpertise, joiningDate, status,
+            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null,
+            null, null, null, null, null, null,
+            createdAt, updatedAt
+        );
+    }
+
     @Test
     void shouldCreateFaculty() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001",
             "John",
             "Doe",
@@ -63,7 +93,7 @@ class FacultyControllerTest {
         );
 
         Instant now = Instant.now();
-        FacultyResponse response = new FacultyResponse(
+        FacultyResponse response = basicFacultyResponse(
             1L,
             "EMP001",
             "John",
@@ -104,7 +134,7 @@ class FacultyControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenEmployeeCodeIsBlank() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "",
             "John",
             "Doe",
@@ -126,7 +156,7 @@ class FacultyControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenEmailIsInvalid() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001",
             "John",
             "Doe",
@@ -172,12 +202,12 @@ class FacultyControllerTest {
     @Test
     void shouldFindAllFaculty() throws Exception {
         Instant now = Instant.now();
-        FacultyResponse faculty1 = new FacultyResponse(
+        FacultyResponse faculty1 = basicFacultyResponse(
             1L, "EMP001", "John", "Doe", "John Doe", "john@college.edu", "123",
             1L, "Computer Science", Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE, now, now
         );
-        FacultyResponse faculty2 = new FacultyResponse(
+        FacultyResponse faculty2 = basicFacultyResponse(
             2L, "EMP002", "Jane", "Smith", "Jane Smith", "jane@college.edu", "456",
             1L, "Computer Science", Designation.ASSISTANT_PROFESSOR, "Data Science", "Data Lab",
             LocalDate.of(2021, 6, 1), FacultyStatus.ACTIVE, now, now
@@ -199,7 +229,7 @@ class FacultyControllerTest {
     @Test
     void shouldFindFacultyByDepartmentId() throws Exception {
         Instant now = Instant.now();
-        FacultyResponse faculty = new FacultyResponse(
+        FacultyResponse faculty = basicFacultyResponse(
             1L, "EMP001", "John", "Doe", "John Doe", "john@college.edu", "123",
             1L, "Computer Science", Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE, now, now
@@ -219,7 +249,7 @@ class FacultyControllerTest {
     @Test
     void shouldFindFacultyByStatus() throws Exception {
         Instant now = Instant.now();
-        FacultyResponse faculty = new FacultyResponse(
+        FacultyResponse faculty = basicFacultyResponse(
             1L, "EMP001", "John", "Doe", "John Doe", "john@college.edu", "123",
             1L, "Computer Science", Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 15), FacultyStatus.ON_LEAVE, now, now
@@ -250,7 +280,7 @@ class FacultyControllerTest {
     @Test
     void shouldFindFacultyById() throws Exception {
         Instant now = Instant.now();
-        FacultyResponse response = new FacultyResponse(
+        FacultyResponse response = basicFacultyResponse(
             1L, "EMP001", "John", "Doe", "John Doe", "john@college.edu", "123",
             1L, "Computer Science", Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE, now, now
@@ -280,7 +310,7 @@ class FacultyControllerTest {
 
     @Test
     void shouldUpdateFaculty() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001-UPD",
             "John Updated",
             "Doe Updated",
@@ -295,7 +325,7 @@ class FacultyControllerTest {
         );
 
         Instant now = Instant.now();
-        FacultyResponse response = new FacultyResponse(
+        FacultyResponse response = basicFacultyResponse(
             1L, "EMP001-UPD", "John Updated", "Doe Updated", "John Updated Doe Updated",
             "john.updated@college.edu", "9999999999", 2L, "Mathematics",
             Designation.ASSOCIATE_PROFESSOR, "Applied Mathematics", "Math Lab",
@@ -319,7 +349,7 @@ class FacultyControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentFaculty() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "john@college.edu", "123",
             1L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
@@ -338,7 +368,7 @@ class FacultyControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "", "", "", "invalid", "123",
             1L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE

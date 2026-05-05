@@ -38,7 +38,7 @@ class AgentServiceTest {
 
     @Test
     void shouldCreateAgent() {
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true
         );
 
@@ -59,7 +59,7 @@ class AgentServiceTest {
     @Test
     void shouldCreateAgentWithCommissionAmount() {
         java.math.BigDecimal commission = new java.math.BigDecimal("10000.00");
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, commission, true
         );
 
@@ -75,7 +75,7 @@ class AgentServiceTest {
 
     @Test
     void shouldCreateAgentWithDefaultIsActive() {
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, null
         );
 
@@ -141,7 +141,7 @@ class AgentServiceTest {
     void shouldUpdateAgent() {
         Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
-        AgentRequest updateRequest = new AgentRequest(
+        AgentRequest updateRequest = basicAgentRequest(
             "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, new java.math.BigDecimal("12000.00"), false
         );
 
@@ -165,7 +165,7 @@ class AgentServiceTest {
     void shouldThrowExceptionWhenUpdatingWithDuplicateName() {
         Agent existing = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
-        AgentRequest updateRequest = new AgentRequest(
+        AgentRequest updateRequest = basicAgentRequest(
             "Existing Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, null, true
         );
 
@@ -181,7 +181,7 @@ class AgentServiceTest {
 
     @Test
     void shouldThrowWhenNotFoundOnUpdate() {
-        AgentRequest request = new AgentRequest(
+        AgentRequest request = basicAgentRequest(
             "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", null, null, true
         );
 
@@ -213,6 +213,16 @@ class AgentServiceTest {
             .hasMessage("Agent not found with id: 999");
 
         verify(agentRepository, never()).deleteById(any());
+    }
+
+    /** Build an AgentRequest with the legacy 8-argument signature; identity/bank fields are null. */
+    private static AgentRequest basicAgentRequest(
+            String name, String phone, String email, String area, String locality,
+            Integer allottedSeats, java.math.BigDecimal commissionAmount, Boolean isActive) {
+        return new AgentRequest(
+            name, phone, email, area, locality, allottedSeats, commissionAmount, isActive,
+            null, null, null, null, null, null, null, null
+        );
     }
 
     private Agent createAgent(Long id, String name, String phone, String email,

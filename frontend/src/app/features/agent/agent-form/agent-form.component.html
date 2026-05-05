@@ -20,21 +20,21 @@
     </div>
   } @else {
     <div class="entry-form-layout">
-      <div class="entry-form-card entry-form-card--sectioned">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
 
-        <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <!-- ─── 1. AGENT INFORMATION ────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Agent Information</div>
+              <div class="entry-form-card__hdr-sub">Contact, area, allotment &amp; commission</div>
+            </div>
           </div>
-          <div>
-            <div class="entry-form-card__hdr-title">Agent Information</div>
-            <div class="entry-form-card__hdr-sub">Contact, area, allotment & commission</div>
-          </div>
-        </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
           <div class="entry-form-card__body">
-
             <div class="field-group">
               <label for="agent-name" class="field-label">Name <span class="required-star">*</span></label>
               <input id="agent-name" class="field-input" formControlName="name"
@@ -94,19 +94,112 @@
               <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
             </div>
           </div>
+        </section>
 
-          <div id="tour-agent-submit" class="entry-form-card__footer">
-            <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update Agent' : 'Create Agent' }}
-              }
-            </button>
+        <!-- ─── 2. IDENTITY ──────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4"/><path d="M7 13h4"/><circle cx="16.5" cy="11" r="2"/><path d="M14 16c.6-1.4 1.5-2 2.5-2s1.9.6 2.5 2"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Identity</div>
+              <div class="entry-form-card__hdr-sub">PAN &amp; Aadhaar — required for tax-compliant payouts</div>
+            </div>
           </div>
-        </form>
-      </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="agent-pan" class="field-label">PAN Number</label>
+                <input id="agent-pan" class="field-input" formControlName="panNumber"
+                  placeholder="ABCDE1234F" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="10" />
+              </div>
+              <div class="field-group">
+                <label for="agent-aadhaar" class="field-label">Aadhaar Number</label>
+                <input id="agent-aadhaar" class="field-input" formControlName="aadhaarNumber"
+                  placeholder="1234 5678 9012" autocomplete="off" maxlength="14" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3. BANK DETAILS ─────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Bank Details</div>
+              <div class="entry-form-card__hdr-sub">Used to disburse commission payouts</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label for="agent-bank-holder" class="field-label">Account Holder Name</label>
+                <input id="agent-bank-holder" class="field-input" formControlName="bankAccountHolder"
+                  placeholder="As printed on passbook" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="agent-bank-acct" class="field-label">Account Number</label>
+                <input id="agent-bank-acct" class="field-input" formControlName="bankAccountNumber"
+                  placeholder="Account #" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="agent-bank-ifsc" class="field-label">IFSC Code</label>
+                <input id="agent-bank-ifsc" class="field-input" formControlName="bankIfscCode"
+                  placeholder="ABCD0123456" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="11" />
+              </div>
+              <div class="field-group">
+                <label for="agent-bank-type" class="field-label">Account Type</label>
+                <select id="agent-bank-type" class="field-select" formControlName="bankAccountType">
+                  <option [ngValue]="null">Select type</option>
+                  @for (option of bankAccountTypeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="agent-bank-name" class="field-label">Bank Name</label>
+                <input id="agent-bank-name" class="field-input" formControlName="bankName"
+                  placeholder="e.g., State Bank of India" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="agent-bank-branch" class="field-label">Branch</label>
+                <input id="agent-bank-branch" class="field-input" formControlName="bankBranch"
+                  placeholder="Branch name" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── Sticky save/cancel footer ─────────────────── -->
+        <div id="tour-agent-submit" class="entry-form-sticky-footer">
+          <span class="entry-form-sticky-footer__hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Identity &amp; bank details are optional but required for commission disbursement.
+          </span>
+          <button type="button" class="btn-cancel" routerLink="/agents">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Agent' : 'Create Agent' }}
+            }
+          </button>
+        </div>
+      </form>
 
       <aside class="entry-form-side-panel">
         <cms-preview-card label="Live preview">

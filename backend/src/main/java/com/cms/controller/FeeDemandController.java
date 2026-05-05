@@ -50,7 +50,7 @@ public class FeeDemandController {
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('STUDENT_FEE_MANAGE')")
     public ResponseEntity<GenerateDemandsResponse> generateDemands(
             @RequestParam Long termInstanceId) {
         int created = feeDemandService.generateDemandsForTermInstance(termInstanceId);

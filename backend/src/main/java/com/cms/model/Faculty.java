@@ -1,5 +1,6 @@
 package com.cms.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -7,10 +8,15 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.FacultyType;
+import com.cms.model.enums.Gender;
+import com.cms.model.enums.MaritalStatus;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -66,6 +72,76 @@ public class Faculty {
     @Column(nullable = false)
     private FacultyStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "faculty_type")
+    private FacultyType facultyType;
+
+    // ── Identity & demographics ────────────────────────────────
+    @Column(name = "pan_number")
+    private String panNumber;
+
+    @Column(name = "aadhaar_number")
+    private String aadhaarNumber;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "marital_status")
+    private MaritalStatus maritalStatus;
+
+    private String nationality;
+    private String religion;
+
+    @Column(name = "blood_group")
+    private String bloodGroup;
+
+    // ── Bank details ───────────────────────────────────────────
+    @Column(name = "bank_account_number")
+    private String bankAccountNumber;
+
+    @Column(name = "bank_ifsc_code")
+    private String bankIfscCode;
+
+    @Column(name = "bank_branch")
+    private String bankBranch;
+
+    @Column(name = "bank_name")
+    private String bankName;
+
+    @Column(name = "bank_account_holder")
+    private String bankAccountHolder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bank_account_type")
+    private BankAccountType bankAccountType;
+
+    // ── Address (uses shared embeddable, same column names as Student) ─
+    @Embedded
+    private Address address;
+
+    // ── Experience breakdown (years, NUMERIC(5,1)) ─────────────
+    @Column(name = "teaching_exp_ug_years")
+    private BigDecimal teachingExperienceUgYears;
+
+    @Column(name = "teaching_exp_pg_years")
+    private BigDecimal teachingExperiencePgYears;
+
+    @Column(name = "teaching_exp_phd_years")
+    private BigDecimal teachingExperiencePhdYears;
+
+    @Column(name = "clinical_exp_ug_years")
+    private BigDecimal clinicalExperienceUgYears;
+
+    @Column(name = "clinical_exp_pg_years")
+    private BigDecimal clinicalExperiencePgYears;
+
+    @Column(name = "clinical_exp_phd_years")
+    private BigDecimal clinicalExperiencePhdYears;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -94,117 +170,113 @@ public class Faculty {
         this.status = status;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getEmployeeCode() { return employeeCode; }
+    public void setEmployeeCode(String employeeCode) { this.employeeCode = employeeCode; }
 
-    public String getEmployeeCode() {
-        return employeeCode;
-    }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
 
-    public void setEmployeeCode(String employeeCode) {
-        this.employeeCode = employeeCode;
-    }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
 
-    public String getFirstName() {
-        return firstName;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public String getLastName() {
-        return lastName;
-    }
+    public Department getDepartment() { return department; }
+    public void setDepartment(Department department) { this.department = department; }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
+    public Designation getDesignation() { return designation; }
+    public void setDesignation(Designation designation) { this.designation = designation; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getSpecialization() { return specialization; }
+    public void setSpecialization(String specialization) { this.specialization = specialization; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getLabExpertise() { return labExpertise; }
+    public void setLabExpertise(String labExpertise) { this.labExpertise = labExpertise; }
 
-    public String getPhone() {
-        return phone;
-    }
+    public LocalDate getJoiningDate() { return joiningDate; }
+    public void setJoiningDate(LocalDate joiningDate) { this.joiningDate = joiningDate; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public FacultyStatus getStatus() { return status; }
+    public void setStatus(FacultyStatus status) { this.status = status; }
 
-    public Department getDepartment() {
-        return department;
-    }
+    public FacultyType getFacultyType() { return facultyType; }
+    public void setFacultyType(FacultyType facultyType) { this.facultyType = facultyType; }
 
-    public void setDepartment(Department department) {
-        this.department = department;
-    }
+    public String getPanNumber() { return panNumber; }
+    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
 
-    public Designation getDesignation() {
-        return designation;
-    }
+    public String getAadhaarNumber() { return aadhaarNumber; }
+    public void setAadhaarNumber(String aadhaarNumber) { this.aadhaarNumber = aadhaarNumber; }
 
-    public void setDesignation(Designation designation) {
-        this.designation = designation;
-    }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
-    public String getSpecialization() {
-        return specialization;
-    }
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) { this.gender = gender; }
 
-    public void setSpecialization(String specialization) {
-        this.specialization = specialization;
-    }
+    public MaritalStatus getMaritalStatus() { return maritalStatus; }
+    public void setMaritalStatus(MaritalStatus maritalStatus) { this.maritalStatus = maritalStatus; }
 
-    public String getLabExpertise() {
-        return labExpertise;
-    }
+    public String getNationality() { return nationality; }
+    public void setNationality(String nationality) { this.nationality = nationality; }
 
-    public void setLabExpertise(String labExpertise) {
-        this.labExpertise = labExpertise;
-    }
+    public String getReligion() { return religion; }
+    public void setReligion(String religion) { this.religion = religion; }
 
-    public LocalDate getJoiningDate() {
-        return joiningDate;
-    }
+    public String getBloodGroup() { return bloodGroup; }
+    public void setBloodGroup(String bloodGroup) { this.bloodGroup = bloodGroup; }
 
-    public void setJoiningDate(LocalDate joiningDate) {
-        this.joiningDate = joiningDate;
-    }
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
 
-    public FacultyStatus getStatus() {
-        return status;
-    }
+    public String getBankIfscCode() { return bankIfscCode; }
+    public void setBankIfscCode(String bankIfscCode) { this.bankIfscCode = bankIfscCode; }
 
-    public void setStatus(FacultyStatus status) {
-        this.status = status;
-    }
+    public String getBankBranch() { return bankBranch; }
+    public void setBankBranch(String bankBranch) { this.bankBranch = bankBranch; }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+    public String getBankAccountHolder() { return bankAccountHolder; }
+    public void setBankAccountHolder(String bankAccountHolder) { this.bankAccountHolder = bankAccountHolder; }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+    public BankAccountType getBankAccountType() { return bankAccountType; }
+    public void setBankAccountType(BankAccountType bankAccountType) { this.bankAccountType = bankAccountType; }
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public Address getAddress() { return address; }
+    public void setAddress(Address address) { this.address = address; }
+
+    public BigDecimal getTeachingExperienceUgYears() { return teachingExperienceUgYears; }
+    public void setTeachingExperienceUgYears(BigDecimal v) { this.teachingExperienceUgYears = v; }
+
+    public BigDecimal getTeachingExperiencePgYears() { return teachingExperiencePgYears; }
+    public void setTeachingExperiencePgYears(BigDecimal v) { this.teachingExperiencePgYears = v; }
+
+    public BigDecimal getTeachingExperiencePhdYears() { return teachingExperiencePhdYears; }
+    public void setTeachingExperiencePhdYears(BigDecimal v) { this.teachingExperiencePhdYears = v; }
+
+    public BigDecimal getClinicalExperienceUgYears() { return clinicalExperienceUgYears; }
+    public void setClinicalExperienceUgYears(BigDecimal v) { this.clinicalExperienceUgYears = v; }
+
+    public BigDecimal getClinicalExperiencePgYears() { return clinicalExperiencePgYears; }
+    public void setClinicalExperiencePgYears(BigDecimal v) { this.clinicalExperiencePgYears = v; }
+
+    public BigDecimal getClinicalExperiencePhdYears() { return clinicalExperiencePhdYears; }
+    public void setClinicalExperiencePhdYears(BigDecimal v) { this.clinicalExperiencePhdYears = v; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
     public String getFullName() {
         return firstName + " " + lastName;

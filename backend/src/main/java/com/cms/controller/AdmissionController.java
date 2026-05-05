@@ -49,7 +49,7 @@ public class AdmissionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<AdmissionResponse> create(@Valid @RequestBody AdmissionRequest request) {
         AdmissionResponse response = admissionService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -71,7 +71,7 @@ public class AdmissionController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<AdmissionResponse> update(@PathVariable Long id,
                                                     @Valid @RequestBody AdmissionRequest request) {
         return ResponseEntity.ok(admissionService.update(id, request));
@@ -79,21 +79,21 @@ public class AdmissionController {
 
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_EDIT')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         admissionService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/confirm")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<AdmissionConfirmationDto> confirm(@PathVariable Long id,
                                                             @RequestParam LocalDate admissionDate) {
         return ResponseEntity.ok(admissionService.confirm(id, admissionDate));
     }
 
     @PostMapping("/{admissionId}/qualifications")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_EDIT')")
     public ResponseEntity<AcademicQualificationResponse> addQualification(
             @PathVariable Long admissionId,
             @Valid @RequestBody AcademicQualificationRequest request) {
@@ -108,7 +108,7 @@ public class AdmissionController {
     }
 
     @DeleteMapping("/qualifications/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_EDIT')")
     public ResponseEntity<Void> deleteQualification(@PathVariable Long id) {
         academicQualificationService.delete(id);
         return ResponseEntity.noContent().build();
@@ -121,7 +121,7 @@ public class AdmissionController {
     }
 
     @PatchMapping("/documents/{id}/verify")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_EDIT')")
     public ResponseEntity<AdmissionDocumentResponse> updateVerification(
             @PathVariable Long id,
             @RequestParam DocumentVerificationStatus status,

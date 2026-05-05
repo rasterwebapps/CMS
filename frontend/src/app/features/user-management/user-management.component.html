@@ -1,0 +1,233 @@
+<div class="um-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <div class="um-hdr anim-rise">
+    <div class="um-hdr-left">
+      <h1 class="um-title">User <em>Management</em></h1>
+      <p class="um-sub">Create and manage system user accounts and role assignments.</p>
+      <div class="um-meta">
+        <span class="um-stat">
+          <span class="um-stat-dot um-stat-dot--blue"></span>
+          {{ users().length }} Total Users
+        </span>
+        <span class="um-stat">
+          <span class="um-stat-dot um-stat-dot--green"></span>
+          {{ users().filter(u => u.isActive).length }} Active
+        </span>
+        @if (users().filter(u => !u.isActive).length > 0) {
+          <span class="um-stat">
+            <span class="um-stat-dot um-stat-dot--amber"></span>
+            {{ users().filter(u => !u.isActive).length }} Inactive
+          </span>
+        }
+      </div>
+    </div>
+    @if (canCreate()) {
+      <button class="btn-primary" (click)="openCreate()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add User
+      </button>
+    }
+  </div>
+
+  <!-- ── Body: list + slide-in panel ───────────────────────────── -->
+  <div class="um-body" [class.um-body--panel]="panelMode()">
+
+    <!-- ── User list column ─────────────────────────────────────── -->
+    <div class="um-list-col">
+
+      <!-- Toolbar: search + count -->
+      <div class="um-toolbar">
+        <div class="search-bar" role="search">
+          <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-bar__input" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="Search by name, email or role…" type="text" aria-label="Search users" />
+          @if (searchTerm()) {
+            <button class="search-bar__clear" (click)="searchTerm.set('')" aria-label="Clear search">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          }
+        </div>
+        <span class="row-count">
+          @if (searchTerm()) { {{ filteredUsers().length }} of {{ users().length }} } @else { {{ users().length }} users }
+        </span>
+      </div>
+
+      <!-- List states -->
+      @if (loading()) {
+        <div class="um-loading">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+      } @else if (filteredUsers().length === 0) {
+        <div class="um-empty">
+          <div class="um-empty__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <p class="um-empty__title">{{ searchTerm() ? 'No users match your search' : 'No users yet' }}</p>
+          @if (!searchTerm() && canCreate()) {
+            <button class="btn-ghost btn-sm" (click)="openCreate()">Add the first user</button>
+          }
+        </div>
+      } @else {
+        <div class="user-list">
+          @for (user of filteredUsers(); track user.id) {
+            <div class="user-card"
+                 [class.user-card--inactive]="!user.isActive"
+                 [class.user-card--selected]="editTarget()?.id === user.id"
+                 (click)="canEdit() && openEdit(user)">
+
+              <!-- Avatar -->
+              <div class="user-card__avatar" [attr.data-level]="user.hierarchyLevel">
+                {{ user.fullName.slice(0, 2).toUpperCase() }}
+              </div>
+
+              <!-- Info -->
+              <div class="user-card__info">
+                <div class="user-card__name-row">
+                  <span class="user-card__name">{{ user.fullName }}</span>
+                  @if (!user.isActive) {
+                    <span class="inactive-tag">Inactive</span>
+                  }
+                </div>
+                <span class="user-card__email">{{ user.email }}</span>
+                <span class="user-card__username">&#64;{{ user.keycloakUsername }}</span>
+              </div>
+
+              <!-- Right -->
+              <div class="user-card__right">
+                <span class="role-badge" [attr.data-level]="user.hierarchyLevel">{{ user.roleDisplayName }}</span>
+              </div>
+
+              <!-- Actions -->
+              @if (canDeactivate() || canEdit()) {
+                <div class="user-card__actions" (click)="$event.stopPropagation()">
+                  @if (canDeactivate()) {
+                    <button class="action-btn"
+                            [matTooltip]="user.isActive ? 'Deactivate user' : 'Reactivate user'"
+                            (click)="toggleActive(user)">
+                      @if (user.isActive) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 9v6m4-6v6m7-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                      }
+                    </button>
+                  }
+                  @if (canEdit()) {
+                    <button class="action-btn" matTooltip="Edit user" (click)="openEdit(user)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Slide-in create / edit panel ──────────────────────────── -->
+    @if (panelMode()) {
+      <div class="um-panel anim-rise">
+
+        <!-- Panel header -->
+        <div class="um-panel__hdr">
+          <div class="um-panel__hdr-icon" [attr.data-mode]="panelMode()">
+            @if (panelMode() === 'create') {
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            }
+          </div>
+          <div class="um-panel__hdr-text">
+            <h2 class="um-panel__title">{{ panelMode() === 'create' ? 'Add User' : 'Edit User' }}</h2>
+            <p class="um-panel__sub">{{ panelMode() === 'create' ? 'Create a new system user account' : 'Update user details and role' }}</p>
+          </div>
+          <button class="panel-close" (click)="closePanel()" aria-label="Close panel">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Create form -->
+        @if (panelMode() === 'create') {
+          <div class="panel-form">
+            <div class="field-group">
+              <label class="field-label">Full Name <span class="req">*</span></label>
+              <input class="field-input" type="text" [(ngModel)]="createForm.fullName" placeholder="e.g. Priya Sharma" autocomplete="off" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Email Address <span class="req">*</span></label>
+              <input class="field-input" type="email" [(ngModel)]="createForm.email" placeholder="user@institution.edu" autocomplete="off" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Username <span class="req">*</span></label>
+              <input class="field-input" type="text" [(ngModel)]="createForm.keycloakUsername" placeholder="e.g. priya.sharma" autocomplete="off" />
+              <p class="field-hint">Unique login username for the system.</p>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Temporary Password <span class="req">*</span></label>
+              <input class="field-input" type="password" [(ngModel)]="createForm.password" placeholder="Min 8 characters" autocomplete="new-password" />
+              <p class="field-hint">User will be prompted to change this on first login.</p>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Role <span class="req">*</span></label>
+              <select class="field-input field-select" [(ngModel)]="createForm.roleName">
+                <option value="">— Select a role —</option>
+                @for (r of roles(); track r.id) {
+                  <option [value]="r.name">{{ r.displayName }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving()" (click)="submitCreate()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Create User
+            </button>
+          </div>
+        }
+
+        <!-- Edit form -->
+        @else if (panelMode() === 'edit') {
+          <!-- Edit target summary -->
+          @if (editTarget()) {
+            <div class="panel-user-banner">
+              <div class="panel-user-avatar" [attr.data-level]="editTarget()!.hierarchyLevel">
+                {{ editTarget()!.fullName.slice(0, 2).toUpperCase() }}
+              </div>
+              <div class="panel-user-info">
+                <span class="panel-user-name">{{ editTarget()!.fullName }}</span>
+                <span class="panel-user-meta">{{ editTarget()!.email }}</span>
+              </div>
+              <span class="role-badge" [attr.data-level]="editTarget()!.hierarchyLevel">{{ editTarget()!.roleDisplayName }}</span>
+            </div>
+          }
+          <div class="panel-form">
+            <div class="field-group">
+              <label class="field-label">Full Name</label>
+              <input class="field-input" type="text" [(ngModel)]="editForm.fullName" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Email Address</label>
+              <input class="field-input" type="email" [(ngModel)]="editForm.email" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Role</label>
+              <select class="field-input field-select" [(ngModel)]="editForm.roleName">
+                @for (r of roles(); track r.id) {
+                  <option [value]="r.name">{{ r.displayName }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving()" (click)="submitEdit()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Save Changes
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

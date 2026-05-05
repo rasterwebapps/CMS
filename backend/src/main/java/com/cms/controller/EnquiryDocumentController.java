@@ -42,7 +42,7 @@ public class EnquiryDocumentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
     public ResponseEntity<EnquiryDocumentResponse> addDocument(
             @PathVariable Long enquiryId,
             @Valid @RequestBody EnquiryDocumentRequest request) {
@@ -57,7 +57,7 @@ public class EnquiryDocumentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
     public ResponseEntity<EnquiryDocumentResponse> updateDocument(
             @PathVariable Long enquiryId,
             @PathVariable Long id,
@@ -67,7 +67,7 @@ public class EnquiryDocumentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
     public ResponseEntity<Void> deleteDocument(@PathVariable Long enquiryId, @PathVariable Long id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
@@ -79,7 +79,7 @@ public class EnquiryDocumentController {
      * replaces the previously stored file.
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
     public ResponseEntity<EnquiryDocumentResponse> uploadDocument(
             @PathVariable Long enquiryId,
             @RequestParam("documentType") DocumentType documentType,

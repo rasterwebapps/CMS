@@ -162,18 +162,17 @@ export interface EnquiryConversionRequest {
   // Student demographics
   nationality?: string | null;
   religion?: string | null;
-  communityCategory?: 'SC' | 'ST' | 'BC' | 'MBC' | 'DNC' | 'OC' | 'OTHERS' | null;
+  communityCategory?: string | null;
   caste?: string | null;
-  bloodGroup?:
-    | 'A_POSITIVE' | 'A_NEGATIVE'
-    | 'B_POSITIVE' | 'B_NEGATIVE'
-    | 'O_POSITIVE' | 'O_NEGATIVE'
-    | 'AB_POSITIVE' | 'AB_NEGATIVE'
-    | null;
+  bloodGroup?: string | null;
 
   // Student family information
   fatherName?: string | null;
+  fatherPhone?: string | null;
+  fatherEmail?: string | null;
   motherName?: string | null;
+  motherPhone?: string | null;
+  motherEmail?: string | null;
   parentMobile?: string | null;
 
   // Student address

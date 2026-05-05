@@ -51,7 +51,7 @@ class StudentControllerTest {
             "CS2024001", "John", "Doe", "john@college.edu", "1234567890",
             1L, null, null, 1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         StudentResponse response = createStudentResponse(1L, "CS2024001", "John", "Doe");
@@ -75,7 +75,7 @@ class StudentControllerTest {
             null, "John", "Doe", "john@college.edu", "1234567890",
             1L, null, null, 1, LocalDate.of(2024, 6, 1), null, null,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         StudentResponse response = createStudentResponse(1L, null, "John", "Doe");
@@ -160,7 +160,7 @@ class StudentControllerTest {
             "CS2024001", "Johnny", "Doe", "johnny@college.edu", "9999999999",
             1L, null, null, 2, LocalDate.of(2024, 6, 1), "Batch-B", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null
+            null, null, null, null, null, null, null, null
         );
 
         StudentResponse response = createStudentResponse(1L, "CS2024001", "Johnny", "Doe");
@@ -205,7 +205,7 @@ class StudentControllerTest {
             null, null, null, null,
             1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null,
             now, now
         );
     }

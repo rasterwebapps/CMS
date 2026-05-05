@@ -25,19 +25,19 @@ public class DashboardController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_CASHIER') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DashboardSummaryResponse> getSummary() {
         return ResponseEntity.ok(dashboardService.getSummary());
     }
 
     @GetMapping("/trends")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DashboardTrendsResponse> getTrends() {
         return ResponseEntity.ok(dashboardService.getTrends());
     }
 
     @GetMapping("/front-office")
-    @PreAuthorize("hasRole('ROLE_FRONT_OFFICE') or hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
     public ResponseEntity<FrontOfficeDashboardResponse> getFrontOfficeDashboard() {
         return ResponseEntity.ok(dashboardService.getFrontOfficeDashboard());
     }

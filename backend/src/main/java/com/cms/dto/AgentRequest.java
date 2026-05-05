@@ -1,8 +1,11 @@
 package com.cms.dto;
 
-import jakarta.validation.constraints.NotBlank;
-
 import java.math.BigDecimal;
+
+import com.cms.model.enums.BankAccountType;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record AgentRequest(
     @NotBlank(message = "Name is required")
@@ -20,5 +23,28 @@ public record AgentRequest(
 
     BigDecimal commissionAmount,
 
-    Boolean isActive
+    Boolean isActive,
+
+    @Size(max = 20)
+    String panNumber,
+
+    @Size(max = 20)
+    String aadhaarNumber,
+
+    @Size(max = 40)
+    String bankAccountNumber,
+
+    @Size(max = 20)
+    String bankIfscCode,
+
+    @Size(max = 150)
+    String bankBranch,
+
+    @Size(max = 150)
+    String bankName,
+
+    @Size(max = 150)
+    String bankAccountHolder,
+
+    BankAccountType bankAccountType
 ) {}

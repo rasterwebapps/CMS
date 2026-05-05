@@ -32,7 +32,7 @@ public class AgentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<AgentResponse> create(@Valid @RequestBody AgentRequest request) {
         AgentResponse response = agentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -57,7 +57,7 @@ public class AgentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<AgentResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody AgentRequest request) {
@@ -66,7 +66,7 @@ public class AgentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         agentService.delete(id);
         return ResponseEntity.noContent().build();

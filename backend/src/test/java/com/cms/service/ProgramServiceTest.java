@@ -10,6 +10,9 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
+import com.cms.model.enums.DocumentType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -259,6 +262,62 @@ class ProgramServiceTest {
         ProgramResponse response = programService.findById(1L);
 
         assertThat(response.totalSemesters()).isEqualTo(8);
+    }
+
+    @Test
+    void shouldGetRequiredDocumentTypes() {
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        program.setRequiredDocumentTypes(Set.of(DocumentType.TENTH_MARKSHEET, DocumentType.AADHAR_CARD));
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+
+        Set<DocumentType> result = programService.getRequiredDocumentTypes(1L);
+
+        assertThat(result).containsExactlyInAnyOrder(DocumentType.TENTH_MARKSHEET, DocumentType.AADHAR_CARD);
+    }
+
+    @Test
+    void shouldThrowWhenGettingDocumentTypesForNonExistentProgram() {
+        when(programRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> programService.getRequiredDocumentTypes(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("999");
+    }
+
+    @Test
+    void shouldSetRequiredDocumentTypes() {
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        Set<DocumentType> types = Set.of(DocumentType.TWELFTH_MARKSHEET, DocumentType.PASSPORT_PHOTO);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(programRepository.save(any(Program.class))).thenReturn(program);
+
+        Set<DocumentType> result = programService.setRequiredDocumentTypes(1L, types);
+
+        assertThat(result).containsExactlyInAnyOrder(DocumentType.TWELFTH_MARKSHEET, DocumentType.PASSPORT_PHOTO);
+        verify(programRepository).save(any(Program.class));
+    }
+
+    @Test
+    void shouldSetRequiredDocumentTypesToEmptyWhenNullPassed() {
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(programRepository.save(any(Program.class))).thenReturn(program);
+
+        Set<DocumentType> result = programService.setRequiredDocumentTypes(1L, null);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldThrowWhenSettingDocumentTypesForNonExistentProgram() {
+        when(programRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> programService.setRequiredDocumentTypes(999L, Set.of()))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("999");
     }
 
     private Program createProgram(Long id, String name, String code, Integer durationYears) {

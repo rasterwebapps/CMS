@@ -32,7 +32,7 @@ public class SyllabusController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('SYLLABUS_MANAGE')")
     public ResponseEntity<SyllabusResponse> create(@Valid @RequestBody SyllabusRequest request) {
         SyllabusResponse response = syllabusService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -60,7 +60,7 @@ public class SyllabusController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('SYLLABUS_MANAGE')")
     public ResponseEntity<SyllabusResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody SyllabusRequest request) {
@@ -69,7 +69,7 @@ public class SyllabusController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('SYLLABUS_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         syllabusService.delete(id);
         return ResponseEntity.noContent().build();

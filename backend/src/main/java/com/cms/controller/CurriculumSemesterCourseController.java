@@ -32,14 +32,14 @@ public class CurriculumSemesterCourseController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumSemesterCourseDto> addCourse(
             @Valid @RequestBody CurriculumSemesterCourseRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.addCourseToSemester(request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<Void> removeCourse(@PathVariable Long id) {
         service.removeCourseFromSemester(id);
         return ResponseEntity.noContent().build();

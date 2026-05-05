@@ -5,9 +5,11 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.AddressRequest;
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Address;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
 import com.cms.model.enums.FacultyStatus;
@@ -46,6 +48,8 @@ public class FacultyService {
             request.joiningDate(),
             status
         );
+
+        applyExtendedFields(faculty, request);
 
         Faculty saved = facultyRepository.save(faculty);
         return toResponse(saved);
@@ -110,6 +114,8 @@ public class FacultyService {
             faculty.setStatus(request.status());
         }
 
+        applyExtendedFields(faculty, request);
+
         Faculty updated = facultyRepository.save(faculty);
         return toResponse(updated);
     }
@@ -122,7 +128,62 @@ public class FacultyService {
         facultyRepository.deleteById(id);
     }
 
+    private void applyExtendedFields(Faculty faculty, FacultyRequest r) {
+        faculty.setFacultyType(r.facultyType());
+        faculty.setPanNumber(trim(r.panNumber()));
+        faculty.setAadhaarNumber(trim(r.aadhaarNumber()));
+        faculty.setDateOfBirth(r.dateOfBirth());
+        faculty.setGender(r.gender());
+        faculty.setMaritalStatus(r.maritalStatus());
+        faculty.setNationality(trim(r.nationality()));
+        faculty.setReligion(trim(r.religion()));
+        faculty.setBloodGroup(trim(r.bloodGroup()));
+
+        faculty.setBankAccountNumber(trim(r.bankAccountNumber()));
+        faculty.setBankIfscCode(trim(r.bankIfscCode()));
+        faculty.setBankBranch(trim(r.bankBranch()));
+        faculty.setBankName(trim(r.bankName()));
+        faculty.setBankAccountHolder(trim(r.bankAccountHolder()));
+        faculty.setBankAccountType(r.bankAccountType());
+
+        AddressRequest a = r.address();
+        if (a == null) {
+            faculty.setAddress(null);
+        } else {
+            faculty.setAddress(new Address(
+                trim(a.postalAddress()),
+                trim(a.street()),
+                trim(a.city()),
+                trim(a.district()),
+                trim(a.state()),
+                trim(a.pincode())
+            ));
+        }
+
+        faculty.setTeachingExperienceUgYears(r.teachingExperienceUgYears());
+        faculty.setTeachingExperiencePgYears(r.teachingExperiencePgYears());
+        faculty.setTeachingExperiencePhdYears(r.teachingExperiencePhdYears());
+        faculty.setClinicalExperienceUgYears(r.clinicalExperienceUgYears());
+        faculty.setClinicalExperiencePgYears(r.clinicalExperiencePgYears());
+        faculty.setClinicalExperiencePhdYears(r.clinicalExperiencePhdYears());
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
     private FacultyResponse toResponse(Faculty faculty) {
+        Address addr = faculty.getAddress();
+        AddressRequest addressDto = addr == null ? null : new AddressRequest(
+            addr.getPostalAddress(),
+            addr.getStreet(),
+            addr.getCity(),
+            addr.getDistrict(),
+            addr.getState(),
+            addr.getPincode()
+        );
         return new FacultyResponse(
             faculty.getId(),
             faculty.getEmployeeCode(),
@@ -138,6 +199,28 @@ public class FacultyService {
             faculty.getLabExpertise(),
             faculty.getJoiningDate(),
             faculty.getStatus(),
+            faculty.getFacultyType(),
+            faculty.getPanNumber(),
+            faculty.getAadhaarNumber(),
+            faculty.getDateOfBirth(),
+            faculty.getGender(),
+            faculty.getMaritalStatus(),
+            faculty.getNationality(),
+            faculty.getReligion(),
+            faculty.getBloodGroup(),
+            faculty.getBankAccountNumber(),
+            faculty.getBankIfscCode(),
+            faculty.getBankBranch(),
+            faculty.getBankName(),
+            faculty.getBankAccountHolder(),
+            faculty.getBankAccountType(),
+            addressDto,
+            faculty.getTeachingExperienceUgYears(),
+            faculty.getTeachingExperiencePgYears(),
+            faculty.getTeachingExperiencePhdYears(),
+            faculty.getClinicalExperienceUgYears(),
+            faculty.getClinicalExperiencePgYears(),
+            faculty.getClinicalExperiencePhdYears(),
             faculty.getCreatedAt(),
             faculty.getUpdatedAt()
         );

@@ -18,6 +18,29 @@ export type FacultyStatus =
   | 'RETIRED'
   | 'TERMINATED';
 
+export type FacultyType = 'TEACHING' | 'NON_TEACHING';
+
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED' | 'OTHER';
+
+export type BankAccountType = 'SAVINGS' | 'CURRENT' | 'SALARY';
+
+export type DocumentVerificationStatus =
+  | 'NOT_UPLOADED'
+  | 'UPLOADED'
+  | 'VERIFIED'
+  | 'REJECTED';
+
+export interface AddressDto {
+  postalAddress?: string;
+  street?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  pincode?: string;
+}
+
 export interface Faculty {
   id: number;
   employeeCode: string;
@@ -33,6 +56,28 @@ export interface Faculty {
   labExpertise?: string;
   joiningDate: string;
   status: FacultyStatus;
+  facultyType?: FacultyType;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  maritalStatus?: MaritalStatus;
+  nationality?: string;
+  religion?: string;
+  bloodGroup?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountHolder?: string;
+  bankAccountType?: BankAccountType;
+  address?: AddressDto;
+  teachingExperienceUgYears?: number;
+  teachingExperiencePgYears?: number;
+  teachingExperiencePhdYears?: number;
+  clinicalExperienceUgYears?: number;
+  clinicalExperiencePgYears?: number;
+  clinicalExperiencePhdYears?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,6 +94,45 @@ export interface FacultyRequest {
   labExpertise?: string;
   joiningDate: string;
   status?: FacultyStatus;
+  facultyType?: FacultyType;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  maritalStatus?: MaritalStatus;
+  nationality?: string;
+  religion?: string;
+  bloodGroup?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountHolder?: string;
+  bankAccountType?: BankAccountType;
+  address?: AddressDto;
+  teachingExperienceUgYears?: number;
+  teachingExperiencePgYears?: number;
+  teachingExperiencePhdYears?: number;
+  clinicalExperienceUgYears?: number;
+  clinicalExperiencePgYears?: number;
+  clinicalExperiencePhdYears?: number;
+}
+
+export interface FacultyDocument {
+  id: number;
+  facultyId: number;
+  documentType: string;
+  status: DocumentVerificationStatus;
+  remarks?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  fileName?: string;
+  contentType?: string;
+  fileSize?: number;
+  uploadedAt?: string;
+  hasFile: boolean;
 }
 
 export const DESIGNATION_OPTIONS: { value: Designation; label: string }[] = [
@@ -71,4 +155,57 @@ export const FACULTY_STATUS_OPTIONS: { value: FacultyStatus; label: string }[] =
   { value: 'RESIGNED', label: 'Resigned' },
   { value: 'RETIRED', label: 'Retired' },
   { value: 'TERMINATED', label: 'Terminated' },
+];
+
+export const FACULTY_TYPE_OPTIONS: { value: FacultyType; label: string }[] = [
+  { value: 'TEACHING', label: 'Teaching' },
+  { value: 'NON_TEACHING', label: 'Non-Teaching' },
+];
+
+export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const MARITAL_STATUS_OPTIONS: { value: MaritalStatus; label: string }[] = [
+  { value: 'SINGLE', label: 'Single' },
+  { value: 'MARRIED', label: 'Married' },
+  { value: 'DIVORCED', label: 'Divorced' },
+  { value: 'WIDOWED', label: 'Widowed' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string }[] = [
+  { value: 'SAVINGS', label: 'Savings' },
+  { value: 'CURRENT', label: 'Current' },
+  { value: 'SALARY', label: 'Salary' },
+];
+
+/**
+ * Faculty document checklist — collected during onboarding.
+ * Mirrors the DocumentType enum values used by the backend.
+ */
+export interface FacultyDocumentSlot {
+  type: string;
+  label: string;
+  group: 'Service' | 'Qualification' | 'Identity' | 'Experience';
+}
+
+export const FACULTY_DOCUMENT_SLOTS: FacultyDocumentSlot[] = [
+  { type: 'APPOINTMENT_LETTER',              label: 'Appointment Letter',          group: 'Service' },
+  { type: 'JOINING_REPORT',                  label: 'Joining Report',              group: 'Service' },
+  { type: 'PROMOTION_LETTER',                label: 'Promotion Letter',            group: 'Service' },
+  { type: 'RENEWAL_CERTIFICATE',             label: 'Renewal Certificate',         group: 'Service' },
+  { type: 'UG_DEGREE',                       label: 'UG Degree',                   group: 'Qualification' },
+  { type: 'PG_DEGREE',                       label: 'PG Degree',                   group: 'Qualification' },
+  { type: 'UG_RNRM',                         label: 'UG RN/RM Registration',       group: 'Qualification' },
+  { type: 'PG_RNRM',                         label: 'PG RN/RM Registration',       group: 'Qualification' },
+  { type: 'TEACHING_EXPERIENCE_CERTIFICATE', label: 'Teaching Experience',         group: 'Experience' },
+  { type: 'CLINICAL_EXPERIENCE_CERTIFICATE', label: 'Clinical Experience',         group: 'Experience' },
+  { type: 'AADHAR_CARD',                     label: 'Aadhaar Card',                group: 'Identity' },
+  { type: 'PAN_CARD',                        label: 'PAN Card',                    group: 'Identity' },
+  { type: 'FACULTY_PHOTO',                   label: 'Faculty Photo',               group: 'Identity' },
+  { type: 'SCANNED_SIGNATURE',               label: 'Scanned Signature',           group: 'Identity' },
+  { type: 'E_SIGNATURE',                     label: 'e-Signature',                 group: 'Identity' },
 ];

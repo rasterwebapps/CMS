@@ -50,7 +50,7 @@ public class StudentFeeController {
     }
 
     @PostMapping("/finalize")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('STUDENT_FEE_MANAGE')")
     public ResponseEntity<StudentFeeAllocationResponse> finalize(
             @Valid @RequestBody StudentFeeAllocationRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -82,7 +82,7 @@ public class StudentFeeController {
     }
 
     @PostMapping("/{studentId}/collect")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_CASHIER')")
+    @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<CollectPaymentResponse> collectPayment(
             @PathVariable Long studentId,
             @Valid @RequestBody CollectPaymentRequest request) {

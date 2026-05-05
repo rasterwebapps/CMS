@@ -1,0 +1,551 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Role Management Page
+// Layout: 280px roles list (LEFT) + 1fr permission editor (RIGHT)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Page shell ───────────────────────────────────────────────────────────────
+.rm-page {
+  min-height: calc(100vh - 91px);
+  padding: 24px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (max-width: 768px) { padding: 16px; gap: 14px; }
+}
+
+// ── Page header ──────────────────────────────────────────────────────────────
+.rm-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.rm-hdr-left { display: flex; flex-direction: column; gap: 4px; }
+
+.rm-title {
+  margin: 0;
+  font-family: var(--cms-font-display, var(--cms-font-ui));
+  font-size: 1.875rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--cms-text-primary);
+  em { font-style: italic; color: var(--cms-primary); }
+}
+.rm-sub { margin: 0; font-size: 0.8125rem; color: var(--cms-text-muted); }
+
+// ── Workspace grid ────────────────────────────────────────────────────────────
+.rm-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEFT COLUMN — Role list
+// ─────────────────────────────────────────────────────────────────────────────
+.rm-roles-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 24px;
+  height: calc(100vh - 150px);
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cms-line) transparent;
+
+  @media (max-width: 1100px) {
+    position: static;
+    height: auto;
+    max-height: 50vh;
+  }
+}
+
+// ── Search bar ────────────────────────────────────────────────────────────────
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  background: var(--cms-bg-card);
+  border: 2px solid var(--cms-line-strong, var(--cms-line));
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+
+  &:focus-within {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12);
+  }
+
+  &__icon { flex-shrink: 0; color: var(--cms-text-muted); }
+
+  &__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.8125rem;
+    font-family: var(--cms-font-ui);
+    color: var(--cms-text-primary);
+    outline: none;
+    min-width: 0;
+    &::placeholder { color: var(--cms-text-muted); }
+    &::-webkit-search-cancel-button { display: none; }
+  }
+
+  &__clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    border: none; background: transparent;
+    color: var(--cms-text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    &:hover { background: var(--cms-bg-shell); color: var(--cms-text-primary); }
+  }
+}
+
+// ── Role cards ────────────────────────────────────────────────────────────────
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  position: relative;
+  outline: none;
+
+  &:hover {
+    border-color: rgba(var(--cms-primary-rgb), 0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  &--selected {
+    border-color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.04);
+    box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.1);
+  }
+
+  &--system { background: rgba(245, 158, 11, 0.03); }
+
+  &__icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    color: var(--cms-primary);
+    flex-shrink: 0;
+    &[data-level="1"] { background: rgba(239,68,68,0.12); color: #dc2626; }
+    &[data-level="2"] { background: rgba(234,88,12,0.12); color: #c2410c; }
+    &[data-level="3"] { background: rgba(99,102,241,0.12); color: var(--cms-primary); }
+    &[data-level="4"] { background: rgba(16,185,129,0.12); color: #059669; }
+    &[data-level="5"] { background: rgba(59,130,246,0.12); color: #2563eb; }
+    &[data-level="6"] { background: rgba(107,114,128,0.12); color: #374151; }
+  }
+
+  &__info {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+
+  &__top {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+
+  &__name {
+    font-size: 0.875rem; font-weight: 700;
+    color: var(--cms-text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  &__code {
+    font-family: var(--cms-font-mono, monospace);
+    font-size: 0.7rem; color: var(--cms-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__desc {
+    font-size: 0.72rem; color: var(--cms-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  &__right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0;
+  }
+
+  &__arrow {
+    color: var(--cms-text-muted);
+    transition: color 0.15s ease, transform 0.15s ease;
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+
+  &:hover &__arrow, &--selected &__arrow {
+    color: var(--cms-primary);
+    transform: translateX(2px);
+  }
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+.level-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--cms-bg-shell, #f5f6fa);
+  border: 1px solid var(--cms-line);
+  font-size: 0.68rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cms-text-secondary); white-space: nowrap;
+  &[data-level="1"] { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #dc2626; }
+  &[data-level="2"] { background: rgba(234,88,12,0.1); border-color: rgba(234,88,12,0.2); color: #c2410c; }
+  &[data-level="4"] { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: #059669; }
+  &[data-level="5"] { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.2); color: #2563eb; }
+}
+.system-tag {
+  display: inline-flex; align-items: center;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(245,158,11,0.12); color: #b45309;
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.03em; text-transform: uppercase; flex-shrink: 0;
+}
+.perm-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; color: var(--cms-text-muted); white-space: nowrap;
+}
+
+// ── State helpers ─────────────────────────────────────────────────────────────
+.rm-state-center {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; padding: 40px 16px;
+  text-align: center; color: var(--cms-text-muted);
+  p { margin: 0; font-size: 0.875rem; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RIGHT COLUMN — Permission editor
+// ─────────────────────────────────────────────────────────────────────────────
+.rm-editor-col {
+  min-width: 0;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 24px;
+  height: calc(100vh - 150px);
+  max-height: calc(100vh - 150px);
+  overflow: hidden;
+
+  @media (max-width: 1100px) {
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.rm-editor-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 60px 40px; text-align: center;
+
+  &__icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: rgba(var(--cms-primary-rgb), 0.08);
+    border: 1px solid rgba(var(--cms-primary-rgb), 0.15);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--cms-primary); margin-bottom: 4px;
+  }
+  &__title {
+    margin: 0; font-size: 1.0625rem; font-weight: 700;
+    color: var(--cms-text-primary); letter-spacing: -0.01em;
+  }
+  &__sub {
+    margin: 0; font-size: 0.85rem; color: var(--cms-text-muted);
+    line-height: 1.6; max-width: 340px;
+  }
+}
+
+// ── Create role form ──────────────────────────────────────────────────────────
+.rm-create-wrap { display: flex; flex-direction: column; height: 100%; }
+
+.rm-create__hdr {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--cms-line);
+  background: var(--cms-bg-subtle, var(--cms-bg-shell));
+  border-radius: 14px 14px 0 0;
+}
+.rm-create__hdr-icon {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 11px;
+  background: rgba(var(--cms-primary-rgb), 0.10); color: var(--cms-primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.rm-create__hdr-text { flex: 1; min-width: 0; }
+.rm-create__title { margin: 0 0 4px; font-size: 1.0625rem; font-weight: 700; color: var(--cms-text-primary); letter-spacing: -0.01em; }
+.rm-create__sub { margin: 0; font-size: 0.8125rem; color: var(--cms-text-muted); line-height: 1.5; }
+.rm-create__body { flex: 1; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 18px; }
+.rm-create__footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 14px 22px; border-top: 1px solid var(--cms-line); background: var(--cms-bg-card);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Permission editor layout
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Role info banner ──────────────────────────────────────────────────────────
+.rm-perms-banner {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cms-line);
+  background: var(--cms-bg-subtle, var(--cms-bg-shell));
+  flex-shrink: 0; flex-wrap: wrap;
+  border-radius: 14px 14px 0 0;
+
+  &__role-icon {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(var(--cms-primary-rgb), 0.10); color: var(--cms-primary);
+    &[data-level="1"] { background: rgba(239,68,68,0.12); color: #dc2626; }
+    &[data-level="2"] { background: rgba(234,88,12,0.12); color: #c2410c; }
+    &[data-level="3"] { background: rgba(99,102,241,0.12); color: var(--cms-primary); }
+    &[data-level="4"] { background: rgba(16,185,129,0.12); color: #059669; }
+    &[data-level="5"] { background: rgba(59,130,246,0.12); color: #2563eb; }
+    &[data-level="6"] { background: rgba(107,114,128,0.12); color: #374151; }
+  }
+  &__info { flex: 1; min-width: 0; }
+  &__name { margin: 0 0 4px; font-size: 1rem; font-weight: 700; color: var(--cms-text-primary); letter-spacing: -0.01em; }
+  &__meta { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  &__desc { font-size: 0.8125rem; color: var(--cms-text-muted); }
+  &__stats { display: flex; align-items: baseline; gap: 4px; flex-shrink: 0; }
+  &__count { display: flex; align-items: baseline; gap: 3px; font-variant-numeric: tabular-nums; }
+  &__num { font-size: 1.375rem; font-weight: 800; color: var(--cms-primary); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  &__of { font-size: 0.875rem; color: var(--cms-text-muted); font-variant-numeric: tabular-nums; }
+  &__stat-label { font-size: 0.75rem; color: var(--cms-text-muted); }
+  &__controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+}
+
+// ── Permission accordion matrix ───────────────────────────────────────────────
+.perm-matrix {
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; flex: 1; min-height: 0;
+  padding: 14px 16px;
+}
+
+.perm-group {
+  border: 1px solid var(--cms-line);
+  border-radius: 10px;
+  flex-shrink: 0;    // ← CRITICAL: prevents the flex-column from squashing groups
+  transition: border-color 0.15s ease;
+
+  &[data-cat="ADMISSION"]      { --cat-color: #6366f1; }
+  &[data-cat="CURRICULUM"]     { --cat-color: #3b82f6; }
+  &[data-cat="EXAMINATION"]    { --cat-color: #0ea5e9; }
+  &[data-cat="FINANCE"]        { --cat-color: #10b981; }
+  &[data-cat="INFRASTRUCTURE"] { --cat-color: #f59e0b; }
+  &[data-cat="MASTER"]         { --cat-color: #8b5cf6; }
+  &[data-cat="REPORTS"]        { --cat-color: #ec4899; }
+  &[data-cat="SYSTEM"]         { --cat-color: #ef4444; }
+
+  &--open { border-color: rgba(var(--cms-primary-rgb), 0.2); }
+
+  // ── Group accordion header ──
+  &__hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px; min-height: 44px;
+    background: var(--cms-bg-subtle, var(--cms-bg-shell, #f8f9fc));
+    cursor: pointer; user-select: none;
+    border-left: 3px solid var(--cat-color, var(--cms-line));
+    border-radius: 9px 9px 0 0;       // top corners only (items below)
+    transition: background 0.12s ease;
+    &:last-child { border-radius: 9px; }  // all corners when collapsed (no items)
+    &:hover { background: rgba(var(--cms-primary-rgb), 0.04); }
+    &:focus-visible { outline: 2px solid var(--cms-primary); outline-offset: -2px; }
+  }
+
+  &__master-cb { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+  &__cat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cat-color, var(--cms-primary)); flex-shrink: 0; }
+  &__label {
+    flex: 1; font-weight: 700; font-size: 0.8125rem;
+    color: var(--cms-text-primary); letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  &__progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  &__progress-track {
+    width: 60px; height: 5px; border-radius: 99px;
+    background: var(--cms-line); overflow: hidden;
+    @media (max-width: 900px) { display: none; }
+  }
+  &__progress-fill {
+    height: 100%; border-radius: 99px;
+    background: var(--cat-color, var(--cms-primary));
+    transition: width 0.25s ease;
+  }
+  &__count {
+    font-variant-numeric: tabular-nums; font-size: 0.75rem;
+    font-weight: 600; color: var(--cms-text-muted);
+    min-width: 32px; text-align: right;
+  }
+  &__count-sep { color: var(--cms-line-strong); margin: 0 1px; }
+  &__chevron { flex-shrink: 0; color: var(--cms-text-muted); transition: transform 0.2s ease; }
+  &--open &__chevron { transform: rotate(180deg); }
+
+  // ── Expanded items container ──
+  &__items {
+    display: flex; flex-direction: column;
+    padding: 4px 10px 6px;
+    background: var(--cms-bg-card);
+    border-top: 1px solid var(--cms-line);
+    border-radius: 0 0 9px 9px;
+  }
+}
+
+// ── Resource sub-group row ────────────────────────────────────────────────────
+// Each row = all permissions for one resource (e.g. ADMISSION_*, ENQUIRY_*)
+// Items always use a strict 4-column grid: each item is exactly 25% wide.
+// A single permission occupies only col-1 and leaves cols 2-4 empty.
+.perm-subgroup {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-bottom: 1px dashed var(--cms-line);
+  &:last-child { border-bottom: none; }
+
+  .perm-item {
+    flex: 0 0 25%;   // strict 1-of-4 column — never grows, never shrinks
+    max-width: 25%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+// ── Individual permission item ────────────────────────────────────────────────
+.perm-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px;
+  cursor: pointer; transition: background 0.1s ease;
+  border-right: 1px solid var(--cms-line);
+  &:last-child { border-right: none; }
+  &:hover { background: var(--cms-bg-muted, rgba(0,0,0,0.03)); }
+
+  &--checked {
+    background: rgba(var(--cms-primary-rgb), 0.06);
+    .perm-item__name { color: var(--cms-text-primary); font-weight: 600; }
+  }
+
+  &__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  &__name {
+    font-size: 0.8125rem; color: var(--cms-text-secondary);
+    line-height: 1.3; transition: color 0.1s ease;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  &__code {
+    font-family: var(--cms-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.625rem; color: var(--cms-text-muted);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.03em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+}
+
+// ── Sticky permission footer ──────────────────────────────────────────────────
+.rm-perms-footer {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--cms-line);
+  background: var(--cms-bg-card); flex-shrink: 0;
+
+  &__summary {
+    flex: 1; display: flex; align-items: center; gap: 6px;
+    font-size: 0.8125rem; color: var(--cms-text-muted);
+    font-variant-numeric: tabular-nums;
+    svg { color: var(--cms-primary); flex-shrink: 0; }
+  }
+}
+
+// ── Shared controls ──────────────────────────────────────────────────────────
+.panel-close {
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; border: none; background: transparent;
+  color: var(--cms-text-muted); cursor: pointer; flex-shrink: 0;
+  &:hover { background: var(--cms-bg-shell, #f5f6fa); color: var(--cms-text-primary); }
+}
+.link-btn {
+  background: transparent; border: none;
+  font-size: 0.8125rem; color: var(--cms-primary);
+  cursor: pointer; padding: 2px 4px; border-radius: 4px;
+  transition: background 0.12s;
+  &:hover { background: rgba(var(--cms-primary-rgb), 0.08); }
+}
+.sep { color: var(--cms-text-muted); font-size: 0.75rem; }
+
+// ── Form fields ───────────────────────────────────────────────────────────────
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: 0.8125rem; font-weight: 600; color: var(--cms-text-primary);
+  .req { color: #dc2626; margin-left: 2px; }
+}
+.field-input {
+  height: 38px; padding: 0 12px;
+  border: 1.5px solid var(--cms-line); border-radius: 8px;
+  background: var(--cms-bg-card);
+  font-size: 0.875rem; font-family: var(--cms-font-ui);
+  color: var(--cms-text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  &:focus { outline: none; border-color: var(--cms-primary); box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12); }
+}
+textarea.field-input { height: auto; padding: 10px 12px; resize: vertical; }
+.field-hint { font-size: 0.75rem; color: var(--cms-text-muted); line-height: 1.4; }
+
+// ── Checkbox ──────────────────────────────────────────────────────────────────
+.perm-checkbox {
+  width: 16px; height: 16px; margin-top: 1px;
+  accent-color: var(--cms-primary); flex-shrink: 0; cursor: pointer;
+}
+
+// ── Button helpers ────────────────────────────────────────────────────────────
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; border: none;
+  background: var(--cms-primary); color: #fff;
+  font-size: 0.8125rem; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.9; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px;
+  border: 1.5px solid var(--cms-line);
+  background: transparent; color: var(--cms-text-secondary);
+  font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  &:hover { border-color: var(--cms-primary); color: var(--cms-primary); }
+}

@@ -33,7 +33,7 @@ public class CalendarEventController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
     public ResponseEntity<CalendarEventResponse> create(
             @Valid @RequestBody CalendarEventRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(calendarEventService.create(request));
@@ -66,7 +66,7 @@ public class CalendarEventController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
     public ResponseEntity<CalendarEventResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody CalendarEventRequest request) {
@@ -74,7 +74,7 @@ public class CalendarEventController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         calendarEventService.delete(id);
         return ResponseEntity.noContent().build();

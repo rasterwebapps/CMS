@@ -57,23 +57,23 @@
       <div class="hero-kpis" aria-label="Document collection progress">
         <div class="hero-kpi">
           <span class="hero-kpi__label">Required</span>
-          <span class="hero-kpi__value">{{ mandatorySatisfiedCount() }} <span class="hero-kpi__of">/ {{ mandatoryTotal }}</span></span>
+          <span class="hero-kpi__value">{{ mandatorySatisfiedCount() }} <span class="hero-kpi__of">/ {{ mandatoryTotal() }}</span></span>
         </div>
         <div class="hero-kpi">
           <span class="hero-kpi__label">Optional</span>
           <span class="hero-kpi__value">{{ optionalRows().length }}</span>
         </div>
-        <div class="hero-kpi hero-kpi--progress" [class.hero-kpi--complete]="mandatorySatisfiedCount() === mandatoryTotal">
+        <div class="hero-kpi hero-kpi--progress" [class.hero-kpi--complete]="mandatorySatisfiedCount() === mandatoryTotal()">
           <span class="hero-kpi__label">Progress</span>
           <div class="kpi-track" role="progressbar" [attr.aria-valuenow]="mandatoryProgressPct()" aria-valuemin="0" aria-valuemax="100">
             <div class="kpi-fill" [style.width.%]="mandatoryProgressPct()"></div>
           </div>
           <span class="kpi-status">
-            @if (mandatorySatisfiedCount() === mandatoryTotal) {
+            @if (mandatorySatisfiedCount() === mandatoryTotal()) {
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               All collected
             } @else {
-              {{ mandatoryTotal - mandatorySatisfiedCount() }} remaining
+              {{ mandatoryTotal() - mandatorySatisfiedCount() }} remaining
             }
           </span>
         </div>
@@ -88,7 +88,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <span>Required Documents</span>
-        <span class="doc-section__count">{{ mandatoryTotal }}</span>
+        <span class="doc-section__count">{{ mandatoryTotal() }}</span>
         <span class="doc-section__hint">All must be uploaded or verified before submission</span>
       </div>
 
@@ -283,7 +283,7 @@
       <div class="doccol-footer__hint">
         @if (!canSubmit()) {
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          All {{ mandatoryTotal }} required documents must be uploaded or verified before submitting.
+          All {{ mandatoryTotal() }} required documents must be uploaded or verified before submitting.
         }
       </div>
       <div class="doccol-footer__actions">

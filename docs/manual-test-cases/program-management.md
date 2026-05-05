@@ -181,3 +181,49 @@
 
 **Status:** NOT TESTED
 
+---
+
+## TC-PROG-011: Add Program — configure Required Documents via side panel
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- Application is running
+
+**Steps:**
+1. Navigate to Programs → Add Program
+2. Fill in Program Name, Program Code, Duration (Years), Status
+3. Click **Configure Required Documents**
+4. In the side panel, select a few documents (e.g., `TENTH_MARKSHEET`, `TRANSCRIPT`)
+5. Click **Save Required Documents**
+6. Click **Create Program**
+7. Navigate to Programs list and open the newly created program in Edit mode
+
+**Expected Result:**
+- The side panel opens and closes correctly
+- Selected document count is shown on the button
+- After program creation, reopening the program shows the previously selected required documents
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PROG-012: Edit Program — update Required Documents via side panel
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- A program exists
+- Document Types catalogue endpoint is reachable
+
+**Steps:**
+1. Navigate to Programs → Edit an existing Program
+2. Click **Configure Required Documents**
+3. Add/remove a few required documents
+4. Click **Save Required Documents**
+5. Close and reopen the side panel
+
+**Expected Result:**
+- Save succeeds and shows a success message
+- Reopening the panel shows the updated selections persisted
+
+**Status:** NOT TESTED
+

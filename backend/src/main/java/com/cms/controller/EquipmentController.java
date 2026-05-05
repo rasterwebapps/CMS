@@ -34,7 +34,7 @@ public class EquipmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('EQUIPMENT_MANAGE')")
     public ResponseEntity<EquipmentResponse> create(@Valid @RequestBody EquipmentRequest request) {
         EquipmentResponse response = equipmentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -71,7 +71,7 @@ public class EquipmentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('EQUIPMENT_MANAGE')")
     public ResponseEntity<EquipmentResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody EquipmentRequest request) {
@@ -80,7 +80,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('EQUIPMENT_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         equipmentService.delete(id);
         return ResponseEntity.noContent().build();

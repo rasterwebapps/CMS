@@ -124,6 +124,11 @@ export class EnquiryDetailComponent implements OnInit {
     if (id) void this.router.navigate(['/enquiries', id, 'convert']);
   }
 
+  /** Returns to the previous page using browser history (preserves list filters). */
+  protected goBack(): void {
+    window.history.back();
+  }
+
 
   /** Opens the stored document binary in a new tab for inline viewing. */
   protected viewDocumentFile(d: EnquiryDocument): void {

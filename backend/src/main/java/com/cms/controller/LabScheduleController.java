@@ -34,7 +34,7 @@ public class LabScheduleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<LabScheduleResponse> create(@Valid @RequestBody LabScheduleRequest request) {
         LabScheduleResponse response = labScheduleService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -68,7 +68,7 @@ public class LabScheduleController {
     }
 
     @PostMapping("/check-conflicts")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<ScheduleConflictResponse> checkConflicts(
             @Valid @RequestBody LabScheduleRequest request) {
         ScheduleConflictResponse response = labScheduleService.checkConflicts(request);
@@ -76,7 +76,7 @@ public class LabScheduleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<LabScheduleResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody LabScheduleRequest request) {
@@ -85,7 +85,7 @@ public class LabScheduleController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         labScheduleService.delete(id);
         return ResponseEntity.noContent().build();

@@ -31,7 +31,7 @@ public class LabContinuousEvaluationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<LabContinuousEvaluationResponse> create(
             @Valid @RequestBody LabContinuousEvaluationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(labContinuousEvaluationService.create(request));
@@ -53,14 +53,14 @@ public class LabContinuousEvaluationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<LabContinuousEvaluationResponse> update(@PathVariable Long id,
                                                                     @Valid @RequestBody LabContinuousEvaluationRequest request) {
         return ResponseEntity.ok(labContinuousEvaluationService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         labContinuousEvaluationService.delete(id);
         return ResponseEntity.noContent().build();

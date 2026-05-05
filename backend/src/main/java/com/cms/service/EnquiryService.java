@@ -402,7 +402,11 @@ public class EnquiryService {
 
         // Family information
         student.setFatherName(request.fatherName());
+        student.setFatherPhone(request.fatherPhone());
+        student.setFatherEmail(request.fatherEmail());
         student.setMotherName(request.motherName());
+        student.setMotherPhone(request.motherPhone());
+        student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
 
         // Address

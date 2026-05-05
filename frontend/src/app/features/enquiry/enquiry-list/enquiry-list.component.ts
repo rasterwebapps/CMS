@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -61,6 +61,7 @@ export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly authService    = inject(AuthService);
   private readonly router         = inject(Router);
+  private readonly route          = inject(ActivatedRoute);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
   private readonly tourService    = inject(TourService);
@@ -197,7 +198,44 @@ export class EnquiryListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('enquiry-list', ENQUIRY_LIST_TOUR);
+
+    // Restore filter state from URL query params (populated when the user
+    // navigated away via a list row action — allows back-navigation to restore
+    // exactly the same search/date/status/program that was active).
+    const p = this.route.snapshot.queryParamMap;
+    if (p.get('dateFrom')) this.dateFrom = p.get('dateFrom')!;
+    if (p.get('dateTo'))   this.dateTo   = p.get('dateTo')!;
+    if (p.get('search'))   this.searchValue.set(p.get('search')!);
+    const rawStatuses = p.getAll('status').flatMap(s => s.split(',').filter(Boolean));
+    if (rawStatuses.length) this.selectedStatuses.set(new Set(rawStatuses));
+    if (p.get('programId'))  this.selectedProgramId.set(Number(p.get('programId')));
+    if (p.get('courseId'))   this.selectedCourseId.set(Number(p.get('courseId')));
+
     this.load();
+  }
+
+  // ── URL filter sync ───────────────────────────────────────────────────────
+  /**
+   * Writes current filter values into the URL as query params using
+   * replaceUrl:true so no extra history entries are created.  When the user
+   * navigates to a detail and presses Back, Angular re-navigates to this URL,
+   * the component reinitialises and reads the params back in ngOnInit.
+   */
+  private syncUrlFilters(): void {
+    const statuses = [...this.selectedStatuses()];
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        dateFrom:  this.dateFrom  || null,
+        dateTo:    this.dateTo    || null,
+        search:    this.searchValue() || null,
+        status:    statuses.length ? statuses.join(',') : null,
+        programId: this.selectedProgramId() ?? null,
+        courseId:  this.selectedCourseId()  ?? null,
+      },
+      queryParamsHandling: 'replace',
+      replaceUrl: true,
+    });
   }
 
   // ── Column prefs ──────────────────────────────────────────────────────────
@@ -223,9 +261,13 @@ export class EnquiryListComponent implements OnInit {
   // ── Search ────────────────────────────────────────────────────────────────
   protected applyFilter(event: Event): void {
     this.searchValue.set((event.target as HTMLInputElement).value);
+    this.syncUrlFilters();
   }
 
-  protected clearFilter(): void { this.searchValue.set(''); }
+  protected clearFilter(): void {
+    this.searchValue.set('');
+    this.syncUrlFilters();
+  }
 
   // ── Status multiselect ────────────────────────────────────────────────────
   protected toggleStatus(s: string): void {
@@ -234,14 +276,23 @@ export class EnquiryListComponent implements OnInit {
       if (next.has(s)) { next.delete(s); } else { next.add(s); }
       return next;
     });
+    this.syncUrlFilters();
   }
 
   protected isStatusSelected(s: string): boolean { return this.selectedStatuses().has(s); }
 
-  protected clearStatuses(): void { this.selectedStatuses.set(new Set()); }
+  protected clearStatuses(): void {
+    this.selectedStatuses.set(new Set());
+    this.syncUrlFilters();
+  }
 
   // ── Date range ────────────────────────────────────────────────────────────
-  protected onDateRangeChange(): void { if (this.dateFrom && this.dateTo) this.load(); }
+  protected onDateRangeChange(): void {
+    if (this.dateFrom && this.dateTo) {
+      this.syncUrlFilters();
+      this.load();
+    }
+  }
 
   // ── Filters ───────────────────────────────────────────────────────────────
   protected clearAllFilters(): void {
@@ -252,6 +303,7 @@ export class EnquiryListComponent implements OnInit {
     this.selectedProgramId.set(null);
     this.selectedCourseId.set(null);
     this.searchValue.set('');
+    this.syncUrlFilters();
     this.load();
   }
 
@@ -265,10 +317,12 @@ export class EnquiryListComponent implements OnInit {
     const id = value ? Number(value) : null;
     this.selectedProgramId.set(id);
     this.selectedCourseId.set(null); // reset course when program changes
+    this.syncUrlFilters();
   }
 
   protected onCourseChange(value: string): void {
     this.selectedCourseId.set(value ? Number(value) : null);
+    this.syncUrlFilters();
   }
 
   // ── Status helpers ────────────────────────────────────────────────────────

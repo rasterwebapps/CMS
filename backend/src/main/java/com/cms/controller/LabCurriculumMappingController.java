@@ -33,7 +33,7 @@ public class LabCurriculumMappingController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<LabCurriculumMappingResponse> create(
             @Valid @RequestBody LabCurriculumMappingRequest request) {
         LabCurriculumMappingResponse response = mappingService.create(request);
@@ -65,7 +65,7 @@ public class LabCurriculumMappingController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<LabCurriculumMappingResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody LabCurriculumMappingRequest request) {
@@ -74,7 +74,7 @@ public class LabCurriculumMappingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         mappingService.delete(id);
         return ResponseEntity.noContent().build();

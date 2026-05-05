@@ -2,8 +2,6 @@ package com.cms.dto;
 
 import java.time.LocalDate;
 
-import com.cms.model.enums.BloodGroup;
-import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Gender;
 
 import jakarta.validation.constraints.Email;
@@ -30,13 +28,17 @@ public record EnquiryConversionRequest(
     // ── Student demographics ─────────────────────────────────────────────
     String nationality,
     String religion,
-    CommunityCategory communityCategory,
+    String communityCategory,
     String caste,
-    BloodGroup bloodGroup,
+    String bloodGroup,
 
     // ── Student family information ───────────────────────────────────────
     String fatherName,
+    String fatherPhone,
+    String fatherEmail,
     String motherName,
+    String motherPhone,
+    String motherEmail,
     String parentMobile,
 
     // ── Student address ──────────────────────────────────────────────────

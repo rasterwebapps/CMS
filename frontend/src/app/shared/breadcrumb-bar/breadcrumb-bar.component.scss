@@ -39,12 +39,18 @@
   &__link {
     color: var(--cms-text-muted);
     text-decoration: none;
-    padding: 4px 2px;
-    border-radius: 3px;
-    transition: color 0.15s ease;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
 
     &:hover {
       color: var(--cms-primary);
+      background: var(--cms-primary-bg, rgba(var(--cms-primary-rgb, 99, 102, 241), 0.08));
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cms-primary);
+      outline-offset: 1px;
     }
   }
 

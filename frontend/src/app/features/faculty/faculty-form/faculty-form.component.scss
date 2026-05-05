@@ -1,1 +1,89 @@
-// Faculty form styles are handled by global entry-form classes in styles.scss
+// Faculty form — document upload grid (rest of the form uses global entry-form classes)
+
+.fac-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.fac-doc-tile {
+  position: relative;
+  padding: 14px 14px 12px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.18s ease, background 0.18s ease;
+
+  &--uploaded {
+    border-color: rgba(var(--cms-primary-rgb), 0.45);
+    background: linear-gradient(0deg,
+      rgba(var(--cms-primary-rgb), 0.04),
+      rgba(var(--cms-primary-rgb), 0.04)),
+      var(--cms-bg-card);
+  }
+
+  &__name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__meta {
+    font-size: 0.6875rem;
+    color: var(--cms-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 14px;
+  }
+
+  &__size { opacity: 0.75; }
+
+  &__actions {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--cms-border-default);
+    background: transparent;
+    color: var(--cms-text-secondary);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: rgba(var(--cms-primary-rgb), 0.08);
+      border-color: rgba(var(--cms-primary-rgb), 0.30);
+      color: var(--cms-primary);
+    }
+
+    &--primary {
+      border-color: rgba(var(--cms-primary-rgb), 0.55);
+      background: rgba(var(--cms-primary-rgb), 0.10);
+      color: var(--cms-primary);
+    }
+
+    &--danger:hover {
+      background: rgba(220, 38, 38, 0.08);
+      border-color: rgba(220, 38, 38, 0.40);
+      color: rgb(220, 38, 38);
+    }
+  }
+}

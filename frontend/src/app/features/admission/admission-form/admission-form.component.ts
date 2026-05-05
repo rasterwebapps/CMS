@@ -16,6 +16,10 @@ import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } from '../../enquiry/enquiry.model';
+import { CommunityService } from '../../community/community.service';
+import { BloodGroupService } from '../../blood-group/blood-group.service';
+import { Community } from '../../community/community.model';
+import { BloodGroup } from '../../blood-group/blood-group.model';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -55,10 +59,14 @@ export class AdmissionFormComponent implements OnInit {
   private readonly tourService = inject(TourService);
 
   private readonly academicYearSvc = inject(AcademicYearService);
+  private readonly communityService = inject(CommunityService);
+  private readonly bloodGroupService = inject(BloodGroupService);
 
   protected readonly students = signal<Student[]>([]);
   protected readonly pendingEnquiries = signal<Enquiry[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
+  protected readonly communities = signal<Community[]>([]);
+  protected readonly bloodGroups = signal<BloodGroup[]>([]);
   protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly prefill = signal<EnquiryConversionPrefillResponse | null>(null);
@@ -70,13 +78,6 @@ export class AdmissionFormComponent implements OnInit {
 
   protected readonly qualificationTypes = QUALIFICATION_TYPES;
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
-  protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'] as const;
-  protected readonly bloodGroupOptions = [
-    'A_POSITIVE', 'A_NEGATIVE',
-    'B_POSITIVE', 'B_NEGATIVE',
-    'O_POSITIVE', 'O_NEGATIVE',
-    'AB_POSITIVE', 'AB_NEGATIVE',
-  ] as const;
 
   private static readonly FROM_ENQUIRY_CONTROLS: ReadonlyArray<string> = [
     'enquiryId', 'firstName', 'lastName', 'email', 'semester', 'admissionDate',
@@ -111,7 +112,11 @@ export class AdmissionFormComponent implements OnInit {
     caste: [''],
     bloodGroup: [''],
     fatherName: [''],
+    fatherPhone: [''],
+    fatherEmail: ['', Validators.email],
     motherName: [''],
+    motherPhone: [''],
+    motherEmail: ['', Validators.email],
     parentMobile: [''],
     address: this.fb.group({
       postalAddress: [''],
@@ -137,6 +142,14 @@ export class AdmissionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('admission-form', ADMISSION_FORM_TOUR);
+
+    // Load communities and blood groups for demographic dropdowns
+    this.communityService.getActiveCommunities().subscribe({
+      next: (data) => this.communities.set(data),
+    });
+    this.bloodGroupService.getActiveBloodGroups().subscribe({
+      next: (data) => this.bloodGroups.set(data),
+    });
 
     // Always load academic years for the dropdown
     this.academicYearSvc.getAllAcademicYears().subscribe({
@@ -355,11 +368,15 @@ export class AdmissionFormComponent implements OnInit {
       aadharNumber: this.nullableStr(v['aadharNumber'] as string),
       nationality: this.nullableStr(v['nationality'] as string),
       religion: this.nullableStr(v['religion'] as string),
-      communityCategory: this.nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory'],
+      communityCategory: this.nullableStr(v['communityCategory'] as string),
       caste: this.nullableStr(v['caste'] as string),
-      bloodGroup: this.nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup'],
+      bloodGroup: this.nullableStr(v['bloodGroup'] as string),
       fatherName: this.nullableStr(v['fatherName'] as string),
+      fatherPhone: this.nullableStr(v['fatherPhone'] as string),
+      fatherEmail: this.nullableStr(v['fatherEmail'] as string),
       motherName: this.nullableStr(v['motherName'] as string),
+      motherPhone: this.nullableStr(v['motherPhone'] as string),
+      motherEmail: this.nullableStr(v['motherEmail'] as string),
       parentMobile: this.nullableStr(v['parentMobile'] as string),
       address: this.hasValidAddressFields(addr)
         ? {

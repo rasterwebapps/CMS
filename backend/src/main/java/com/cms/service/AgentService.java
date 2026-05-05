@@ -31,6 +31,7 @@ public class AgentService {
         );
         agent.setAllottedSeats(request.allottedSeats());
         agent.setCommissionAmount(request.commissionAmount());
+        applyIdentityAndBank(agent, request);
 
         Agent saved = agentRepository.save(agent);
         return toResponse(saved);
@@ -76,6 +77,8 @@ public class AgentService {
             agent.setIsActive(request.isActive());
         }
 
+        applyIdentityAndBank(agent, request);
+
         Agent updated = agentRepository.save(agent);
         return toResponse(updated);
     }
@@ -86,6 +89,23 @@ public class AgentService {
             throw new ResourceNotFoundException("Agent not found with id: " + id);
         }
         agentRepository.deleteById(id);
+    }
+
+    private void applyIdentityAndBank(Agent agent, AgentRequest r) {
+        agent.setPanNumber(trim(r.panNumber()));
+        agent.setAadhaarNumber(trim(r.aadhaarNumber()));
+        agent.setBankAccountNumber(trim(r.bankAccountNumber()));
+        agent.setBankIfscCode(trim(r.bankIfscCode()));
+        agent.setBankBranch(trim(r.bankBranch()));
+        agent.setBankName(trim(r.bankName()));
+        agent.setBankAccountHolder(trim(r.bankAccountHolder()));
+        agent.setBankAccountType(r.bankAccountType());
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     private AgentResponse toResponse(Agent agent) {
@@ -99,6 +119,14 @@ public class AgentService {
             agent.getAllottedSeats(),
             agent.getCommissionAmount(),
             agent.getIsActive(),
+            agent.getPanNumber(),
+            agent.getAadhaarNumber(),
+            agent.getBankAccountNumber(),
+            agent.getBankIfscCode(),
+            agent.getBankBranch(),
+            agent.getBankName(),
+            agent.getBankAccountHolder(),
+            agent.getBankAccountType(),
             agent.getCreatedAt(),
             agent.getUpdatedAt()
         );

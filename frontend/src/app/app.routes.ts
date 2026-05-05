@@ -567,6 +567,22 @@ export const routes: Routes = [
       import('./features/import/import.component').then((m) => m.ImportComponent),
   },
   {
+    path: 'user-management',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/user-management/user-management.component').then(
+        (m) => m.UserManagementComponent
+      ),
+  },
+  {
+    path: 'role-management',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/role-management/role-management.component').then(
+        (m) => m.RoleManagementComponent
+      ),
+  },
+  {
     path: 'settings',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -756,6 +772,73 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/referral-type/referral-type-form/referral-type-form.component').then(
         (m) => m.ReferralTypeFormComponent
+      ),
+  },
+  // ── Masters: Community ───────────────────────────────────────────────────
+  {
+    path: 'communities',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/community/community-list/community-list.component').then(
+        (m) => m.CommunityListComponent
+      ),
+  },
+  {
+    path: 'communities/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/community/community-form/community-form.component').then(
+        (m) => m.CommunityFormComponent
+      ),
+  },
+  {
+    path: 'communities/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/community/community-form/community-form.component').then(
+        (m) => m.CommunityFormComponent
+      ),
+  },
+  // ── Masters: Blood Group ─────────────────────────────────────────────────
+  {
+    path: 'blood-groups',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/blood-group/blood-group-list/blood-group-list.component').then(
+        (m) => m.BloodGroupListComponent
+      ),
+  },
+  {
+    path: 'blood-groups/new',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/blood-group/blood-group-form/blood-group-form.component').then(
+        (m) => m.BloodGroupFormComponent
+      ),
+  },
+  {
+    path: 'blood-groups/:id/edit',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/blood-group/blood-group-form/blood-group-form.component').then(
+        (m) => m.BloodGroupFormComponent
+      ),
+  },
+  // ── Administration: User & Role Management ───────────────────────────────
+  {
+    path: 'user-management',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/user-management/user-management.component').then(
+        (m) => m.UserManagementComponent
+      ),
+  },
+  {
+    path: 'role-management',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/role-management/role-management.component').then(
+        (m) => m.RoleManagementComponent
       ),
   },
   {

@@ -32,19 +32,19 @@ public class ExamEventController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExamEventDto> create(@Valid @RequestBody ExamEventRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(examEventService.create(request));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAMINATION_VIEW')")
     public ResponseEntity<ExamEventDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(examEventService.getById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAMINATION_VIEW')")
     public ResponseEntity<List<ExamEventDto>> getEvents(
             @RequestParam(required = false) Long examSessionId,
             @RequestParam(required = false) Long termInstanceId) {
@@ -55,14 +55,14 @@ public class ExamEventController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExamEventDto> update(@PathVariable Long id,
                                                @Valid @RequestBody ExamEventRequest request) {
         return ResponseEntity.ok(examEventService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         examEventService.delete(id);
         return ResponseEntity.noContent().build();

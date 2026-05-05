@@ -33,7 +33,7 @@ public class LabController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('LAB_MANAGE')")
     public ResponseEntity<LabResponse> create(@Valid @RequestBody LabRequest request) {
         LabResponse response = labService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -58,7 +58,7 @@ public class LabController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('LAB_VIEW')")
     public ResponseEntity<LabResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody LabRequest request) {
@@ -67,14 +67,14 @@ public class LabController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('LAB_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         labService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/assign")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('LAB_MANAGE')")
     public ResponseEntity<LabInChargeAssignmentResponse> assignInCharge(
             @PathVariable Long id,
             @Valid @RequestBody LabInChargeAssignmentRequest request) {
@@ -83,7 +83,7 @@ public class LabController {
     }
 
     @DeleteMapping("/{labId}/assignments/{assignmentId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('LAB_MANAGE')")
     public ResponseEntity<Void> removeAssignment(
             @PathVariable Long labId,
             @PathVariable Long assignmentId) {

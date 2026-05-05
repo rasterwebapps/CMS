@@ -33,7 +33,7 @@ public class MaintenanceRequestController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_TECHNICIAN')")
+    @PreAuthorize("@perm.has('MAINTENANCE_MANAGE')")
     public ResponseEntity<MaintenanceRequestResponse> create(@Valid @RequestBody MaintenanceRequestDto request) {
         MaintenanceRequestResponse response = maintenanceRequestService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -67,7 +67,7 @@ public class MaintenanceRequestController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_TECHNICIAN')")
+    @PreAuthorize("@perm.has('MAINTENANCE_MANAGE')")
     public ResponseEntity<MaintenanceRequestResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody MaintenanceRequestDto request) {
@@ -76,7 +76,7 @@ public class MaintenanceRequestController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('MAINTENANCE_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         maintenanceRequestService.delete(id);
         return ResponseEntity.noContent().build();

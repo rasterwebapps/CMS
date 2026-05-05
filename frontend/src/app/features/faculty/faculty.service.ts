@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Faculty, FacultyRequest, FacultyStatus } from './faculty.model';
+import { Faculty, FacultyDocument, FacultyRequest, FacultyStatus } from './faculty.model';
 
 @Injectable({
   providedIn: 'root',
@@ -39,5 +39,46 @@ export class FacultyService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  // ── Faculty Documents ─────────────────────────────────────────
+  getDocuments(facultyId: number): Observable<FacultyDocument[]> {
+    return this.http.get<FacultyDocument[]>(`${this.baseUrl}/${facultyId}/documents`);
+  }
+
+  uploadDocument(
+    facultyId: number,
+    documentType: string,
+    file: File,
+    remarks?: string,
+  ): Observable<FacultyDocument> {
+    const formData = new FormData();
+    formData.append('documentType', documentType);
+    formData.append('file', file);
+    if (remarks) formData.append('remarks', remarks);
+    return this.http.post<FacultyDocument>(
+      `${this.baseUrl}/${facultyId}/documents/upload`,
+      formData,
+    );
+  }
+
+  deleteDocument(facultyId: number, documentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${facultyId}/documents/${documentId}`);
+  }
+
+  documentDownloadUrl(facultyId: number, documentId: number): string {
+    return `${this.baseUrl}/${facultyId}/documents/${documentId}/download`;
+  }
+
+  /**
+   * Download/view a document via authenticated HTTP (the JWT is attached by
+   * `authInterceptor`). Plain `<a href>` links don't carry the bearer token and
+   * therefore fail with 401 against the API.
+   */
+  downloadDocumentBlob(facultyId: number, documentId: number): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/${facultyId}/documents/${documentId}/download`, {
+      observe: 'response',
+      responseType: 'blob',
+    });
   }
 }

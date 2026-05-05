@@ -30,7 +30,7 @@ public class CourseOfferingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('COURSE_VIEW')")
     public ResponseEntity<List<CourseOfferingDto>> getOfferings(
             @RequestParam Long termInstanceId,
             @RequestParam(required = false) Integer semesterNumber) {
@@ -42,20 +42,20 @@ public class CourseOfferingController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('COURSE_VIEW')")
     public ResponseEntity<CourseOfferingDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(courseOfferingService.getById(id));
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<Map<String, Integer>> generate(@RequestParam Long termInstanceId) {
         int count = courseOfferingService.generateOfferingsForTermInstance(termInstanceId);
         return ResponseEntity.ok(Map.of("offeringsCreated", count));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<CourseOfferingDto> update(
             @PathVariable Long id,
             @RequestBody CourseOfferingUpdateRequest request) {
@@ -64,7 +64,7 @@ public class CourseOfferingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
         courseOfferingService.deactivateOffering(id);
         return ResponseEntity.noContent().build();

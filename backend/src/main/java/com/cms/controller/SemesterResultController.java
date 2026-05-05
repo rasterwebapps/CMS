@@ -25,20 +25,20 @@ public class SemesterResultController {
     }
 
     @PostMapping("/compute")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<SemesterResultDto> computeForEnrollment(@RequestParam Long enrollmentId) {
         return ResponseEntity.ok(semesterResultService.computeForEnrollment(enrollmentId));
     }
 
     @PostMapping("/compute-term")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<Void> computeForTermInstance(@RequestParam Long termInstanceId) {
         semesterResultService.computeResultsForTermInstance(termInstanceId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<SemesterResultDto>> getResults(
             @RequestParam(required = false) Long termInstanceId,
             @RequestParam(required = false) Long studentId) {
@@ -49,13 +49,13 @@ public class SemesterResultController {
     }
 
     @GetMapping("/enrollment/{enrollmentId}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY','ROLE_STUDENT')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_VIEW')")
     public ResponseEntity<SemesterResultDto> getByEnrollment(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(semesterResultService.getByEnrollment(enrollmentId));
     }
 
     @PostMapping("/{id}/lock")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<SemesterResultDto> lock(@PathVariable Long id) {
         return ResponseEntity.ok(semesterResultService.lockResult(id));
     }

@@ -1,9 +1,14 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.FacultyType;
+import com.cms.model.enums.Gender;
+import com.cms.model.enums.MaritalStatus;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -46,5 +51,53 @@ public record FacultyRequest(
     @NotNull(message = "Joining date is required")
     LocalDate joiningDate,
 
-    FacultyStatus status
+    FacultyStatus status,
+
+    // ── Extended profile (all optional) ─────────────────────────
+    FacultyType facultyType,
+
+    @Size(max = 20)
+    String panNumber,
+
+    @Size(max = 20)
+    String aadhaarNumber,
+
+    LocalDate dateOfBirth,
+    Gender gender,
+    MaritalStatus maritalStatus,
+
+    @Size(max = 100)
+    String nationality,
+
+    @Size(max = 100)
+    String religion,
+
+    @Size(max = 20)
+    String bloodGroup,
+
+    @Size(max = 40)
+    String bankAccountNumber,
+
+    @Size(max = 20)
+    String bankIfscCode,
+
+    @Size(max = 150)
+    String bankBranch,
+
+    @Size(max = 150)
+    String bankName,
+
+    @Size(max = 150)
+    String bankAccountHolder,
+
+    BankAccountType bankAccountType,
+
+    AddressRequest address,
+
+    BigDecimal teachingExperienceUgYears,
+    BigDecimal teachingExperiencePgYears,
+    BigDecimal teachingExperiencePhdYears,
+    BigDecimal clinicalExperienceUgYears,
+    BigDecimal clinicalExperiencePgYears,
+    BigDecimal clinicalExperiencePhdYears
 ) {}

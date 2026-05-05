@@ -36,7 +36,7 @@ public class StudentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
     public ResponseEntity<StudentResponse> create(@Valid @RequestBody StudentRequest request) {
         StudentResponse response = studentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -80,7 +80,7 @@ public class StudentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('STUDENT_VIEW')")
     public ResponseEntity<StudentResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody StudentRequest request) {
@@ -89,7 +89,7 @@ public class StudentController {
     }
 
     @PatchMapping("/{id}/roll-number")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
     public ResponseEntity<StudentResponse> assignRollNumber(
             @PathVariable Long id,
             @Valid @RequestBody RollNumberAssignmentRequest request) {
@@ -97,14 +97,14 @@ public class StudentController {
     }
 
     @PostMapping("/bulk-assign-roll-numbers")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
     public ResponseEntity<List<StudentResponse>> bulkAssignRollNumbers(
             @Valid @RequestBody BulkRollNumberAssignmentRequest request) {
         return ResponseEntity.ok(studentService.bulkAssignRollNumbers(request.assignments()));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         studentService.delete(id);
         return ResponseEntity.noContent().build();

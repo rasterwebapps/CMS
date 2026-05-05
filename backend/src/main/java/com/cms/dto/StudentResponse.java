@@ -3,8 +3,6 @@ package com.cms.dto;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.cms.model.enums.BloodGroup;
-import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
@@ -34,13 +32,17 @@ public record StudentResponse(
     // Demographics
     String nationality,
     String religion,
-    CommunityCategory communityCategory,
+    String communityCategory,
     String caste,
-    BloodGroup bloodGroup,
+    String bloodGroup,
 
     // Family information
     String fatherName,
+    String fatherPhone,
+    String fatherEmail,
     String motherName,
+    String motherPhone,
+    String motherEmail,
     String parentMobile,
 
     // Address

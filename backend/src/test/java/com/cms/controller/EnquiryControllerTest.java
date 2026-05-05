@@ -197,7 +197,8 @@ class EnquiryControllerTest {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1,
             LocalDate.of(2024, 7, 1), 100L, LocalDate.of(2024, 7, 1), true, true,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
         );
 
         EnquiryResponse response = new EnquiryResponse(

@@ -9,6 +9,10 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
 import { StudentRequest } from '../student.model';
+import { CommunityService } from '../../community/community.service';
+import { BloodGroupService } from '../../blood-group/blood-group.service';
+import { Community } from '../../community/community.model';
+import { BloodGroup } from '../../blood-group/blood-group.model';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_FORM_TOUR } from '../../../shared/tour/tours/student.tours';
@@ -47,17 +51,19 @@ export class StudentFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly tourService = inject(TourService);
+  private readonly communityService = inject(CommunityService);
+  private readonly bloodGroupService = inject(BloodGroupService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Student');
   protected readonly programs = signal<Program[]>([]);
+  protected readonly communities = signal<Community[]>([]);
+  protected readonly bloodGroups = signal<BloodGroup[]>([]);
 
   protected readonly statusOptions = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'];
-  protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'];
-  protected readonly bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   // Preview signals
   protected readonly previewFirstName = signal('');
@@ -113,7 +119,11 @@ export class StudentFormComponent implements OnInit {
     caste: [''],
     bloodGroup: [''],
     fatherName: [''],
+    fatherPhone: [''],
+    fatherEmail: ['', Validators.email],
     motherName: [''],
+    motherPhone: [''],
+    motherEmail: ['', Validators.email],
     parentMobile: [''],
     postalAddress: [''],
     street: [''],
@@ -143,6 +153,12 @@ export class StudentFormComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('student-form', STUDENT_FORM_TOUR);
     this.loadPrograms();
+    this.communityService.getActiveCommunities().subscribe({
+      next: (data) => this.communities.set(data),
+    });
+    this.bloodGroupService.getActiveBloodGroups().subscribe({
+      next: (data) => this.bloodGroups.set(data),
+    });
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.studentId = Number(idParam);
@@ -178,7 +194,11 @@ export class StudentFormComponent implements OnInit {
       caste: v.caste?.trim() || undefined,
       bloodGroup: v.bloodGroup || undefined,
       fatherName: v.fatherName?.trim() || undefined,
+      fatherPhone: v.fatherPhone?.trim() || undefined,
+      fatherEmail: v.fatherEmail?.trim() || undefined,
       motherName: v.motherName?.trim() || undefined,
+      motherPhone: v.motherPhone?.trim() || undefined,
+      motherEmail: v.motherEmail?.trim() || undefined,
       parentMobile: v.parentMobile?.trim() || undefined,
       address: {
         postalAddress: v.postalAddress?.trim() || undefined,
@@ -271,7 +291,11 @@ export class StudentFormComponent implements OnInit {
           caste: student.caste || '',
           bloodGroup: student.bloodGroup || '',
           fatherName: student.fatherName || '',
+          fatherPhone: student.fatherPhone || '',
+          fatherEmail: student.fatherEmail || '',
           motherName: student.motherName || '',
+          motherPhone: student.motherPhone || '',
+          motherEmail: student.motherEmail || '',
           parentMobile: student.parentMobile || '',
           postalAddress: student.postalAddress || '',
           street: student.street || '',

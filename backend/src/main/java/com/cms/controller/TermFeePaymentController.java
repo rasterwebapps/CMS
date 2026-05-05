@@ -32,7 +32,7 @@ public class TermFeePaymentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_CASHIER')")
+    @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<TermFeePaymentDto> recordPayment(
             @Valid @RequestBody TermFeePaymentRequest request) {
         TermFeePaymentDto dto = termFeePaymentService.recordPayment(request);

@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,11 +25,13 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.AdmissionDocument;
+import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AdmissionDocumentRepository;
+import com.cms.repository.AdmissionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AdmissionDocumentServiceTest {
@@ -36,16 +39,28 @@ class AdmissionDocumentServiceTest {
     @Mock
     private AdmissionDocumentRepository admissionDocumentRepository;
 
+    @Mock
+    private AdmissionRepository admissionRepository;
+
     private AdmissionDocumentService admissionDocumentService;
 
     @BeforeEach
     void setUp() {
-        admissionDocumentService = new AdmissionDocumentService(admissionDocumentRepository);
+        admissionDocumentService = new AdmissionDocumentService(admissionDocumentRepository, admissionRepository);
     }
 
     private Admission createAdmission(Long id) {
+        return createAdmission(id, null);
+    }
+
+    private Admission createAdmission(Long id, Set<DocumentType> programRequiredTypes) {
+        Program program = null;
+        if (programRequiredTypes != null) {
+            program = new Program("Bachelor", "BACHELOR", 4);
+            program.setRequiredDocumentTypes(programRequiredTypes);
+        }
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
-            null, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
+            program, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
         student.setId(1L);
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), true);
         ay.setId(100L);
@@ -117,10 +132,11 @@ class AdmissionDocumentServiceTest {
     }
 
     @Test
-    void shouldGetChecklistWithAllDocumentTypes() {
+    void shouldGetChecklistWithAllDocumentTypesWhenProgramHasNoMapping() {
         Admission admission = createAdmission(1L);
         AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
         doc.setVerificationStatus(DocumentVerificationStatus.VERIFIED);
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of(doc));
 
         Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
@@ -133,10 +149,42 @@ class AdmissionDocumentServiceTest {
 
     @Test
     void shouldReturnAllDocumentTypesAsNotUploadedWhenNoDocuments() {
+        Admission admission = createAdmission(1L);
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of());
         Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
         assertThat(checklist).hasSize(DocumentType.values().length);
         checklist.values().forEach(status ->
             assertThat(status).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED));
+    }
+
+    @Test
+    void shouldGetChecklistOnlyForProgramRequiredTypesWhenConfigured() {
+        Set<DocumentType> required = Set.of(
+            DocumentType.AADHAR_CARD,
+            DocumentType.TENTH_MARKSHEET,
+            DocumentType.PASSPORT_PHOTO
+        );
+        Admission admission = createAdmission(1L, required);
+        AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        doc.setVerificationStatus(DocumentVerificationStatus.VERIFIED);
+        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
+        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of(doc));
+
+        Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
+
+        assertThat(checklist).hasSize(3);
+        assertThat(checklist.keySet()).containsExactlyInAnyOrderElementsOf(required);
+        assertThat(checklist.get(DocumentType.AADHAR_CARD)).isEqualTo(DocumentVerificationStatus.VERIFIED);
+        assertThat(checklist.get(DocumentType.TENTH_MARKSHEET)).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED);
+        assertThat(checklist.get(DocumentType.PASSPORT_PHOTO)).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED);
+    }
+
+    @Test
+    void shouldThrowWhenAdmissionNotFoundForChecklist() {
+        when(admissionRepository.findById(999L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> admissionDocumentService.getChecklist(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Admission not found with id: 999");
     }
 }

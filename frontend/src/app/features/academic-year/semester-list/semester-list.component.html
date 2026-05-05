@@ -21,18 +21,6 @@
 
   <!-- Toolbar -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <select
-      id="tour-sem-filters"
-      class="mlp-filter-select"
-      [value]="selectedAcademicYearId() ?? ''"
-      (change)="onAcademicYearChange(+$any($event.target).value || null)"
-      aria-label="Filter by academic year"
-    >
-      <option value="">All Academic Years</option>
-      @for (ay of academicYears(); track ay.id) {
-        <option [value]="ay.id">{{ ay.name }}</option>
-      }
-    </select>
     <div id="tour-sem-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
@@ -49,7 +37,19 @@
         </button>
       }
     </div>
-    <div id="tour-sem-view-toggle"><cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" /></div>
+    <select
+      id="tour-sem-filters"
+      class="mlp-filter-select"
+      [value]="selectedAcademicYearId() ?? ''"
+      (change)="onAcademicYearChange(+$any($event.target).value || null)"
+      aria-label="Filter by academic year"
+    >
+      <option value="">All Academic Years</option>
+      @for (ay of academicYears(); track ay.id) {
+        <option [value]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <div id="tour-sem-view-toggle" style="margin-left:auto"><cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" /></div>
   </div>
 
   @if (loading()) {

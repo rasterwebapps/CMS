@@ -26,7 +26,7 @@ public class StudentTermEnrollmentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
     public ResponseEntity<?> getEnrollments(
             @RequestParam(required = false) Long termInstanceId,
             @RequestParam(required = false) Long studentId,
@@ -42,13 +42,13 @@ public class StudentTermEnrollmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE')")
+    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
     public ResponseEntity<StudentTermEnrollmentDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<Map<String, Integer>> generate(@RequestParam Long termInstanceId) {
         int count = service.generateEnrollmentsForTermInstance(termInstanceId);
         return ResponseEntity.ok(Map.of("enrollmentsCreated", count));

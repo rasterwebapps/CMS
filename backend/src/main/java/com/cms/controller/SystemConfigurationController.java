@@ -33,7 +33,7 @@ public class SystemConfigurationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('SETTINGS_MANAGE')")
     public ResponseEntity<SystemConfigurationResponse> create(
             @Valid @RequestBody SystemConfigurationRequest request) {
         SystemConfigurationResponse response = systemConfigurationService.create(request);
@@ -67,7 +67,7 @@ public class SystemConfigurationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('SETTINGS_MANAGE')")
     public ResponseEntity<SystemConfigurationResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody SystemConfigurationRequest request) {
@@ -76,7 +76,7 @@ public class SystemConfigurationController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('SETTINGS_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         systemConfigurationService.delete(id);
         return ResponseEntity.noContent().build();

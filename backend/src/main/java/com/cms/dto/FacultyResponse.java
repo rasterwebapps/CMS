@@ -1,10 +1,15 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.FacultyType;
+import com.cms.model.enums.Gender;
+import com.cms.model.enums.MaritalStatus;
 
 public record FacultyResponse(
     Long id,
@@ -21,6 +26,28 @@ public record FacultyResponse(
     String labExpertise,
     LocalDate joiningDate,
     FacultyStatus status,
+    FacultyType facultyType,
+    String panNumber,
+    String aadhaarNumber,
+    LocalDate dateOfBirth,
+    Gender gender,
+    MaritalStatus maritalStatus,
+    String nationality,
+    String religion,
+    String bloodGroup,
+    String bankAccountNumber,
+    String bankIfscCode,
+    String bankBranch,
+    String bankName,
+    String bankAccountHolder,
+    BankAccountType bankAccountType,
+    AddressRequest address,
+    BigDecimal teachingExperienceUgYears,
+    BigDecimal teachingExperiencePgYears,
+    BigDecimal teachingExperiencePhdYears,
+    BigDecimal clinicalExperienceUgYears,
+    BigDecimal clinicalExperiencePgYears,
+    BigDecimal clinicalExperiencePhdYears,
     Instant createdAt,
     Instant updatedAt
 ) {}

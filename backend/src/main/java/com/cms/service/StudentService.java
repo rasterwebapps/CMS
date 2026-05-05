@@ -86,7 +86,11 @@ public class StudentService {
 
         // Family information
         student.setFatherName(request.fatherName());
+        student.setFatherPhone(request.fatherPhone());
+        student.setFatherEmail(request.fatherEmail());
         student.setMotherName(request.motherName());
+        student.setMotherPhone(request.motherPhone());
+        student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
 
         // Address
@@ -192,7 +196,11 @@ public class StudentService {
 
         // Family information
         student.setFatherName(request.fatherName());
+        student.setFatherPhone(request.fatherPhone());
+        student.setFatherEmail(request.fatherEmail());
         student.setMotherName(request.motherName());
+        student.setMotherPhone(request.motherPhone());
+        student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
 
         // Address
@@ -290,7 +298,11 @@ public class StudentService {
             student.getCaste(),
             student.getBloodGroup(),
             student.getFatherName(),
+            student.getFatherPhone(),
+            student.getFatherEmail(),
             student.getMotherName(),
+            student.getMotherPhone(),
+            student.getMotherEmail(),
             student.getParentMobile(),
             address != null ? address.getPostalAddress() : null,
             address != null ? address.getStreet() : null,

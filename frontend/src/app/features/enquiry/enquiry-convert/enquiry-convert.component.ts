@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SlicePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
@@ -9,6 +8,10 @@ import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } from '../enquiry.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear } from '../../academic-year/academic-year.model';
+import { CommunityService } from '../../community/community.service';
+import { BloodGroupService } from '../../blood-group/blood-group.service';
+import { Community } from '../../community/community.model';
+import { BloodGroup } from '../../blood-group/blood-group.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -40,9 +43,14 @@ export class EnquiryConvertComponent implements OnInit {
 
   protected readonly computeInitials = computeInitials;
 
+  private readonly communityService = inject(CommunityService);
+  private readonly bloodGroupService = inject(BloodGroupService);
+
   protected readonly enquiry          = signal<Enquiry | null>(null);
   protected readonly prefill          = signal<EnquiryConversionPrefillResponse | null>(null);
   protected readonly academicYears    = signal<AcademicYear[]>([]);
+  protected readonly communities      = signal<Community[]>([]);
+  protected readonly bloodGroups      = signal<BloodGroup[]>([]);
   protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly loading          = signal(true);
   protected readonly saving           = signal(false);
@@ -52,13 +60,6 @@ export class EnquiryConvertComponent implements OnInit {
   protected readonly applicantConsentFile = signal<File | null>(null);
 
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
-  protected readonly communityOptions = ['SC', 'ST', 'BC', 'MBC', 'DNC', 'OC', 'OTHERS'] as const;
-  protected readonly bloodGroupOptions = [
-    'A_POSITIVE', 'A_NEGATIVE',
-    'B_POSITIVE', 'B_NEGATIVE',
-    'O_POSITIVE', 'O_NEGATIVE',
-    'AB_POSITIVE', 'AB_NEGATIVE',
-  ] as const;
 
   protected readonly form: FormGroup = this.fb.group({
     firstName:    ['', Validators.required],
@@ -81,7 +82,11 @@ export class EnquiryConvertComponent implements OnInit {
     caste:             [''],
     bloodGroup:        [''],
     fatherName:        [''],
+    fatherPhone:       [''],
+    fatherEmail:       ['', Validators.email],
     motherName:        [''],
+    motherPhone:       [''],
+    motherEmail:       ['', Validators.email],
     parentMobile:      [''],
 
     address: this.fb.group({
@@ -110,10 +115,14 @@ export class EnquiryConvertComponent implements OnInit {
       enquiry: this.enquiryService.getEnquiryById(id),
       prefill:  this.enquiryService.getConversionPrefill(id),
       years:    this.academicYearSvc.getAllAcademicYears(),
+      communities: this.communityService.getActiveCommunities(),
+      bloodGroups: this.bloodGroupService.getActiveBloodGroups(),
     }).subscribe({
-      next: ({ enquiry, prefill, years }) => {
+      next: ({ enquiry, prefill, years, communities, bloodGroups }) => {
         this.enquiry.set(enquiry);
         this.prefill.set(prefill);
+        this.communities.set(communities);
+        this.bloodGroups.set(bloodGroups);
 
         // Sort years newest-first for the dropdown
         const sorted = [...years].sort((a, b) =>
@@ -199,7 +208,7 @@ export class EnquiryConvertComponent implements OnInit {
     }
     if (this.applicantConsentFile()) {
       uploads.push(
-        this.enquiryService.uploadDocumentFile(enquiryId, 'UNDERTAKING_DOCUMENT', this.applicantConsentFile()!)
+        this.enquiryService.uploadDocumentFile(enquiryId, 'PROVISIONAL_CERTIFICATE', this.applicantConsentFile()!)
       );
     }
 
@@ -247,11 +256,15 @@ export class EnquiryConvertComponent implements OnInit {
       aadharNumber:       this.nullable(v['aadharNumber'] as string) ?? null,
       nationality:        this.nullable(v['nationality'] as string) ?? null,
       religion:           this.nullable(v['religion'] as string) ?? null,
-      communityCategory:  (this.nullable(v['communityCategory']) as EnquiryConversionRequest['communityCategory']) ?? null,
+      communityCategory:  this.nullable(v['communityCategory'] as string) ?? null,
       caste:              this.nullable(v['caste'] as string) ?? null,
-      bloodGroup:         (this.nullable(v['bloodGroup']) as EnquiryConversionRequest['bloodGroup']) ?? null,
+      bloodGroup:         this.nullable(v['bloodGroup'] as string) ?? null,
       fatherName:         this.nullable(v['fatherName'] as string) ?? null,
+      fatherPhone:        this.nullable(v['fatherPhone'] as string) ?? null,
+      fatherEmail:        this.nullable(v['fatherEmail'] as string) ?? null,
       motherName:         this.nullable(v['motherName'] as string) ?? null,
+      motherPhone:        this.nullable(v['motherPhone'] as string) ?? null,
+      motherEmail:        this.nullable(v['motherEmail'] as string) ?? null,
       parentMobile:       this.nullable(v['parentMobile'] as string) ?? null,
 
       address: hasAddress ? {

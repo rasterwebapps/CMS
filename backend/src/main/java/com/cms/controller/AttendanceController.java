@@ -35,14 +35,14 @@ public class AttendanceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<AttendanceResponse> markAttendance(@Valid @RequestBody AttendanceRequest request) {
         AttendanceResponse response = attendanceService.markAttendance(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/bulk")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AttendanceResponse>> markBulkAttendance(
             @Valid @RequestBody BulkAttendanceRequest request) {
         List<AttendanceResponse> responses = attendanceService.markBulkAttendance(request);
@@ -78,7 +78,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/alerts")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AttendanceReportResponse>> getLowAttendanceAlerts(
             @RequestParam Long subjectId) {
         List<AttendanceReportResponse> alerts = attendanceService.getLowAttendanceAlerts(subjectId);
@@ -86,7 +86,7 @@ public class AttendanceController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<AttendanceResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody AttendanceRequest request) {
@@ -95,7 +95,7 @@ public class AttendanceController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         attendanceService.delete(id);
         return ResponseEntity.noContent().build();

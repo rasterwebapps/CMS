@@ -6,9 +6,13 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.BankAccountType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,6 +46,33 @@ public class Agent {
 
     @Column(name = "is_active")
     private Boolean isActive;
+
+    // ── Identity ───────────────────────────────────────────────
+    @Column(name = "pan_number")
+    private String panNumber;
+
+    @Column(name = "aadhaar_number")
+    private String aadhaarNumber;
+
+    // ── Bank details ───────────────────────────────────────────
+    @Column(name = "bank_account_number")
+    private String bankAccountNumber;
+
+    @Column(name = "bank_ifsc_code")
+    private String bankIfscCode;
+
+    @Column(name = "bank_branch")
+    private String bankBranch;
+
+    @Column(name = "bank_name")
+    private String bankName;
+
+    @Column(name = "bank_account_holder")
+    private String bankAccountHolder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bank_account_type")
+    private BankAccountType bankAccountType;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -134,6 +165,30 @@ public class Agent {
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
     }
+
+    public String getPanNumber() { return panNumber; }
+    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
+
+    public String getAadhaarNumber() { return aadhaarNumber; }
+    public void setAadhaarNumber(String aadhaarNumber) { this.aadhaarNumber = aadhaarNumber; }
+
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
+
+    public String getBankIfscCode() { return bankIfscCode; }
+    public void setBankIfscCode(String bankIfscCode) { this.bankIfscCode = bankIfscCode; }
+
+    public String getBankBranch() { return bankBranch; }
+    public void setBankBranch(String bankBranch) { this.bankBranch = bankBranch; }
+
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+
+    public String getBankAccountHolder() { return bankAccountHolder; }
+    public void setBankAccountHolder(String bankAccountHolder) { this.bankAccountHolder = bankAccountHolder; }
+
+    public BankAccountType getBankAccountType() { return bankAccountType; }
+    public void setBankAccountType(BankAccountType bankAccountType) { this.bankAccountType = bankAccountType; }
 
     public Instant getCreatedAt() {
         return createdAt;

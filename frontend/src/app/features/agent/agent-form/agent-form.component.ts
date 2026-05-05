@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AgentService } from '../agent.service';
-import { AgentRequest } from '../agent.model';
+import { AgentRequest, AGENT_BANK_ACCOUNT_TYPE_OPTIONS } from '../agent.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -43,6 +43,8 @@ export class AgentFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Agent');
 
+  protected readonly bankAccountTypeOptions = AGENT_BANK_ACCOUNT_TYPE_OPTIONS;
+
   protected readonly previewName     = signal('');
   protected readonly previewPhone    = signal('');
   protected readonly previewEmail    = signal('');
@@ -62,11 +64,13 @@ export class AgentFormComponent implements OnInit {
     { icon: 'person',         title: 'Identity',   subtitle: 'Use the agent\'s legal name as it should appear on receipts and reports.' },
     { icon: 'location_on',    title: 'Coverage',   subtitle: 'Area + Locality help cluster admissions geographically for analytics.' },
     { icon: 'currency_rupee', title: 'Commission', subtitle: 'Override the master Referral Type amount only if this agent has a special rate.' },
+    { icon: 'account_balance', title: 'Bank Details', subtitle: 'Required to disburse commission payouts. PAN + bank info should match.' },
   ];
 
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
+    // Basic
     name: ['', [Validators.required, Validators.maxLength(255)]],
     phone: [''],
     email: [''],
@@ -75,6 +79,18 @@ export class AgentFormComponent implements OnInit {
     allottedSeats: [null as number | null],
     commissionAmount: [null as number | null, [Validators.min(0)]],
     isActive: [true],
+
+    // Identity
+    panNumber: ['', [Validators.maxLength(20)]],
+    aadhaarNumber: ['', [Validators.maxLength(20)]],
+
+    // Bank
+    bankAccountHolder: [''],
+    bankAccountNumber: [''],
+    bankIfscCode: [''],
+    bankName: [''],
+    bankBranch: [''],
+    bankAccountType: [null as string | null],
   });
 
   constructor() {
@@ -108,6 +124,14 @@ export class AgentFormComponent implements OnInit {
             allottedSeats: item.allottedSeats,
             commissionAmount: item.commissionAmount,
             isActive: item.isActive,
+            panNumber: item.panNumber || '',
+            aadhaarNumber: item.aadhaarNumber || '',
+            bankAccountHolder: item.bankAccountHolder || '',
+            bankAccountNumber: item.bankAccountNumber || '',
+            bankIfscCode: item.bankIfscCode || '',
+            bankName: item.bankName || '',
+            bankBranch: item.bankBranch || '',
+            bankAccountType: item.bankAccountType ?? null,
           });
           this.loading.set(false);
         },
@@ -139,6 +163,14 @@ export class AgentFormComponent implements OnInit {
       allottedSeats: v.allottedSeats ?? undefined,
       commissionAmount: v.commissionAmount ?? undefined,
       isActive: v.isActive,
+      panNumber: v.panNumber?.trim()?.toUpperCase() || undefined,
+      aadhaarNumber: v.aadhaarNumber?.trim() || undefined,
+      bankAccountHolder: v.bankAccountHolder?.trim() || undefined,
+      bankAccountNumber: v.bankAccountNumber?.trim() || undefined,
+      bankIfscCode: v.bankIfscCode?.trim()?.toUpperCase() || undefined,
+      bankName: v.bankName?.trim() || undefined,
+      bankBranch: v.bankBranch?.trim() || undefined,
+      bankAccountType: v.bankAccountType || undefined,
     };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.agentService.updateAgent(this.itemId!, request) : this.agentService.createAgent(request);

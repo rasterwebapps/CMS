@@ -33,14 +33,14 @@ public class TermBillingScheduleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('FEE_STRUCTURE_MANAGE')")
     public ResponseEntity<TermBillingScheduleDto> createOrUpdate(
             @Valid @RequestBody TermBillingScheduleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createOrUpdate(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('FEE_STRUCTURE_MANAGE')")
     public ResponseEntity<TermBillingScheduleDto> update(
             @PathVariable Long id,
             @Valid @RequestBody TermBillingScheduleRequest request) {

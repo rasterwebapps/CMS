@@ -20,7 +20,11 @@ export interface Student {
   caste?: string;
   bloodGroup?: string;
   fatherName?: string;
+  fatherPhone?: string;
+  fatherEmail?: string;
   motherName?: string;
+  motherPhone?: string;
+  motherEmail?: string;
   parentMobile?: string;
   postalAddress?: string;
   street?: string;
@@ -113,7 +117,11 @@ export interface StudentRequest {
   caste?: string;
   bloodGroup?: string;
   fatherName?: string;
+  fatherPhone?: string;
+  fatherEmail?: string;
   motherName?: string;
+  motherPhone?: string;
+  motherEmail?: string;
   parentMobile?: string;
   address?: {
     postalAddress?: string;

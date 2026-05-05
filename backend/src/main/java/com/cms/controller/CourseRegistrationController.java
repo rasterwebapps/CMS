@@ -27,7 +27,7 @@ public class CourseRegistrationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
     public ResponseEntity<?> getRegistrations(
             @RequestParam(required = false) Long enrollmentId,
             @RequestParam(required = false) Long courseOfferingId) {
@@ -40,20 +40,20 @@ public class CourseRegistrationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FRONT_OFFICE','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
     public ResponseEntity<CourseRegistrationDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(courseRegistrationService.getById(id));
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<Map<String, Integer>> generate(@RequestParam Long termInstanceId) {
         int count = courseRegistrationService.generateRegistrationsForTermInstance(termInstanceId);
         return ResponseEntity.ok(Map.of("registrationsCreated", count));
     }
 
     @PutMapping("/{id}/drop")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<CourseRegistrationDto> drop(@PathVariable Long id) {
         return ResponseEntity.ok(courseRegistrationService.dropRegistration(id));
     }

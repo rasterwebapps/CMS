@@ -1,0 +1,255 @@
+<div class="rm-page">
+
+  <!-- ══ PAGE HEADER ════════════════════════════════════════════════════ -->
+  <div class="rm-hdr anim-rise">
+    <div class="rm-hdr-left">
+      <h1 class="rm-title">Role <em>Management</em></h1>
+      <p class="rm-sub">Configure roles and assign granular permissions per module.</p>
+    </div>
+    @if (canCreate()) {
+      <button class="btn-primary" (click)="openCreate()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Role
+      </button>
+    }
+  </div>
+
+  <!-- ══ WORKSPACE: LEFT roles | RIGHT permissions ══════════════════════ -->
+  <div class="rm-workspace">
+
+    <!-- ── LEFT: Role list ──────────────────────────────────────────────── -->
+    <div class="rm-roles-col">
+
+      <!-- Simple search — filters role list in real time via searchTerm signal -->
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+          placeholder="Search roles…"
+          type="text"
+          aria-label="Search roles"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        @if (searchTerm()) {
+          <button class="search-bar__clear" (click)="searchTerm.set('')" aria-label="Clear">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        }
+      </div>
+
+      @if (loading()) {
+        <div class="rm-state-center"><mat-spinner diameter="28"></mat-spinner></div>
+      } @else if (filteredRoles().length === 0) {
+        <div class="rm-state-center rm-state-center--empty">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <p>No roles found</p>
+        </div>
+      } @else {
+        <div class="role-list">
+          @for (role of filteredRoles(); track role.id) {
+            <div class="role-card"
+                 [class.role-card--selected]="editTarget()?.id === role.id"
+                 [class.role-card--system]="role.isSystemRole"
+                 (click)="openEdit(role)"
+                 role="button" tabindex="0"
+                 (keydown.enter)="openEdit(role)"
+                 [attr.aria-selected]="editTarget()?.id === role.id">
+
+              <div class="role-card__icon" [attr.data-level]="role.hierarchyLevel">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+
+              <div class="role-card__info">
+                <div class="role-card__top">
+                  <span class="role-card__name">{{ role.displayName }}</span>
+                  @if (role.isSystemRole) { <span class="system-tag">System</span> }
+                </div>
+                <span class="role-card__code">{{ role.name }}</span>
+                @if (role.description) {
+                  <span class="role-card__desc">{{ role.description }}</span>
+                }
+              </div>
+
+              <div class="role-card__right">
+                <span class="level-badge" [attr.data-level]="role.hierarchyLevel">{{ levelLabel(role.hierarchyLevel) }}</span>
+                <span class="perm-count">{{ permCount(role) }} perms</span>
+              </div>
+
+              <div class="role-card__arrow" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── RIGHT: Permission editor ─────────────────────────────────────── -->
+    <div class="rm-editor-col">
+
+      @if (!panelMode()) {
+        <div class="rm-editor-empty">
+          <div class="rm-editor-empty__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3 class="rm-editor-empty__title">Select a role to configure</h3>
+          <p class="rm-editor-empty__sub">Click any role in the list on the left to view and edit its permissions.</p>
+        </div>
+
+      } @else if (panelMode() === 'create') {
+        <div class="rm-create-wrap">
+          <div class="rm-create__hdr">
+            <div class="rm-create__hdr-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="rm-create__hdr-text">
+              <h2 class="rm-create__title">Create New Role</h2>
+              <p class="rm-create__sub">Define the role code and display name. Assign permissions after creation.</p>
+            </div>
+            <button class="panel-close" (click)="closePanel()" aria-label="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="rm-create__body">
+            <div class="field-group">
+              <label class="field-label">Role Code <span class="req">*</span></label>
+              <input class="field-input" type="text" [(ngModel)]="createForm.name" placeholder="e.g. FRONT_DESK" autocomplete="off" />
+              <p class="field-hint">Stored as uppercase with underscores.</p>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Display Name <span class="req">*</span></label>
+              <input class="field-input" type="text" [(ngModel)]="createForm.displayName" placeholder="e.g. Front Desk" autocomplete="off" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Description</label>
+              <textarea class="field-input" rows="3" [(ngModel)]="createForm.description" placeholder="Optional description…"></textarea>
+            </div>
+          </div>
+          <div class="rm-create__footer">
+            <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving()" (click)="submitCreate()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Create Role
+            </button>
+          </div>
+        </div>
+
+      } @else if (panelMode() === 'edit') {
+
+        <!-- Role info banner -->
+        <div class="rm-perms-banner">
+          <div class="rm-perms-banner__role-icon" [attr.data-level]="editTarget()?.hierarchyLevel">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="rm-perms-banner__info">
+            <h2 class="rm-perms-banner__name">{{ editTarget()?.displayName }}</h2>
+            <p class="rm-perms-banner__meta">
+              <span class="level-badge" [attr.data-level]="editTarget()?.hierarchyLevel">{{ levelLabel(editTarget()?.hierarchyLevel ?? 6) }}</span>
+              @if (editTarget()?.description) {
+                <span class="rm-perms-banner__desc">{{ editTarget()?.description }}</span>
+              }
+            </p>
+          </div>
+          <div class="rm-perms-banner__stats">
+            <span class="rm-perms-banner__count">
+              <strong class="rm-perms-banner__num">{{ editPermCodes().size }}</strong>
+              <span class="rm-perms-banner__of">/ {{ allPerms().length }}</span>
+            </span>
+            <span class="rm-perms-banner__stat-label">selected</span>
+          </div>
+          <div class="rm-perms-banner__controls">
+            <button class="link-btn" (click)="expandAll()">Expand all</button>
+            <span class="sep">·</span>
+            <button class="link-btn" (click)="collapseAll()">Collapse all</button>
+            <button class="panel-close" (click)="closePanel()" aria-label="Close editor" matTooltip="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Permission accordion matrix -->
+        <div class="perm-matrix">
+          @for (group of permGroups(); track group.category) {
+            <div class="perm-group"
+                 [class.perm-group--open]="isGroupExpanded(group.category)"
+                 [class.perm-group--all]="allInGroupChecked(group)"
+                 [class.perm-group--some]="someInGroupChecked(group)"
+                 [attr.data-cat]="group.category">
+
+              <!-- Accordion header: click to expand/collapse -->
+              <div class="perm-group__hdr"
+                   role="button" tabindex="0"
+                   (click)="toggleGroupExpand(group.category)"
+                   (keydown.enter)="toggleGroupExpand(group.category)"
+                   (keydown.space)="$event.preventDefault(); toggleGroupExpand(group.category)"
+                   [attr.aria-expanded]="isGroupExpanded(group.category)">
+
+                <label class="perm-group__master-cb" (click)="$event.stopPropagation()" matTooltip="Toggle all in group">
+                  <input type="checkbox" class="perm-checkbox"
+                         [checked]="allInGroupChecked(group)"
+                         [indeterminate]="someInGroupChecked(group)"
+                         (change)="toggleGroup(group)" />
+                </label>
+
+                <span class="perm-group__cat-dot"></span>
+                <span class="perm-group__label">{{ group.category }}</span>
+
+                <div class="perm-group__progress">
+                  <div class="perm-group__progress-track">
+                    <div class="perm-group__progress-fill"
+                         [style.width.%]="group.permissions.length > 0 ? (groupSelectedCount(group) / group.permissions.length * 100) : 0">
+                    </div>
+                  </div>
+                  <span class="perm-group__count">
+                    {{ groupSelectedCount(group) }}<span class="perm-group__count-sep">/</span>{{ group.permissions.length }}
+                  </span>
+                </div>
+
+                <svg class="perm-group__chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+
+              <!-- Expanded body: one row per resource prefix -->
+              @if (isGroupExpanded(group.category)) {
+                <div class="perm-group__items">
+                  @for (sub of group.subGroups; track sub.prefix) {
+                    <div class="perm-subgroup">
+                      @for (p of sub.permissions; track p.code) {
+                        <label class="perm-item" [class.perm-item--checked]="isPermChecked(p.code)">
+                          <input type="checkbox" class="perm-checkbox"
+                                 [checked]="isPermChecked(p.code)"
+                                 (change)="togglePerm(p.code)" />
+                          <div class="perm-item__text">
+                            <span class="perm-item__name">{{ p.displayName }}</span>
+                            <span class="perm-item__code">{{ p.code }}</span>
+                          </div>
+                        </label>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Save footer -->
+        <div class="rm-perms-footer">
+          <span class="rm-perms-footer__summary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            {{ editPermCodes().size }} of {{ allPerms().length }} permissions selected
+          </span>
+          <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+          <button class="btn-primary" [disabled]="saving()" (click)="submitEdit()">
+            @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+            Save Permissions
+          </button>
+        </div>
+      }
+
+    </div><!-- /.rm-editor-col -->
+
+  </div><!-- /.rm-workspace -->
+</div>

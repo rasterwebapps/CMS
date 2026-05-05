@@ -31,7 +31,7 @@ public class CurriculumVersionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> create(@Valid @RequestBody CurriculumVersionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(curriculumVersionService.createCurriculumVersion(request));
@@ -48,7 +48,7 @@ public class CurriculumVersionController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> update(
             @PathVariable Long id,
             @Valid @RequestBody CurriculumVersionRequest request) {
@@ -56,7 +56,7 @@ public class CurriculumVersionController {
     }
 
     @PostMapping("/{id}/clone")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> clone(
             @PathVariable Long id,
             @RequestParam String newVersionName,

@@ -7,8 +7,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.BloodGroup;
-import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.Cohort;
@@ -91,22 +89,32 @@ public class Student {
 
     private String religion;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "community_category")
-    private CommunityCategory communityCategory;
+    private String communityCategory;
 
     private String caste;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "blood_group")
-    private BloodGroup bloodGroup;
+    private String bloodGroup;
 
     // Family information
     @Column(name = "father_name")
     private String fatherName;
 
+    @Column(name = "father_phone")
+    private String fatherPhone;
+
+    @Column(name = "father_email")
+    private String fatherEmail;
+
     @Column(name = "mother_name")
     private String motherName;
+
+    @Column(name = "mother_phone")
+    private String motherPhone;
+
+    @Column(name = "mother_email")
+    private String motherEmail;
 
     @Column(name = "parent_mobile")
     private String parentMobile;
@@ -294,11 +302,11 @@ public class Student {
         this.religion = religion;
     }
 
-    public CommunityCategory getCommunityCategory() {
+    public String getCommunityCategory() {
         return communityCategory;
     }
 
-    public void setCommunityCategory(CommunityCategory communityCategory) {
+    public void setCommunityCategory(String communityCategory) {
         this.communityCategory = communityCategory;
     }
 
@@ -310,11 +318,11 @@ public class Student {
         this.caste = caste;
     }
 
-    public BloodGroup getBloodGroup() {
+    public String getBloodGroup() {
         return bloodGroup;
     }
 
-    public void setBloodGroup(BloodGroup bloodGroup) {
+    public void setBloodGroup(String bloodGroup) {
         this.bloodGroup = bloodGroup;
     }
 
@@ -326,12 +334,44 @@ public class Student {
         this.fatherName = fatherName;
     }
 
+    public String getFatherPhone() {
+        return fatherPhone;
+    }
+
+    public void setFatherPhone(String fatherPhone) {
+        this.fatherPhone = fatherPhone;
+    }
+
+    public String getFatherEmail() {
+        return fatherEmail;
+    }
+
+    public void setFatherEmail(String fatherEmail) {
+        this.fatherEmail = fatherEmail;
+    }
+
     public String getMotherName() {
         return motherName;
     }
 
     public void setMotherName(String motherName) {
         this.motherName = motherName;
+    }
+
+    public String getMotherPhone() {
+        return motherPhone;
+    }
+
+    public void setMotherPhone(String motherPhone) {
+        this.motherPhone = motherPhone;
+    }
+
+    public String getMotherEmail() {
+        return motherEmail;
+    }
+
+    public void setMotherEmail(String motherEmail) {
+        this.motherEmail = motherEmail;
     }
 
     public String getParentMobile() {

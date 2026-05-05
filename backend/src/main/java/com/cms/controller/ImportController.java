@@ -23,7 +23,7 @@ import com.cms.service.StudentImportService;
 
 @RestController
 @RequestMapping("/import")
-@PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+@PreAuthorize("@perm.has('IMPORT_DATA')")
 public class ImportController {
 
     private final ExcelTemplateService templateService;

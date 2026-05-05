@@ -4,10 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryDocument, EnquiryDocumentRequest } from '../enquiry.model';
+import { ProgramService } from '../../program/program.service';
+import { DocumentTypeInfo } from '../../program/program.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -16,37 +20,17 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_COLLECTION_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
 /**
- * All document types supported by the system. Mirrors the backend
- * `com.cms.model.enums.DocumentType` enum.
+ * Default mandatory document types used when a program has no explicit
+ * required document type mapping configured. Mirrors backend
+ * {@code EnquiryDocumentService.DEFAULT_MANDATORY_DOCUMENTS}.
  */
-const ALL_DOCUMENT_TYPES = [
+const DEFAULT_MANDATORY_DOCUMENT_TYPES: ReadonlySet<string> = new Set([
   'TENTH_MARKSHEET',
-  'ELEVENTH_MARKSHEET',
   'TWELFTH_MARKSHEET',
   'TRANSFER_CERTIFICATE',
-  'COMMUNITY_CERTIFICATE',
-  'INCOME_CERTIFICATE',
-  'NATIVITY_CERTIFICATE',
-  'MIGRATION_CERTIFICATE',
-  'FIRST_GRADUATE_CERTIFICATE',
+  'AADHAR_CARD',
   'PASSPORT_PHOTO',
-  'SIGNED_AFFIDAVIT',
-  'UNDERTAKING_DOCUMENT',
-  'AADHAR_CARD',
-  'MEDICAL_FITNESS',
-  'ELIGIBILITY_CERTIFICATE'] as const;
-
-/**
- * Mandatory document types that must be UPLOADED or VERIFIED before the
- * enquiry can transition to DOCUMENTS_SUBMITTED. Mirrors the backend
- * `EnquiryDocumentService.MANDATORY_DOCUMENTS` set.
- */
-const MANDATORY_DOCUMENT_TYPES: ReadonlySet<string> = new Set([
-  'TENTH_MARKSHEET',
-  'TWELFTH_MARKSHEET',
-  'TRANSFER_CERTIFICATE',
-  'AADHAR_CARD',
-  'PASSPORT_PHOTO']);
+]);
 
 interface ChecklistRow {
   documentType: string;
@@ -76,6 +60,7 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
+  private readonly programService = inject(ProgramService);
   private readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
@@ -85,6 +70,13 @@ export class DocumentCollectionComponent implements OnInit {
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly rows = signal<ChecklistRow[]>([]);
 
+  /** Catalogue of all document types (with display labels), loaded from the backend. */
+  private readonly documentCatalogue = signal<DocumentTypeInfo[]>([]);
+  private readonly labelMap = signal<Map<string, string>>(new Map());
+
+  /** Mandatory document types resolved from the program (fallback to defaults). */
+  private readonly mandatoryTypes = signal<ReadonlySet<string>>(DEFAULT_MANDATORY_DOCUMENT_TYPES);
+
   /** Number of mandatory documents successfully uploaded or verified. */
   protected readonly mandatorySatisfiedCount = computed(
     () =>
@@ -93,22 +85,26 @@ export class DocumentCollectionComponent implements OnInit {
       ).length,
   );
 
-  protected readonly mandatoryTotal = MANDATORY_DOCUMENT_TYPES.size;
+  protected readonly mandatoryTotal = computed(() => this.mandatoryTypes().size);
 
   protected readonly canSubmit = computed(
-    () => this.mandatorySatisfiedCount() === this.mandatoryTotal && !this.submitting(),
+    () => this.mandatoryTotal() > 0
+      && this.mandatorySatisfiedCount() === this.mandatoryTotal()
+      && !this.submitting(),
   );
 
   protected readonly mandatoryRows = computed(() => this.rows().filter((r) => r.isMandatory));
   protected readonly optionalRows = computed(() => this.rows().filter((r) => !r.isMandatory));
 
-  protected readonly mandatoryProgressPct = computed(() =>
-    Math.round((this.mandatorySatisfiedCount() / this.mandatoryTotal) * 100),
-  );
+  protected readonly mandatoryProgressPct = computed(() => {
+    const total = this.mandatoryTotal();
+    if (total === 0) return 0;
+    return Math.round((this.mandatorySatisfiedCount() / total) * 100);
+  });
 
-  /** Display label for the document type (e.g., TENTH_MARKSHEET → Tenth Marksheet). */
+  /** Display label for a document type code, sourced from the backend catalogue. */
   protected formatDocType(type: string): string {
-    return type
+    return this.labelMap().get(type) ?? type
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -130,12 +126,14 @@ export class DocumentCollectionComponent implements OnInit {
   }
 
   protected getDocumentIcon(type: string): string {
-    if (type.includes('MARKSHEET')) return 'school';
+    if (type.includes('MARKSHEET') || type.includes('TRANSCRIPT') || type.includes('DEGREE')
+        || type.includes('GENUINENESS') || type.includes('PROVISIONAL') || type.includes('ELIGIBILITY')) return 'school';
     if (type.includes('PHOTO')) return 'face';
+    if (type.includes('SIGNATURE')) return 'draw';
     if (type.includes('AADHAR')) return 'badge';
     if (type.includes('MEDICAL')) return 'medical_services';
-    if (type.includes('AFFIDAVIT') || type.includes('UNDERTAKING')) return 'gavel';
-    if (type.includes('TRANSFER')) return 'swap_horiz';
+    if (type.includes('AFFIDAVIT')) return 'gavel';
+    if (type.includes('TC') || type.includes('TRANSFER')) return 'swap_horiz';
     if (type.includes('MIGRATION')) return 'flight_takeoff';
     return 'description';
   }
@@ -161,7 +159,7 @@ export class DocumentCollectionComponent implements OnInit {
           return;
         }
         this.enquiry.set(enquiry);
-        this.loadDocuments(id);
+        this.loadCatalogueAndDocuments(id, enquiry.programId);
       },
       error: () => {
         this.toast.error('Failed to load enquiry');
@@ -171,15 +169,34 @@ export class DocumentCollectionComponent implements OnInit {
     });
   }
 
-  private loadDocuments(enquiryId: number): void {
-    this.enquiryService.getDocuments(enquiryId).subscribe({
-      next: (docs) => {
-        this.rows.set(this.buildChecklist(docs));
+  /**
+   * Loads the document catalogue, the program's required document types,
+   * and the persisted documents in parallel.
+   */
+  private loadCatalogueAndDocuments(enquiryId: number, programId: number | null | undefined): void {
+    forkJoin({
+      catalogue: this.programService.getAllDocumentTypes(),
+      programTypes: programId
+        ? this.programService.getRequiredDocumentTypes(programId).pipe(catchError(() => of<string[]>([])))
+        : of<string[]>([]),
+      documents: this.enquiryService.getDocuments(enquiryId).pipe(
+        catchError(() => {
+          this.toast.error('Failed to load documents');
+          return of<EnquiryDocument[]>([]);
+        }),
+      ),
+    }).subscribe({
+      next: ({ catalogue, programTypes, documents }) => {
+        this.documentCatalogue.set(catalogue);
+        this.labelMap.set(new Map(catalogue.map((t) => [t.code, t.label])));
+        this.mandatoryTypes.set(
+          programTypes.length > 0 ? new Set(programTypes) : DEFAULT_MANDATORY_DOCUMENT_TYPES,
+        );
+        this.rows.set(this.buildChecklist(documents));
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('Failed to load documents');
-        this.rows.set(this.buildChecklist([]));
+        this.toast.error('Failed to load document catalogue');
         this.loading.set(false);
       },
     });
@@ -187,14 +204,16 @@ export class DocumentCollectionComponent implements OnInit {
 
   private buildChecklist(documents: EnquiryDocument[]): ChecklistRow[] {
     const byType = new Map(documents.map((d) => [d.documentType, d]));
-    return ALL_DOCUMENT_TYPES.map((type) => {
+    const mandatory = this.mandatoryTypes();
+    const allTypes = this.documentCatalogue().map((t) => t.code);
+    return allTypes.map((type) => {
       const existing = byType.get(type) ?? null;
       return {
         documentType: type,
         document: existing,
         status: existing?.status ?? 'NOT_UPLOADED',
         remarks: existing?.remarks ?? '',
-        isMandatory: MANDATORY_DOCUMENT_TYPES.has(type),
+        isMandatory: mandatory.has(type),
         saving: false,
       } satisfies ChecklistRow;
     });
@@ -407,6 +426,6 @@ export class DocumentCollectionComponent implements OnInit {
   }
 
   protected backToList(): void {
-    void this.router.navigate(['/enquiries/document-submission']);
+    window.history.back();
   }
 }

@@ -31,7 +31,7 @@ public class SubjectController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<SubjectResponse> create(@Valid @RequestBody SubjectRequest request) {
         SubjectResponse response = subjectService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -62,7 +62,7 @@ public class SubjectController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<SubjectResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody SubjectRequest request) {
@@ -71,7 +71,7 @@ public class SubjectController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         subjectService.delete(id);
         return ResponseEntity.noContent().build();

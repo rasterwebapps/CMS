@@ -9,7 +9,7 @@
         <cms-tour-button tourKey="faculty-form" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the faculty member details below.' : 'Fill in the details below to register a new faculty member.' }}
+        {{ isEditMode() ? 'Update the faculty member details below.' : 'Fill in the details below to register a new faculty member. After saving, you can attach scanned documents.' }}
       </p>
     </div>
   </div>
@@ -20,21 +20,21 @@
     </div>
   } @else {
     <div class="entry-form-layout">
-      <div class="entry-form-card entry-form-card--sectioned">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
 
-        <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <!-- ─── 1. IDENTITY & ROLE ────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Identity &amp; Role</div>
+              <div class="entry-form-card__hdr-sub">Employee code, name, contact, department, designation</div>
+            </div>
           </div>
-          <div>
-            <div class="entry-form-card__hdr-title">Faculty Information</div>
-            <div class="entry-form-card__hdr-sub">Identity, contact, designation & department</div>
-          </div>
-        </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
           <div class="entry-form-card__body">
-
             <div class="field-row">
               <div class="field-group">
                 <label for="fac-code" class="field-label">Employee Code <span class="required-star">*</span></label>
@@ -45,7 +45,6 @@
                   <p class="field-error">{{ getErrorMessage('employeeCode') }}</p>
                 }
               </div>
-
               <div class="field-group">
                 <label for="fac-email" class="field-label">Email <span class="required-star">*</span></label>
                 <input id="fac-email" type="email" class="field-input" formControlName="email"
@@ -67,7 +66,6 @@
                   <p class="field-error">{{ getErrorMessage('firstName') }}</p>
                 }
               </div>
-
               <div class="field-group">
                 <label for="fac-last" class="field-label">Last Name <span class="required-star">*</span></label>
                 <input id="fac-last" class="field-input" formControlName="lastName"
@@ -85,7 +83,6 @@
                 <input id="fac-phone" class="field-input" formControlName="phone"
                   placeholder="+91 9876543210" autocomplete="tel" />
               </div>
-
               <div class="field-group">
                 <label for="fac-dept" class="field-label">Department <span class="required-star">*</span></label>
                 <select id="fac-dept" class="field-select" formControlName="departmentId"
@@ -115,7 +112,18 @@
                   <p class="field-error">{{ getErrorMessage('designation') }}</p>
                 }
               </div>
+              <div class="field-group">
+                <label for="fac-fac-type" class="field-label">Faculty Type</label>
+                <select id="fac-fac-type" class="field-select" formControlName="facultyType">
+                  <option [ngValue]="null">Select type</option>
+                  @for (option of facultyTypeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
 
+            <div class="field-row">
               <div class="field-group">
                 <label for="fac-joining" class="field-label">Joining Date <span class="required-star">*</span></label>
                 <input id="fac-joining" type="date" class="field-input" formControlName="joiningDate"
@@ -124,44 +132,348 @@
                   <p class="field-error">{{ getErrorMessage('joiningDate') }}</p>
                 }
               </div>
+              @if (isEditMode()) {
+                <div class="field-group">
+                  <label for="fac-status" class="field-label">Status</label>
+                  <select id="fac-status" class="field-select" formControlName="status">
+                    @for (option of statusOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </div>
+              } @else {
+                <div class="field-group"></div>
+              }
             </div>
 
             <div class="field-group">
               <label for="fac-specialization" class="field-label">Specialization</label>
               <input id="fac-specialization" class="field-input" formControlName="specialization"
-                placeholder="e.g., Artificial Intelligence, Data Science" autocomplete="off" />
+                placeholder="e.g., Cardiology, Artificial Intelligence" autocomplete="off" />
             </div>
 
-            <div class="field-group" [style.margin-bottom]="isEditMode() ? null : '0'">
-              <label for="fac-expertise" class="field-label">Lab Expertise</label>
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="fac-expertise" class="field-label">Lab / Subject Expertise</label>
               <textarea id="fac-expertise" class="field-textarea" formControlName="labExpertise"
-                placeholder="Describe lab equipment expertise and technical skills" rows="3"></textarea>
+                placeholder="Areas of teaching/lab expertise" rows="2"></textarea>
             </div>
+          </div>
+        </section>
 
-            @if (isEditMode()) {
-              <div class="field-group" style="margin-bottom: 0;">
-                <label for="fac-status" class="field-label">Status</label>
-                <select id="fac-status" class="field-select" formControlName="status">
-                  @for (option of statusOptions; track option.value) {
+        <!-- ─── 2. PERSONAL & DEMOGRAPHICS ─────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Personal &amp; Demographics</div>
+              <div class="entry-form-card__hdr-sub">Identity numbers, date of birth, gender, blood group</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-dob" class="field-label">Date of Birth</label>
+                <input id="fac-dob" type="date" class="field-input" formControlName="dateOfBirth" />
+              </div>
+              <div class="field-group">
+                <label for="fac-gender" class="field-label">Gender</label>
+                <select id="fac-gender" class="field-select" formControlName="gender">
+                  <option [ngValue]="null">Select gender</option>
+                  @for (option of genderOptions; track option.value) {
                     <option [value]="option.value">{{ option.label }}</option>
                   }
                 </select>
               </div>
-            }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-marital" class="field-label">Marital Status</label>
+                <select id="fac-marital" class="field-select" formControlName="maritalStatus">
+                  <option [ngValue]="null">Select status</option>
+                  @for (option of maritalStatusOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="fac-blood" class="field-label">Blood Group</label>
+                <select id="fac-blood" class="field-select" formControlName="bloodGroup">
+                  <option value="">Select blood group</option>
+                  @for (bg of bloodGroups(); track bg.id) {
+                    <option [value]="bg.code">{{ bg.code }} — {{ bg.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-nationality" class="field-label">Nationality</label>
+                <input id="fac-nationality" class="field-input" formControlName="nationality"
+                  placeholder="e.g., Indian" autocomplete="country-name" />
+              </div>
+              <div class="field-group">
+                <label for="fac-religion" class="field-label">Religion</label>
+                <input id="fac-religion" class="field-input" formControlName="religion"
+                  placeholder="Optional" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="fac-pan" class="field-label">PAN Number</label>
+                <input id="fac-pan" class="field-input" formControlName="panNumber"
+                  placeholder="ABCDE1234F" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="10" />
+                @if (form.get('panNumber')?.invalid && form.get('panNumber')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('panNumber') }}</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="fac-aadhaar" class="field-label">Aadhaar Number</label>
+                <input id="fac-aadhaar" class="field-input" formControlName="aadhaarNumber"
+                  placeholder="1234 5678 9012" autocomplete="off" maxlength="14" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3. EXPERIENCE BREAKDOWN ─────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Experience (Years)</div>
+              <div class="entry-form-card__hdr-sub">Teaching &amp; clinical experience by qualification level</div>
+            </div>
           </div>
 
-          <div id="tour-fac-submit" class="entry-form-card__footer">
-            <button type="button" class="btn-cancel" routerLink="/faculty">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              } @else {
-                {{ isEditMode() ? 'Update Faculty' : 'Create Faculty' }}
-              }
-            </button>
+          <div class="entry-form-card__body">
+            <p class="form-section-title">Teaching</p>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-tea-ug" class="field-label">UG (years)</label>
+                <input id="fac-tea-ug" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="teachingExperienceUgYears" placeholder="0.0" />
+              </div>
+              <div class="field-group">
+                <label for="fac-tea-pg" class="field-label">PG (years)</label>
+                <input id="fac-tea-pg" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="teachingExperiencePgYears" placeholder="0.0" />
+              </div>
+              <div class="field-group">
+                <label for="fac-tea-phd" class="field-label">PhD (years)</label>
+                <input id="fac-tea-phd" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="teachingExperiencePhdYears" placeholder="0.0" />
+              </div>
+            </div>
+
+            <p class="form-section-title" style="margin-top: 8px;">Clinical</p>
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="fac-cli-ug" class="field-label">UG (years)</label>
+                <input id="fac-cli-ug" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="clinicalExperienceUgYears" placeholder="0.0" />
+              </div>
+              <div class="field-group">
+                <label for="fac-cli-pg" class="field-label">PG (years)</label>
+                <input id="fac-cli-pg" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="clinicalExperiencePgYears" placeholder="0.0" />
+              </div>
+              <div class="field-group">
+                <label for="fac-cli-phd" class="field-label">PhD (years)</label>
+                <input id="fac-cli-phd" type="number" min="0" step="0.5" class="field-input"
+                  formControlName="clinicalExperiencePhdYears" placeholder="0.0" />
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </section>
+
+        <!-- ─── 4. BANK DETAILS ─────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Bank Details</div>
+              <div class="entry-form-card__hdr-sub">For salary disbursement &amp; reimbursements</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-bank-holder" class="field-label">Account Holder Name</label>
+                <input id="fac-bank-holder" class="field-input" formControlName="bankAccountHolder"
+                  placeholder="As printed on passbook" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="fac-bank-acct" class="field-label">Account Number</label>
+                <input id="fac-bank-acct" class="field-input" formControlName="bankAccountNumber"
+                  placeholder="Account #" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-bank-ifsc" class="field-label">IFSC Code</label>
+                <input id="fac-bank-ifsc" class="field-input" formControlName="bankIfscCode"
+                  placeholder="ABCD0123456" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="11" />
+              </div>
+              <div class="field-group">
+                <label for="fac-bank-type" class="field-label">Account Type</label>
+                <select id="fac-bank-type" class="field-select" formControlName="bankAccountType">
+                  <option [ngValue]="null">Select type</option>
+                  @for (option of bankAccountTypeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="fac-bank-name" class="field-label">Bank Name</label>
+                <input id="fac-bank-name" class="field-input" formControlName="bankName"
+                  placeholder="e.g., State Bank of India" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="fac-bank-branch" class="field-label">Branch</label>
+                <input id="fac-bank-branch" class="field-input" formControlName="bankBranch"
+                  placeholder="Branch name" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 5. ADDRESS ───────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Address</div>
+              <div class="entry-form-card__hdr-sub">Communication / postal address</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-group">
+              <label for="fac-addr" class="field-label">Postal Address</label>
+              <textarea id="fac-addr" class="field-textarea" formControlName="postalAddress"
+                placeholder="Door no., flat, building" rows="2"></textarea>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-street" class="field-label">Street / Locality</label>
+                <input id="fac-street" class="field-input" formControlName="street" autocomplete="address-line2" />
+              </div>
+              <div class="field-group">
+                <label for="fac-city" class="field-label">City</label>
+                <input id="fac-city" class="field-input" formControlName="city" autocomplete="address-level2" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-district" class="field-label">District</label>
+                <input id="fac-district" class="field-input" formControlName="district" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="fac-state" class="field-label">State</label>
+                <input id="fac-state" class="field-input" formControlName="state" autocomplete="address-level1" />
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <label for="fac-pincode" class="field-label">Pincode</label>
+              <input id="fac-pincode" class="field-input field-input--narrow"
+                formControlName="pincode" autocomplete="postal-code" maxlength="10" />
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 6. DOCUMENTS (edit mode only) ─────────────── -->
+        @if (isEditMode()) {
+          <section class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div>
+                <div class="entry-form-card__hdr-title">Documents</div>
+                <div class="entry-form-card__hdr-sub">Upload scanned PDF/image (max 10 MB each)</div>
+              </div>
+            </div>
+
+            <div class="entry-form-card__body">
+              @for (group of ['Service', 'Qualification', 'Experience', 'Identity']; track group) {
+                <p class="form-section-title">{{ group }}</p>
+                <div class="fac-doc-grid">
+                  @for (slot of slotsByGroup($any(group)); track slot.type) {
+                    <div class="fac-doc-tile" [class.fac-doc-tile--uploaded]="documentFor(slot)?.hasFile">
+                      <div class="fac-doc-tile__name">{{ slot.label }}</div>
+                      @if (documentFor(slot); as doc) {
+                        <div class="fac-doc-tile__meta">
+                          {{ doc.fileName }}
+                          @if (doc.fileSize) { <span class="fac-doc-tile__size">· {{ formatBytes(doc.fileSize) }}</span> }
+                        </div>
+                        <div class="fac-doc-tile__actions">
+                          <button type="button" class="fac-doc-tile__btn" (click)="viewDocument(slot)">View</button>
+                          <label class="fac-doc-tile__btn">
+                            Replace
+                            <input type="file" hidden (change)="onFileSelected(slot, $event)" />
+                          </label>
+                          <button type="button" class="fac-doc-tile__btn fac-doc-tile__btn--danger"
+                            (click)="removeDocument(slot)">Remove</button>
+                        </div>
+                      } @else {
+                        <div class="fac-doc-tile__meta">Not uploaded yet</div>
+                        <div class="fac-doc-tile__actions">
+                          <label class="fac-doc-tile__btn fac-doc-tile__btn--primary">
+                            @if (uploadingType() === slot.type) {
+                              <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+                            } @else {
+                              Upload
+                            }
+                            <input type="file" hidden (change)="onFileSelected(slot, $event)" />
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- ─── Sticky save/cancel footer ─────────────────── -->
+        <div id="tour-fac-submit" class="entry-form-sticky-footer">
+          <span class="entry-form-sticky-footer__hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            {{ isEditMode() ? 'Make changes and click Update' : 'Save the basic profile, then upload documents' }}
+          </span>
+          <button type="button" class="btn-cancel" routerLink="/faculty">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Faculty' : 'Create Faculty' }}
+            }
+          </button>
+        </div>
+      </form>
 
       <aside class="entry-form-side-panel">
         <cms-preview-card label="Live preview">
@@ -175,12 +487,21 @@
           @if (previewEmail()) {
             <div class="prev-sub">{{ previewEmail() }}</div>
           }
+          @if (previewPhone()) {
+            <div class="prev-sub">{{ previewPhone() }}</div>
+          }
           <div class="prev-meta-row">
             @if (previewDesignationLabel()) {
               <span class="prev-pill prev-pill--primary">{{ previewDesignationLabel() }}</span>
             }
             @if (previewDeptName()) {
               <span class="prev-pill">{{ previewDeptName() }}</span>
+            }
+            @if (previewFacultyTypeLabel()) {
+              <span class="prev-pill">{{ previewFacultyTypeLabel() }}</span>
+            }
+            @if (previewBlood()) {
+              <span class="prev-pill">{{ previewBlood() }}</span>
             }
           </div>
         </cms-preview-card>

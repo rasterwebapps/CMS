@@ -50,7 +50,7 @@ class FacultyServiceTest {
 
     @Test
     void shouldCreateFaculty() {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001",
             "John",
             "Doe",
@@ -92,7 +92,7 @@ class FacultyServiceTest {
 
     @Test
     void shouldCreateFacultyWithDefaultActiveStatus() {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP002",
             "Jane",
             "Smith",
@@ -123,7 +123,7 @@ class FacultyServiceTest {
 
     @Test
     void shouldThrowExceptionWhenCreatingFacultyWithNonExistentDepartment() {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001",
             "John",
             "Doe",
@@ -249,7 +249,7 @@ class FacultyServiceTest {
 
         Department newDepartment = createDepartment(2L, "Mathematics", "MATH");
 
-        FacultyRequest updateRequest = new FacultyRequest(
+        FacultyRequest updateRequest = basicFacultyRequest(
             "EMP001-UPD",
             "John Updated",
             "Doe Updated",
@@ -291,7 +291,7 @@ class FacultyServiceTest {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
 
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP002", "John", "Doe", "john@college.edu", "123",
             1L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
@@ -313,7 +313,7 @@ class FacultyServiceTest {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
 
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "other@college.edu", "123",
             1L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
@@ -333,7 +333,7 @@ class FacultyServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentFaculty() {
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "john@college.edu", "123",
             1L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
@@ -354,7 +354,7 @@ class FacultyServiceTest {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
 
-        FacultyRequest request = new FacultyRequest(
+        FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "john@college.edu", "123",
             999L, Designation.PROFESSOR, "AI", "ML Lab",
             LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
@@ -390,6 +390,20 @@ class FacultyServiceTest {
 
         verify(facultyRepository).existsById(999L);
         verify(facultyRepository, never()).deleteById(any());
+    }
+
+    /** Build a FacultyRequest with the legacy 11-argument signature; extended profile fields are null. */
+    private static FacultyRequest basicFacultyRequest(
+            String employeeCode, String firstName, String lastName, String email, String phone,
+            Long departmentId, Designation designation, String specialization, String labExpertise,
+            LocalDate joiningDate, FacultyStatus status) {
+        return new FacultyRequest(
+            employeeCode, firstName, lastName, email, phone, departmentId, designation,
+            specialization, labExpertise, joiningDate, status,
+            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null,
+            null, null, null, null, null, null
+        );
     }
 
     private Department createDepartment(Long id, String name, String code) {

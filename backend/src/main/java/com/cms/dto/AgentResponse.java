@@ -3,6 +3,8 @@ package com.cms.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import com.cms.model.enums.BankAccountType;
+
 public record AgentResponse(
     Long id,
     String name,
@@ -13,6 +15,14 @@ public record AgentResponse(
     Integer allottedSeats,
     BigDecimal commissionAmount,
     Boolean isActive,
+    String panNumber,
+    String aadhaarNumber,
+    String bankAccountNumber,
+    String bankIfscCode,
+    String bankBranch,
+    String bankName,
+    String bankAccountHolder,
+    BankAccountType bankAccountType,
     Instant createdAt,
     Instant updatedAt
 ) {}

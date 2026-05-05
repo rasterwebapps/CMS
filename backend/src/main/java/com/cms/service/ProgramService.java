@@ -1,6 +1,8 @@
 package com.cms.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +11,7 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
-import com.cms.model.enums.ProgramStatus;
+import com.cms.model.enums.DocumentType;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -96,9 +98,26 @@ public class ProgramService {
             program.getDurationYears(),
             program.getTotalSemesters(),
             program.getStatus(),
+            new HashSet<>(program.getRequiredDocumentTypes()),
             program.getCreatedAt(),
             program.getUpdatedAt()
         );
+    }
+
+    public Set<DocumentType> getRequiredDocumentTypes(Long programId) {
+        Program program = programRepository.findById(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + programId));
+        return new HashSet<>(program.getRequiredDocumentTypes());
+    }
+
+    @Transactional
+    public Set<DocumentType> setRequiredDocumentTypes(Long programId, Set<DocumentType> types) {
+        Program program = programRepository.findById(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + programId));
+        Set<DocumentType> sanitized = types != null ? new HashSet<>(types) : new HashSet<>();
+        program.setRequiredDocumentTypes(sanitized);
+        Program saved = programRepository.save(program);
+        return new HashSet<>(saved.getRequiredDocumentTypes());
     }
 
     private void validateCode(String code) {
@@ -111,4 +130,3 @@ public class ProgramService {
         }
     }
 }
-

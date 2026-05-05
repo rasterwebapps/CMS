@@ -1,3 +1,5 @@
+export type BankAccountType = 'SAVINGS' | 'CURRENT' | 'SALARY';
+
 export interface Agent {
   id: number;
   name: string;
@@ -8,6 +10,14 @@ export interface Agent {
   allottedSeats: number | null;
   commissionAmount: number | null;
   isActive: boolean;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountHolder?: string;
+  bankAccountType?: BankAccountType;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,7 +31,21 @@ export interface AgentRequest {
   allottedSeats?: number | null;
   commissionAmount?: number | null;
   isActive?: boolean;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountHolder?: string;
+  bankAccountType?: BankAccountType;
 }
+
+export const AGENT_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string }[] = [
+  { value: 'SAVINGS', label: 'Savings' },
+  { value: 'CURRENT', label: 'Current' },
+  { value: 'SALARY', label: 'Salary' },
+];
 
 export interface AgentCommissionGuideline {
   id: number;

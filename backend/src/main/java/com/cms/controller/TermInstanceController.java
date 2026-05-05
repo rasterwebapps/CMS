@@ -38,7 +38,7 @@ public class TermInstanceController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('SEMESTER_MANAGE')")
     public ResponseEntity<TermInstanceDto> update(
             @PathVariable Long id,
             @RequestBody TermInstanceUpdateRequest request) {

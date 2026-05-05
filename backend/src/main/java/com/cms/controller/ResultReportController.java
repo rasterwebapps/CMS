@@ -26,19 +26,19 @@ public class ResultReportController {
     }
 
     @GetMapping("/result-sheet/{enrollmentId}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY','ROLE_STUDENT')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_VIEW')")
     public ResponseEntity<StudentResultSheetDto> getResultSheet(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(resultReportService.getResultSheet(enrollmentId));
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<SemesterSummaryDto>> getSummary(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(resultReportService.getSummaryByTermInstance(termInstanceId));
     }
 
     @GetMapping("/course-stats")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<CourseStatsDto>> getCourseStats(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(resultReportService.getCourseStatsByTermInstance(termInstanceId));
     }

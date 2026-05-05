@@ -33,7 +33,7 @@ public class InventoryItemController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('INVENTORY_MANAGE')")
     public ResponseEntity<InventoryItemResponse> create(@Valid @RequestBody InventoryItemRequest request) {
         InventoryItemResponse response = inventoryItemService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -71,7 +71,7 @@ public class InventoryItemController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE')")
+    @PreAuthorize("@perm.has('INVENTORY_MANAGE')")
     public ResponseEntity<InventoryItemResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody InventoryItemRequest request) {
@@ -80,7 +80,7 @@ public class InventoryItemController {
     }
 
     @PatchMapping("/{id}/quantity")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_LAB_INCHARGE') or hasRole('ROLE_TECHNICIAN')")
+    @PreAuthorize("@perm.has('INVENTORY_MANAGE')")
     public ResponseEntity<InventoryItemResponse> updateQuantity(
             @PathVariable Long id,
             @RequestParam Integer change) {
@@ -89,7 +89,7 @@ public class InventoryItemController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('INVENTORY_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         inventoryItemService.delete(id);
         return ResponseEntity.noContent().build();

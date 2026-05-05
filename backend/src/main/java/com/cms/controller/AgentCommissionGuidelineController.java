@@ -32,7 +32,7 @@ public class AgentCommissionGuidelineController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<AgentCommissionGuidelineResponse> create(
             @Valid @RequestBody AgentCommissionGuidelineRequest request) {
         AgentCommissionGuidelineResponse response = guidelineService.create(request);
@@ -61,7 +61,7 @@ public class AgentCommissionGuidelineController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<AgentCommissionGuidelineResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody AgentCommissionGuidelineRequest request) {
@@ -70,7 +70,7 @@ public class AgentCommissionGuidelineController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         guidelineService.delete(id);
         return ResponseEntity.noContent().build();

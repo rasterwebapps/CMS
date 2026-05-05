@@ -34,7 +34,7 @@ public class FeePaymentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN') or hasRole('ROLE_CASHIER')")
+    @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<FeePaymentResponse> create(@Valid @RequestBody FeePaymentRequest request) {
         FeePaymentResponse response = feePaymentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -77,7 +77,7 @@ public class FeePaymentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('STUDENT_FEE_MANAGE')")
     public ResponseEntity<FeePaymentResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody FeePaymentRequest request) {
@@ -86,7 +86,7 @@ public class FeePaymentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('STUDENT_FEE_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         feePaymentService.delete(id);
         return ResponseEntity.noContent().build();

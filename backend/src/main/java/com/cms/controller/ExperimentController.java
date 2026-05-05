@@ -32,7 +32,7 @@ public class ExperimentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXPERIMENT_MANAGE')")
     public ResponseEntity<ExperimentResponse> create(@Valid @RequestBody ExperimentRequest request) {
         ExperimentResponse response = experimentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -60,7 +60,7 @@ public class ExperimentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXPERIMENT_MANAGE')")
     public ResponseEntity<ExperimentResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody ExperimentRequest request) {
@@ -69,7 +69,7 @@ public class ExperimentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("@perm.has('EXPERIMENT_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         experimentService.delete(id);
         return ResponseEntity.noContent().build();

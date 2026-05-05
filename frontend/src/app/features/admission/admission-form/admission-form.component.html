@@ -245,8 +245,8 @@
               <label for="conv-community" class="field-label">Community Category</label>
               <select id="conv-community" class="field-select" formControlName="communityCategory">
                 <option value="">—</option>
-                @for (c of communityOptions; track c) {
-                  <option [value]="c">{{ c }}</option>
+                @for (c of communities(); track c.id) {
+                  <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
                 }
               </select>
             </div>
@@ -261,8 +261,8 @@
               <label for="conv-blood" class="field-label">Blood Group</label>
               <select id="conv-blood" class="field-select" formControlName="bloodGroup">
                 <option value="">—</option>
-                @for (b of bloodGroupOptions; track b) {
-                  <option [value]="b">{{ b }}</option>
+                @for (b of bloodGroups(); track b.id) {
+                  <option [value]="b.code">{{ b.code }} — {{ b.name }}</option>
                 }
               </select>
             </div>
@@ -270,18 +270,48 @@
 
           <h3 class="section-heading">Family Information</h3>
 
+          <!-- Father -->
           <div class="form-row">
             <div class="field-group">
               <label for="conv-father" class="field-label">Father's Name</label>
               <input id="conv-father" class="field-input" formControlName="fatherName" />
             </div>
             <div class="field-group">
+              <label for="conv-father-phone" class="field-label">Father's Phone</label>
+              <input id="conv-father-phone" class="field-input" formControlName="fatherPhone" type="tel" inputmode="tel" />
+            </div>
+            <div class="field-group">
+              <label for="conv-father-email" class="field-label">Father's Email</label>
+              <input id="conv-father-email" class="field-input" formControlName="fatherEmail" type="email" />
+              @if (form.get('fatherEmail')?.invalid && form.get('fatherEmail')?.touched) {
+                <span class="field-error">Enter a valid email</span>
+              }
+            </div>
+          </div>
+
+          <!-- Mother -->
+          <div class="form-row">
+            <div class="field-group">
               <label for="conv-mother" class="field-label">Mother's Name</label>
               <input id="conv-mother" class="field-input" formControlName="motherName" />
             </div>
             <div class="field-group">
-              <label for="conv-parent-mobile" class="field-label">Parent Mobile</label>
-              <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" />
+              <label for="conv-mother-phone" class="field-label">Mother's Phone</label>
+              <input id="conv-mother-phone" class="field-input" formControlName="motherPhone" type="tel" inputmode="tel" />
+            </div>
+            <div class="field-group">
+              <label for="conv-mother-email" class="field-label">Mother's Email</label>
+              <input id="conv-mother-email" class="field-input" formControlName="motherEmail" type="email" />
+              @if (form.get('motherEmail')?.invalid && form.get('motherEmail')?.touched) {
+                <span class="field-error">Enter a valid email</span>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group">
+              <label for="conv-parent-mobile" class="field-label">Primary Parent Mobile</label>
+              <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" type="tel" inputmode="tel" />
             </div>
           </div>
 

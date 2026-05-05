@@ -1001,7 +1001,8 @@ class EnquiryServiceTest {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
             100L, LocalDate.of(2024, 7, 1), true, true,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
         );
 
         Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
@@ -1045,11 +1046,15 @@ class EnquiryServiceTest {
             "1234-5678-9012",
             "Indian",
             "Hindu",
-            com.cms.model.enums.CommunityCategory.BC,
+            "BC",
             "Vanniyar",
-            com.cms.model.enums.BloodGroup.O_POSITIVE,
+            "O+",
             "Kumar S",
+            null,
+            null,
             "Latha K",
+            null,
+            null,
             "9000000001",
             address,
             "Salem",
@@ -1084,9 +1089,9 @@ class EnquiryServiceTest {
         assertThat(persistedStudent.getAadharNumber()).isEqualTo("1234-5678-9012");
         assertThat(persistedStudent.getNationality()).isEqualTo("Indian");
         assertThat(persistedStudent.getReligion()).isEqualTo("Hindu");
-        assertThat(persistedStudent.getCommunityCategory()).isEqualTo(com.cms.model.enums.CommunityCategory.BC);
+        assertThat(persistedStudent.getCommunityCategory()).isEqualTo("BC");
         assertThat(persistedStudent.getCaste()).isEqualTo("Vanniyar");
-        assertThat(persistedStudent.getBloodGroup()).isEqualTo(com.cms.model.enums.BloodGroup.O_POSITIVE);
+        assertThat(persistedStudent.getBloodGroup()).isEqualTo("O+");
         assertThat(persistedStudent.getFatherName()).isEqualTo("Kumar S");
         assertThat(persistedStudent.getMotherName()).isEqualTo("Latha K");
         assertThat(persistedStudent.getParentMobile()).isEqualTo("9000000001");
@@ -1132,7 +1137,8 @@ class EnquiryServiceTest {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
             100L, LocalDate.of(2024, 7, 1), null, null,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1150,7 +1156,8 @@ class EnquiryServiceTest {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
             100L, LocalDate.of(2024, 7, 1), null, null,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1169,7 +1176,8 @@ class EnquiryServiceTest {
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
             100L, LocalDate.of(2024, 7, 1), null, null,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));

@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.model.BloodGroupMaster;
+import com.cms.model.Community;
 import com.cms.model.AcademicQualification;
 import com.cms.model.AcademicYear;
 import com.cms.model.Admission;
@@ -44,8 +46,6 @@ import com.cms.model.StudentFeeAllocation;
 import com.cms.model.Subject;
 import com.cms.model.Syllabus;
 import com.cms.model.enums.AdmissionStatus;
-import com.cms.model.enums.BloodGroup;
-import com.cms.model.enums.CommunityCategory;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnquiryStatus;
@@ -70,6 +70,8 @@ import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.PaymentStatus;
 import com.cms.model.enums.QualificationType;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.BloodGroupRepository;
+import com.cms.repository.CommunityRepository;
 import com.cms.repository.AcademicQualificationRepository;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
@@ -139,6 +141,8 @@ public class DataLoader implements CommandLineRunner {
     private final LabScheduleRepository labScheduleRepository;
     private final StudentFeeAllocationRepository studentFeeAllocationRepository;
     private final SemesterFeeRepository semesterFeeRepository;
+    private final CommunityRepository communityRepository;
+    private final BloodGroupRepository bloodGroupRepository;
 
     public DataLoader(DepartmentRepository departmentRepository,
                       ProgramRepository programRepository,
@@ -170,7 +174,9 @@ public class DataLoader implements CommandLineRunner {
                       LabCurriculumMappingRepository labCurriculumMappingRepository,
                       LabScheduleRepository labScheduleRepository,
                       StudentFeeAllocationRepository studentFeeAllocationRepository,
-                      SemesterFeeRepository semesterFeeRepository) {
+                      SemesterFeeRepository semesterFeeRepository,
+                      CommunityRepository communityRepository,
+                      BloodGroupRepository bloodGroupRepository) {
         this.departmentRepository = departmentRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
@@ -202,6 +208,8 @@ public class DataLoader implements CommandLineRunner {
         this.labScheduleRepository = labScheduleRepository;
         this.studentFeeAllocationRepository = studentFeeAllocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
+        this.communityRepository = communityRepository;
+        this.bloodGroupRepository = bloodGroupRepository;
     }
 
     @Override
@@ -213,6 +221,10 @@ public class DataLoader implements CommandLineRunner {
         }
 
         log.info("Seeding initial data for local profile...");
+
+        // ── 0. Master data ───────────────────────────────────────────────────
+        seedCommunities();
+        seedBloodGroups();
 
         // ── 1. Referral Types ────────────────────────────────────────────────
         seedReferralTypes();
@@ -553,6 +565,30 @@ public class DataLoader implements CommandLineRunner {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    private void seedCommunities() {
+        if (communityRepository.count() > 0) return;
+        communityRepository.save(new Community("Scheduled Caste",             "SC",     "Scheduled Caste"));
+        communityRepository.save(new Community("Scheduled Tribe",             "ST",     "Scheduled Tribe"));
+        communityRepository.save(new Community("Backward Caste",              "BC",     "Backward Caste"));
+        communityRepository.save(new Community("Most Backward Caste",         "MBC",    "Most Backward Caste"));
+        communityRepository.save(new Community("Denotified Communities",      "DNC",    "Denotified Communities"));
+        communityRepository.save(new Community("Open Category",               "OC",     "Open / General Category"));
+        communityRepository.save(new Community("Economically Weaker Section", "EWS",    "Economically Weaker Section"));
+        communityRepository.save(new Community("Others",                      "OTHERS", "Others"));
+    }
+
+    private void seedBloodGroups() {
+        if (bloodGroupRepository.count() > 0) return;
+        bloodGroupRepository.save(new BloodGroupMaster("A Positive",  "A+"));
+        bloodGroupRepository.save(new BloodGroupMaster("A Negative",  "A-"));
+        bloodGroupRepository.save(new BloodGroupMaster("B Positive",  "B+"));
+        bloodGroupRepository.save(new BloodGroupMaster("B Negative",  "B-"));
+        bloodGroupRepository.save(new BloodGroupMaster("O Positive",  "O+"));
+        bloodGroupRepository.save(new BloodGroupMaster("O Negative",  "O-"));
+        bloodGroupRepository.save(new BloodGroupMaster("AB Positive", "AB+"));
+        bloodGroupRepository.save(new BloodGroupMaster("AB Negative", "AB-"));
+    }
+
     private void seedReferralTypes() {
         if (referralTypeRepository.count() > 0) return;
         referralTypeRepository.save(new ReferralType("Walk-In",        "WALK_IN",       new BigDecimal("0"),     false, "Direct walk-in enquiry",        true));
@@ -584,62 +620,62 @@ public class DataLoader implements CommandLineRunner {
     private List<Student> seedStudents(Program bachelorProgram, Program diplomaProgram, Program masterProgram) {
         Student s1 = new Student("2024BSC001", "Aishwarya", "Rajput",   "aishwarya.rajput@student.cms.edu",   bachelorProgram, 1, LocalDate.of(2024, 6, 10), StudentStatus.ACTIVE);
         s1.setPhone("8765400001"); s1.setDateOfBirth(LocalDate.of(2004, 3, 15)); s1.setGender(Gender.FEMALE);
-        s1.setNationality("Indian"); s1.setReligion("Hindu"); s1.setCommunityCategory(CommunityCategory.BC);
-        s1.setBloodGroup(BloodGroup.O_POSITIVE); s1.setFatherName("Ramesh Rajput"); s1.setMotherName("Sunita Rajput");
+        s1.setNationality("Indian"); s1.setReligion("Hindu"); s1.setCommunityCategory("BC");
+        s1.setBloodGroup("O+"); s1.setFatherName("Ramesh Rajput"); s1.setMotherName("Sunita Rajput");
         s1.setParentMobile("9876540001"); s1.setLabBatch("Batch A");
 
         Student s2 = new Student("2024BSC002", "Bhavana",   "Menon",    "bhavana.menon@student.cms.edu",      bachelorProgram, 1, LocalDate.of(2024, 6, 12), StudentStatus.ACTIVE);
         s2.setPhone("8765400002"); s2.setDateOfBirth(LocalDate.of(2004, 7, 22)); s2.setGender(Gender.FEMALE);
-        s2.setNationality("Indian"); s2.setReligion("Hindu"); s2.setCommunityCategory(CommunityCategory.OC);
-        s2.setBloodGroup(BloodGroup.A_POSITIVE); s2.setFatherName("Gopal Menon"); s2.setMotherName("Geetha Menon");
+        s2.setNationality("Indian"); s2.setReligion("Hindu"); s2.setCommunityCategory("OC");
+        s2.setBloodGroup("A+"); s2.setFatherName("Gopal Menon"); s2.setMotherName("Geetha Menon");
         s2.setParentMobile("9876540002"); s2.setLabBatch("Batch A");
 
         Student s3 = new Student("2023BSC003", "Chandrika", "Pillai",   "chandrika.pillai@student.cms.edu",   bachelorProgram, 2, LocalDate.of(2023, 6, 10), StudentStatus.ACTIVE);
         s3.setPhone("8765400003"); s3.setDateOfBirth(LocalDate.of(2003, 11, 5)); s3.setGender(Gender.FEMALE);
-        s3.setNationality("Indian"); s3.setReligion("Christian"); s3.setCommunityCategory(CommunityCategory.OC);
-        s3.setBloodGroup(BloodGroup.B_POSITIVE); s3.setFatherName("Suresh Pillai"); s3.setMotherName("Vimala Pillai");
+        s3.setNationality("Indian"); s3.setReligion("Christian"); s3.setCommunityCategory("OC");
+        s3.setBloodGroup("B+"); s3.setFatherName("Suresh Pillai"); s3.setMotherName("Vimala Pillai");
         s3.setParentMobile("9876540003"); s3.setLabBatch("Batch B");
 
         Student s4 = new Student("2023BSC004", "Divya",     "Nair",     "divya.nair@student.cms.edu",         bachelorProgram, 2, LocalDate.of(2023, 6, 12), StudentStatus.ACTIVE);
         s4.setPhone("8765400004"); s4.setDateOfBirth(LocalDate.of(2003, 4, 18)); s4.setGender(Gender.FEMALE);
-        s4.setNationality("Indian"); s4.setReligion("Hindu"); s4.setCommunityCategory(CommunityCategory.OC);
-        s4.setBloodGroup(BloodGroup.AB_POSITIVE); s4.setFatherName("Sathish Nair"); s4.setMotherName("Rekha Nair");
+        s4.setNationality("Indian"); s4.setReligion("Hindu"); s4.setCommunityCategory("OC");
+        s4.setBloodGroup("AB+"); s4.setFatherName("Sathish Nair"); s4.setMotherName("Rekha Nair");
         s4.setParentMobile("9876540004"); s4.setLabBatch("Batch B");
 
         Student s5 = new Student("2022BSC005", "Ezhilarasi","Thangaraj", "ezhilarasi.t@student.cms.edu",       bachelorProgram, 3, LocalDate.of(2022, 6, 8),  StudentStatus.ACTIVE);
         s5.setPhone("8765400005"); s5.setDateOfBirth(LocalDate.of(2002, 9, 12)); s5.setGender(Gender.FEMALE);
-        s5.setNationality("Indian"); s5.setReligion("Hindu"); s5.setCommunityCategory(CommunityCategory.MBC);
-        s5.setBloodGroup(BloodGroup.O_NEGATIVE); s5.setFatherName("Thangaraj S"); s5.setMotherName("Kavitha T");
+        s5.setNationality("Indian"); s5.setReligion("Hindu"); s5.setCommunityCategory("MBC");
+        s5.setBloodGroup("O-"); s5.setFatherName("Thangaraj S"); s5.setMotherName("Kavitha T");
         s5.setParentMobile("9876540005"); s5.setLabBatch("Batch A");
 
         Student s6 = new Student("2024GNM001", "Fathima",   "Begum",    "fathima.begum@student.cms.edu",      diplomaProgram, 1, LocalDate.of(2024, 6, 14), StudentStatus.ACTIVE);
         s6.setPhone("8765400006"); s6.setDateOfBirth(LocalDate.of(2004, 1, 25)); s6.setGender(Gender.FEMALE);
-        s6.setNationality("Indian"); s6.setReligion("Muslim"); s6.setCommunityCategory(CommunityCategory.BC);
-        s6.setBloodGroup(BloodGroup.B_POSITIVE); s6.setFatherName("Abdul Begum"); s6.setMotherName("Noor Begum");
+        s6.setNationality("Indian"); s6.setReligion("Muslim"); s6.setCommunityCategory("BC");
+        s6.setBloodGroup("B+"); s6.setFatherName("Abdul Begum"); s6.setMotherName("Noor Begum");
         s6.setParentMobile("9876540006"); s6.setLabBatch("Batch A");
 
         Student s7 = new Student("2024GNM002", "Geetha",    "Kumari",   "geetha.kumari@student.cms.edu",      diplomaProgram, 1, LocalDate.of(2024, 6, 16), StudentStatus.ACTIVE);
         s7.setPhone("8765400007"); s7.setDateOfBirth(LocalDate.of(2004, 6, 8));  s7.setGender(Gender.FEMALE);
-        s7.setNationality("Indian"); s7.setReligion("Hindu"); s7.setCommunityCategory(CommunityCategory.SC);
-        s7.setBloodGroup(BloodGroup.A_POSITIVE); s7.setFatherName("Murugan K"); s7.setMotherName("Selvi K");
+        s7.setNationality("Indian"); s7.setReligion("Hindu"); s7.setCommunityCategory("SC");
+        s7.setBloodGroup("A+"); s7.setFatherName("Murugan K"); s7.setMotherName("Selvi K");
         s7.setParentMobile("9876540007"); s7.setLabBatch("Batch B");
 
         Student s8 = new Student("2024MSC001", "Harini",    "Sundaram",  "harini.sundaram@student.cms.edu",   masterProgram, 1, LocalDate.of(2024, 6, 15), StudentStatus.ACTIVE);
         s8.setPhone("8765400008"); s8.setDateOfBirth(LocalDate.of(2000, 5, 30)); s8.setGender(Gender.FEMALE);
-        s8.setNationality("Indian"); s8.setReligion("Hindu"); s8.setCommunityCategory(CommunityCategory.OC);
-        s8.setBloodGroup(BloodGroup.O_POSITIVE); s8.setFatherName("Sundaram V"); s8.setMotherName("Padma S");
+        s8.setNationality("Indian"); s8.setReligion("Hindu"); s8.setCommunityCategory("OC");
+        s8.setBloodGroup("O+"); s8.setFatherName("Sundaram V"); s8.setMotherName("Padma S");
         s8.setParentMobile("9876540008");
 
         Student s9 = new Student("2021BSC006", "Indira",    "Mohan",    "indira.mohan@student.cms.edu",       bachelorProgram, 4, LocalDate.of(2021, 6, 7),  StudentStatus.ON_LEAVE);
         s9.setPhone("8765400009"); s9.setDateOfBirth(LocalDate.of(2001, 8, 17)); s9.setGender(Gender.FEMALE);
-        s9.setNationality("Indian"); s9.setReligion("Hindu"); s9.setCommunityCategory(CommunityCategory.BC);
-        s9.setBloodGroup(BloodGroup.A_NEGATIVE); s9.setFatherName("Mohan D"); s9.setMotherName("Devi M");
+        s9.setNationality("Indian"); s9.setReligion("Hindu"); s9.setCommunityCategory("BC");
+        s9.setBloodGroup("A-"); s9.setFatherName("Mohan D"); s9.setMotherName("Devi M");
         s9.setParentMobile("9876540009");
 
         Student s10 = new Student("2024BSC007", "Jayanthi", "Krishnan", "jayanthi.krishnan@student.cms.edu",  bachelorProgram, 1, LocalDate.of(2024, 6, 18), StudentStatus.ACTIVE);
         s10.setPhone("8765400010"); s10.setDateOfBirth(LocalDate.of(2004, 12, 2)); s10.setGender(Gender.FEMALE);
-        s10.setNationality("Indian"); s10.setReligion("Hindu"); s10.setCommunityCategory(CommunityCategory.MBC);
-        s10.setBloodGroup(BloodGroup.B_NEGATIVE); s10.setFatherName("Krishnan R"); s10.setMotherName("Meena K");
+        s10.setNationality("Indian"); s10.setReligion("Hindu"); s10.setCommunityCategory("MBC");
+        s10.setBloodGroup("B-"); s10.setFatherName("Krishnan R"); s10.setMotherName("Meena K");
         s10.setParentMobile("9876540010"); s10.setLabBatch("Batch A");
 
         return studentRepository.saveAll(List.of(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10));

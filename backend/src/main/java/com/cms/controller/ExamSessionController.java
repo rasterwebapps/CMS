@@ -30,31 +30,31 @@ public class ExamSessionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExamSessionDto> create(@Valid @RequestBody ExamSessionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(examSessionService.create(request));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAMINATION_VIEW')")
     public ResponseEntity<ExamSessionDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(examSessionService.getById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN','ROLE_FACULTY')")
+    @PreAuthorize("@perm.has('EXAMINATION_VIEW')")
     public ResponseEntity<List<ExamSessionDto>> getByTermInstance(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(examSessionService.getByTermInstance(termInstanceId));
     }
 
     @PostMapping("/{id}/publish")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExamSessionDto> publish(@PathVariable Long id) {
         return ResponseEntity.ok(examSessionService.publish(id));
     }
 
     @PostMapping("/{id}/lock")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_COLLEGE_ADMIN')")
+    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExamSessionDto> lock(@PathVariable Long id) {
         return ResponseEntity.ok(examSessionService.lock(id));
     }
