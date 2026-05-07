@@ -9,11 +9,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Subject Management Manual Test Cases** — `docs/manual-test-cases/subject-management.md`
+  - 23 comprehensive test cases covering CRUD operations, business rules, and integration scenarios
+  - Includes validation, authorization, filtering by course/department, and error handling tests
 - Initial project documentation structure
 - Technical standards & architecture guide
 - GitHub Copilot skills for Angular, Spring Boot, Flyway, and Keycloak
 - Manual test case template and guidelines
 - Contributing guide
+
+### Fixed
+- **SubjectController** — Updated API base path from `/subjects` to `/api/v1/subjects` to follow project conventions
+- **SubjectControllerTest** — Updated all test paths to use `/api/v1/subjects` prefix
+- **CourseControllerTest** — Fixed compilation errors due to missing `rollNumberCode` parameter in `CourseRequest` and `CourseResponse` constructors
 
 ### Business Requirements Documentation
 - **`docs/BUSINESS_REQUIREMENTS.md`** — Comprehensive business requirements document (BR-1 to BR-11)

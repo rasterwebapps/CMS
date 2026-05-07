@@ -63,6 +63,7 @@ class CourseServiceTest {
             "B.Sc. Nursing",
             "BSN",
             "General",
+            null,
             1L
         );
 
@@ -92,6 +93,7 @@ class CourseServiceTest {
         CourseRequest request = new CourseRequest(
             "B.Sc. Nursing",
             "BSN",
+            null,
             null,
             999L
         );
@@ -203,6 +205,7 @@ class CourseServiceTest {
             "M.Sc. Nursing",
             "MSN",
             "Obs Gyn",
+            null,
             2L
         );
 
@@ -233,7 +236,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateName() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, 1L);
+        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, null, 1L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -250,7 +253,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateCode() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, null, 1L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -267,7 +270,7 @@ class CourseServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentCourse() {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, null, 1L);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -283,7 +286,7 @@ class CourseServiceTest {
     void shouldThrowExceptionWhenUpdatingWithNonExistentProgram() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        CourseRequest request = new CourseRequest("Name", "CODE", null, 999L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, null, 999L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(999L)).thenReturn(Optional.empty());

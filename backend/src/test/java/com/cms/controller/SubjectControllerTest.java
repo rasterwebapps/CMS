@@ -53,7 +53,7 @@ class SubjectControllerTest {
         ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN",
             4, 8, null, null, now, now);
         CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
-            "General", prog, now, now);
+            "General", null, prog, now, now);
         return new SubjectResponse(id, name, code, 4, 3, 1, courseResp, dept, 1, now, now);
     }
 
@@ -64,7 +64,7 @@ class SubjectControllerTest {
 
         when(subjectService.create(any(SubjectRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/subjects")
+        mockMvc.perform(post("/api/v1/subjects")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -81,7 +81,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findAll()).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/subjects"))
+        mockMvc.perform(get("/api/v1/subjects"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
@@ -94,7 +94,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findById(1L)).thenReturn(response);
 
-        mockMvc.perform(get("/subjects/1"))
+        mockMvc.perform(get("/api/v1/subjects/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Anatomy"));
@@ -107,7 +107,7 @@ class SubjectControllerTest {
         when(subjectService.findById(999L)).thenThrow(
             new ResourceNotFoundException("Subject not found with id: 999"));
 
-        mockMvc.perform(get("/subjects/999"))
+        mockMvc.perform(get("/api/v1/subjects/999"))
             .andExpect(status().isNotFound());
     }
 
@@ -116,7 +116,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findByCourseId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/subjects/course/1"))
+        mockMvc.perform(get("/api/v1/subjects/course/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
@@ -129,7 +129,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findByDepartmentId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/subjects/department/1"))
+        mockMvc.perform(get("/api/v1/subjects/department/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
@@ -144,7 +144,7 @@ class SubjectControllerTest {
 
         when(subjectService.update(eq(1L), any(SubjectRequest.class))).thenReturn(response);
 
-        mockMvc.perform(put("/subjects/1")
+        mockMvc.perform(put("/api/v1/subjects/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -157,7 +157,7 @@ class SubjectControllerTest {
     void shouldDeleteSubject() throws Exception {
         doNothing().when(subjectService).delete(1L);
 
-        mockMvc.perform(delete("/subjects/1"))
+        mockMvc.perform(delete("/api/v1/subjects/1"))
             .andExpect(status().isNoContent());
 
         verify(subjectService).delete(1L);
@@ -168,7 +168,7 @@ class SubjectControllerTest {
         doThrow(new ResourceNotFoundException("Subject not found with id: 999"))
             .when(subjectService).delete(999L);
 
-        mockMvc.perform(delete("/subjects/999"))
+        mockMvc.perform(delete("/api/v1/subjects/999"))
             .andExpect(status().isNotFound());
     }
 }
