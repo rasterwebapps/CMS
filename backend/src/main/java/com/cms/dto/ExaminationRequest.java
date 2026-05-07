@@ -13,6 +13,5 @@ public record ExaminationRequest(
     @NotNull ExamType examType,
     LocalDate date,
     Integer duration,
-    Integer maxMarks,
-    Long semesterId
+    Integer maxMarks
 ) {}

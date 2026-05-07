@@ -23,11 +23,9 @@ import com.cms.dto.CalendarEventResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.CalendarEvent;
-import com.cms.model.Semester;
 import com.cms.model.enums.CalendarEventType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CalendarEventRepository;
-import com.cms.repository.SemesterRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CalendarEventServiceTest {
@@ -38,9 +36,6 @@ class CalendarEventServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
-    @Mock
-    private SemesterRepository semesterRepository;
-
     private CalendarEventService calendarEventService;
 
     private AcademicYear academicYear;
@@ -48,7 +43,7 @@ class CalendarEventServiceTest {
     @BeforeEach
     void setUp() {
         calendarEventService = new CalendarEventService(
-            calendarEventRepository, academicYearRepository, semesterRepository);
+            calendarEventRepository, academicYearRepository);
         academicYear = new AcademicYear(
             "2024-2025", LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
         academicYear.setId(1L);
@@ -57,8 +52,7 @@ class CalendarEventServiceTest {
         academicYear.setUpdatedAt(now);
     }
 
-    private CalendarEvent buildEvent(Long id, String title, CalendarEventType type,
-                                     AcademicYear ay, Semester semester) {
+    private CalendarEvent buildEvent(Long id, String title, CalendarEventType type, AcademicYear ay) {
         CalendarEvent e = new CalendarEvent();
         e.setId(id);
         e.setTitle(title);
@@ -67,7 +61,6 @@ class CalendarEventServiceTest {
         e.setEndDate(LocalDate.of(2024, 10, 1));
         e.setEventType(type);
         e.setAcademicYear(ay);
-        e.setSemester(semester);
         Instant now = Instant.now();
         e.setCreatedAt(now);
         e.setUpdatedAt(now);
@@ -80,9 +73,9 @@ class CalendarEventServiceTest {
     void shouldCreateCalendarEvent() {
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali", "Holiday", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 1L, null);
+            CalendarEventType.HOLIDAY, 1L);
 
-        CalendarEvent saved = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent saved = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
         when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
@@ -92,39 +85,14 @@ class CalendarEventServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.title()).isEqualTo("Diwali");
         assertThat(response.eventType()).isEqualTo(CalendarEventType.HOLIDAY);
-        assertThat(response.semester()).isNull();
         verify(calendarEventRepository).save(any(CalendarEvent.class));
-    }
-
-    @Test
-    void shouldCreateCalendarEventWithSemester() {
-        Semester semester = new Semester("Sem 1", academicYear,
-            LocalDate.of(2024, 8, 1), LocalDate.of(2024, 12, 15), 1);
-        semester.setId(2L);
-        semester.setCreatedAt(Instant.now());
-        semester.setUpdatedAt(Instant.now());
-
-        CalendarEventRequest request = new CalendarEventRequest(
-            "Mid-Term", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.EXAM, 1L, 2L);
-
-        CalendarEvent saved = buildEvent(1L, "Mid-Term", CalendarEventType.EXAM, academicYear, semester);
-
-        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
-        when(semesterRepository.findById(2L)).thenReturn(Optional.of(semester));
-        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
-
-        CalendarEventResponse response = calendarEventService.create(request);
-
-        assertThat(response.semester()).isNotNull();
-        assertThat(response.semester().id()).isEqualTo(2L);
     }
 
     @Test
     void shouldThrowWhenCreatingWithNonExistentAcademicYear() {
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 999L, null);
+            CalendarEventType.HOLIDAY, 999L);
 
         when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -136,26 +104,10 @@ class CalendarEventServiceTest {
     }
 
     @Test
-    void shouldThrowWhenCreatingWithNonExistentSemester() {
-        CalendarEventRequest request = new CalendarEventRequest(
-            "Diwali", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 1L, 999L);
-
-        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
-        when(semesterRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> calendarEventService.create(request))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessageContaining("Semester not found with id: 999");
-
-        verify(calendarEventRepository, never()).save(any());
-    }
-
-    @Test
     void shouldThrowWhenEndDateBeforeStartDate() {
         CalendarEventRequest request = new CalendarEventRequest(
             "Event", null, LocalDate.of(2024, 10, 5), LocalDate.of(2024, 10, 1),
-            CalendarEventType.OTHER, 1L, null);
+            CalendarEventType.OTHER, 1L);
 
         assertThatThrownBy(() -> calendarEventService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -166,8 +118,8 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldFindAllEvents() {
-        CalendarEvent e1 = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
-        CalendarEvent e2 = buildEvent(2L, "Exam", CalendarEventType.EXAM, academicYear, null);
+        CalendarEvent e1 = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
+        CalendarEvent e2 = buildEvent(2L, "Exam",   CalendarEventType.EXAM,    academicYear);
         when(calendarEventRepository.findAll()).thenReturn(List.of(e1, e2));
 
         List<CalendarEventResponse> responses = calendarEventService.findAll();
@@ -180,7 +132,6 @@ class CalendarEventServiceTest {
     @Test
     void shouldReturnEmptyListWhenNoEvents() {
         when(calendarEventRepository.findAll()).thenReturn(List.of());
-
         assertThat(calendarEventService.findAll()).isEmpty();
     }
 
@@ -188,7 +139,7 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldFindEventById() {
-        CalendarEvent event = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent event = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
         when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(event));
 
         CalendarEventResponse response = calendarEventService.findById(1L);
@@ -210,7 +161,7 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldFindEventsByAcademicYear() {
-        CalendarEvent e1 = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent e1 = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
         when(academicYearRepository.existsById(1L)).thenReturn(true);
         when(calendarEventRepository.findByAcademicYearIdOrderByStartDate(1L))
             .thenReturn(List.of(e1));
@@ -232,7 +183,7 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldFindEventsByAcademicYearAndEventType() {
-        CalendarEvent e1 = buildEvent(1L, "Mid-Term", CalendarEventType.EXAM, academicYear, null);
+        CalendarEvent e1 = buildEvent(1L, "Mid-Term", CalendarEventType.EXAM, academicYear);
         when(academicYearRepository.existsById(1L)).thenReturn(true);
         when(calendarEventRepository.findByAcademicYearIdAndEventTypeOrderByStartDate(
             1L, CalendarEventType.EXAM)).thenReturn(List.of(e1));
@@ -244,46 +195,15 @@ class CalendarEventServiceTest {
         assertThat(responses.get(0).eventType()).isEqualTo(CalendarEventType.EXAM);
     }
 
-    @Test
-    void shouldThrowWhenFindingByEventTypeAndNonExistentAcademicYear() {
-        when(academicYearRepository.existsById(999L)).thenReturn(false);
-
-        assertThatThrownBy(() ->
-            calendarEventService.findByAcademicYearIdAndEventType(999L, CalendarEventType.EXAM))
-            .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    // ─── FIND BY SEMESTER ─────────────────────────────
-
-    @Test
-    void shouldFindEventsBySemester() {
-        CalendarEvent e1 = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
-        when(semesterRepository.existsById(2L)).thenReturn(true);
-        when(calendarEventRepository.findBySemesterIdOrderByStartDate(2L)).thenReturn(List.of(e1));
-
-        List<CalendarEventResponse> responses = calendarEventService.findBySemesterId(2L);
-
-        assertThat(responses).hasSize(1);
-    }
-
-    @Test
-    void shouldThrowWhenFindingByNonExistentSemester() {
-        when(semesterRepository.existsById(999L)).thenReturn(false);
-
-        assertThatThrownBy(() -> calendarEventService.findBySemesterId(999L))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessageContaining("Semester not found with id: 999");
-    }
-
     // ─── UPDATE ───────────────────────────────────────
 
     @Test
     void shouldUpdateCalendarEvent() {
-        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali Updated", "desc", LocalDate.of(2024, 10, 2), LocalDate.of(2024, 10, 2),
-            CalendarEventType.HOLIDAY, 1L, null);
-        CalendarEvent updated = buildEvent(1L, "Diwali Updated", CalendarEventType.HOLIDAY, academicYear, null);
+            CalendarEventType.HOLIDAY, 1L);
+        CalendarEvent updated = buildEvent(1L, "Diwali Updated", CalendarEventType.HOLIDAY, academicYear);
 
         when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
@@ -296,36 +216,10 @@ class CalendarEventServiceTest {
     }
 
     @Test
-    void shouldUpdateCalendarEventWithSemester() {
-        Semester semester = new Semester("Sem 1", academicYear,
-            LocalDate.of(2024, 8, 1), LocalDate.of(2024, 12, 15), 1);
-        semester.setId(2L);
-        semester.setCreatedAt(Instant.now());
-        semester.setUpdatedAt(Instant.now());
-
-        CalendarEvent existing = buildEvent(1L, "Exam", CalendarEventType.EXAM, academicYear, null);
-        CalendarEventRequest request = new CalendarEventRequest(
-            "Mid-Term Exam", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 2),
-            CalendarEventType.EXAM, 1L, 2L);
-        CalendarEvent updated = buildEvent(1L, "Mid-Term Exam", CalendarEventType.EXAM, academicYear, semester);
-
-        when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
-        when(semesterRepository.findById(2L)).thenReturn(Optional.of(semester));
-        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(updated);
-
-        CalendarEventResponse response = calendarEventService.update(1L, request);
-
-        assertThat(response.semester()).isNotNull();
-        assertThat(response.semester().id()).isEqualTo(2L);
-        verify(calendarEventRepository).save(any(CalendarEvent.class));
-    }
-
-    @Test
     void shouldThrowWhenUpdatingNonExistentEvent() {
         CalendarEventRequest request = new CalendarEventRequest(
             "Test", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.OTHER, 1L, null);
+            CalendarEventType.OTHER, 1L);
         when(calendarEventRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> calendarEventService.update(999L, request))
@@ -337,10 +231,10 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingWithNonExistentAcademicYear() {
-        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
         CalendarEventRequest request = new CalendarEventRequest(
             "Test", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 999L, null);
+            CalendarEventType.HOLIDAY, 999L);
 
         when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
@@ -352,10 +246,10 @@ class CalendarEventServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingWithInvalidDateRange() {
-        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear, null);
+        CalendarEvent existing = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali", null, LocalDate.of(2024, 10, 5), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 1L, null);
+            CalendarEventType.HOLIDAY, 1L);
 
         when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
 

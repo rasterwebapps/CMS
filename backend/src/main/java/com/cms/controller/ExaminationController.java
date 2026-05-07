@@ -51,11 +51,6 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.findBySubjectId(subjectId));
     }
 
-    @GetMapping("/semester/{semesterId}")
-    public ResponseEntity<List<ExaminationResponse>> findBySemesterId(@PathVariable Long semesterId) {
-        return ResponseEntity.ok(examinationService.findBySemesterId(semesterId));
-    }
-
     @PutMapping("/{id}")
     @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
     public ResponseEntity<ExaminationResponse> update(@PathVariable Long id,

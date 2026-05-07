@@ -60,11 +60,6 @@ public class CalendarEventController {
         return ResponseEntity.ok(calendarEventService.findByAcademicYearId(academicYearId));
     }
 
-    @GetMapping("/semester/{semesterId}")
-    public ResponseEntity<List<CalendarEventResponse>> findBySemester(@PathVariable Long semesterId) {
-        return ResponseEntity.ok(calendarEventService.findBySemesterId(semesterId));
-    }
-
     @PutMapping("/{id}")
     @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
     public ResponseEntity<CalendarEventResponse> update(

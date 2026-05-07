@@ -34,7 +34,7 @@ public class LocalDataSeeder {
             CourseRepository courseRepo,
             SubjectRepository subjectRepo,
             AcademicYearRepository academicYearRepo,
-            SemesterRepository semesterRepo,
+            TermInstanceRepository termInstanceRepo,
             FacultyRepository facultyRepo,
             StudentRepository studentRepo,
             LabRepository labRepo,
@@ -106,9 +106,11 @@ public class LocalDataSeeder {
             AcademicYear ay2025 = academicYearRepo.save(new AcademicYear("2025-2026", LocalDate.of(2025, 6, 1), LocalDate.of(2026, 5, 31), true));
             AcademicYear ay2024 = academicYearRepo.save(new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false));
 
-            Semester sem1 = semesterRepo.save(createSemester("Semester 1", 1, ay2025, LocalDate.of(2025, 6, 15), LocalDate.of(2025, 11, 30)));
-            Semester sem2 = semesterRepo.save(createSemester("Semester 2", 2, ay2025, LocalDate.of(2025, 12, 1), LocalDate.of(2026, 5, 15)));
-            log.info("✓ Created 2 academic years and 2 semesters");
+            TermInstance oddTerm2025 = termInstanceRepo.save(new TermInstance(ay2025, TermType.ODD,  LocalDate.of(2025, 6, 15),  LocalDate.of(2025, 11, 30), TermInstanceStatus.OPEN));
+            termInstanceRepo.save(new TermInstance(ay2025, TermType.EVEN, LocalDate.of(2025, 12, 1), LocalDate.of(2026, 5, 15),  TermInstanceStatus.PLANNED));
+            termInstanceRepo.save(new TermInstance(ay2024, TermType.ODD,  LocalDate.of(2024, 6, 1),  LocalDate.of(2024, 11, 30), TermInstanceStatus.LOCKED));
+            termInstanceRepo.save(new TermInstance(ay2024, TermType.EVEN, LocalDate.of(2025, 1, 1),  LocalDate.of(2025, 5, 31),  TermInstanceStatus.LOCKED));
+            log.info("✓ Created 2 academic years and 4 term instances");
 
             // ═══════════════════════════════════════════════════════════════
             // 5. SUBJECTS
@@ -273,11 +275,11 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 17. EXAMINATIONS
             // ═══════════════════════════════════════════════════════════════
-            Examination exam1 = examRepo.save(createExamination("Mid-Semester Theory Exam", subAnatomy, ExamType.THEORY, LocalDate.of(2025, 9, 15), 120, 100, sem1));
-            Examination exam2 = examRepo.save(createExamination("End-Semester Theory Exam", subAnatomy, ExamType.THEORY, LocalDate.of(2025, 11, 20), 180, 100, sem1));
-            Examination exam3 = examRepo.save(createExamination("Practical Exam", subNursingFoundation, ExamType.PRACTICAL, LocalDate.of(2025, 11, 25), 60, 50, sem1));
-            Examination exam4 = examRepo.save(createExamination("Mid-Semester Theory", subPhysiology, ExamType.THEORY, LocalDate.of(2025, 9, 18), 120, 100, sem1));
-            Examination exam5 = examRepo.save(createExamination("Viva Voce", subNursingFoundation, ExamType.VIVA, LocalDate.of(2025, 11, 28), 30, 25, sem1));
+            Examination exam1 = examRepo.save(createExamination("Mid-Semester Theory Exam", subAnatomy, ExamType.THEORY, LocalDate.of(2025, 9, 15), 120, 100));
+            Examination exam2 = examRepo.save(createExamination("End-Semester Theory Exam", subAnatomy, ExamType.THEORY, LocalDate.of(2025, 11, 20), 180, 100));
+            Examination exam3 = examRepo.save(createExamination("Practical Exam", subNursingFoundation, ExamType.PRACTICAL, LocalDate.of(2025, 11, 25), 60, 50));
+            Examination exam4 = examRepo.save(createExamination("Mid-Semester Theory", subPhysiology, ExamType.THEORY, LocalDate.of(2025, 9, 18), 120, 100));
+            Examination exam5 = examRepo.save(createExamination("Viva Voce", subNursingFoundation, ExamType.VIVA, LocalDate.of(2025, 11, 28), 30, 25));
             log.info("✓ Created 5 examinations");
 
             // ═══════════════════════════════════════════════════════════════
@@ -318,11 +320,11 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 21. LAB SCHEDULES
             // ═══════════════════════════════════════════════════════════════
-            labScheduleRepo.save(createLabSchedule(lab1, subNursingFoundation, f6, slot1, "Batch A", DayOfWeek.MONDAY, sem1));
-            labScheduleRepo.save(createLabSchedule(lab2, subAnatomy, f3, slot2, "Batch A", DayOfWeek.TUESDAY, sem1));
-            labScheduleRepo.save(createLabSchedule(lab3, subMSN1, f1, slot3, "Batch B", DayOfWeek.WEDNESDAY, sem1));
-            labScheduleRepo.save(createLabSchedule(lab9, subMicrobiology, f8, slot1, "Batch A", DayOfWeek.THURSDAY, sem1));
-            labScheduleRepo.save(createLabSchedule(lab4, subOBGNursing, f4, slot2, "Batch B", DayOfWeek.FRIDAY, sem1));
+            labScheduleRepo.save(createLabSchedule(lab1, subNursingFoundation, f6, slot1, "Batch A", DayOfWeek.MONDAY, oddTerm2025));
+            labScheduleRepo.save(createLabSchedule(lab2, subAnatomy, f3, slot2, "Batch A", DayOfWeek.TUESDAY, oddTerm2025));
+            labScheduleRepo.save(createLabSchedule(lab3, subMSN1, f1, slot3, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2025));
+            labScheduleRepo.save(createLabSchedule(lab9, subMicrobiology, f8, slot1, "Batch A", DayOfWeek.THURSDAY, oddTerm2025));
+            labScheduleRepo.save(createLabSchedule(lab4, subOBGNursing, f4, slot2, "Batch B", DayOfWeek.FRIDAY, oddTerm2025));
             log.info("✓ Created 5 lab schedules");
 
             // ═══════════════════════════════════════════════════════════════
@@ -394,16 +396,6 @@ public class LocalDataSeeder {
         s.setCourse(course);
         s.setDepartment(dept);
         s.setSemester(semester);
-        return s;
-    }
-
-    private Semester createSemester(String name, int number, AcademicYear ay, LocalDate start, LocalDate end) {
-        Semester s = new Semester();
-        s.setName(name);
-        s.setSemesterNumber(number);
-        s.setAcademicYear(ay);
-        s.setStartDate(start);
-        s.setEndDate(end);
         return s;
     }
 
@@ -548,7 +540,7 @@ public class LocalDataSeeder {
         return p;
     }
 
-    private Examination createExamination(String name, Subject subject, ExamType type, LocalDate date, int duration, int maxMarks, Semester semester) {
+    private Examination createExamination(String name, Subject subject, ExamType type, LocalDate date, int duration, int maxMarks) {
         Examination e = new Examination();
         e.setName(name);
         e.setSubject(subject);
@@ -556,7 +548,6 @@ public class LocalDataSeeder {
         e.setDate(date);
         e.setDuration(duration);
         e.setMaxMarks(maxMarks);
-        e.setSemester(semester);
         return e;
     }
 
@@ -590,7 +581,7 @@ public class LocalDataSeeder {
         return ls;
     }
 
-    private LabSchedule createLabSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot, String batchName, DayOfWeek dayOfWeek, Semester semester) {
+    private LabSchedule createLabSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot, String batchName, DayOfWeek dayOfWeek, TermInstance termInstance) {
         LabSchedule ls = new LabSchedule();
         ls.setLab(lab);
         ls.setSubject(subject);
@@ -598,7 +589,7 @@ public class LocalDataSeeder {
         ls.setLabSlot(labSlot);
         ls.setBatchName(batchName);
         ls.setDayOfWeek(dayOfWeek);
-        ls.setSemester(semester);
+        ls.setTermInstance(termInstance);
         ls.setIsActive(true);
         return ls;
     }

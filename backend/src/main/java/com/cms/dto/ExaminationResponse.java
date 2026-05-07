@@ -14,8 +14,6 @@ public record ExaminationResponse(
     LocalDate date,
     Integer duration,
     Integer maxMarks,
-    Long semesterId,
-    String semesterName,
     Instant createdAt,
     Instant updatedAt
 ) {}

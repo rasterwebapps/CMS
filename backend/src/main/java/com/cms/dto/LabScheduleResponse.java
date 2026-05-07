@@ -20,8 +20,8 @@ public record LabScheduleResponse(
     LocalTime endTime,
     String batchName,
     DayOfWeek dayOfWeek,
-    Long semesterId,
-    String semesterName,
+    Long termInstanceId,
+    String termInstanceLabel,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

@@ -39,7 +39,9 @@ import com.cms.model.LabSlot;
 import com.cms.model.MaintenanceRequest;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
-import com.cms.model.Semester;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
@@ -98,7 +100,7 @@ import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.SemesterFeeRepository;
-import com.cms.repository.SemesterRepository;
+import com.cms.repository.TermInstanceRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.SubjectRepository;
@@ -113,7 +115,7 @@ public class DataLoader implements CommandLineRunner {
     private final DepartmentRepository departmentRepository;
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
-    private final SemesterRepository semesterRepository;
+    private final TermInstanceRepository termInstanceRepository;
     private final CourseRepository courseRepository;
     private final SubjectRepository subjectRepository;
     private final FacultyRepository facultyRepository;
@@ -147,7 +149,7 @@ public class DataLoader implements CommandLineRunner {
     public DataLoader(DepartmentRepository departmentRepository,
                       ProgramRepository programRepository,
                       AcademicYearRepository academicYearRepository,
-                      SemesterRepository semesterRepository,
+                      TermInstanceRepository termInstanceRepository,
                       CourseRepository courseRepository,
                       SubjectRepository subjectRepository,
                       FacultyRepository facultyRepository,
@@ -180,7 +182,7 @@ public class DataLoader implements CommandLineRunner {
         this.departmentRepository = departmentRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
-        this.semesterRepository = semesterRepository;
+        this.termInstanceRepository = termInstanceRepository;
         this.courseRepository = courseRepository;
         this.subjectRepository = subjectRepository;
         this.facultyRepository = facultyRepository;
@@ -252,15 +254,13 @@ public class DataLoader implements CommandLineRunner {
         AcademicYear ay2526 = academicYearRepository.save(new AcademicYear(
                 "2025-2026", LocalDate.of(2025, 6, 1), LocalDate.of(2026, 5, 31), false));
 
-        // ── 5. Semesters ─────────────────────────────────────────────────────
-        Semester sem1 = semesterRepository.save(new Semester(
-                "Odd Semester 2023-2024", ay2324, LocalDate.of(2023, 6, 1), LocalDate.of(2023, 11, 30), 1));
-        Semester sem2 = semesterRepository.save(new Semester(
-                "Even Semester 2023-2024", ay2324, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 5, 31), 2));
-        Semester sem3 = semesterRepository.save(new Semester(
-                "Odd Semester 2024-2025", ay2425, LocalDate.of(2024, 6, 1), LocalDate.of(2024, 11, 30), 3));
-        Semester sem4 = semesterRepository.save(new Semester(
-                "Even Semester 2024-2025", ay2425, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 5, 31), 4));
+        // ── 5. Term Instances ─────────────────────────────────────────────────
+        termInstanceRepository.save(new TermInstance(ay2324, TermType.ODD,  LocalDate.of(2023, 6, 1),  LocalDate.of(2023, 11, 30), TermInstanceStatus.PLANNED));
+        termInstanceRepository.save(new TermInstance(ay2324, TermType.EVEN, LocalDate.of(2024, 1, 1),  LocalDate.of(2024, 5, 31),  TermInstanceStatus.PLANNED));
+        TermInstance oddTerm2425 = termInstanceRepository.save(new TermInstance(ay2425, TermType.ODD,  LocalDate.of(2024, 6, 1),  LocalDate.of(2024, 11, 30), TermInstanceStatus.OPEN));
+        termInstanceRepository.save(new TermInstance(ay2425, TermType.EVEN, LocalDate.of(2025, 1, 1),  LocalDate.of(2025, 5, 31),  TermInstanceStatus.PLANNED));
+        termInstanceRepository.save(new TermInstance(ay2526, TermType.ODD,  LocalDate.of(2025, 6, 1),  LocalDate.of(2025, 11, 30), TermInstanceStatus.PLANNED));
+        termInstanceRepository.save(new TermInstance(ay2526, TermType.EVEN, LocalDate.of(2026, 1, 1),  LocalDate.of(2026, 5, 31),  TermInstanceStatus.PLANNED));
 
         // ── 6. Courses ───────────────────────────────────────────────────────
         Course bscCourse = courseRepository.save(
@@ -396,7 +396,7 @@ public class DataLoader implements CommandLineRunner {
         feePaymentRepository.save(new FeePayment(s2, bscTuition, "RCP-2024-0002",
                 new BigDecimal("25000.00"), LocalDate.of(2024, 6, 18), PaymentMode.UPI, PaymentStatus.PAID));
         feePaymentRepository.save(new FeePayment(s6, gnmTuition, "RCP-2024-0003",
-                new BigDecimal("22000.00"), LocalDate.of(2024, 6, 20), PaymentMode.NET_BANKING, PaymentStatus.PAID));
+                new BigDecimal("22000.00"), LocalDate.of(2024, 6, 20), PaymentMode.BANK_TRANSFER, PaymentStatus.PAID));
         feePaymentRepository.save(new FeePayment(s8, mscTuition, "RCP-2024-0004",
                 new BigDecimal("23000.00"), LocalDate.of(2024, 6, 22), PaymentMode.DEMAND_DRAFT, PaymentStatus.PAID));
 
@@ -474,11 +474,11 @@ public class DataLoader implements CommandLineRunner {
         maintenanceRequestRepository.save(mr3);
 
         // ── 22. Examinations + Exam Results ──────────────────────────────────
-        Examination ex1 = examinationRepository.save(new Examination("Anatomy Mid-Term",               anatomy,    ExamType.THEORY,    LocalDate.of(2024, 9, 15),  180, 100, sem3));
-        Examination ex2 = examinationRepository.save(new Examination("Anatomy End-Term",               anatomy,    ExamType.THEORY,    LocalDate.of(2024, 11, 20), 180, 100, sem3));
-        Examination ex3 = examinationRepository.save(new Examination("Nursing Foundations Practical",  nfLab,      ExamType.PRACTICAL, LocalDate.of(2024, 10, 5),  120, 50,  sem3));
-        Examination ex4 = examinationRepository.save(new Examination("Advanced Nursing Practice Viva", advNursing, ExamType.VIVA,      LocalDate.of(2024, 10, 20), 60,  50,  sem3));
-        Examination ex5 = examinationRepository.save(new Examination("Basic Nursing Mid-Term",         basicNurs,  ExamType.THEORY,    LocalDate.of(2024, 9, 20),  120, 75,  sem3));
+        Examination ex1 = examinationRepository.save(new Examination("Anatomy Mid-Term",               anatomy,    ExamType.THEORY,    LocalDate.of(2024, 9, 15),  180, 100));
+        Examination ex2 = examinationRepository.save(new Examination("Anatomy End-Term",               anatomy,    ExamType.THEORY,    LocalDate.of(2024, 11, 20), 180, 100));
+        Examination ex3 = examinationRepository.save(new Examination("Nursing Foundations Practical",  nfLab,      ExamType.PRACTICAL, LocalDate.of(2024, 10, 5),  120, 50));
+        Examination ex4 = examinationRepository.save(new Examination("Advanced Nursing Practice Viva", advNursing, ExamType.VIVA,      LocalDate.of(2024, 10, 20), 60,  50));
+        Examination ex5 = examinationRepository.save(new Examination("Basic Nursing Mid-Term",         basicNurs,  ExamType.THEORY,    LocalDate.of(2024, 9, 20),  120, 75));
 
         examResultRepository.save(new ExamResult(ex1, s1,  new BigDecimal("72"), "B",  ExamResultStatus.PUBLISHED));
         examResultRepository.save(new ExamResult(ex1, s2,  new BigDecimal("85"), "A",  ExamResultStatus.PUBLISHED));
@@ -555,10 +555,10 @@ public class DataLoader implements CommandLineRunner {
         labCurriculumMappingRepository.save(new LabCurriculumMapping(exp3, OutcomeType.PROGRAM_SPECIFIC_OUTCOME, "PSO1", "Apply anatomy in clinical care",  MappingLevel.MEDIUM, "Foundation for clinical nursing"));
 
         // ── 25. Lab Schedules ────────────────────────────────────────────────
-        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f7, slot1, "Batch A", DayOfWeek.MONDAY,    sem3, true));
-        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f8, slot2, "Batch B", DayOfWeek.WEDNESDAY, sem3, true));
-        labScheduleRepository.save(new LabSchedule(anatLab, anatomy, f4, slot1, "Batch A", DayOfWeek.TUESDAY,  sem3, true));
-        labScheduleRepository.save(new LabSchedule(compLab, basicNurs, f7, slot3, "Batch A", DayOfWeek.FRIDAY, sem3, true));
+        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f7, slot1, "Batch A", DayOfWeek.MONDAY,    oddTerm2425, true));
+        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f8, slot2, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2425, true));
+        labScheduleRepository.save(new LabSchedule(anatLab, anatomy, f4, slot1, "Batch A", DayOfWeek.TUESDAY,  oddTerm2425, true));
+        labScheduleRepository.save(new LabSchedule(compLab, basicNurs, f7, slot3, "Batch A", DayOfWeek.FRIDAY, oddTerm2425, true));
 
         log.info("Seed data loaded successfully.");
     }

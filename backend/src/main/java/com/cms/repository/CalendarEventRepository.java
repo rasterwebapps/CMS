@@ -11,8 +11,6 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
 
     List<CalendarEvent> findByAcademicYearIdOrderByStartDate(Long academicYearId);
 
-    List<CalendarEvent> findBySemesterIdOrderByStartDate(Long semesterId);
-
     List<CalendarEvent> findByAcademicYearIdAndEventTypeOrderByStartDate(
         Long academicYearId, CalendarEventType eventType);
 }

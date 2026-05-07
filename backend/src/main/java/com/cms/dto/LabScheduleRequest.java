@@ -24,8 +24,8 @@ public record LabScheduleRequest(
     @NotNull(message = "Day of week is required")
     DayOfWeek dayOfWeek,
 
-    @NotNull(message = "Semester ID is required")
-    Long semesterId,
+    @NotNull(message = "Term instance ID is required")
+    Long termInstanceId,
 
     Boolean isActive
 ) {}

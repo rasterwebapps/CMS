@@ -19,7 +19,7 @@ public interface LabScheduleRepository extends JpaRepository<LabSchedule, Long> 
 
     List<LabSchedule> findByDayOfWeek(DayOfWeek dayOfWeek);
 
-    List<LabSchedule> findBySemesterId(Long semesterId);
+    List<LabSchedule> findByTermInstanceId(Long termInstanceId);
 
     List<LabSchedule> findByLabIdAndDayOfWeek(Long labId, DayOfWeek dayOfWeek);
 

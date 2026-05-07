@@ -26,7 +26,5 @@ public record CalendarEventRequest(
     CalendarEventType eventType,
 
     @NotNull(message = "Academic year ID is required")
-    Long academicYearId,
-
-    Long semesterId
+    Long academicYearId
 ) {}

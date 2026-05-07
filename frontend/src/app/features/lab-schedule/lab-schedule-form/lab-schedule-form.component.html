@@ -120,16 +120,16 @@
             </div>
 
             <div class="field-group">
-              <label for="ls-semester" class="field-label">Semester <span class="required-star">*</span></label>
-              <select id="ls-semester" class="field-select" formControlName="semesterId"
-                [class.field-select--error]="form.get('semesterId')?.invalid && form.get('semesterId')?.touched">
-                <option [ngValue]="null" disabled>Select semester</option>
-                @for (sem of semesters(); track sem.id) {
-                  <option [ngValue]="sem.id">{{ sem.name }}</option>
+              <label for="ls-term" class="field-label">Term Instance <span class="required-star">*</span></label>
+              <select id="ls-term" class="field-select" formControlName="termInstanceId"
+                [class.field-select--error]="form.get('termInstanceId')?.invalid && form.get('termInstanceId')?.touched">
+                <option [ngValue]="null" disabled>Select term</option>
+                @for (term of termInstances(); track term.id) {
+                  <option [ngValue]="term.id">{{ term.academicYearName }} — {{ term.termType }}</option>
                 }
               </select>
-              @if (form.get('semesterId')?.invalid && form.get('semesterId')?.touched) {
-                <p class="field-error">Semester is required</p>
+              @if (form.get('termInstanceId')?.invalid && form.get('termInstanceId')?.touched) {
+                <p class="field-error">Term instance is required</p>
               }
             </div>
 
@@ -162,7 +162,7 @@
             @if (previewLabName()) { <span class="prev-pill prev-pill--primary">{{ previewLabName() }}</span> }
             @if (previewDay()) { <span class="prev-pill">{{ previewDay() }}</span> }
             @if (previewSlotLabel()) { <span class="prev-pill">{{ previewSlotLabel() }}</span> }
-            @if (previewSemName()) { <span class="prev-pill">{{ previewSemName() }}</span> }
+            @if (previewTermLabel()) { <span class="prev-pill">{{ previewTermLabel() }}</span> }
             <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
               {{ previewActive() ? 'Active' : 'Inactive' }}
             </span>

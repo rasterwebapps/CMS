@@ -48,7 +48,7 @@ class ExaminationControllerTest {
     @Test
     void shouldCreateExamination() throws Exception {
         ExaminationRequest request = new ExaminationRequest(
-            "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, 1L
+            "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100
         );
 
         ExaminationResponse response = createExaminationResponse();
@@ -69,7 +69,7 @@ class ExaminationControllerTest {
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
         ExaminationRequest request = new ExaminationRequest(
-            "", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, 1L
+            "", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100
         );
 
         mockMvc.perform(post("/examinations")
@@ -143,29 +143,16 @@ class ExaminationControllerTest {
         verify(examinationService).findBySubjectId(1L);
     }
 
-    @Test
-    void shouldFindBySemesterId() throws Exception {
-        ExaminationResponse response = createExaminationResponse();
-
-        when(examinationService.findBySemesterId(1L)).thenReturn(List.of(response));
-
-        mockMvc.perform(get("/examinations/semester/1"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].semesterId").value(1));
-
-        verify(examinationService).findBySemesterId(1L);
-    }
 
     @Test
     void shouldUpdateExamination() throws Exception {
         ExaminationRequest request = new ExaminationRequest(
-            "Midterm Updated", 1L, ExamType.PRACTICAL, LocalDate.of(2024, 7, 1), 90, 50, 1L
+            "Midterm Updated", 1L, ExamType.PRACTICAL, LocalDate.of(2024, 7, 1), 90, 50
         );
 
         ExaminationResponse response = new ExaminationResponse(
             1L, "Midterm Updated", 1L, "Physics", ExamType.PRACTICAL,
-            LocalDate.of(2024, 7, 1), 90, 50, 1L, "Semester 1", Instant.now(), Instant.now()
+            LocalDate.of(2024, 7, 1), 90, 50, Instant.now(), Instant.now()
         );
 
         when(examinationService.update(eq(1L), any(ExaminationRequest.class))).thenReturn(response);
@@ -184,7 +171,7 @@ class ExaminationControllerTest {
     @Test
     void shouldReturnNotFoundWhenUpdating() throws Exception {
         ExaminationRequest request = new ExaminationRequest(
-            "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100, 1L
+            "Midterm", 1L, ExamType.THEORY, LocalDate.of(2024, 6, 1), 120, 100
         );
 
         when(examinationService.update(eq(999L), any(ExaminationRequest.class)))
@@ -222,7 +209,7 @@ class ExaminationControllerTest {
     private ExaminationResponse createExaminationResponse() {
         return new ExaminationResponse(
             1L, "Midterm", 1L, "Physics", ExamType.THEORY,
-            LocalDate.of(2024, 6, 1), 120, 100, 1L, "Semester 1", Instant.now(), Instant.now()
+            LocalDate.of(2024, 6, 1), 120, 100, Instant.now(), Instant.now()
         );
     }
 }

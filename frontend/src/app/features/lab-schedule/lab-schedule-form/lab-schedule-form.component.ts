@@ -44,7 +44,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly courses = signal<{ id: number; name: string; code: string }[]>([]);
   protected readonly faculty = signal<{ id: number; name: string }[]>([]);
   protected readonly labSlots = signal<LabSlot[]>([]);
-  protected readonly semesters = signal<{ id: number; name: string }[]>([]);
+  protected readonly termInstances = signal<{ id: number; termType: string; startDate: string; endDate: string; academicYearName: string }[]>([]);
   protected readonly daysOfWeek = DAYS_OF_WEEK;
 
   // Preview signals
@@ -54,7 +54,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly previewSlotId    = signal<number | null>(null);
   protected readonly previewBatch     = signal('');
   protected readonly previewDay       = signal('');
-  protected readonly previewSemId     = signal<number | null>(null);
+  protected readonly previewTermId    = signal<number | null>(null);
   protected readonly previewActive    = signal(true);
   protected readonly previewLabName     = computed(() => this.labs().find(l => l.id === this.previewLabId())?.name ?? '');
   protected readonly previewCourseName  = computed(() => {
@@ -62,7 +62,10 @@ export class LabScheduleFormComponent implements OnInit {
     return c ? `${c.name} (${c.code})` : '';
   });
   protected readonly previewFacultyName = computed(() => this.faculty().find(f => f.id === this.previewFacultyId())?.name ?? '');
-  protected readonly previewSemName     = computed(() => this.semesters().find(s => s.id === this.previewSemId())?.name ?? '');
+  protected readonly previewTermLabel   = computed(() => {
+    const t = this.termInstances().find(t => t.id === this.previewTermId());
+    return t ? `${t.academicYearName} ${t.termType}` : '';
+  });
   protected readonly previewSlotLabel   = computed(() => {
     const s = this.labSlots().find(x => x.id === this.previewSlotId());
     return s ? `${s.startTime}-${s.endTime}` : '';
@@ -83,7 +86,7 @@ export class LabScheduleFormComponent implements OnInit {
     labSlotId: [null, Validators.required],
     batchName: ['', [Validators.required, Validators.maxLength(100)]],
     dayOfWeek: ['', Validators.required],
-    semesterId: [null, Validators.required],
+    termInstanceId: [null, Validators.required],
     isActive: [true],
   });
 
@@ -97,7 +100,7 @@ export class LabScheduleFormComponent implements OnInit {
         this.previewSlotId.set(v.labSlotId ?? null);
         this.previewBatch.set((v.batchName ?? '').trim());
         this.previewDay.set(v.dayOfWeek ?? '');
-        this.previewSemId.set(v.semesterId ?? null);
+        this.previewTermId.set(v.termInstanceId ?? null);
         this.previewActive.set(!!v.isActive);
       });
   }
@@ -119,9 +122,16 @@ export class LabScheduleFormComponent implements OnInit {
       next: (data) => this.labSlots.set(data),
       error: () => { this.toast.error('Failed to load lab slots'); },
     });
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/semesters`).subscribe({
-      next: (data) => this.semesters.set(data),
-      error: () => { this.toast.error('Failed to load semesters'); },
+    this.http.get<{ id: number; termType: string; startDate: string; endDate: string; academicYear: { id: number; name: string } }[]>(
+      `${environment.apiUrl}/term-instances`).subscribe({
+      next: (data) => this.termInstances.set(data.map(t => ({
+        id: t.id,
+        termType: t.termType,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        academicYearName: t.academicYear?.name ?? '',
+      }))),
+      error: () => { this.toast.error('Failed to load term instances'); },
     });
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -132,7 +142,7 @@ export class LabScheduleFormComponent implements OnInit {
       this.loading.set(true);
       this.labScheduleService.getById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ labId: item.labId, courseId: item.courseId, facultyId: item.facultyId, labSlotId: item.labSlotId, batchName: item.batchName, dayOfWeek: item.dayOfWeek, semesterId: item.semesterId, isActive: item.isActive });
+          this.form.patchValue({ labId: item.labId, courseId: item.courseId, facultyId: item.facultyId, labSlotId: item.labSlotId, batchName: item.batchName, dayOfWeek: item.dayOfWeek, termInstanceId: item.termInstanceId, isActive: item.isActive });
           this.loading.set(false);
         },
         error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/lab-schedules']); },
@@ -143,7 +153,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
-    const request: LabScheduleRequest = { labId: v.labId, courseId: v.courseId, facultyId: v.facultyId, labSlotId: v.labSlotId, batchName: v.batchName.trim(), dayOfWeek: v.dayOfWeek, semesterId: v.semesterId, isActive: v.isActive };
+    const request: LabScheduleRequest = { labId: v.labId, courseId: v.courseId, facultyId: v.facultyId, labSlotId: v.labSlotId, batchName: v.batchName.trim(), dayOfWeek: v.dayOfWeek, termInstanceId: v.termInstanceId, isActive: v.isActive };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.labScheduleService.update(this.itemId!, request) : this.labScheduleService.create(request);
     op$.subscribe({

@@ -52,10 +52,6 @@ public class Examination {
     @Column(name = "max_marks")
     private Integer maxMarks;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "semester_id")
-    private Semester semester;
-
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -67,14 +63,13 @@ public class Examination {
     public Examination() {}
 
     public Examination(String name, Subject subject, ExamType examType, LocalDate date,
-                       Integer duration, Integer maxMarks, Semester semester) {
+                       Integer duration, Integer maxMarks) {
         this.name = name;
         this.subject = subject;
         this.examType = examType;
         this.date = date;
         this.duration = duration;
         this.maxMarks = maxMarks;
-        this.semester = semester;
     }
 
     public Long getId() { return id; }
@@ -91,8 +86,6 @@ public class Examination {
     public void setDuration(Integer duration) { this.duration = duration; }
     public Integer getMaxMarks() { return maxMarks; }
     public void setMaxMarks(Integer maxMarks) { this.maxMarks = maxMarks; }
-    public Semester getSemester() { return semester; }
-    public void setSemester(Semester semester) { this.semester = semester; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

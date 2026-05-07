@@ -13,8 +13,8 @@ export interface LabSchedule {
   endTime: string;
   batchName: string;
   dayOfWeek: string;
-  semesterId: number;
-  semesterName: string;
+  termInstanceId: number;
+  termInstanceLabel: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -27,7 +27,7 @@ export interface LabScheduleRequest {
   labSlotId: number;
   batchName: string;
   dayOfWeek: string;
-  semesterId: number;
+  termInstanceId: number;
   isActive?: boolean;
 }
 

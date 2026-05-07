@@ -26,7 +26,6 @@ import com.cms.model.ExamResult;
 import com.cms.model.Examination;
 import com.cms.model.Experiment;
 import com.cms.model.LabContinuousEvaluation;
-import com.cms.model.Semester;
 import com.cms.model.Student;
 import com.cms.model.enums.ExamResultStatus;
 import com.cms.model.enums.ExamType;
@@ -168,16 +167,10 @@ class ReportServiceTest {
         return subject;
     }
 
-    private Semester createSemester() {
-        Semester semester = new Semester("Semester 1", null, LocalDate.of(2024, 1, 1),
-            LocalDate.of(2024, 6, 30), 1);
-        semester.setId(1L);
-        return semester;
-    }
 
     private Examination createExamination() {
         Examination exam = new Examination("Midterm", createSubject(), ExamType.THEORY,
-            LocalDate.of(2024, 6, 1), 120, 100, createSemester());
+            LocalDate.of(2024, 6, 1), 120, 100);
         exam.setId(1L);
         exam.setCreatedAt(Instant.now());
         exam.setUpdatedAt(Instant.now());

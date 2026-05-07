@@ -59,14 +59,14 @@ class CalendarEventControllerTest {
         return new CalendarEventResponse(
             id, title, "A description",
             LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            type, buildAyResponse(), null, now, now);
+            type, buildAyResponse(), now, now);
     }
 
     @Test
     void shouldCreateCalendarEvent() throws Exception {
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali", "Holiday", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 1L, null);
+            CalendarEventType.HOLIDAY, 1L);
 
         CalendarEventResponse response = buildEventResponse(1L, "Diwali", CalendarEventType.HOLIDAY);
 
@@ -87,7 +87,7 @@ class CalendarEventControllerTest {
     void shouldReturnBadRequestWhenTitleIsBlank() throws Exception {
         CalendarEventRequest request = new CalendarEventRequest(
             "", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.HOLIDAY, 1L, null);
+            CalendarEventType.HOLIDAY, 1L);
 
         mockMvc.perform(post("/calendar-events")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -181,23 +181,12 @@ class CalendarEventControllerTest {
         verify(calendarEventService).findByAcademicYearIdAndEventType(1L, CalendarEventType.EXAM);
     }
 
-    @Test
-    void shouldFindEventsBySemester() throws Exception {
-        CalendarEventResponse e1 = buildEventResponse(1L, "Diwali", CalendarEventType.HOLIDAY);
-        when(calendarEventService.findBySemesterId(2L)).thenReturn(List.of(e1));
-
-        mockMvc.perform(get("/calendar-events/semester/2"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1));
-
-        verify(calendarEventService).findBySemesterId(2L);
-    }
 
     @Test
     void shouldUpdateCalendarEvent() throws Exception {
         CalendarEventRequest request = new CalendarEventRequest(
             "Diwali Updated", null, LocalDate.of(2024, 10, 2), LocalDate.of(2024, 10, 2),
-            CalendarEventType.HOLIDAY, 1L, null);
+            CalendarEventType.HOLIDAY, 1L);
 
         CalendarEventResponse response = buildEventResponse(1L, "Diwali Updated", CalendarEventType.HOLIDAY);
         when(calendarEventService.update(eq(1L), any(CalendarEventRequest.class))).thenReturn(response);
@@ -216,7 +205,7 @@ class CalendarEventControllerTest {
     void shouldReturn404WhenUpdatingNonExistentEvent() throws Exception {
         CalendarEventRequest request = new CalendarEventRequest(
             "Test", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
-            CalendarEventType.OTHER, 1L, null);
+            CalendarEventType.OTHER, 1L);
 
         when(calendarEventService.update(eq(999L), any(CalendarEventRequest.class)))
             .thenThrow(new ResourceNotFoundException("Calendar event not found with id: 999"));

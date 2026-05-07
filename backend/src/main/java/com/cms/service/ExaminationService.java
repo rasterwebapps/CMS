@@ -8,12 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.ExaminationRequest;
 import com.cms.dto.ExaminationResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Subject;
 import com.cms.model.Examination;
-import com.cms.model.Semester;
-import com.cms.repository.SubjectRepository;
+import com.cms.model.Subject;
 import com.cms.repository.ExaminationRepository;
-import com.cms.repository.SemesterRepository;
+import com.cms.repository.SubjectRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -21,31 +19,22 @@ public class ExaminationService {
 
     private final ExaminationRepository examinationRepository;
     private final SubjectRepository subjectRepository;
-    private final SemesterRepository semesterRepository;
 
     public ExaminationService(ExaminationRepository examinationRepository,
-                               SubjectRepository subjectRepository,
-                               SemesterRepository semesterRepository) {
+                               SubjectRepository subjectRepository) {
         this.examinationRepository = examinationRepository;
         this.subjectRepository = subjectRepository;
-        this.semesterRepository = semesterRepository;
     }
 
     @Transactional
     public ExaminationResponse create(ExaminationRequest request) {
         Subject subject = subjectRepository.findById(request.subjectId())
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
-        Semester semester = null;
-        if (request.semesterId() != null) {
-            semester = semesterRepository.findById(request.semesterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id: " + request.semesterId()));
-        }
         Examination examination = new Examination(
             request.name(), subject, request.examType(),
-            request.date(), request.duration(), request.maxMarks(), semester
+            request.date(), request.duration(), request.maxMarks()
         );
-        Examination saved = examinationRepository.save(examination);
-        return toResponse(saved);
+        return toResponse(examinationRepository.save(examination));
     }
 
     public List<ExaminationResponse> findAll() {
@@ -53,17 +42,12 @@ public class ExaminationService {
     }
 
     public ExaminationResponse findById(Long id) {
-        Examination examination = examinationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Examination not found with id: " + id));
-        return toResponse(examination);
+        return toResponse(examinationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Examination not found with id: " + id)));
     }
 
     public List<ExaminationResponse> findBySubjectId(Long subjectId) {
         return examinationRepository.findBySubjectId(subjectId).stream().map(this::toResponse).toList();
-    }
-
-    public List<ExaminationResponse> findBySemesterId(Long semesterId) {
-        return examinationRepository.findBySemesterId(semesterId).stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -78,13 +62,7 @@ public class ExaminationService {
         examination.setDate(request.date());
         examination.setDuration(request.duration());
         examination.setMaxMarks(request.maxMarks());
-        if (request.semesterId() != null) {
-            Semester semester = semesterRepository.findById(request.semesterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id: " + request.semesterId()));
-            examination.setSemester(semester);
-        }
-        Examination updated = examinationRepository.save(examination);
-        return toResponse(updated);
+        return toResponse(examinationRepository.save(examination));
     }
 
     @Transactional
@@ -105,8 +83,6 @@ public class ExaminationService {
             examination.getDate(),
             examination.getDuration(),
             examination.getMaxMarks(),
-            examination.getSemester() != null ? examination.getSemester().getId() : null,
-            examination.getSemester() != null ? examination.getSemester().getName() : null,
             examination.getCreatedAt(),
             examination.getUpdatedAt()
         );

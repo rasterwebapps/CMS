@@ -54,8 +54,8 @@ public class LabSchedule {
     private DayOfWeek dayOfWeek;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "semester_id", nullable = false)
-    private Semester semester;
+    @JoinColumn(name = "term_instance_id", nullable = false)
+    private TermInstance termInstance;
 
     @Column(name = "is_active")
     private Boolean isActive;
@@ -72,14 +72,14 @@ public class LabSchedule {
     }
 
     public LabSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot,
-                       String batchName, DayOfWeek dayOfWeek, Semester semester, Boolean isActive) {
+                       String batchName, DayOfWeek dayOfWeek, TermInstance termInstance, Boolean isActive) {
         this.lab = lab;
         this.subject = subject;
         this.faculty = faculty;
         this.labSlot = labSlot;
         this.batchName = batchName;
         this.dayOfWeek = dayOfWeek;
-        this.semester = semester;
+        this.termInstance = termInstance;
         this.isActive = isActive;
     }
 
@@ -139,12 +139,12 @@ public class LabSchedule {
         this.dayOfWeek = dayOfWeek;
     }
 
-    public Semester getSemester() {
-        return semester;
+    public TermInstance getTermInstance() {
+        return termInstance;
     }
 
-    public void setSemester(Semester semester) {
-        this.semester = semester;
+    public void setTermInstance(TermInstance termInstance) {
+        this.termInstance = termInstance;
     }
 
     public Boolean getIsActive() {

@@ -51,10 +51,6 @@ public class CalendarEvent {
     @JoinColumn(name = "academic_year_id", nullable = false)
     private AcademicYear academicYear;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "semester_id")
-    private Semester semester;
-
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -120,14 +116,6 @@ public class CalendarEvent {
 
     public void setAcademicYear(AcademicYear academicYear) {
         this.academicYear = academicYear;
-    }
-
-    public Semester getSemester() {
-        return semester;
-    }
-
-    public void setSemester(Semester semester) {
-        this.semester = semester;
     }
 
     public Instant getCreatedAt() {

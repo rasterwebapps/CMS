@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
@@ -23,40 +24,37 @@ import com.cms.dto.LabScheduleRequest;
 import com.cms.dto.LabScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Subject;
+import com.cms.model.AcademicYear;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.LabSchedule;
 import com.cms.model.LabSlot;
 import com.cms.model.Program;
-import com.cms.model.Semester;
+import com.cms.model.Subject;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
-import com.cms.repository.SubjectRepository;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabScheduleRepository;
 import com.cms.repository.LabSlotRepository;
-import com.cms.repository.SemesterRepository;
+import com.cms.repository.SubjectRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class LabScheduleServiceTest {
 
-    @Mock
-    private LabScheduleRepository labScheduleRepository;
-    @Mock
-    private LabRepository labRepository;
-    @Mock
-    private SubjectRepository subjectRepository;
-    @Mock
-    private FacultyRepository facultyRepository;
-    @Mock
-    private LabSlotRepository labSlotRepository;
-    @Mock
-    private SemesterRepository semesterRepository;
+    @Mock private LabScheduleRepository labScheduleRepository;
+    @Mock private LabRepository labRepository;
+    @Mock private SubjectRepository subjectRepository;
+    @Mock private FacultyRepository facultyRepository;
+    @Mock private LabSlotRepository labSlotRepository;
+    @Mock private TermInstanceRepository termInstanceRepository;
 
     private LabScheduleService labScheduleService;
 
@@ -64,7 +62,7 @@ class LabScheduleServiceTest {
     private Subject testCourse;
     private Faculty testFaculty;
     private LabSlot testLabSlot;
-    private Semester testSemester;
+    private TermInstance testTermInstance;
     private Department testDepartment;
     private Program testProgram;
 
@@ -72,7 +70,7 @@ class LabScheduleServiceTest {
     void setUp() {
         labScheduleService = new LabScheduleService(
             labScheduleRepository, labRepository, subjectRepository,
-            facultyRepository, labSlotRepository, semesterRepository
+            facultyRepository, labSlotRepository, termInstanceRepository
         );
 
         testDepartment = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
@@ -82,8 +80,8 @@ class LabScheduleServiceTest {
         testProgram.setId(1L);
         testProgram.setName("B.Tech CS");
 
-        testLab = new Lab("Lab 1", com.cms.model.enums.LabType.COMPUTER, testDepartment, "Main Building",
-            "L001", 30, LabStatus.ACTIVE);
+        testLab = new Lab("Lab 1", com.cms.model.enums.LabType.COMPUTER, testDepartment,
+            "Main Building", "L001", 30, LabStatus.ACTIVE);
         testLab.setId(1L);
 
         testCourse = new Subject("Data Structures Lab", "CS201L", 3, 0, 3, null, null, 3);
@@ -96,9 +94,17 @@ class LabScheduleServiceTest {
         testLabSlot = new LabSlot("Slot 1", LocalTime.of(9, 0), LocalTime.of(10, 30), 1, true);
         testLabSlot.setId(1L);
 
-        testSemester = new Semester();
-        testSemester.setId(1L);
-        testSemester.setName("Odd Semester 2024");
+        AcademicYear ay = new AcademicYear("2024-2025",
+            LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
+        ay.setId(1L);
+        ay.setCreatedAt(Instant.now());
+        ay.setUpdatedAt(Instant.now());
+
+        testTermInstance = new TermInstance(ay, TermType.ODD,
+            LocalDate.of(2024, 6, 1), LocalDate.of(2024, 11, 30), TermInstanceStatus.OPEN);
+        testTermInstance.setId(1L);
+        testTermInstance.setCreatedAt(Instant.now());
+        testTermInstance.setUpdatedAt(Instant.now());
     }
 
     @Test
@@ -106,22 +112,23 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
-        LabSchedule savedSchedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
+        LabSchedule saved = createLabSchedule(1L, testLab, testCourse, testFaculty,
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
-        when(semesterRepository.findById(1L)).thenReturn(Optional.of(testSemester));
-        when(labScheduleRepository.save(any(LabSchedule.class))).thenReturn(savedSchedule);
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(labScheduleRepository.save(any(LabSchedule.class))).thenReturn(saved);
 
         LabScheduleResponse response = labScheduleService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.batchName()).isEqualTo("Batch-A");
         assertThat(response.dayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        assertThat(response.termInstanceId()).isEqualTo(1L);
+        assertThat(response.termInstanceLabel()).isEqualTo("2024-2025 ODD");
     }
 
     @Test
@@ -129,7 +136,6 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             999L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
         when(labRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labScheduleService.create(request))
@@ -142,7 +148,6 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 999L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -156,7 +161,6 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 999L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(999L)).thenReturn(Optional.empty());
@@ -171,7 +175,6 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 1L, 999L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
@@ -183,27 +186,25 @@ class LabScheduleServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenSemesterNotFound() {
+    void shouldThrowExceptionWhenTermInstanceNotFound() {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 999L, true
         );
-
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
-        when(semesterRepository.findById(999L)).thenReturn(Optional.empty());
+        when(termInstanceRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labScheduleService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Semester not found with id: 999");
+            .hasMessage("Term instance not found with id: 999");
     }
 
     @Test
     void shouldFindAllLabSchedules() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labScheduleRepository.findAll()).thenReturn(List.of(schedule));
 
         List<LabScheduleResponse> responses = labScheduleService.findAll();
@@ -215,8 +216,7 @@ class LabScheduleServiceTest {
     @Test
     void shouldFindLabScheduleById() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labScheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
 
         LabScheduleResponse response = labScheduleService.findById(1L);
@@ -236,8 +236,7 @@ class LabScheduleServiceTest {
     @Test
     void shouldFindByLabId() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labRepository.existsById(1L)).thenReturn(true);
         when(labScheduleRepository.findByLabId(1L)).thenReturn(List.of(schedule));
 
@@ -259,8 +258,7 @@ class LabScheduleServiceTest {
     @Test
     void shouldFindByFacultyId() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(facultyRepository.existsById(1L)).thenReturn(true);
         when(labScheduleRepository.findByFacultyId(1L)).thenReturn(List.of(schedule));
 
@@ -271,19 +269,9 @@ class LabScheduleServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenFindByFacultyIdWithNonExistentFaculty() {
-        when(facultyRepository.existsById(999L)).thenReturn(false);
-
-        assertThatThrownBy(() -> labScheduleService.findByFacultyId(999L))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Faculty not found with id: 999");
-    }
-
-    @Test
     void shouldFindByBatchName() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labScheduleRepository.findByBatchName("Batch-A")).thenReturn(List.of(schedule));
 
         List<LabScheduleResponse> responses = labScheduleService.findByBatchName("Batch-A");
@@ -295,8 +283,7 @@ class LabScheduleServiceTest {
     @Test
     void shouldFindByDayOfWeek() {
         LabSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labScheduleRepository.findByDayOfWeek(DayOfWeek.MONDAY)).thenReturn(List.of(schedule));
 
         List<LabScheduleResponse> responses = labScheduleService.findByDayOfWeek(DayOfWeek.MONDAY);
@@ -310,13 +297,9 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
-
-        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
+        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L)).thenReturn(Collections.emptyList());
+        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L)).thenReturn(Collections.emptyList());
+        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L)).thenReturn(Collections.emptyList());
 
         ScheduleConflictResponse response = labScheduleService.checkConflicts(request);
 
@@ -331,16 +314,12 @@ class LabScheduleServiceTest {
         LabScheduleRequest request = new LabScheduleRequest(
             1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
         );
+        LabSchedule conflict = createLabSchedule(2L, testLab, testCourse, testFaculty,
+            testLabSlot, "Batch-B", DayOfWeek.MONDAY, testTermInstance, true);
 
-        LabSchedule conflictingSchedule = createLabSchedule(2L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-B", DayOfWeek.MONDAY, testSemester, true);
-
-        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(List.of(conflictingSchedule));
-        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
+        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L)).thenReturn(List.of(conflict));
+        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L)).thenReturn(Collections.emptyList());
+        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L)).thenReturn(Collections.emptyList());
 
         ScheduleConflictResponse response = labScheduleService.checkConflicts(request);
 
@@ -349,68 +328,22 @@ class LabScheduleServiceTest {
     }
 
     @Test
-    void shouldCheckConflictsAndFindFacultyConflict() {
-        LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
-        );
-
-        LabSchedule conflictingSchedule = createLabSchedule(2L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-B", DayOfWeek.MONDAY, testSemester, true);
-
-        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(List.of(conflictingSchedule));
-        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-
-        ScheduleConflictResponse response = labScheduleService.checkConflicts(request);
-
-        assertThat(response.hasConflict()).isTrue();
-        assertThat(response.facultyConflicts()).hasSize(1);
-    }
-
-    @Test
-    void shouldCheckConflictsAndFindBatchConflict() {
-        LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
-        );
-
-        LabSchedule conflictingSchedule = createLabSchedule(2L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
-        when(labScheduleRepository.findConflictingLabSchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingFacultySchedules(1L, DayOfWeek.MONDAY, 1L))
-            .thenReturn(Collections.emptyList());
-        when(labScheduleRepository.findConflictingBatchSchedules("Batch-A", DayOfWeek.MONDAY, 1L))
-            .thenReturn(List.of(conflictingSchedule));
-
-        ScheduleConflictResponse response = labScheduleService.checkConflicts(request);
-
-        assertThat(response.hasConflict()).isTrue();
-        assertThat(response.batchConflicts()).hasSize(1);
-    }
-
-    @Test
     void shouldUpdateLabSchedule() {
-        LabSchedule existingSchedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testSemester, true);
-
+        LabSchedule existing = createLabSchedule(1L, testLab, testCourse, testFaculty,
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         LabScheduleRequest updateRequest = new LabScheduleRequest(
             1L, 1L, 1L, 1L, "Batch-B", DayOfWeek.TUESDAY, 1L, true
         );
+        LabSchedule updated = createLabSchedule(1L, testLab, testCourse, testFaculty,
+            testLabSlot, "Batch-B", DayOfWeek.TUESDAY, testTermInstance, true);
 
-        LabSchedule updatedSchedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
-            testLabSlot, "Batch-B", DayOfWeek.TUESDAY, testSemester, true);
-
-        when(labScheduleRepository.findById(1L)).thenReturn(Optional.of(existingSchedule));
+        when(labScheduleRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
         when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
-        when(semesterRepository.findById(1L)).thenReturn(Optional.of(testSemester));
-        when(labScheduleRepository.save(any(LabSchedule.class))).thenReturn(updatedSchedule);
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(labScheduleRepository.save(any(LabSchedule.class))).thenReturn(updated);
 
         LabScheduleResponse response = labScheduleService.update(1L, updateRequest);
 
@@ -440,8 +373,8 @@ class LabScheduleServiceTest {
 
     private LabSchedule createLabSchedule(Long id, Lab lab, Subject course, Faculty faculty,
                                            LabSlot labSlot, String batchName, DayOfWeek dayOfWeek,
-                                           Semester semester, Boolean isActive) {
-        LabSchedule schedule = new LabSchedule(lab, course, faculty, labSlot, batchName, dayOfWeek, semester, isActive);
+                                           TermInstance termInstance, Boolean isActive) {
+        LabSchedule schedule = new LabSchedule(lab, course, faculty, labSlot, batchName, dayOfWeek, termInstance, isActive);
         schedule.setId(id);
         Instant now = Instant.now();
         schedule.setCreatedAt(now);

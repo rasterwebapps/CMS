@@ -13,7 +13,6 @@ public record CalendarEventResponse(
     LocalDate endDate,
     CalendarEventType eventType,
     AcademicYearResponse academicYear,
-    SemesterResponse semester,
     Instant createdAt,
     Instant updatedAt
 ) {}
