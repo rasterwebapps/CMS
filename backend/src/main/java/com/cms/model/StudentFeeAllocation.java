@@ -48,6 +48,16 @@ public class StudentFeeAllocation {
     @Column(name = "discount_reason")
     private String discountReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scholarship_application_id")
+    private StudentScholarship scholarshipApplication;
+
+    @Column(name = "scholarship_discount_amount", precision = 12, scale = 2)
+    private BigDecimal scholarshipDiscountAmount;
+
+    @Column(name = "scholarship_discount_reason")
+    private String scholarshipDiscountReason;
+
     @Column(name = "agent_commission", precision = 12, scale = 2)
     private BigDecimal agentCommission;
 
@@ -135,6 +145,30 @@ public class StudentFeeAllocation {
 
     public void setDiscountReason(String discountReason) {
         this.discountReason = discountReason;
+    }
+
+    public StudentScholarship getScholarshipApplication() {
+        return scholarshipApplication;
+    }
+
+    public void setScholarshipApplication(StudentScholarship scholarshipApplication) {
+        this.scholarshipApplication = scholarshipApplication;
+    }
+
+    public BigDecimal getScholarshipDiscountAmount() {
+        return scholarshipDiscountAmount;
+    }
+
+    public void setScholarshipDiscountAmount(BigDecimal scholarshipDiscountAmount) {
+        this.scholarshipDiscountAmount = scholarshipDiscountAmount;
+    }
+
+    public String getScholarshipDiscountReason() {
+        return scholarshipDiscountReason;
+    }
+
+    public void setScholarshipDiscountReason(String scholarshipDiscountReason) {
+        this.scholarshipDiscountReason = scholarshipDiscountReason;
     }
 
     public BigDecimal getAgentCommission() {

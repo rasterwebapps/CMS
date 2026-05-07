@@ -248,6 +248,30 @@
                 formControlName="parentMobile" type="tel" inputmode="tel" autocomplete="off" />
             </div>
 
+            <!-- ── Scholarship Eligibility ─────────────────────── -->
+            <hr class="form-section-divider" />
+            <p class="form-section-title">Scholarship Eligibility</p>
+
+            <div class="field-group">
+              <label class="field-check">
+                <input type="checkbox" formControlName="isFirstGraduate" />
+                First Graduate in Family
+              </label>
+            </div>
+
+            @if (form.get('isFirstGraduate')?.value) {
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="stu-father-edu" class="field-label">Father's Education</label>
+                  <input id="stu-father-edu" class="field-input" formControlName="fatherEducation" placeholder="e.g. Class 10, Illiterate" />
+                </div>
+                <div class="field-group">
+                  <label for="stu-mother-edu" class="field-label">Mother's Education</label>
+                  <input id="stu-mother-edu" class="field-input" formControlName="motherEducation" placeholder="e.g. Class 8, Illiterate" />
+                </div>
+              </div>
+            }
+
             <!-- ── Address ─────────────────────────────────────── -->
             <hr class="form-section-divider" />
             <p class="form-section-title">Address</p>

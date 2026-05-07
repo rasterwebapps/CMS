@@ -103,6 +103,22 @@ public class StudentController {
         return ResponseEntity.ok(studentService.bulkAssignRollNumbers(request.assignments()));
     }
 
+    @PostMapping("/generate-roll-numbers")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
+    public ResponseEntity<List<RollNumberAssignment>> generateRollNumbers(
+            @Valid @RequestBody GenerateRollNumbersRequest request) {
+        List<RollNumberAssignment> assignments = rollNumberGeneratorService.generateAndAssignRollNumbers(request);
+        return ResponseEntity.ok(assignments);
+    }
+
+    @PostMapping("/preview-roll-numbers")
+    @PreAuthorize("@perm.has('STUDENT_CREATE')")
+    public ResponseEntity<List<RollNumberAssignment>> previewRollNumbers(
+            @Valid @RequestBody GenerateRollNumbersRequest request) {
+        List<RollNumberAssignment> preview = rollNumberGeneratorService.previewRollNumbers(request);
+        return ResponseEntity.ok(preview);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("@perm.has('STUDENT_CREATE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

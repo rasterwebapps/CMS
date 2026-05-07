@@ -15,6 +15,9 @@ public record StudentFeeAllocationResponse(
     BigDecimal totalFee,
     BigDecimal discountAmount,
     String discountReason,
+    Long scholarshipApplicationId,
+    BigDecimal scholarshipDiscountAmount,
+    String scholarshipDiscountReason,
     BigDecimal agentCommission,
     BigDecimal netFee,
     String status,
@@ -24,6 +27,18 @@ public record StudentFeeAllocationResponse(
     Instant createdAt,
     Instant updatedAt
 ) {
+    public StudentFeeAllocationResponse(Long id, Long studentId, String studentName, String rollNumber,
+                                        Long programId, String programName, BigDecimal totalFee,
+                                        BigDecimal discountAmount, String discountReason,
+                                        BigDecimal agentCommission, BigDecimal netFee, String status,
+                                        Instant finalizedAt, String finalizedBy,
+                                        List<SemesterFeeDetail> semesterFees,
+                                        Instant createdAt, Instant updatedAt) {
+        this(id, studentId, studentName, rollNumber, programId, programName, totalFee, discountAmount,
+            discountReason, null, null, null, agentCommission, netFee, status, finalizedAt, finalizedBy,
+            semesterFees, createdAt, updatedAt);
+    }
+
     public record SemesterFeeDetail(
         Long id,
         Integer yearNumber,

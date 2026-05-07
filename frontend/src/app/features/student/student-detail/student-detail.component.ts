@@ -5,6 +5,7 @@ import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { StudentService } from '../student.service';
 import {
@@ -22,6 +23,19 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
+import { ScholarshipService } from '../../scholarship/scholarship.service';
+import {
+  ScholarshipApplication,
+  ScholarshipDisbursement,
+  ScholarshipEligibility,
+  ScholarshipType,
+} from '../../scholarship/scholarship.model';
+import {
+  EligibilityEditDialogComponent,
+} from '../../scholarship/eligibility-edit-dialog/eligibility-edit-dialog.component';
+import {
+  VerifyEligibilityDialogComponent,
+} from '../../scholarship/verify-eligibility-dialog/verify-eligibility-dialog.component';
 
 @Component({
   selector: 'app-student-detail',
@@ -34,6 +48,7 @@ import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
+    MatDialogModule,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
     CmsTourButtonComponent],
@@ -46,6 +61,8 @@ export class StudentDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly scholarshipService = inject(ScholarshipService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly student = signal<Student | null>(null);
   protected readonly loading = signal(false);
@@ -56,6 +73,11 @@ export class StudentDetailComponent implements OnInit {
 
   protected readonly feeLedger = signal<StudentFeeLedger | null>(null);
   protected readonly loadingLedger = signal(false);
+  protected readonly scholarshipEligibility = signal<ScholarshipEligibility | null>(null);
+  protected readonly eligibleScholarships = signal<ScholarshipType[]>([]);
+  protected readonly scholarshipApplications = signal<ScholarshipApplication[]>([]);
+  protected readonly scholarshipDisbursements = signal<ScholarshipDisbursement[]>([]);
+  protected readonly loadingScholarships = signal(false);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
@@ -87,6 +109,7 @@ export class StudentDetailComponent implements OnInit {
         this.loading.set(false);
         this.loadEnrollments(id);
         this.loadFeeLedger(id);
+        this.loadScholarships(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
@@ -157,5 +180,94 @@ export class StudentDetailComponent implements OnInit {
       case 'UNPAID': return 'danger';
       case 'WAIVED': return 'default';
     }
+  }
+
+  protected hasScholarshipForCurrentYear(): boolean {
+    return this.scholarshipApplications().some(a => a.status === 'PENDING' || a.status === 'APPROVED');
+  }
+
+  protected applyForScholarship(type: ScholarshipType): void {
+    const s = this.student();
+    if (!s) return;
+    this.scholarshipService.apply(s.id, { scholarshipTypeId: type.id }).subscribe({
+      next: () => { this.toast.success('Scholarship application submitted'); this.loadScholarships(s.id); },
+      error: err => this.toast.error(err?.error?.message ?? 'Failed to apply for scholarship'),
+    });
+  }
+
+  protected renewScholarship(application: ScholarshipApplication): void {
+    const s = this.student();
+    if (!s) return;
+    this.scholarshipService.renew(application.id).subscribe({
+      next: () => { this.toast.success('Scholarship renewal submitted'); this.loadScholarships(s.id); },
+      error: err => this.toast.error(err?.error?.message ?? 'Failed to renew scholarship'),
+    });
+  }
+
+  protected openEligibilityEdit(): void {
+    const s = this.student();
+    if (!s) return;
+    const ref = this.dialog.open(EligibilityEditDialogComponent, {
+      width: '760px',
+      maxWidth: '95vw',
+      data: {
+        studentId: s.id,
+        studentName: s.fullName,
+        eligibility: this.scholarshipEligibility(),
+      },
+    });
+    ref.afterClosed().subscribe((updated: ScholarshipEligibility | undefined) => {
+      if (updated) {
+        this.scholarshipEligibility.set(updated);
+        this.loadEligibleScholarships(s.id);
+      }
+    });
+  }
+
+  protected verifyEligibility(): void {
+    const s = this.student();
+    if (!s) return;
+    const ref = this.dialog.open(VerifyEligibilityDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      data: {
+        studentId: s.id,
+        studentName: s.fullName,
+        eligibility: this.scholarshipEligibility(),
+      },
+    });
+    ref.afterClosed().subscribe((updated: ScholarshipEligibility | undefined) => {
+      if (updated) {
+        this.scholarshipEligibility.set(updated);
+      }
+    });
+  }
+
+  private loadEligibleScholarships(studentId: number): void {
+    this.scholarshipService.getEligibleScholarships(studentId).subscribe({
+      next: (eligible) => this.eligibleScholarships.set(eligible),
+      error: () => {},
+    });
+  }
+
+  private loadScholarships(studentId: number): void {
+    this.loadingScholarships.set(true);
+    forkJoin({
+      eligibility: this.scholarshipService.getEligibility(studentId),
+      eligible: this.scholarshipService.getEligibleScholarships(studentId),
+      applications: this.scholarshipService.getStudentScholarships(studentId),
+      disbursements: this.scholarshipService.getStudentDisbursements(studentId),
+    }).subscribe({
+      next: ({ eligibility, eligible, applications, disbursements }) => {
+        this.scholarshipEligibility.set(eligibility);
+        this.eligibleScholarships.set(eligible);
+        this.scholarshipApplications.set(applications);
+        this.scholarshipDisbursements.set(disbursements);
+        this.loadingScholarships.set(false);
+      },
+      error: () => {
+        this.loadingScholarships.set(false);
+      },
+    });
   }
 }
