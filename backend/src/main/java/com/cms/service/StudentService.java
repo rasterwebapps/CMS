@@ -92,6 +92,9 @@ public class StudentService {
         student.setMotherPhone(request.motherPhone());
         student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
+        student.setFirstGraduate(Boolean.TRUE.equals(request.isFirstGraduate()));
+        student.setFatherEducation(request.fatherEducation());
+        student.setMotherEducation(request.motherEducation());
 
         // Address
         if (request.address() != null) {
@@ -202,6 +205,9 @@ public class StudentService {
         student.setMotherPhone(request.motherPhone());
         student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
+        student.setFirstGraduate(Boolean.TRUE.equals(request.isFirstGraduate()));
+        student.setFatherEducation(request.fatherEducation());
+        student.setMotherEducation(request.motherEducation());
 
         // Address
         if (request.address() != null) {
@@ -304,6 +310,9 @@ public class StudentService {
             student.getMotherPhone(),
             student.getMotherEmail(),
             student.getParentMobile(),
+            student.isFirstGraduate(),
+            student.getFatherEducation(),
+            student.getMotherEducation(),
             address != null ? address.getPostalAddress() : null,
             address != null ? address.getStreet() : null,
             address != null ? address.getCity() : null,
