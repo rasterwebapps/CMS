@@ -95,9 +95,21 @@
       </div>
 
       <div class="field-group">
-        <label for="cpd-ref" class="field-label">Transaction Reference</label>
+        <label for="cpd-ref" class="field-label">
+          Transaction Reference
+          @if (isTransactionRefRequired()) {
+            <span class="field-required">*</span>
+          }
+        </label>
         <input id="cpd-ref" class="field-input" formControlName="transactionReference"
-               placeholder="UTR / Cheque No." />
+               placeholder="UTR / Cheque No."
+               [class.field-input--error]="form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched" />
+        @if (isTransactionRefRequired()) {
+          <p class="field-hint">Required for UPI, Bank Transfer, and Cheque payments</p>
+        }
+        @if (form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched) {
+          <p class="field-error">Transaction reference is required for this payment mode</p>
+        }
       </div>
 
       <div class="field-group">

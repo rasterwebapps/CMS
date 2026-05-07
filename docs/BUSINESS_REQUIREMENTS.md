@@ -11,14 +11,25 @@
 - [BR-2: Year-wise Fee Boxes per Program Duration](#br-2-year-wise-fee-boxes-per-program-duration)
 - [BR-3: Fee Structure Guideline on Enquiry Screen](#br-3-fee-structure-guideline-on-enquiry-screen)
 - [BR-4: Referral Type Master](#br-4-referral-type-master)
-- [BR-5: Referral Guideline Amount & Final Fee Calculation](#br-5-referral-guideline-amount--final-fee-calculation)
+- [BR-5: Referral Commission Tracking & Student Fee Separation](#br-5-referral-commission-tracking--student-fee-separation)
 - [BR-6: Admin Fee Finalization Workflow](#br-6-admin-fee-finalization-workflow)
 - [BR-7: Payment Collection by Accounting Team](#br-7-payment-collection-by-accounting-team)
 - [BR-8: Enquiry Status Workflow](#br-8-enquiry-status-workflow)
-- [BR-9: Submit Documents](#br-9-document-submission)
+- [BR-9: Submit Documents](#br-9-submit-documents)
 - [BR-10: Convert Enquiry to Student](#br-10-convert-enquiry-to-student)
 - [BR-11: Student Explorer with Filters](#br-11-student-explorer-with-filters)
 - [BR-12: Student Type on Enquiry](#br-12-student-type-on-enquiry)
+- [BR-13: Semester-Wise Fee Collection](#br-13-semester-wise-fee-collection)
+- [BR-14: Scholarship Type Master](#br-14-scholarship-type-master)
+- [BR-15: Student Scholarship Eligibility Profile](#br-15-student-scholarship-eligibility-profile)
+- [BR-16: Scholarship Application Lifecycle](#br-16-scholarship-application-lifecycle)
+- [BR-17: Scholarship Disbursement](#br-17-scholarship-disbursement)
+- [BR-18: Enquiry Location Fields](#br-18-enquiry-location-fields)
+- [BR-19: Transaction Reference Mandatory for Electronic Payments](#br-19-transaction-reference-mandatory-for-electronic-payments)
+- [BR-20: Fee Type Classification Expansion](#br-20-fee-type-classification-expansion)
+- [BR-21: Student First-Graduate & Parent Education Tracking](#br-21-student-first-graduate--parent-education-tracking)
+- [BR-22: Enquiry Form — Mandatory Fields, Location Defaults & Referral-Linked Person Search](#br-22-enquiry-form--mandatory-fields-location-defaults--referral-linked-person-search)
+- [BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules](#br-23-authoritative-fee-calculation--penny-safe-numeric-rules)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -144,6 +155,7 @@ When the front office selects a **program** and then a **course** on the enquiry
 4. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **course**.
 5. If no fee structure exists for the selected course, a message is shown: "No fee structures configured for this course."
 6. The total fee is saved with the enquiry record as `feeGuidelineTotal` for use during fee finalization (BR-6).
+7. The backend is the source of truth: when an enquiry is created or updated, the backend recalculates the fee from the current active academic year's fee structures and does **not** trust client-submitted fee totals.
 
 ### Student Type Fee Rules (BR-12)
 
@@ -234,34 +246,36 @@ ReferralType:
 
 ---
 
-## BR-5: Referral Commission Amount & Final Fee Calculation
+## BR-5: Referral Commission Tracking & Student Fee Separation
 
 ### Business Rule
 
-When a referral type is selected on the enquiry screen, if the referral type has `hasCommission=true`, an **additional amount box** must be displayed showing the commission amount. The system must calculate and show the **final fee** by adding the commission amount to the program's total fee.
+When a referral type is selected on the enquiry screen, if the referral type has `hasCommission=true`, the system must resolve and track the applicable **commission amount** for internal payout reporting. Referral commission is **not** part of the student's fee and must never increase `feeGuidelineTotal`, `finalCalculatedFee`, fee finalization totals, payment dues, receipts, or student fee allocations.
 
 ### Key Points
 
-1. If the selected referral type's `hasCommission` is **false**, no additional box is shown.
-2. If `hasCommission` is **true**, an additional box labeled "Commission Amount" is displayed with the value pre-filled from `commissionAmount` (editable by the user).
-3. The **final calculated fee** = Program Total Fee (from fee structure guideline) + Commission Amount.
-4. The final calculated fee is displayed prominently on the enquiry form.
-5. Both the commission amount and the final calculated fee are saved with the enquiry record.
-6. This calculated fee serves as the **starting point** for admin fee finalization (BR-6).
+1. If the selected referral type's `hasCommission` is **false**, commission is recorded as ₹0 and `commissionPaymentStatus = NOT_APPLICABLE`.
+2. If `hasCommission` is **true**, the system resolves the commission server-side:
+   - If the selected agent has a positive `commissionAmount`, use the agent amount and set `commissionSource = AGENT`.
+   - Otherwise use the referral type commission amount and set `commissionSource = REFERRAL_TYPE`.
+3. The **student fee** = Current-year fee structure total after student-type filtering (BR-3, BR-12, BR-23). It is never increased by commission.
+4. Commission amount is stored separately as `commissionAmount` with `commissionSource` and `commissionPaymentStatus` for referral payout workflows.
+5. Client-submitted `referralAdditionalAmount` and `finalCalculatedFee` values are not trusted by the backend for student fee calculation.
 
 ### Calculation Formula
 
 ```
-Final Fee = Total Program Fee (from fee structure) + Commission Amount (from referral type, if hasCommission=true)
+Student Fee = Current-Year Fee Structure Total (after student-type filtering)
+Commission Payable = Agent override commission OR Referral Type commission OR ₹0
 ```
 
 ### Example
 
-| Scenario | Program Fee | Referral Type | Has Commission | Commission Amount | Final Fee |
-|----------|------------|---------------|----------------|-------------------|-----------|
-| Walk-in enquiry | ₹4,00,000 | Walk-In | No | ₹0 | ₹4,00,000 |
-| Agent referral | ₹4,00,000 | Agent Referral | Yes | ₹15,000 | ₹4,15,000 |
-| Staff referral | ₹4,00,000 | Staff | No | ₹0 | ₹4,00,000 |
+| Scenario | Current-Year Student Fee | Referral Type | Commission Amount | Student Fee Saved | Commission Tracked |
+|----------|--------------------------|---------------|-------------------|-------------------|--------------------|
+| Walk-in enquiry | ₹4,00,000 | Walk-In | ₹0 | ₹4,00,000 | ₹0 |
+| Agent referral | ₹4,00,000 | Agent Referral | ₹15,000 | ₹4,00,000 | ₹15,000 |
+| Staff referral | ₹4,00,000 | Staff | ₹0 | ₹4,00,000 | ₹0 |
 
 ---
 
@@ -273,13 +287,13 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 
 ### Key Points
 
-1. The front office submits the enquiry with: student details, program + course selection, fee guideline values, referral type, commission amount (if applicable), and final calculated fee.
-2. All guideline values chosen by the front office are **saved with the enquiry**.
+1. The front office submits the enquiry with: student details, program + course selection, referral type, student type, and location/person referral details.
+2. The backend recalculates and saves fee guideline values from the current active academic year's fee structure; browser-submitted fee totals are treated as display-only hints and must not be trusted.
 3. The **Fee Finalization Screen** shows a list of enquiries in **INTERESTED** status.
 4. The admin selects an enquiry to finalize, and the form is pre-populated with:
    - Total fee from enquiry's `finalCalculatedFee` (or `feeGuidelineTotal`) — **read-only, not editable**
    - Student type context (Day Scholar / Hosteler)
-   - Commission info (if referral type has commission)
+   - Commission info separately for referral payout visibility only — it does not increase the student fee
 5. The admin can:
    - **Provide a discount** (reduce the fee) by entering a discount amount and reason
    - **Cannot increase** the fee above the pre-loaded total
@@ -292,11 +306,11 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 
 | Field | Source | Description |
 |-------|--------|-------------|
-| `feeGuidelineTotal` | Fee Structure | Total fee from fee structure guideline |
+| `feeGuidelineTotal` | Backend Fee Structure Calculation | Total fee from current active academic year fee structure guideline |
 | `feeGuidelineYearWise` | Fee Structure | JSON/related records of year-wise breakdown |
 | `referralTypeId` | Referral Type Master | Selected referral type |
-| `referralAdditionalAmount` | Referral Type | Pre-filled from guideline, may be edited |
-| `finalCalculatedFee` | Computed | feeGuidelineTotal + referralAdditionalAmount |
+| `commissionAmount` | Referral Type / Agent | Internal payout amount; not part of student fee |
+| `finalCalculatedFee` | Backend Computed | Same as feeGuidelineTotal after student-type filtering; commission excluded |
 | `studentType` | Front office input | DAY_SCHOLAR or HOSTELER |
 
 ### Data to Capture in Finalization
@@ -530,6 +544,500 @@ Every enquiry can optionally capture the **student type** — whether the studen
 
 ---
 
+## BR-13: Semester-Wise Fee Collection
+
+### Business Rule
+
+Fee structures are defined **yearly** (one amount per program year), but actual payment tracking is done **semester-wise**. Each yearly fee is automatically split into two equal semesters at the point of fee finalization.
+
+### Key Points
+
+1. When a fee allocation is finalized for a student, the system automatically splits each year's fee into two semesters:
+   - **Semester 1**: 50% of the year fee (floor-rounded), due at the year start date.
+   - **Semester 2**: remaining 50% (handles odd amounts), due 6 months after Semester 1.
+
+2. A student can pay **any amount** at any time — the system does not enforce minimum semester amounts.
+
+3. Payment cascades across semesters in order (Semester 1 first, then Semester 2, then Year 2 Semester 1, etc.). A single payment may partially or fully cover multiple semesters in one transaction.
+
+4. **One receipt is issued per payment** (not per semester). A single receipt number appears across all semester installment lines created by that payment, making the receipt the atomic unit of accounting.
+
+5. The semester-wise fee status table **must always be the first section shown** when opening a student's fee payment screen, even before the page is fully loaded (skeleton state). It shows: semester label, fee amount, amount paid, outstanding, due date, and payment status.
+
+6. Each semester displays a status: `PAID`, `PARTIAL`, or `PENDING`. A semester is also flagged as `OVERDUE` (visual indicator only) when its due date has passed and there is an outstanding balance.
+
+7. Receipts are displayed grouped by receipt number, showing which semesters were covered in each payment transaction.
+
+### Semester Label Format
+- `Year 1 - Semester 1`, `Year 1 - Semester 2`, `Year 2 - Semester 1`, etc.
+
+### API Endpoints
+- `POST /api/v1/student-fees/finalize` — finalizes fee and creates 2 semester records per year
+- `GET /api/v1/student-fees/{studentId}/semester-status` — returns semester-wise status (always shown first in UI)
+- `POST /api/v1/student-fees/{studentId}/collect` — collects any amount, cascades across semesters, returns ONE receipt with semester breakdown
+- `GET /api/v1/student-fees/{studentId}/receipts` — returns all installments; UI groups by receipt number
+
+---
+
+---
+
+## BR-14: Scholarship Type Master
+
+### Business Rule
+
+Scholarship types are managed as a **master entity** allowing administrators to configure both institution-funded and government-portal scholarship schemes. Each type defines the discount calculation method, eligibility year constraints, renewal requirements, and — for government schemes — the portal name, URL, and scheme code.
+
+### Key Points
+
+1. Each scholarship type has a unique `code` (e.g. `MERIT`, `SC_GOVT`, `EWS`, `FIRST_GRAD`).
+2. **Application Mode** determines how the scholarship is processed:
+   - `INSTITUTION` — the college reviews and approves directly inside the CMS.
+   - `GOVT_PORTAL` — the actual application is submitted through an external government portal (NSP, ePass Tamil Nadu, TNSMS, TNSCST). The CMS only tracks the status; the college acts as a forwarding institution.
+3. **Discount Type** controls how the scholarship amount is calculated:
+
+   | Discount Type | Calculation |
+   |---|---|
+   | `PERCENTAGE` | `discountValue` % of the student's total fee (capped at `maxAmountPerYear` if set) |
+   | `FIXED_AMOUNT` | A fixed rupee amount (capped at `maxAmountPerYear` if set) |
+   | `FULL_WAIVER` | 100 % of the total fee (capped at `maxAmountPerYear` if set) |
+
+4. `eligibleFromYear` / `eligibleToYear` restrict eligibility by program year: year 1 = semester 1–2, year 2 = semester 3–4, etc. Null means no restriction.
+5. `renewalRequired = true` means the scholarship must be renewed each academic year via an explicit renewal action.
+6. Only active scholarship types appear in student-facing application dropdowns.
+7. Default seeded types: `MERIT`, `SC_GOVT`, `ST_GOVT`, `OBC_GOVT`, `BC_STATE`, `EWS`, `FIRST_GRAD`, `SPORTS`.
+
+### API Endpoints
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/v1/scholarships` | SCHOLARSHIP_VIEW | List all active scholarship types |
+| GET | `/api/v1/scholarships/{id}` | SCHOLARSHIP_VIEW | Get by ID |
+| POST | `/api/v1/scholarships` | SCHOLARSHIP_MANAGE | Create new scholarship type |
+| PUT | `/api/v1/scholarships/{id}` | SCHOLARSHIP_MANAGE | Update scholarship type |
+| DELETE | `/api/v1/scholarships/{id}` | SCHOLARSHIP_MANAGE | Deactivate (soft delete) |
+
+### Roles
+
+- **ROLE_ADMIN** — full CRUD; holds all scholarship permissions
+- **ROLE_COLLEGE_ADMIN** — full CRUD on scholarship types
+
+---
+
+## BR-15: Student Scholarship Eligibility Profile
+
+### Business Rule
+
+Each student has exactly **one** scholarship eligibility profile (`student_scholarship_eligibility`). This profile stores the criteria required to determine which government and institutional scholarships the student qualifies for. It also holds DBT (Direct Benefit Transfer) banking details required by government portal schemes.
+
+### Eligibility Criteria
+
+| Field | Purpose |
+|---|---|
+| `isFirstGraduate` | Student is the first person in their family to attend college — qualifies for FIRST_GRAD scholarship |
+| `isMeritBased` | Flagged by admin based on academic performance |
+| `isSportsQuota` | Admitted under sports quota |
+| `isEconomicallyWeaker` | Auto-set to true if `annualFamilyIncome < ₹3,00,000` (EWS income limit) |
+| `annualFamilyIncome` | Annual family income in rupees (used for EWS determination) |
+| Income Certificate | Number, issuing authority, issue date |
+| Community Certificate | Number, issuing authority, issue date |
+| First-Graduate Certificate | Number, issuing authority, issue date |
+| `fatherEducation` / `motherEducation` | Highest educational qualification of parents |
+
+### EWS Income Limit
+
+A student is automatically flagged as **Economically Weaker Section (EWS)** when `annualFamilyIncome < ₹3,00,000`. This threshold is defined as `StudentScholarshipEligibilityService.EWS_INCOME_LIMIT`.
+
+### DBT (Direct Benefit Transfer) Details
+
+Government scholarship schemes (NSP, ePass TN) credit money directly to the student's Aadhaar-linked bank account. The following fields must be captured before a govt-portal scholarship can be sanctioned:
+
+| Field | Description |
+|---|---|
+| `aadhaarNumber` | 12-digit Aadhaar number (stored as digits; displayed masked: `XXXXXXXX9012`) |
+| `bankAccountNumber` | Bank account number |
+| `bankIfsc` | IFSC code |
+| `bankName` | Name of the bank |
+| `bankBranch` | Branch name |
+| `dbtLinked` | `true` when the account has been seeded with Aadhaar for DBT credit |
+
+### Verification
+
+An admin or college admin can **verify** the eligibility profile, setting `verifiedBy`, `verifiedAt`, and `verificationRemarks`. Verification is a prerequisite for government portal scholarship applications.
+
+### API Endpoints
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/v1/students/{id}/eligibility` | SCHOLARSHIP_VIEW | Get eligibility profile |
+| PUT | `/api/v1/students/{id}/eligibility` | SCHOLARSHIP_MANAGE | Update eligibility profile |
+| PUT | `/api/v1/students/{id}/eligibility/verify` | SCHOLARSHIP_APPROVE | Verify/sign off the profile |
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can update and verify eligibility profiles
+
+---
+
+## BR-16: Scholarship Application Lifecycle
+
+### Business Rule
+
+A student can apply for one or more scholarships per academic year. Each application goes through a defined lifecycle from submission to approval/rejection and, for government schemes, government sanction. A student may not have more than one application for the same academic year.
+
+### Application Status Transitions
+
+```
+PENDING
+  ├── → APPROVED  (by college admin)
+  │       ├── → SANCTIONED (govt-portal only — govt sanction number recorded)
+  │       └── → CANCELLED  (before disbursement)
+  ├── → ON_HOLD   (pending document re-submission)
+  │       └── → APPROVED / REJECTED
+  └── → REJECTED  (with mandatory reason)
+        └── → (terminal)
+```
+
+| Status | Triggered By |
+|---|---|
+| `PENDING` | Student / staff submits application |
+| `APPROVED` | College admin approves (sets approvedAmount, disbursementFrequency, validFrom/Till) |
+| `SANCTIONED` | For GOVT_PORTAL types only — govt sanction number and date recorded; money will be credited via DBT |
+| `REJECTED` | Admin rejects with a mandatory reason |
+| `ON_HOLD` | Admin places on hold (e.g. documents missing) |
+| `CANCELLED` | Application withdrawn before approval |
+
+### Transition Rules
+
+1. Only `PENDING` or `ON_HOLD` applications can be **Approved**.
+2. Only `APPROVED` applications can be **Sanctioned** (and only for `GOVT_PORTAL` scholarship types).
+3. Attempting to sanction an `INSTITUTION`-mode scholarship raises a 409 error.
+4. `APPROVED` applications **cannot** be rejected or cancelled (prevents data loss after approval).
+5. A student can have only **one** scholarship application per academic year — duplicates are rejected with HTTP 400.
+6. Year-of-study restriction: if the scholarship type has `eligibleFromYear`/`eligibleToYear` set, the student's current semester must map to an eligible program year.
+
+### Scholarship Amount Calculation
+
+```
+PERCENTAGE   →  totalFee × (discountValue / 100)  [capped at maxAmountPerYear]
+FIXED_AMOUNT →  discountValue                      [capped at maxAmountPerYear]
+FULL_WAIVER  →  totalFee                           [capped at maxAmountPerYear]
+```
+
+### Renewal
+
+Approved scholarships marked `renewalRequired = true` can be renewed with a single action. Renewal creates a new `PENDING` application for the **next academic year**, linking back to the source via `renewedFrom`.
+
+### Eligible Scholarship Determination
+
+When the system computes which scholarships a student qualifies for, it checks:
+- The student's `communityCategory` field against caste-based government schemes (SC/ST/OBC/BC/MBC).
+- The student's `isFirstGraduate` flag or the eligibility profile's `isFirstGraduate` for the FIRST_GRAD scheme.
+- The eligibility profile's `annualFamilyIncome` against the EWS limit for the EWS scheme.
+- The eligibility profile's `isMeritBased` flag for merit-based scholarships.
+- The scholarship type's year-of-study range against the student's current semester.
+
+### API Endpoints
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| GET | `/api/v1/students/{id}/scholarships/eligible` | SCHOLARSHIP_VIEW | List scholarships the student qualifies for |
+| GET | `/api/v1/students/{id}/scholarships` | SCHOLARSHIP_VIEW | List student's applications |
+| POST | `/api/v1/students/{id}/scholarships/apply` | SCHOLARSHIP_APPLY | Submit a new application |
+| GET | `/api/v1/scholarship-applications` | SCHOLARSHIP_APPROVE | List all pending applications |
+| PUT | `/api/v1/scholarship-applications/{id}/approve` | SCHOLARSHIP_APPROVE | Approve an application |
+| PUT | `/api/v1/scholarship-applications/{id}/reject` | SCHOLARSHIP_APPROVE | Reject an application |
+| PUT | `/api/v1/scholarship-applications/{id}/cancel` | SCHOLARSHIP_MANAGE | Cancel an application |
+| PUT | `/api/v1/scholarship-applications/{id}/sanction` | SCHOLARSHIP_APPROVE | Record govt sanction (GOVT_PORTAL only) |
+| POST | `/api/v1/scholarship-applications/{id}/renew` | SCHOLARSHIP_APPLY | Renew approved scholarship for next year |
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can approve, reject, sanction, and view all applications
+- **ROLE_FRONT_OFFICE** — can submit applications on behalf of students
+- **ROLE_STUDENT** — can view their own applications
+
+---
+
+## BR-17: Scholarship Disbursement
+
+### Business Rule
+
+For **institution-funded** scholarships (INSTITUTION mode), after approval the college may disburse the scholarship amount as a fee waiver, direct credit, or cheque. Each disbursement event is recorded separately and linked to the scholarship application and academic year.
+
+For **government portal** scholarships (GOVT_PORTAL mode), the government credits money directly to the student's Aadhaar-linked bank account via DBT — the college does not manually disburse these. Only a `SANCTIONED` status and correctly captured DBT details are required.
+
+### Disbursement Modes
+
+| Mode | Description |
+|---|---|
+| `DIRECT_CREDIT` | Amount transferred directly to student's bank account (or applied to fee ledger) |
+| `FEE_WAIVER` | Amount deducted from the student's outstanding fee balance in the CMS |
+| `CHEQUE` | Physical cheque issued; cheque number must be recorded |
+
+### Key Points
+
+1. Disbursements can only be recorded against **APPROVED** or **SANCTIONED** scholarship applications.
+2. Each disbursement records: amount, date, mode, transaction reference (DIRECT_CREDIT), cheque number (CHEQUE), bank name, remarks, and the staff member who recorded it.
+3. `semesterNumber` is optional — used when the disbursement is tied to a specific semester.
+4. The full disbursement history is visible on the student's scholarship screen and on the application detail.
+
+### API Endpoints
+
+| Method | Path | Permission | Description |
+|---|---|---|---|
+| POST | `/api/v1/scholarship-applications/{id}/disburse` | SCHOLARSHIP_DISBURSE | Record a disbursement |
+| GET | `/api/v1/scholarship-applications/{id}/disbursements` | SCHOLARSHIP_VIEW | Get disbursements for an application |
+| GET | `/api/v1/students/{id}/scholarships/disbursements` | SCHOLARSHIP_VIEW | All disbursement history for a student |
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can record and view disbursements
+- **ROLE_CASHIER** — can record fee-waiver disbursements
+
+---
+
+## BR-18: Enquiry Location Fields
+
+### Business Rule
+
+To improve geographic analytics and to support government admission reports, every enquiry can optionally capture the student's **home location**: country, state, and district.
+
+### Key Points
+
+1. `country` and `state` are **required** fields on the enquiry form (updated by BR-22).
+2. `district` remains optional.
+3. `country` defaults to **India** and `state` defaults to **Tamil Nadu** when a new enquiry is opened.
+4. The fields are available as filters on the enquiry list screen and appear in enquiry exports.
+5. Location data is carried forward when an enquiry is converted to a student record.
+
+### Data Model
+
+New columns on the `enquiries` table:
+
+| Column | Type | Nullable |
+|---|---|---|
+| `country` | VARCHAR | Yes |
+| `state` | VARCHAR | Yes |
+| `district` | VARCHAR | Yes |
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — can set and update location fields on enquiry
+
+---
+
+## BR-19: Transaction Reference Mandatory for Electronic Payments
+
+### Business Rule
+
+When collecting fees through any electronic payment channel (UPI, bank transfer, or cheque), a **transaction reference number** is mandatory. CASH and CARD payments do not require a transaction reference.
+
+### Affected Payment DTOs
+
+Enforced via the `@TransactionReferenceRequired` custom Bean Validation annotation on:
+
+| DTO | Endpoint |
+|---|---|
+| `EnquiryPaymentRequest` | `POST /api/v1/enquiries/{id}/payments` |
+| `TermFeePaymentRequest` | `POST /api/v1/student-fees/{id}/collect` |
+| `CollectPaymentRequest` | Finance — collect payment dialog |
+
+### Required by Payment Mode
+
+| Payment Mode | Transaction Reference Required |
+|---|---|
+| `CASH` | ❌ Not required |
+| `CARD` | ❌ Not required |
+| `UPI` | ✅ Mandatory |
+| `BANK_TRANSFER` | ✅ Mandatory |
+| `CHEQUE` | ✅ Mandatory (cheque number used as reference) |
+
+### Validation Behaviour
+
+- If `transactionReference` is null or blank when mode is UPI/BANK_TRANSFER/CHEQUE, the API returns HTTP 400 with a descriptive validation message.
+- The front-end enforces this rule at form-submission time with an inline error.
+
+---
+
+## BR-20: Fee Type Classification Expansion
+
+### Business Rule
+
+The `FeeType` enum was expanded to support paramedical and vocational programs that require additional specialized fee components.
+
+### Current Fee Types
+
+| Fee Type | Category | Notes |
+|---|---|---|
+| `TUITION` | Generic | Core academic fee |
+| `LABORATORY_FEE` | Generic | Renamed from `LAB_FEE` |
+| `LIBRARY_FEE` | Generic | |
+| `EXAMINATION_FEE` | Generic | |
+| `CLINICAL_FEE` | Generic | **New** — nursing / paramedical / medical programs |
+| `BOOK_AND_PACKET_FEE` | Generic | **New** — books, stationery, study materials |
+| `UNIFORM_AND_SHOES_FEE` | Generic | **New** — uniform kit (nursing, polytechnic, etc.) |
+| `UNIVERSITY_REGISTRATION_FEE` | Generic | **New** — university affiliation / registration charges |
+| `MISCELLANEOUS` | Generic | |
+| `LATE_FEE` | Generic | Penalty for late payment |
+| `HOSTEL_FEE` | Additional | Excluded from day-scholar totals |
+| `TRANSPORT_FEE` | Additional | Excluded from hosteler totals |
+
+### Key Points
+
+1. All Generic fee types contribute to the **Course Total** subject to student-type rules (BR-1, BR-12).
+2. `HOSTEL_FEE` and `TRANSPORT_FEE` remain Additional — excluded from the course total and displayed separately.
+3. `LAB_FEE` has been **renamed to `LABORATORY_FEE`** — any existing stored data must be migrated via Flyway (see `V99__rename_lab_fee_add_new_fee_types.sql`).
+
+---
+
+## BR-21: Student First-Graduate & Parent Education Tracking
+
+### Business Rule
+
+To support first-graduate scholarship determination and government reports, a student record may optionally capture whether they are the **first person in their family to pursue higher education**, along with the highest educational qualification of both parents.
+
+### Fields Added to Student Entity
+
+| Field | Type | Description |
+|---|---|---|
+| `isFirstGraduate` | BOOLEAN (default false) | True when the student is the first in their family to attend college |
+| `fatherEducation` | VARCHAR | Father's highest educational qualification (e.g. "Class 8", "Graduate") |
+| `motherEducation` | VARCHAR | Mother's highest educational qualification |
+
+### Relationship with Eligibility Profile
+
+- `Student.isFirstGraduate` is a **quick-access copy** used directly in scholarship eligibility checks.
+- The detailed eligibility profile (`StudentScholarshipEligibility`) also holds `isFirstGraduate` plus supporting certificate details.
+- When the eligibility profile is updated via the eligibility API, the parent `Student.isFirstGraduate` field is **also updated automatically**.
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** / **ROLE_FRONT_OFFICE** — can set these fields during student creation or edit
+
+---
+
+## BR-22: Enquiry Form — Mandatory Fields, Location Defaults & Referral-Linked Person Search
+
+### Business Rule
+
+The enquiry form must enforce mandatory data collection at the point of entry and must provide a contextual person-search dropdown whenever the referral source maps to a specific person in the system.
+
+### Mandatory Fields
+
+The following fields are **required** before an enquiry can be saved:
+
+| Field | Validation |
+|---|---|
+| Full Name | Required, max 255 chars |
+| Phone | Required |
+| Country | Required — default pre-filled as **India** |
+| State | Required — default pre-filled as **Tamil Nadu** |
+| Program | Required |
+| Course | Required **when** courses exist for the selected program |
+| Enquiry Date | Required |
+| Referral Source | Required |
+| Student Type | Required (Day Scholar / Hosteler) |
+
+### Location Defaults
+
+When the form opens for a **new** enquiry:
+- `Country` is pre-filled with `India`
+- `State` is pre-filled with `Tamil Nadu`
+
+The user can change these at any time before saving.
+
+### Referral-Linked Person Search
+
+When the front office selects a referral type, the form shows a contextual search field to identify the specific person who referred the student:
+
+| Referral Type Code | Person Table | Search Criteria |
+|---|---|---|
+| `AGENT_REFERRAL` | `agents` (active) | Existing dropdown (no change) |
+| `ALUMNI` | `students` | Search by full name or roll number |
+| `STUDENT` | `students` | Search by full name or roll number |
+| `FACULTY` | `faculty` | Search by full name or employee code |
+| All other codes | — | No person search shown |
+
+Selecting a person from the dropdown stores their ID on the enquiry (`referred_student_id` or `referred_faculty_id`). Only one will be populated per enquiry. The person's name is resolved and returned in the response for display.
+
+### New Referral Type Seeds
+
+Two new referral types added to the master:
+
+| Name | Code | Default Commission | System-Defined |
+|---|---|---|---|
+| Student Referral | `STUDENT` | ₹500 | No |
+| Faculty Referral | `FACULTY` | ₹500 | No |
+
+### Data Model
+
+New columns on `enquiries` table:
+
+| Column | Type | References | Description |
+|---|---|---|---|
+| `referred_student_id` | BIGINT | `students(id)` ON DELETE SET NULL | Populated when referral is ALUMNI or STUDENT |
+| `referred_faculty_id` | BIGINT | `faculty(id)` ON DELETE SET NULL | Populated when referral is FACULTY |
+
+New fields on `EnquiryResponse`:
+
+| Field | Source |
+|---|---|
+| `referredStudentId` | `enquiries.referred_student_id` |
+| `referredStudentName` | Resolved from `students.first_name + last_name` |
+| `referredFacultyId` | `enquiries.referred_faculty_id` |
+| `referredFacultyName` | Resolved from `faculty.first_name + last_name` |
+
+### Course Required Behaviour
+
+Course is **conditionally required**:
+- If the selected program has one or more courses → Course field is required
+- If the program has no courses configured → Course field is optional and cleared
+
+This is enforced via a dynamic Angular validator updated after each program change.
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — can create and edit enquiries with these fields
+
+---
+
+## BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules
+
+### Business Rule
+
+All student fee amounts must be calculated from authoritative backend data using exact decimal arithmetic. The system must never overcharge or undercharge due to duplicated academic-year fee structures, referral commission, browser floating-point rounding, stale client-submitted totals, or unfiltered fee rows. Not even one paise may be introduced or lost by calculation logic.
+
+### Root Cause Prevented
+
+An enquiry for BSc Nursing showed ₹23,45,000 even though the configured fee structure was ₹10,00,000. This can happen when `/fee-structures?programId=&courseId=` returns fee structures across multiple academic years and the frontend sums every row. The fix is mandatory current-academic-year scoping plus backend recalculation on save.
+
+### Authoritative Calculation Rules
+
+1. **Current academic year only:** Enquiry fee lookup must use only active fee structures for the current active academic year.
+2. **Course-specific:** When a course is selected, only fee structures for that exact `programId + courseId + currentAcademicYearId` combination are included.
+3. **Active rows only:** Inactive fee rows are excluded from enquiry totals.
+4. **Student type filtering:**
+   - `HOSTEL_FEE` is included only for `HOSTELER`.
+   - `TRANSPORT_FEE` is included only for `DAY_SCHOLAR`.
+   - All other fee types are included.
+5. **Referral commission excluded:** Referral/agent commission is tracked separately and must not be added to `finalCalculatedFee`, finalization total, outstanding balance, receipts, or allocations.
+6. **Backend source of truth:** The backend recalculates `feeDiscussedAmount`, `finalCalculatedFee`, and `yearWiseFees` during enquiry create/update. Client-sent fee fields are not trusted.
+7. **Fee finalization source of truth:** Fee finalization uses the enquiry's backend-calculated `finalCalculatedFee`; it does not trust the browser-submitted `totalFee` except as a fallback for legacy records without a saved calculated fee.
+8. **Discount bounds:** Discount must be ≥ ₹0 and must not exceed the authoritative total fee.
+9. **Exact decimal scale:** Backend monetary values are normalized to two decimal places. Values with more than two decimal places are rejected rather than silently rounded.
+10. **Frontend paise arithmetic:** Frontend totals and proportional discount splitting must use integer paise internally, converting back to rupees only for display/API payloads.
+
+### Regression Requirement
+
+For BSc Nursing with current-year total ₹10,00,000, an enquiry for any student including Mani must save and display `finalCalculatedFee = ₹10,00,000` unless the current active academic year's fee structure itself changes. Historical/previous-year fee rows and referral commissions must not change this amount.
+
+### Roles
+
+- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — create enquiries and view authoritative totals
+- **ROLE_ADMIN** — finalize fees using the authoritative total
+
+---
+
 ## 🔄 Enquiry-to-Admission Lifecycle (End-to-End)
 
 This section describes the complete lifecycle of a student from initial enquiry to admission:
@@ -578,47 +1086,14 @@ Step 7: STUDENT EXPLORER
 
 ---
 
----
-
-## BR-13: Semester-Wise Fee Collection
-
-### Business Rule
-
-Fee structures are defined **yearly** (one amount per program year), but actual payment tracking is done **semester-wise**. Each yearly fee is automatically split into two equal semesters at the point of fee finalization.
-
-### Key Points
-
-1. When a fee allocation is finalized for a student, the system automatically splits each year's fee into two semesters:
-   - **Semester 1**: 50% of the year fee (floor-rounded), due at the year start date.
-   - **Semester 2**: remaining 50% (handles odd amounts), due 6 months after Semester 1.
-
-2. A student can pay **any amount** at any time — the system does not enforce minimum semester amounts.
-
-3. Payment cascades across semesters in order (Semester 1 first, then Semester 2, then Year 2 Semester 1, etc.). A single payment may partially or fully cover multiple semesters in one transaction.
-
-4. **One receipt is issued per payment** (not per semester). A single receipt number appears across all semester installment lines created by that payment, making the receipt the atomic unit of accounting.
-
-5. The semester-wise fee status table **must always be the first section shown** when opening a student's fee payment screen, even before the page is fully loaded (skeleton state). It shows: semester label, fee amount, amount paid, outstanding, due date, and payment status.
-
-6. Each semester displays a status: `PAID`, `PARTIAL`, or `PENDING`. A semester is also flagged as `OVERDUE` (visual indicator only) when its due date has passed and there is an outstanding balance.
-
-7. Receipts are displayed grouped by receipt number, showing which semesters were covered in each payment transaction.
-
-### Semester Label Format
-- `Year 1 - Semester 1`, `Year 1 - Semester 2`, `Year 2 - Semester 1`, etc.
-
-### API Endpoints
-- `POST /api/v1/student-fees/finalize` — finalizes fee and creates 2 semester records per year
-- `GET /api/v1/student-fees/{studentId}/semester-status` — returns semester-wise status (always shown first in UI)
-- `POST /api/v1/student-fees/{studentId}/collect` — collects any amount, cascades across semesters, returns ONE receipt with semester breakdown
-- `GET /api/v1/student-fees/{studentId}/receipts` — returns all installments; UI groups by receipt number
-
----
 
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-06 | BR-3, BR-5, BR-6, BR-23 | Fixed enquiry fee over-calculation risk: fee guideline lookup is current-academic-year scoped and active-row-only; backend recalculates enquiry fee totals from authoritative fee structures on create/update; referral/agent commission is decoupled from student fee and tracked separately; fee finalization uses backend-calculated totals and enforces exact two-decimal monetary values with discount bounds; frontend aggregation uses integer paise arithmetic to prevent rounding drift | — |
+| 2026-05-06 | BR-22 | Enquiry form mandatory fields (Phone, Country, State, Program, Course), Country/State pre-filled to India/Tamil Nadu; referral-linked person search: AGENT_REFERRAL→Agent dropdown (existing), ALUMNI/STUDENT→Student table search, FACULTY→Faculty table search; two new referral type seeds (STUDENT ₹500, FACULTY ₹500); `referred_student_id` and `referred_faculty_id` FK columns added to enquiries; course required conditionally based on program having courses | — |
+| 2026-05-06 | BR-14 to BR-21 | Added scholarship management module: (BR-14) Scholarship Type master with INSTITUTION/GOVT_PORTAL application modes, PERCENTAGE/FIXED_AMOUNT/FULL_WAIVER discount types, year-of-study eligibility bounds, renewal flag, govt portal fields; (BR-15) Student scholarship eligibility profile with EWS income auto-flag (₹3,00,000 limit), DBT bank account & Aadhaar fields, admin verification workflow; (BR-16) Scholarship application lifecycle — PENDING → APPROVED → SANCTIONED (govt-portal only) / REJECTED / ON_HOLD / CANCELLED, renewal across academic years, year-of-study restriction; (BR-17) Scholarship disbursement recording with DIRECT_CREDIT / FEE_WAIVER / CHEQUE modes; (BR-18) Optional country/state/district location fields on Enquiry; (BR-19) Transaction reference mandatory for UPI, BANK_TRANSFER, CHEQUE payments via custom `@TransactionReferenceRequired` Bean Validation annotation; (BR-20) FeeType enum expanded with CLINICAL_FEE, BOOK_AND_PACKET_FEE, UNIFORM_AND_SHOES_FEE, UNIVERSITY_REGISTRATION_FEE; LAB_FEE renamed LABORATORY_FEE; (BR-21) Student entity gains isFirstGraduate, fatherEducation, motherEducation fields auto-mirrored from eligibility profile | — |
 | 2026-04-27 | BR-13 | Added semester-wise fee collection: yearly fees auto-split into 2 semesters on finalization, payment cascade logic, single receipt per payment (fixed multiple-receipt bug), semester status as primary view in UI, receipt grouping by receipt number | — |
 | 2026-04-17 | BR-1, BR-2, BR-3, BR-12 | Fee structure and enquiry enhancements: (1) BR-1 updated — one fee structure group per course+academic year enforced; (2) BR-2 updated — year boxes based on program durationYears, all 8 fee types shown; (3) BR-3 updated — enquiry shows total fee only (no split), filtered by student type; (4) BR-12 added — student type (DAY_SCHOLAR/HOSTELER) on enquiry, controls fee inclusion | — |
 | 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |

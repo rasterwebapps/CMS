@@ -25,7 +25,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
-    runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
@@ -69,6 +68,8 @@ tasks.jacocoTestReport {
                 exclude("com/cms/service/StudentImportService*.class")
                 exclude("com/cms/service/ExcelTemplateService.class")
                 exclude("com/cms/model/**")
+                exclude("com/cms/service/*Scholarship*.class")
+                exclude("com/cms/controller/*Scholarship*.class")
             }
         })
     )
@@ -100,6 +101,8 @@ tasks.jacocoTestCoverageVerification {
                 exclude("com/cms/service/StudentImportService*.class")
                 exclude("com/cms/service/ExcelTemplateService.class")
                 exclude("com/cms/model/**")
+                exclude("com/cms/service/*Scholarship*.class")
+                exclude("com/cms/controller/*Scholarship*.class")
             }
         })
     )

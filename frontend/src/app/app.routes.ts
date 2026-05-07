@@ -242,6 +242,38 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'scholarships',
+    canActivate: [authGuard, requiresPermission('SCHOLARSHIP_MANAGE')],
+    loadComponent: () =>
+      import('./features/scholarship/scholarship-type-list/scholarship-type-list.component').then(
+        (m) => m.ScholarshipTypeListComponent
+      ),
+  },
+  {
+    path: 'scholarships/new',
+    canActivate: [authGuard, requiresPermission('SCHOLARSHIP_MANAGE')],
+    loadComponent: () =>
+      import('./features/scholarship/scholarship-type-form/scholarship-type-form.component').then(
+        (m) => m.ScholarshipTypeFormComponent
+      ),
+  },
+  {
+    path: 'scholarships/:id/edit',
+    canActivate: [authGuard, requiresPermission('SCHOLARSHIP_MANAGE')],
+    loadComponent: () =>
+      import('./features/scholarship/scholarship-type-form/scholarship-type-form.component').then(
+        (m) => m.ScholarshipTypeFormComponent
+      ),
+  },
+  {
+    path: 'scholarship-applications',
+    canActivate: [authGuard, requiresPermission('SCHOLARSHIP_APPROVE')],
+    loadComponent: () =>
+      import('./features/scholarship/scholarship-applications-list/scholarship-applications-list.component').then(
+        (m) => m.ScholarshipApplicationsListComponent
+      ),
+  },
+  {
     path: 'attendance',
     canActivate: [authGuard],
     loadComponent: () =>

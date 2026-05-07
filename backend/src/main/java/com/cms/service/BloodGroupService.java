@@ -23,10 +23,15 @@ public class BloodGroupService {
 
     @Transactional
     public BloodGroupResponse create(BloodGroupRequest request) {
-        if (bloodGroupRepository.existsByCode(request.code())) {
-            throw new IllegalArgumentException("Blood group with code '" + request.code() + "' already exists");
+        String name = requireTrimmed(request.name(), "Blood group name is required");
+        String code = requireTrimmed(request.code(), "Blood group code is required");
+        if (bloodGroupRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Blood group with name '" + name + "' already exists");
         }
-        BloodGroupMaster bg = new BloodGroupMaster(request.name(), request.code());
+        if (bloodGroupRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException("Blood group with code '" + code + "' already exists");
+        }
+        BloodGroupMaster bg = new BloodGroupMaster(name, code);
         if (request.isActive() != null) {
             bg.setIsActive(request.isActive());
         }
@@ -52,14 +57,16 @@ public class BloodGroupService {
     @Transactional
     public BloodGroupResponse update(Long id, BloodGroupRequest request) {
         BloodGroupMaster bg = findEntityById(id);
-        if (bloodGroupRepository.existsByCodeAndIdNot(request.code(), id)) {
-            throw new IllegalArgumentException("Blood group with code '" + request.code() + "' already exists");
+        String name = requireTrimmed(request.name(), "Blood group name is required");
+        String code = requireTrimmed(request.code(), "Blood group code is required");
+        if (bloodGroupRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
+            throw new IllegalArgumentException("Blood group with code '" + code + "' already exists");
         }
-        if (bloodGroupRepository.existsByNameAndIdNot(request.name(), id)) {
-            throw new IllegalArgumentException("Blood group with name '" + request.name() + "' already exists");
+        if (bloodGroupRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
+            throw new IllegalArgumentException("Blood group with name '" + name + "' already exists");
         }
-        bg.setName(request.name());
-        bg.setCode(request.code());
+        bg.setName(name);
+        bg.setCode(code);
         if (request.isActive() != null) {
             bg.setIsActive(request.isActive());
         }
@@ -84,6 +91,20 @@ public class BloodGroupService {
             bg.getId(), bg.getName(), bg.getCode(),
             bg.getIsActive(), bg.getCreatedAt(), bg.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }
 

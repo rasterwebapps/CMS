@@ -41,7 +41,8 @@ class BloodGroupServiceTest {
         BloodGroupRequest request = new BloodGroupRequest("A Positive", "A+", true);
         BloodGroupMaster saved = createBloodGroup(1L, "A Positive", "A+");
 
-        when(bloodGroupRepository.existsByCode("A+")).thenReturn(false);
+        when(bloodGroupRepository.existsByNameIgnoreCase("A Positive")).thenReturn(false);
+        when(bloodGroupRepository.existsByCodeIgnoreCase("A+")).thenReturn(false);
         when(bloodGroupRepository.save(any(BloodGroupMaster.class))).thenReturn(saved);
 
         BloodGroupResponse response = bloodGroupService.create(request);
@@ -57,7 +58,21 @@ class BloodGroupServiceTest {
     void shouldThrowWhenDuplicateCode() {
         BloodGroupRequest request = new BloodGroupRequest("A Positive", "A+", true);
 
-        when(bloodGroupRepository.existsByCode("A+")).thenReturn(true);
+        when(bloodGroupRepository.existsByNameIgnoreCase("A Positive")).thenReturn(false);
+        when(bloodGroupRepository.existsByCodeIgnoreCase("A+")).thenReturn(true);
+
+        assertThatThrownBy(() -> bloodGroupService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already exists");
+
+        verify(bloodGroupRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenDuplicateName() {
+        BloodGroupRequest request = new BloodGroupRequest("A Positive", "A_POS", true);
+
+        when(bloodGroupRepository.existsByNameIgnoreCase("A Positive")).thenReturn(true);
 
         assertThatThrownBy(() -> bloodGroupService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -71,7 +86,8 @@ class BloodGroupServiceTest {
         BloodGroupRequest request = new BloodGroupRequest("O Positive", "O+", null);
         BloodGroupMaster saved = createBloodGroup(1L, "O Positive", "O+");
 
-        when(bloodGroupRepository.existsByCode("O+")).thenReturn(false);
+        when(bloodGroupRepository.existsByNameIgnoreCase("O Positive")).thenReturn(false);
+        when(bloodGroupRepository.existsByCodeIgnoreCase("O+")).thenReturn(false);
         when(bloodGroupRepository.save(any(BloodGroupMaster.class))).thenReturn(saved);
 
         BloodGroupResponse response = bloodGroupService.create(request);
@@ -129,8 +145,8 @@ class BloodGroupServiceTest {
         BloodGroupMaster updated = createBloodGroup(1L, "A Positive Blood", "A+");
 
         when(bloodGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(bloodGroupRepository.existsByCodeAndIdNot("A+", 1L)).thenReturn(false);
-        when(bloodGroupRepository.existsByNameAndIdNot("A Positive Blood", 1L)).thenReturn(false);
+        when(bloodGroupRepository.existsByCodeIgnoreCaseAndIdNot("A+", 1L)).thenReturn(false);
+        when(bloodGroupRepository.existsByNameIgnoreCaseAndIdNot("A Positive Blood", 1L)).thenReturn(false);
         when(bloodGroupRepository.save(any(BloodGroupMaster.class))).thenReturn(updated);
 
         BloodGroupResponse response = bloodGroupService.update(1L, request);
@@ -144,7 +160,7 @@ class BloodGroupServiceTest {
         BloodGroupRequest request = new BloodGroupRequest("A Positive", "B+", true);
 
         when(bloodGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(bloodGroupRepository.existsByCodeAndIdNot("B+", 1L)).thenReturn(true);
+        when(bloodGroupRepository.existsByCodeIgnoreCaseAndIdNot("B+", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> bloodGroupService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -159,8 +175,8 @@ class BloodGroupServiceTest {
         BloodGroupRequest request = new BloodGroupRequest("B Positive", "A+", true);
 
         when(bloodGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(bloodGroupRepository.existsByCodeAndIdNot("A+", 1L)).thenReturn(false);
-        when(bloodGroupRepository.existsByNameAndIdNot("B Positive", 1L)).thenReturn(true);
+        when(bloodGroupRepository.existsByCodeIgnoreCaseAndIdNot("A+", 1L)).thenReturn(false);
+        when(bloodGroupRepository.existsByNameIgnoreCaseAndIdNot("B Positive", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> bloodGroupService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
