@@ -145,6 +145,7 @@ public class SubjectService {
         CourseResponse courseResponse = new CourseResponse(
             course.getId(), course.getName(), course.getCode(),
             course.getSpecialization(),
+            course.getRollNumberCode(),
             programResponse,
             course.getCreatedAt(), course.getUpdatedAt()
         );

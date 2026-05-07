@@ -45,6 +45,9 @@ class StudentControllerTest {
     @MockitoBean
     private StudentService studentService;
 
+    @MockitoBean
+    private com.cms.service.RollNumberGeneratorService rollNumberGeneratorService;
+
     @Test
     void shouldCreateStudent() throws Exception {
         StudentRequest request = new StudentRequest(

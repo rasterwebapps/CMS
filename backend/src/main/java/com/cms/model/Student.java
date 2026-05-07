@@ -38,6 +38,12 @@ public class Student {
     @Column(name = "roll_number", unique = true)
     private String rollNumber;
 
+    @Column(name = "university_registration_number", unique = true)
+    private String universityRegistrationNumber;
+
+    @Column(name = "umis_number", unique = true)
+    private String umisNumber;
+
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
@@ -181,6 +187,22 @@ public class Student {
 
     public void setRollNumber(String rollNumber) {
         this.rollNumber = rollNumber;
+    }
+
+    public String getUniversityRegistrationNumber() {
+        return universityRegistrationNumber;
+    }
+
+    public void setUniversityRegistrationNumber(String universityRegistrationNumber) {
+        this.universityRegistrationNumber = universityRegistrationNumber;
+    }
+
+    public String getUmisNumber() {
+        return umisNumber;
+    }
+
+    public void setUmisNumber(String umisNumber) {
+        this.umisNumber = umisNumber;
     }
 
     public String getFirstName() {

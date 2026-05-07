@@ -58,6 +58,9 @@ public class StudentService {
         );
 
         student.setPhone(request.phone());
+        // University identification numbers
+        student.setUniversityRegistrationNumber(request.universityRegistrationNumber());
+        student.setUmisNumber(request.umisNumber());
         // Course and specialization department
         if (request.courseId() != null) {
             Course course = courseRepository.findById(request.courseId())
@@ -161,6 +164,9 @@ public class StudentService {
         student.setEmail(request.email());
         student.setPhone(request.phone());
         student.setProgram(program);
+        // University identification numbers
+        student.setUniversityRegistrationNumber(request.universityRegistrationNumber());
+        student.setUmisNumber(request.umisNumber());
         // Course and specialization department
         if (request.courseId() != null) {
             Course course = courseRepository.findById(request.courseId())
@@ -281,6 +287,8 @@ public class StudentService {
         return new StudentResponse(
             student.getId(),
             student.getRollNumber(),
+            student.getUniversityRegistrationNumber(),
+            student.getUmisNumber(),
             student.getFirstName(),
             student.getLastName(),
             student.getFullName(),

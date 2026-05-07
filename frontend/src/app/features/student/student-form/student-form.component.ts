@@ -102,6 +102,8 @@ export class StudentFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     rollNumber: ['', [Validators.required, Validators.maxLength(50)]],
+    universityRegistrationNumber: ['', [Validators.maxLength(50)]],
+    umisNumber: ['', [Validators.maxLength(50)]],
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email]],
@@ -180,6 +182,8 @@ export class StudentFormComponent implements OnInit {
     const v = this.form.value;
     const request: StudentRequest = {
       rollNumber: v.rollNumber.trim(),
+      universityRegistrationNumber: v.universityRegistrationNumber?.trim() || undefined,
+      umisNumber: v.umisNumber?.trim() || undefined,
       firstName: v.firstName.trim(),
       lastName: v.lastName.trim(),
       email: v.email.trim(),
@@ -280,6 +284,8 @@ export class StudentFormComponent implements OnInit {
       next: (student) => {
         this.form.patchValue({
           rollNumber: student.rollNumber,
+          universityRegistrationNumber: student.universityRegistrationNumber || '',
+          umisNumber: student.umisNumber || '',
           firstName: student.firstName,
           lastName: student.lastName,
           email: student.email,

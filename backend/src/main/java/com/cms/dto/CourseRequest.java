@@ -21,4 +21,8 @@ public record CourseRequest(
 
     @NotNull(message = "Program ID is required")
     Long programId
-) {}
+) {
+    public CourseRequest(String name, String code, String specialization, Long programId) {
+        this(name, code, specialization, null, programId);
+    }
+}

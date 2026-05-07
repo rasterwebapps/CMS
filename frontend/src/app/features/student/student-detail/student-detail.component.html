@@ -64,6 +64,14 @@
                 <span class="detail-value code-value">{{ student()!.rollNumber }}</span>
               </div>
               <div class="detail-item">
+                <span class="detail-label">University Reg. No.</span>
+                <span class="detail-value code-value">{{ student()!.universityRegistrationNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">UMIS Number</span>
+                <span class="detail-value code-value">{{ student()!.umisNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
                 <span class="detail-label">Full Name</span>
                 <span class="detail-value">{{ student()!.fullName }}</span>
               </div>
