@@ -6,6 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.mockito.ArgumentCaptor;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.ProgramStatus;
@@ -61,6 +64,13 @@ class StudentTermEnrollmentServiceImplTest {
 
     private Program createProgram(Long id, String code, int durationYears) {
         Program p = new Program(code + " Program", code, durationYears, ProgramStatus.ACTIVE);
+        p.setId(id);
+        return p;
+    }
+
+    private Program createYearlyProgram(Long id, String code, int durationYears) {
+        Program p = new Program(code + " Program", code, durationYears, ProgramStatus.ACTIVE,
+            AssessmentPattern.YEARLY);
         p.setId(id);
         return p;
     }
@@ -310,5 +320,163 @@ class StudentTermEnrollmentServiceImplTest {
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getById(999L))
             .isInstanceOf(com.cms.exception.ResourceNotFoundException.class);
+    }
+
+    // ── computeSemesterNumber: YEARLY pattern ─────────────────────────────
+
+    @Test
+    void computeSemesterNumber_yearly_oddTerm_yearOne() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isEqualTo(1);
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_evenTerm_yearOne_sameAsOdd() {
+        // Key invariant: for YEARLY, both ODD and EVEN of the same academic year
+        // must return the same position (year 1). SEMESTER would return 2 for EVEN.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.EVEN);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isEqualTo(1);
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_oddTerm_yearTwo() {
+        AcademicYear admissionAY = createAY(1L, "2024-2025");
+        AcademicYear secondAY    = createAY(2L, "2025-2026");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, admissionAY);
+        TermInstance ti = createTermInstance(2L, secondAY, TermType.ODD);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isEqualTo(2);
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_evenTerm_yearTwo_sameAsOdd() {
+        AcademicYear admissionAY = createAY(1L, "2024-2025");
+        AcademicYear secondAY    = createAY(2L, "2025-2026");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, admissionAY);
+        TermInstance ti = createTermInstance(2L, secondAY, TermType.EVEN);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isEqualTo(2);
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_lastYear_returnsValue() {
+        // A 4-year YEARLY program has totalSemesters=4; year 4 must succeed.
+        AcademicYear admissionAY = createAY(1L, "2024-2025");
+        AcademicYear lastAY      = createAY(4L, "2027-2028");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, admissionAY);
+        TermInstance ti = createTermInstance(4L, lastAY, TermType.ODD);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isEqualTo(4);
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_outOfRange_returnsNull() {
+        // Year after graduation: k = durationYears → position = 5 > totalSemesters(4) → null
+        AcademicYear admissionAY  = createAY(1L, "2024-2025");
+        AcademicYear afterGradAY  = createAY(5L, "2028-2029");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, admissionAY);
+        TermInstance ti = createTermInstance(5L, afterGradAY, TermType.ODD);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isNull();
+    }
+
+    @Test
+    void computeSemesterNumber_yearly_beforeAdmission_returnsNull() {
+        // k < 0: term is in an earlier year than admission → null
+        AcademicYear admissionAY = createAY(2L, "2025-2026");
+        AcademicYear earlierAY   = createAY(1L, "2024-2025");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, admissionAY);
+        TermInstance ti = createTermInstance(1L, earlierAY, TermType.ODD);
+
+        assertThat(service.computeSemesterNumber(cohort, ti)).isNull();
+    }
+
+    // ── generateEnrollmentsForTermInstance: yearOfStudy verification ──────
+
+    @Test
+    void generateEnrollmentsForTermInstance_semester_setsCorrectYearOfStudy() {
+        // SEMESTER ODD year 1: semesterNumber=1, yearOfStudy=ceil(1/2)=1
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(studentRepository.findByCohortIdAndStatus(1L, StudentStatus.ACTIVE)).thenReturn(List.of(student));
+        when(enrollmentRepository.findByStudentIdAndTermInstanceId(1L, 1L)).thenReturn(Optional.empty());
+
+        ArgumentCaptor<StudentTermEnrollment> captor = ArgumentCaptor.forClass(StudentTermEnrollment.class);
+        when(enrollmentRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.generateEnrollmentsForTermInstance(1L);
+
+        StudentTermEnrollment saved = captor.getValue();
+        assertThat(saved.getSemesterNumber()).isEqualTo(1);
+        assertThat(saved.getYearOfStudy()).isEqualTo(1);
+    }
+
+    @Test
+    void generateEnrollmentsForTermInstance_yearly_oddTerm_setsYearOfStudyEqualToSemesterNumber() {
+        // YEARLY ODD year 1: semesterNumber=1, yearOfStudy must equal semesterNumber (not ceil formula)
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(studentRepository.findByCohortIdAndStatus(1L, StudentStatus.ACTIVE)).thenReturn(List.of(student));
+        when(enrollmentRepository.findByStudentIdAndTermInstanceId(1L, 1L)).thenReturn(Optional.empty());
+
+        ArgumentCaptor<StudentTermEnrollment> captor = ArgumentCaptor.forClass(StudentTermEnrollment.class);
+        when(enrollmentRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.generateEnrollmentsForTermInstance(1L);
+
+        StudentTermEnrollment saved = captor.getValue();
+        assertThat(saved.getSemesterNumber()).isEqualTo(1);
+        assertThat(saved.getYearOfStudy()).isEqualTo(1);
+    }
+
+    @Test
+    void generateEnrollmentsForTermInstance_yearly_evenTerm_enrollsWithSamePositionAsOddTerm() {
+        // YEARLY EVEN year 1: enrollment IS created (fee demand skips EVEN, but enrollment does not);
+        // semesterNumber and yearOfStudy must both be 1 — same as ODD term of the same year.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createYearlyProgram(1L, "ANM", 4);
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.EVEN);
+        Student student = createStudent(1L, program, cohort);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(studentRepository.findByCohortIdAndStatus(1L, StudentStatus.ACTIVE)).thenReturn(List.of(student));
+        when(enrollmentRepository.findByStudentIdAndTermInstanceId(1L, 1L)).thenReturn(Optional.empty());
+
+        ArgumentCaptor<StudentTermEnrollment> captor = ArgumentCaptor.forClass(StudentTermEnrollment.class);
+        when(enrollmentRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        int count = service.generateEnrollmentsForTermInstance(1L);
+
+        assertThat(count).isEqualTo(1);
+        StudentTermEnrollment saved = captor.getValue();
+        assertThat(saved.getSemesterNumber()).isEqualTo(1);
+        assertThat(saved.getYearOfStudy()).isEqualTo(1);
     }
 }

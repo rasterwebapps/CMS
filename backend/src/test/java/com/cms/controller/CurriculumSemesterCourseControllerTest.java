@@ -92,8 +92,7 @@ class CurriculumSemesterCourseControllerTest {
 
     @Test
     void shouldGetFullCurriculumWhenNoSemesterNumber() throws Exception {
-        CurriculumFullViewDto fullView = new CurriculumFullViewDto(
-            1L, "BSCN-2026", 1L, "BSc Nursing", 8, List.of());
+        CurriculumFullViewDto fullView = new CurriculumFullViewDto(1L, "BSCN-2026", 1L, "BSc Nursing", com.cms.model.enums.AssessmentPattern.SEMESTER, 8, List.of());
 
         when(service.getFullCurriculum(1L)).thenReturn(fullView);
 

@@ -48,6 +48,7 @@ import com.cms.repository.ExamSessionRepository;
 import com.cms.repository.SemesterResultRepository;
 import com.cms.repository.StudentMarkRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SemesterResultServiceImplTest {
@@ -60,13 +61,16 @@ class SemesterResultServiceImplTest {
     private StudentMarkRepository studentMarkRepository;
     @Mock
     private ExamSessionRepository examSessionRepository;
+    @Mock
+    private TermInstanceRepository termInstanceRepository;
 
     private SemesterResultServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new SemesterResultServiceImpl(semesterResultRepository,
-            studentTermEnrollmentRepository, studentMarkRepository, examSessionRepository);
+            studentTermEnrollmentRepository, studentMarkRepository, examSessionRepository,
+            termInstanceRepository);
     }
 
     private AcademicYear createAY(Long id) {
@@ -258,6 +262,7 @@ class SemesterResultServiceImplTest {
         TermInstance ti = createTermInstance(1L, ay);
         ExamSession session = createSession(1L, ti, ExamSessionStatus.PUBLISHED);
 
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
         when(examSessionRepository.findByTermInstance_Id(1L)).thenReturn(List.of(session));
 
         assertThatThrownBy(() -> service.computeResultsForTermInstance(1L))
@@ -350,6 +355,7 @@ class SemesterResultServiceImplTest {
         CourseRegistration reg = createRegistration(1L, enrollment, offering);
         StudentMark mark = createMark(1L, event, reg, MarkStatus.PRESENT, new BigDecimal("80"));
 
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
         when(examSessionRepository.findByTermInstance_Id(1L)).thenReturn(List.of(session));
         when(studentTermEnrollmentRepository.findByTermInstanceId(1L)).thenReturn(List.of(enrollment));
         when(studentTermEnrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
@@ -381,6 +387,7 @@ class SemesterResultServiceImplTest {
         locked.setId(1L);
         locked.setIsLocked(true);
 
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
         when(examSessionRepository.findByTermInstance_Id(1L)).thenReturn(List.of(session));
         when(studentTermEnrollmentRepository.findByTermInstanceId(1L)).thenReturn(List.of(enrollment));
         when(semesterResultRepository.findByStudentTermEnrollment_Id(1L)).thenReturn(Optional.of(locked));
