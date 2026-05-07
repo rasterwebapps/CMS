@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.SemesterResultDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
@@ -33,6 +34,7 @@ import com.cms.model.StudentMark;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.ExamSessionStatus;
@@ -124,6 +126,20 @@ class SemesterResultServiceImplTest {
         Program p = new Program("BCA Program", "BCA", 3, ProgramStatus.ACTIVE);
         p.setId(id);
         return p;
+    }
+
+    private Program createYearlyProgram(Long id) {
+        Program p = new Program("ANM Program", "ANM", 2, ProgramStatus.ACTIVE,
+            AssessmentPattern.YEARLY);
+        p.setId(id);
+        return p;
+    }
+
+    private TermInstance createEvenTermInstance(Long id, AcademicYear ay) {
+        TermInstance ti = new TermInstance(ay, TermType.EVEN, LocalDate.of(2024, 12, 1),
+            LocalDate.of(2025, 5, 31), TermInstanceStatus.OPEN);
+        ti.setId(id);
+        return ti;
     }
 
     private Cohort createCohort(Long id, Program program, AcademicYear ay) {
@@ -395,5 +411,86 @@ class SemesterResultServiceImplTest {
         service.computeResultsForTermInstance(1L);
 
         verify(semesterResultRepository, never()).save(any());
+    }
+
+    // ── YEARLY pattern: computeForEnrollment ─────────────────────────────
+
+    @Test
+    void computeForEnrollment_yearly_oddTerm_throwsIllegalState() {
+        // For a yearly program, calling computeForEnrollment on an ODD-term enrollment
+        // must be rejected — the annual result is only valid at EVEN-term end.
+        AcademicYear ay = createAY(1L);
+        TermInstance oddTerm = createTermInstance(10L, ay);          // TermType.ODD
+        Program program = createYearlyProgram(2L);
+        Cohort cohort = createCohort(1L, program, ay);
+        Student student = createStudent(1L, program);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, oddTerm, cohort);
+
+        when(studentTermEnrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> service.computeForEnrollment(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("EVEN term");
+    }
+
+    @Test
+    void computeForEnrollment_yearly_evenTerm_aggregatesMarksFromBothTerms() {
+        // For a yearly program the annual result is computed on the EVEN-term enrollment
+        // but must include marks from the ODD term of the same academic year.
+        AcademicYear ay = createAY(1L);
+        TermInstance oddTerm  = createTermInstance(10L, ay);         // ODD
+        TermInstance evenTerm = createEvenTermInstance(11L, ay);     // EVEN
+
+        Program program = createYearlyProgram(2L);
+        Cohort cohort = createCohort(1L, program, ay);
+        Student student = createStudent(1L, program);
+
+        StudentTermEnrollment oddEnrollment  = createEnrollment(100L, student, oddTerm,  cohort);
+        StudentTermEnrollment evenEnrollment = createEnrollment(101L, student, evenTerm, cohort);
+
+        Subject subject = createSubject(1L);
+
+        // ODD term: one exam event, 100 max, 60 obtained
+        ExamSession oddSession = createSession(1L, oddTerm, ExamSessionStatus.LOCKED);
+        CourseOffering oddOffering = createOffering(1L, oddTerm, subject);
+        ExamEvent oddEvent = createEvent(1L, oddSession, oddOffering, new BigDecimal("100"));
+        CourseRegistration oddReg = createRegistration(1L, oddEnrollment, oddOffering);
+        StudentMark oddMark = createMark(1L, oddEvent, oddReg, MarkStatus.PRESENT, new BigDecimal("60"));
+
+        // EVEN term: one exam event, 100 max, 75 obtained
+        ExamSession evenSession = createSession(2L, evenTerm, ExamSessionStatus.LOCKED);
+        CourseOffering evenOffering = createOffering(2L, evenTerm, subject);
+        ExamEvent evenEvent = createEvent(2L, evenSession, evenOffering, new BigDecimal("100"));
+        CourseRegistration evenReg = createRegistration(2L, evenEnrollment, evenOffering);
+        StudentMark evenMark = createMark(2L, evenEvent, evenReg, MarkStatus.PRESENT, new BigDecimal("75"));
+
+        // Stubs for computeForEnrollment(101L) — the EVEN enrollment
+        when(studentTermEnrollmentRepository.findById(101L)).thenReturn(Optional.of(evenEnrollment));
+        when(studentMarkRepository.findByCourseRegistration_StudentTermEnrollment_Id(101L))
+            .thenReturn(List.of(evenMark));
+
+        // Stubs for collectYearlyMarks: look up ODD term and its enrollment
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTerm));
+        when(studentTermEnrollmentRepository.findByStudentIdAndTermInstanceId(1L, 10L))
+            .thenReturn(Optional.of(oddEnrollment));
+        when(studentMarkRepository.findByCourseRegistration_StudentTermEnrollment_Id(100L))
+            .thenReturn(List.of(oddMark));
+
+        when(semesterResultRepository.findByStudentTermEnrollment_Id(101L))
+            .thenReturn(Optional.empty());
+        when(semesterResultRepository.save(any(SemesterResult.class))).thenAnswer(inv -> {
+            SemesterResult r = inv.getArgument(0);
+            r.setId(99L);
+            return r;
+        });
+
+        SemesterResultDto dto = service.computeForEnrollment(101L);
+
+        // 100 + 100 = 200 total max; 60 + 75 = 135 obtained; 67.50% → PASS
+        assertThat(dto.totalMaxMarks()).isEqualByComparingTo(new BigDecimal("200"));
+        assertThat(dto.totalMarksObtained()).isEqualByComparingTo(new BigDecimal("135"));
+        assertThat(dto.percentage()).isEqualByComparingTo(new BigDecimal("67.50"));
+        assertThat(dto.resultStatus()).isEqualTo(ResultStatus.PASS);
     }
 }
