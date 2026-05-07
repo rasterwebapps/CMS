@@ -99,7 +99,7 @@
               {{ program.durationYears }} {{ program.durationYears === 1 ? 'Year' : 'Years' }}
             </div>
             <div class="prog-card__semesters">
-              {{ program.totalSemesters }} Semesters
+              {{ termCountLabel(program) }}
             </div>
             <span class="cms-badge"
               [class.cms-badge--soft-success]="program.status === 'ACTIVE'"
@@ -139,9 +139,9 @@
         </ng-container>
 
         <ng-container matColumnDef="totalSemesters">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Semesters</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Terms</th>
           <td mat-cell *matCellDef="let program">
-            <span class="cms-badge cms-badge--gray">{{ program.totalSemesters }}</span>
+            <span class="cms-badge cms-badge--gray">{{ termCountLabel(program) }}</span>
           </td>
         </ng-container>
 

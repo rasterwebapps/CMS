@@ -94,6 +94,14 @@ export class ProgramListComponent implements OnInit {
     }
   }
 
+  protected termCountLabel(program: Program): string {
+    const n = program.totalSemesters;
+    if (program.assessmentPattern === 'YEARLY') {
+      return `${n} ${n === 1 ? 'Year' : 'Years'}`;
+    }
+    return `${n} ${n === 1 ? 'Semester' : 'Semesters'}`;
+  }
+
   protected editProgram(program: Program): void {
     void this.router.navigate(['/programs', program.id, 'edit']);
   }
