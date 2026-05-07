@@ -1,124 +1,124 @@
 -- ============================================================
 -- 1. ROLES
 -- ============================================================
-INSERT INTO app_roles (name, display_name, hierarchy_level, is_system_role, description) VALUES
-    ('DEV_ADMIN',      'Developer Admin',    1, TRUE,  'Full system access – development and infrastructure team only'),
-    ('SUPPORT_ADMIN',  'Support Admin',      2, TRUE,  'Platform support access – Raster support team only'),
-    ('ADMIN',          'Admin',              3, FALSE, 'College-level administrator; manages all college staff and operations'),
-    ('COLLEGE_ADMIN',  'College Admin',      4, FALSE, 'Manages day-to-day college operations across all departments'),
-    ('FRONT_OFFICE',   'Front Office',       5, FALSE, 'Handles enquiries, admissions and document submission'),
-    ('CASHIER',        'Cashier',            5, FALSE, 'Processes fee collection and views financial summaries'),
-    ('FACULTY',        'Faculty',            5, FALSE, 'Academic staff; manages curriculum, attendance and exam results'),
-    ('LAB_INCHARGE',   'Lab In-charge',      5, FALSE, 'Manages laboratory resources and schedules'),
-    ('TECHNICIAN',     'Technician',         5, FALSE, 'Maintains lab equipment and inventory'),
-    ('STUDENT',        'Student',            6, FALSE, 'Enrolled student – read-only access to own data'),
-    ('PARENT',         'Parent',             6, FALSE, 'Guardian – read-only access to ward data');
+INSERT INTO app_roles (name, display_name, hierarchy_level, is_system_role, description, created_at, updated_at) VALUES
+    ('DEV_ADMIN',      'Developer Admin',    1, TRUE,  'Full system access – development and infrastructure team only', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('SUPPORT_ADMIN',  'Support Admin',      2, TRUE,  'Platform support access – Raster support team only', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('ADMIN',          'Admin',              3, FALSE, 'College-level administrator; manages all college staff and operations', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('COLLEGE_ADMIN',  'College Admin',      4, FALSE, 'Manages day-to-day college operations across all departments', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('FRONT_OFFICE',   'Front Office',       5, FALSE, 'Handles enquiries, admissions and document submission', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('CASHIER',        'Cashier',            5, FALSE, 'Processes fee collection and views financial summaries', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('FACULTY',        'Faculty',            5, FALSE, 'Academic staff; manages curriculum, attendance and exam results', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('LAB_INCHARGE',   'Lab In-charge',      5, FALSE, 'Manages laboratory resources and schedules', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('TECHNICIAN',     'Technician',         5, FALSE, 'Maintains lab equipment and inventory', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('STUDENT',        'Student',            6, FALSE, 'Enrolled student – read-only access to own data', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('PARENT',         'Parent',             6, FALSE, 'Guardian – read-only access to ward data', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- ============================================================
 -- 2. PERMISSIONS
 -- ============================================================
 
 -- SYSTEM
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('USER_VIEW',         'View Users',                'SYSTEM'),
-    ('USER_CREATE',       'Create Users',              'SYSTEM'),
-    ('USER_EDIT',         'Edit Users',                'SYSTEM'),
-    ('USER_DEACTIVATE',   'Deactivate Users',          'SYSTEM'),
-    ('ROLE_VIEW',         'View Roles',                'SYSTEM'),
-    ('ROLE_CREATE',       'Create Roles',              'SYSTEM'),
-    ('ROLE_EDIT',         'Edit Roles',                'SYSTEM'),
-    ('PERMISSION_ASSIGN', 'Assign Permissions',        'SYSTEM');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('USER_VIEW',         'View Users',                'SYSTEM', CURRENT_TIMESTAMP),
+    ('USER_CREATE',       'Create Users',              'SYSTEM', CURRENT_TIMESTAMP),
+    ('USER_EDIT',         'Edit Users',                'SYSTEM', CURRENT_TIMESTAMP),
+    ('USER_DEACTIVATE',   'Deactivate Users',          'SYSTEM', CURRENT_TIMESTAMP),
+    ('ROLE_VIEW',         'View Roles',                'SYSTEM', CURRENT_TIMESTAMP),
+    ('ROLE_CREATE',       'Create Roles',              'SYSTEM', CURRENT_TIMESTAMP),
+    ('ROLE_EDIT',         'Edit Roles',                'SYSTEM', CURRENT_TIMESTAMP),
+    ('PERMISSION_ASSIGN', 'Assign Permissions',        'SYSTEM', CURRENT_TIMESTAMP);
 
 -- MASTER
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('DEPT_VIEW',               'View Departments',       'MASTER'),
-    ('DEPT_MANAGE',             'Manage Departments',     'MASTER'),
-    ('PROGRAM_VIEW',            'View Programs',          'MASTER'),
-    ('PROGRAM_MANAGE',          'Manage Programs',        'MASTER'),
-    ('COURSE_VIEW',             'View Courses',           'MASTER'),
-    ('COURSE_MANAGE',           'Manage Courses',         'MASTER'),
-    ('ACADEMIC_YEAR_VIEW',      'View Academic Years',    'MASTER'),
-    ('ACADEMIC_YEAR_MANAGE',    'Manage Academic Years',  'MASTER'),
-    ('SEMESTER_VIEW',           'View Semesters',         'MASTER'),
-    ('SEMESTER_MANAGE',         'Manage Semesters',       'MASTER'),
-    ('LAB_VIEW',                'View Labs',              'MASTER'),
-    ('LAB_MANAGE',              'Manage Labs',            'MASTER'),
-    ('FEE_STRUCTURE_VIEW',      'View Fee Structures',    'MASTER'),
-    ('FEE_STRUCTURE_MANAGE',    'Manage Fee Structures',  'MASTER'),
-    ('EQUIPMENT_VIEW',          'View Equipment',         'MASTER'),
-    ('EQUIPMENT_MANAGE',        'Manage Equipment',       'MASTER'),
-    ('FACULTY_VIEW',            'View Faculty',           'MASTER'),
-    ('FACULTY_MANAGE',          'Manage Faculty',         'MASTER'),
-    ('AGENT_VIEW',              'View Agents',            'MASTER'),
-    ('AGENT_MANAGE',            'Manage Agents',          'MASTER'),
-    ('REFERRAL_TYPE_VIEW',      'View Referral Types',    'MASTER'),
-    ('REFERRAL_TYPE_MANAGE',    'Manage Referral Types',  'MASTER'),
-    ('COMMUNITY_VIEW',          'View Communities',       'MASTER'),
-    ('COMMUNITY_MANAGE',        'Manage Communities',     'MASTER'),
-    ('BLOOD_GROUP_VIEW',        'View Blood Groups',      'MASTER'),
-    ('BLOOD_GROUP_MANAGE',      'Manage Blood Groups',    'MASTER'),
-    ('SETTINGS_VIEW',           'View Settings',          'MASTER'),
-    ('SETTINGS_MANAGE',         'Manage Settings',        'MASTER');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('DEPT_VIEW',               'View Departments',       'MASTER', CURRENT_TIMESTAMP),
+    ('DEPT_MANAGE',             'Manage Departments',     'MASTER', CURRENT_TIMESTAMP),
+    ('PROGRAM_VIEW',            'View Programs',          'MASTER', CURRENT_TIMESTAMP),
+    ('PROGRAM_MANAGE',          'Manage Programs',        'MASTER', CURRENT_TIMESTAMP),
+    ('COURSE_VIEW',             'View Courses',           'MASTER', CURRENT_TIMESTAMP),
+    ('COURSE_MANAGE',           'Manage Courses',         'MASTER', CURRENT_TIMESTAMP),
+    ('ACADEMIC_YEAR_VIEW',      'View Academic Years',    'MASTER', CURRENT_TIMESTAMP),
+    ('ACADEMIC_YEAR_MANAGE',    'Manage Academic Years',  'MASTER', CURRENT_TIMESTAMP),
+    ('SEMESTER_VIEW',           'View Semesters',         'MASTER', CURRENT_TIMESTAMP),
+    ('SEMESTER_MANAGE',         'Manage Semesters',       'MASTER', CURRENT_TIMESTAMP),
+    ('LAB_VIEW',                'View Labs',              'MASTER', CURRENT_TIMESTAMP),
+    ('LAB_MANAGE',              'Manage Labs',            'MASTER', CURRENT_TIMESTAMP),
+    ('FEE_STRUCTURE_VIEW',      'View Fee Structures',    'MASTER', CURRENT_TIMESTAMP),
+    ('FEE_STRUCTURE_MANAGE',    'Manage Fee Structures',  'MASTER', CURRENT_TIMESTAMP),
+    ('EQUIPMENT_VIEW',          'View Equipment',         'MASTER', CURRENT_TIMESTAMP),
+    ('EQUIPMENT_MANAGE',        'Manage Equipment',       'MASTER', CURRENT_TIMESTAMP),
+    ('FACULTY_VIEW',            'View Faculty',           'MASTER', CURRENT_TIMESTAMP),
+    ('FACULTY_MANAGE',          'Manage Faculty',         'MASTER', CURRENT_TIMESTAMP),
+    ('AGENT_VIEW',              'View Agents',            'MASTER', CURRENT_TIMESTAMP),
+    ('AGENT_MANAGE',            'Manage Agents',          'MASTER', CURRENT_TIMESTAMP),
+    ('REFERRAL_TYPE_VIEW',      'View Referral Types',    'MASTER', CURRENT_TIMESTAMP),
+    ('REFERRAL_TYPE_MANAGE',    'Manage Referral Types',  'MASTER', CURRENT_TIMESTAMP),
+    ('COMMUNITY_VIEW',          'View Communities',       'MASTER', CURRENT_TIMESTAMP),
+    ('COMMUNITY_MANAGE',        'Manage Communities',     'MASTER', CURRENT_TIMESTAMP),
+    ('BLOOD_GROUP_VIEW',        'View Blood Groups',      'MASTER', CURRENT_TIMESTAMP),
+    ('BLOOD_GROUP_MANAGE',      'Manage Blood Groups',    'MASTER', CURRENT_TIMESTAMP),
+    ('SETTINGS_VIEW',           'View Settings',          'MASTER', CURRENT_TIMESTAMP),
+    ('SETTINGS_MANAGE',         'Manage Settings',        'MASTER', CURRENT_TIMESTAMP);
 
 -- ADMISSION
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('ENQUIRY_VIEW',                'View Enquiries',              'ADMISSION'),
-    ('ENQUIRY_CREATE',              'Create Enquiries',            'ADMISSION'),
-    ('ENQUIRY_EDIT',                'Edit Enquiries',              'ADMISSION'),
-    ('ENQUIRY_DELETE',              'Delete Enquiries',            'ADMISSION'),
-    ('DOCUMENT_SUBMISSION_VIEW',    'View Document Submissions',   'ADMISSION'),
-    ('DOCUMENT_SUBMISSION_MANAGE',  'Manage Document Submissions', 'ADMISSION'),
-    ('ADMISSION_VIEW',              'View Admissions',             'ADMISSION'),
-    ('ADMISSION_CREATE',            'Create Admissions',           'ADMISSION'),
-    ('ADMISSION_EDIT',              'Edit Admissions',             'ADMISSION'),
-    ('ADMISSION_DELETE',            'Delete Admissions',           'ADMISSION'),
-    ('STUDENT_VIEW',                'View Students',               'ADMISSION'),
-    ('STUDENT_CREATE',              'Create Students',             'ADMISSION'),
-    ('STUDENT_EDIT',                'Edit Students',               'ADMISSION'),
-    ('STUDENT_DELETE',              'Delete Students',             'ADMISSION'),
-    ('ROLL_NUMBER_ASSIGN',          'Assign Roll Numbers',         'ADMISSION'),
-    ('IMPORT_DATA',                 'Import Data',                 'ADMISSION');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('ENQUIRY_VIEW',                'View Enquiries',              'ADMISSION', CURRENT_TIMESTAMP),
+    ('ENQUIRY_CREATE',              'Create Enquiries',            'ADMISSION', CURRENT_TIMESTAMP),
+    ('ENQUIRY_EDIT',                'Edit Enquiries',              'ADMISSION', CURRENT_TIMESTAMP),
+    ('ENQUIRY_DELETE',              'Delete Enquiries',            'ADMISSION', CURRENT_TIMESTAMP),
+    ('DOCUMENT_SUBMISSION_VIEW',    'View Document Submissions',   'ADMISSION', CURRENT_TIMESTAMP),
+    ('DOCUMENT_SUBMISSION_MANAGE',  'Manage Document Submissions', 'ADMISSION', CURRENT_TIMESTAMP),
+    ('ADMISSION_VIEW',              'View Admissions',             'ADMISSION', CURRENT_TIMESTAMP),
+    ('ADMISSION_CREATE',            'Create Admissions',           'ADMISSION', CURRENT_TIMESTAMP),
+    ('ADMISSION_EDIT',              'Edit Admissions',             'ADMISSION', CURRENT_TIMESTAMP),
+    ('ADMISSION_DELETE',            'Delete Admissions',           'ADMISSION', CURRENT_TIMESTAMP),
+    ('STUDENT_VIEW',                'View Students',               'ADMISSION', CURRENT_TIMESTAMP),
+    ('STUDENT_CREATE',              'Create Students',             'ADMISSION', CURRENT_TIMESTAMP),
+    ('STUDENT_EDIT',                'Edit Students',               'ADMISSION', CURRENT_TIMESTAMP),
+    ('STUDENT_DELETE',              'Delete Students',             'ADMISSION', CURRENT_TIMESTAMP),
+    ('ROLL_NUMBER_ASSIGN',          'Assign Roll Numbers',         'ADMISSION', CURRENT_TIMESTAMP),
+    ('IMPORT_DATA',                 'Import Data',                 'ADMISSION', CURRENT_TIMESTAMP);
 
 -- CURRICULUM
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('SYLLABUS_VIEW',          'View Syllabi',            'CURRICULUM'),
-    ('SYLLABUS_MANAGE',        'Manage Syllabi',          'CURRICULUM'),
-    ('EXPERIMENT_VIEW',        'View Experiments',        'CURRICULUM'),
-    ('EXPERIMENT_MANAGE',      'Manage Experiments',      'CURRICULUM'),
-    ('COPO_VIEW',              'View CO/PO Mappings',     'CURRICULUM'),
-    ('COPO_MANAGE',            'Manage CO/PO Mappings',   'CURRICULUM'),
-    ('CURRICULUM_VIEW',        'View Curriculum',         'CURRICULUM'),
-    ('CURRICULUM_MANAGE',      'Manage Curriculum',       'CURRICULUM'),
-    ('LAB_SCHEDULE_VIEW',      'View Lab Schedules',      'CURRICULUM'),
-    ('LAB_SCHEDULE_MANAGE',    'Manage Lab Schedules',    'CURRICULUM'),
-    ('ATTENDANCE_VIEW',        'View Attendance',         'CURRICULUM'),
-    ('ATTENDANCE_MANAGE',      'Manage Attendance',       'CURRICULUM');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('SYLLABUS_VIEW',          'View Syllabi',            'CURRICULUM', CURRENT_TIMESTAMP),
+    ('SYLLABUS_MANAGE',        'Manage Syllabi',          'CURRICULUM', CURRENT_TIMESTAMP),
+    ('EXPERIMENT_VIEW',        'View Experiments',        'CURRICULUM', CURRENT_TIMESTAMP),
+    ('EXPERIMENT_MANAGE',      'Manage Experiments',      'CURRICULUM', CURRENT_TIMESTAMP),
+    ('COPO_VIEW',              'View CO/PO Mappings',     'CURRICULUM', CURRENT_TIMESTAMP),
+    ('COPO_MANAGE',            'Manage CO/PO Mappings',   'CURRICULUM', CURRENT_TIMESTAMP),
+    ('CURRICULUM_VIEW',        'View Curriculum',         'CURRICULUM', CURRENT_TIMESTAMP),
+    ('CURRICULUM_MANAGE',      'Manage Curriculum',       'CURRICULUM', CURRENT_TIMESTAMP),
+    ('LAB_SCHEDULE_VIEW',      'View Lab Schedules',      'CURRICULUM', CURRENT_TIMESTAMP),
+    ('LAB_SCHEDULE_MANAGE',    'Manage Lab Schedules',    'CURRICULUM', CURRENT_TIMESTAMP),
+    ('ATTENDANCE_VIEW',        'View Attendance',         'CURRICULUM', CURRENT_TIMESTAMP),
+    ('ATTENDANCE_MANAGE',      'Manage Attendance',       'CURRICULUM', CURRENT_TIMESTAMP);
 
 -- EXAMINATION
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('EXAMINATION_VIEW',    'View Examinations',   'EXAMINATION'),
-    ('EXAMINATION_MANAGE',  'Manage Examinations', 'EXAMINATION'),
-    ('EXAM_RESULT_VIEW',    'View Exam Results',   'EXAMINATION'),
-    ('EXAM_RESULT_MANAGE',  'Manage Exam Results', 'EXAMINATION');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('EXAMINATION_VIEW',    'View Examinations',   'EXAMINATION', CURRENT_TIMESTAMP),
+    ('EXAMINATION_MANAGE',  'Manage Examinations', 'EXAMINATION', CURRENT_TIMESTAMP),
+    ('EXAM_RESULT_VIEW',    'View Exam Results',   'EXAMINATION', CURRENT_TIMESTAMP),
+    ('EXAM_RESULT_MANAGE',  'Manage Exam Results', 'EXAMINATION', CURRENT_TIMESTAMP);
 
 -- FINANCE
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('STUDENT_FEE_VIEW',    'View Student Fees',    'FINANCE'),
-    ('STUDENT_FEE_MANAGE',  'Manage Student Fees',  'FINANCE'),
-    ('FEE_COLLECT',         'Collect Fees',         'FINANCE'),
-    ('FEE_FINALIZE',        'Finalize Fees',        'FINANCE');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('STUDENT_FEE_VIEW',    'View Student Fees',    'FINANCE', CURRENT_TIMESTAMP),
+    ('STUDENT_FEE_MANAGE',  'Manage Student Fees',  'FINANCE', CURRENT_TIMESTAMP),
+    ('FEE_COLLECT',         'Collect Fees',         'FINANCE', CURRENT_TIMESTAMP),
+    ('FEE_FINALIZE',        'Finalize Fees',        'FINANCE', CURRENT_TIMESTAMP);
 
 -- INFRASTRUCTURE
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('INVENTORY_VIEW',      'View Inventory',         'INFRASTRUCTURE'),
-    ('INVENTORY_MANAGE',    'Manage Inventory',       'INFRASTRUCTURE'),
-    ('MAINTENANCE_VIEW',    'View Maintenance',       'INFRASTRUCTURE'),
-    ('MAINTENANCE_MANAGE',  'Manage Maintenance',     'INFRASTRUCTURE');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('INVENTORY_VIEW',      'View Inventory',         'INFRASTRUCTURE', CURRENT_TIMESTAMP),
+    ('INVENTORY_MANAGE',    'Manage Inventory',       'INFRASTRUCTURE', CURRENT_TIMESTAMP),
+    ('MAINTENANCE_VIEW',    'View Maintenance',       'INFRASTRUCTURE', CURRENT_TIMESTAMP),
+    ('MAINTENANCE_MANAGE',  'Manage Maintenance',     'INFRASTRUCTURE', CURRENT_TIMESTAMP);
 
 -- REPORTS
-INSERT INTO permissions (code, display_name, category) VALUES
-    ('REPORT_VIEW',      'View Reports',     'REPORTS'),
-    ('FEE_REPORT_VIEW',  'View Fee Reports', 'REPORTS');
+INSERT INTO permissions (code, display_name, category, created_at) VALUES
+    ('REPORT_VIEW',      'View Reports',     'REPORTS', CURRENT_TIMESTAMP),
+    ('FEE_REPORT_VIEW',  'View Fee Reports', 'REPORTS', CURRENT_TIMESTAMP);
 
 -- ============================================================
 -- 3. ROLE PERMISSIONS
@@ -230,7 +230,7 @@ WHERE r.name = 'PARENT'
 -- ============================================================
 -- 4. SEED ADMIN APP USER (links to existing Keycloak 'admin')
 -- ============================================================
-INSERT INTO app_users (keycloak_username, email, full_name, app_role_id, is_active, created_by)
-SELECT 'admin', 'admin@cms.local', 'System Administrator', r.id, TRUE, 'system'
+INSERT INTO app_users (keycloak_username, email, full_name, app_role_id, is_active, created_by, created_at, updated_at)
+SELECT 'admin', 'admin@cms.local', 'System Administrator', r.id, TRUE, 'system', current_timestamp, current_timestamp
 FROM app_roles r
 WHERE r.name = 'ADMIN';
