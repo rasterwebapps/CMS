@@ -7,13 +7,15 @@ import com.cms.model.enums.DemandStatus;
 
 public interface FeeDemandService {
 
+    /** Result of a demand generation run. */
+    record GenerateResult(int demandsCreated, int yearlySkipped) {}
+
     /**
      * Generates fee demands for all ENROLLED students in the given term instance.
-     * Idempotent — skips students who already have a demand.
-     *
-     * @return the count of new demands created
+     * Idempotent — skips students who already have a demand. Yearly-pattern students
+     * are skipped on EVEN terms (annual fee is billed at ODD term opening).
      */
-    int generateDemandsForTermInstance(Long termInstanceId);
+    GenerateResult generateDemandsForTermInstance(Long termInstanceId);
 
     List<FeeDemandDto> getDemandsByTermInstance(Long termInstanceId);
 

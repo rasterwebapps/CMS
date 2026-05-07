@@ -193,16 +193,16 @@ export interface FeeDemand {
 
 export interface GenerateDemandsResponse {
   demandsCreated: number;
+  yearlySkipped: number;
 }
 
 export type PaymentMode =
   | 'CASH'
   | 'CARD'
   | 'UPI'
-  | 'NET_BANKING'
-  | 'BANK_TRANSFER'
   | 'CHEQUE'
   | 'DEMAND_DRAFT'
+  | 'BANK_TRANSFER'
   | 'SCHOLARSHIP';
 
 export interface TermFeePaymentRequest {

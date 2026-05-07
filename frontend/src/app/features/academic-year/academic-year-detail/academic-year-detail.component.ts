@@ -405,7 +405,10 @@ export class AcademicYearDetailComponent implements OnInit {
     this.generatingDemands.set(true);
     this.academicYearService.generateFeeDemands(term.id).subscribe({
       next: (result) => {
-        this.toast.success(`Generated ${result.demandsCreated} fee demand(s)`);
+        const skippedNote = result.yearlySkipped > 0
+          ? ` (${result.yearlySkipped} yearly-pattern student(s) billed on ODD term)`
+          : '';
+        this.toast.success(`Generated ${result.demandsCreated} fee demand(s)${skippedNote}`);
         this.loadFeeDemands(term.id);
         this.generatingDemands.set(false);
       },

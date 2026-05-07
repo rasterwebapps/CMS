@@ -107,11 +107,13 @@ class FeeDemandControllerTest {
 
     @Test
     void shouldGenerateDemands() throws Exception {
-        when(feeDemandService.generateDemandsForTermInstance(5L)).thenReturn(15);
+        when(feeDemandService.generateDemandsForTermInstance(5L))
+            .thenReturn(new FeeDemandService.GenerateResult(15, 3));
 
         mockMvc.perform(post("/api/fee-demands/generate").param("termInstanceId", "5"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.demandsCreated").value(15));
+            .andExpect(jsonPath("$.demandsCreated").value(15))
+            .andExpect(jsonPath("$.yearlySkipped").value(3));
     }
 }
 

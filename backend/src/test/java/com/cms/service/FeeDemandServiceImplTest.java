@@ -32,6 +32,7 @@ import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
@@ -160,9 +161,10 @@ class FeeDemandServiceImplTest {
             return d;
         });
 
-        int count = service.generateDemandsForTermInstance(10L);
+        FeeDemandService.GenerateResult result = service.generateDemandsForTermInstance(10L);
 
-        assertThat(count).isEqualTo(1);
+        assertThat(result.demandsCreated()).isEqualTo(1);
+        assertThat(result.yearlySkipped()).isEqualTo(0);
         ArgumentCaptor<FeeDemand> captor = ArgumentCaptor.forClass(FeeDemand.class);
         verify(feeDemandRepository).save(captor.capture());
         FeeDemand saved = captor.getValue();
@@ -185,9 +187,10 @@ class FeeDemandServiceImplTest {
         when(feeDemandRepository.findByStudentTermEnrollmentId(400L))
             .thenReturn(Optional.of(existing));
 
-        int count = service.generateDemandsForTermInstance(10L);
+        FeeDemandService.GenerateResult result = service.generateDemandsForTermInstance(10L);
 
-        assertThat(count).isEqualTo(0);
+        assertThat(result.demandsCreated()).isEqualTo(0);
+        assertThat(result.yearlySkipped()).isEqualTo(0);
         verify(feeDemandRepository, never()).save(any(FeeDemand.class));
     }
 
@@ -360,5 +363,87 @@ class FeeDemandServiceImplTest {
         demand.setCreatedAt(Instant.now());
         demand.setUpdatedAt(Instant.now());
         return demand;
+    }
+
+    // ── YEARLY pattern ────────────────────────────────────────────────────
+
+    @Test
+    void shouldSkipYearlyEnrollmentsOnEvenTerm() {
+        // EVEN term instance for a yearly-pattern program:
+        // demand must NOT be created; yearlySkipped must equal 1
+        TermInstance evenTerm = new TermInstance(academicYear, TermType.EVEN,
+            LocalDate.of(2026, 12, 1), LocalDate.of(2027, 5, 31), TermInstanceStatus.OPEN);
+        evenTerm.setId(11L);
+        evenTerm.setCreatedAt(Instant.now());
+        evenTerm.setUpdatedAt(Instant.now());
+
+        Program yearlyProgram = new Program("ANM Program", "ANM", 2, ProgramStatus.ACTIVE,
+            AssessmentPattern.YEARLY);
+        yearlyProgram.setId(101L);
+
+        Cohort yearlyCohort = new Cohort();
+        yearlyCohort.setId(201L);
+        yearlyCohort.setProgram(yearlyProgram);
+        yearlyCohort.setCohortCode("ANM-2026-2028");
+        yearlyCohort.setStatus(CohortStatus.ACTIVE);
+
+        StudentTermEnrollment yearlyEnrollment = new StudentTermEnrollment();
+        yearlyEnrollment.setId(401L);
+        yearlyEnrollment.setStudent(student);
+        yearlyEnrollment.setTermInstance(evenTerm);
+        yearlyEnrollment.setCohort(yearlyCohort);
+        yearlyEnrollment.setSemesterNumber(1);
+        yearlyEnrollment.setYearOfStudy(1);
+        yearlyEnrollment.setStatus(EnrollmentStatus.ENROLLED);
+
+        TermBillingSchedule evenBilling = new TermBillingSchedule(academicYear, TermType.EVEN,
+            LocalDate.of(2027, 1, 31), LateFeeType.FLAT, new BigDecimal("500.00"), 7);
+        evenBilling.setId(51L);
+
+        when(termInstanceRepository.findById(11L)).thenReturn(Optional.of(evenTerm));
+        when(billingScheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.EVEN))
+            .thenReturn(Optional.of(evenBilling));
+        when(enrollmentRepository.findByTermInstanceIdAndStatus(11L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(yearlyEnrollment));
+
+        FeeDemandService.GenerateResult result = service.generateDemandsForTermInstance(11L);
+
+        assertThat(result.demandsCreated()).isEqualTo(0);
+        assertThat(result.yearlySkipped()).isEqualTo(1);
+        verify(feeDemandRepository, never()).save(any(FeeDemand.class));
+    }
+
+    @Test
+    void shouldGenerateDemandForYearlyEnrollmentOnOddTerm() {
+        // YEARLY + ODD term: demand IS created (annual billing on ODD term)
+        program = new Program("ANM Program", "ANM", 2, ProgramStatus.ACTIVE,
+            AssessmentPattern.YEARLY);
+        program.setId(101L);
+        cohort.setProgram(program);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(billingScheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(billingSchedule));
+        when(enrollmentRepository.findByTermInstanceIdAndStatus(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(enrollment));
+        when(feeDemandRepository.findByStudentTermEnrollmentId(400L))
+            .thenReturn(Optional.empty());
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(101L, 1L))
+            .thenReturn(List.of(feeStructure));
+        when(yearAmountRepository.findByFeeStructureIdAndYearNumber(500L, 1))
+            .thenReturn(List.of(yearAmount));
+        when(feeDemandRepository.save(any(FeeDemand.class))).thenAnswer(inv -> {
+            FeeDemand d = inv.getArgument(0);
+            d.setId(999L);
+            d.setCreatedAt(Instant.now());
+            d.setUpdatedAt(Instant.now());
+            return d;
+        });
+
+        FeeDemandService.GenerateResult result = service.generateDemandsForTermInstance(10L);
+
+        assertThat(result.demandsCreated()).isEqualTo(1);
+        assertThat(result.yearlySkipped()).isEqualTo(0);
+        verify(feeDemandRepository).save(any(FeeDemand.class));
     }
 }

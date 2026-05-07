@@ -53,10 +53,12 @@ public class FeeDemandController {
     @PreAuthorize("@perm.has('STUDENT_FEE_MANAGE')")
     public ResponseEntity<GenerateDemandsResponse> generateDemands(
             @RequestParam Long termInstanceId) {
-        int created = feeDemandService.generateDemandsForTermInstance(termInstanceId);
-        return ResponseEntity.status(HttpStatus.OK).body(new GenerateDemandsResponse(created));
+        FeeDemandService.GenerateResult result =
+            feeDemandService.generateDemandsForTermInstance(termInstanceId);
+        return ResponseEntity.status(HttpStatus.OK).body(
+            new GenerateDemandsResponse(result.demandsCreated(), result.yearlySkipped()));
     }
 
-    /** Simple response wrapper. */
-    public record GenerateDemandsResponse(int demandsCreated) {}
+    /** Response wrapper including count of yearly-pattern students skipped on EVEN terms. */
+    public record GenerateDemandsResponse(int demandsCreated, int yearlySkipped) {}
 }

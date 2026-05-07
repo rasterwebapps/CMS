@@ -56,7 +56,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
 
     @Override
     @Transactional
-    public int generateDemandsForTermInstance(Long termInstanceId) {
+    public FeeDemandService.GenerateResult generateDemandsForTermInstance(Long termInstanceId) {
         TermInstance termInstance = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Term instance not found with id: " + termInstanceId));
@@ -79,11 +79,13 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             .findByTermInstanceIdAndStatus(termInstanceId, EnrollmentStatus.ENROLLED);
 
         int count = 0;
+        int yearlySkipped = 0;
         for (StudentTermEnrollment enrollment : enrollments) {
             // Yearly programs bill the full annual fee once on ODD term opening.
             // The EVEN term enrollment is skipped — it was already billed at ODD term.
             AssessmentPattern pattern = enrollment.getCohort().getProgram().getAssessmentPattern();
             if (pattern == AssessmentPattern.YEARLY && termInstance.getTermType() == TermType.EVEN) {
+                yearlySkipped++;
                 continue;
             }
 
@@ -106,7 +108,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             feeDemandRepository.save(demand);
             count++;
         }
-        return count;
+        return new FeeDemandService.GenerateResult(count, yearlySkipped);
     }
 
     @Override

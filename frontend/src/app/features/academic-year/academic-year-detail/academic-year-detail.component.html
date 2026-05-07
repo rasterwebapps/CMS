@@ -114,6 +114,11 @@
         @let billing = termType === 'ODD' ? oddBilling() : evenBilling();
         <div class="detail-card billing-card">
           <h4 class="billing-card__title">{{ termType }} Term Billing</h4>
+          @if (termType === 'EVEN') {
+            <p class="billing-card__note">
+              For yearly-pattern programs, annual fees are billed at ODD term opening — EVEN term demands are generated for semester-pattern students only.
+            </p>
+          }
           @if (billing) {
             <p class="billing-card__existing">
               Due: <strong>{{ billing.dueDate | appDate }}</strong> ·
