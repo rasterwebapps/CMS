@@ -1,0 +1,73 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Scholarship <em>Applications</em></h1>
+      <p class="mlp-sub">Review, approve, or reject scholarship applications.</p>
+      @if (!loading()) {
+        <div class="mlp-meta">
+          <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ applications().length }} Applications</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else if (applications().length === 0) {
+    <cms-empty-state icon="verified" title="No pending applications" subtitle="Scholarship applications awaiting approval will appear here." />
+  } @else {
+    <div class="content-card mlp-table-card">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Scholarship</th>
+            <th>Academic Year</th>
+            <th>Applied</th>
+            <th class="cell-center">Status</th>
+            <th class="cell-right">Approved (₹)</th>
+            <th class="actions-header"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of applications(); track row.id) {
+            <tr class="table-row">
+              <td>
+                <span class="cell-name">{{ row.studentName }}</span><br />
+                <small class="code-value">{{ row.rollNumber || '—' }}</small>
+              </td>
+              <td>
+                {{ row.scholarshipName }}<br />
+                <small class="code-value">{{ row.scholarshipCode }}</small>
+              </td>
+              <td>{{ row.academicYearName }}</td>
+              <td>{{ row.applicationDate | appDate }}</td>
+              <td class="cell-center"><cms-status-badge [status]="row.status" /></td>
+              <td class="cell-right cell-currency">
+                {{ row.approvedAmount != null ? (row.approvedAmount | inr:false:false) : '—' }}
+              </td>
+              <td>
+                <div class="row-actions">
+                  @if (row.status === 'PENDING') {
+                    <button class="action-btn action-btn--primary" title="Approve" (click)="approve(row)">
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button class="action-btn action-btn--danger" title="Reject" (click)="reject(row)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                  @if (row.status === 'REJECTED' && row.rejectionReason) {
+                    <span class="sal-rejection-reason" [title]="row.rejectionReason">
+                      <mat-icon>info</mat-icon>
+                    </span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+

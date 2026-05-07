@@ -1,0 +1,16 @@
+.code-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.sal-rejection-reason {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mat-sys-error);
+  cursor: help;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
