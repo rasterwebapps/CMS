@@ -62,11 +62,12 @@ class EnquiryControllerTest {
 
     @Test
     void shouldCreateEnquiry() throws Exception {
-        EnquiryRequest request = new EnquiryRequest(
+        EnquiryRequest request = basicEnquiryRequest(
             "Ravi Kumar", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, "Interested in CS", new BigDecimal("50000.00"),
-            null, null, null, null, null
+            null, null, null, null, null,
+            null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
@@ -149,11 +150,12 @@ class EnquiryControllerTest {
 
     @Test
     void shouldUpdateEnquiry() throws Exception {
-        EnquiryRequest request = new EnquiryRequest(
+        EnquiryRequest request = basicEnquiryRequest(
             "Ravi Kumar Updated", "ravi@email.com", "9876543210", 1L, null,
             LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
             null, "Called back", new BigDecimal("45000.00"),
-            null, null, null, null, null
+            null, null, null, null, null,
+            null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquiryStatus.INTERESTED);
@@ -171,16 +173,7 @@ class EnquiryControllerTest {
 
     @Test
     void shouldConvertToStudent() throws Exception {
-        EnquiryResponse response = new EnquiryResponse(
-            1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
-            1L, "Walk In", null, false,
-            EnquiryStatus.CONVERTED,
-            null, null, "Converted", new BigDecimal("50000.00"),
-            null, null, null, null, null, null,
-            null, null, null, null, null, null,
-            10L, Instant.now(), Instant.now(), null
-        );
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.CONVERTED);
 
         when(enquiryService.convertToStudent(1L, 10L)).thenReturn(response);
 
@@ -201,16 +194,7 @@ class EnquiryControllerTest {
             null, null, null, null
         );
 
-        EnquiryResponse response = new EnquiryResponse(
-            1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
-            1L, "Walk In", null, false,
-            EnquiryStatus.ADMITTED,
-            null, null, "Admitted", new BigDecimal("50000.00"),
-            null, null, null, null, null, null,
-            null, null, null, null, null, null,
-            10L, Instant.now(), Instant.now(), null
-        );
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ADMITTED);
 
         when(enquiryService.convertToStudentWithData(eq(1L), any(EnquiryConversionRequest.class), any()))
             .thenReturn(response);
@@ -459,6 +443,7 @@ class EnquiryControllerTest {
 
     private EnquiryResponse createResponse(Long id, String name, EnquiryStatus status) {
         Instant now = Instant.now();
+        Long convertedStudentId = status == EnquiryStatus.CONVERTED || status == EnquiryStatus.ADMITTED ? 10L : null;
         return new EnquiryResponse(
             id, name, "ravi@email.com", "9876543210",
             1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
@@ -466,7 +451,23 @@ class EnquiryControllerTest {
             status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
-            null, now, now, null
+            convertedStudentId, null, null, null, null, null, null, null, null, now, now, null
+        );
+    }
+
+    private static EnquiryRequest basicEnquiryRequest(
+            String name, String email, String phone, Long programId, Long courseId,
+            LocalDate enquiryDate, Long referralTypeId, EnquiryStatus status,
+            Long agentId, String remarks, BigDecimal feeDiscussedAmount,
+            BigDecimal feeGuidelineTotal, BigDecimal referralAdditionalAmount,
+            BigDecimal finalCalculatedFee, String yearWiseFees,
+            com.cms.model.enums.StudentType studentType,
+            String country, String state, String district) {
+        return new EnquiryRequest(
+            name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
+            agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
+            finalCalculatedFee, yearWiseFees, studentType, country, state, district,
+            null, null, null
         );
     }
 }

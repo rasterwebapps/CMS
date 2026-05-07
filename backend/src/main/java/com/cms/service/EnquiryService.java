@@ -1,10 +1,12 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +23,7 @@ import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
+import com.cms.dto.FeeStructureResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
@@ -32,7 +35,11 @@ import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.AdmissionStatus;
+import com.cms.model.enums.CommissionPaymentStatus;
+import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.FeeType;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
@@ -40,6 +47,7 @@ import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -63,33 +71,39 @@ public class EnquiryService {
     private final ProgramRepository programRepository;
     private final AgentRepository agentRepository;
     private final StudentRepository studentRepository;
+    private final FacultyRepository facultyRepository;
     private final ReferralTypeRepository referralTypeRepository;
     private final CourseRepository courseRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final AdmissionRepository admissionRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final FeeStructureService feeStructureService;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
                            AgentRepository agentRepository,
                            StudentRepository studentRepository,
+                           FacultyRepository facultyRepository,
                            ReferralTypeRepository referralTypeRepository,
                            CourseRepository courseRepository,
                            EnquiryStatusHistoryRepository statusHistoryRepository,
                            AdmissionRepository admissionRepository,
                            EnquiryPaymentRepository enquiryPaymentRepository,
-                           AcademicYearRepository academicYearRepository) {
+                           AcademicYearRepository academicYearRepository,
+                           FeeStructureService feeStructureService) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
         this.studentRepository = studentRepository;
+        this.facultyRepository = facultyRepository;
         this.referralTypeRepository = referralTypeRepository;
         this.courseRepository = courseRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.admissionRepository = admissionRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.academicYearRepository = academicYearRepository;
+        this.feeStructureService = feeStructureService;
     }
 
     @Transactional
@@ -124,10 +138,15 @@ public class EnquiryService {
         enquiry.setAgent(agent);
         enquiry.setCourse(course);
         enquiry.setRemarks(request.remarks());
-        enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
-        enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
-        enquiry.setYearWiseFees(request.yearWiseFees());
         enquiry.setStudentType(request.studentType());
+        applyAuthoritativeFees(enquiry, request);
+        applyResolvedCommission(enquiry, referralType, agent);
+        enquiry.setCountry(request.country());
+        enquiry.setState(request.state());
+        enquiry.setDistrict(request.district());
+        enquiry.setReferredStudentId(request.referredStudentId());
+        enquiry.setReferredFacultyId(request.referredFacultyId());
+        enquiry.setReferredStaffName(request.referredStaffName());
 
         Enquiry saved = enquiryRepository.save(enquiry);
         recordHistory(saved, null, saved.getStatus(), "system", null);
@@ -202,10 +221,15 @@ public class EnquiryService {
         enquiry.setAgent(agent);
         enquiry.setReferralType(referralType);
         enquiry.setRemarks(request.remarks());
-        enquiry.setFeeDiscussedAmount(request.feeDiscussedAmount());
-        enquiry.setFinalCalculatedFee(request.finalCalculatedFee());
-        enquiry.setYearWiseFees(request.yearWiseFees());
         enquiry.setStudentType(request.studentType());
+        applyAuthoritativeFees(enquiry, request);
+        applyResolvedCommission(enquiry, referralType, agent);
+        enquiry.setCountry(request.country());
+        enquiry.setState(request.state());
+        enquiry.setDistrict(request.district());
+        enquiry.setReferredStudentId(request.referredStudentId());
+        enquiry.setReferredFacultyId(request.referredFacultyId());
+        enquiry.setReferredStaffName(request.referredStaffName());
 
         if (request.status() != null) {
             enquiry.setStatus(request.status());
@@ -226,11 +250,19 @@ public class EnquiryService {
             );
         }
 
-        BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
-        BigDecimal netFee = request.totalFee().subtract(discount);
+        BigDecimal authoritativeTotal = normalizeAmount(
+            enquiry.getFinalCalculatedFee() != null ? enquiry.getFinalCalculatedFee() : request.totalFee());
+        BigDecimal discount = normalizeAmount(request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO);
+        if (discount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Discount amount cannot be negative");
+        }
+        if (discount.compareTo(authoritativeTotal) > 0) {
+            throw new IllegalArgumentException("Discount amount cannot exceed total fee");
+        }
+        BigDecimal netFee = authoritativeTotal.subtract(discount).setScale(2, RoundingMode.UNNECESSARY);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
-        enquiry.setFinalizedTotalFee(request.totalFee());
+        enquiry.setFinalizedTotalFee(authoritativeTotal);
         enquiry.setFinalizedDiscountAmount(discount);
         enquiry.setFinalizedDiscountReason(request.discountReason());
         enquiry.setFinalizedNetFee(netFee);
@@ -495,6 +527,100 @@ public class EnquiryService {
         statusHistoryRepository.save(new EnquiryStatusHistory(enquiry, from, to, changedBy, remarks));
     }
 
+    private void applyAuthoritativeFees(Enquiry enquiry, EnquiryRequest request) {
+        if (request.programId() == null || request.courseId() == null) {
+            enquiry.setFeeDiscussedAmount(normalizeNullable(request.feeDiscussedAmount()));
+            enquiry.setFinalCalculatedFee(null);
+            enquiry.setYearWiseFees(null);
+            return;
+        }
+
+        List<FeeStructureResponse> feeStructures = feeStructureService
+            .findByProgramIdAndCourseId(request.programId(), request.courseId());
+        List<FeeStructureResponse> relevant = feeStructures.stream()
+            .filter(fs -> isRelevantForStudentType(fs.feeType(), request.studentType()))
+            .toList();
+        BigDecimal total = relevant.stream()
+            .map(FeeStructureResponse::amount)
+            .map(this::normalizeAmount)
+            .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
+
+        enquiry.setFeeDiscussedAmount(total);
+        enquiry.setFinalCalculatedFee(total);
+        enquiry.setYearWiseFees(buildYearWiseFeesJson(relevant));
+    }
+
+    private boolean isRelevantForStudentType(FeeType feeType, StudentType studentType) {
+        if (feeType == FeeType.HOSTEL_FEE) {
+            return studentType == StudentType.HOSTELER;
+        }
+        if (feeType == FeeType.TRANSPORT_FEE) {
+            return studentType == StudentType.DAY_SCHOLAR;
+        }
+        return true;
+    }
+
+    private String buildYearWiseFeesJson(List<FeeStructureResponse> feeStructures) {
+        Map<Integer, BigDecimal> yearTotals = new LinkedHashMap<>();
+        for (FeeStructureResponse fs : feeStructures) {
+            for (var yearAmount : fs.yearAmounts()) {
+                yearTotals.merge(yearAmount.yearNumber(), normalizeAmount(yearAmount.amount()), BigDecimal::add);
+            }
+        }
+        if (yearTotals.isEmpty()) {
+            return null;
+        }
+        return yearTotals.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(e -> "{\"yearNumber\":" + e.getKey() + ",\"amount\":" + e.getValue().toPlainString() + "}")
+            .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private void applyResolvedCommission(Enquiry enquiry, ReferralType referralType, Agent agent) {
+        BigDecimal amount = BigDecimal.ZERO.setScale(2);
+        CommissionSource source = CommissionSource.NONE;
+        if (agent != null && agent.getCommissionAmount() != null
+                && agent.getCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
+            amount = normalizeAmount(agent.getCommissionAmount());
+            source = CommissionSource.AGENT;
+        } else if (referralType != null && Boolean.TRUE.equals(referralType.getHasCommission())) {
+            amount = normalizeAmount(referralType.getCommissionAmount() != null
+                ? referralType.getCommissionAmount() : BigDecimal.ZERO);
+            source = amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionSource.REFERRAL_TYPE : CommissionSource.NONE;
+        }
+        enquiry.setCommissionAmount(amount);
+        enquiry.setCommissionSource(source);
+        enquiry.setCommissionPaymentStatus(
+            amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionPaymentStatus.PENDING : CommissionPaymentStatus.NOT_APPLICABLE);
+    }
+
+    private BigDecimal normalizeNullable(BigDecimal value) {
+        return value == null ? null : normalizeAmount(value);
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal value) {
+        if (value == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        try {
+            return value.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("Monetary amounts must not have more than two decimal places");
+        }
+    }
+
+    private String resolveStudentName(Long studentId) {
+        if (studentId == null) return null;
+        return studentRepository.findById(studentId)
+            .map(s -> s.getFullName()).orElse(null);
+    }
+
+    private String resolveFacultyName(Long facultyId) {
+        if (facultyId == null) return null;
+        return facultyRepository.findById(facultyId)
+            .map(f -> f.getFullName()).orElse(null);
+    }
+
     private EnquiryResponse toResponse(Enquiry e) {
         BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId());
         return toResponse(e, paid);
@@ -533,6 +659,14 @@ public class EnquiryService {
             e.getFinalizedBy(),
             e.getFinalizedAt(),
             e.getConvertedStudentId(),
+            e.getCountry(),
+            e.getState(),
+            e.getDistrict(),
+            e.getReferredStudentId(),
+            resolveStudentName(e.getReferredStudentId()),
+            e.getReferredFacultyId(),
+            resolveFacultyName(e.getReferredFacultyId()),
+            e.getReferredStaffName(),
             e.getCreatedAt(),
             e.getUpdatedAt(),
             totalPaid

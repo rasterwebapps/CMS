@@ -87,8 +87,6 @@ export class EnquiryConvertComponent implements OnInit {
     motherName:        [''],
     motherPhone:       [''],
     motherEmail:       ['', Validators.email],
-    parentMobile:      [''],
-
     address: this.fb.group({
       postalAddress: [''],
       street:        [''],
@@ -265,7 +263,6 @@ export class EnquiryConvertComponent implements OnInit {
       motherName:         this.nullable(v['motherName'] as string) ?? null,
       motherPhone:        this.nullable(v['motherPhone'] as string) ?? null,
       motherEmail:        this.nullable(v['motherEmail'] as string) ?? null,
-      parentMobile:       this.nullable(v['parentMobile'] as string) ?? null,
 
       address: hasAddress ? {
         postalAddress: this.nullable(addr['postalAddress'] as string) ?? null,

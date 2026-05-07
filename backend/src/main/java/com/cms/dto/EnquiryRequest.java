@@ -43,5 +43,17 @@ public record EnquiryRequest(
 
     String yearWiseFees,
 
-    StudentType studentType
+    StudentType studentType,
+
+    String country,
+
+    String state,
+
+    String district,
+
+    Long referredStudentId,
+
+    Long referredFacultyId,
+
+    String referredStaffName
 ) {}

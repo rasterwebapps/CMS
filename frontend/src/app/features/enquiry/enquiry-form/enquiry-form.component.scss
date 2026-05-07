@@ -145,6 +145,7 @@
 
 .field-textarea { resize: vertical; min-height: 80px; }
 .field-error { font-size: 0.72rem; color: #ef4444; margin: 0; }
+.field-hint { font-size: 0.72rem; font-weight: 400; color: var(--cms-text-muted); margin-left: 4px; }
 .field-select--error { border-color: #ef4444; }
 
 // ── Divider ───────────────────────────────────────────────────
@@ -203,6 +204,16 @@
   background: rgba(var(--cms-primary-rgb), 0.06);
   border: 1.5px solid rgba(var(--cms-primary-rgb), 0.18);
   border-radius: 9px;
+
+  &--empty {
+    background: var(--cms-bg-muted);
+    border-color: var(--cms-border-default);
+  }
+
+  &--error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.04);
+  }
 }
 
 .fee-banner-label {
@@ -212,6 +223,9 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--cms-primary);
+
+  .fee-banner--empty & { color: var(--cms-text-muted); }
+  .fee-banner--error & { color: #ef4444; }
 }
 
 .fee-banner-tag {
@@ -227,6 +241,12 @@
   font-weight: 800;
   color: var(--cms-primary);
   letter-spacing: -0.02em;
+}
+
+.fee-banner-empty-msg {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+  font-style: italic;
 }
 
 // ── Buttons ───────────────────────────────────────────────────
@@ -269,3 +289,78 @@
 }
 
 .btn-spinner { display: inline-block; }
+
+// ── Person (student / alumni / faculty) search combobox ──────────
+.enq-person-search {
+  position: relative;
+}
+
+.person-search-wrap {
+  position: relative;
+}
+
+.person-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  &:hover { color: var(--cms-text-primary); }
+}
+
+.person-search-dropdown {
+  position: absolute;
+  z-index: 200;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.person-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 7px;
+  text-align: left;
+  gap: 8px;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.07);
+  }
+}
+
+.person-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cms-text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-code {
+  font-size: 0.6875rem;
+  color: var(--cms-text-muted);
+  font-family: var(--cms-font-mono);
+  flex-shrink: 0;
+}

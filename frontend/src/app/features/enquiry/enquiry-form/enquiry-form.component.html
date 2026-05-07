@@ -56,9 +56,40 @@
                  placeholder="student@example.com" autocomplete="email" />
         </div>
         <div class="field-group">
-          <label for="enq-phone" class="field-label">Phone</label>
+          <label for="enq-phone" class="field-label">Phone <span class="field-required">*</span></label>
           <input id="enq-phone" class="field-input" formControlName="phone"
-                 placeholder="+91 98765 43210" autocomplete="tel" />
+                 placeholder="+91 98765 43210" autocomplete="tel"
+                 [class.field-input--error]="form.get('phone')?.invalid && form.get('phone')?.touched" />
+          @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
+            <p class="field-error">Phone is required</p>
+          }
+        </div>
+      </div>
+
+      <!-- Country + State + District -->
+      <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
+        <div class="field-group">
+          <label for="enq-country" class="field-label">Country <span class="field-required">*</span></label>
+          <input id="enq-country" class="field-input" formControlName="country"
+                 placeholder="e.g., India" autocomplete="country-name"
+                 [class.field-input--error]="form.get('country')?.invalid && form.get('country')?.touched" />
+          @if (form.get('country')?.invalid && form.get('country')?.touched) {
+            <p class="field-error">Country is required</p>
+          }
+        </div>
+        <div class="field-group">
+          <label for="enq-state" class="field-label">State <span class="field-required">*</span></label>
+          <input id="enq-state" class="field-input" formControlName="state"
+                 placeholder="e.g., Tamil Nadu" autocomplete="address-level1"
+                 [class.field-input--error]="form.get('state')?.invalid && form.get('state')?.touched" />
+          @if (form.get('state')?.invalid && form.get('state')?.touched) {
+            <p class="field-error">State is required</p>
+          }
+        </div>
+        <div class="field-group">
+          <label for="enq-district" class="field-label">District</label>
+          <input id="enq-district" class="field-input" formControlName="district"
+                 placeholder="e.g., Coimbatore" autocomplete="off" />
         </div>
       </div>
 
@@ -67,25 +98,36 @@
       <!-- Program + Course -->
       <div id="tour-enq-form-programme" class="field-row">
         <div class="field-group">
-          <label for="enq-program" class="field-label">Program</label>
+          <label for="enq-program" class="field-label">Program <span class="field-required">*</span></label>
           <select id="enq-program" class="field-select" formControlName="programId"
-                  (change)="onProgramChange(form.get('programId')?.value)">
-            <option [ngValue]="null">— Select program —</option>
+                  (change)="onProgramChange(form.get('programId')?.value)"
+                  [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
+            <option [ngValue]="null" disabled>— Select program —</option>
             @for (p of programs(); track p.id) {
               <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option>
             }
           </select>
+          @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+            <p class="field-error">Program is required</p>
+          }
         </div>
         <div class="field-group">
-          <label for="enq-course" class="field-label">Course</label>
+          <label for="enq-course" class="field-label">
+            Course
+            @if (courses().length > 0) { <span class="field-required">*</span> }
+          </label>
           <select id="enq-course" class="field-select" formControlName="courseId"
                   [disabled]="courses().length === 0"
-                  (change)="onCourseChange(form.get('courseId')?.value)">
+                  (change)="onCourseChange(form.get('courseId')?.value)"
+                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
             <option [ngValue]="null">{{ courses().length ? '— Select course —' : '— Select program first —' }}</option>
             @for (c of courses(); track c.id) {
               <option [ngValue]="c.id">{{ c.name }}</option>
             }
           </select>
+          @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+            <p class="field-error">Course is required</p>
+          }
         </div>
       </div>
 
@@ -118,15 +160,23 @@
         </div>
       </div>
 
-      <!-- Fee banner -->
-      @if (form.get('courseId')?.value && totalFees() > 0) {
-        <div class="fee-banner">
+      <!-- Estimated Fee (display only — computed from fee structure) -->
+      @if (totalFees() > 0) {
+        <div class="fee-banner" [class.fee-banner--error]="feeError()">
           <span class="fee-banner-label">
             Estimated Fee
             <span class="fee-banner-tag">{{ form.get('studentType')?.value === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}</span>
           </span>
           <span class="fee-banner-val">{{ totalFees() | inr }}</span>
         </div>
+      } @else {
+        <div class="fee-banner fee-banner--empty" [class.fee-banner--error]="feeError()">
+          <span class="fee-banner-label">Estimated Fee</span>
+          <span class="fee-banner-empty-msg">Select a program and course to view the estimated fee</span>
+        </div>
+      }
+      @if (feeError()) {
+        <p class="field-error">Estimated fee is not available. Please select a valid program and course with fee structures configured.</p>
       }
 
       <div class="form-divider"></div>
@@ -158,17 +208,145 @@
         </div>
       </div>
 
-      <!-- Agent (conditional) -->
-      @if (isAgentReferral()) {
-        <div class="field-group">
-          <label for="enq-agent" class="field-label">Agent</label>
-          <select id="enq-agent" class="field-select" formControlName="agentId"
-                  (change)="onAgentChange(form.get('agentId')?.value)">
-            <option [ngValue]="null">— No agent —</option>
-            @for (a of agents(); track a.id) {
-              <option [ngValue]="a.id">{{ a.name }}</option>
+      <!-- Agent search (mandatory for AGENT_REFERRAL) -->
+      @if (referralCategory() === 'AGENT') {
+        <div class="field-group enq-person-search">
+          <label class="field-label">Agent <span class="field-required">*</span></label>
+          <div class="person-search-wrap">
+            <input class="field-input" type="text"
+                   placeholder="Search by name or phone…"
+                   [value]="agentSearchTerm()"
+                   (input)="onAgentSearchInput($event)"
+                   (focus)="agentSearchOpen.set(true)"
+                   autocomplete="off"
+                   [class.field-input--error]="form.get('agentId')?.invalid && form.get('agentId')?.touched" />
+            @if (agentSearchTerm()) {
+              <button type="button" class="person-search-clear" (click)="clearAgent()" aria-label="Clear agent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             }
-          </select>
+            @if (agentSearchOpen() && filteredAgents().length > 0) {
+              <div class="person-search-dropdown">
+                @for (a of filteredAgents(); track a.id) {
+                  <button type="button" class="person-search-item"
+                          (click)="selectAgent(a.id, a.name)">
+                    <span class="person-name">{{ a.name }}</span>
+                    <span class="person-code">{{ a.phone }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          @if (form.get('agentId')?.invalid && form.get('agentId')?.touched) {
+            <p class="field-error">Agent is required</p>
+          }
+        </div>
+      }
+
+      <!-- Referred-by Active Student search (STUDENT referral type) -->
+      @if (referralCategory() === 'STUDENT') {
+        <div class="field-group enq-person-search">
+          <label class="field-label">Referred By (Active Student)</label>
+          <div class="person-search-wrap">
+            <input class="field-input" type="text"
+                   placeholder="Search by name or roll number…"
+                   [value]="personSearchTerm()"
+                   (input)="onPersonSearchInput($event)"
+                   (focus)="personSearchOpen.set(true)"
+                   autocomplete="off" />
+            @if (personSearchTerm()) {
+              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            }
+            @if (personSearchOpen() && filteredStudents().length > 0) {
+              <div class="person-search-dropdown">
+                @for (s of filteredStudents(); track s.id) {
+                  <button type="button" class="person-search-item"
+                          (click)="selectPerson(s.id, s.fullName, 'STUDENT')">
+                    <span class="person-name">{{ s.fullName }}</span>
+                    <span class="person-code">{{ s.rollNumber }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Referred-by Alumni search (ALUMNI referral type) -->
+      @if (referralCategory() === 'ALUMNI') {
+        <div class="field-group enq-person-search">
+          <label class="field-label">Referred By (Alumni)</label>
+          <div class="person-search-wrap">
+            <input class="field-input" type="text"
+                   placeholder="Search alumni by name or roll number…"
+                   [value]="personSearchTerm()"
+                   (input)="onPersonSearchInput($event)"
+                   (focus)="personSearchOpen.set(true)"
+                   autocomplete="off" />
+            @if (personSearchTerm()) {
+              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            }
+            @if (personSearchOpen() && filteredAlumni().length > 0) {
+              <div class="person-search-dropdown">
+                @for (s of filteredAlumni(); track s.id) {
+                  <button type="button" class="person-search-item"
+                          (click)="selectPerson(s.id, s.fullName, 'ALUMNI')">
+                    <span class="person-name">{{ s.fullName }}</span>
+                    <span class="person-code">{{ s.rollNumber }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Referred-by Faculty search -->
+      @if (referralCategory() === 'FACULTY') {
+        <div class="field-group enq-person-search">
+          <label class="field-label">Referred By (Faculty)</label>
+          <div class="person-search-wrap">
+            <input class="field-input" type="text"
+                   placeholder="Search by name or employee code…"
+                   [value]="personSearchTerm()"
+                   (input)="onPersonSearchInput($event)"
+                   (focus)="personSearchOpen.set(true)"
+                   autocomplete="off" />
+            @if (personSearchTerm()) {
+              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            }
+            @if (personSearchOpen() && filteredFaculty().length > 0) {
+              <div class="person-search-dropdown">
+                @for (f of filteredFaculty(); track f.id) {
+                  <button type="button" class="person-search-item"
+                          (click)="selectPerson(f.id, f.fullName, 'FACULTY')">
+                    <span class="person-name">{{ f.fullName }}</span>
+                    <span class="person-code">{{ f.employeeCode }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Referred-by Staff name (free text, mandatory for STAFF type) -->
+      @if (referralCategory() === 'STAFF') {
+        <div class="field-group">
+          <label for="enq-staff-name" class="field-label">Referred By (Staff Name) <span class="field-required">*</span></label>
+          <input id="enq-staff-name" class="field-input" formControlName="referredStaffName"
+                 placeholder="Enter referring staff member's name"
+                 autocomplete="off"
+                 [class.field-input--error]="form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched" />
+          @if (form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched) {
+            <p class="field-error">Referring staff member's name is required</p>
+          }
         </div>
       }
 
