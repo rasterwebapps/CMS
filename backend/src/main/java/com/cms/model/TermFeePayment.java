@@ -52,6 +52,9 @@ public class TermFeePayment {
     @Column(name = "receipt_number", nullable = false, unique = true, length = 50)
     private String receiptNumber;
 
+    @Column(name = "transaction_reference", length = 255)
+    private String transactionReference;
+
     @Column(length = 500)
     private String remarks;
 
@@ -120,6 +123,14 @@ public class TermFeePayment {
 
     public void setReceiptNumber(String receiptNumber) {
         this.receiptNumber = receiptNumber;
+    }
+
+    public String getTransactionReference() {
+        return transactionReference;
+    }
+
+    public void setTransactionReference(String transactionReference) {
+        this.transactionReference = transactionReference;
     }
 
     public String getRemarks() {

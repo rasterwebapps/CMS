@@ -17,8 +17,17 @@ public record TermFeePaymentDto(
     BigDecimal totalCollected,
     PaymentMode paymentMode,
     String receiptNumber,
+    String transactionReference,
     String remarks,
     DemandStatus demandStatus,
     Instant createdAt,
     Instant updatedAt
-) {}
+) {
+    public TermFeePaymentDto(Long id, Long feeDemandId, String studentName, LocalDate paymentDate,
+                             BigDecimal amountPaid, BigDecimal lateFeeApplied, BigDecimal totalCollected,
+                             PaymentMode paymentMode, String receiptNumber, String transactionReference,
+                             DemandStatus demandStatus, Instant createdAt, Instant updatedAt) {
+        this(id, feeDemandId, studentName, paymentDate, amountPaid, lateFeeApplied, totalCollected,
+            paymentMode, receiptNumber, transactionReference, null, demandStatus, createdAt, updatedAt);
+    }
+}

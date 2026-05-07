@@ -69,6 +69,7 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
         payment.setLateFeeApplied(lateFee);
         payment.setPaymentMode(request.paymentMode());
         payment.setReceiptNumber(receiptNumber);
+        payment.setTransactionReference(request.transactionReference());
         payment.setRemarks(request.remarks());
         paymentRepository.save(payment);
 
@@ -172,6 +173,7 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
             p.getTotalCollected(),
             p.getPaymentMode(),
             p.getReceiptNumber(),
+            p.getTransactionReference(),
             p.getRemarks(),
             demand.getStatus(),
             p.getCreatedAt(),
