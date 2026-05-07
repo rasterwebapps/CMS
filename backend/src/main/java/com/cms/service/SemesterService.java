@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AcademicYearResponse;
-import com.cms.dto.SemesterRequest;
 import com.cms.dto.SemesterResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
@@ -28,33 +27,6 @@ public class SemesterService {
         this.academicYearRepository = academicYearRepository;
     }
 
-    @Transactional
-    public SemesterResponse create(SemesterRequest request) {
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Academic year not found with id: " + request.academicYearId()));
-
-        validateDateRange(request);
-        validateDatesWithinAcademicYear(request, academicYear);
-        validateNoOverlap(request.academicYearId(), request, null);
-        String name = requireTrimmed(request.name(), "Semester name is required");
-
-        if (semesterRepository.existsByNameIgnoreCaseAndAcademicYearId(name, request.academicYearId())) {
-            throw new IllegalArgumentException(
-                "A semester with the name '" + name + "' already exists in this academic year");
-        }
-
-        Semester semester = new Semester(
-            name,
-            academicYear,
-            request.startDate(),
-            request.endDate(),
-            request.semesterNumber()
-        );
-        Semester saved = semesterRepository.save(semester);
-        return toResponse(saved);
-    }
-
     public List<SemesterResponse> findAll() {
         return semesterRepository.findAll().stream()
             .map(this::toResponse)
@@ -74,72 +46,6 @@ public class SemesterService {
         return semesterRepository.findByAcademicYearIdOrderBySemesterNumber(academicYearId).stream()
             .map(this::toResponse)
             .toList();
-    }
-
-    @Transactional
-    public SemesterResponse update(Long id, SemesterRequest request) {
-        Semester semester = semesterRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Semester not found with id: " + id));
-
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Academic year not found with id: " + request.academicYearId()));
-
-        validateDateRange(request);
-        validateDatesWithinAcademicYear(request, academicYear);
-        validateNoOverlap(request.academicYearId(), request, id);
-        String name = requireTrimmed(request.name(), "Semester name is required");
-
-        if (semesterRepository.existsByNameIgnoreCaseAndAcademicYearIdAndIdNot(
-                name, request.academicYearId(), id)) {
-            throw new IllegalArgumentException(
-                "A semester with the name '" + name
-                + "' already exists in this academic year");
-        }
-
-        semester.setName(name);
-        semester.setAcademicYear(academicYear);
-        semester.setStartDate(request.startDate());
-        semester.setEndDate(request.endDate());
-        semester.setSemesterNumber(request.semesterNumber());
-        semester.setStatus(Semester.deriveStatus(request.startDate(), request.endDate()));
-
-        Semester updated = semesterRepository.save(semester);
-        return toResponse(updated);
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        if (!semesterRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Semester not found with id: " + id);
-        }
-        semesterRepository.deleteById(id);
-    }
-
-    private void validateDateRange(SemesterRequest request) {
-        if (!request.endDate().isAfter(request.startDate())) {
-            throw new IllegalArgumentException("End date must be after start date");
-        }
-    }
-
-    private void validateDatesWithinAcademicYear(SemesterRequest request, AcademicYear academicYear) {
-        if (request.startDate().isBefore(academicYear.getStartDate())) {
-            throw new IllegalArgumentException(
-                "Semester start date must not be before academic year start date");
-        }
-        if (request.endDate().isAfter(academicYear.getEndDate())) {
-            throw new IllegalArgumentException(
-                "Semester end date must not be after academic year end date");
-        }
-    }
-
-    private void validateNoOverlap(Long academicYearId, SemesterRequest request, Long excludeId) {
-        long resolvedExcludeId = excludeId != null ? excludeId : -1L;
-        if (semesterRepository.existsOverlappingInAcademicYear(
-                academicYearId, request.startDate(), request.endDate(), resolvedExcludeId)) {
-            throw new IllegalArgumentException(
-                "The semester dates overlap with an existing semester in this academic year");
-        }
     }
 
     private SemesterResponse toResponse(Semester semester) {
@@ -169,19 +75,5 @@ public class SemesterService {
             semester.getCreatedAt(),
             semester.getUpdatedAt()
         );
-    }
-
-    private static String trim(String s) {
-        if (s == null) return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
-    }
-
-    private static String requireTrimmed(String s, String message) {
-        String t = trim(s);
-        if (t == null) {
-            throw new IllegalArgumentException(message);
-        }
-        return t;
     }
 }

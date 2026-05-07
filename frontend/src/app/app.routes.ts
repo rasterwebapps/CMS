@@ -114,30 +114,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'semesters',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/academic-year/semester-list/semester-list.component').then(
-        (m) => m.SemesterListComponent
-      ),
-  },
-  {
-    path: 'semesters/new',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/academic-year/semester-form/semester-form.component').then(
-        (m) => m.SemesterFormComponent
-      ),
-  },
-  {
-    path: 'semesters/:id/edit',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/academic-year/semester-form/semester-form.component').then(
-        (m) => m.SemesterFormComponent
-      ),
-  },
-  {
     path: 'academic-calendar',
     canActivate: [authGuard],
     loadComponent: () =>

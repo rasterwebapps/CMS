@@ -15,7 +15,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   programs: 'Programs',
   courses: 'Courses',
   'academic-years': 'Academic Years',
-  semesters: 'Semesters',
   'academic-calendar': 'Academic Calendar',
   labs: 'Labs',
   'fee-structures': 'Fee Structures',
