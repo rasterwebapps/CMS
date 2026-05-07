@@ -196,7 +196,7 @@ class EquipmentServiceTest {
 
         when(equipmentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(equipmentRepository.existsByAssetCodeAndIdNot("ASSET001", 1L)).thenReturn(false);
+        when(equipmentRepository.existsByAssetCodeIgnoreCaseAndIdNot("ASSET001", 1L)).thenReturn(false);
         when(equipmentRepository.save(any(Equipment.class))).thenReturn(updated);
 
         EquipmentResponse response = equipmentService.update(1L, updateRequest);
@@ -216,7 +216,7 @@ class EquipmentServiceTest {
 
         when(equipmentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
-        when(equipmentRepository.existsByAssetCodeAndIdNot("ASSET002", 1L)).thenReturn(true);
+        when(equipmentRepository.existsByAssetCodeIgnoreCaseAndIdNot("ASSET002", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> equipmentService.update(1L, updateRequest))
             .isInstanceOf(IllegalArgumentException.class)

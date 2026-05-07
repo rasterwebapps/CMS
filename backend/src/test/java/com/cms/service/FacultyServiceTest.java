@@ -268,8 +268,8 @@ class FacultyServiceTest {
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
-        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP001-UPD", 1L)).thenReturn(false);
-        when(facultyRepository.existsByEmailAndIdNot("john.updated@college.edu", 1L)).thenReturn(false);
+        when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP001-UPD", 1L)).thenReturn(false);
+        when(facultyRepository.existsByEmailIgnoreCaseAndIdNot("john.updated@college.edu", 1L)).thenReturn(false);
         when(facultyRepository.save(any(Faculty.class))).thenReturn(updatedFaculty);
 
         FacultyResponse response = facultyService.update(1L, updateRequest);
@@ -299,7 +299,7 @@ class FacultyServiceTest {
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
-        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP002", 1L)).thenReturn(true);
+        when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP002", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> facultyService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -321,8 +321,8 @@ class FacultyServiceTest {
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
-        when(facultyRepository.existsByEmployeeCodeAndIdNot("EMP001", 1L)).thenReturn(false);
-        when(facultyRepository.existsByEmailAndIdNot("other@college.edu", 1L)).thenReturn(true);
+        when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP001", 1L)).thenReturn(false);
+        when(facultyRepository.existsByEmailIgnoreCaseAndIdNot("other@college.edu", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> facultyService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)

@@ -31,18 +31,24 @@ public class EquipmentService {
     public EquipmentResponse create(EquipmentRequest request) {
         Lab lab = labRepository.findById(request.labId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
+        String assetCode = trim(request.assetCode());
+
+        if (assetCode != null && equipmentRepository.existsByAssetCodeIgnoreCase(assetCode)) {
+            throw new IllegalArgumentException(
+                "Equipment with asset code '" + assetCode + "' already exists");
+        }
 
         Equipment equipment = new Equipment(
-            request.name(), request.assetCode(), request.category(), lab, request.status()
+            trim(request.name()), assetCode, request.category(), lab, request.status()
         );
-        equipment.setSerialNumber(request.serialNumber());
-        equipment.setManufacturer(request.manufacturer());
-        equipment.setModel(request.model());
+        equipment.setSerialNumber(trim(request.serialNumber()));
+        equipment.setManufacturer(trim(request.manufacturer()));
+        equipment.setModel(trim(request.model()));
         equipment.setPurchaseDate(request.purchaseDate());
         equipment.setPurchasePrice(request.purchasePrice());
         equipment.setWarrantyExpiry(request.warrantyExpiry());
-        equipment.setLocation(request.location());
-        equipment.setSpecifications(request.specifications());
+        equipment.setLocation(trim(request.location()));
+        equipment.setSpecifications(trim(request.specifications()));
 
         Equipment saved = equipmentRepository.save(equipment);
         return toResponse(saved);
@@ -94,25 +100,26 @@ public class EquipmentService {
 
         Lab lab = labRepository.findById(request.labId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
+        String assetCode = trim(request.assetCode());
 
-        if (request.assetCode() != null && equipmentRepository.existsByAssetCodeAndIdNot(request.assetCode(), id)) {
+        if (assetCode != null && equipmentRepository.existsByAssetCodeIgnoreCaseAndIdNot(assetCode, id)) {
             throw new IllegalArgumentException(
-                "Equipment with asset code '" + request.assetCode() + "' already exists");
+                "Equipment with asset code '" + assetCode + "' already exists");
         }
 
-        equipment.setName(request.name());
-        equipment.setAssetCode(request.assetCode());
-        equipment.setSerialNumber(request.serialNumber());
+        equipment.setName(trim(request.name()));
+        equipment.setAssetCode(assetCode);
+        equipment.setSerialNumber(trim(request.serialNumber()));
         equipment.setCategory(request.category());
         equipment.setLab(lab);
-        equipment.setManufacturer(request.manufacturer());
-        equipment.setModel(request.model());
+        equipment.setManufacturer(trim(request.manufacturer()));
+        equipment.setModel(trim(request.model()));
         equipment.setStatus(request.status());
         equipment.setPurchaseDate(request.purchaseDate());
         equipment.setPurchasePrice(request.purchasePrice());
         equipment.setWarrantyExpiry(request.warrantyExpiry());
-        equipment.setLocation(request.location());
-        equipment.setSpecifications(request.specifications());
+        equipment.setLocation(trim(request.location()));
+        equipment.setSpecifications(trim(request.specifications()));
 
         Equipment updated = equipmentRepository.save(equipment);
         return toResponse(updated);
@@ -146,5 +153,11 @@ public class EquipmentService {
             eq.getCreatedAt(),
             eq.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

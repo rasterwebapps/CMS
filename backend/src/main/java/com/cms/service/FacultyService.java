@@ -32,19 +32,30 @@ public class FacultyService {
     public FacultyResponse create(FacultyRequest request) {
         Department department = departmentRepository.findById(request.departmentId())
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
+        String email = requireTrimmed(request.email(), "Faculty email is required");
+
+        if (facultyRepository.existsByEmployeeCodeIgnoreCase(employeeCode)) {
+            throw new IllegalArgumentException(
+                "A faculty with employee code '" + employeeCode + "' already exists");
+        }
+        if (facultyRepository.existsByEmailIgnoreCase(email)) {
+            throw new IllegalArgumentException(
+                "A faculty with email '" + email + "' already exists");
+        }
 
         FacultyStatus status = request.status() != null ? request.status() : FacultyStatus.ACTIVE;
 
         Faculty faculty = new Faculty(
-            request.employeeCode(),
-            request.firstName(),
-            request.lastName(),
-            request.email(),
-            request.phone(),
+            employeeCode,
+            trim(request.firstName()),
+            trim(request.lastName()),
+            email,
+            trim(request.phone()),
             department,
             request.designation(),
-            request.specialization(),
-            request.labExpertise(),
+            trim(request.specialization()),
+            trim(request.labExpertise()),
             request.joiningDate(),
             status
         );
@@ -89,25 +100,27 @@ public class FacultyService {
 
         Department department = departmentRepository.findById(request.departmentId())
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
+        String email = requireTrimmed(request.email(), "Faculty email is required");
 
-        if (facultyRepository.existsByEmployeeCodeAndIdNot(request.employeeCode(), id)) {
+        if (facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot(employeeCode, id)) {
             throw new IllegalArgumentException(
-                "A faculty with employee code '" + request.employeeCode() + "' already exists");
+                "A faculty with employee code '" + employeeCode + "' already exists");
         }
-        if (facultyRepository.existsByEmailAndIdNot(request.email(), id)) {
+        if (facultyRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
             throw new IllegalArgumentException(
-                "A faculty with email '" + request.email() + "' already exists");
+                "A faculty with email '" + email + "' already exists");
         }
 
-        faculty.setEmployeeCode(request.employeeCode());
-        faculty.setFirstName(request.firstName());
-        faculty.setLastName(request.lastName());
-        faculty.setEmail(request.email());
-        faculty.setPhone(request.phone());
+        faculty.setEmployeeCode(employeeCode);
+        faculty.setFirstName(trim(request.firstName()));
+        faculty.setLastName(trim(request.lastName()));
+        faculty.setEmail(email);
+        faculty.setPhone(trim(request.phone()));
         faculty.setDepartment(department);
         faculty.setDesignation(request.designation());
-        faculty.setSpecialization(request.specialization());
-        faculty.setLabExpertise(request.labExpertise());
+        faculty.setSpecialization(trim(request.specialization()));
+        faculty.setLabExpertise(trim(request.labExpertise()));
         faculty.setJoiningDate(request.joiningDate());
 
         if (request.status() != null) {
@@ -172,6 +185,14 @@ public class FacultyService {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 
     private FacultyResponse toResponse(Faculty faculty) {

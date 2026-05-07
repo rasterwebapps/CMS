@@ -157,6 +157,11 @@ export class FeeCollectionComponent implements OnInit {
       this.dataSource.data = this.filteredEntries();
       if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
     });
+
+    // Trigger validation update when payment mode changes
+    this.form.get('paymentMode')?.valueChanges.subscribe(() => {
+      this.form.get('transactionReference')?.updateValueAndValidity();
+    });
   }
 
   ngOnInit(): void {
@@ -336,5 +341,10 @@ export class FeeCollectionComponent implements OnInit {
 
   protected isOverdue(dueDate: string | null): boolean {
     return !!dueDate && new Date(dueDate) < new Date();
+  }
+
+  protected isTransactionRefRequired(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
   }
 }

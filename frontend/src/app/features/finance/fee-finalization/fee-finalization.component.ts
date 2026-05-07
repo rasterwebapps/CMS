@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed, ViewChild, effect } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,7 +48,6 @@ interface Program { id: number; name: string; }
 })
 export class FeeFinalizationComponent implements OnInit {
   private readonly route    = inject(ActivatedRoute);
-  private readonly router   = inject(Router);
   private readonly http     = inject(HttpClient);
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast    = inject(ToastService);
@@ -77,10 +76,9 @@ export class FeeFinalizationComponent implements OnInit {
     const progId  = this.selectedProgramId();
     return this.allEnquiries().filter(e => {
       if (progId != null && e.programId !== progId) return false;
-      if (search && !e.name.toLowerCase().includes(search) &&
-          !(e.programName?.toLowerCase().includes(search)) &&
-          !(e.courseName?.toLowerCase().includes(search))) return false;
-      return true;
+      return !search || e.name.toLowerCase().includes(search) ||
+        !!e.programName?.toLowerCase().includes(search) ||
+        !!e.courseName?.toLowerCase().includes(search);
     });
   });
 
@@ -93,13 +91,13 @@ export class FeeFinalizationComponent implements OnInit {
 
   // ── Derived totals ──────────────────────────────────────────────────────────
   protected readonly totalOriginal = computed(() =>
-    this.yearRows().reduce((s, r) => s + r.originalAmount, 0)
+    this.paiseToAmount(this.yearRows().reduce((s, r) => s + this.amountToPaise(r.originalAmount), 0))
   );
   protected readonly totalFinal = computed(() =>
-    this.yearRows().reduce((s, r) => s + r.finalAmount, 0)
+    this.paiseToAmount(this.yearRows().reduce((s, r) => s + this.amountToPaise(r.finalAmount), 0))
   );
   protected readonly totalDiscount = computed(() =>
-    Math.max(0, this.totalOriginal() - this.totalFinal())
+    this.paiseToAmount(Math.max(0, this.amountToPaise(this.totalOriginal()) - this.amountToPaise(this.totalFinal())))
   );
   protected readonly discountPct = computed(() => {
     const orig = this.totalOriginal();
@@ -201,13 +199,13 @@ export class FeeFinalizationComponent implements OnInit {
           const yearMap = new Map<number, number>();
           for (const fs of relevant) {
             for (const ya of fs.yearAmounts ?? []) {
-              yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + ya.amount);
+              yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
             }
           }
           if (yearMap.size > 0) {
             const sorted = Array.from(yearMap.entries())
               .sort(([a], [b]) => a - b)
-              .map(([yearNumber, amount]) => ({ yearNumber, amount }));
+              .map(([yearNumber, amount]) => ({ yearNumber, amount: this.paiseToAmount(amount) }));
             this.applyYearRows(sorted);
           } else {
             this.applyEqualSplitFallback(enquiry);
@@ -230,44 +228,45 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   private applyEqualSplitFallback(enquiry: Enquiry): void {
-    const total = enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0;
+    const totalPaise = this.amountToPaise(enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0);
     const n = 4;
-    const perYear = Math.floor(total / n);
+    const perYearPaise = Math.floor(totalPaise / n);
     this.yearRows.set(
       Array.from({ length: n }, (_, i) => ({
         yearNumber: i + 1,
         yearLabel: `Year ${i + 1}`,
-        originalAmount: i < n - 1 ? perYear : total - perYear * (n - 1),
-        finalAmount: i < n - 1 ? perYear : total - perYear * (n - 1),
+        originalAmount: this.paiseToAmount(i < n - 1 ? perYearPaise : totalPaise - perYearPaise * (n - 1)),
+        finalAmount: this.paiseToAmount(i < n - 1 ? perYearPaise : totalPaise - perYearPaise * (n - 1)),
       }))
     );
   }
 
   protected updateYearAmount(index: number, raw: string): void {
-    const val = Math.max(0, parseFloat(raw) || 0);
+    const val = this.paiseToAmount(Math.max(0, this.amountToPaise(parseFloat(raw) || 0)));
     const rows = this.yearRows().map((r, i) =>
       i === index ? { ...r, finalAmount: val } : r
     );
     this.yearRows.set(rows);
-    this.globalDiscount.set(Math.max(0, this.totalOriginal() - rows.reduce((s, r) => s + r.finalAmount, 0)));
+    const finalPaise = rows.reduce((s, r) => s + this.amountToPaise(r.finalAmount), 0);
+    this.globalDiscount.set(this.paiseToAmount(Math.max(0, this.amountToPaise(this.totalOriginal()) - finalPaise)));
   }
 
   protected applyGlobalDiscount(raw: string): void {
-    const discount = Math.max(0, parseFloat(raw) || 0);
-    this.globalDiscount.set(discount);
-    const total = this.totalOriginal();
-    if (total <= 0) return;
+    const discountPaise = Math.max(0, this.amountToPaise(parseFloat(raw) || 0));
+    this.globalDiscount.set(this.paiseToAmount(discountPaise));
+    const totalPaise = this.amountToPaise(this.totalOriginal());
+    if (totalPaise <= 0) return;
     const rows = this.yearRows().map((r, i, arr) => {
       if (i < arr.length - 1) {
-        const share = Math.round((discount * (r.originalAmount / total)) * 100) / 100;
-        return { ...r, finalAmount: Math.max(0, r.originalAmount - share) };
+        const share = Math.round(discountPaise * (this.amountToPaise(r.originalAmount) / totalPaise));
+        return { ...r, finalAmount: this.paiseToAmount(Math.max(0, this.amountToPaise(r.originalAmount) - share)) };
       } else {
         const previousFinals = this.yearRows().slice(0, -1).map(r2 => {
-          const share = Math.round((discount * (r2.originalAmount / total)) * 100) / 100;
-          return Math.max(0, r2.originalAmount - share);
+          const share = Math.round(discountPaise * (this.amountToPaise(r2.originalAmount) / totalPaise));
+          return Math.max(0, this.amountToPaise(r2.originalAmount) - share);
         });
         const sumPrev = previousFinals.reduce((s, v) => s + v, 0);
-        return { ...r, finalAmount: Math.max(0, total - discount - sumPrev) };
+        return { ...r, finalAmount: this.paiseToAmount(Math.max(0, totalPaise - discountPaise - sumPrev)) };
       }
     });
     this.yearRows.set(rows);
@@ -311,5 +310,13 @@ export class FeeFinalizationComponent implements OnInit {
         this.saving.set(false);
       },
     });
+  }
+
+  private amountToPaise(value: number | null | undefined): number {
+    return Math.round((Number(value) || 0) * 100);
+  }
+
+  private paiseToAmount(value: number): number {
+    return value / 100;
   }
 }

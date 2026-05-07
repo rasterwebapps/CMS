@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FeeDemand, PaymentMode, TermFeePaymentRequest } from '../academic-year.model';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 
 @Component({
   selector: 'app-fee-payment-dialog',
@@ -147,8 +148,21 @@ export class FeePaymentDialogComponent {
     amountPaid: [null, [Validators.required, Validators.min(0.01)]],
     paymentDate: [new Date().toISOString().split('T')[0], Validators.required],
     paymentMode: ['', Validators.required],
+    transactionReference: ['', [transactionReferenceRequiredValidator('paymentMode')]],
     remarks: [''],
   });
+
+  constructor() {
+    // Trigger validation update when payment mode changes
+    this.form.get('paymentMode')?.valueChanges.subscribe(() => {
+      this.form.get('transactionReference')?.updateValueAndValidity();
+    });
+  }
+
+  isTransactionRefRequired(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
+  }
 
   submit(): void {
     if (this.form.invalid) {
@@ -161,6 +175,7 @@ export class FeePaymentDialogComponent {
       paymentDate: v.paymentDate,
       amountPaid: Number(v.amountPaid),
       paymentMode: v.paymentMode as PaymentMode,
+      transactionReference: v.transactionReference?.trim() || undefined,
       remarks: v.remarks || undefined,
     };
     this.dialogRef.close(request);
