@@ -209,21 +209,21 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            1L, 1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
-        FeeStructure updated = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("10000.00"));
+        FeeStructure updated = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"));
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
         when(feeStructureRepository.existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
-            FeeType.LAB_FEE, 1L, 1L, 1L)).thenReturn(false);
+            FeeType.LABORATORY_FEE, 1L, 1L, 1L)).thenReturn(false);
         when(feeStructureRepository.save(any(FeeStructure.class))).thenReturn(updated);
 
         FeeStructureResponse response = feeStructureService.update(1L, updateRequest);
 
-        assertThat(response.feeType()).isEqualTo(FeeType.LAB_FEE);
+        assertThat(response.feeType()).isEqualTo(FeeType.LABORATORY_FEE);
         assertThat(response.amount()).isEqualTo(new BigDecimal("10000.00"));
     }
 
@@ -232,18 +232,18 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            1L, 1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
         when(feeStructureRepository.existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
-            FeeType.LAB_FEE, 1L, 1L, 1L)).thenReturn(true);
+            FeeType.LABORATORY_FEE, 1L, 1L, 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> feeStructureService.update(1L, updateRequest))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("A fee structure with fee type 'LAB_FEE' already exists for this program and academic year combination");
+            .hasMessage("A fee structure with fee type 'LABORATORY_FEE' already exists for this program and academic year combination");
 
         verify(feeStructureRepository, never()).save(any());
     }
@@ -251,7 +251,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowExceptionWhenNotFoundOnUpdate() {
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            1L, 1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
         when(feeStructureRepository.findById(999L)).thenReturn(Optional.empty());
@@ -266,7 +266,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            999L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            999L, 1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -282,7 +282,7 @@ class FeeStructureServiceTest {
         FeeStructure existing = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         FeeStructureRequest updateRequest = new FeeStructureRequest(
-            1L, 999L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            1L, 999L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
         when(feeStructureRepository.findById(1L)).thenReturn(Optional.of(existing));
@@ -333,12 +333,15 @@ class FeeStructureServiceTest {
         FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
 
         when(programRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.findByProgramIdAndCourseId(1L, 2L)).thenReturn(List.of(fs));
+        when(academicYearRepository.findByIsCurrentTrue()).thenReturn(Optional.of(testAcademicYear));
+        when(academicYearRepository.existsById(1L)).thenReturn(true);
+        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(1L, 2L, 1L)).thenReturn(List.of(fs));
         when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         List<FeeStructureResponse> responses = feeStructureService.findByProgramIdAndCourseId(1L, 2L);
 
         assertThat(responses).hasSize(1);
+        verify(feeStructureRepository).findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(1L, 2L, 1L);
     }
 
     @Test
@@ -441,12 +444,12 @@ class FeeStructureServiceTest {
             FeeType.TUITION, new BigDecimal("50000.00"), "Tuition", true, true, null
         );
         FeeStructureItemRequest lab = new FeeStructureItemRequest(
-            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
+            FeeType.LABORATORY_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
         );
         BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
 
         FeeStructure savedTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure savedLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure savedLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
@@ -459,7 +462,7 @@ class FeeStructureServiceTest {
 
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).feeType()).isEqualTo(FeeType.TUITION);
-        assertThat(responses.get(1).feeType()).isEqualTo(FeeType.LAB_FEE);
+        assertThat(responses.get(1).feeType()).isEqualTo(FeeType.LABORATORY_FEE);
     }
 
     @Test
@@ -537,7 +540,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldFindGroupedFeeStructures() {
         FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureRepository.findAll()).thenReturn(List.of(fs1, fs2));
         when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
@@ -609,7 +612,7 @@ class FeeStructureServiceTest {
         FeeStructure fs = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
         fs.setCourse(testCourse);
 
-        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(1L, 2L, 1L)).thenReturn(List.of(fs));
+        when(feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(1L, 2L, 1L)).thenReturn(List.of(fs));
         when(yearAmountRepository.findByFeeStructureIdOrderByYearNumber(anyLong())).thenReturn(List.of());
 
         List<com.cms.dto.GroupedFeeStructureResponse> result = feeStructureService.findGrouped(1L, 1L, 2L);
@@ -646,7 +649,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldBulkUpdateRemovingUnpaidFeeType() {
         FeeStructure existingTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         FeeStructureItemRequest newTuition = new FeeStructureItemRequest(
             FeeType.TUITION, new BigDecimal("55000.00"), "Updated", true, true, null
@@ -671,7 +674,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowWhenBulkUpdateRemovesFeeTypeWithPayments() {
         FeeStructure existingTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure existingLab = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         FeeStructureItemRequest newTuition = new FeeStructureItemRequest(
             FeeType.TUITION, new BigDecimal("55000.00"), "Updated", true, true, null
@@ -685,7 +688,7 @@ class FeeStructureServiceTest {
 
         assertThatThrownBy(() -> feeStructureService.bulkUpdate(request))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("LAB_FEE")
+            .hasMessageContaining("LABORATORY_FEE")
             .hasMessageContaining("payments");
 
         verify(feeStructureRepository, never()).deleteById(any());
@@ -699,12 +702,12 @@ class FeeStructureServiceTest {
             FeeType.TUITION, new BigDecimal("50000.00"), "Tuition", true, true, null
         );
         FeeStructureItemRequest lab = new FeeStructureItemRequest(
-            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
+            FeeType.LABORATORY_FEE, new BigDecimal("5000.00"), "Lab", true, true, null
         );
         BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
 
         FeeStructure savedTuition = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure savedLab = createFeeStructure(3L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure savedLab = createFeeStructure(3L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(existingTuition));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
@@ -722,7 +725,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldDeleteGroup() {
         FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(fs1, fs2));
         when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(false);
@@ -739,7 +742,7 @@ class FeeStructureServiceTest {
     @Test
     void shouldThrowWhenDeletingGroupWithPayments() {
         FeeStructure fs1 = createFeeStructure(1L, testProgram, testAcademicYear, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructure fs2 = createFeeStructure(2L, testProgram, testAcademicYear, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of(fs1, fs2));
         when(feePaymentRepository.existsByFeeStructureId(1L)).thenReturn(true);

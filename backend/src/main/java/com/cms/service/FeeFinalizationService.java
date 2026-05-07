@@ -21,6 +21,7 @@ import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
+import com.cms.model.StudentScholarship;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -42,6 +43,7 @@ public class FeeFinalizationService {
     private final PenaltyRepository penaltyRepository;
     private final StudentRepository studentRepository;
     private final EnquiryRepository enquiryRepository;
+    private final StudentScholarshipService studentScholarshipService;
     private final ObjectMapper objectMapper;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
@@ -50,6 +52,7 @@ public class FeeFinalizationService {
                                    PenaltyRepository penaltyRepository,
                                    StudentRepository studentRepository,
                                    EnquiryRepository enquiryRepository,
+                                    StudentScholarshipService studentScholarshipService,
                                    ObjectMapper objectMapper) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -57,6 +60,7 @@ public class FeeFinalizationService {
         this.penaltyRepository = penaltyRepository;
         this.studentRepository = studentRepository;
         this.enquiryRepository = enquiryRepository;
+        this.studentScholarshipService = studentScholarshipService;
         this.objectMapper = objectMapper;
     }
 
@@ -102,15 +106,32 @@ public class FeeFinalizationService {
             throw new IllegalStateException("Fee allocation already exists for student: " + student.getRollNumber());
         }
 
-        BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
+        BigDecimal manualDiscount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
+        StudentScholarship approvedScholarship = studentScholarshipService
+            .findApprovedForStudentInCurrentYear(student.getId())
+            .orElse(null);
+        BigDecimal scholarshipDiscount = approvedScholarship != null
+            ? approvedScholarship.getApprovedAmount()
+            : BigDecimal.ZERO;
+        BigDecimal discount = manualDiscount.add(scholarshipDiscount);
         BigDecimal commission = request.agentCommission() != null ? request.agentCommission() : BigDecimal.ZERO;
         BigDecimal netFee = request.totalFee().subtract(discount);
+        if (netFee.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Total discount cannot exceed total fee");
+        }
+
+        String discountReason = combineDiscountReasons(request.discountReason(), approvedScholarship);
 
         StudentFeeAllocation allocation = new StudentFeeAllocation(
             student, student.getProgram(), request.totalFee(),
-            discount, request.discountReason(), commission, netFee,
+            discount, discountReason, commission, netFee,
             FeeAllocationStatus.FINALIZED
         );
+        if (approvedScholarship != null) {
+            allocation.setScholarshipApplication(approvedScholarship);
+            allocation.setScholarshipDiscountAmount(scholarshipDiscount);
+            allocation.setScholarshipDiscountReason(approvedScholarship.getScholarshipType().getName());
+        }
         allocation.setFinalizedAt(Instant.now());
         allocation.setFinalizedBy(adminUsername);
 
@@ -206,6 +227,9 @@ public class FeeFinalizationService {
             allocation.getTotalFee(),
             allocation.getDiscountAmount(),
             allocation.getDiscountReason(),
+            allocation.getScholarshipApplication() != null ? allocation.getScholarshipApplication().getId() : null,
+            allocation.getScholarshipDiscountAmount(),
+            allocation.getScholarshipDiscountReason(),
             allocation.getAgentCommission(),
             allocation.getNetFee(),
             allocation.getStatus().name(),
@@ -215,5 +239,20 @@ public class FeeFinalizationService {
             allocation.getCreatedAt(),
             allocation.getUpdatedAt()
         );
+    }
+
+    private String combineDiscountReasons(String manualReason, StudentScholarship approvedScholarship) {
+        String scholarshipReason = approvedScholarship != null
+            ? approvedScholarship.getScholarshipType().getName()
+            : null;
+        boolean hasManual = manualReason != null && !manualReason.isBlank();
+        boolean hasScholarship = scholarshipReason != null && !scholarshipReason.isBlank();
+        if (hasManual && hasScholarship) {
+            return manualReason.trim() + " + " + scholarshipReason;
+        }
+        if (hasScholarship) {
+            return scholarshipReason;
+        }
+        return hasManual ? manualReason.trim() : null;
     }
 }

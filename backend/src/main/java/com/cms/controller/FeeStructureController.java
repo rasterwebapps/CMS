@@ -79,7 +79,9 @@ public class FeeStructureController {
             @RequestParam(required = false) Long academicYearId,
             @RequestParam(required = false) Long courseId) {
         List<FeeStructureResponse> feeStructures;
-        if (programId != null && courseId != null) {
+        if (programId != null && courseId != null && academicYearId != null) {
+            feeStructures = feeStructureService.findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, academicYearId);
+        } else if (programId != null && courseId != null) {
             feeStructures = feeStructureService.findByProgramIdAndCourseId(programId, courseId);
         } else if (programId != null && academicYearId != null) {
             feeStructures = feeStructureService.findByProgramIdAndAcademicYearId(programId, academicYearId);

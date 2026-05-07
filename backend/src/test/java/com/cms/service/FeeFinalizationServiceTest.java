@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -43,6 +44,7 @@ class FeeFinalizationServiceTest {
     @Mock private PenaltyRepository penaltyRepository;
     @Mock private StudentRepository studentRepository;
     @Mock private com.cms.repository.EnquiryRepository enquiryRepository;
+    @Mock private StudentScholarshipService studentScholarshipService;
     @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private FeeFinalizationService service;
@@ -53,7 +55,7 @@ class FeeFinalizationServiceTest {
     void setUp() {
         service = new FeeFinalizationService(allocationRepository, semesterFeeRepository,
             installmentRepository, penaltyRepository, studentRepository,
-            enquiryRepository, objectMapper);
+            enquiryRepository, studentScholarshipService, objectMapper);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -62,6 +64,7 @@ class FeeFinalizationServiceTest {
         testStudent = new Student("CS2024001", "John", "Doe", "john@college.edu",
             testProgram, 1, LocalDate.of(2024, 6, 1), StudentStatus.ACTIVE);
         testStudent.setId(1L);
+        lenient().when(studentScholarshipService.findApprovedForStudentInCurrentYear(1L)).thenReturn(Optional.empty());
     }
 
     @Test

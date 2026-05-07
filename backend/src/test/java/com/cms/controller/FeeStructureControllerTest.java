@@ -54,12 +54,12 @@ class FeeStructureControllerTest {
             FeeType.TUITION, new BigDecimal("50000.00"), "Tuition fee", true, true, null
         );
         FeeStructureItemRequest lab = new FeeStructureItemRequest(
-            FeeType.LAB_FEE, new BigDecimal("5000.00"), "Lab fee", true, true, null
+            FeeType.LABORATORY_FEE, new BigDecimal("5000.00"), "Lab fee", true, true, null
         );
         BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(tuition, lab));
 
         FeeStructureResponse resp1 = createResponse(1L, FeeType.TUITION, new BigDecimal("50000.00"));
-        FeeStructureResponse resp2 = createResponse(2L, FeeType.LAB_FEE, new BigDecimal("5000.00"));
+        FeeStructureResponse resp2 = createResponse(2L, FeeType.LABORATORY_FEE, new BigDecimal("5000.00"));
 
         when(feeStructureService.bulkCreate(any(BulkFeeStructureRequest.class))).thenReturn(List.of(resp1, resp2));
 
@@ -69,7 +69,7 @@ class FeeStructureControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].feeType").value("TUITION"))
-            .andExpect(jsonPath("$[1].feeType").value("LAB_FEE"));
+            .andExpect(jsonPath("$[1].feeType").value("LABORATORY_FEE"));
 
         verify(feeStructureService).bulkCreate(any(BulkFeeStructureRequest.class));
     }
@@ -180,10 +180,10 @@ class FeeStructureControllerTest {
     @Test
     void shouldUpdateFeeStructure() throws Exception {
         FeeStructureRequest request = new FeeStructureRequest(
-            1L, 1L, FeeType.LAB_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
+            1L, 1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"), "Lab fee", true, true, null, null
         );
 
-        FeeStructureResponse response = createResponse(1L, FeeType.LAB_FEE, new BigDecimal("10000.00"));
+        FeeStructureResponse response = createResponse(1L, FeeType.LABORATORY_FEE, new BigDecimal("10000.00"));
 
         when(feeStructureService.update(eq(1L), any(FeeStructureRequest.class))).thenReturn(response);
 
@@ -191,7 +191,7 @@ class FeeStructureControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.feeType").value("LAB_FEE"));
+            .andExpect(jsonPath("$.feeType").value("LABORATORY_FEE"));
 
         verify(feeStructureService).update(eq(1L), any(FeeStructureRequest.class));
     }

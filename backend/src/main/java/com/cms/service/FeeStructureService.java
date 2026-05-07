@@ -202,7 +202,19 @@ public class FeeStructureService {
         if (!programRepository.existsById(programId)) {
             throw new ResourceNotFoundException("Program not found with id: " + programId);
         }
-        return feeStructureRepository.findByProgramIdAndCourseId(programId, courseId).stream()
+        AcademicYear currentAcademicYear = academicYearRepository.findByIsCurrentTrue()
+            .orElseThrow(() -> new ResourceNotFoundException("No current academic year found"));
+        return findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, currentAcademicYear.getId());
+    }
+
+    public List<FeeStructureResponse> findByProgramIdAndCourseIdAndAcademicYearId(Long programId, Long courseId, Long academicYearId) {
+        if (!programRepository.existsById(programId)) {
+            throw new ResourceNotFoundException("Program not found with id: " + programId);
+        }
+        if (!academicYearRepository.existsById(academicYearId)) {
+            throw new ResourceNotFoundException("Academic year not found with id: " + academicYearId);
+        }
+        return feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(programId, courseId, academicYearId).stream()
             .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
             .toList();
     }
@@ -279,7 +291,7 @@ public class FeeStructureService {
     public List<GroupedFeeStructureResponse> findGrouped(Long programId, Long academicYearId, Long courseId) {
         List<FeeStructure> allStructures;
         if (programId != null && academicYearId != null && courseId != null) {
-            allStructures = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, academicYearId);
+            allStructures = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(programId, courseId, academicYearId);
         } else if (programId != null && academicYearId != null) {
             allStructures = feeStructureRepository.findByProgramIdAndAcademicYearId(programId, academicYearId);
         } else if (programId != null && courseId != null) {

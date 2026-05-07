@@ -115,6 +115,7 @@ public class FeeReportService {
             p.getTotalCollected(),
             p.getPaymentMode(),
             p.getReceiptNumber(),
+            p.getTransactionReference(),
             p.getRemarks(),
             demand.getStatus(),
             p.getCreatedAt(),

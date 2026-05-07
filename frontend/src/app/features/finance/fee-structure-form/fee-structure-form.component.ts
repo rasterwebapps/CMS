@@ -86,25 +86,32 @@ export class FeeStructureFormComponent implements OnInit {
 
   /** All fee types in display order (generic first, then additional). */
   protected readonly feeTypes = [
-    'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
+    'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
+    'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
     'MISCELLANEOUS', 'LATE_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE'];
 
   /** Generic fee types — included in the course total. */
   protected readonly genericFeeTypes = [
-    'TUITION', 'LAB_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE', 'MISCELLANEOUS', 'LATE_FEE'];
+    'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
+    'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
+    'MISCELLANEOUS', 'LATE_FEE'];
 
   /** Additional fee types — NOT included in the generic course total. */
   protected readonly additionalFeeTypes = ['HOSTEL_FEE', 'TRANSPORT_FEE'];
 
   protected readonly feeTypeMeta: Record<string, { label: string; icon: string }> = {
-    TUITION:        { label: 'Tuition Fee',      icon: 'school' },
-    LAB_FEE:        { label: 'Lab Fee',           icon: 'science' },
-    LIBRARY_FEE:    { label: 'Library Fee',       icon: 'menu_book' },
-    EXAMINATION_FEE:{ label: 'Examination Fee',  icon: 'assignment' },
-    HOSTEL_FEE:     { label: 'Hostel Fee',        icon: 'hotel' },
-    TRANSPORT_FEE:  { label: 'Transport Fee',     icon: 'directions_bus' },
-    MISCELLANEOUS:  { label: 'Miscellaneous',     icon: 'category' },
-    LATE_FEE:       { label: 'Late Fee',          icon: 'schedule' },
+    TUITION:                    { label: 'Tuition Fee',              icon: 'school' },
+    LABORATORY_FEE:             { label: 'Laboratory Fee',           icon: 'science' },
+    CLINICAL_FEE:               { label: 'Clinical Fee',             icon: 'medical_services' },
+    LIBRARY_FEE:                { label: 'Library Fee',              icon: 'menu_book' },
+    EXAMINATION_FEE:            { label: 'Examination Fee',          icon: 'assignment' },
+    BOOK_AND_PACKET_FEE:        { label: 'Book & Packet Fee',        icon: 'import_contacts' },
+    UNIFORM_AND_SHOES_FEE:      { label: 'Uniform & Shoes Fee',      icon: 'checkroom' },
+    UNIVERSITY_REGISTRATION_FEE:{ label: 'University Registration Fee', icon: 'how_to_reg' },
+    HOSTEL_FEE:                 { label: 'Hostel Fee',               icon: 'hotel' },
+    TRANSPORT_FEE:              { label: 'Transport Fee',            icon: 'directions_bus' },
+    MISCELLANEOUS:              { label: 'Miscellaneous',            icon: 'category' },
+    LATE_FEE:                   { label: 'Late Fee',                 icon: 'schedule' },
   };
 
   // Bulk form — used for both create and edit

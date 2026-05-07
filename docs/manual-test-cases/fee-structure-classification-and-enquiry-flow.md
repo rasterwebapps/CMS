@@ -165,8 +165,58 @@ Covers: fee type classification (Generic / Additional) on the fee structure scre
 
 **Expected Result:**
 - Enquiry record has `feeGuidelineTotal` = 92000
-- `finalCalculatedFee` = 92000 (+ commission if applicable)
+- `finalCalculatedFee` = 92000
+- Any referral commission is tracked separately and is not added to the student fee
 - `studentType` = DAY_SCHOLAR
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-015: Enquiry uses only current academic year fee structures
+
+**Preconditions:**
+- Current academic year is 2024-2025
+- BSc Nursing course has current-year fee structure total = ₹10,00,000
+- The same BSc Nursing course has historical / previous-year fee rows that would total an additional ₹13,45,000 if wrongly included
+- User is logged in with ROLE_FRONT_OFFICE or ROLE_ADMIN
+
+**Steps:**
+1. Navigate to Enquiries → Add
+2. Enter Full Name = `Mani`
+3. Select the BSc Nursing program and course
+4. Select Student Type = Day Scholar
+5. Observe the estimated fee displayed
+6. Save the enquiry
+7. Reopen the saved enquiry or inspect the API response
+
+**Expected Result:**
+- Estimated fee displayed = ₹10,00,000
+- Saved `finalCalculatedFee` = ₹10,00,000
+- Historical / previous-year fee rows are not included
+- The amount ₹23,45,000 must never appear unless the current active academic year's fee structure itself is ₹23,45,000
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-016: Referral commission does not increase student fee
+
+**Preconditions:**
+- Current-year course fee total = ₹10,00,000
+- Referral type or selected agent has commission = ₹25,000
+- User is on Enquiry Add form
+
+**Steps:**
+1. Select the program and course with current-year total ₹10,00,000
+2. Select the referral type / agent that carries ₹25,000 commission
+3. Save the enquiry
+4. Open fee finalization for the enquiry after marking it INTERESTED
+
+**Expected Result:**
+- Enquiry `finalCalculatedFee` remains ₹10,00,000
+- Fee finalization total remains ₹10,00,000
+- ₹25,000 is tracked only as referral/agent commission and is not part of student dues, receipts, or allocation
 
 **Status:** NOT TESTED
 
