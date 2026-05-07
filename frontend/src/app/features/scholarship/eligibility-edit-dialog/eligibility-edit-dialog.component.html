@@ -1,0 +1,140 @@
+<h2 mat-dialog-title class="dialog-title">
+  <mat-icon>edit_note</mat-icon>
+  Update Eligibility Profile
+  <span class="dialog-title__sub">{{ data.studentName }}</span>
+</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form eed-form">
+
+    <!-- ── Section 1: Eligibility Flags ── -->
+    <p class="eed-section-title">Eligibility Flags</p>
+
+    <div class="eed-flags-grid">
+      <label class="eed-checkbox-row">
+        <input type="checkbox" formControlName="isFirstGraduate" />
+        <span class="eed-checkbox-label">
+          <mat-icon>school</mat-icon>
+          First Graduate in Family
+        </span>
+      </label>
+      <label class="eed-checkbox-row">
+        <input type="checkbox" formControlName="isMeritBased" />
+        <span class="eed-checkbox-label">
+          <mat-icon>emoji_events</mat-icon>
+          Merit Based
+        </span>
+      </label>
+      <label class="eed-checkbox-row">
+        <input type="checkbox" formControlName="isSportsQuota" />
+        <span class="eed-checkbox-label">
+          <mat-icon>sports</mat-icon>
+          Sports Quota
+        </span>
+      </label>
+      <label class="eed-checkbox-row">
+        <input type="checkbox" formControlName="isEconomicallyWeaker" />
+        <span class="eed-checkbox-label">
+          <mat-icon>account_balance</mat-icon>
+          Economically Weaker Section (EWS)
+        </span>
+      </label>
+    </div>
+
+    <!-- Annual Family Income -->
+    <div class="field-group">
+      <label for="eed-income" class="field-label">Annual Family Income (₹)</label>
+      <input
+        id="eed-income"
+        class="field-input"
+        type="number"
+        formControlName="annualFamilyIncome"
+        min="0"
+        placeholder="e.g. 250000"
+      />
+      @if (ewsAutoHint()) {
+        <p class="field-hint eed-hint--ews">
+          <mat-icon>info</mat-icon>
+          Income below ₹3,00,000 automatically qualifies as EWS.
+        </p>
+      }
+    </div>
+
+    <!-- ── Section 2: Community Certificate ── -->
+    <p class="eed-section-title">Community Certificate</p>
+    <div class="eed-cert-grid">
+      <div class="field-group">
+        <label for="eed-comm-no" class="field-label">Certificate Number</label>
+        <input id="eed-comm-no" class="field-input" formControlName="communityCertificateNumber" placeholder="e.g. TN/2025/CC/001" />
+      </div>
+      <div class="field-group">
+        <label for="eed-comm-auth" class="field-label">Issuing Authority</label>
+        <input id="eed-comm-auth" class="field-input" formControlName="commCertIssuingAuthority" placeholder="e.g. Tahsildar, Coimbatore" />
+      </div>
+      <div class="field-group">
+        <label for="eed-comm-date" class="field-label">Issue Date</label>
+        <input id="eed-comm-date" class="field-input" type="date" formControlName="commCertIssueDate" />
+      </div>
+    </div>
+
+    <!-- ── Section 3: Income Certificate ── -->
+    <p class="eed-section-title">Income Certificate</p>
+    <div class="eed-cert-grid">
+      <div class="field-group">
+        <label for="eed-inc-no" class="field-label">Certificate Number</label>
+        <input id="eed-inc-no" class="field-input" formControlName="incomeCertificateNumber" placeholder="e.g. TN/2025/IC/001" />
+      </div>
+      <div class="field-group">
+        <label for="eed-inc-auth" class="field-label">Issuing Authority</label>
+        <input id="eed-inc-auth" class="field-input" formControlName="incomeCertIssuingAuthority" placeholder="e.g. Tahsildar, Salem" />
+      </div>
+      <div class="field-group">
+        <label for="eed-inc-date" class="field-label">Issue Date</label>
+        <input id="eed-inc-date" class="field-input" type="date" formControlName="incomeCertIssueDate" />
+      </div>
+    </div>
+
+    <!-- ── Section 4: First Graduate Certificate (shown when flag is checked) ── -->
+    @if (isFirstGraduate()) {
+      <p class="eed-section-title">First Graduate Certificate &amp; Parents' Education</p>
+      <div class="eed-cert-grid">
+        <div class="field-group">
+          <label for="eed-fg-no" class="field-label">Certificate Number</label>
+          <input id="eed-fg-no" class="field-input" formControlName="firstGraduateCertificateNumber" placeholder="e.g. TN/2025/FG/001" />
+        </div>
+        <div class="field-group">
+          <label for="eed-fg-auth" class="field-label">Issuing Authority</label>
+          <input id="eed-fg-auth" class="field-input" formControlName="firstGradCertIssuingAuthority" placeholder="e.g. Village Administrative Officer" />
+        </div>
+        <div class="field-group">
+          <label for="eed-fg-date" class="field-label">Issue Date</label>
+          <input id="eed-fg-date" class="field-input" type="date" formControlName="firstGradCertIssueDate" />
+        </div>
+      </div>
+      <div class="eed-cert-grid">
+        <div class="field-group">
+          <label for="eed-father-edu" class="field-label">Father's Highest Education</label>
+          <input id="eed-father-edu" class="field-input" formControlName="fatherEducation" placeholder="e.g. Class 10, Diploma" />
+        </div>
+        <div class="field-group">
+          <label for="eed-mother-edu" class="field-label">Mother's Highest Education</label>
+          <input id="eed-mother-edu" class="field-input" formControlName="motherEducation" placeholder="e.g. Class 8, Illiterate" />
+        </div>
+      </div>
+    }
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="saving()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="onSubmit()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>save</mat-icon>
+    }
+    Save Eligibility
+  </button>
+</mat-dialog-actions>
+

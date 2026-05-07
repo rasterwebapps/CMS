@@ -305,13 +305,13 @@
             </div>
 
             <!-- Father -->
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
               <div class="field-group">
                 <label for="conv-father" class="field-label">Father's Name</label>
                 <input id="conv-father" class="field-input" formControlName="fatherName" />
               </div>
               <div class="field-group">
-                <label for="conv-father-phone" class="field-label">Father's Phone</label>
+                <label for="conv-father-phone" class="field-label">Father's Mobile</label>
                 <input id="conv-father-phone" class="field-input" formControlName="fatherPhone" type="tel" inputmode="tel" />
               </div>
               <div class="field-group">
@@ -324,13 +324,13 @@
             </div>
 
             <!-- Mother -->
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
               <div class="field-group">
                 <label for="conv-mother" class="field-label">Mother's Name</label>
                 <input id="conv-mother" class="field-input" formControlName="motherName" />
               </div>
               <div class="field-group">
-                <label for="conv-mother-phone" class="field-label">Mother's Phone</label>
+                <label for="conv-mother-phone" class="field-label">Mother's Mobile</label>
                 <input id="conv-mother-phone" class="field-input" formControlName="motherPhone" type="tel" inputmode="tel" />
               </div>
               <div class="field-group">
@@ -339,13 +339,6 @@
                 @if (form.get('motherEmail')?.invalid && form.get('motherEmail')?.touched) {
                   <span class="field-error">Enter a valid email</span>
                 }
-              </div>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-parent-mobile" class="field-label">Primary Parent Mobile</label>
-                <input id="conv-parent-mobile" class="field-input" formControlName="parentMobile" type="tel" inputmode="tel" />
               </div>
             </div>
           </div>

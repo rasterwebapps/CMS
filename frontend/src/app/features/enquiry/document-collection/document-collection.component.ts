@@ -205,18 +205,36 @@ export class DocumentCollectionComponent implements OnInit {
   private buildChecklist(documents: EnquiryDocument[]): ChecklistRow[] {
     const byType = new Map(documents.map((d) => [d.documentType, d]));
     const mandatory = this.mandatoryTypes();
-    const allTypes = this.documentCatalogue().map((t) => t.code);
-    return allTypes.map((type) => {
+
+    // Build rows only for the program-required types (mandatory set).
+    // All of these are shown as isMandatory: true.
+    const requiredRows: ChecklistRow[] = Array.from(mandatory).map((type) => {
       const existing = byType.get(type) ?? null;
       return {
         documentType: type,
         document: existing,
         status: existing?.status ?? 'NOT_UPLOADED',
         remarks: existing?.remarks ?? '',
-        isMandatory: mandatory.has(type),
+        isMandatory: true,
         saving: false,
       } satisfies ChecklistRow;
     });
+
+    // Safety net: any already-collected docs whose type is no longer in the
+    // program's required set (e.g., programme config changed after upload).
+    // Show them as optional so staff can still view/remove them.
+    const orphanRows: ChecklistRow[] = documents
+      .filter((d) => !mandatory.has(d.documentType))
+      .map((d) => ({
+        documentType: d.documentType,
+        document: d,
+        status: d.status,
+        remarks: d.remarks ?? '',
+        isMandatory: false,
+        saving: false,
+      } satisfies ChecklistRow));
+
+    return [...requiredRows, ...orphanRows];
   }
 
   /** Persists a row — creates a new EnquiryDocument or updates the existing one. */

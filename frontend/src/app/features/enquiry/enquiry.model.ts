@@ -30,6 +30,14 @@ export interface Enquiry {
   finalizedBy: string | null;
   finalizedAt: string | null;
   convertedStudentId: number | null;
+  country?: string | null;
+  state?: string | null;
+  district?: string | null;
+  referredStudentId?: number | null;
+  referredStudentName?: string | null;
+  referredFacultyId?: number | null;
+  referredFacultyName?: string | null;
+  referredStaffName?: string | null;
   createdAt: string;
   updatedAt: string;
   totalPaidAmount: number | null;
@@ -52,6 +60,12 @@ export interface EnquiryRequest {
   finalCalculatedFee?: number;
   yearWiseFees?: string;
   studentType?: 'DAY_SCHOLAR' | 'HOSTELER';
+  country?: string;
+  state?: string;
+  district?: string;
+  referredStudentId?: number;
+  referredFacultyId?: number;
+  referredStaffName?: string;
 }
 
 export interface FeeFinalizationRequest {

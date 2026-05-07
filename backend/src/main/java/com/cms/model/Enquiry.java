@@ -132,6 +132,21 @@ public class Enquiry {
     @Column(name = "finalized_at")
     private Instant finalizedAt;
 
+    // ── Location ─────────────────────────────────────────────────────────────
+    private String country;
+    private String state;
+    private String district;
+
+    // ── Referring person (only one FK will be non-null per enquiry) ───────────
+    @Column(name = "referred_student_id")
+    private Long referredStudentId;
+
+    @Column(name = "referred_faculty_id")
+    private Long referredFacultyId;
+
+    @Column(name = "referred_staff_name")
+    private String referredStaffName;
+
     @Column(name = "converted_student_id")
     private Long convertedStudentId;
 
@@ -362,6 +377,24 @@ public class Enquiry {
     public void setFinalizedAt(Instant finalizedAt) {
         this.finalizedAt = finalizedAt;
     }
+
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
+
+    public String getDistrict() { return district; }
+    public void setDistrict(String district) { this.district = district; }
+
+    public Long getReferredStudentId() { return referredStudentId; }
+    public void setReferredStudentId(Long referredStudentId) { this.referredStudentId = referredStudentId; }
+
+    public Long getReferredFacultyId() { return referredFacultyId; }
+    public void setReferredFacultyId(Long referredFacultyId) { this.referredFacultyId = referredFacultyId; }
+
+    public String getReferredStaffName() { return referredStaffName; }
+    public void setReferredStaffName(String referredStaffName) { this.referredStaffName = referredStaffName; }
 
     public Long getConvertedStudentId() {
         return convertedStudentId;

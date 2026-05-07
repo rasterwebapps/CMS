@@ -59,10 +59,12 @@
           <span class="hero-kpi__label">Required</span>
           <span class="hero-kpi__value">{{ mandatorySatisfiedCount() }} <span class="hero-kpi__of">/ {{ mandatoryTotal() }}</span></span>
         </div>
-        <div class="hero-kpi">
-          <span class="hero-kpi__label">Optional</span>
-          <span class="hero-kpi__value">{{ optionalRows().length }}</span>
-        </div>
+        @if (optionalRows().length > 0) {
+          <div class="hero-kpi">
+            <span class="hero-kpi__label">Other</span>
+            <span class="hero-kpi__value">{{ optionalRows().length }}</span>
+          </div>
+        }
         <div class="hero-kpi hero-kpi--progress" [class.hero-kpi--complete]="mandatorySatisfiedCount() === mandatoryTotal()">
           <span class="hero-kpi__label">Progress</span>
           <div class="kpi-track" role="progressbar" [attr.aria-valuenow]="mandatoryProgressPct()" aria-valuemin="0" aria-valuemax="100">
@@ -179,15 +181,16 @@
       </div>
     </div>
 
-    <!-- ── Optional Documents ────────────────────────────────────────────── -->
+    <!-- ── Orphaned Documents (collected docs outside current program config) ── -->
+    @if (optionalRows().length > 0) {
     <div class="doc-section">
       <div class="doc-section__hdr doc-section__hdr--muted">
         <div class="doc-section__hdr-ico doc-section__hdr-ico--muted">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
-        <span>Additional Documents</span>
+        <span>Previously Collected</span>
         <span class="doc-section__count doc-section__count--muted">{{ optionalRows().length }}</span>
-        <span class="doc-section__hint">Optional — upload any additional supporting documents if available</span>
+        <span class="doc-section__hint">Collected earlier — no longer in this program's required list</span>
       </div>
 
       <div class="doc-list">
@@ -277,6 +280,7 @@
         }
       </div>
     </div>
+    } <!-- end @if optionalRows -->
 
     <!-- ── Footer ────────────────────────────────────────────────────────── -->
     <div class="doccol-footer">
