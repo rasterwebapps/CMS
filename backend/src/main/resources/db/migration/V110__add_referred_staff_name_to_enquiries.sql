@@ -1,0 +1,1 @@
+ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS referred_staff_name VARCHAR(255);
