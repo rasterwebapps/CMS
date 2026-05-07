@@ -1,0 +1,66 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Scholarship <em>Types</em></h1>
+      <p class="mlp-sub">Manage scholarship master schemes, discount rules and renewal settings.</p>
+      @if (!loading()) {
+        <div class="mlp-meta">
+          <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ scholarships().length }} Total</span>
+        </div>
+      }
+    </div>
+    <button class="btn-primary" routerLink="/scholarships/new"><mat-icon>add</mat-icon> Add Scholarship</button>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <span class="search-bar__icon">⌕</span>
+      <input class="search-bar__input" [value]="searchValue()" (input)="applySearch($event)" placeholder="Search scholarships…" />
+      @if (searchValue()) { <button class="search-bar__clear" (click)="clearSearch()">×</button> }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else if (filteredScholarships().length === 0) {
+    <cms-empty-state icon="school" title="No scholarships found" subtitle="Create a scholarship type to get started." actionLabel="Add Scholarship" />
+  } @else {
+    <div class="content-card mlp-table-card">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th class="text-right">Value</th>
+            <th class="text-center">Renewal</th>
+            <th>Status</th>
+            <th class="actions-header"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredScholarships(); track row.id) {
+            <tr class="table-row">
+              <td><span class="code-value">{{ row.code }}</span></td>
+              <td><span class="cell-name">{{ row.name }}</span><br /><small>{{ row.description || '—' }}</small></td>
+              <td>{{ row.discountType }}</td>
+              <td class="text-right cell-number">
+                @if (row.discountType === 'PERCENTAGE') { {{ row.discountValue || 0 }}% }
+                @else { {{ row.discountValue | inr:false:false }} }
+              </td>
+              <td class="text-center">{{ row.renewalRequired ? 'Yes' : 'No' }}</td>
+              <td><span class="cms-badge" [class.cms-badge--green]="row.active" [class.cms-badge--gray]="!row.active">{{ row.active ? 'Active' : 'Inactive' }}</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn" (click)="edit(row)" aria-label="Edit"><mat-icon>edit</mat-icon></button>
+                  <button class="action-btn action-btn--danger" (click)="deactivate(row)" aria-label="Deactivate"><mat-icon>block</mat-icon></button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+

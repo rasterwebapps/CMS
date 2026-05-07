@@ -1,0 +1,74 @@
+<h2 mat-dialog-title class="dialog-title dialog-title--approve">
+  <mat-icon>check_circle</mat-icon>
+  Approve Scholarship
+</h2>
+
+<mat-dialog-content>
+  <div class="sad-student-info">
+    <span class="sad-name">{{ data.application.studentName }}</span>
+    <span class="sad-roll">{{ data.application.rollNumber || '—' }}</span>
+    <span class="sad-scholarship">{{ data.application.scholarshipName }}</span>
+    <span class="sad-year">{{ data.application.academicYearName }}</span>
+  </div>
+
+  <form [formGroup]="form" class="dialog-form">
+    <div class="field-group">
+      <label for="sad-amount" class="field-label">
+        Approved Amount (₹) <span class="field-required">*</span>
+      </label>
+      <input
+        id="sad-amount"
+        class="field-input"
+        type="number"
+        formControlName="approvedAmount"
+        min="1"
+        placeholder="Enter approved amount"
+        [class.field-input--error]="form.get('approvedAmount')?.invalid && form.get('approvedAmount')?.touched"
+      />
+      @if (form.get('approvedAmount')?.invalid && form.get('approvedAmount')?.touched) {
+        <p class="field-error">A valid amount is required (must be ≥ ₹1)</p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label for="sad-freq" class="field-label">
+        Disbursement Frequency <span class="field-required">*</span>
+      </label>
+      <select id="sad-freq" class="field-select" formControlName="disbursementFrequency">
+        @for (f of disbursementFrequencies; track f) {
+          <option [value]="f">{{ freqLabel(f) }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="sad-dates-row">
+      <div class="field-group">
+        <label for="sad-from" class="field-label">Valid From</label>
+        <input id="sad-from" class="field-input" type="date" formControlName="validFrom" />
+      </div>
+      <div class="field-group">
+        <label for="sad-till" class="field-label">Valid Till</label>
+        <input id="sad-till" class="field-input" type="date" formControlName="validTill" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label for="sad-remarks" class="field-label">Approval Remarks</label>
+      <textarea id="sad-remarks" class="field-textarea" formControlName="remarks" rows="2"
+                placeholder="Optional notes for the student record"></textarea>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="saving()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="onApprove()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>check_circle</mat-icon>
+    }
+    Approve
+  </button>
+</mat-dialog-actions>
+

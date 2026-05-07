@@ -1,0 +1,71 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/scholarships" aria-label="Back"><mat-icon>arrow_back</mat-icon></a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Scholarship</em></h1>
+      <p class="page-subtitle">Define scheme rules used for eligibility and fee discounts.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <p class="form-section-title">Scholarship Details</p>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Code <span class="required-star">*</span></label>
+                <input class="field-input" formControlName="code" placeholder="SC_GOVT" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Name <span class="required-star">*</span></label>
+                <input class="field-input" formControlName="name" placeholder="SC Government Scholarship" />
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Description</label>
+              <textarea class="field-textarea" formControlName="description" rows="3"></textarea>
+            </div>
+            <div class="field-row">
+              <label class="field-check"><input type="checkbox" formControlName="govtScheme" /> Government Scheme</label>
+              <label class="field-check"><input type="checkbox" formControlName="renewalRequired" /> Renewal Required</label>
+              <label class="field-check"><input type="checkbox" formControlName="active" /> Active</label>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Scheme Code</label>
+                <input class="field-input" formControlName="schemeCode" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Discount Type</label>
+                <select class="field-select" formControlName="discountType">
+                  @for (type of discountTypes; track type) { <option [value]="type">{{ type }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Discount Value</label>
+                <input class="field-input" type="number" min="0" formControlName="discountValue" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Max Amount Per Year (₹)</label>
+                <input class="field-input" type="number" min="0" formControlName="maxAmountPerYear" />
+              </div>
+            </div>
+          </div>
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/scholarships">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="18" /> } @else { Save Scholarship }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>
+

@@ -1,0 +1,47 @@
+.dialog-title--approve {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  mat-icon { color: var(--mat-sys-primary); }
+}
+
+.sad-student-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+  margin-bottom: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.sad-name {
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.sad-roll {
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.78rem;
+}
+
+.sad-scholarship {
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+}
+
+.sad-year {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.sad-dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+
