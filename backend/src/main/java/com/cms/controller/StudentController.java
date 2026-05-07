@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.BulkRollNumberAssignmentRequest;
+import com.cms.dto.GenerateRollNumbersRequest;
+import com.cms.dto.RollNumberAssignment;
 import com.cms.dto.RollNumberAssignmentRequest;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.model.enums.StudentStatus;
+import com.cms.service.RollNumberGeneratorService;
 import com.cms.service.StudentService;
 
 import jakarta.validation.Valid;
@@ -30,9 +33,11 @@ import jakarta.validation.Valid;
 public class StudentController {
 
     private final StudentService studentService;
+    private final RollNumberGeneratorService rollNumberGeneratorService;
 
-    public StudentController(StudentService studentService) {
+    public StudentController(StudentService studentService, RollNumberGeneratorService rollNumberGeneratorService) {
         this.studentService = studentService;
+        this.rollNumberGeneratorService = rollNumberGeneratorService;
     }
 
     @PostMapping

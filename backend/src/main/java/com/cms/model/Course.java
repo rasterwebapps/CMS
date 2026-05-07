@@ -35,6 +35,9 @@ public class Course {
     @Column(name = "specialization")
     private String specialization;
 
+    @Column(name = "roll_number_code", length = 10)
+    private String rollNumberCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;

@@ -59,6 +59,28 @@
 
             <div class="field-row">
               <div class="field-group">
+                <label for="stu-univ-reg" class="field-label">University Reg. No.</label>
+                <input id="stu-univ-reg" class="field-input" formControlName="universityRegistrationNumber"
+                  placeholder="e.g. 2026MCA65001" autocomplete="off"
+                  [class.field-input--error]="form.get('universityRegistrationNumber')?.invalid && form.get('universityRegistrationNumber')?.touched" />
+                @if (form.get('universityRegistrationNumber')?.invalid && form.get('universityRegistrationNumber')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('universityRegistrationNumber') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="stu-umis" class="field-label">UMIS Number</label>
+                <input id="stu-umis" class="field-input" formControlName="umisNumber"
+                  placeholder="e.g. UMIS2026001" autocomplete="off"
+                  [class.field-input--error]="form.get('umisNumber')?.invalid && form.get('umisNumber')?.touched" />
+                @if (form.get('umisNumber')?.invalid && form.get('umisNumber')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('umisNumber') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
                 <label for="stu-first" class="field-label">First Name <span class="required-star">*</span></label>
                 <input id="stu-first" class="field-input" formControlName="firstName"
                   placeholder="First name" autocomplete="given-name"

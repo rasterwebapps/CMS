@@ -11,4 +11,9 @@ public record CourseResponse(
     ProgramResponse program,
     Instant createdAt,
     Instant updatedAt
-) {}
+) {
+    public CourseResponse(Long id, String name, String code, String specialization,
+                          ProgramResponse program, Instant createdAt, Instant updatedAt) {
+        this(id, name, code, specialization, null, program, createdAt, updatedAt);
+    }
+}

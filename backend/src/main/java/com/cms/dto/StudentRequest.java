@@ -15,6 +15,12 @@ public record StudentRequest(
     @Size(max = 50, message = "Roll number must not exceed 50 characters")
     String rollNumber,
 
+    @Size(max = 50, message = "University registration number must not exceed 50 characters")
+    String universityRegistrationNumber,
+
+    @Size(max = 50, message = "UMIS number must not exceed 50 characters")
+    String umisNumber,
+
     @NotBlank(message = "First name is required")
     @Size(max = 100, message = "First name must not exceed 100 characters")
     String firstName,
@@ -85,7 +91,7 @@ public record StudentRequest(
                           String religion, String communityCategory, String caste, String bloodGroup,
                           String fatherName, String fatherPhone, String fatherEmail, String motherName,
                           String motherPhone, String motherEmail, String parentMobile, AddressRequest address) {
-        this(rollNumber, firstName, lastName, email, phone, programId, courseId, specializationDepartmentId,
+        this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specializationDepartmentId,
             semester, admissionDate, labBatch, status, dateOfBirth, gender, aadharNumber, nationality,
             religion, communityCategory, caste, bloodGroup, fatherName, fatherPhone, fatherEmail,
             motherName, motherPhone, motherEmail, parentMobile, false, null, null, address);

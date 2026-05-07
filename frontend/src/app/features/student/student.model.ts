@@ -1,6 +1,8 @@
 export interface Student {
   id: number;
   rollNumber: string;
+  universityRegistrationNumber?: string;
+  umisNumber?: string;
   firstName: string;
   lastName: string;
   fullName: string;
@@ -103,6 +105,8 @@ export interface StudentFeeLedger {
 
 export interface StudentRequest {
   rollNumber: string;
+  universityRegistrationNumber?: string;
+  umisNumber?: string;
   firstName: string;
   lastName: string;
   email: string;
