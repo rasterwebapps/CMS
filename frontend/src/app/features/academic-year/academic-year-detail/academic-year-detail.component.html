@@ -163,11 +163,11 @@
       <div class="detail-card">
         <div class="offerings-header">
           <div class="offerings-filter">
-            <label class="field-label">Filter by Semester</label>
+            <label class="field-label">Filter by Sem/Year</label>
             <select class="field-input field-input--narrow" (change)="setSemesterFilter($any($event.target).value)">
-              <option value="">All Semesters</option>
-              @for (sem of [1,2,3,4,5,6,7,8]; track sem) {
-                <option [value]="sem">Semester {{ sem }}</option>
+              <option value="">All</option>
+              @for (pos of availableTermPositions(); track pos) {
+                <option [value]="pos">{{ pos }}</option>
               }
             </select>
           </div>
@@ -277,7 +277,7 @@
               <tr>
                 <th>Student</th>
                 <th>Cohort</th>
-                <th>Semester</th>
+                <th>Sem/Year</th>
                 <th>Subject</th>
                 <th>Status</th>
               </tr>

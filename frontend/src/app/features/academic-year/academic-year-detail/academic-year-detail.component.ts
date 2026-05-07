@@ -108,6 +108,10 @@ export class AcademicYearDetailComponent implements OnInit {
       : this.courseOfferings();
   });
 
+  protected readonly availableTermPositions = computed(() =>
+    [...new Set(this.courseOfferings().map(o => o.semesterNumber))].sort((a, b) => a - b)
+  );
+
   protected readonly oddTermForm: FormGroup = this.fb.group({
     startDate: [''],
     endDate: [''],
