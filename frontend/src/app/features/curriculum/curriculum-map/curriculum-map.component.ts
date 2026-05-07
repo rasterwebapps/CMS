@@ -119,6 +119,12 @@ export class CurriculumMapComponent implements OnInit {
     return Array.from({ length: c.totalSemesters }, (_, i) => i + 1);
   }
 
+  protected termLabel(n: number): string {
+    return this.curriculum()?.assessmentPattern === 'YEARLY'
+      ? `Year ${n}`
+      : `Semester ${n}`;
+  }
+
   protected getCoursesForSemester(semesterNumber: number) {
     const c = this.curriculum();
     if (!c) return [];

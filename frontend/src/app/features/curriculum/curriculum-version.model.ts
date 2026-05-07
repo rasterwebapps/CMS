@@ -47,6 +47,7 @@ export interface CurriculumFullView {
   versionName: string;
   programId: number;
   programName: string;
+  assessmentPattern: 'SEMESTER' | 'YEARLY';
   totalSemesters: number;
   semesters: CurriculumSemesterGroup[];
 }

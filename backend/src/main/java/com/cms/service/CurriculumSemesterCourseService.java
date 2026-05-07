@@ -16,6 +16,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Subject;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.SubjectRepository;
@@ -44,8 +45,10 @@ public class CurriculumSemesterCourseService {
 
         int totalSemesters = cv.getProgram().getTotalSemesters();
         if (request.semesterNumber() < 1 || request.semesterNumber() > totalSemesters) {
+            AssessmentPattern pattern = cv.getProgram().getAssessmentPattern();
+            String termLabel = pattern == AssessmentPattern.YEARLY ? "Year" : "Semester";
             throw new IllegalArgumentException(
-                "Semester number must be between 1 and " + totalSemesters +
+                termLabel + " number must be between 1 and " + totalSemesters +
                 " for this program (duration " + cv.getProgram().getDurationYears() + " years)");
         }
 
@@ -116,6 +119,7 @@ public class CurriculumSemesterCourseService {
             cv.getVersionName(),
             cv.getProgram().getId(),
             cv.getProgram().getName(),
+            cv.getProgram().getAssessmentPattern(),
             totalSemesters,
             semesterGroups
         );
