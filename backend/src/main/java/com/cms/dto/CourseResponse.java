@@ -7,6 +7,7 @@ public record CourseResponse(
     String name,
     String code,
     String specialization,
+    String rollNumberCode,
     ProgramResponse program,
     Instant createdAt,
     Instant updatedAt

@@ -97,6 +97,14 @@ public class Course {
         this.program = program;
     }
 
+    public String getRollNumberCode() {
+        return rollNumberCode;
+    }
+
+    public void setRollNumberCode(String rollNumberCode) {
+        this.rollNumberCode = rollNumberCode;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

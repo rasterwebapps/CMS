@@ -16,6 +16,9 @@ public record CourseRequest(
     @Size(max = 255, message = "Specialization must not exceed 255 characters")
     String specialization,
 
+    @Size(max = 2, message = "Roll number code must be exactly 2 characters")
+    String rollNumberCode,
+
     @NotNull(message = "Program ID is required")
     Long programId
 ) {}

@@ -75,4 +75,9 @@ export class CollectPaymentDialogComponent {
   protected onCancel(): void {
     this.dialogRef.close();
   }
+
+  protected isTransactionRefRequired(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
+  }
 }

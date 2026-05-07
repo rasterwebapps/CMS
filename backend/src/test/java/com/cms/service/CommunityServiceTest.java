@@ -41,7 +41,8 @@ class CommunityServiceTest {
         CommunityRequest request = new CommunityRequest("Backward Class", "BC", "Backward Class category", true);
         Community saved = createCommunity(1L, "Backward Class", "BC");
 
-        when(communityRepository.existsByCode("BC")).thenReturn(false);
+        when(communityRepository.existsByNameIgnoreCase("Backward Class")).thenReturn(false);
+        when(communityRepository.existsByCodeIgnoreCase("BC")).thenReturn(false);
         when(communityRepository.save(any(Community.class))).thenReturn(saved);
 
         CommunityResponse response = communityService.create(request);
@@ -57,7 +58,8 @@ class CommunityServiceTest {
     void shouldThrowWhenDuplicateCode() {
         CommunityRequest request = new CommunityRequest("Backward Class", "BC", null, true);
 
-        when(communityRepository.existsByCode("BC")).thenReturn(true);
+        when(communityRepository.existsByNameIgnoreCase("Backward Class")).thenReturn(false);
+        when(communityRepository.existsByCodeIgnoreCase("BC")).thenReturn(true);
 
         assertThatThrownBy(() -> communityService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -71,7 +73,8 @@ class CommunityServiceTest {
         CommunityRequest request = new CommunityRequest("Other Caste", "OC", null, null);
         Community saved = createCommunity(1L, "Other Caste", "OC");
 
-        when(communityRepository.existsByCode("OC")).thenReturn(false);
+        when(communityRepository.existsByNameIgnoreCase("Other Caste")).thenReturn(false);
+        when(communityRepository.existsByCodeIgnoreCase("OC")).thenReturn(false);
         when(communityRepository.save(any(Community.class))).thenReturn(saved);
 
         CommunityResponse response = communityService.create(request);
@@ -129,8 +132,8 @@ class CommunityServiceTest {
         Community updated = createCommunity(1L, "Backward Class Updated", "BC");
 
         when(communityRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(communityRepository.existsByCodeAndIdNot("BC", 1L)).thenReturn(false);
-        when(communityRepository.existsByNameAndIdNot("Backward Class Updated", 1L)).thenReturn(false);
+        when(communityRepository.existsByCodeIgnoreCaseAndIdNot("BC", 1L)).thenReturn(false);
+        when(communityRepository.existsByNameIgnoreCaseAndIdNot("Backward Class Updated", 1L)).thenReturn(false);
         when(communityRepository.save(any(Community.class))).thenReturn(updated);
 
         CommunityResponse response = communityService.update(1L, request);
@@ -144,7 +147,7 @@ class CommunityServiceTest {
         CommunityRequest request = new CommunityRequest("Backward Class", "OC", null, true);
 
         when(communityRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(communityRepository.existsByCodeAndIdNot("OC", 1L)).thenReturn(true);
+        when(communityRepository.existsByCodeIgnoreCaseAndIdNot("OC", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> communityService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -159,8 +162,8 @@ class CommunityServiceTest {
         CommunityRequest request = new CommunityRequest("Most Backward Class", "BC", null, true);
 
         when(communityRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(communityRepository.existsByCodeAndIdNot("BC", 1L)).thenReturn(false);
-        when(communityRepository.existsByNameAndIdNot("Most Backward Class", 1L)).thenReturn(true);
+        when(communityRepository.existsByCodeIgnoreCaseAndIdNot("BC", 1L)).thenReturn(false);
+        when(communityRepository.existsByNameIgnoreCaseAndIdNot("Most Backward Class", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> communityService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)

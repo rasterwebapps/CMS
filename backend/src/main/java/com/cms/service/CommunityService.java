@@ -23,10 +23,15 @@ public class CommunityService {
 
     @Transactional
     public CommunityResponse create(CommunityRequest request) {
-        if (communityRepository.existsByCode(request.code())) {
-            throw new IllegalArgumentException("Community with code '" + request.code() + "' already exists");
+        String name = requireTrimmed(request.name(), "Community name is required");
+        String code = requireTrimmed(request.code(), "Community code is required");
+        if (communityRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Community with name '" + name + "' already exists");
         }
-        Community community = new Community(request.name(), request.code(), request.description());
+        if (communityRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException("Community with code '" + code + "' already exists");
+        }
+        Community community = new Community(name, code, trim(request.description()));
         if (request.isActive() != null) {
             community.setIsActive(request.isActive());
         }
@@ -52,15 +57,17 @@ public class CommunityService {
     @Transactional
     public CommunityResponse update(Long id, CommunityRequest request) {
         Community community = findEntityById(id);
-        if (communityRepository.existsByCodeAndIdNot(request.code(), id)) {
-            throw new IllegalArgumentException("Community with code '" + request.code() + "' already exists");
+        String name = requireTrimmed(request.name(), "Community name is required");
+        String code = requireTrimmed(request.code(), "Community code is required");
+        if (communityRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
+            throw new IllegalArgumentException("Community with code '" + code + "' already exists");
         }
-        if (communityRepository.existsByNameAndIdNot(request.name(), id)) {
-            throw new IllegalArgumentException("Community with name '" + request.name() + "' already exists");
+        if (communityRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
+            throw new IllegalArgumentException("Community with name '" + name + "' already exists");
         }
-        community.setName(request.name());
-        community.setCode(request.code());
-        community.setDescription(request.description());
+        community.setName(name);
+        community.setCode(code);
+        community.setDescription(trim(request.description()));
         if (request.isActive() != null) {
             community.setIsActive(request.isActive());
         }
@@ -85,6 +92,20 @@ public class CommunityService {
             c.getId(), c.getName(), c.getCode(), c.getDescription(),
             c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }
 

@@ -13,9 +13,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     boolean existsByCode(String code);
 
-    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByNameIgnoreCase(String name);
 
-    boolean existsByCodeAndIdNot(String code, Long id);
+    boolean existsByCodeIgnoreCase(String code);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
 
     List<Course> findByProgramId(Long programId);
 }

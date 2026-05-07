@@ -39,11 +39,22 @@ public class CourseService {
     public CourseResponse create(CourseRequest request) {
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        String name = requireTrimmed(request.name(), "Course name is required");
+        String code = requireTrimmed(request.code(), "Course code is required");
+
+        if (courseRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException(
+                "A course with the name '" + name + "' already exists");
+        }
+        if (courseRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException(
+                "A course with the code '" + code + "' already exists");
+        }
 
         Course course = new Course(
-            request.name(),
-            request.code(),
-            request.specialization(),
+            name,
+            code,
+            trim(request.specialization()),
             program
         );
         Course saved = courseRepository.save(course);
@@ -78,19 +89,21 @@ public class CourseService {
 
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        String name = requireTrimmed(request.name(), "Course name is required");
+        String code = requireTrimmed(request.code(), "Course code is required");
 
-        if (courseRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (courseRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "A course with the name '" + request.name() + "' already exists");
+                "A course with the name '" + name + "' already exists");
         }
-        if (courseRepository.existsByCodeAndIdNot(request.code(), id)) {
+        if (courseRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
             throw new IllegalArgumentException(
-                "A course with the code '" + request.code() + "' already exists");
+                "A course with the code '" + code + "' already exists");
         }
 
-        course.setName(request.name());
-        course.setCode(request.code());
-        course.setSpecialization(request.specialization());
+        course.setName(name);
+        course.setCode(code);
+        course.setSpecialization(trim(request.specialization()));
         course.setProgram(program);
 
         Course updated = courseRepository.save(course);
@@ -118,9 +131,24 @@ public class CourseService {
             course.getName(),
             course.getCode(),
             course.getSpecialization(),
+            course.getRollNumberCode(),
             programResponse,
             course.getCreatedAt(),
             course.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }

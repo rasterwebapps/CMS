@@ -11,8 +11,10 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
     List<Community> findByIsActiveTrueOrderByNameAsc();
     List<Community> findAllByOrderByNameAsc();
     boolean existsByCode(String code);
-    boolean existsByCodeAndIdNot(String code, Long id);
-    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByCodeIgnoreCase(String code);
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
     Optional<Community> findByCode(String code);
 }
 
