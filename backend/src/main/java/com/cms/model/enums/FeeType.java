@@ -2,9 +2,13 @@ package com.cms.model.enums;
 
 public enum FeeType {
     TUITION,
-    LAB_FEE,
+    LABORATORY_FEE,
     LIBRARY_FEE,
     EXAMINATION_FEE,
+    CLINICAL_FEE,
+    BOOK_AND_PACKET_FEE,
+    UNIFORM_AND_SHOES_FEE,
+    UNIVERSITY_REGISTRATION_FEE,
     HOSTEL_FEE,
     TRANSPORT_FEE,
     MISCELLANEOUS,

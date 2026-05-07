@@ -228,7 +228,7 @@ class LabServiceTest {
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
-        when(labRepository.existsByNameAndDepartmentIdAndIdNot("Electronics Lab Updated", 2L, 1L))
+        when(labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot("Electronics Lab Updated", 2L, 1L))
             .thenReturn(false);
         when(labRepository.save(any(Lab.class))).thenReturn(updatedLab);
 
@@ -258,7 +258,7 @@ class LabServiceTest {
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
-        when(labRepository.existsByNameAndDepartmentIdAndIdNot("Computer Lab 2", 1L, 1L))
+        when(labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot("Computer Lab 2", 1L, 1L))
             .thenReturn(true);
 
         assertThatThrownBy(() -> labService.update(1L, request))

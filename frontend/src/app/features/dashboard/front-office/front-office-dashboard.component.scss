@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Front Office Dashboard — v2 precision port + refinements
 // ─────────────────────────────────────────────────────────────────────────────
+@use 'sass:color';
 
 $green:  #22C55E;
 $amber:  #F59E0B;
@@ -424,13 +425,13 @@ $purple: #A78BFA;
   }
 
   &[data-status='ENQUIRED']            { background: rgba(59,130,246,0.10);  color: #2563eb; &::before { background: #2563eb; } }
-  &[data-status='INTERESTED']          { background: rgba($amber, 0.10);     color: darken($amber,12%); &::before { background: $amber; } }
+  &[data-status='INTERESTED']          { background: rgba($amber, 0.10);     color: color.adjust($amber, $lightness: -12%); &::before { background: $amber; } }
   &[data-status='FEES_FINALIZED']      { background: rgba(139,92,246,0.10);  color: #7c3aed; &::before { background: #7c3aed; } }
   &[data-status='FEES_PAID']           { background: rgba(20,184,166,0.10);  color: #0d9488; &::before { background: #0d9488; } }
   &[data-status='PARTIALLY_PAID']      { background: rgba(249,115,22,0.10);  color: #ea580c; &::before { background: #ea580c; } }
   &[data-status='DOCUMENTS_SUBMITTED'] { background: rgba(14,165,233,0.10);  color: #0284c7; &::before { background: #0284c7; } }
-  &[data-status='CONVERTED']           { background: rgba($green, 0.10);     color: darken($green,10%); &::before { background: $green; } }
-  &[data-status='ADMITTED']            { background: rgba($green, 0.12);     color: darken($green,16%); &::before { background: darken($green,5%); } }
+  &[data-status='CONVERTED']           { background: rgba($green, 0.10);     color: color.adjust($green, $lightness: -10%); &::before { background: $green; } }
+  &[data-status='ADMITTED']            { background: rgba($green, 0.12);     color: color.adjust($green, $lightness: -16%); &::before { background: color.adjust($green, $lightness: -5%); } }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -442,9 +443,9 @@ $purple: #A78BFA;
   min-width: 20px; height: 20px;
   padding: 0 6px; border-radius: 20px;
   font-size: 10px; font-weight: 800;
-  background: rgba($amber, 0.12); color: darken($amber, 8%);
+  background: rgba($amber, 0.12); color: color.adjust($amber, $lightness: -8%);
 
-  &--amber { background: rgba($amber, 0.12); color: darken($amber, 8%); }
+  &--amber { background: rgba($amber, 0.12); color: color.adjust($amber, $lightness: -8%); }
 }
 
 .ap-item {

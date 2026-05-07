@@ -38,13 +38,19 @@ public class LabService {
         Department department = departmentRepository.findById(request.departmentId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Department not found with id: " + request.departmentId()));
+        String name = requireTrimmed(request.name(), "Lab name is required");
+
+        if (labRepository.existsByNameIgnoreCaseAndDepartmentId(name, request.departmentId())) {
+            throw new IllegalArgumentException(
+                "A lab with the name '" + name + "' already exists in this department");
+        }
 
         Lab lab = new Lab(
-            request.name(),
+            name,
             request.labType(),
             department,
-            request.building(),
-            request.roomNumber(),
+            trim(request.building()),
+            trim(request.roomNumber()),
             request.capacity(),
             request.status()
         );
@@ -81,19 +87,20 @@ public class LabService {
         Department department = departmentRepository.findById(request.departmentId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Department not found with id: " + request.departmentId()));
+        String name = requireTrimmed(request.name(), "Lab name is required");
 
-        if (labRepository.existsByNameAndDepartmentIdAndIdNot(
-                request.name(), request.departmentId(), id)) {
+        if (labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot(
+                name, request.departmentId(), id)) {
             throw new IllegalArgumentException(
-                "A lab with the name '" + request.name()
+                "A lab with the name '" + name
                 + "' already exists in this department");
         }
 
-        lab.setName(request.name());
+        lab.setName(name);
         lab.setLabType(request.labType());
         lab.setDepartment(department);
-        lab.setBuilding(request.building());
-        lab.setRoomNumber(request.roomNumber());
+        lab.setBuilding(trim(request.building()));
+        lab.setRoomNumber(trim(request.roomNumber()));
         lab.setCapacity(request.capacity());
         lab.setStatus(request.status());
 
@@ -189,5 +196,19 @@ public class LabService {
             assignment.getCreatedAt(),
             assignment.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }

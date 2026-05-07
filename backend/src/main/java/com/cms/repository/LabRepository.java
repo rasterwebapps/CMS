@@ -12,5 +12,7 @@ public interface LabRepository extends JpaRepository<Lab, Long> {
 
     boolean existsByNameAndDepartmentId(String name, Long departmentId);
 
-    boolean existsByNameAndDepartmentIdAndIdNot(String name, Long departmentId, Long id);
+    boolean existsByNameIgnoreCaseAndDepartmentId(String name, Long departmentId);
+
+    boolean existsByNameIgnoreCaseAndDepartmentIdAndIdNot(String name, Long departmentId, Long id);
 }

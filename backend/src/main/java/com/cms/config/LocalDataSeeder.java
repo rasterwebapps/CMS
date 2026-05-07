@@ -252,11 +252,11 @@ public class LocalDataSeeder {
             // 15. FEE STRUCTURES
             // ═══════════════════════════════════════════════════════════════
             FeeStructure fs1 = feeStructureRepo.save(createFeeStructure(progBAC, ay2025, FeeType.TUITION, new BigDecimal("75000.00")));
-            FeeStructure fs2 = feeStructureRepo.save(createFeeStructure(progBAC, ay2025, FeeType.LAB_FEE, new BigDecimal("10000.00")));
+            FeeStructure fs2 = feeStructureRepo.save(createFeeStructure(progBAC, ay2025, FeeType.LABORATORY_FEE, new BigDecimal("10000.00")));
             FeeStructure fs3 = feeStructureRepo.save(createFeeStructure(progMAS, ay2025, FeeType.TUITION, new BigDecimal("100000.00")));
             FeeStructure fs4 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.TUITION, new BigDecimal("100000.00")));
             FeeStructure fs5 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.TUITION, new BigDecimal("55000.00")));
-            FeeStructure fs6 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.LAB_FEE, new BigDecimal("10000.00")));
+            FeeStructure fs6 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.LABORATORY_FEE, new BigDecimal("10000.00")));
             log.info("✓ Created 6 fee structures");
 
             // ═══════════════════════════════════════════════════════════════
