@@ -133,8 +133,8 @@ class DepartmentServiceTest {
             "New Description", "Dr. New");
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existingDepartment));
-        when(departmentRepository.existsByNameAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
-        when(departmentRepository.existsByCodeAndIdNot("CSU", 1L)).thenReturn(false);
+        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
+        when(departmentRepository.existsByCodeIgnoreCaseAndIdNot("CSU", 1L)).thenReturn(false);
         when(departmentRepository.save(any(Department.class))).thenReturn(updatedDepartment);
 
         DepartmentResponse response = departmentService.update(1L, updateRequest);
@@ -155,7 +155,7 @@ class DepartmentServiceTest {
         DepartmentRequest request = new DepartmentRequest("Mathematics", "CS", "Desc", "HOD");
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(departmentRepository.existsByNameAndIdNot("Mathematics", 1L)).thenReturn(true);
+        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Mathematics", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> departmentService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -171,8 +171,8 @@ class DepartmentServiceTest {
         DepartmentRequest request = new DepartmentRequest("Computer Science", "MATH", "Desc", "HOD");
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(departmentRepository.existsByNameAndIdNot("Computer Science", 1L)).thenReturn(false);
-        when(departmentRepository.existsByCodeAndIdNot("MATH", 1L)).thenReturn(true);
+        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science", 1L)).thenReturn(false);
+        when(departmentRepository.existsByCodeIgnoreCaseAndIdNot("MATH", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> departmentService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)

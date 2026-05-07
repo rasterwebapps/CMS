@@ -213,8 +213,8 @@ class CourseServiceTest {
         when(programService.toResponse(newProgram)).thenReturn(newProgResponse);
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
-        when(courseRepository.existsByNameAndIdNot("M.Sc. Nursing", 1L)).thenReturn(false);
-        when(courseRepository.existsByCodeAndIdNot("MSN", 1L)).thenReturn(false);
+        when(courseRepository.existsByNameIgnoreCaseAndIdNot("M.Sc. Nursing", 1L)).thenReturn(false);
+        when(courseRepository.existsByCodeIgnoreCaseAndIdNot("MSN", 1L)).thenReturn(false);
         when(courseRepository.save(any(Course.class))).thenReturn(updatedCourse);
 
         CourseResponse response = courseService.update(1L, updateRequest);
@@ -237,7 +237,7 @@ class CourseServiceTest {
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
-        when(courseRepository.existsByNameAndIdNot("M.Sc. Nursing", 1L)).thenReturn(true);
+        when(courseRepository.existsByNameIgnoreCaseAndIdNot("M.Sc. Nursing", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> courseService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -254,8 +254,8 @@ class CourseServiceTest {
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
-        when(courseRepository.existsByNameAndIdNot("B.Sc. Nursing", 1L)).thenReturn(false);
-        when(courseRepository.existsByCodeAndIdNot("MSN", 1L)).thenReturn(true);
+        when(courseRepository.existsByNameIgnoreCaseAndIdNot("B.Sc. Nursing", 1L)).thenReturn(false);
+        when(courseRepository.existsByCodeIgnoreCaseAndIdNot("MSN", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> courseService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)

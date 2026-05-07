@@ -23,11 +23,23 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse create(DepartmentRequest request) {
+        String name = requireTrimmed(request.name(), "Department name is required");
+        String code = requireTrimmed(request.code(), "Department code is required");
+
+        if (departmentRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException(
+                "A department with the name '" + name + "' already exists");
+        }
+        if (departmentRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException(
+                "A department with the code '" + code + "' already exists");
+        }
+
         Department department = new Department(
-            request.name(),
-            request.code(),
-            request.description(),
-            request.hodName()
+            name,
+            code,
+            trim(request.description()),
+            trim(request.hodName())
         );
         Department saved = departmentRepository.save(department);
         return toResponse(saved);
@@ -49,20 +61,22 @@ public class DepartmentService {
     public DepartmentResponse update(Long id, DepartmentRequest request) {
         Department department = departmentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
+        String name = requireTrimmed(request.name(), "Department name is required");
+        String code = requireTrimmed(request.code(), "Department code is required");
 
-        if (departmentRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (departmentRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "A department with the name '" + request.name() + "' already exists");
+                "A department with the name '" + name + "' already exists");
         }
-        if (departmentRepository.existsByCodeAndIdNot(request.code(), id)) {
+        if (departmentRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
             throw new IllegalArgumentException(
-                "A department with the code '" + request.code() + "' already exists");
+                "A department with the code '" + code + "' already exists");
         }
 
-        department.setName(request.name());
-        department.setCode(request.code());
-        department.setDescription(request.description());
-        department.setHodName(request.hodName());
+        department.setName(name);
+        department.setCode(code);
+        department.setDescription(trim(request.description()));
+        department.setHodName(trim(request.hodName()));
 
         Department updated = departmentRepository.save(department);
         return toResponse(updated);
@@ -86,5 +100,19 @@ public class DepartmentService {
             department.getCreatedAt(),
             department.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }

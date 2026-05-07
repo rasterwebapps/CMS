@@ -369,7 +369,7 @@ public class DataLoader implements CommandLineRunner {
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 3, "Year 3", new BigDecimal("25000.00")));
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 4, "Year 4", new BigDecimal("20000.00")));
 
-        FeeStructure bscLabFee = new FeeStructure(bachelorProgram, ay2425, FeeType.LAB_FEE, new BigDecimal("12000.00"), true, true);
+        FeeStructure bscLabFee = new FeeStructure(bachelorProgram, ay2425, FeeType.LABORATORY_FEE, new BigDecimal("12000.00"), true, true);
         bscLabFee.setDescription("B.Sc Nursing Lab Fee 2024-25");
         bscLabFee = feeStructureRepository.save(bscLabFee);
         feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 1, "Year 1", new BigDecimal("3000.00")));
