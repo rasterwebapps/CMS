@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.GenerateRollNumbersRequest;
+import com.cms.dto.RollNumberAssignment;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -198,6 +201,61 @@ class StudentControllerTest {
             .andExpect(status().isNotFound());
 
         verify(studentService).delete(999L);
+    }
+
+    @Test
+    void shouldGenerateRollNumbers() throws Exception {
+        GenerateRollNumbersRequest request = new GenerateRollNumbersRequest(
+            Arrays.asList(1L, 2L),
+            1L,
+            2026
+        );
+
+        List<RollNumberAssignment> assignments = Arrays.asList(
+            new RollNumberAssignment("959652026001", 1L, "Alice Brown"),
+            new RollNumberAssignment("959652026002", 2L, "Bob Anderson")
+        );
+
+        when(rollNumberGeneratorService.generateAndAssignRollNumbers(any(GenerateRollNumbersRequest.class)))
+            .thenReturn(assignments);
+
+        mockMvc.perform(post("/students/generate-roll-numbers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].rollNumber").value("959652026001"))
+            .andExpect(jsonPath("$[0].studentName").value("Alice Brown"))
+            .andExpect(jsonPath("$[1].rollNumber").value("959652026002"));
+
+        verify(rollNumberGeneratorService).generateAndAssignRollNumbers(any(GenerateRollNumbersRequest.class));
+    }
+
+    @Test
+    void shouldPreviewRollNumbers() throws Exception {
+        GenerateRollNumbersRequest request = new GenerateRollNumbersRequest(
+            Arrays.asList(1L, 2L),
+            1L,
+            2026
+        );
+
+        List<RollNumberAssignment> preview = Arrays.asList(
+            new RollNumberAssignment("959652026001", 1L, "Alice Brown"),
+            new RollNumberAssignment("959652026002", 2L, "Bob Anderson")
+        );
+
+        when(rollNumberGeneratorService.previewRollNumbers(any(GenerateRollNumbersRequest.class)))
+            .thenReturn(preview);
+
+        mockMvc.perform(post("/students/preview-roll-numbers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].rollNumber").value("959652026001"))
+            .andExpect(jsonPath("$[1].studentId").value(2));
+
+        verify(rollNumberGeneratorService).previewRollNumbers(any(GenerateRollNumbersRequest.class));
     }
 
     private StudentResponse createStudentResponse(Long id, String rollNumber, String firstName, String lastName) {

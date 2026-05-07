@@ -4,5 +4,3 @@
 UPDATE referral_types
 SET is_system_defined = TRUE
 WHERE code IN ('STAFF', 'FACULTY', 'STUDENT', 'ALUMNI');
-
-at
