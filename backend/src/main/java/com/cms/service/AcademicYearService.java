@@ -33,8 +33,14 @@ public class AcademicYearService {
 
     @Transactional
     public AcademicYearResponse create(AcademicYearRequest request) {
+        String name = requireTrimmed(request.name(), "Academic year name is required");
         validateDateRange(request);
-        validateNameFormat(request.name());
+        validateNameFormat(name);
+
+        if (academicYearRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException(
+                "An academic year with the name '" + name + "' already exists");
+        }
 
         Boolean isCurrent = request.isCurrent() != null ? request.isCurrent() : false;
 
@@ -43,7 +49,7 @@ public class AcademicYearService {
         }
 
         AcademicYear academicYear = new AcademicYear(
-            request.name(),
+            name,
             request.startDate(),
             request.endDate(),
             isCurrent
@@ -75,13 +81,14 @@ public class AcademicYearService {
     public AcademicYearResponse update(Long id, AcademicYearRequest request) {
         AcademicYear academicYear = academicYearRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + id));
+        String name = requireTrimmed(request.name(), "Academic year name is required");
 
         validateDateRange(request);
-        validateNameFormat(request.name());
+        validateNameFormat(name);
 
-        if (academicYearRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (academicYearRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "An academic year with the name '" + request.name() + "' already exists");
+                "An academic year with the name '" + name + "' already exists");
         }
 
         Boolean isCurrent = request.isCurrent() != null ? request.isCurrent() : false;
@@ -90,7 +97,7 @@ public class AcademicYearService {
             academicYearRepository.clearCurrentAcademicYear();
         }
 
-        academicYear.setName(request.name());
+        academicYear.setName(name);
         academicYear.setStartDate(request.startDate());
         academicYear.setEndDate(request.endDate());
         academicYear.setIsCurrent(isCurrent);
@@ -130,6 +137,20 @@ public class AcademicYearService {
             throw new IllegalArgumentException(
                 "Academic year end year must be exactly one year after start year (e.g. 2026-2027)");
         }
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 
     private AcademicYearResponse toResponse(AcademicYear academicYear) {

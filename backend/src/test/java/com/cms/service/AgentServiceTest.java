@@ -44,6 +44,7 @@ class AgentServiceTest {
 
         Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, null, true);
 
+        when(agentRepository.existsByNameIgnoreCase("John Agent")).thenReturn(false);
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
         AgentResponse response = agentService.create(request);
@@ -65,6 +66,7 @@ class AgentServiceTest {
 
         Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", 50, commission, true);
 
+        when(agentRepository.existsByNameIgnoreCase("John Agent")).thenReturn(false);
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
         AgentResponse response = agentService.create(request);
@@ -81,11 +83,27 @@ class AgentServiceTest {
 
         Agent saved = createAgent(1L, "John Agent", "9876543210", "john@agent.com", "Salem", "Local Area", null, null, true);
 
+        when(agentRepository.existsByNameIgnoreCase("John Agent")).thenReturn(false);
         when(agentRepository.save(any(Agent.class))).thenReturn(saved);
 
         AgentResponse response = agentService.create(request);
 
         assertThat(response.isActive()).isTrue();
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingWithDuplicateNameIgnoringCase() {
+        AgentRequest request = basicAgentRequest(
+            " faculty ", "9876543210", "faculty@agent.com", "Salem", "Local Area", 50, null, true
+        );
+
+        when(agentRepository.existsByNameIgnoreCase("faculty")).thenReturn(true);
+
+        assertThatThrownBy(() -> agentService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("An agent with the name 'faculty' already exists");
+
+        verify(agentRepository, never()).save(any());
     }
 
     @Test
@@ -148,7 +166,7 @@ class AgentServiceTest {
         Agent updated = createAgent(1L, "Jane Agent", "1234567890", "jane@agent.com", "Chennai", "City Area", 100, new java.math.BigDecimal("12000.00"), false);
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(agentRepository.existsByNameAndIdNot("Jane Agent", 1L)).thenReturn(false);
+        when(agentRepository.existsByNameIgnoreCaseAndIdNot("Jane Agent", 1L)).thenReturn(false);
         when(agentRepository.save(any(Agent.class))).thenReturn(updated);
 
         AgentResponse response = agentService.update(1L, updateRequest);
@@ -170,7 +188,7 @@ class AgentServiceTest {
         );
 
         when(agentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(agentRepository.existsByNameAndIdNot("Existing Agent", 1L)).thenReturn(true);
+        when(agentRepository.existsByNameIgnoreCaseAndIdNot("Existing Agent", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> agentService.update(1L, updateRequest))
             .isInstanceOf(IllegalArgumentException.class)

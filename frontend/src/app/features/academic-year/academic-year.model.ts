@@ -210,6 +210,7 @@ export interface TermFeePaymentRequest {
   paymentDate: string;
   amountPaid: number;
   paymentMode: PaymentMode;
+  transactionReference?: string;
   remarks?: string;
 }
 
@@ -223,6 +224,7 @@ export interface TermFeePayment {
   totalCollected: number;
   paymentMode: PaymentMode;
   receiptNumber: string;
+  transactionReference?: string;
   remarks?: string;
   demandStatus: DemandStatus;
   createdAt: string;

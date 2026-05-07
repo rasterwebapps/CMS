@@ -14,7 +14,9 @@ public interface AcademicYearRepository extends JpaRepository<AcademicYear, Long
 
     boolean existsByName(String name);
 
-    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
     Optional<AcademicYear> findByIsCurrentTrue();
 

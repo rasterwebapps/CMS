@@ -24,10 +24,16 @@ public class AgentService {
     @Transactional
     public AgentResponse create(AgentRequest request) {
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
+        String name = requireTrimmed(request.name(), "Agent name is required");
+
+        if (agentRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException(
+                "An agent with the name '" + name + "' already exists");
+        }
 
         Agent agent = new Agent(
-            request.name(), request.phone(), request.email(),
-            request.area(), request.locality(), isActive
+            name, trim(request.phone()), trim(request.email()),
+            trim(request.area()), trim(request.locality()), isActive
         );
         agent.setAllottedSeats(request.allottedSeats());
         agent.setCommissionAmount(request.commissionAmount());
@@ -59,17 +65,18 @@ public class AgentService {
     public AgentResponse update(Long id, AgentRequest request) {
         Agent agent = agentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + id));
+        String name = requireTrimmed(request.name(), "Agent name is required");
 
-        if (agentRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (agentRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "An agent with the name '" + request.name() + "' already exists");
+                "An agent with the name '" + name + "' already exists");
         }
 
-        agent.setName(request.name());
-        agent.setPhone(request.phone());
-        agent.setEmail(request.email());
-        agent.setArea(request.area());
-        agent.setLocality(request.locality());
+        agent.setName(name);
+        agent.setPhone(trim(request.phone()));
+        agent.setEmail(trim(request.email()));
+        agent.setArea(trim(request.area()));
+        agent.setLocality(trim(request.locality()));
         agent.setAllottedSeats(request.allottedSeats());
         agent.setCommissionAmount(request.commissionAmount());
 
@@ -106,6 +113,14 @@ public class AgentService {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 
     private AgentResponse toResponse(Agent agent) {

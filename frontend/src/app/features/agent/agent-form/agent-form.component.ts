@@ -176,7 +176,10 @@ export class AgentFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.agentService.updateAgent(this.itemId!, request) : this.agentService.createAgent(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/agents']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save');
+        this.saving.set(false);
+      },
     });
   }
 }
