@@ -119,6 +119,15 @@ public class Student {
     @Column(name = "parent_mobile")
     private String parentMobile;
 
+    @Column(name = "is_first_graduate", nullable = false)
+    private boolean firstGraduate;
+
+    @Column(name = "father_education")
+    private String fatherEducation;
+
+    @Column(name = "mother_education")
+    private String motherEducation;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cohort_id")
     private Cohort cohort;
@@ -380,6 +389,30 @@ public class Student {
 
     public void setParentMobile(String parentMobile) {
         this.parentMobile = parentMobile;
+    }
+
+    public boolean isFirstGraduate() {
+        return firstGraduate;
+    }
+
+    public void setFirstGraduate(boolean firstGraduate) {
+        this.firstGraduate = firstGraduate;
+    }
+
+    public String getFatherEducation() {
+        return fatherEducation;
+    }
+
+    public void setFatherEducation(String fatherEducation) {
+        this.fatherEducation = fatherEducation;
+    }
+
+    public String getMotherEducation() {
+        return motherEducation;
+    }
+
+    public void setMotherEducation(String motherEducation) {
+        this.motherEducation = motherEducation;
     }
 
     public Address getAddress() {

@@ -26,6 +26,9 @@ export interface Student {
   motherPhone?: string;
   motherEmail?: string;
   parentMobile?: string;
+  isFirstGraduate?: boolean;
+  fatherEducation?: string;
+  motherEducation?: string;
   postalAddress?: string;
   street?: string;
   city?: string;
@@ -123,6 +126,9 @@ export interface StudentRequest {
   motherPhone?: string;
   motherEmail?: string;
   parentMobile?: string;
+  isFirstGraduate?: boolean;
+  fatherEducation?: string;
+  motherEducation?: string;
   address?: {
     postalAddress?: string;
     street?: string;

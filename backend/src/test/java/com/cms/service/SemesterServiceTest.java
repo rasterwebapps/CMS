@@ -310,7 +310,7 @@ class SemesterServiceTest {
 
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
-        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Fall 2024 Updated", 1L, 1L))
+        when(semesterRepository.existsByNameIgnoreCaseAndAcademicYearIdAndIdNot("Fall 2024 Updated", 1L, 1L))
             .thenReturn(false);
         when(semesterRepository.save(any(Semester.class))).thenReturn(updatedSemester);
 
@@ -345,7 +345,7 @@ class SemesterServiceTest {
 
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
         when(academicYearRepository.findById(2L)).thenReturn(Optional.of(newAcademicYear));
-        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Fall 2025", 2L, 1L))
+        when(semesterRepository.existsByNameIgnoreCaseAndAcademicYearIdAndIdNot("Fall 2025", 2L, 1L))
             .thenReturn(false);
         when(semesterRepository.save(any(Semester.class))).thenReturn(updatedSemester);
 
@@ -370,7 +370,7 @@ class SemesterServiceTest {
 
         when(semesterRepository.findById(1L)).thenReturn(Optional.of(existingSemester));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
-        when(semesterRepository.existsByNameAndAcademicYearIdAndIdNot("Spring 2025", 1L, 1L))
+        when(semesterRepository.existsByNameIgnoreCaseAndAcademicYearIdAndIdNot("Spring 2025", 1L, 1L))
             .thenReturn(true);
 
         assertThatThrownBy(() -> semesterService.update(1L, request))

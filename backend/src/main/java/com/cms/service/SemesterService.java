@@ -37,9 +37,15 @@ public class SemesterService {
         validateDateRange(request);
         validateDatesWithinAcademicYear(request, academicYear);
         validateNoOverlap(request.academicYearId(), request, null);
+        String name = requireTrimmed(request.name(), "Semester name is required");
+
+        if (semesterRepository.existsByNameIgnoreCaseAndAcademicYearId(name, request.academicYearId())) {
+            throw new IllegalArgumentException(
+                "A semester with the name '" + name + "' already exists in this academic year");
+        }
 
         Semester semester = new Semester(
-            request.name(),
+            name,
             academicYear,
             request.startDate(),
             request.endDate(),
@@ -82,15 +88,16 @@ public class SemesterService {
         validateDateRange(request);
         validateDatesWithinAcademicYear(request, academicYear);
         validateNoOverlap(request.academicYearId(), request, id);
+        String name = requireTrimmed(request.name(), "Semester name is required");
 
-        if (semesterRepository.existsByNameAndAcademicYearIdAndIdNot(
-                request.name(), request.academicYearId(), id)) {
+        if (semesterRepository.existsByNameIgnoreCaseAndAcademicYearIdAndIdNot(
+                name, request.academicYearId(), id)) {
             throw new IllegalArgumentException(
-                "A semester with the name '" + request.name()
+                "A semester with the name '" + name
                 + "' already exists in this academic year");
         }
 
-        semester.setName(request.name());
+        semester.setName(name);
         semester.setAcademicYear(academicYear);
         semester.setStartDate(request.startDate());
         semester.setEndDate(request.endDate());
@@ -162,5 +169,19 @@ public class SemesterService {
             semester.getCreatedAt(),
             semester.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }
