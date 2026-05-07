@@ -107,7 +107,23 @@ public class Program {
         return requiredDocumentTypes;
     }
 
+    /**
+     * Replace the program's required document types in place.
+     *
+     * Why: Hibernate tracks the {@link jakarta.persistence.ElementCollection}
+     * via the *original* PersistentSet wrapper. Reassigning the field to a
+     * brand-new {@link HashSet} can cause the join-table updates to be
+     * silently dropped on flush — the collection appears to save but reloads
+     * empty. Mutating the existing collection (clear + addAll) keeps
+     * Hibernate's dirty tracking working.
+     */
     public void setRequiredDocumentTypes(Set<DocumentType> requiredDocumentTypes) {
-        this.requiredDocumentTypes = requiredDocumentTypes != null ? requiredDocumentTypes : new HashSet<>();
+        if (this.requiredDocumentTypes == null) {
+            this.requiredDocumentTypes = new HashSet<>();
+        }
+        this.requiredDocumentTypes.clear();
+        if (requiredDocumentTypes != null) {
+            this.requiredDocumentTypes.addAll(requiredDocumentTypes);
+        }
     }
 }

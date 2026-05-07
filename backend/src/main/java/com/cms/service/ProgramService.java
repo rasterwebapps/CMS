@@ -30,10 +30,22 @@ public class ProgramService {
 
     @Transactional
     public ProgramResponse create(ProgramRequest request) {
-        validateCode(request.code());
+        String name = requireTrimmed(request.name(), "Program name is required");
+        String code = requireTrimmed(request.code(), "Program code is required");
+        validateCode(code);
+
+        if (programRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException(
+                "A program with the name '" + name + "' already exists");
+        }
+        if (programRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException(
+                "A program with the code '" + code + "' already exists");
+        }
+
         Program program = new Program(
-            request.name(),
-            request.code(),
+            name,
+            code,
             request.durationYears(),
             request.status()
         );
@@ -56,20 +68,22 @@ public class ProgramService {
     public ProgramResponse update(Long id, ProgramRequest request) {
         Program program = programRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + id));
+        String name = requireTrimmed(request.name(), "Program name is required");
+        String code = requireTrimmed(request.code(), "Program code is required");
 
-        validateCode(request.code());
+        validateCode(code);
 
-        if (programRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (programRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "A program with the name '" + request.name() + "' already exists");
+                "A program with the name '" + name + "' already exists");
         }
-        if (programRepository.existsByCodeAndIdNot(request.code(), id)) {
+        if (programRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
             throw new IllegalArgumentException(
-                "A program with the code '" + request.code() + "' already exists");
+                "A program with the code '" + code + "' already exists");
         }
 
-        program.setName(request.name());
-        program.setCode(request.code());
+        program.setName(name);
+        program.setCode(code);
         program.setDurationYears(request.durationYears());
         if (request.status() != null) {
             program.setStatus(request.status());
@@ -128,5 +142,19 @@ public class ProgramService {
         if (code.contains(" ")) {
             throw new IllegalArgumentException("Program code must not contain spaces");
         }
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }

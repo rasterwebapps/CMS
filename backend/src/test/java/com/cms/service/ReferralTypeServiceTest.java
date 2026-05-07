@@ -45,7 +45,8 @@ class ReferralTypeServiceTest {
 
         ReferralType saved = createReferralType(1L, "Staff", "STAFF", new BigDecimal("5000.00"));
 
-        when(referralTypeRepository.existsByCode("STAFF")).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCase("STAFF")).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(saved);
 
         ReferralTypeResponse response = referralTypeService.create(request);
@@ -65,11 +66,87 @@ class ReferralTypeServiceTest {
             "Staff", "STAFF", BigDecimal.ZERO, false, null, true
         );
 
-        when(referralTypeRepository.existsByCode("STAFF")).thenReturn(true);
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCase("STAFF")).thenReturn(true);
 
         assertThatThrownBy(() -> referralTypeService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("already exists");
+    }
+
+    @Test
+    void shouldThrowWhenDuplicateName() {
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Staff", "STAFF_CUSTOM", BigDecimal.ZERO, false, null, true
+        );
+
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(true);
+
+        assertThatThrownBy(() -> referralTypeService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already exists");
+
+        verify(referralTypeRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenCreatingWithCommissionEnabledAndZeroAmount() {
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Staff", "STAFF", BigDecimal.ZERO, true, null, true
+        );
+
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCase("STAFF")).thenReturn(false);
+
+        assertThatThrownBy(() -> referralTypeService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Commission amount must be greater than zero");
+    }
+
+    @Test
+    void shouldThrowWhenCreatingWithCommissionEnabledAndNullAmount() {
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Staff", "STAFF", null, true, null, true
+        );
+
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCase("STAFF")).thenReturn(false);
+
+        assertThatThrownBy(() -> referralTypeService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Commission amount must be greater than zero");
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingWithCommissionEnabledAndZeroAmount() {
+        ReferralType existing = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Staff", "STAFF", BigDecimal.ZERO, true, null, true
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Staff", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCaseAndIdNot("STAFF", 1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> referralTypeService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Commission amount must be greater than zero");
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingSystemDefinedWithZeroAmount() {
+        ReferralType existing = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"));
+        existing.setIsSystemDefined(true);
+        ReferralTypeRequest request = new ReferralTypeRequest(
+            "Agent Referral", "AGENT_REFERRAL", BigDecimal.ZERO, true, null, true
+        );
+
+        when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Agent Referral", 1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> referralTypeService.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Commission amount must be greater than zero");
     }
 
     @Test
@@ -80,7 +157,8 @@ class ReferralTypeServiceTest {
 
         ReferralType saved = createReferralType(1L, "Staff", "STAFF", BigDecimal.ZERO);
 
-        when(referralTypeRepository.existsByCode("STAFF")).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCase("Staff")).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCase("STAFF")).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(saved);
 
         ReferralTypeResponse response = referralTypeService.create(request);
@@ -143,8 +221,8 @@ class ReferralTypeServiceTest {
         ReferralType updated = createReferralType(1L, "Staff Updated", "STAFF", new BigDecimal("10000.00"));
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameAndIdNot("Staff Updated", 1L)).thenReturn(false);
-        when(referralTypeRepository.existsByCodeAndIdNot("STAFF", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Staff Updated", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCaseAndIdNot("STAFF", 1L)).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(updated);
 
         ReferralTypeResponse response = referralTypeService.update(1L, request);
@@ -161,7 +239,7 @@ class ReferralTypeServiceTest {
         );
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameAndIdNot("Alumni", 1L)).thenReturn(true);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Alumni", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> referralTypeService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -179,8 +257,8 @@ class ReferralTypeServiceTest {
         );
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameAndIdNot("Staff", 1L)).thenReturn(false);
-        when(referralTypeRepository.existsByCodeAndIdNot("ALUMNI", 1L)).thenReturn(true);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Staff", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByCodeIgnoreCaseAndIdNot("ALUMNI", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> referralTypeService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -246,7 +324,7 @@ class ReferralTypeServiceTest {
         );
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameAndIdNot("Agent Referral", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Agent Referral", 1L)).thenReturn(false);
 
         assertThatThrownBy(() -> referralTypeService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -267,7 +345,7 @@ class ReferralTypeServiceTest {
         updated.setIsSystemDefined(true);
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameAndIdNot("Agent / Consultant", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Agent / Consultant", 1L)).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(updated);
 
         ReferralTypeResponse response = referralTypeService.update(1L, request);

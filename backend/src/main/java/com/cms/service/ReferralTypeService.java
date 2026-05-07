@@ -23,16 +23,28 @@ public class ReferralTypeService {
 
     @Transactional
     public ReferralTypeResponse create(ReferralTypeRequest request) {
-        if (referralTypeRepository.existsByCode(request.code())) {
-            throw new IllegalArgumentException("Referral type with code '" + request.code() + "' already exists");
+        String name = requireTrimmed(request.name(), "Referral type name is required");
+        String code = requireTrimmed(request.code(), "Referral type code is required");
+
+        if (referralTypeRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Referral type with name '" + name + "' already exists");
+        }
+        if (referralTypeRepository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException("Referral type with code '" + code + "' already exists");
         }
 
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
         Boolean hasCommission = request.hasCommission() != null ? request.hasCommission() : false;
+        if (Boolean.TRUE.equals(hasCommission)
+                && (request.commissionAmount() == null
+                    || request.commissionAmount().compareTo(java.math.BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException(
+                "Commission amount must be greater than zero when commission is enabled");
+        }
 
         ReferralType referralType = new ReferralType(
-            request.name(), request.code(), request.commissionAmount(),
-            hasCommission, request.description(), isActive
+            name, code, request.commissionAmount(),
+            hasCommission, trim(request.description()), isActive
         );
 
         ReferralType saved = referralTypeRepository.save(referralType);
@@ -61,25 +73,38 @@ public class ReferralTypeService {
     public ReferralTypeResponse update(Long id, ReferralTypeRequest request) {
         ReferralType referralType = referralTypeRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + id));
+        String name = requireTrimmed(request.name(), "Referral type name is required");
+        String code = requireTrimmed(request.code(), "Referral type code is required");
 
-        if (referralTypeRepository.existsByNameAndIdNot(request.name(), id)) {
+        if (referralTypeRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
-                "A referral type with the name '" + request.name() + "' already exists");
+                "A referral type with the name '" + name + "' already exists");
         }
 
         boolean isSystemDefined = Boolean.TRUE.equals(referralType.getIsSystemDefined());
 
-        if (!isSystemDefined && referralTypeRepository.existsByCodeAndIdNot(request.code(), id)) {
+        if (!isSystemDefined && referralTypeRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
             throw new IllegalArgumentException(
-                "A referral type with the code '" + request.code() + "' already exists");
+                "A referral type with the code '" + code + "' already exists");
         }
 
-        referralType.setName(request.name());
+        // When commission is enabled (or stays enabled for system-defined), amount must be > 0
+        boolean effectiveHasCommission = isSystemDefined
+            ? Boolean.TRUE.equals(referralType.getHasCommission())
+            : (request.hasCommission() != null ? request.hasCommission() : Boolean.TRUE.equals(referralType.getHasCommission()));
+        if (effectiveHasCommission
+                && (request.commissionAmount() == null
+                    || request.commissionAmount().compareTo(java.math.BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException(
+                "Commission amount must be greater than zero when commission is enabled");
+        }
+
+        referralType.setName(name);
         referralType.setCommissionAmount(request.commissionAmount());
-        referralType.setDescription(request.description());
+        referralType.setDescription(trim(request.description()));
 
         if (!isSystemDefined) {
-            referralType.setCode(request.code());
+            referralType.setCode(code);
             if (request.hasCommission() != null) {
                 referralType.setHasCommission(request.hasCommission());
             }
@@ -113,5 +138,19 @@ public class ReferralTypeService {
             Boolean.TRUE.equals(rt.getIsSystemDefined()),
             rt.getCreatedAt(), rt.getUpdatedAt()
         );
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String requireTrimmed(String s, String message) {
+        String t = trim(s);
+        if (t == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return t;
     }
 }

@@ -15,7 +15,11 @@ public interface ReferralTypeRepository extends JpaRepository<ReferralType, Long
 
     boolean existsByCode(String code);
 
-    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByNameIgnoreCase(String name);
 
-    boolean existsByCodeAndIdNot(String code, Long id);
+    boolean existsByCodeIgnoreCase(String code);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
 }

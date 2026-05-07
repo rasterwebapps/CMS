@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -66,9 +66,9 @@ export class ReferralTypeFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
-    code: ['', [Validators.required, Validators.maxLength(50)]],
+    code: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[A-Z][A-Z0-9_]*$/)]],
     hasCommission: [false],
-    commissionAmount: [0, [Validators.required, Validators.min(0)]],
+    commissionAmount: [0, [Validators.min(0)]],
     description: [''],
     isActive: [true],
   });
@@ -84,7 +84,26 @@ export class ReferralTypeFormComponent implements OnInit {
         this.previewHasComm.set(!!v.hasCommission);
         this.previewComm.set(Number(v.commissionAmount) || 0);
         this.previewActive.set(!!v.isActive);
+
+        // When commission is toggled off, zero out the stored amount so stale
+        // values are never persisted to the backend with hasCommission = false.
+        if (!v.hasCommission && Number(v.commissionAmount) !== 0) {
+          this.form.get('commissionAmount')?.setValue(0, { emitEvent: false });
+        }
+
+        // Dynamically require commissionAmount > 0 when hasCommission is enabled.
+        this.updateCommissionAmountValidator(!!v.hasCommission);
       });
+  }
+
+  private updateCommissionAmountValidator(hasCommission: boolean): void {
+    const ctrl = this.form.get('commissionAmount');
+    if (hasCommission) {
+      ctrl?.setValidators([Validators.required, Validators.min(0.01)]);
+    } else {
+      ctrl?.setValidators([Validators.min(0)]);
+    }
+    ctrl?.updateValueAndValidity({ emitEvent: false });
   }
 
   protected onCodeInput(event: Event): void {
@@ -118,6 +137,8 @@ export class ReferralTypeFormComponent implements OnInit {
             this.form.get('code')?.disable();
             this.form.get('hasCommission')?.disable();
           }
+          // Initialise commission validator based on loaded value
+          this.updateCommissionAmountValidator(item.hasCommission ?? false);
           this.loading.set(false);
         },
         error: () => {

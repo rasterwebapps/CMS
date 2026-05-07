@@ -34,7 +34,7 @@
 
         @if (isSystemDefined()) {
           <div style="padding: 12px 24px; background: rgba(245,158,11,0.08); border-bottom: 1px solid var(--cms-border-default); font-size: 0.75rem; color: #b45309;">
-            <strong>System-defined type:</strong> The code and commission toggle cannot be changed. You may update the name, commission amount, and description.
+            <strong>System-defined type:</strong> The code and commission toggle cannot be changed. You may update the name, commission amount (must be &gt; 0 when enabled), and description.
           </div>
         }
 
@@ -58,9 +58,13 @@
                   placeholder="e.g., WALK_IN" autocomplete="off"
                   (input)="onCodeInput($event)"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
-                <p class="field-hint">Unique uppercase code</p>
+                <p class="field-hint">Uppercase letters, digits and underscores only (e.g., WALK_IN)</p>
                 @if (form.get('code')?.invalid && form.get('code')?.touched) {
-                  <p class="field-error">Code is required</p>
+                  @if (form.get('code')?.errors?.['required']) {
+                    <p class="field-error">Code is required</p>
+                  } @else if (form.get('code')?.errors?.['pattern']) {
+                    <p class="field-error">Code must start with a letter and contain only A–Z, 0–9, and underscores</p>
+                  }
                 }
               </div>
             </div>
@@ -71,12 +75,13 @@
 
             @if (form.get('hasCommission')?.value) {
               <div class="field-group">
-                <label for="rt-commission" class="field-label">Commission Amount (₹)</label>
+                <label for="rt-commission" class="field-label">Commission Amount (₹) <span class="required-star">*</span></label>
                 <input id="rt-commission" type="number" class="field-input field-input--narrow"
-                  formControlName="commissionAmount" min="0" placeholder="0"
+                  formControlName="commissionAmount" min="0.01" step="0.01" placeholder="e.g., 500"
                   [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched" />
+                <p class="field-hint">Must be greater than zero when commission is enabled.</p>
                 @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
-                  <p class="field-error">Commission amount must be 0 or greater</p>
+                  <p class="field-error">Commission amount must be greater than ₹0</p>
                 }
               </div>
             }
