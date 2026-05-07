@@ -47,7 +47,8 @@ public class ProgramService {
             name,
             code,
             request.durationYears(),
-            request.status()
+            request.status(),
+            request.assessmentPattern()
         );
         return toResponse(programRepository.save(program));
     }
@@ -88,6 +89,9 @@ public class ProgramService {
         if (request.status() != null) {
             program.setStatus(request.status());
         }
+        if (request.assessmentPattern() != null) {
+            program.setAssessmentPattern(request.assessmentPattern());
+        }
 
         return toResponse(programRepository.save(program));
     }
@@ -112,6 +116,7 @@ public class ProgramService {
             program.getDurationYears(),
             program.getTotalSemesters(),
             program.getStatus(),
+            program.getAssessmentPattern(),
             new HashSet<>(program.getRequiredDocumentTypes()),
             program.getCreatedAt(),
             program.getUpdatedAt()

@@ -8,6 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.ProgramStatus;
 
@@ -48,6 +49,10 @@ public class Program {
     @Column(nullable = false)
     private ProgramStatus status = ProgramStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "assessment_pattern", nullable = false, length = 20)
+    private AssessmentPattern assessmentPattern = AssessmentPattern.SEMESTER;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "program_document_types",
@@ -82,6 +87,15 @@ public class Program {
         this.status = status != null ? status : ProgramStatus.ACTIVE;
     }
 
+    public Program(String name, String code, Integer durationYears, ProgramStatus status,
+                   AssessmentPattern assessmentPattern) {
+        this.name = name;
+        this.code = code;
+        this.durationYears = durationYears;
+        this.status = status != null ? status : ProgramStatus.ACTIVE;
+        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -93,9 +107,16 @@ public class Program {
     public ProgramStatus getStatus() { return status; }
     public void setStatus(ProgramStatus status) { this.status = status; }
 
+    public AssessmentPattern getAssessmentPattern() { return assessmentPattern; }
+    public void setAssessmentPattern(AssessmentPattern assessmentPattern) {
+        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+    }
+
     @Transient
     public Integer getTotalSemesters() {
-        return durationYears != null ? durationYears * 2 : null;
+        if (durationYears == null) return null;
+        AssessmentPattern pattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+        return pattern == AssessmentPattern.YEARLY ? durationYears : durationYears * 2;
     }
 
     public Instant getCreatedAt() { return createdAt; }

@@ -42,7 +42,7 @@ public class CurriculumSemesterCourseService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Curriculum version not found with id: " + request.curriculumVersionId()));
 
-        int totalSemesters = cv.getProgram().getDurationYears() * 2;
+        int totalSemesters = cv.getProgram().getTotalSemesters();
         if (request.semesterNumber() < 1 || request.semesterNumber() > totalSemesters) {
             throw new IllegalArgumentException(
                 "Semester number must be between 1 and " + totalSemesters +
@@ -98,7 +98,7 @@ public class CurriculumSemesterCourseService {
         List<CurriculumSemesterCourse> allCourses = courseRepository.findByCurriculumVersionId(curriculumVersionId);
 
         Map<Integer, List<CurriculumSemesterCourseDto>> grouped = new LinkedHashMap<>();
-        int totalSemesters = cv.getProgram().getDurationYears() * 2;
+        int totalSemesters = cv.getProgram().getTotalSemesters();
         for (int i = 1; i <= totalSemesters; i++) {
             grouped.put(i, new ArrayList<>());
         }

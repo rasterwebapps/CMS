@@ -1,0 +1,2 @@
+ALTER TABLE programs
+    ADD COLUMN assessment_pattern VARCHAR(20) NOT NULL DEFAULT 'SEMESTER';

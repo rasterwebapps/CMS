@@ -17,9 +17,11 @@ import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
@@ -78,6 +80,13 @@ public class FeeDemandServiceImpl implements FeeDemandService {
 
         int count = 0;
         for (StudentTermEnrollment enrollment : enrollments) {
+            // Yearly programs bill the full annual fee once on ODD term opening.
+            // The EVEN term enrollment is skipped — it was already billed at ODD term.
+            AssessmentPattern pattern = enrollment.getCohort().getProgram().getAssessmentPattern();
+            if (pattern == AssessmentPattern.YEARLY && termInstance.getTermType() == TermType.EVEN) {
+                continue;
+            }
+
             Optional<FeeDemand> existing =
                 feeDemandRepository.findByStudentTermEnrollmentId(enrollment.getId());
             if (existing.isPresent()) {

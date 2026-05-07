@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.ProgramStatus;
 
 import jakarta.validation.constraints.Max;
@@ -22,5 +23,7 @@ public record ProgramRequest(
     @Max(value = 10, message = "Duration must not exceed 10 years")
     Integer durationYears,
 
-    ProgramStatus status
+    ProgramStatus status,
+
+    AssessmentPattern assessmentPattern
 ) {}

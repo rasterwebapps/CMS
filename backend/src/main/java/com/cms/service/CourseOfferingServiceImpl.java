@@ -16,6 +16,7 @@ import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.CohortRepository;
@@ -71,8 +72,9 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                 continue;
             }
 
-            // Determine relevant semester numbers for this term type
-            Set<Integer> relevantSemesters = buildRelevantSemesters(termInstance.getTermType(), totalSemesters);
+            // Determine relevant semester numbers for this term type and program pattern
+            AssessmentPattern pattern = cohort.getProgram().getAssessmentPattern();
+            Set<Integer> relevantSemesters = buildRelevantSemesters(termInstance.getTermType(), totalSemesters, pattern);
 
             // Load CurriculumSemesterCourses for this CV where semesterNumber is relevant
             List<CurriculumSemesterCourse> courses =
@@ -154,7 +156,14 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         }
     }
 
-    private Set<Integer> buildRelevantSemesters(TermType termType, int totalSemesters) {
+    private Set<Integer> buildRelevantSemesters(TermType termType, int totalSemesters,
+                                                  AssessmentPattern pattern) {
+        if (pattern == AssessmentPattern.YEARLY) {
+            // Both ODD and EVEN terms teach subjects mapped to any year position;
+            // the enrollment's semesterNumber (= year number) drives which offerings each student registers for
+            return IntStream.rangeClosed(1, totalSemesters).boxed().collect(Collectors.toSet());
+        }
+        // SEMESTER: odd-numbered sems belong to ODD term, even-numbered sems to EVEN term
         return IntStream.rangeClosed(1, totalSemesters)
             .filter(s -> termType == TermType.ODD ? s % 2 != 0 : s % 2 == 0)
             .boxed()

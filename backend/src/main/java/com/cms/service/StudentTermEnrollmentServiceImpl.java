@@ -12,6 +12,7 @@ import com.cms.model.Cohort;
 import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.StudentStatus;
@@ -54,7 +55,10 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
             if (semesterNumber == null) {
                 continue;
             }
-            int yearOfStudy = (int) Math.ceil(semesterNumber / 2.0);
+            AssessmentPattern pattern = cohort.getProgram().getAssessmentPattern();
+            int yearOfStudy = (pattern == AssessmentPattern.YEARLY)
+                ? semesterNumber
+                : (int) Math.ceil(semesterNumber / 2.0);
 
             List<Student> students = studentRepository.findByCohortIdAndStatus(cohort.getId(), StudentStatus.ACTIVE);
             for (Student student : students) {
@@ -82,11 +86,17 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
         int currentStartYear = termInstance.getAcademicYear().getStartYear();
         int k = currentStartYear - admissionStartYear;
 
+        AssessmentPattern pattern = cohort.getProgram().getAssessmentPattern();
+
         int semesterNumber;
-        if (termInstance.getTermType() == TermType.ODD) {
-            semesterNumber = (2 * k) + 1;
+        if (pattern == AssessmentPattern.YEARLY) {
+            // Both ODD and EVEN terms of the same academic year deliver the same year of study
+            semesterNumber = k + 1;
         } else {
-            semesterNumber = (2 * k) + 2;
+            // SEMESTER: ODD → odd semesters (1, 3, 5, 7), EVEN → even semesters (2, 4, 6, 8)
+            semesterNumber = termInstance.getTermType() == TermType.ODD
+                ? (2 * k) + 1
+                : (2 * k) + 2;
         }
 
         Integer totalSemesters = cohort.getProgram().getTotalSemesters();

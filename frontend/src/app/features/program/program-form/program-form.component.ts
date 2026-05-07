@@ -6,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ProgramService } from '../program.service';
-import { DocumentTypeInfo, ProgramRequest, ProgramStatus } from '../program.model';
+import { AssessmentPattern, DocumentTypeInfo, ProgramRequest, ProgramStatus } from '../program.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -73,15 +73,17 @@ export class ProgramFormComponent implements OnInit {
   });
 
   // ── Live preview signals ────────────────────────────────────
-  protected readonly previewName     = signal('');
-  protected readonly previewCode     = signal('');
-  protected readonly previewDuration = signal<number>(0);
-  protected readonly previewStatus   = signal<ProgramStatus>('ACTIVE');
+  protected readonly previewName              = signal('');
+  protected readonly previewCode              = signal('');
+  protected readonly previewDuration          = signal<number>(0);
+  protected readonly previewStatus            = signal<ProgramStatus>('ACTIVE');
+  protected readonly previewAssessmentPattern = signal<AssessmentPattern>('SEMESTER');
 
   protected readonly TIPS: CmsTip[] = [
-    { icon: 'tag',         title: 'Unique Code',  subtitle: 'Use 3–6 uppercase letters as an identifier (e.g., BAC, MAS).' },
-    { icon: 'event',       title: 'Duration',     subtitle: 'Number of years a student takes to complete the program.' },
-    { icon: 'toggle_on',   title: 'Status',       subtitle: 'Inactive programs are hidden from new admissions but kept for historical records.' },
+    { icon: 'tag',         title: 'Unique Code',       subtitle: 'Use 3–6 uppercase letters as an identifier (e.g., BAC, MAS).' },
+    { icon: 'event',       title: 'Duration',           subtitle: 'Number of years a student takes to complete the program.' },
+    { icon: 'school',      title: 'Assessment Pattern', subtitle: 'Semester: exams every 6 months. Yearly: one annual exam at end of year.' },
+    { icon: 'toggle_on',   title: 'Status',             subtitle: 'Inactive programs are hidden from new admissions but kept for historical records.' },
   ];
 
   private programId: number | null = null;
@@ -91,6 +93,7 @@ export class ProgramFormComponent implements OnInit {
     code: ['', [Validators.required, Validators.maxLength(20)]],
     durationYears: [null as number | null, [Validators.required, Validators.min(1), Validators.max(10)]],
     status: ['ACTIVE' as ProgramStatus, Validators.required],
+    assessmentPattern: ['SEMESTER' as AssessmentPattern, Validators.required],
   });
 
   constructor() {
@@ -101,6 +104,7 @@ export class ProgramFormComponent implements OnInit {
         this.previewCode.set((v.code ?? '').toUpperCase().trim());
         this.previewDuration.set(Number(v.durationYears) || 0);
         this.previewStatus.set((v.status ?? 'ACTIVE') as ProgramStatus);
+        this.previewAssessmentPattern.set((v.assessmentPattern ?? 'SEMESTER') as AssessmentPattern);
       });
   }
 
@@ -135,6 +139,7 @@ export class ProgramFormComponent implements OnInit {
       code: (this.form.value.code ?? '').trim(),
       durationYears: this.form.value.durationYears,
       status: this.form.value.status as ProgramStatus,
+      assessmentPattern: this.form.value.assessmentPattern as AssessmentPattern,
     };
 
     this.saving.set(true);
@@ -225,6 +230,7 @@ export class ProgramFormComponent implements OnInit {
       code: 'Code',
       durationYears: 'Duration',
       status: 'Status',
+      assessmentPattern: 'Assessment Pattern',
     };
     return labels[fieldName] || fieldName;
   }
@@ -240,6 +246,7 @@ export class ProgramFormComponent implements OnInit {
           code: program.code,
           durationYears: program.durationYears,
           status: program.status,
+          assessmentPattern: program.assessmentPattern ?? 'SEMESTER',
         });
         this.loading.set(false);
       },

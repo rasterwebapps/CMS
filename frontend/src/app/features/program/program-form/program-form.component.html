@@ -99,6 +99,19 @@
               </select>
             </div>
 
+            <div class="field-group">
+              <label for="program-assessment-pattern" class="field-label">Assessment Pattern <span class="required-star">*</span></label>
+              <select
+                id="program-assessment-pattern"
+                class="field-input field-input--narrow"
+                formControlName="assessmentPattern"
+              >
+                <option value="SEMESTER">Semester-wise (exam every 6 months)</option>
+                <option value="YEARLY">Yearly / Non-Sem (annual exam)</option>
+              </select>
+              <p class="field-hint">Determines how results, exams, and fee demands are structured for students in this program.</p>
+            </div>
+
             <div class="field-group" style="margin-bottom: 0;">
               <label class="field-label">Required Documents</label>
               <button type="button" class="doc-manage-btn" (click)="openDocumentPanel()">
@@ -139,6 +152,9 @@
             @if (previewDuration() > 0) {
               <span class="prev-pill prev-pill--primary">{{ previewDuration() }} {{ previewDuration() === 1 ? 'year' : 'years' }}</span>
             }
+            <span class="prev-pill prev-pill--primary">
+              {{ previewAssessmentPattern() === 'YEARLY' ? 'Yearly' : 'Semester' }}
+            </span>
             <span
               class="prev-pill"
               [class.prev-pill--green]="previewStatus() === 'ACTIVE'"
