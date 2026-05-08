@@ -56,6 +56,30 @@
 
 ---
 
+## TC-STU-RN-004: Clear roll number assignment filters
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_COLLEGE_ADMIN
+- Application is running
+- Programs, courses, and students without roll numbers exist
+
+**Steps:**
+1. Navigate to Students → Roll Number Assignment.
+2. Select a program from the program filter.
+3. Select a course from the course filter.
+4. Verify the Clear Filters button is visible.
+5. Click Clear Filters.
+
+**Expected Result:**
+- Program and course filters reset to All Programs and All Courses.
+- The course dropdown is repopulated with all courses.
+- The pending student list reloads without program or course filters.
+- No Angular template compilation errors are shown for `hasActiveFilters` or `clearFilters`.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-STU-REG-001: Create Student with University Registration Number
 
 **Preconditions:**

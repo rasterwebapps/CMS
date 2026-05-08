@@ -329,6 +329,15 @@
             </div>
           </div>
 
+          @if (isCashMode()) {
+            <div class="field-group">
+              <label class="field-label">Denomination Breakdown <span class="field-required">*</span></label>
+              <app-cash-denomination
+                [expectedAmount]="form.get('amount')?.value || 0"
+                (validChange)="denominationValid.set($event)" />
+            </div>
+          }
+
           <div class="field-group">
             <label class="field-label">
               Transaction Reference
@@ -353,7 +362,8 @@
 
           <div class="form-footer">
             <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="saving()">
+            <button type="submit" class="btn-submit"
+                    [disabled]="saving() || (isCashMode() && !denominationValid())">
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {

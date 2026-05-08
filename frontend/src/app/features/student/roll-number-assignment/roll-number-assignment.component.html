@@ -1,89 +1,186 @@
-<div class="list-page">
-  <app-page-header title="Roll Number Assignment" subtitle="Assign roll numbers to students">
-    <cms-tour-button titleAction tourKey="roll-number-assignment" [iconOnly]="true" iconVariant="info-circle" />
-    <button id="tour-rollno-save" actions mat-flat-button color="primary" [disabled]="saving()" (click)="saveAll()">
-      @if (saving()) { <mat-spinner diameter="18"></mat-spinner> } @else { Save All }
-    </button>
-  </app-page-header>
+<div class="rna-page">
 
-  <div id="tour-rollno-filters" class="roll-toolbar">
-    <div class="roll-toolbar__filters" aria-label="Roll number assignment filters">
-      <select class="roll-filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()" aria-label="Filter by program">
-        <option [ngValue]="null">All Programs</option>
-        @for (p of programs(); track p.id) {
-          <option [ngValue]="p.id">{{ p.name }}</option>
-        }
-      </select>
-
-      <select class="roll-filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()" aria-label="Filter by course">
-        <option [ngValue]="null">All Courses</option>
-        @for (c of courses(); track c.id) {
-          <option [ngValue]="c.id">{{ c.name }}</option>
-        }
-      </select>
-    </div>
-
-    <div class="roll-toolbar__meta">
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <div id="tour-rollno-header" class="rna-hdr anim-rise">
+    <div class="rna-hdr-left">
+      <div class="page-title-row">
+        <h1 class="rna-title">Roll Number <em>Assignment</em></h1>
+        <cms-tour-button tourKey="roll-number-assignment" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="rna-sub">Assign roll numbers to students who are yet to receive one</p>
       @if (!loading()) {
-        <span class="roll-count">{{ assignments().length }} pending</span>
+        <div class="rna-meta">
+          <span class="rna-stat">
+            <span class="rna-stat-dot rna-stat-dot--amber"></span>
+            {{ totalCount() }} Pending
+          </span>
+          @if (filledCount() > 0) {
+            <span class="rna-stat">
+              <span class="rna-stat-dot rna-stat-dot--green"></span>
+              {{ filledCount() }} Ready to Save
+            </span>
+          }
+        </div>
       }
-      @if (hasActiveFilters) {
-        <button class="btn-toolbar btn-toolbar--clear" type="button" (click)="clearFilters()">
-          Clear Filters
-        </button>
+    </div>
+    <button id="tour-rollno-save" class="btn-primary" [disabled]="saving() || filledCount() === 0"
+            (click)="saveAll()" aria-label="Save all roll numbers">
+      @if (saving()) {
+        <svg class="spin-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        Saving…
+      } @else {
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save All
+      }
+    </button>
+  </div>
+
+  <!-- ── Toolbar ────────────────────────────────────────────── -->
+  <div id="tour-rollno-filters" class="rna-toolbar anim-rise anim-rise--d1">
+
+    <select class="mlp-filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()"
+            aria-label="Filter by program">
+      <option [ngValue]="null">All Programs</option>
+      @for (p of programs(); track p.id) {
+        <option [ngValue]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()"
+            aria-label="Filter by course">
+      <option [ngValue]="null">All Courses</option>
+      @for (c of courses(); track c.id) {
+        <option [ngValue]="c.id">{{ c.name }}</option>
+      }
+    </select>
+
+    @if (hasActiveFilters) {
+      <button class="btn-toolbar btn-toolbar--clear" type="button" (click)="clearFilters()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Clear Filters
+      </button>
+    }
+
+    <div class="toolbar-right">
+      @if (!loading()) {
+        <span class="row-count">{{ totalCount() }} students pending</span>
       }
     </div>
   </div>
 
-  <div class="content-card">
+  <!-- ── Content card ───────────────────────────────────────── -->
+  <div class="content-card rna-table-card">
+
     @if (loading()) {
-      <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
-    } @else if (assignments().length === 0) {
-      <div class="empty-state">
-        <p class="empty-state__text">All students have roll numbers assigned.</p>
+      <div class="rna-skeleton">
+        @for (_ of [1,2,3,4,5,6,7]; track $index) {
+          <div class="rna-skel-row">
+            <div class="skel skel--avatar"></div>
+            <div class="skel skel--name"></div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--pill"></div>
+            <div class="skel skel--input"></div>
+          </div>
+        }
       </div>
+
     } @else {
       <div id="tour-rollno-table" class="table-wrapper">
         <table mat-table [dataSource]="assignments()" matSort class="modern-table">
+
+          <!-- Student -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
             <td mat-cell *matCellDef="let row">
-              <div>
-                <span class="cell-name">{{ row.student.fullName }}</span>
-                @if (row.student.phone) { <span class="cell-sub">{{ row.student.phone }}</span> }
+              <div class="student-cell">
+                <span class="avatar">{{ computeInitials(row.student.fullName) }}</span>
+                <div class="student-info">
+                  <span class="cell-name">{{ row.student.fullName }}</span>
+                  @if (row.student.phone) { <span class="cell-sub">{{ row.student.phone }}</span> }
+                </div>
               </div>
             </td>
           </ng-container>
+
+          <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.student.programName }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.student.programName || '—' }}</span>
+            </td>
           </ng-container>
+
+          <!-- Semester -->
           <ng-container matColumnDef="semester">
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Sem</th>
             <td mat-cell *matCellDef="let row" class="col-center">
-              <span class="cms-badge cms-badge--gray">{{ row.student.semester }}</span>
+              <span class="cell-number">{{ row.student.semester ?? '—' }}</span>
             </td>
           </ng-container>
+
+          <!-- Admission Date -->
           <ng-container matColumnDef="admissionDate">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Admission Date</th>
-            <td mat-cell *matCellDef="let row">{{ appDate.transform(row.student.admissionDate) }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.student.admissionDate | appDate }}</span>
+            </td>
           </ng-container>
+
+          <!-- Roll Number input -->
           <ng-container matColumnDef="rollNumber">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
+            <th mat-header-cell *matHeaderCellDef>Roll Number</th>
             <td mat-cell *matCellDef="let row">
-              <input class="field-input field-input--inline roll-input" [(ngModel)]="row.rollNumber" placeholder="Enter roll number" />
+              <input class="roll-input" [(ngModel)]="row.rollNumber"
+                     placeholder="e.g. CS-2024-001" aria-label="Roll number" />
             </td>
           </ng-container>
+
+          <!-- Actions -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef></th>
-            <td mat-cell *matCellDef="let row">
-              <button mat-stroked-button color="primary" (click)="assignOne(row)">Assign</button>
+            <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+            <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
+              <button class="assign-btn" [disabled]="!row.rollNumber.trim()"
+                      matTooltip="Assign this roll number now" (click)="assignOne(row)">
+                Assign
+              </button>
             </td>
           </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0;border:none;">
+              <cms-empty-state
+                icon="how_to_reg"
+                title="All students have roll numbers"
+                subtitle="There are no students pending roll number assignment."
+              />
+            </td>
+          </tr>
         </table>
       </div>
+
+      @if (totalCount() === 0) {
+        <cms-empty-state
+          icon="how_to_reg"
+          title="All students have roll numbers"
+          subtitle="There are no students pending roll number assignment for the selected filters."
+          [actionLabel]="hasActiveFilters ? 'Clear Filters' : ''"
+          (actionClick)="clearFilters()"
+        />
+      }
     }
   </div>
+
 </div>

@@ -21,6 +21,35 @@
 
   <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
   <div id="tour-adcomp-toolbar" class="adcomp-toolbar anim-rise anim-rise--d1">
+
+    <!-- Program filter -->
+    <select class="mlp-filter-select" [value]="filterProgram()"
+            (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
+      <option value="ALL">All Programs</option>
+      @for (p of programs(); track p) {
+        <option [value]="p">{{ p }}</option>
+      }
+    </select>
+
+    <!-- Student Type filter -->
+    <select class="mlp-filter-select" [value]="filterStudentType()"
+            (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
+      <option value="ALL">All Types</option>
+      <option value="DAY_SCHOLAR">Day Scholar</option>
+      <option value="HOSTELER">Hosteler</option>
+    </select>
+
+    <!-- Clear Filters -->
+    @if (hasActiveFilters()) {
+      <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Clear Filters
+      </button>
+    }
+
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -212,9 +241,9 @@
               <cms-empty-state
                 icon="search_off"
                 title="No candidates match your search"
-                subtitle="Try adjusting the search term."
-                actionLabel="Clear Search"
-                (actionClick)="clearSearch()"
+                subtitle="Try adjusting the search term or filters."
+                actionLabel="Clear Filters"
+                (actionClick)="clearFilters()"
               />
             </td>
           </tr>

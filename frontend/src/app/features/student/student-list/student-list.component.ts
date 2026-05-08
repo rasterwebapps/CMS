@@ -1,46 +1,40 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { NgClass, TitleCasePipe } from '@angular/common';
+import { LowerCasePipe, TitleCasePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-student-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
+    CmsEmptyStateComponent,
     CmsTourButtonComponent,
     AppDatePipe,
     TitleCasePipe,
-    NgClass,
+    LowerCasePipe,
     RouterLink,
     FormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    MatChipsModule],
+  ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',
 })
@@ -57,6 +51,9 @@ export class StudentListComponent implements OnInit {
   @ViewChild(MatSort) set sort(value: MatSort) {
     if (value) this.dataSource.sort = value;
   }
+
+  protected colMenuOpen = false;
+  protected readonly computeInitials = computeInitials;
 
   // ── Filters ──────────────────────────────────────────────────────────────
   protected filterProgram  = signal<string>('ALL');
@@ -75,6 +72,10 @@ export class StudentListComponent implements OnInit {
     this.filterStatus()   !== 'ALL' ||
     this.filterSemester() !== 'ALL'
   );
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  protected readonly totalCount  = computed(() => this.dataSource.data.length);
+  protected readonly activeCount = computed(() => this.dataSource.data.filter(s => s.status === 'ACTIVE').length);
 
   // ── Column visibility ────────────────────────────────────────────────────
   protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'semester', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
@@ -166,27 +167,9 @@ export class StudentListComponent implements OnInit {
         cancelText: 'Cancel',
       },
     });
-
     dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.performDelete(student);
-      }
+      if (confirmed) this.performDelete(student);
     });
-  }
-
-  protected getStatusClass(status: string): string {
-    switch (status?.toUpperCase()) {
-      case 'ACTIVE':
-        return 'status-active';
-      case 'INACTIVE':
-        return 'status-inactive';
-      case 'GRADUATED':
-        return 'status-graduated';
-      case 'DROPPED':
-        return 'status-dropped';
-      default:
-        return '';
-    }
   }
 
   private _loadColPrefs(): Set<string> {

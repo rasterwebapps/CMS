@@ -11,6 +11,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
+import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 
 @Component({
   selector: 'app-collect-payment-dialog',
@@ -20,6 +21,7 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
     PaymentModeLabelPipe,
     ReactiveFormsModule, MatDialogModule,
     MatButtonModule, MatProgressSpinnerModule, MatIconModule,
+    CashDenominationComponent,
   ],
   templateUrl: './collect-payment-dialog.component.html',
   styleUrl: './collect-payment-dialog.component.scss',
@@ -33,6 +35,7 @@ export class CollectPaymentDialogComponent {
 
   protected saving = false;
   protected result: CollectPaymentResponse | null = null;
+  protected denominationValid = false;
 
   protected readonly paymentModes = PAYMENT_MODES;
   protected readonly getPaymentModeLabel = getPaymentModeLabel;
@@ -45,11 +48,16 @@ export class CollectPaymentDialogComponent {
     remarks:              [''],
   });
 
+  protected isCashMode(): boolean {
+    return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
   protected onSubmit(): void {
     if (this.form.invalid) {
       scrollToFirstInvalid(this.form);
       return;
     }
+    if (this.isCashMode() && !this.denominationValid) return;
     const v = this.form.value;
     const request: CollectPaymentRequest = {
       amount:               v.amount,

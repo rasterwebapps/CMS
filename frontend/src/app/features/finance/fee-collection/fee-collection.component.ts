@@ -18,6 +18,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
+import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -47,6 +48,7 @@ export interface FeeEntry {
     MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,
     CmsEmptyStateComponent,
+    CashDenominationComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
@@ -70,6 +72,7 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly feeStatus        = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly studentSemesters = signal<SemesterFeeDetail[]>([]);
   protected readonly saving           = signal(false);
+  protected readonly denominationValid = signal(false);
   protected readonly receipt          = signal<{
     receiptNumber: string; name: string; amount: number;
     paymentDate: string; paymentMode: string; transactionRef: string | null;
@@ -265,16 +268,22 @@ export class FeeCollectionComponent implements OnInit {
     }
   }
 
+  protected isCashMode(): boolean {
+    return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
   protected backToList(): void {
     this.selectedEntry.set(null);
     this.feeStatus.set(null);
     this.studentSemesters.set([]);
     this.receipt.set(null);
+    this.denominationValid.set(false);
     this.form.reset();
   }
 
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.isCashMode() && !this.denominationValid()) return;
     const entry = this.selectedEntry();
     if (!entry) return;
 

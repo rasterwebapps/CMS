@@ -16,6 +16,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
+import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
@@ -30,7 +31,8 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
     MatProgressSpinnerModule,
     MatTableModule,
     MatTooltipModule,
-    PageHeaderComponent],
+    PageHeaderComponent,
+    CashDenominationComponent],
   templateUrl: './enquiry-payment-collection.component.html',
   styleUrl: './enquiry-payment-collection.component.scss',
 })
@@ -44,6 +46,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  protected readonly denominationValid = signal(false);
   protected readonly selectedEnquiry = signal<Enquiry | null>(null);
   protected readonly feeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly lastPaymentResponse = signal<EnquiryPaymentResponse | null>(null);
@@ -127,9 +130,14 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     });
   }
 
+  protected isCashMode(): boolean {
+    return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
   protected backToList(): void {
     this.selectedEnquiry.set(null);
     this.feeStatus.set(null);
+    this.denominationValid.set(false);
     this.form.reset();
   }
 
@@ -138,6 +146,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
       scrollToFirstInvalid(this.form);
       return;
     }
+    if (this.isCashMode() && !this.denominationValid()) return;
     const enquiry = this.selectedEnquiry();
     if (!enquiry) return;
 

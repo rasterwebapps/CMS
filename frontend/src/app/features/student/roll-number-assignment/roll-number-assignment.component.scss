@@ -1,2 +1,277 @@
-.filters-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.roll-input { width: 180px; }
+// ─────────────────────────────────────────────────────────────
+// Roll Number Assignment
+// 91px = 56px toolbar + 35px breadcrumb
+// ─────────────────────────────────────────────────────────────
+
+.rna-page {
+  height: calc(100vh - 91px);
+  overflow: hidden;
+  padding: 14px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+
+  @media (max-width: 900px) { padding: 10px 16px; gap: 6px; }
+}
+
+// ── Header ────────────────────────────────────────────────────
+
+.rna-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.rna-hdr-left { display: flex; flex-direction: column; }
+
+.rna-title {
+  margin: 0 0 4px;
+  font-family: var(--cms-font-display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+
+  em { font-style: italic; color: var(--cms-primary); }
+}
+
+.rna-sub {
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.rna-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rna-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.rna-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--amber { background: #f59e0b; box-shadow: 0 0 5px rgba(245, 158, 11, 0.6); }
+  &--green { background: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.6); }
+}
+
+// ── Toolbar ───────────────────────────────────────────────────
+
+.rna-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.row-count {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+.btn-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: var(--cms-font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: var(--cms-primary); color: var(--cms-primary); }
+
+  &--clear {
+    color: var(--cms-text-muted);
+    &:hover { border-color: var(--cms-danger, #ef4444); color: var(--cms-danger, #ef4444); }
+  }
+}
+
+// ── Save All button (in header) ───────────────────────────────
+
+.spin-icon {
+  animation: rna-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes rna-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Content card ──────────────────────────────────────────────
+
+.rna-table-card { min-height: 0; }
+
+// ── Skeleton ──────────────────────────────────────────────────
+
+.rna-skeleton { padding: 0 16px; }
+
+.rna-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--cms-bg-muted) 25%, var(--cms-border-default) 50%, var(--cms-bg-muted) 75%);
+  background-size: 400px 100%;
+  animation: skel-shimmer 1.5s infinite linear;
+
+  &--avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+  &--name   { width: 160px; height: 14px; }
+  &--text   { width: 110px; height: 12px; }
+  &--pill   { width: 60px; height: 22px; border-radius: 20px; }
+  &--input  { width: 180px; height: 32px; border-radius: 8px; }
+}
+
+@keyframes skel-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+// ── Table ─────────────────────────────────────────────────────
+
+.table-wrapper {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.modern-table { width: 100%; }
+.actions-col  { width: 90px; }
+.col-center th, .col-center td, th.col-center, td.col-center { text-align: center !important; }
+
+.student-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.1);
+  color: var(--cms-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.student-info { display: flex; flex-direction: column; gap: 1px; }
+
+.cell-name   { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
+.cell-sub    { font-size: 0.75rem; color: var(--cms-text-muted); }
+.cell-text   { font-size: 0.8125rem; color: var(--cms-text-secondary); }
+.cell-date   { font-size: 0.8125rem; color: var(--cms-text-secondary); }
+.cell-number { font-size: 0.875rem; font-variant-numeric: tabular-nums; font-weight: 500; }
+
+// ── Roll number input ─────────────────────────────────────────
+
+.roll-input {
+  height: 32px;
+  width: 175px;
+  padding: 0 10px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-primary);
+  font-size: 0.8125rem;
+  font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12);
+  }
+
+  &::placeholder { color: var(--cms-text-disabled, #aaa); font-family: var(--cms-font-ui); }
+}
+
+// ── Assign button ─────────────────────────────────────────────
+
+.assign-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.3);
+  background: rgba(var(--cms-primary-rgb), 0.06);
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--cms-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: var(--cms-font-ui);
+  white-space: nowrap;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--cms-primary);
+    color: #fff;
+    border-color: var(--cms-primary);
+    box-shadow: 0 4px 12px rgba(var(--cms-primary-rgb), 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) { transform: translateY(0); }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Table footer ──────────────────────────────────────────────
+
+.table-row {
+  transition: background 0.12s;
+  &:hover { background: rgba(var(--cms-primary-rgb), 0.02); }
+}

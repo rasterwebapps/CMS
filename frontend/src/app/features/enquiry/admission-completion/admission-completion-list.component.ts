@@ -46,9 +46,18 @@ export class AdmissionCompletionListComponent implements OnInit {
   protected colMenuOpen          = false;
 
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
+  private readonly _allData     = signal<Enquiry[]>([]);
+
+  // ── Filters ────────────────────────────────────────────────────────────────
+  protected readonly filterProgram     = signal<string>('ALL');
+  protected readonly filterStudentType = signal<string>('ALL');
+
+  protected readonly programs = computed(() =>
+    [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  protected readonly totalCount    = computed(() => this.dataSource.data.length);
+  protected readonly totalCount    = computed(() => this._allData().length);
   protected readonly filteredCount = computed(() => this.dataSource.filteredData.length);
 
   // ── Column visibility ──────────────────────────────────────────────────────
@@ -67,8 +76,14 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
-    this.dataSource.filterPredicate = (row, filter) => {
-      const q = filter.toLowerCase();
+    this.dataSource.filterPredicate = (row: Enquiry, _filter: string) => {
+      const program     = this.filterProgram();
+      const studentType = this.filterStudentType();
+      const q           = this.searchQuery().toLowerCase().trim();
+
+      if (program     !== 'ALL' && (row.programName ?? '') !== program) return false;
+      if (studentType !== 'ALL' && (row.studentType ?? '') !== studentType) return false;
+      if (!q) return true;
       return row.name.toLowerCase().includes(q) ||
         (row.programName ?? '').toLowerCase().includes(q) ||
         (row.courseName  ?? '').toLowerCase().includes(q) ||
@@ -78,16 +93,36 @@ export class AdmissionCompletionListComponent implements OnInit {
     this.load();
   }
 
-  protected onSearch(event: Event): void {
-    const val = (event.target as HTMLInputElement).value;
-    this.searchQuery.set(val);
-    this.dataSource.filter = val.trim().toLowerCase();
+  private triggerFilter(): void {
+    this.dataSource.filter = this.searchQuery() + '|' +
+      this.filterProgram() + '|' + this.filterStudentType();
     this.dataSource.paginator?.firstPage();
+  }
+
+  protected onSearch(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+    this.triggerFilter();
   }
 
   protected clearSearch(): void {
     this.searchQuery.set('');
-    this.dataSource.filter = '';
+    this.triggerFilter();
+  }
+
+  protected onProgramChange(val: string): void     { this.filterProgram.set(val);     this.triggerFilter(); }
+  protected onStudentTypeChange(val: string): void  { this.filterStudentType.set(val); this.triggerFilter(); }
+
+  protected clearFilters(): void {
+    this.filterProgram.set('ALL');
+    this.filterStudentType.set('ALL');
+    this.searchQuery.set('');
+    this.triggerFilter();
+  }
+
+  protected hasActiveFilters(): boolean {
+    return this.filterProgram() !== 'ALL' ||
+           this.filterStudentType() !== 'ALL' ||
+           this.searchQuery() !== '';
   }
 
   // ── Column prefs ───────────────────────────────────────────────────────────
@@ -119,7 +154,11 @@ export class AdmissionCompletionListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.enquiryService.getAdmissionPending().subscribe({
-      next:  enquiries => { this.dataSource.data = enquiries; this.loading.set(false); },
+      next:  enquiries => {
+        this._allData.set(enquiries);
+        this.dataSource.data = enquiries;
+        this.loading.set(false);
+      },
       error: ()        => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
     });
   }

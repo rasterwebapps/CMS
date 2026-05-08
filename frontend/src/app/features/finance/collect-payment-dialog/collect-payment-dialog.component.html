@@ -94,6 +94,15 @@
         }
       </div>
 
+      @if (isCashMode()) {
+        <div class="field-group">
+          <label class="field-label">Denomination Breakdown <span class="field-required">*</span></label>
+          <app-cash-denomination
+            [expectedAmount]="form.get('amount')?.value || 0"
+            (validChange)="denominationValid = $event" />
+        </div>
+      }
+
       <div class="field-group">
         <label for="cpd-ref" class="field-label">
           Transaction Reference
@@ -127,7 +136,8 @@
 
   <mat-dialog-actions align="end">
     <button mat-stroked-button (click)="onCancel()">Cancel</button>
-    <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="saving">
+    <button mat-flat-button color="primary" (click)="onSubmit()"
+            [disabled]="saving || (isCashMode() && !denominationValid)">
       @if (saving) {
         <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
       } @else {

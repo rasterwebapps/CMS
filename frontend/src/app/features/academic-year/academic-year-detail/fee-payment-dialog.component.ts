@@ -8,11 +8,12 @@ import { FeeDemand, PaymentMode, TermFeePaymentRequest } from '../academic-year.
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
+import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 
 @Component({
   selector: 'app-fee-payment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, DatePipe, DecimalPipe],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, DatePipe, DecimalPipe, CashDenominationComponent],
   template: `
     <h2 mat-dialog-title>Record Fee Payment</h2>
     <mat-dialog-content>
@@ -70,6 +71,15 @@ import { getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
           }
         </div>
 
+        @if (isCashMode()) {
+          <div class="field-group">
+            <label class="field-label">Denomination Breakdown <span class="required-star">*</span></label>
+            <app-cash-denomination
+              [expectedAmount]="form.get('amountPaid')?.value || 0"
+              (validChange)="denominationValid = $event" />
+          </div>
+        }
+
         <div class="field-group">
           <label class="field-label">Remarks</label>
           <input type="text" class="field-input" formControlName="remarks"
@@ -79,7 +89,8 @@ import { getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-stroked-button mat-dialog-close>Cancel</button>
-      <button mat-flat-button color="primary" (click)="submit()" [disabled]="form.invalid">
+      <button mat-flat-button color="primary" (click)="submit()"
+              [disabled]="form.invalid || (isCashMode() && !denominationValid)">
         Record Payment
       </button>
     </mat-dialog-actions>
@@ -146,6 +157,7 @@ export class FeePaymentDialogComponent {
   ];
 
   readonly getPaymentModeLabel = getPaymentModeLabel;
+  denominationValid = false;
 
   readonly form: FormGroup = this.fb.group({
     amountPaid: [null, [Validators.required, Validators.min(0.01)]],
@@ -162,6 +174,10 @@ export class FeePaymentDialogComponent {
     });
   }
 
+  isCashMode(): boolean {
+    return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
   isTransactionRefRequired(): boolean {
     const mode = this.form.get('paymentMode')?.value;
     return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
@@ -172,6 +188,7 @@ export class FeePaymentDialogComponent {
       scrollToFirstInvalid(this.form);
       return;
     }
+    if (this.isCashMode() && !this.denominationValid) return;
     const v = this.form.value;
     const request: TermFeePaymentRequest = {
       feeDemandId: this.data.demand.id,
