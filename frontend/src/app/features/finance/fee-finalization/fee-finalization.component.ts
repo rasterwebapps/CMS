@@ -112,7 +112,7 @@ export class FeeFinalizationComponent implements OnInit {
     this.yearRows().some(r => r.finalAmount > r.originalAmount)
   );
   protected readonly discountExceedsTotal = computed(() =>
-    this.totalDiscount() > this.totalOriginal()
+    this.globalDiscount() > this.totalOriginal()
   );
   protected readonly canSubmit = computed(() =>
     !this.anyYearBelowZero() &&
@@ -248,11 +248,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected updateYearAmount(index: number, raw: string): void {
     const requestedVal = this.paiseToAmount(Math.max(0, this.amountToPaise(parseFloat(raw) || 0)));
     const rows = this.yearRows().map((r, i) => {
-      if (i === index) {
-        // Cap the final amount to not exceed original amount (only discounts allowed)
-        const cappedVal = Math.min(requestedVal, r.originalAmount);
-        return { ...r, finalAmount: cappedVal };
-      }
+      if (i === index) return { ...r, finalAmount: requestedVal };
       return r;
     });
     this.yearRows.set(rows);

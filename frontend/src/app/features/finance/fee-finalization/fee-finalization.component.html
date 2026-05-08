@@ -274,17 +274,22 @@
                     </td>
                     <td class="mono">{{ row.originalAmount | inr }}</td>
                     <td class="text-right">
-                      <div class="amount-input-wrap">
-                        <span class="amount-prefix">₹</span>
-                        <input
-                          class="amount-input"
-                          type="number"
-                          min="0"
-                          [max]="row.originalAmount"
-                          [value]="row.finalAmount"
-                          (change)="updateYearAmount(i, $any($event.target).value)"
-                          [class.amount-input--reduced]="row.finalAmount < row.originalAmount"
-                        />
+                      <div class="year-input-col">
+                        <div class="amount-input-wrap" [class.amount-input-wrap--error]="row.finalAmount > row.originalAmount">
+                          <span class="amount-prefix">₹</span>
+                          <input
+                            class="amount-input"
+                            type="number"
+                            min="0"
+                            [value]="row.finalAmount"
+                            (change)="updateYearAmount(i, $any($event.target).value)"
+                            [class.amount-input--reduced]="row.finalAmount < row.originalAmount"
+                            [class.amount-input--error]="row.finalAmount > row.originalAmount"
+                          />
+                        </div>
+                        @if (row.finalAmount > row.originalAmount) {
+                          <span class="input-error-hint">Exceeds original — only discounts allowed</span>
+                        }
                       </div>
                     </td>
                     <td class="text-right">
@@ -338,22 +343,25 @@
             <div class="discount-amount-col">
               <label class="field-label">Discount Amount (₹)</label>
               <div class="discount-amount-row">
-                <div class="amount-input-wrap">
+                <div class="amount-input-wrap" [class.amount-input-wrap--error]="discountExceedsTotal()">
                   <span class="amount-prefix">₹</span>
                   <input
                     class="amount-input amount-input--lg"
                     type="number"
                     min="0"
-                    [max]="totalOriginal()"
                     [value]="globalDiscount()"
                     placeholder="0"
                     (change)="applyGlobalDiscount($any($event.target).value)"
+                    [class.amount-input--error]="discountExceedsTotal()"
                   />
                 </div>
-                @if (hasDiscount()) {
+                @if (hasDiscount() && !discountExceedsTotal()) {
                   <span class="discount-pct-badge">{{ discountPct() | percent:'1.1-1' }} off</span>
                 }
               </div>
+              @if (discountExceedsTotal()) {
+                <span class="input-error-hint">Cannot exceed total fee of {{ totalOriginal() | inr }}</span>
+              }
             </div>
 
             <div class="discount-reason-col">
@@ -366,9 +374,6 @@
             </div>
           </div>
 
-          @if (discountExceedsTotal()) {
-            <p class="field-error-block">Discount cannot exceed the total fee</p>
-          }
         </div>
 
       </div><!-- /fee-panel -->

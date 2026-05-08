@@ -272,6 +272,14 @@
     border-color: var(--cms-primary);
     box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12);
   }
+
+  &.amount-input-wrap--error {
+    border-color: #EF4444;
+    &:focus-within {
+      border-color: #EF4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+  }
 }
 
 .amount-prefix {
@@ -294,7 +302,22 @@
   padding: 8px 0;
 
   &--reduced { color: var(--cms-primary); }
+  &--error   { color: #EF4444; }
   &--lg { width: 160px; font-size: 15px; }
+}
+
+.year-input-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.input-error-hint {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #EF4444;
+  white-space: nowrap;
 }
 
 .text-right { text-align: right !important; }
