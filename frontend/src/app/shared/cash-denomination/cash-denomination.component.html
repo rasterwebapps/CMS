@@ -1,0 +1,77 @@
+<div class="denom-panel">
+  <div class="denom-title">
+    <mat-icon>account_balance_wallet</mat-icon>
+    Cash Denomination Breakdown
+  </div>
+
+  <div class="denom-section">
+    <p class="denom-section-label">Notes</p>
+    <div class="denom-grid">
+      @for (d of notes; track d) {
+        <div class="denom-row">
+          <span class="denom-value">₹{{ d }}</span>
+          <input
+            class="denom-count-input"
+            type="number"
+            min="0"
+            step="1"
+            [(ngModel)]="counts[d]"
+            (ngModelChange)="onCountChange()"
+            placeholder="0"
+          />
+          <span class="denom-subtotal">{{ d * (counts[d] || 0) | inr }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="denom-section">
+    <p class="denom-section-label">Coins</p>
+    <div class="denom-grid">
+      @for (d of coins; track d) {
+        <div class="denom-row">
+          <span class="denom-value">₹{{ d }}</span>
+          <input
+            class="denom-count-input"
+            type="number"
+            min="0"
+            step="1"
+            [(ngModel)]="counts[d]"
+            (ngModelChange)="onCountChange()"
+            placeholder="0"
+          />
+          <span class="denom-subtotal">{{ d * (counts[d] || 0) | inr }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="denom-footer">
+    <div class="denom-summary-row">
+      <span class="denom-summary-label">Total Counted</span>
+      <span class="denom-summary-value" [class.denom-match]="isValid" [class.denom-mismatch]="!isValid && total > 0">
+        {{ total | inr }}
+      </span>
+    </div>
+    <div class="denom-summary-row">
+      <span class="denom-summary-label">Expected</span>
+      <span class="denom-summary-value">{{ expectedAmount | inr }}</span>
+    </div>
+
+    @if (isValid) {
+      <div class="denom-status denom-status--ok">
+        <mat-icon>check_circle</mat-icon> Amount verified
+      </div>
+    } @else if (total > 0) {
+      <div class="denom-status denom-status--err">
+        <mat-icon>error</mat-icon>
+        Cash total ({{ total | inr }}) does not match payment amount ({{ expectedAmount | inr }})
+      </div>
+    } @else {
+      <div class="denom-status denom-status--hint">
+        <mat-icon>info</mat-icon>
+        Enter denomination counts to verify cash
+      </div>
+    }
+  </div>
+</div>
