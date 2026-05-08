@@ -10,8 +10,8 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { forkJoin } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
-import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse, SemesterFeeStatus } from '../../enquiry/enquiry.model';
-import { StudentFeeSummary, SemesterFeeDetail } from '../finance.model';
+import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
+import { StudentFeeSummary, InstallmentFeeDetail } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -70,7 +70,7 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly feeEntries       = signal<FeeEntry[]>([]);
   protected readonly selectedEntry    = signal<FeeEntry | null>(null);
   protected readonly feeStatus        = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
-  protected readonly studentSemesters = signal<SemesterFeeDetail[]>([]);
+  protected readonly studentSemesters = signal<InstallmentFeeDetail[]>([]);
   protected readonly saving           = signal(false);
   protected readonly denominationValid = signal(false);
   protected readonly receipt          = signal<{
@@ -127,9 +127,9 @@ export class FeeCollectionComponent implements OnInit {
     if (entry.type === 'ENQUIRY') {
       const fs = this.feeStatus();
       if (!fs) return [];
-      const sems = fs.semesterBreakdown;
+      const sems = fs.installmentBreakdown;
       return sems.map((s, i) => ({
-        label:       s.semesterLabel,
+        label:       s.installmentLabel,
         fee:         s.allocatedFee,
         paid:        s.paidAmount,
         outstanding: s.outstanding,
@@ -140,7 +140,7 @@ export class FeeCollectionComponent implements OnInit {
     } else {
       const sems = this.studentSemesters();
       return sems.map((s, i) => ({
-        label:       s.semesterLabel,
+        label:       s.installmentLabel,
         fee:         s.amount,
         paid:        s.amountPaid,
         outstanding: s.pendingAmount,
@@ -239,7 +239,7 @@ export class FeeCollectionComponent implements OnInit {
       this.enquiryService.getYearWiseFeeStatus(entry.id).subscribe({
         next: (fs) => {
           this.feeStatus.set(fs);
-          const sems = fs.semesterBreakdown;
+          const sems = fs.installmentBreakdown;
           const nextSem = sems.find((s, i) => s.outstanding > 0 && (i === 0 || sems[i - 1].outstanding === 0));
           const prefill = nextSem ? nextSem.outstanding : fs.totalOutstanding;
           if (!this.form.get('amount')?.value) {
@@ -251,10 +251,10 @@ export class FeeCollectionComponent implements OnInit {
         },
       });
     } else {
-      this.financeService.getSemesterStatus(entry.id).subscribe({
+      this.financeService.getFeeAllocationStatus(entry.id).subscribe({
         next: (alloc) => {
-          this.studentSemesters.set(alloc.semesterFees);
-          const sems = alloc.semesterFees;
+          this.studentSemesters.set(alloc.installmentFees);
+          const sems = alloc.installmentFees;
           const nextSem = sems.find((s, i) => s.pendingAmount > 0 && (i === 0 || sems[i - 1].pendingAmount === 0));
           const prefill = nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0);
           if (!this.form.get('amount')?.value) {

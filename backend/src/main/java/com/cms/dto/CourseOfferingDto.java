@@ -11,7 +11,7 @@ public record CourseOfferingDto(
     Long subjectId,
     String subjectName,
     String subjectCode,
-    Integer semesterNumber,
+    Integer termNumber,
     Long facultyId,
     String sectionLabel,
     Boolean isActive,

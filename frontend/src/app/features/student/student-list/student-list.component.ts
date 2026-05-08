@@ -63,7 +63,7 @@ export class StudentListComponent implements OnInit {
     [...new Set(this.dataSource.data.map(s => s.programName).filter(Boolean))].sort() as string[]
   );
   protected readonly semesters = computed(() =>
-    [...new Set(this.dataSource.data.map(s => String(s.semester)).filter(Boolean))].sort((a, b) => +a - +b)
+    [...new Set(this.dataSource.data.map(s => String(s.yearOfStudy)).filter(Boolean))].sort((a, b) => +a - +b)
   );
   protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly hasActiveFilters = computed(() =>
@@ -78,12 +78,12 @@ export class StudentListComponent implements OnInit {
   protected readonly activeCount = computed(() => this.dataSource.data.filter(s => s.status === 'ACTIVE').length);
 
   // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'semester', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
+  protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'yearOfStudy', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     rollNumber: 'Roll No.',
     fullName: 'Name',
     programName: 'Program',
-    semester: 'Semester',
+    yearOfStudy: 'Year of Study',
     admissionDate: 'Admission Date',
     phone: 'Phone',
     email: 'Email',
@@ -93,7 +93,7 @@ export class StudentListComponent implements OnInit {
     actions: 'Actions',
   };
   private readonly COLS_KEY = 'student-list-cols-v2';
-  private readonly DEFAULT_COLS = new Set(['rollNumber', 'fullName', 'programName', 'semester', 'phone', 'status', 'actions']);
+  private readonly DEFAULT_COLS = new Set(['rollNumber', 'fullName', 'programName', 'yearOfStudy', 'phone', 'status', 'actions']);
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Student>([]);
@@ -134,7 +134,7 @@ export class StudentListComponent implements OnInit {
     this.dataSource.filterPredicate = (s) => {
       if (program  !== 'ALL' && s.programName !== program)          return false;
       if (status   !== 'ALL' && s.status !== status)                return false;
-      if (semester !== 'ALL' && String(s.semester) !== semester)    return false;
+      if (semester !== 'ALL' && String(s.yearOfStudy) !== semester)    return false;
       if (!term) return true;
       return (
         s.fullName.toLowerCase().includes(term) ||

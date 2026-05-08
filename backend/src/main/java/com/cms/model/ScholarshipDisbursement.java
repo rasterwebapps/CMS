@@ -39,7 +39,7 @@ public class ScholarshipDisbursement {
     @JoinColumn(name = "academic_year_id")
     private AcademicYear academicYear;
 
-    @Column(name = "semester_number")
+    @Column(name = "term_number")
     private Integer semesterNumber;
 
     @Column(nullable = false, precision = 12, scale = 2)

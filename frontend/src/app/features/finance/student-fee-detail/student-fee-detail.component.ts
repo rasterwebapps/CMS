@@ -9,7 +9,7 @@ import { formatCurrency } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
 import {
-  StudentFeeAllocation, SemesterFeeDetail, Receipt,
+  StudentFeeAllocation, InstallmentFeeDetail, Receipt,
   EnquiryYearFee, CreateAllocationYearFee,
 } from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
@@ -63,18 +63,18 @@ export class StudentFeeDetailComponent implements OnInit {
 
   // ── Computed totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
-    this.allocation()?.semesterFees.reduce((s, sf) => s + sf.amount, 0) ?? 0
+    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.amount, 0) ?? 0
   );
   protected readonly totalPaid = computed(() =>
-    this.allocation()?.semesterFees.reduce((s, sf) => s + sf.amountPaid, 0) ?? 0
+    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.amountPaid, 0) ?? 0
   );
   protected readonly totalOutstanding = computed(() =>
-    this.allocation()?.semesterFees.reduce((s, sf) => s + sf.pendingAmount, 0) ?? 0
+    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.pendingAmount, 0) ?? 0
   );
 
-  /** The first semester with a pending balance — next to receive payment. */
+  /** The first installment with a pending balance — next to receive payment. */
   protected readonly nextDueSemester = computed(() =>
-    this.allocation()?.semesterFees.find(sf => sf.pendingAmount > 0) ?? null
+    this.allocation()?.installmentFees.find(sf => sf.pendingAmount > 0) ?? null
   );
 
   protected readonly setupTotal = computed(() =>
@@ -92,11 +92,11 @@ export class StudentFeeDetailComponent implements OnInit {
     this.loadAll();
   }
 
-  protected isOverdue(sem: SemesterFeeDetail): boolean {
+  protected isOverdue(sem: InstallmentFeeDetail): boolean {
     return sem.pendingAmount > 0 && new Date(sem.dueDate) < new Date();
   }
 
-  protected isNextDue(sem: SemesterFeeDetail): boolean {
+  protected isNextDue(sem: InstallmentFeeDetail): boolean {
     return this.nextDueSemester()?.id === sem.id;
   }
 
@@ -108,8 +108,8 @@ export class StudentFeeDetailComponent implements OnInit {
     });
     ref.afterClosed().subscribe((result) => {
       if (result) {
-        const breakdown = result.semesterBreakdown
-          ?.map((s: any) => `${s.semesterLabel}: ${formatCurrency(s.amountApplied, 'en-IN', '₹', 'INR', '1.0-0')}`)
+        const breakdown = result.installmentBreakdown
+          ?.map((s: any) => `${s.installmentLabel}: ${formatCurrency(s.amountApplied, 'en-IN', '₹', 'INR', '1.0-0')}`)
           .join(', ') ?? result.allocationSummary;
         this.toast.success(`Receipt ${result.receiptNumber} — ${breakdown}`);
         this.loadAll();
@@ -160,7 +160,7 @@ export class StudentFeeDetailComponent implements OnInit {
         this.allocation.set(data);
         this.noAllocation.set(false);
         this.savingAlloc.set(false);
-        this.toast.success('Fee allocation created — semesters generated automatically');
+        this.toast.success('Fee allocation created — installments generated automatically');
         this.loadAll();
       },
       error: () => {
@@ -175,7 +175,7 @@ export class StudentFeeDetailComponent implements OnInit {
     this.loading.set(true);
     this.noAllocation.set(false);
 
-    this.finance.getSemesterStatus(this.studentId).subscribe({
+    this.finance.getFeeAllocationStatus(this.studentId).subscribe({
       next: (data) => {
         this.allocation.set(data);
         this.loading.set(false);

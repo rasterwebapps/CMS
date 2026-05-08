@@ -235,7 +235,7 @@ class StudentTermEnrollmentServiceImplTest {
         var result = service.getEnrollmentsByTermInstance(1L);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(result.get(0).termNumber()).isEqualTo(1);
         assertThat(result.get(0).studentName()).isEqualTo("Student One");
     }
 
@@ -286,7 +286,7 @@ class StudentTermEnrollmentServiceImplTest {
         var result = service.getEnrollmentsByTermInstanceAndSemester(1L, 1);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(result.get(0).termNumber()).isEqualTo(1);
     }
 
     @Test
@@ -370,7 +370,7 @@ class StudentTermEnrollmentServiceImplTest {
 
     @Test
     void computeSemesterNumber_yearly_lastYear_returnsValue() {
-        // A 4-year YEARLY program has totalSemesters=4; year 4 must succeed.
+        // A 4-year YEARLY program has totalTerms=4; year 4 must succeed.
         AcademicYear admissionAY = createAY(1L, "2024-2025");
         AcademicYear lastAY      = createAY(4L, "2027-2028");
         Program program = createYearlyProgram(1L, "ANM", 4);
@@ -382,7 +382,7 @@ class StudentTermEnrollmentServiceImplTest {
 
     @Test
     void computeSemesterNumber_yearly_outOfRange_returnsNull() {
-        // Year after graduation: k = durationYears → position = 5 > totalSemesters(4) → null
+        // Year after graduation: k = durationYears → position = 5 > totalTerms(4) → null
         AcademicYear admissionAY  = createAY(1L, "2024-2025");
         AcademicYear afterGradAY  = createAY(5L, "2028-2029");
         Program program = createYearlyProgram(1L, "ANM", 4);

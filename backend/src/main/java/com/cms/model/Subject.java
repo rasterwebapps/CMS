@@ -49,7 +49,7 @@ public class Subject {
     @JoinColumn(name = "department_id")
     private Department department;
 
-    @Column(nullable = false)
+    @Column(name = "term_number", nullable = false)
     private Integer semester;
 
     @CreatedDate
@@ -64,7 +64,7 @@ public class Subject {
     }
 
     public Subject(String name, String code, Integer credits, Integer theoryCredits, Integer labCredits,
-                   Course course, Department department, Integer semester) {
+                   Course course, Department department, Integer termNumber) {
         this.name = name;
         this.code = code;
         this.credits = credits;
@@ -72,7 +72,7 @@ public class Subject {
         this.labCredits = labCredits;
         this.course = course;
         this.department = department;
-        this.semester = semester;
+        this.semester = termNumber;
     }
 
     public Long getId() {
@@ -143,8 +143,13 @@ public class Subject {
         return semester;
     }
 
-    public void setSemester(Integer semester) {
-        this.semester = semester;
+    /** @deprecated Use {@link #getSemester()} via termNumber field. */
+    public Integer getTermNumber() {
+        return semester;
+    }
+
+    public void setSemester(Integer termNumber) {
+        this.semester = termNumber;
     }
 
     public Instant getCreatedAt() {

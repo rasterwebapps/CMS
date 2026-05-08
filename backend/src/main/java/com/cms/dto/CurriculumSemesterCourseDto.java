@@ -6,7 +6,7 @@ public record CurriculumSemesterCourseDto(
     Long id,
     Long curriculumVersionId,
     String curriculumVersionName,
-    Integer semesterNumber,
+    Integer termNumber,
     Long subjectId,
     String subjectName,
     String subjectCode,

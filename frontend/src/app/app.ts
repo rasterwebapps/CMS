@@ -216,6 +216,7 @@ export class App implements OnInit {
       items: [
         { label: 'Student Fees',    icon: 'account_balance_wallet', route: '/student-fees',        permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
         { label: 'Fee Collection',  icon: 'payments',               route: '/fee-collection',      permissions: ['FEE_COLLECT'] },
+        { label: 'Receipts',        icon: 'receipt_long',           route: '/receipts',             permissions: ['STUDENT_FEE_VIEW', 'FEE_COLLECT'] },
         { label: 'Fee Finalization', icon: 'lock',                  route: '/student-fees/finalize', permissions: ['FEE_FINALIZE', 'FEE_STRUCTURE_MANAGE'] },
         { label: 'Scholarships',    icon: 'school',                 route: '/scholarships',        permissions: ['SCHOLARSHIP_MANAGE'] },
         { label: 'Scholarship Applications', icon: 'verified',      route: '/scholarship-applications', permissions: ['SCHOLARSHIP_APPROVE'] },

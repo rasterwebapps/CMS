@@ -75,7 +75,7 @@ export const ADMISSION_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Admission Details',
         description:
-          'Enter the academic year, programme, semester, batch, and any other admission-specific information needed to enrol the student.',
+          'Enter the academic year, programme, year of study, batch, and any other admission-specific information needed to enrol the student.',
         side: 'top',
         align: 'start',
       },

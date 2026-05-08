@@ -106,7 +106,7 @@
                 class="field-input field-input--narrow"
                 formControlName="assessmentPattern"
               >
-                <option value="SEMESTER">Semester-wise (exam every 6 months)</option>
+                <option value="TERM_BASED">Term-based (installment per term)</option>
                 <option value="YEARLY">Yearly / Non-Sem (annual exam)</option>
               </select>
               <p class="field-hint">Determines how results, exams, and fee demands are structured for students in this program.</p>
@@ -153,7 +153,7 @@
               <span class="prev-pill prev-pill--primary">{{ previewDuration() }} {{ previewDuration() === 1 ? 'year' : 'years' }}</span>
             }
             <span class="prev-pill prev-pill--primary">
-              {{ previewAssessmentPattern() === 'YEARLY' ? 'Yearly' : 'Semester' }}
+              {{ previewAssessmentPattern() === 'YEARLY' ? 'Yearly' : 'Term-Based' }}
             </span>
             <span
               class="prev-pill"

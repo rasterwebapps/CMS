@@ -11,7 +11,7 @@ public interface CurriculumSemesterCourseRepository extends JpaRepository<Curric
     List<CurriculumSemesterCourse> findByCurriculumVersionId(Long curriculumVersionId);
 
     List<CurriculumSemesterCourse> findByCurriculumVersionIdAndSemesterNumber(
-        Long curriculumVersionId, Integer semesterNumber);
+        Long curriculumVersionId, Integer termNumber);
 
     boolean existsByCurriculumVersionId(Long curriculumVersionId);
 }

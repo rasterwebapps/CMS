@@ -50,7 +50,7 @@ class StudentTermEnrollmentControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(1))
-            .andExpect(jsonPath("$[0].semesterNumber").value(1));
+            .andExpect(jsonPath("$[0].termNumber").value(1));
 
         verify(service).getEnrollmentsByTermInstance(1L);
     }
@@ -62,7 +62,7 @@ class StudentTermEnrollmentControllerTest {
 
         mockMvc.perform(get("/api/student-term-enrollments")
                 .param("termInstanceId", "1")
-                .param("semesterNumber", "1"))
+                .param("termNumber", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 

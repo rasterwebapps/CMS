@@ -80,7 +80,7 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
 
   private static readonly FROM_ENQUIRY_CONTROLS: ReadonlyArray<string> = [
-    'enquiryId', 'firstName', 'lastName', 'email', 'semester', 'admissionDate',
+    'enquiryId', 'firstName', 'lastName', 'email', 'yearOfStudy', 'admissionDate',
   ];
   private static readonly MANUAL_CONTROLS: ReadonlyArray<string> = ['studentId'];
   private static readonly MODE_TOGGLED_CONTROLS: ReadonlyArray<string> = [
@@ -101,7 +101,7 @@ export class AdmissionFormComponent implements OnInit {
     lastName: [''],
     email: [''],
     phone: [''],
-    semester: [1],
+    yearOfStudy: [1],
     admissionDate: [''],
     dateOfBirth: [''],
     gender: [''],
@@ -227,7 +227,7 @@ export class AdmissionFormComponent implements OnInit {
           lastName: p.lastName,
           email: p.email ?? '',
           phone: p.phone ?? '',
-          semester: p.suggestedSemester,
+          yearOfStudy: p.suggestedYearOfStudy,
           admissionDate: new Date().toISOString().split('T')[0],
           applicationDate: p.suggestedApplicationDate,
           declarationDate: p.suggestedApplicationDate,
@@ -275,7 +275,7 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('firstName')?.setValidators([Validators.required]);
       this.form.get('lastName')?.setValidators([Validators.required]);
       this.form.get('email')?.setValidators([Validators.required, Validators.email]);
-      this.form.get('semester')?.setValidators([Validators.required, Validators.min(1)]);
+      this.form.get('yearOfStudy')?.setValidators([Validators.required, Validators.min(1)]);
       this.form.get('admissionDate')?.setValidators([Validators.required]);
       this.form.get('studentId')?.clearValidators();
     } else {
@@ -283,7 +283,7 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('firstName')?.clearValidators();
       this.form.get('lastName')?.clearValidators();
       this.form.get('email')?.clearValidators();
-      this.form.get('semester')?.clearValidators();
+      this.form.get('yearOfStudy')?.clearValidators();
       this.form.get('admissionDate')?.clearValidators();
       this.form.get('studentId')?.setValidators([Validators.required]);
     }
@@ -357,7 +357,7 @@ export class AdmissionFormComponent implements OnInit {
       lastName: v['lastName'] as string,
       email: v['email'] as string,
       phone: this.nullableStr(v['phone'] as string) ?? undefined,
-      semester: v['semester'] as number,
+      yearOfStudy: v['yearOfStudy'] as number,
       admissionDate: v['admissionDate'] as string,
       joiningAcademicYearId: this.selectedAcademicYearId()!,
       applicationDate: v['applicationDate'] as string,

@@ -13,8 +13,8 @@ public record PenaltyResponse(
 ) {
     public record PenaltyDetail(
         Long id,
-        Long semesterFeeId,
-        String semesterLabel,
+        Long installmentFeeId,
+        String installmentLabel,
         Integer yearNumber,
         BigDecimal dailyRate,
         LocalDate penaltyStartDate,

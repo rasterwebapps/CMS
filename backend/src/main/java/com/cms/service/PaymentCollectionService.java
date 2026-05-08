@@ -3,8 +3,11 @@ package com.cms.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.ReceiptResponse;
+import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.FeeInstallment;
@@ -62,8 +66,8 @@ public class PaymentCollectionService {
 
         BigDecimal remaining = request.amount();
         List<String> allocationDetails = new ArrayList<>();
-        List<SemesterPaymentDetail> semesterBreakdown = new ArrayList<>();
-        // One receipt number for the entire payment regardless of how many semesters it covers
+        List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
+        // One receipt number for the entire payment regardless of how many installments it covers
         String receiptNumber = generateReceiptNumber();
 
         for (SemesterFee sf : semesterFees) {
@@ -89,7 +93,7 @@ public class PaymentCollectionService {
             installmentRepository.save(installment);
 
             allocationDetails.add(sf.getSemesterLabel() + ": ₹" + payForThisSemester.toPlainString());
-            semesterBreakdown.add(new SemesterPaymentDetail(
+            installmentBreakdown.add(new SemesterPaymentDetail(
                 sf.getSemesterLabel(), sf.getYearNumber(), sf.getSemesterSequence(), payForThisSemester
             ));
             remaining = remaining.subtract(payForThisSemester);
@@ -104,7 +108,7 @@ public class PaymentCollectionService {
             request.amount().subtract(remaining), request.paymentDate(), request.paymentMode(),
             request.transactionReference(), request.remarks(),
             String.join("; ", allocationDetails),
-            semesterBreakdown,
+            installmentBreakdown,
             java.time.Instant.now()
         );
     }
@@ -130,6 +134,48 @@ public class PaymentCollectionService {
         }
 
         return toReceiptResponse(installment);
+    }
+
+    public List<ReceiptSummaryResponse> getAllReceiptSummaries() {
+        Map<String, List<FeeInstallment>> grouped =
+            installmentRepository.findAllByOrderByPaymentDateDescIdDesc().stream()
+                .collect(Collectors.groupingBy(
+                    FeeInstallment::getReceiptNumber, LinkedHashMap::new, Collectors.toList()));
+
+        return grouped.entrySet().stream().map(e -> {
+            List<FeeInstallment> items = e.getValue();
+            FeeInstallment first = items.get(0);
+
+            BigDecimal total = items.stream()
+                .map(FeeInstallment::getAmountPaid)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            List<SemesterPaymentDetail> breakdown = items.stream()
+                .map(fi -> new SemesterPaymentDetail(
+                    fi.getSemesterFee().getSemesterLabel(),
+                    fi.getSemesterFee().getYearNumber(),
+                    fi.getSemesterFee().getSemesterSequence(),
+                    fi.getAmountPaid()))
+                .toList();
+
+            String covered = breakdown.stream()
+                .map(SemesterPaymentDetail::installmentLabel)
+                .collect(Collectors.joining(", "));
+
+            return new ReceiptSummaryResponse(
+                first.getReceiptNumber(),
+                first.getStudent().getId(),
+                first.getStudent().getFullName(),
+                first.getStudent().getRollNumber(),
+                total,
+                first.getPaymentDate(),
+                first.getPaymentMode(),
+                first.getTransactionReference(),
+                first.getRemarks(),
+                covered,
+                breakdown,
+                first.getCreatedAt());
+        }).toList();
     }
 
     private ReceiptResponse toReceiptResponse(FeeInstallment fi) {

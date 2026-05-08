@@ -10,11 +10,11 @@ public record CurriculumFullViewDto(
     Long programId,
     String programName,
     AssessmentPattern assessmentPattern,
-    Integer totalSemesters,
-    List<SemesterGroup> semesters
+    Integer totalTerms,
+    List<TermGroup> terms
 ) {
-    public record SemesterGroup(
-        Integer semesterNumber,
+    public record TermGroup(
+        Integer termNumber,
         List<CurriculumSemesterCourseDto> courses
     ) {}
 }

@@ -1,12 +1,12 @@
 export type ProgramStatus = 'ACTIVE' | 'INACTIVE';
-export type AssessmentPattern = 'SEMESTER' | 'YEARLY';
+export type AssessmentPattern = 'TERM_BASED' | 'YEARLY';
 
 export interface Program {
   id: number;
   name: string;
   code: string;
   durationYears: number;
-  totalSemesters: number;
+  totalTerms: number;
   status: ProgramStatus;
   assessmentPattern: AssessmentPattern;
   requiredDocumentTypes: string[];

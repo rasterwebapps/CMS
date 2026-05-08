@@ -233,12 +233,12 @@
           </span>
         </div>
 
-        <!-- Semester Table -->
+        <!-- Installment Table -->
         @if (semesterRows().length > 0) {
           <div class="sem-table">
             <div class="sem-head">
               <span>#</span>
-              <span>Semester</span>
+              <span>Installment</span>
               <span class="align-right">Due Date</span>
               <span class="align-right">Fee (₹)</span>
               <span class="align-right">Paid (₹)</span>
@@ -299,7 +299,7 @@
             <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
             <input class="field-input" type="number" formControlName="amount" min="1" placeholder="0"
                    [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
-            <p class="field-hint">Pre-filled with current semester outstanding · any amount fills semesters in order</p>
+            <p class="field-hint">Pre-filled with current installment outstanding · any amount fills installments in order</p>
             @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
               <p class="field-error">Valid amount is required</p>
             }

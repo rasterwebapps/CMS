@@ -44,7 +44,7 @@ export class ProgramListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'totalSemesters', 'status', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'durationYears', 'totalTerms', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -95,11 +95,11 @@ export class ProgramListComponent implements OnInit {
   }
 
   protected termCountLabel(program: Program): string {
-    const n = program.totalSemesters;
+    const n = program.totalTerms;
     if (program.assessmentPattern === 'YEARLY') {
       return `${n} ${n === 1 ? 'Year' : 'Years'}`;
     }
-    return `${n} ${n === 1 ? 'Semester' : 'Semesters'}`;
+    return `${n} ${n === 1 ? 'Term' : 'Terms'}`;
   }
 
   protected editProgram(program: Program): void {

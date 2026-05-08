@@ -21,7 +21,7 @@ export interface CurriculumSemesterCourse {
   id: number;
   curriculumVersionId: number;
   curriculumVersionName: string;
-  semesterNumber: number;
+  termNumber: number;
   subjectId: number;
   subjectName: string;
   subjectCode: string;
@@ -32,13 +32,13 @@ export interface CurriculumSemesterCourse {
 
 export interface CurriculumSemesterCourseRequest {
   curriculumVersionId: number;
-  semesterNumber: number;
+  termNumber: number;
   subjectId: number;
   sortOrder?: number;
 }
 
 export interface CurriculumSemesterGroup {
-  semesterNumber: number;
+  termNumber: number;
   courses: CurriculumSemesterCourse[];
 }
 
@@ -47,7 +47,7 @@ export interface CurriculumFullView {
   versionName: string;
   programId: number;
   programName: string;
-  assessmentPattern: 'SEMESTER' | 'YEARLY';
-  totalSemesters: number;
-  semesters: CurriculumSemesterGroup[];
+  assessmentPattern: 'TERM_BASED' | 'YEARLY';
+  totalTerms: number;
+  terms: CurriculumSemesterGroup[];
 }

@@ -109,7 +109,7 @@ export class StudentFormComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     phone: [''],
     programId: [null, [Validators.required]],
-    semester: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
+    yearOfStudy: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
     admissionDate: ['', [Validators.required]],
     labBatch: [''],
     status: ['ACTIVE'],
@@ -148,7 +148,7 @@ export class StudentFormComponent implements OnInit {
         this.previewEmail.set((v.email ?? '').trim());
         this.previewPhone.set((v.phone ?? '').trim());
         this.previewProgramId.set(v.programId ?? null);
-        this.previewSemester.set(v.semester != null && v.semester !== '' ? Number(v.semester) : null);
+        this.previewSemester.set(v.yearOfStudy != null && v.yearOfStudy !== '' ? Number(v.yearOfStudy) : null);
         this.previewLabBatch.set((v.labBatch ?? '').trim());
         this.previewStatus.set(v.status || 'ACTIVE');
         this.previewBloodGroup.set(v.bloodGroup || '');
@@ -189,7 +189,7 @@ export class StudentFormComponent implements OnInit {
       email: v.email.trim(),
       phone: v.phone?.trim() || undefined,
       programId: v.programId,
-      semester: v.semester,
+      yearOfStudy: v.yearOfStudy,
       admissionDate: v.admissionDate,
       labBatch: v.labBatch?.trim() || undefined,
       status: v.status || undefined,
@@ -264,7 +264,7 @@ export class StudentFormComponent implements OnInit {
       lastName: 'Last Name',
       email: 'Email',
       programId: 'Program',
-      semester: 'Semester',
+      yearOfStudy: 'Year of Study',
       admissionDate: 'Admission Date',
     };
     return labels[fieldName] || fieldName;
@@ -291,7 +291,7 @@ export class StudentFormComponent implements OnInit {
           email: student.email,
           phone: student.phone || '',
           programId: student.programId,
-          semester: student.semester,
+          yearOfStudy: student.yearOfStudy,
           admissionDate: student.admissionDate,
           labBatch: student.labBatch || '',
           status: student.status,

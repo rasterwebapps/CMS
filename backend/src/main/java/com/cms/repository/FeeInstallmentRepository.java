@@ -24,4 +24,10 @@ public interface FeeInstallmentRepository extends JpaRepository<FeeInstallment, 
     @Query("SELECT fi FROM FeeInstallment fi WHERE fi.student.id = :studentId " +
            "ORDER BY fi.paymentDate DESC, fi.id DESC")
     List<FeeInstallment> findByStudentIdOrderByPaymentDateDesc(@Param("studentId") Long studentId);
+
+    @Query("SELECT fi FROM FeeInstallment fi " +
+           "JOIN FETCH fi.semesterFee " +
+           "JOIN FETCH fi.student " +
+           "ORDER BY fi.paymentDate DESC, fi.id DESC")
+    List<FeeInstallment> findAllByOrderByPaymentDateDescIdDesc();
 }

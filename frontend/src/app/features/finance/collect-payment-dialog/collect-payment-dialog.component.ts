@@ -12,6 +12,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
+import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-collect-payment-dialog',
@@ -86,6 +87,23 @@ export class CollectPaymentDialogComponent {
 
   protected onCancel(): void {
     this.dialogRef.close();
+  }
+
+  protected printReceipt(): void {
+    const r = this.result!;
+    printFeeReceipt({
+      receiptNumber: r.receiptNumber,
+      studentName: r.studentName,
+      rollNumber: r.rollNumber,
+      amountPaid: r.amountPaid,
+      paymentDate: r.paymentDate,
+      paymentMode: r.paymentMode,
+      transactionReference: r.transactionReference,
+      installmentBreakdown: r.installmentBreakdown.map(s => ({
+        installmentLabel: s.installmentLabel,
+        amountApplied: s.amountApplied,
+      })),
+    });
   }
 
   protected isTransactionRefRequired(): boolean {

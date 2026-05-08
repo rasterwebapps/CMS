@@ -241,7 +241,7 @@ class CourseOfferingServiceImplTest {
         List<CourseOfferingDto> dtos = service.getOfferingsByTermInstance(1L);
 
         assertThat(dtos).hasSize(1);
-        assertThat(dtos.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(dtos.get(0).termNumber()).isEqualTo(1);
         assertThat(dtos.get(0).subjectCode()).isEqualTo("MATH101");
     }
 
@@ -259,7 +259,7 @@ class CourseOfferingServiceImplTest {
         List<CourseOfferingDto> dtos = service.getOfferingsByTermInstanceAndSemester(1L, 1);
 
         assertThat(dtos).hasSize(1);
-        assertThat(dtos.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(dtos.get(0).termNumber()).isEqualTo(1);
     }
 
     @Test

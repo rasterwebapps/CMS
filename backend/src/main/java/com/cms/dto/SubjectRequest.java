@@ -38,5 +38,5 @@ public record SubjectRequest(
     @NotNull(message = "Semester is required")
     @Min(value = 1, message = "Semester must be at least 1")
     @Max(value = 12, message = "Semester must not exceed 12")
-    Integer semester
+    Integer termNumber
 ) {}

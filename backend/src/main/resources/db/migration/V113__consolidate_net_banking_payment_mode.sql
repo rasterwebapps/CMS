@@ -14,8 +14,8 @@ UPDATE term_fee_payments
 SET payment_mode = 'BANK_TRANSFER'
 WHERE payment_mode = 'NET_BANKING';
 
--- commission_payments table (agent commission disbursements)
-UPDATE commission_payments
+-- agent commission payouts
+UPDATE agent_commission_payouts
 SET payment_mode = 'BANK_TRANSFER'
 WHERE payment_mode = 'NET_BANKING';
 

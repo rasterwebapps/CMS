@@ -19,10 +19,10 @@
     </div>
 
     <div class="receipt-breakdown">
-      <div class="receipt-breakdown__title">Semester Allocation</div>
-      @for (s of result.semesterBreakdown; track s.semesterLabel) {
+      <div class="receipt-breakdown__title">Installment Allocation</div>
+      @for (s of result.installmentBreakdown; track s.installmentLabel) {
         <div class="receipt-breakdown__row">
-          <span>{{ s.semesterLabel }}</span>
+          <span>{{ s.installmentLabel }}</span>
           <span class="receipt-breakdown__amt">{{ s.amountApplied | inr }}</span>
         </div>
       }
@@ -30,6 +30,9 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="printReceipt()">
+      <mat-icon>print</mat-icon> Print Receipt
+    </button>
     <button mat-flat-button color="primary" (click)="onDone()">Done</button>
   </mat-dialog-actions>
 
@@ -129,7 +132,7 @@
 
       <p class="cascade-hint">
         <mat-icon>info</mat-icon>
-        Payment fills Semester 1 first, then cascades to subsequent semesters automatically.
+        Payment fills Installment 1 first, then cascades to subsequent installments automatically.
       </p>
     </form>
   </mat-dialog-content>

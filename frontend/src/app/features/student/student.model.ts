@@ -10,7 +10,7 @@ export interface Student {
   phone?: string;
   programId: number;
   programName: string;
-  semester: number;
+  yearOfStudy: number;
   admissionDate: string;
   labBatch?: string;
   status: string;
@@ -51,7 +51,7 @@ export interface StudentTermEnrollment {
   cohortCode: string;
   termInstanceId: number;
   termInstanceLabel: string;
-  semesterNumber: number;
+  termNumber: number;
   yearOfStudy: number;
   status: EnrollmentStatus;
 }
@@ -67,7 +67,7 @@ export interface CourseRegistration {
   courseOfferingId: number;
   subjectName: string;
   subjectCode: string;
-  semesterNumber: number;
+  termNumber: number;
   status: RegistrationStatus;
   createdAt: string;
   updatedAt: string;
@@ -112,7 +112,7 @@ export interface StudentRequest {
   email: string;
   phone?: string;
   programId: number;
-  semester: number;
+  yearOfStudy: number;
   admissionDate: string;
   labBatch?: string;
   status?: string;

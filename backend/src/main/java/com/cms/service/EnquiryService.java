@@ -289,8 +289,8 @@ public class EnquiryService {
         if (request.yearWiseFees() != null) {
             enquiry.setYearWiseFees(request.yearWiseFees());
         }
-        if (request.semesterWiseFees() != null) {
-            enquiry.setSemesterWiseFees(request.semesterWiseFees());
+        if (request.termWiseFees() != null) {
+            enquiry.setSemesterWiseFees(request.termWiseFees());
         }
 
         Enquiry saved = enquiryRepository.save(enquiry);

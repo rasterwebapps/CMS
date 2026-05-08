@@ -150,10 +150,10 @@
             </div>
           </div>
 
-          <!-- Semester-wise Fee Status (primary) -->
+          <!-- Installment-wise Fee Status (primary) -->
           @if (feeStatus(); as fs) {
-            @if (fs.semesterBreakdown.length > 0) {
-              <h3 class="section-title">Semester-wise Fee Status</h3>
+            @if (fs.installmentBreakdown.length > 0) {
+              <h3 class="section-title">Installment-wise Fee Status</h3>
 
               <!-- Payment progress summary -->
               @if (fs.totalPaid > 0) {
@@ -172,15 +172,15 @@
                   <span class="align-right">Outstanding</span>
                   <span>Status</span>
                 </div>
-                @for (sf of fs.semesterBreakdown; track sf.semesterNumber; let first = $first) {
+                @for (sf of fs.installmentBreakdown; track sf.installmentNumber; let first = $first) {
                   <div class="sem-status-row"
                        [class.sem-status-row--paid]="sf.outstanding === 0"
-                       [class.sem-status-row--next]="sf.outstanding > 0 && (first || fs.semesterBreakdown[$index - 1]?.outstanding === 0)"
+                       [class.sem-status-row--next]="sf.outstanding > 0 && (first || fs.installmentBreakdown[$index - 1]?.outstanding === 0)"
                        [class.sem-status-row--pending]="sf.paidAmount === 0 && sf.outstanding > 0">
-                    <span class="sem-seq">{{ sf.semesterNumber }}</span>
+                    <span class="sem-seq">{{ sf.installmentNumber }}</span>
                     <span class="sem-label">
-                      {{ sf.semesterLabel }}
-                      @if (sf.outstanding > 0 && (first || fs.semesterBreakdown[$index - 1]?.outstanding === 0)) {
+                      {{ sf.installmentLabel }}
+                      @if (sf.outstanding > 0 && (first || fs.installmentBreakdown[$index - 1]?.outstanding === 0)) {
                         <span class="next-pill">Next →</span>
                       }
                     </span>
@@ -209,7 +209,7 @@
                 </div>
               </div>
             } @else if (fs.yearBreakdown.length > 0) {
-              <!-- Fall-back: year-wise when no semester data -->
+              <!-- Fall-back: year-wise when no installment data -->
               <h3 class="section-title">Year-wise Fee Status</h3>
               <div class="year-status-table">
                 <div class="year-status-header">

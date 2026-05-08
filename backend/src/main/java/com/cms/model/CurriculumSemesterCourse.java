@@ -19,8 +19,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "curriculum_semester_courses",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"curriculum_version_id", "semester_number", "subject_id"}))
+@Table(name = "curriculum_term_courses",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"curriculum_version_id", "term_number", "subject_id"}))
 @EntityListeners(AuditingEntityListener.class)
 public class CurriculumSemesterCourse {
 
@@ -32,7 +32,7 @@ public class CurriculumSemesterCourse {
     @JoinColumn(name = "curriculum_version_id", nullable = false)
     private CurriculumVersion curriculumVersion;
 
-    @Column(name = "semester_number", nullable = false)
+    @Column(name = "term_number", nullable = false)
     private Integer semesterNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)

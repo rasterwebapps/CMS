@@ -109,16 +109,16 @@ export interface StudentFeeAllocation {
   status: string;
   finalizedAt: string;
   finalizedBy: string;
-  semesterFees: SemesterFeeDetail[];
+  installmentFees: InstallmentFeeDetail[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface SemesterFeeDetail {
+export interface InstallmentFeeDetail {
   id: number;
   yearNumber: number;
-  semesterSequence: number;
-  semesterLabel: string;
+  sequence: number;
+  installmentLabel: string;
   amount: number;
   dueDate: string;
   amountPaid: number;
@@ -127,10 +127,10 @@ export interface SemesterFeeDetail {
   paymentStatus: string;
 }
 
-export interface SemesterPaymentDetail {
-  semesterLabel: string;
+export interface InstallmentPaymentDetail {
+  installmentLabel: string;
   yearNumber: number;
-  semesterSequence: number;
+  sequence: number;
   amountApplied: number;
 }
 
@@ -168,7 +168,7 @@ export interface CollectPaymentResponse {
   transactionReference: string;
   remarks: string;
   allocationSummary: string;
-  semesterBreakdown: SemesterPaymentDetail[];
+  installmentBreakdown: InstallmentPaymentDetail[];
   createdAt: string;
 }
 
@@ -182,8 +182,8 @@ export interface PenaltyResponse {
 
 export interface PenaltyDetail {
   id: number;
-  semesterFeeId: number;
-  semesterLabel: string;
+  installmentFeeId: number;
+  installmentLabel: string;
   yearNumber: number;
   dailyRate: number;
   penaltyStartDate: string;
@@ -237,13 +237,28 @@ export interface Receipt {
   studentId: number;
   studentName: string;
   rollNumber: string;
-  semesterFeeId: number;
-  semesterLabel: string;
+  installmentFeeId: number;
+  installmentLabel: string;
   yearNumber: number;
   amountPaid: number;
   paymentDate: string;
   paymentMode: string;
   transactionReference: string;
   remarks: string;
+  createdAt: string;
+}
+
+export interface ReceiptSummary {
+  receiptNumber: string;
+  studentId: number;
+  studentName: string;
+  rollNumber: string;
+  totalAmountPaid: number;
+  paymentDate: string;
+  paymentMode: string;
+  transactionReference: string | null;
+  remarks: string | null;
+  installmentsCovered: string;
+  installmentBreakdown: InstallmentPaymentDetail[];
   createdAt: string;
 }

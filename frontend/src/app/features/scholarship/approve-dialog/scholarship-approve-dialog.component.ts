@@ -28,7 +28,7 @@ export class ScholarshipApproveDialogComponent {
 
   protected saving = signal(false);
 
-  protected readonly disbursementFrequencies: DisbursementFrequency[] = ['ANNUAL', 'SEMESTER', 'ONE_TIME'];
+  protected readonly disbursementFrequencies: DisbursementFrequency[] = ['ANNUAL', 'TERM_BASED', 'ONE_TIME'];
 
   protected readonly form: FormGroup = this.fb.group({
     approvedAmount: [this.data.application.approvedAmount ?? null, [Validators.required, Validators.min(1)]],
@@ -71,7 +71,7 @@ export class ScholarshipApproveDialogComponent {
   }
 
   protected freqLabel(f: DisbursementFrequency): string {
-    return { ANNUAL: 'Annual (once per year)', SEMESTER: 'Per Semester', ONE_TIME: 'One Time Only' }[f];
+    return { ANNUAL: 'Annual (once per year)', TERM_BASED: 'Per Term', ONE_TIME: 'One Time Only' }[f];
   }
 }
 

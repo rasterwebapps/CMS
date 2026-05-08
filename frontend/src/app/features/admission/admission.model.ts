@@ -16,7 +16,7 @@ export interface AdmissionResponse {
   rollNumber: string | null;
   programName: string | null;
   courseName: string | null;
-  semester: number | null;
+  yearOfStudy: number | null;
   studentStatus: string | null;
   joiningAcademicYearId: number;
   joiningAcademicYearName: string;

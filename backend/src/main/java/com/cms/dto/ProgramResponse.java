@@ -12,7 +12,7 @@ public record ProgramResponse(
     String name,
     String code,
     Integer durationYears,
-    Integer totalSemesters,
+    Integer totalTerms,
     ProgramStatus status,
     AssessmentPattern assessmentPattern,
     Set<DocumentType> requiredDocumentTypes,

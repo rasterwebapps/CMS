@@ -13,7 +13,7 @@ public record CourseRegistrationDto(
     Long courseOfferingId,
     String subjectName,
     String subjectCode,
-    Integer semesterNumber,
+    Integer termNumber,
     RegistrationStatus status,
     Instant createdAt,
     Instant updatedAt

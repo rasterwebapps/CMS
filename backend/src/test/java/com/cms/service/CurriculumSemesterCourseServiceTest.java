@@ -74,7 +74,7 @@ class CurriculumSemesterCourseServiceTest {
         CurriculumSemesterCourseDto dto = service.addCourseToSemester(request);
 
         assertThat(dto.id()).isEqualTo(1L);
-        assertThat(dto.semesterNumber()).isEqualTo(1);
+        assertThat(dto.termNumber()).isEqualTo(1);
         assertThat(dto.subjectName()).isEqualTo("Anatomy");
 
         verify(courseRepository).save(any(CurriculumSemesterCourse.class));
@@ -154,7 +154,7 @@ class CurriculumSemesterCourseServiceTest {
         List<CurriculumSemesterCourseDto> dtos = service.getCoursesBySemester(1L, 1);
 
         assertThat(dtos).hasSize(1);
-        assertThat(dtos.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(dtos.get(0).termNumber()).isEqualTo(1);
     }
 
     @Test
@@ -199,12 +199,12 @@ class CurriculumSemesterCourseServiceTest {
         CurriculumFullViewDto fullView = service.getFullCurriculum(1L);
 
         assertThat(fullView.curriculumVersionId()).isEqualTo(1L);
-        assertThat(fullView.totalSemesters()).isEqualTo(8);  // 4-year program
-        assertThat(fullView.semesters()).hasSize(8);  // all 8 semesters present
-        assertThat(fullView.semesters().get(0).courses()).hasSize(1);
-        assertThat(fullView.semesters().get(1).courses()).hasSize(1);
+        assertThat(fullView.totalTerms()).isEqualTo(8);  // 4-year program
+        assertThat(fullView.terms()).hasSize(8);  // all 8 semesters present
+        assertThat(fullView.terms().get(0).courses()).hasSize(1);
+        assertThat(fullView.terms().get(1).courses()).hasSize(1);
         // Remaining semesters are empty
-        assertThat(fullView.semesters().get(2).courses()).isEmpty();
+        assertThat(fullView.terms().get(2).courses()).isEmpty();
     }
 
     @Test

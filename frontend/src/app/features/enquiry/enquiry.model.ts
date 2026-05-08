@@ -21,7 +21,7 @@ export interface Enquiry {
   referralAdditionalAmount: number | null;
   finalCalculatedFee: number | null;
   yearWiseFees: string | null;
-  semesterWiseFees: string | null;
+  termWiseFees: string | null;
   studentType: 'DAY_SCHOLAR' | 'HOSTELER' | null;
   finalizedTotalFee: number | null;
   finalizedDiscountAmount: number | null;
@@ -73,7 +73,7 @@ export interface FeeFinalizationRequest {
   discountAmount?: number;
   discountReason?: string;
   yearWiseFees?: string;
-  semesterWiseFees?: string;
+  termWiseFees?: string;
 }
 
 export interface FeeFinalizationResponse {
@@ -161,7 +161,7 @@ export interface EnquiryConversionRequest {
   lastName: string;
   email: string;
   phone?: string;
-  semester: number;
+  yearOfStudy: number;
   admissionDate: string;
   joiningAcademicYearId: number;
   applicationDate: string;
@@ -213,7 +213,7 @@ export interface EnquiryConversionPrefillResponse {
   programName: string | null;
   courseId: number | null;
   courseName: string | null;
-  suggestedSemester: number;
+  suggestedYearOfStudy: number;
   suggestedAcademicYearFrom: number;
   suggestedAcademicYearTo: number;
   suggestedApplicationDate: string;
@@ -226,9 +226,9 @@ export interface YearFeeStatus {
   outstanding: number;
 }
 
-export interface SemesterFeeStatus {
-  semesterNumber: number;
-  semesterLabel: string;
+export interface InstallmentFeeStatus {
+  installmentNumber: number;
+  installmentLabel: string;
   allocatedFee: number;
   paidAmount: number;
   outstanding: number;
@@ -241,5 +241,5 @@ export interface EnquiryYearWiseFeeStatusResponse {
   totalPaid: number;
   totalOutstanding: number;
   yearBreakdown: YearFeeStatus[];
-  semesterBreakdown: SemesterFeeStatus[];
+  installmentBreakdown: InstallmentFeeStatus[];
 }

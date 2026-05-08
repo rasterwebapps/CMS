@@ -44,7 +44,7 @@ public class StudentTermEnrollment {
     @JoinColumn(name = "cohort_id", nullable = false)
     private Cohort cohort;
 
-    @Column(name = "semester_number", nullable = false)
+    @Column(name = "term_number", nullable = false)
     private Integer semesterNumber;
 
     @Column(name = "year_of_study", nullable = false)

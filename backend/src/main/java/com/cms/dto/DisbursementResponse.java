@@ -13,7 +13,7 @@ public record DisbursementResponse(
     String studentName,
     Long academicYearId,
     String academicYearName,
-    Integer semesterNumber,
+    Integer termNumber,
     BigDecimal amount,
     LocalDate disbursementDate,
     DisbursementMode disbursementMode,

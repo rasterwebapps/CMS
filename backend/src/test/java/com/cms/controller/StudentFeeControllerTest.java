@@ -91,7 +91,7 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.totalFee").value(200000.00))
             .andExpect(jsonPath("$.netFee").value(185000.00))
             .andExpect(jsonPath("$.status").value("FINALIZED"))
-            .andExpect(jsonPath("$.semesterFees.length()").value(2));
+            .andExpect(jsonPath("$.installmentFees.length()").value(2));
 
         verify(feeFinalizationService).finalize(any(StudentFeeAllocationRequest.class), any(String.class));
     }
@@ -107,12 +107,12 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.studentId").value(1))
             .andExpect(jsonPath("$.studentName").value("John Doe"))
-            .andExpect(jsonPath("$.semesterFees.length()").value(2))
-            .andExpect(jsonPath("$.semesterFees[0].yearNumber").value(1))
-            .andExpect(jsonPath("$.semesterFees[0].semesterSequence").value(1))
-            .andExpect(jsonPath("$.semesterFees[0].semesterLabel").value("Year 1 - Semester 1"))
-            .andExpect(jsonPath("$.semesterFees[0].amount").value(100000.00))
-            .andExpect(jsonPath("$.semesterFees[1].semesterSequence").value(2));
+            .andExpect(jsonPath("$.installmentFees.length()").value(2))
+            .andExpect(jsonPath("$.installmentFees[0].yearNumber").value(1))
+            .andExpect(jsonPath("$.installmentFees[0].sequence").value(1))
+            .andExpect(jsonPath("$.installmentFees[0].installmentLabel").value("Year 1 - Semester 1"))
+            .andExpect(jsonPath("$.installmentFees[0].amount").value(100000.00))
+            .andExpect(jsonPath("$.installmentFees[1].sequence").value(2));
 
         verify(feeFinalizationService).getByStudentId(1L);
     }
@@ -136,7 +136,7 @@ class StudentFeeControllerTest {
         mockMvc.perform(get("/student-fees/1/semester-status"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.semesterFees.length()").value(2));
+            .andExpect(jsonPath("$.installmentFees.length()").value(2));
 
         verify(feeFinalizationService).getByStudentId(1L);
     }
@@ -205,7 +205,7 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.rollNumber").value("CS2024001"))
             .andExpect(jsonPath("$.totalPenalty").value(1500.00))
             .andExpect(jsonPath("$.penalties.length()").value(1))
-            .andExpect(jsonPath("$.penalties[0].semesterLabel").value("Year 1"))
+            .andExpect(jsonPath("$.penalties[0].installmentLabel").value("Year 1"))
             .andExpect(jsonPath("$.penalties[0].overdueDays").value(30))
             .andExpect(jsonPath("$.penalties[0].isPaid").value(false));
 
@@ -329,8 +329,8 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.studentId").value(1))
             .andExpect(jsonPath("$.studentName").value("John Doe"))
             .andExpect(jsonPath("$.rollNumber").value("CS2024001"))
-            .andExpect(jsonPath("$.semesterFeeId").value(10))
-            .andExpect(jsonPath("$.semesterLabel").value("Year 1"))
+            .andExpect(jsonPath("$.installmentFeeId").value(10))
+            .andExpect(jsonPath("$.installmentLabel").value("Year 1"))
             .andExpect(jsonPath("$.yearNumber").value(1))
             .andExpect(jsonPath("$.amountPaid").value(50000.00))
             .andExpect(jsonPath("$.paymentMode").value("UPI"))
@@ -358,12 +358,12 @@ class StudentFeeControllerTest {
             new BigDecimal("5000.00"), new BigDecimal("185000.00"), "FINALIZED",
             now, "admin",
             List.of(
-                new StudentFeeAllocationResponse.SemesterFeeDetail(
+                new StudentFeeAllocationResponse.InstallmentFeeDetail(
                     10L, 1, 1, "Year 1 - Semester 1", new BigDecimal("100000.00"),
                     LocalDate.of(2025, 6, 1), new BigDecimal("50000.00"),
                     new BigDecimal("50000.00"), BigDecimal.ZERO, "PARTIAL"
                 ),
-                new StudentFeeAllocationResponse.SemesterFeeDetail(
+                new StudentFeeAllocationResponse.InstallmentFeeDetail(
                     11L, 1, 2, "Year 1 - Semester 2", new BigDecimal("100000.00"),
                     LocalDate.of(2025, 12, 1), BigDecimal.ZERO,
                     new BigDecimal("100000.00"), BigDecimal.ZERO, "PENDING"

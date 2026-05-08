@@ -75,7 +75,7 @@ export const STUDENT_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Basic Information',
         description:
-          'Roll number, admission date, name, email, programme, and semester are the core fields used across fees, attendance, and exams.',
+          'Roll number, admission date, name, email, programme, and year of study are the core fields used across fees, attendance, and exams.',
         side: 'bottom',
         align: 'start',
       },
@@ -141,7 +141,7 @@ export const STUDENT_DETAIL_TOUR: TourDefinition = {
       popover: {
         title: 'Identity & Status',
         description:
-          'Name, programme, semester, and current status badge — confirms you\'re viewing the right student.',
+          'Name, programme, year of study, and current status badge — confirms you\'re viewing the right student.',
         side: 'bottom',
         align: 'start',
       },

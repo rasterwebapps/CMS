@@ -23,7 +23,7 @@ public record StudentFeeAllocationResponse(
     String status,
     Instant finalizedAt,
     String finalizedBy,
-    List<SemesterFeeDetail> semesterFees,
+    List<InstallmentFeeDetail> installmentFees,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -32,18 +32,18 @@ public record StudentFeeAllocationResponse(
                                         BigDecimal discountAmount, String discountReason,
                                         BigDecimal agentCommission, BigDecimal netFee, String status,
                                         Instant finalizedAt, String finalizedBy,
-                                        List<SemesterFeeDetail> semesterFees,
+                                        List<InstallmentFeeDetail> installmentFees,
                                         Instant createdAt, Instant updatedAt) {
         this(id, studentId, studentName, rollNumber, programId, programName, totalFee, discountAmount,
             discountReason, null, null, null, agentCommission, netFee, status, finalizedAt, finalizedBy,
-            semesterFees, createdAt, updatedAt);
+            installmentFees, createdAt, updatedAt);
     }
 
-    public record SemesterFeeDetail(
+    public record InstallmentFeeDetail(
         Long id,
         Integer yearNumber,
-        Integer semesterSequence,
-        String semesterLabel,
+        Integer sequence,
+        String installmentLabel,
         BigDecimal amount,
         LocalDate dueDate,
         BigDecimal amountPaid,

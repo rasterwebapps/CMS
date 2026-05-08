@@ -10,7 +10,7 @@ public record StudentTermEnrollmentDto(
     String cohortCode,
     Long termInstanceId,
     String termInstanceLabel,
-    Integer semesterNumber,
+    Integer termNumber,
     Integer yearOfStudy,
     EnrollmentStatus status
 ) {}

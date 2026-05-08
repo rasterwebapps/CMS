@@ -30,7 +30,7 @@
                 <span class="dot-sep">·</span>
                 {{ student()!.programName }}
                 <span class="dot-sep">·</span>
-                Sem {{ student()!.semester }}
+                Year {{ student()!.yearOfStudy }}
                 @if (student()!.labBatch) {
                   <span class="dot-sep">·</span> Lab {{ student()!.labBatch }}
                 }
@@ -49,7 +49,7 @@
         <div class="hero-kpi hero-kpi--indigo">
           <mat-icon>school</mat-icon>
           <div class="hero-kpi__body">
-            <span class="hero-kpi__value">Sem {{ student()!.semester }}</span>
+            <span class="hero-kpi__value">Year {{ student()!.yearOfStudy }}</span>
             <span class="hero-kpi__label">Current Semester</span>
           </div>
         </div>
@@ -146,7 +146,7 @@
                     </div>
                     <div class="detail-item">
                       <span class="detail-label">Semester</span>
-                      <span class="detail-value">{{ current.semesterNumber }}</span>
+                      <span class="detail-value">{{ current.termNumber }}</span>
                     </div>
                     <div class="detail-item">
                       <span class="detail-label">Year of Study</span>
@@ -236,7 +236,7 @@
                     <div class="acad-enrollment__left">
                       <span class="acad-enrollment__term">{{ e.termInstanceLabel }}</span>
                       <div class="acad-enrollment__chips">
-                        <span class="cms-badge cms-badge--gray">Sem {{ e.semesterNumber }}</span>
+                        <span class="cms-badge cms-badge--gray">Term {{ e.termNumber }}</span>
                         <span class="acad-year-chip">Year {{ e.yearOfStudy }}</span>
                         <cms-status-badge [status]="e.status" />
                         @if (first) { <span class="acad-current-chip">Current</span> }
@@ -277,7 +277,7 @@
                                 <tr>
                                   <td>{{ reg.subjectName }}</td>
                                   <td><span class="code-value">{{ reg.subjectCode }}</span></td>
-                                  <td>{{ reg.semesterNumber }}</td>
+                                  <td>{{ reg.termNumber }}</td>
                                   <td><cms-status-badge [status]="reg.status" /></td>
                                 </tr>
                               }

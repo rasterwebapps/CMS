@@ -56,7 +56,7 @@ export const PROGRAM_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Program Cards',
         description:
-          'Each card shows the code, name, duration, semester count, and status. Hover a card to reveal <strong>Edit</strong> and <strong>Delete</strong> actions.',
+          'Each card shows the code, name, duration, term count, and status. Hover a card to reveal <strong>Edit</strong> and <strong>Delete</strong> actions.',
         side: 'top',
         align: 'start',
       },

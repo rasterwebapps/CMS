@@ -6,7 +6,7 @@ import {
   FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
-  PenaltyResponse, FeeExplorerResult, Receipt, BulkFeeStructureRequest,
+  PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
   GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest,
 } from './finance.model';
 
@@ -91,11 +91,11 @@ export class FinanceService {
     return this.http.post<StudentFeeAllocation>(`${this.studentFeeUrl}/finalize`, request);
   }
 
-  getSemesterBreakdown(studentId: number): Observable<StudentFeeAllocation> {
+  getInstallmentBreakdown(studentId: number): Observable<StudentFeeAllocation> {
     return this.http.get<StudentFeeAllocation>(`${this.studentFeeUrl}/${studentId}/semester-breakdown`);
   }
 
-  getSemesterStatus(studentId: number): Observable<StudentFeeAllocation> {
+  getFeeAllocationStatus(studentId: number): Observable<StudentFeeAllocation> {
     return this.http.get<StudentFeeAllocation>(`${this.studentFeeUrl}/${studentId}/semester-status`);
   }
 
@@ -130,5 +130,9 @@ export class FinanceService {
 
   getReceiptById(studentId: number, receiptId: number): Observable<Receipt> {
     return this.http.get<Receipt>(`${this.studentFeeUrl}/${studentId}/receipts/${receiptId}`);
+  }
+
+  getAllReceiptSummaries(): Observable<ReceiptSummary[]> {
+    return this.http.get<ReceiptSummary[]>(`${this.studentFeeUrl}/receipts`);
   }
 }

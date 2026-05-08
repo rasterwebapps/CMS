@@ -56,7 +56,7 @@ public class SubjectService {
             request.labCredits(),
             course,
             department,
-            request.semester()
+            request.termNumber()
         );
         Subject saved = subjectRepository.save(subject);
         return toResponse(saved);
@@ -122,7 +122,7 @@ public class SubjectService {
         subject.setLabCredits(request.labCredits());
         subject.setCourse(course);
         subject.setDepartment(department);
-        subject.setSemester(request.semester());
+        subject.setSemester(request.termNumber());
 
         Subject updated = subjectRepository.save(subject);
         return toResponse(updated);
@@ -169,7 +169,7 @@ public class SubjectService {
             subject.getLabCredits(),
             courseResponse,
             departmentResponse,
-            subject.getSemester(),
+            subject.getTermNumber(),
             subject.getCreatedAt(),
             subject.getUpdatedAt()
         );

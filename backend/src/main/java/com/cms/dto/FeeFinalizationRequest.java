@@ -14,5 +14,5 @@ public record FeeFinalizationRequest(
 
     String yearWiseFees,
 
-    String semesterWiseFees
+    String termWiseFees
 ) {}

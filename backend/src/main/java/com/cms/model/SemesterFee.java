@@ -20,7 +20,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "semester_fees")
+@Table(name = "installment_fees")
 @EntityListeners(AuditingEntityListener.class)
 public class SemesterFee {
 
@@ -35,7 +35,7 @@ public class SemesterFee {
     @Column(name = "year_number", nullable = false)
     private Integer yearNumber;
 
-    @Column(name = "semester_label", nullable = false)
+    @Column(name = "installment_label", nullable = false)
     private String semesterLabel;
 
     @Column(nullable = false, precision = 12, scale = 2)
@@ -44,7 +44,7 @@ public class SemesterFee {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
-    @Column(name = "semester_sequence", nullable = false)
+    @Column(name = "sequence", nullable = false)
     private Integer semesterSequence = 1;
 
     @CreatedDate

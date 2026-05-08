@@ -1,6 +1,6 @@
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FULL_WAIVER';
 export type ScholarshipStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ON_HOLD' | 'CANCELLED';
-export type DisbursementFrequency = 'ANNUAL' | 'SEMESTER' | 'ONE_TIME';
+export type DisbursementFrequency = 'ANNUAL' | 'TERM_BASED' | 'ONE_TIME';
 export type DisbursementMode = 'DIRECT_CREDIT' | 'FEE_WAIVER' | 'CHEQUE';
 
 export interface ScholarshipType {
@@ -128,7 +128,7 @@ export interface ScholarshipRejectionRequest {
 
 export interface DisbursementRequest {
   academicYearId?: number | null;
-  semesterNumber?: number | null;
+  termNumber?: number | null;
   amount: number;
   disbursementDate: string;
   disbursementMode: DisbursementMode;
@@ -145,7 +145,7 @@ export interface ScholarshipDisbursement {
   studentName: string;
   academicYearId?: number | null;
   academicYearName?: string | null;
-  semesterNumber?: number | null;
+  termNumber?: number | null;
   amount: number;
   disbursementDate: string;
   disbursementMode: DisbursementMode;

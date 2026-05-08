@@ -67,7 +67,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                 .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
                 .orElseThrow();
 
-            Integer totalSemesters = cohort.getProgram().getTotalSemesters();
+            Integer totalSemesters = cohort.getProgram().getTotalTerms();
             if (totalSemesters == null) {
                 continue;
             }
@@ -160,10 +160,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                                                   AssessmentPattern pattern) {
         if (pattern == AssessmentPattern.YEARLY) {
             // Both ODD and EVEN terms teach subjects mapped to any year position;
-            // the enrollment's semesterNumber (= year number) drives which offerings each student registers for
+            // the enrollment's termNumber (= year number) drives which offerings each student registers for
             return IntStream.rangeClosed(1, totalSemesters).boxed().collect(Collectors.toSet());
         }
-        // SEMESTER: odd-numbered sems belong to ODD term, even-numbered sems to EVEN term
+        // TERM_BASED: odd-numbered terms belong to ODD term instance, even-numbered to EVEN
         return IntStream.rangeClosed(1, totalSemesters)
             .filter(s -> termType == TermType.ODD ? s % 2 != 0 : s % 2 == 0)
             .boxed()

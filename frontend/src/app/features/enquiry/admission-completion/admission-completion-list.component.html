@@ -238,25 +238,27 @@
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">
-              <cms-empty-state
-                icon="search_off"
-                title="No candidates match your search"
-                subtitle="Try adjusting the search term or filters."
-                actionLabel="Clear Filters"
-                (actionClick)="clearFilters()"
-              />
+              @if (totalCount() === 0) {
+                <cms-empty-state
+                  icon="how_to_reg"
+                  title="No candidates pending"
+                  subtitle="Enquiries in Documents Submitted status will appear here automatically."
+                />
+              } @else {
+                <cms-empty-state
+                  icon="search_off"
+                  title="No candidates match your search"
+                  subtitle="Try adjusting the search term or filters."
+                  actionLabel="Clear Filters"
+                  (actionClick)="clearFilters()"
+                />
+              }
             </td>
           </tr>
         </table>
       </div>
 
-      @if (totalCount() === 0) {
-        <cms-empty-state
-          icon="how_to_reg"
-          title="No candidates pending"
-          subtitle="Enquiries in Documents Submitted status will appear here automatically."
-        />
-      } @else {
+      @if (totalCount() > 0) {
         <div class="table-footer">
           <span class="row-count">
             @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }

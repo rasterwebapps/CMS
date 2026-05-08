@@ -355,7 +355,7 @@ export const ENQUIRY_CONVERT_TOUR: TourDefinition = {
       popover: {
         title: 'Admission Details',
         description:
-          'Fill in the academic year, semester, batch, and any other admission-specific fields needed to enrol the student.',
+          'Fill in the academic year, year of study, batch, and any other admission-specific fields needed to enrol the student.',
         side: 'left',
         align: 'start',
       },

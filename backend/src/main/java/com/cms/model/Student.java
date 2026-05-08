@@ -67,7 +67,7 @@ public class Student {
     @JoinColumn(name = "specialization_department_id")
     private Department specializationDepartment;
 
-    @Column(nullable = false)
+    @Column(name = "year_of_study", nullable = false)
     private Integer semester;
 
     @Column(name = "admission_date", nullable = false)
@@ -265,8 +265,16 @@ public class Student {
         return semester;
     }
 
-    public void setSemester(Integer semester) {
-        this.semester = semester;
+    public Integer getYearOfStudy() {
+        return semester;
+    }
+
+    public void setSemester(Integer yearOfStudy) {
+        this.semester = yearOfStudy;
+    }
+
+    public void setYearOfStudy(Integer yearOfStudy) {
+        this.semester = yearOfStudy;
     }
 
     public LocalDate getAdmissionDate() {

@@ -25,7 +25,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "semester_results",
+@Table(name = "term_results",
     uniqueConstraints = @UniqueConstraint(columnNames = {"student_term_enrollment_id"}))
 @EntityListeners(AuditingEntityListener.class)
 public class SemesterResult {

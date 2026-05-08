@@ -88,7 +88,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
 
   protected readonly sortedEnrollments = computed(() =>
-    [...this.enrollments()].sort((a, b) => b.semesterNumber - a.semesterNumber),
+    [...this.enrollments()].sort((a, b) => b.termNumber - a.termNumber),
   );
 
   protected readonly totalOutstanding = computed(() => {
@@ -168,7 +168,7 @@ export class StudentDetailComponent implements OnInit {
       next: (data) => {
         this.enrollments.set(data);
         this.loadingEnrollments.set(false);
-        const first = [...data].sort((a, b) => b.semesterNumber - a.semesterNumber)[0];
+        const first = [...data].sort((a, b) => b.termNumber - a.termNumber)[0];
         if (first) this.expandedEnrollments.set(new Set([first.id]));
         this.loadAllRegistrations(data);
       },

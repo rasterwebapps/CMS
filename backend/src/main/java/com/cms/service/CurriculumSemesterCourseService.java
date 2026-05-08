@@ -43,12 +43,12 @@ public class CurriculumSemesterCourseService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Curriculum version not found with id: " + request.curriculumVersionId()));
 
-        int totalSemesters = cv.getProgram().getTotalSemesters();
-        if (request.semesterNumber() < 1 || request.semesterNumber() > totalSemesters) {
+        int totalTerms = cv.getProgram().getTotalTerms();
+        if (request.termNumber() < 1 || request.termNumber() > totalTerms) {
             AssessmentPattern pattern = cv.getProgram().getAssessmentPattern();
-            String termLabel = pattern == AssessmentPattern.YEARLY ? "Year" : "Semester";
+            String termLabel = pattern == AssessmentPattern.YEARLY ? "Year" : "Term";
             throw new IllegalArgumentException(
-                termLabel + " number must be between 1 and " + totalSemesters +
+                termLabel + " number must be between 1 and " + totalTerms +
                 " for this program (duration " + cv.getProgram().getDurationYears() + " years)");
         }
 
@@ -57,7 +57,7 @@ public class CurriculumSemesterCourseService {
                 "Subject not found with id: " + request.subjectId()));
 
         CurriculumSemesterCourse entry = new CurriculumSemesterCourse(
-            cv, request.semesterNumber(), subject, request.sortOrder());
+            cv, request.termNumber(), subject, request.sortOrder());
         return toDto(courseRepository.save(entry));
     }
 
@@ -71,12 +71,12 @@ public class CurriculumSemesterCourseService {
     }
 
     public List<CurriculumSemesterCourseDto> getCoursesBySemester(Long curriculumVersionId,
-                                                                    Integer semesterNumber) {
+                                                                    Integer termNumber) {
         if (!curriculumVersionRepository.existsById(curriculumVersionId)) {
             throw new ResourceNotFoundException(
                 "Curriculum version not found with id: " + curriculumVersionId);
         }
-        return courseRepository.findByCurriculumVersionIdAndSemesterNumber(curriculumVersionId, semesterNumber)
+        return courseRepository.findByCurriculumVersionIdAndSemesterNumber(curriculumVersionId, termNumber)
             .stream()
             .map(this::toDto)
             .toList();
@@ -101,17 +101,17 @@ public class CurriculumSemesterCourseService {
         List<CurriculumSemesterCourse> allCourses = courseRepository.findByCurriculumVersionId(curriculumVersionId);
 
         Map<Integer, List<CurriculumSemesterCourseDto>> grouped = new LinkedHashMap<>();
-        int totalSemesters = cv.getProgram().getTotalSemesters();
-        for (int i = 1; i <= totalSemesters; i++) {
+        int totalTerms = cv.getProgram().getTotalTerms();
+        for (int i = 1; i <= totalTerms; i++) {
             grouped.put(i, new ArrayList<>());
         }
         for (CurriculumSemesterCourse c : allCourses) {
             grouped.computeIfAbsent(c.getSemesterNumber(), k -> new ArrayList<>()).add(toDto(c));
         }
 
-        List<CurriculumFullViewDto.SemesterGroup> semesterGroups = grouped.entrySet().stream()
+        List<CurriculumFullViewDto.TermGroup> semesterGroups = grouped.entrySet().stream()
             .sorted(Comparator.comparingInt(Map.Entry::getKey))
-            .map(e -> new CurriculumFullViewDto.SemesterGroup(e.getKey(), e.getValue()))
+            .map(e -> new CurriculumFullViewDto.TermGroup(e.getKey(), e.getValue()))
             .toList();
 
         return new CurriculumFullViewDto(
@@ -120,7 +120,7 @@ public class CurriculumSemesterCourseService {
             cv.getProgram().getId(),
             cv.getProgram().getName(),
             cv.getProgram().getAssessmentPattern(),
-            totalSemesters,
+            totalTerms,
             semesterGroups
         );
     }

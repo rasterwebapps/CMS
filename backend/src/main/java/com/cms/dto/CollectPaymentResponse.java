@@ -18,6 +18,6 @@ public record CollectPaymentResponse(
     String transactionReference,
     String remarks,
     String allocationSummary,
-    List<SemesterPaymentDetail> semesterBreakdown,
+    List<SemesterPaymentDetail> installmentBreakdown,
     Instant createdAt
 ) {}

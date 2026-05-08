@@ -10,7 +10,7 @@ public record EnquiryYearWiseFeeStatusResponse(
     BigDecimal totalPaid,
     BigDecimal totalOutstanding,
     List<YearFeeStatus> yearBreakdown,
-    List<SemesterFeeStatus> semesterBreakdown
+    List<InstallmentFeeStatus> installmentBreakdown
 ) {
     public record YearFeeStatus(
         int yearNumber,
@@ -19,9 +19,9 @@ public record EnquiryYearWiseFeeStatusResponse(
         BigDecimal outstanding
     ) {}
 
-    public record SemesterFeeStatus(
-        int semesterNumber,
-        String semesterLabel,
+    public record InstallmentFeeStatus(
+        int installmentNumber,
+        String installmentLabel,
         BigDecimal allocatedFee,
         BigDecimal paidAmount,
         BigDecimal outstanding,

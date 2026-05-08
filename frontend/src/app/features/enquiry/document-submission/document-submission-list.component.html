@@ -1,89 +1,73 @@
 <div class="doc-page">
 
-  <!-- ── Hero Header ────────────────────────────────────────────────────── -->
-  <div id="tour-docsub-header" class="doc-hdr anim-rise">
-    <div class="doc-hdr-left">
+  <!-- ── Page Header ───────────────────────────────────────────────────── -->
+  <header id="tour-docsub-header" class="doc-hdr anim-rise">
+    <div class="doc-hdr__left">
       <div class="page-title-row">
         <h1 class="doc-title">Submit <em>Documents</em></h1>
         <cms-tour-button tourKey="document-submission-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="doc-sub">Collect and verify documents from candidates who have completed fee payment</p>
-      @if (!loading()) {
-        <div class="doc-meta">
-          <span class="doc-stat">
-            <span class="doc-stat-dot doc-stat-dot--blue"></span>
-            {{ totalCount() }} Pending
-          </span>
-          <span class="doc-stat">
-            <span class="doc-stat-dot doc-stat-dot--green"></span>
-            {{ feesPaidCount() }} Fees Paid
-          </span>
-          <span class="doc-stat">
-            <span class="doc-stat-dot doc-stat-dot--amber"></span>
-            {{ partiallyPaidCount() }} Partially Paid
-          </span>
-        </div>
-      }
     </div>
-  </div>
+
+    @if (!loading()) {
+      <div class="stat-cluster">
+        <div class="stat-chip stat-chip--slate">
+          <span class="stat-chip__num">{{ totalCount() }}</span>
+          <span class="stat-chip__lbl">Pending</span>
+        </div>
+        <span class="stat-divider"></span>
+        <div class="stat-chip stat-chip--green">
+          <span class="stat-chip__num">{{ feesPaidCount() }}</span>
+          <span class="stat-chip__lbl">Fees Paid</span>
+        </div>
+        <span class="stat-divider"></span>
+        <div class="stat-chip stat-chip--amber">
+          <span class="stat-chip__num">{{ partiallyPaidCount() }}</span>
+          <span class="stat-chip__lbl">Partial</span>
+        </div>
+      </div>
+    }
+  </header>
 
   <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
   <div id="tour-docsub-toolbar" class="doc-toolbar anim-rise anim-rise--d1">
 
-    <!-- Program filter -->
-    <select class="mlp-filter-select" [value]="filterProgram()"
-            (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
-      <option value="ALL">All Programs</option>
-      @for (p of programs(); track p) {
-        <option [value]="p">{{ p }}</option>
-      }
-    </select>
+    <div class="filter-group">
+      <select class="filter-sel" [value]="filterProgram()"
+              (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
+        <option value="ALL">All Programs</option>
+        @for (p of programs(); track p) {
+          <option [value]="p">{{ p }}</option>
+        }
+      </select>
 
-    <!-- Payment Status filter -->
-    <select class="mlp-filter-select" [value]="filterStatus()"
-            (change)="onStatusChange($any($event.target).value)" aria-label="Filter by payment status">
-      <option value="ALL">All Statuses</option>
-      <option value="FEES_PAID">Fees Paid</option>
-      <option value="PARTIALLY_PAID">Partially Paid</option>
-    </select>
+      <select class="filter-sel" [value]="filterStatus()"
+              (change)="onStatusChange($any($event.target).value)" aria-label="Filter by payment status">
+        <option value="ALL">All Statuses</option>
+        <option value="FEES_PAID">Fees Paid</option>
+        <option value="PARTIALLY_PAID">Partially Paid</option>
+      </select>
 
-    <!-- Student Type filter -->
-    <select class="mlp-filter-select" [value]="filterStudentType()"
-            (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
-      <option value="ALL">All Types</option>
-      <option value="DAY_SCHOLAR">Day Scholar</option>
-      <option value="HOSTELER">Hosteler</option>
-    </select>
+      <select class="filter-sel" [value]="filterStudentType()"
+              (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
+        <option value="ALL">All Types</option>
+        <option value="DAY_SCHOLAR">Day Scholar</option>
+        <option value="HOSTELER">Hosteler</option>
+      </select>
 
-    <!-- Clear Filters -->
-    @if (hasActiveFilters()) {
-      <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        Clear Filters
-      </button>
-    }
-
-    <div class="search-bar" role="search">
-      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input class="search-bar__input" type="text" placeholder="Search by name, program, course or phone…"
-             [value]="searchQuery()" (input)="onSearch($event)" aria-label="Search" />
-      @if (searchQuery()) {
-        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      @if (hasActiveFilters()) {
+        <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
+          Clear
         </button>
       }
     </div>
 
-    <div class="toolbar-right">
+    <div class="toolbar-end">
       @if (!loading()) {
         <span class="row-count">
           @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} }
@@ -92,7 +76,23 @@
         </span>
       }
 
-      <!-- Column toggle dropdown -->
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input class="search-bar__input" type="text" placeholder="Search by name, program, course or phone…"
+               [value]="searchQuery()" (input)="onSearch($event)" aria-label="Search" />
+        @if (searchQuery()) {
+          <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        }
+      </div>
+
       <div class="col-menu-wrap">
         <button class="btn-toolbar" (click)="colMenuOpen = !colMenuOpen"
                 [class.btn-toolbar--active]="colMenuOpen" aria-label="Toggle columns">
@@ -110,7 +110,7 @@
               <label class="col-menu__item">
                 <span class="col-menu__check" [class.col-menu__check--on]="isColumnVisible(col)">
                   @if (isColumnVisible(col)) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none"
+                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
@@ -126,16 +126,18 @@
     </div>
   </div>
 
-  <!-- ── Content Card ───────────────────────────────────────────────────── -->
+  <!-- ── Content Card ──────────────────────────────────────────────────── -->
   <div class="content-card doc-table-card">
 
     @if (loading()) {
-      <!-- Skeleton -->
       <div class="doc-skeleton">
         @for (_ of [1,2,3,4,5,6,7]; track $index) {
           <div class="doc-skel-row">
             <div class="skel skel--avatar"></div>
-            <div class="skel skel--name"></div>
+            <div class="skel-block">
+              <div class="skel skel--name"></div>
+              <div class="skel skel--sub"></div>
+            </div>
             <div class="skel skel--text"></div>
             <div class="skel skel--pill"></div>
             <div class="skel skel--text skel--short"></div>
@@ -156,7 +158,7 @@
                 <div class="student-info">
                   <span class="cell-name">{{ row.name }}</span>
                   @if (row.phone) { <span class="cell-sub">{{ row.phone }}</span> }
-                  @if (row.email) { <span class="cell-sub">{{ row.email }}</span> }
+                  @if (row.email && !row.phone) { <span class="cell-sub">{{ row.email }}</span> }
                 </div>
               </div>
             </td>
@@ -165,13 +167,17 @@
           <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-label">{{ row.programName || '—' }}</span>
+            </td>
           </ng-container>
 
           <!-- Course -->
           <ng-container matColumnDef="courseName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-            <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.courseName || '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-muted">{{ row.courseName || '—' }}</span>
+            </td>
           </ng-container>
 
           <!-- Student Type -->
@@ -216,7 +222,7 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-right">Net Fee (₹)</th>
             <td mat-cell *matCellDef="let row" class="col-right">
               @if (row.finalizedNetFee) {
-                <span class="cell-mono">{{ row.finalizedNetFee | inr:false:false }}</span>
+                <span class="cell-mono cell-mono--primary">{{ row.finalizedNetFee | inr:false:false }}</span>
               } @else {
                 <span class="cell-muted">—</span>
               }
@@ -237,19 +243,19 @@
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
                 <button class="action-btn" matTooltip="View enquiry" (click)="viewEnquiry(row)" aria-label="View enquiry">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                   </svg>
                 </button>
                 @if (isAdminOrFrontOffice()) {
                   <button class="collect-btn" (click)="collectDocuments(row)" aria-label="Collect documents">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                       <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    Collect Docs
+                    Collect
                   </button>
                 }
               </div>
@@ -263,25 +269,27 @@
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">
-              <cms-empty-state
-                icon="search_off"
-                title="No candidates match your search"
-                subtitle="Try adjusting the search term or filters."
-                actionLabel="Clear Filters"
-                (actionClick)="clearFilters()"
-              />
+              @if (totalCount() === 0) {
+                <cms-empty-state
+                  icon="folder_open"
+                  title="No pending submissions"
+                  subtitle="Enquiries in Fees Paid or Partially Paid status will appear here automatically."
+                />
+              } @else {
+                <cms-empty-state
+                  icon="search_off"
+                  title="No candidates match your search"
+                  subtitle="Try adjusting the search term or filters."
+                  actionLabel="Clear Filters"
+                  (actionClick)="clearFilters()"
+                />
+              }
             </td>
           </tr>
         </table>
       </div>
 
-      @if (totalCount() === 0) {
-        <cms-empty-state
-          icon="folder_open"
-          title="No pending submissions"
-          subtitle="Enquiries in Fees Paid or Partially Paid status will appear here automatically."
-        />
-      } @else {
+      @if (totalCount() > 0) {
         <div class="table-footer">
           <span class="row-count">
             @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }

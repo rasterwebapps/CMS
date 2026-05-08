@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
-import com.cms.dto.EnquiryYearWiseFeeStatusResponse.SemesterFeeStatus;
+import com.cms.dto.EnquiryYearWiseFeeStatusResponse.InstallmentFeeStatus;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse.YearFeeStatus;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
@@ -35,7 +35,7 @@ public class EnquiryPaymentService {
     private static final TypeReference<List<YearWiseFeeEntry>> YEAR_FEES_TYPE =
         new TypeReference<>() {};
 
-    private static final TypeReference<List<SemesterWiseFeeEntry>> SEMESTER_FEES_TYPE =
+    private static final TypeReference<List<TermWiseFeeEntry>> TERM_FEES_TYPE =
         new TypeReference<>() {};
 
     private final EnquiryPaymentRepository enquiryPaymentRepository;
@@ -157,34 +157,34 @@ public class EnquiryPaymentService {
             yearRemaining = yearRemaining.subtract(paid);
         }
 
-        // --- Semester-wise breakdown (primary when available) ---
-        List<SemesterWiseFeeEntry> semesterEntries = parseSemesterWiseFees(enquiry.getSemesterWiseFees());
-        semesterEntries.sort(Comparator.comparingInt(SemesterWiseFeeEntry::semesterNumber));
+        // --- Term-wise breakdown (primary when available) ---
+        List<TermWiseFeeEntry> termEntries = parseTermWiseFees(enquiry.getSemesterWiseFees());
+        termEntries.sort(Comparator.comparingInt(TermWiseFeeEntry::termNumber));
 
         BigDecimal totalFee;
-        BigDecimal semesterRemaining = totalPaid;
-        List<SemesterFeeStatus> semesterBreakdown = new ArrayList<>();
+        BigDecimal termRemaining = totalPaid;
+        List<InstallmentFeeStatus> installmentBreakdown = new ArrayList<>();
 
-        if (!semesterEntries.isEmpty()) {
-            totalFee = semesterEntries.stream()
-                .map(SemesterWiseFeeEntry::amount)
+        if (!termEntries.isEmpty()) {
+            totalFee = termEntries.stream()
+                .map(TermWiseFeeEntry::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            for (SemesterWiseFeeEntry entry : semesterEntries) {
+            for (TermWiseFeeEntry entry : termEntries) {
                 BigDecimal allocated = entry.amount();
-                BigDecimal paid = semesterRemaining.min(allocated);
+                BigDecimal paid = termRemaining.min(allocated);
                 BigDecimal outstanding = allocated.subtract(paid);
-                int yearNumber = (entry.semesterNumber() + 1) / 2;
-                int semSeq = ((entry.semesterNumber() - 1) % 2) + 1;
+                int yearNumber = (entry.termNumber() + 1) / 2;
+                int semSeq = ((entry.termNumber() - 1) % 2) + 1;
                 LocalDate dueDate = baseDate
                     .plusMonths((long) (yearNumber - 1) * 12)
                     .plusMonths(semSeq == 2 ? 6 : 0);
-                semesterBreakdown.add(new SemesterFeeStatus(
-                    entry.semesterNumber(), entry.semesterLabel(), allocated, paid, outstanding, dueDate));
-                semesterRemaining = semesterRemaining.subtract(paid);
+                installmentBreakdown.add(new InstallmentFeeStatus(
+                    entry.termNumber(), entry.installmentLabel(), allocated, paid, outstanding, dueDate));
+                termRemaining = termRemaining.subtract(paid);
             }
         } else if (!yearEntries.isEmpty()) {
-            // No explicit semester data — auto-split each year into 2 semesters
+            // No explicit term data — auto-split each year into 2 installments
             totalFee = yearTotalFee;
             BigDecimal semRem = totalPaid;
 
@@ -194,38 +194,38 @@ public class EnquiryPaymentService {
 
                 int sem1Seq = (entry.yearNumber() - 1) * 2 + 1;
                 int sem2Seq = sem1Seq + 1;
-                String sem1Label = "Year " + entry.yearNumber() + " - " + semesterOrdinalLabel(sem1Seq);
-                String sem2Label = "Year " + entry.yearNumber() + " - " + semesterOrdinalLabel(sem2Seq);
+                String sem1Label = "Year " + entry.yearNumber() + " - " + installmentOrdinalLabel(sem1Seq);
+                String sem2Label = "Year " + entry.yearNumber() + " - " + installmentOrdinalLabel(sem2Seq);
 
                 LocalDate sem1Due = baseDate.plusMonths((long) (entry.yearNumber() - 1) * 12);
                 LocalDate sem2Due = sem1Due.plusMonths(6);
 
                 BigDecimal paid1 = semRem.min(sem1Amount);
-                semesterBreakdown.add(new SemesterFeeStatus(
+                installmentBreakdown.add(new InstallmentFeeStatus(
                     sem1Seq, sem1Label, sem1Amount, paid1, sem1Amount.subtract(paid1), sem1Due));
                 semRem = semRem.subtract(paid1).max(BigDecimal.ZERO);
 
                 BigDecimal paid2 = semRem.min(sem2Amount);
-                semesterBreakdown.add(new SemesterFeeStatus(
+                installmentBreakdown.add(new InstallmentFeeStatus(
                     sem2Seq, sem2Label, sem2Amount, paid2, sem2Amount.subtract(paid2), sem2Due));
                 semRem = semRem.subtract(paid2).max(BigDecimal.ZERO);
             }
         } else {
-            // No year or semester breakdown configured — fall back to finalizedNetFee
+            // No year or term breakdown configured — fall back to finalizedNetFee
             BigDecimal fallback = enquiry.getFinalizedNetFee() != null
                 ? enquiry.getFinalizedNetFee()
                 : BigDecimal.ZERO;
             totalFee = fallback.compareTo(BigDecimal.ZERO) > 0 ? fallback : yearTotalFee;
             if (totalFee.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal paid = totalPaid.min(totalFee);
-                semesterBreakdown.add(new SemesterFeeStatus(
+                installmentBreakdown.add(new InstallmentFeeStatus(
                     1, "Full Program Fee", totalFee, paid, totalFee.subtract(paid), baseDate));
             }
         }
 
         BigDecimal totalOutstanding = totalFee.subtract(totalPaid.min(totalFee));
         return new EnquiryYearWiseFeeStatusResponse(
-            enquiryId, totalFee, totalPaid, totalOutstanding, yearBreakdown, semesterBreakdown);
+            enquiryId, totalFee, totalPaid, totalOutstanding, yearBreakdown, installmentBreakdown);
     }
 
     private List<YearWiseFeeEntry> parseYearWiseFees(String json) {
@@ -239,12 +239,12 @@ public class EnquiryPaymentService {
         }
     }
 
-    private List<SemesterWiseFeeEntry> parseSemesterWiseFees(String json) {
+    private List<TermWiseFeeEntry> parseTermWiseFees(String json) {
         if (json == null || json.isBlank()) {
             return new ArrayList<>();
         }
         try {
-            return objectMapper.readValue(json, SEMESTER_FEES_TYPE);
+            return objectMapper.readValue(json, TERM_FEES_TYPE);
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -269,17 +269,17 @@ public class EnquiryPaymentService {
 
     record YearWiseFeeEntry(int yearNumber, BigDecimal amount) {}
 
-    record SemesterWiseFeeEntry(int semesterNumber, String semesterLabel, BigDecimal amount) {}
+    record TermWiseFeeEntry(int termNumber, String installmentLabel, BigDecimal amount) {}
 
     private static final String[] ORDINALS = {
         "First", "Second", "Third", "Fourth", "Fifth", "Sixth",
         "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"
     };
 
-    private static String semesterOrdinalLabel(int globalSeq) {
+    private static String installmentOrdinalLabel(int globalSeq) {
         if (globalSeq >= 1 && globalSeq <= ORDINALS.length) {
-            return ORDINALS[globalSeq - 1] + " Semester";
+            return ORDINALS[globalSeq - 1] + " Installment";
         }
-        return "Semester " + globalSeq;
+        return "Installment " + globalSeq;
     }
 }

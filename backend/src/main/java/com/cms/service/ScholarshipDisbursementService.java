@@ -53,7 +53,7 @@ public class ScholarshipDisbursementService {
         ScholarshipDisbursement disbursement = new ScholarshipDisbursement();
         disbursement.setStudentScholarship(application);
         disbursement.setAcademicYear(academicYear);
-        disbursement.setSemesterNumber(request.semesterNumber());
+        disbursement.setSemesterNumber(request.termNumber());
         disbursement.setAmount(request.amount());
         disbursement.setDisbursementDate(request.disbursementDate());
         disbursement.setDisbursementMode(request.disbursementMode());

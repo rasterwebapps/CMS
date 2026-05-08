@@ -20,6 +20,7 @@ import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.FeeExplorerResponse;
 import com.cms.dto.PenaltyResponse;
 import com.cms.dto.ReceiptResponse;
+import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.StudentFeeAllocationRequest;
 import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
@@ -101,6 +102,12 @@ public class StudentFeeController {
             @RequestParam(required = false) String search) {
         FeeExplorerResponse response = feeExplorerService.search(search);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/receipts")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
+    public ResponseEntity<List<ReceiptSummaryResponse>> getAllReceipts() {
+        return ResponseEntity.ok(paymentCollectionService.getAllReceiptSummaries());
     }
 
     @GetMapping("/{studentId}/receipts")

@@ -114,7 +114,7 @@ public class ProgramService {
             program.getName(),
             program.getCode(),
             program.getDurationYears(),
-            program.getTotalSemesters(),
+            program.getTotalTerms(),
             program.getStatus(),
             program.getAssessmentPattern(),
             new HashSet<>(program.getRequiredDocumentTypes()),

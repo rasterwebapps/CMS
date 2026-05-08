@@ -135,12 +135,12 @@
               </div>
 
               <div class="field-group">
-                <label for="stu-semester" class="field-label">Semester <span class="required-star">*</span></label>
-                <input id="stu-semester" type="number" class="field-input" formControlName="semester"
+                <label for="stu-yearOfStudy" class="field-label">Year of Study <span class="required-star">*</span></label>
+                <input id="stu-yearOfStudy" type="number" class="field-input" formControlName="yearOfStudy"
                   min="1" max="12"
-                  [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched" />
-                @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('semester') }}</p>
+                  [class.field-input--error]="form.get('yearOfStudy')?.invalid && form.get('yearOfStudy')?.touched" />
+                @if (form.get('yearOfStudy')?.invalid && form.get('yearOfStudy')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('yearOfStudy') }}</p>
                 }
               </div>
             </div>

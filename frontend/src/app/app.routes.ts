@@ -322,6 +322,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'receipts',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/finance/receipts-list/receipts-list.component').then(
+        (m) => m.ReceiptsListComponent
+      ),
+  },
+  {
     path: 'equipment',
     canActivate: [authGuard],
     loadComponent: () =>

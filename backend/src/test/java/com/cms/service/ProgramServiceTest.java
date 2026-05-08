@@ -261,7 +261,7 @@ class ProgramServiceTest {
 
         ProgramResponse response = programService.findById(1L);
 
-        assertThat(response.totalSemesters()).isEqualTo(8);
+        assertThat(response.totalTerms()).isEqualTo(8);
     }
 
     @Test

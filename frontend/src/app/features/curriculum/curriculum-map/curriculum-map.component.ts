@@ -61,16 +61,16 @@ export class CurriculumMapComponent implements OnInit {
     this.loadCurriculum();
   }
 
-  protected toggleAddForm(semesterNumber: number): void {
-    if (this.showAddForm() === semesterNumber) {
+  protected toggleAddForm(termNumber: number): void {
+    if (this.showAddForm() === termNumber) {
       this.showAddForm.set(null);
     } else {
-      this.showAddForm.set(semesterNumber);
+      this.showAddForm.set(termNumber);
       this.addCourseForm.reset();
     }
   }
 
-  protected submitAddCourse(semesterNumber: number): void {
+  protected submitAddCourse(termNumber: number): void {
     if (this.addCourseForm.invalid) {
       scrollToFirstInvalid(this.addCourseForm);
       return;
@@ -78,11 +78,11 @@ export class CurriculumMapComponent implements OnInit {
     const v = this.addCourseForm.value;
     const request: CurriculumSemesterCourseRequest = {
       curriculumVersionId: this.curriculumVersionId,
-      semesterNumber,
+      termNumber,
       subjectId: v.subjectId,
       sortOrder: v.sortOrder ?? undefined,
     };
-    this.adding.set(semesterNumber);
+    this.adding.set(termNumber);
     this.service.addCourse(request).subscribe({
       next: () => {
         this.toast.success('Course added');
@@ -113,22 +113,22 @@ export class CurriculumMapComponent implements OnInit {
     });
   }
 
-  protected getSemesterNumbers(): number[] {
+  protected getTermNumbers(): number[] {
     const c = this.curriculum();
     if (!c) return [];
-    return Array.from({ length: c.totalSemesters }, (_, i) => i + 1);
+    return Array.from({ length: c.totalTerms }, (_, i) => i + 1);
   }
 
   protected termLabel(n: number): string {
     return this.curriculum()?.assessmentPattern === 'YEARLY'
       ? `Year ${n}`
-      : `Semester ${n}`;
+      : `Term ${n}`;
   }
 
-  protected getCoursesForSemester(semesterNumber: number) {
+  protected getCoursesForTerm(termNumber: number) {
     const c = this.curriculum();
     if (!c) return [];
-    return c.semesters.find(s => s.semesterNumber === semesterNumber)?.courses ?? [];
+    return c.terms.find(s => s.termNumber === termNumber)?.courses ?? [];
   }
 
   protected backToVersions(): void {

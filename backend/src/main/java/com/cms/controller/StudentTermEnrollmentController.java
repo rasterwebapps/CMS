@@ -30,9 +30,9 @@ public class StudentTermEnrollmentController {
     public ResponseEntity<?> getEnrollments(
             @RequestParam(required = false) Long termInstanceId,
             @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Integer semesterNumber) {
-        if (termInstanceId != null && semesterNumber != null) {
-            return ResponseEntity.ok(service.getEnrollmentsByTermInstanceAndSemester(termInstanceId, semesterNumber));
+            @RequestParam(required = false) Integer termNumber) {
+        if (termInstanceId != null && termNumber != null) {
+            return ResponseEntity.ok(service.getEnrollmentsByTermInstanceAndSemester(termInstanceId, termNumber));
         } else if (termInstanceId != null) {
             return ResponseEntity.ok(service.getEnrollmentsByTermInstance(termInstanceId));
         } else if (studentId != null) {

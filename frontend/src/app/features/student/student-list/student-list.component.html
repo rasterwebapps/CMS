@@ -50,7 +50,7 @@
     </select>
 
     <select class="mlp-filter-select" [value]="filterSemester()"
-            (change)="filterSemester.set($any($event.target).value); onFilterChange()" aria-label="Filter by semester">
+            (change)="filterSemester.set($any($event.target).value); onFilterChange()" aria-label="Filter by year of study">
       <option value="ALL">All Semesters</option>
       @for (sem of semesters(); track sem) {
         <option [value]="sem">Sem {{ sem }}</option>
@@ -179,10 +179,10 @@
           </ng-container>
 
           <!-- Semester -->
-          <ng-container matColumnDef="semester">
+          <ng-container matColumnDef="yearOfStudy">
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Sem</th>
             <td mat-cell *matCellDef="let student" class="col-center">
-              <span class="cell-number">{{ student.semester ?? '—' }}</span>
+              <span class="cell-number">{{ student.yearOfStudy ?? '—' }}</span>
             </td>
           </ng-container>
 

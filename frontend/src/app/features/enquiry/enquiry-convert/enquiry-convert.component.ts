@@ -71,7 +71,7 @@ export class EnquiryConvertComponent implements OnInit {
     applicationDate: ['', Validators.required],
 
     // Always 1 for new admissions — hidden from UI
-    semester: [1, [Validators.required, Validators.min(1)]],
+    yearOfStudy: [1, [Validators.required, Validators.min(1)]],
 
     dateOfBirth:       [''],
     gender:            [''],
@@ -242,7 +242,7 @@ export class EnquiryConvertComponent implements OnInit {
       lastName:    v['lastName'] as string,
       email:       v['email'] as string,
       phone:       this.nullable(v['phone'] as string),
-      semester:             v['semester'] as number,
+      yearOfStudy: v['yearOfStudy'] as number,
       admissionDate:        v['admissionDate'] as string,
       joiningAcademicYearId: this.selectedAcademicYearId()!,
       applicationDate:      v['applicationDate'] as string,

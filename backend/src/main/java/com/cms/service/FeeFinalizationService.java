@@ -147,14 +147,14 @@ public class FeeFinalizationService {
 
             SemesterFee sf1 = new SemesterFee(
                 saved, yearFee.yearNumber(),
-                "Year " + yearFee.yearNumber() + " - " + semesterOrdinalLabel(globalSem1),
+                "Year " + yearFee.yearNumber() + " - " + installmentOrdinalLabel(globalSem1),
                 sem1Amount, yearFee.dueDate(), 1
             );
             semesterFees.add(semesterFeeRepository.save(sf1));
 
             SemesterFee sf2 = new SemesterFee(
                 saved, yearFee.yearNumber(),
-                "Year " + yearFee.yearNumber() + " - " + semesterOrdinalLabel(globalSem2),
+                "Year " + yearFee.yearNumber() + " - " + installmentOrdinalLabel(globalSem2),
                 sem2Amount, yearFee.dueDate().plusMonths(6), 2
             );
             semesterFees.add(semesterFeeRepository.save(sf2));
@@ -184,15 +184,15 @@ public class FeeFinalizationService {
         "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"
     };
 
-    private static String semesterOrdinalLabel(int globalSeq) {
+    private static String installmentOrdinalLabel(int globalSeq) {
         if (globalSeq >= 1 && globalSeq <= ORDINALS.length) {
-            return ORDINALS[globalSeq - 1] + " Semester";
+            return ORDINALS[globalSeq - 1] + " Installment";
         }
-        return "Semester " + globalSeq;
+        return "Installment " + globalSeq;
     }
 
     private StudentFeeAllocationResponse toResponse(StudentFeeAllocation allocation, List<SemesterFee> semesterFees) {
-        List<StudentFeeAllocationResponse.SemesterFeeDetail> details = semesterFees.stream()
+        List<StudentFeeAllocationResponse.InstallmentFeeDetail> details = semesterFees.stream()
             .map(sf -> {
                 BigDecimal paid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
                 BigDecimal pending = sf.getAmount().subtract(paid).max(BigDecimal.ZERO);
@@ -210,7 +210,7 @@ public class FeeFinalizationService {
                     paymentStatus = "PENDING";
                 }
 
-                return new StudentFeeAllocationResponse.SemesterFeeDetail(
+                return new StudentFeeAllocationResponse.InstallmentFeeDetail(
                     sf.getId(), sf.getYearNumber(), sf.getSemesterSequence(), sf.getSemesterLabel(),
                     sf.getAmount(), sf.getDueDate(), paid, pending, penaltyAmount, paymentStatus
                 );

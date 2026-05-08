@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Positive;
 
 public record DisbursementRequest(
     Long academicYearId,
-    Integer semesterNumber,
+    Integer termNumber,
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")

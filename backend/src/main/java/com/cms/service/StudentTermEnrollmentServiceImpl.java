@@ -93,13 +93,13 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
             // Both ODD and EVEN terms of the same academic year deliver the same year of study
             semesterNumber = k + 1;
         } else {
-            // SEMESTER: ODD → odd semesters (1, 3, 5, 7), EVEN → even semesters (2, 4, 6, 8)
+            // TERM_BASED: ODD → odd terms (1, 3, 5, 7), EVEN → even terms (2, 4, 6, 8)
             semesterNumber = termInstance.getTermType() == TermType.ODD
                 ? (2 * k) + 1
                 : (2 * k) + 2;
         }
 
-        Integer totalSemesters = cohort.getProgram().getTotalSemesters();
+        Integer totalSemesters = cohort.getProgram().getTotalTerms();
         if (semesterNumber < 1 || totalSemesters == null || semesterNumber > totalSemesters) {
             return null;
         }

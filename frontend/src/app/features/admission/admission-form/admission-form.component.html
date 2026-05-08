@@ -144,17 +144,17 @@
 
           <div class="form-row">
             <div class="field-group">
-              <label for="conv-semester" class="field-label">Semester <span class="field-required">*</span></label>
+              <label for="conv-yearOfStudy" class="field-label">Year of Study <span class="field-required">*</span></label>
               <input
-                id="conv-semester"
+                id="conv-yearOfStudy"
                 class="field-input"
                 type="number"
                 min="1"
-                formControlName="semester"
-                [class.field-input--error]="form.get('semester')?.invalid && form.get('semester')?.touched"
+                formControlName="yearOfStudy"
+                [class.field-input--error]="form.get('yearOfStudy')?.invalid && form.get('yearOfStudy')?.touched"
               />
-              @if (form.get('semester')?.invalid && form.get('semester')?.touched) {
-                <p class="field-error">Semester is required</p>
+              @if (form.get('yearOfStudy')?.invalid && form.get('yearOfStudy')?.touched) {
+                <p class="field-error">Year of Study is required</p>
               }
             </div>
             <div class="field-group">

@@ -100,9 +100,9 @@ class PaymentCollectionServiceTest {
 
         assertThat(response.amountPaid()).isEqualByComparingTo("100000");
         assertThat(response.studentName()).isEqualTo("John Doe");
-        assertThat(response.semesterBreakdown()).hasSize(1);
-        assertThat(response.semesterBreakdown().get(0).semesterLabel()).isEqualTo("Year 1 - Semester 1");
-        assertThat(response.semesterBreakdown().get(0).amountApplied()).isEqualByComparingTo("100000");
+        assertThat(response.installmentBreakdown()).hasSize(1);
+        assertThat(response.installmentBreakdown().get(0).installmentLabel()).isEqualTo("Year 1 - Semester 1");
+        assertThat(response.installmentBreakdown().get(0).amountApplied()).isEqualByComparingTo("100000");
     }
 
     @Test
@@ -122,7 +122,7 @@ class PaymentCollectionServiceTest {
         CollectPaymentResponse response = service.collectPayment(1L, request);
 
         assertThat(response.amountPaid()).isEqualByComparingTo("300000");
-        assertThat(response.semesterBreakdown()).hasSize(2);
+        assertThat(response.installmentBreakdown()).hasSize(2);
         assertThat(response.allocationSummary()).contains("Year 1 - Semester 1");
         assertThat(response.allocationSummary()).contains("Year 1 - Semester 2");
 
@@ -149,11 +149,11 @@ class PaymentCollectionServiceTest {
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
 
-        assertThat(response.semesterBreakdown()).hasSize(2);
-        assertThat(response.semesterBreakdown().get(0).semesterSequence()).isEqualTo(1);
-        assertThat(response.semesterBreakdown().get(0).amountApplied()).isEqualByComparingTo("200000");
-        assertThat(response.semesterBreakdown().get(1).semesterSequence()).isEqualTo(2);
-        assertThat(response.semesterBreakdown().get(1).amountApplied()).isEqualByComparingTo("150000");
+        assertThat(response.installmentBreakdown()).hasSize(2);
+        assertThat(response.installmentBreakdown().get(0).sequence()).isEqualTo(1);
+        assertThat(response.installmentBreakdown().get(0).amountApplied()).isEqualByComparingTo("200000");
+        assertThat(response.installmentBreakdown().get(1).sequence()).isEqualTo(2);
+        assertThat(response.installmentBreakdown().get(1).amountApplied()).isEqualByComparingTo("150000");
     }
 
     @Test
@@ -174,8 +174,8 @@ class PaymentCollectionServiceTest {
 
         assertThat(response.allocationSummary()).contains("Year 1 - Semester 2");
         assertThat(response.allocationSummary()).doesNotContain("Year 1 - Semester 1");
-        assertThat(response.semesterBreakdown()).hasSize(1);
-        assertThat(response.semesterBreakdown().get(0).semesterSequence()).isEqualTo(2);
+        assertThat(response.installmentBreakdown()).hasSize(1);
+        assertThat(response.installmentBreakdown().get(0).sequence()).isEqualTo(2);
     }
 
     @Test

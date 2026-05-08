@@ -33,10 +33,10 @@ public class CourseOfferingController {
     @PreAuthorize("@perm.has('COURSE_VIEW')")
     public ResponseEntity<List<CourseOfferingDto>> getOfferings(
             @RequestParam Long termInstanceId,
-            @RequestParam(required = false) Integer semesterNumber) {
-        if (semesterNumber != null) {
+            @RequestParam(required = false) Integer termNumber) {
+        if (termNumber != null) {
             return ResponseEntity.ok(
-                courseOfferingService.getOfferingsByTermInstanceAndSemester(termInstanceId, semesterNumber));
+                courseOfferingService.getOfferingsByTermInstanceAndSemester(termInstanceId, termNumber));
         }
         return ResponseEntity.ok(courseOfferingService.getOfferingsByTermInstance(termInstanceId));
     }

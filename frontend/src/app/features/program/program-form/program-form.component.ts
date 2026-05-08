@@ -77,12 +77,12 @@ export class ProgramFormComponent implements OnInit {
   protected readonly previewCode              = signal('');
   protected readonly previewDuration          = signal<number>(0);
   protected readonly previewStatus            = signal<ProgramStatus>('ACTIVE');
-  protected readonly previewAssessmentPattern = signal<AssessmentPattern>('SEMESTER');
+  protected readonly previewAssessmentPattern = signal<AssessmentPattern>('TERM_BASED');
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'tag',         title: 'Unique Code',       subtitle: 'Use 3–6 uppercase letters as an identifier (e.g., BAC, MAS).' },
     { icon: 'event',       title: 'Duration',           subtitle: 'Number of years a student takes to complete the program.' },
-    { icon: 'school',      title: 'Assessment Pattern', subtitle: 'Semester: exams every 6 months. Yearly: one annual exam at end of year.' },
+    { icon: 'school',      title: 'Assessment Pattern', subtitle: 'Term-based: installments per term. Yearly: one annual exam at end of year.' },
     { icon: 'toggle_on',   title: 'Status',             subtitle: 'Inactive programs are hidden from new admissions but kept for historical records.' },
   ];
 
@@ -93,7 +93,7 @@ export class ProgramFormComponent implements OnInit {
     code: ['', [Validators.required, Validators.maxLength(20)]],
     durationYears: [null as number | null, [Validators.required, Validators.min(1), Validators.max(10)]],
     status: ['ACTIVE' as ProgramStatus, Validators.required],
-    assessmentPattern: ['SEMESTER' as AssessmentPattern, Validators.required],
+    assessmentPattern: ['TERM_BASED' as AssessmentPattern, Validators.required],
   });
 
   constructor() {
@@ -104,7 +104,7 @@ export class ProgramFormComponent implements OnInit {
         this.previewCode.set((v.code ?? '').toUpperCase().trim());
         this.previewDuration.set(Number(v.durationYears) || 0);
         this.previewStatus.set((v.status ?? 'ACTIVE') as ProgramStatus);
-        this.previewAssessmentPattern.set((v.assessmentPattern ?? 'SEMESTER') as AssessmentPattern);
+        this.previewAssessmentPattern.set((v.assessmentPattern ?? 'TERM_BASED') as AssessmentPattern);
       });
   }
 
@@ -246,7 +246,7 @@ export class ProgramFormComponent implements OnInit {
           code: program.code,
           durationYears: program.durationYears,
           status: program.status,
-          assessmentPattern: program.assessmentPattern ?? 'SEMESTER',
+          assessmentPattern: program.assessmentPattern ?? 'TERM_BASED',
         });
         this.loading.set(false);
       },

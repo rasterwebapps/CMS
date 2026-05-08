@@ -109,8 +109,8 @@ public class Enquiry {
     @Column(name = "year_wise_fees", columnDefinition = "TEXT")
     private String yearWiseFees;
 
-    // Semester-wise fee breakdown stored as JSON (set at fee finalization)
-    @Column(name = "semester_wise_fees", columnDefinition = "TEXT")
+    // Term-wise fee breakdown stored as JSON (set at fee finalization)
+    @Column(name = "term_wise_fees", columnDefinition = "TEXT")
     private String semesterWiseFees;
 
     // Admin fee finalization fields

@@ -60,14 +60,14 @@ export class AdmissionListComponent implements OnInit {
   // ── Column visibility ────────────────────────────────────────
   protected readonly ALL_COLS = [
     'studentName', 'rollNumber', 'program', 'course',
-    'semester', 'applicationDate', 'academicYear', 'consent', 'declarationDate', 'studentStatus', 'actions',
+    'yearOfStudy', 'applicationDate', 'academicYear', 'consent', 'declarationDate', 'studentStatus', 'actions',
   ];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     studentName:     'Student',
     rollNumber:      'Roll No.',
     program:         'Program',
     course:          'Course',
-    semester:        'Sem',
+    yearOfStudy:       'Year',
     applicationDate: 'Application Date',
     academicYear:    'Joining Year',
     consent:         'Consent',
@@ -77,7 +77,7 @@ export class AdmissionListComponent implements OnInit {
   };
   // Default visible columns (hide rollNumber & course by default to keep table lean)
   private readonly DEFAULT_COLS = new Set([
-    'studentName', 'program', 'course', 'semester',
+    'studentName', 'program', 'course', 'yearOfStudy',
     'applicationDate', 'academicYear', 'consent', 'studentStatus', 'actions',
   ]);
   private readonly COLS_KEY = 'admission-list-cols-v3';

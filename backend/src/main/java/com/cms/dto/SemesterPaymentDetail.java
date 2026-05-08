@@ -3,8 +3,8 @@ package com.cms.dto;
 import java.math.BigDecimal;
 
 public record SemesterPaymentDetail(
-    String semesterLabel,
+    String installmentLabel,
     Integer yearNumber,
-    Integer semesterSequence,
+    Integer sequence,
     BigDecimal amountApplied
 ) {}

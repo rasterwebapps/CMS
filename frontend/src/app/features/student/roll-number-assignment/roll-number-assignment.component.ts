@@ -58,7 +58,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   protected readonly totalCount  = computed(() => this.assignments().length);
   protected readonly filledCount = computed(() => this.assignments().filter(a => a.rollNumber.trim()).length);
 
-  protected readonly displayedColumns = ['name', 'programName', 'semester', 'admissionDate', 'rollNumber', 'actions'];
+  protected readonly displayedColumns = ['name', 'programName', 'yearOfStudy', 'admissionDate', 'rollNumber', 'actions'];
 
   ngOnInit(): void {
     this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);

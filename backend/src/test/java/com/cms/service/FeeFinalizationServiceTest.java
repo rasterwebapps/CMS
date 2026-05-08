@@ -106,16 +106,16 @@ class FeeFinalizationServiceTest {
         assertThat(response.netFee()).isEqualTo(new BigDecimal("835000"));
         assertThat(response.status()).isEqualTo("FINALIZED");
         // 4 years × 2 semesters = 8 semester records
-        assertThat(response.semesterFees()).hasSize(8);
+        assertThat(response.installmentFees()).hasSize(8);
 
         // Year 1 (₹235000) → S1 = floor(235000/2) = ₹117500.00, S2 = ₹117500.00
-        assertThat(response.semesterFees().get(0).semesterLabel()).isEqualTo("Year 1 - First Semester");
-        assertThat(response.semesterFees().get(0).semesterSequence()).isEqualTo(1);
-        assertThat(response.semesterFees().get(0).amount()).isEqualByComparingTo("117500.00");
+        assertThat(response.installmentFees().get(0).installmentLabel()).isEqualTo("Year 1 - First Installment");
+        assertThat(response.installmentFees().get(0).sequence()).isEqualTo(1);
+        assertThat(response.installmentFees().get(0).amount()).isEqualByComparingTo("117500.00");
 
-        assertThat(response.semesterFees().get(1).semesterLabel()).isEqualTo("Year 1 - Second Semester");
-        assertThat(response.semesterFees().get(1).semesterSequence()).isEqualTo(2);
-        assertThat(response.semesterFees().get(1).amount()).isEqualByComparingTo("117500.00");
+        assertThat(response.installmentFees().get(1).installmentLabel()).isEqualTo("Year 1 - Second Installment");
+        assertThat(response.installmentFees().get(1).sequence()).isEqualTo(2);
+        assertThat(response.installmentFees().get(1).amount()).isEqualByComparingTo("117500.00");
     }
 
     @Test
@@ -143,8 +143,8 @@ class FeeFinalizationServiceTest {
 
         StudentFeeAllocationResponse response = service.finalize(request, "admin");
 
-        BigDecimal s1 = response.semesterFees().get(0).amount();
-        BigDecimal s2 = response.semesterFees().get(1).amount();
+        BigDecimal s1 = response.installmentFees().get(0).amount();
+        BigDecimal s2 = response.installmentFees().get(1).amount();
         assertThat(s1.add(s2)).isEqualByComparingTo("100001");
         assertThat(s2).isGreaterThanOrEqualTo(s1); // remainder goes to S2
     }
@@ -175,8 +175,8 @@ class FeeFinalizationServiceTest {
 
         StudentFeeAllocationResponse response = service.finalize(request, "admin");
 
-        assertThat(response.semesterFees().get(0).dueDate()).isEqualTo(dueDate);
-        assertThat(response.semesterFees().get(1).dueDate()).isEqualTo(dueDate.plusMonths(6));
+        assertThat(response.installmentFees().get(0).dueDate()).isEqualTo(dueDate);
+        assertThat(response.installmentFees().get(1).dueDate()).isEqualTo(dueDate.plusMonths(6));
     }
 
     @Test
@@ -240,7 +240,7 @@ class FeeFinalizationServiceTest {
         assertThat(response.netFee()).isEqualTo(new BigDecimal("200000"));
         assertThat(response.agentCommission()).isEqualTo(new BigDecimal("10000"));
         // 1 year → 2 semester records
-        assertThat(response.semesterFees()).hasSize(2);
+        assertThat(response.installmentFees()).hasSize(2);
     }
 
     @Test
@@ -269,8 +269,8 @@ class FeeFinalizationServiceTest {
         StudentFeeAllocationResponse response = service.getByStudentId(1L);
 
         assertThat(response.studentId()).isEqualTo(1L);
-        assertThat(response.semesterFees()).hasSize(1);
-        assertThat(response.semesterFees().get(0).semesterSequence()).isEqualTo(1);
+        assertThat(response.installmentFees()).hasSize(1);
+        assertThat(response.installmentFees().get(0).sequence()).isEqualTo(1);
     }
 
     @Test
@@ -326,8 +326,8 @@ class FeeFinalizationServiceTest {
 
         StudentFeeAllocationResponse response = service.getByStudentId(1L);
 
-        assertThat(response.semesterFees().get(0).paymentStatus()).isEqualTo("PAID");
-        assertThat(response.semesterFees().get(0).pendingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.installmentFees().get(0).paymentStatus()).isEqualTo("PAID");
+        assertThat(response.installmentFees().get(0).pendingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -345,8 +345,8 @@ class FeeFinalizationServiceTest {
 
         StudentFeeAllocationResponse response = service.getByStudentId(1L);
 
-        assertThat(response.semesterFees().get(0).paymentStatus()).isEqualTo("PARTIAL");
-        assertThat(response.semesterFees().get(0).pendingAmount()).isEqualByComparingTo("100000");
+        assertThat(response.installmentFees().get(0).paymentStatus()).isEqualTo("PARTIAL");
+        assertThat(response.installmentFees().get(0).pendingAmount()).isEqualByComparingTo("100000");
     }
 
     @Test
@@ -368,7 +368,7 @@ class FeeFinalizationServiceTest {
 
         StudentFeeAllocationResponse response = service.getByStudentId(1L);
 
-        assertThat(response.semesterFees().get(0).penaltyAmount()).isEqualByComparingTo("3000");
+        assertThat(response.installmentFees().get(0).penaltyAmount()).isEqualByComparingTo("3000");
     }
 
     private StudentFeeAllocation buildAllocation(BigDecimal amount) {

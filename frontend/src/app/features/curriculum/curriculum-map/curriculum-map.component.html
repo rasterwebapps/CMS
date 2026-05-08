@@ -16,11 +16,11 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else if (curriculum()) {
-    <div class="semesters-grid">
-      @for (sem of getSemesterNumbers(); track sem) {
-        <div class="semester-card">
-          <div class="semester-card__header">
-            <h3 class="semester-card__title">{{ termLabel(sem) }}</h3>
+    <div class="terms-grid">
+      @for (sem of getTermNumbers(); track sem) {
+        <div class="term-card">
+          <div class="term-card__header">
+            <h3 class="term-card__title">{{ termLabel(sem) }}</h3>
             <button class="add-course-btn" (click)="toggleAddForm(sem)" type="button"
               [attr.aria-label]="showAddForm() === sem ? 'Cancel add course' : 'Add course to ' + termLabel(sem)">
               @if (showAddForm() === sem) {
@@ -33,11 +33,11 @@
           </div>
 
           <!-- Course list -->
-          @if (getCoursesForSemester(sem).length === 0) {
-            <p class="semester-card__empty">No courses assigned</p>
+          @if (getCoursesForTerm(sem).length === 0) {
+            <p class="term-card__empty">No courses assigned</p>
           } @else {
             <ul class="course-list">
-              @for (course of getCoursesForSemester(sem); track course.id) {
+              @for (course of getCoursesForTerm(sem); track course.id) {
                 <li class="course-item">
                   <div class="course-item__info">
                     <span class="course-item__code">{{ course.subjectCode }}</span>

@@ -51,7 +51,7 @@ public class Program {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "assessment_pattern", nullable = false, length = 20)
-    private AssessmentPattern assessmentPattern = AssessmentPattern.SEMESTER;
+    private AssessmentPattern assessmentPattern = AssessmentPattern.TERM_BASED;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
@@ -93,7 +93,7 @@ public class Program {
         this.code = code;
         this.durationYears = durationYears;
         this.status = status != null ? status : ProgramStatus.ACTIVE;
-        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.TERM_BASED;
     }
 
     public Long getId() { return id; }
@@ -109,14 +109,21 @@ public class Program {
 
     public AssessmentPattern getAssessmentPattern() { return assessmentPattern; }
     public void setAssessmentPattern(AssessmentPattern assessmentPattern) {
-        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+        this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.TERM_BASED;
     }
 
     @Transient
-    public Integer getTotalSemesters() {
+    public Integer getTotalTerms() {
         if (durationYears == null) return null;
-        AssessmentPattern pattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.SEMESTER;
+        AssessmentPattern pattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.TERM_BASED;
         return pattern == AssessmentPattern.YEARLY ? durationYears : durationYears * 2;
+    }
+
+    /** @deprecated Use {@link #getTotalTerms()} instead */
+    @Deprecated
+    @Transient
+    public Integer getTotalSemesters() {
+        return getTotalTerms();
     }
 
     public Instant getCreatedAt() { return createdAt; }

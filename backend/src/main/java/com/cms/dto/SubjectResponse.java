@@ -11,7 +11,7 @@ public record SubjectResponse(
     Integer labCredits,
     CourseResponse course,
     DepartmentResponse department,
-    Integer semester,
+    Integer termNumber,
     Instant createdAt,
     Instant updatedAt
 ) {}

@@ -48,10 +48,10 @@ public class CurriculumSemesterCourseController {
     @GetMapping
     public ResponseEntity<?> getCourses(
             @RequestParam Long curriculumVersionId,
-            @RequestParam(required = false) Integer semesterNumber) {
-        if (semesterNumber != null) {
+            @RequestParam(required = false) Integer termNumber) {
+        if (termNumber != null) {
             List<CurriculumSemesterCourseDto> courses =
-                service.getCoursesBySemester(curriculumVersionId, semesterNumber);
+                service.getCoursesBySemester(curriculumVersionId, termNumber);
             return ResponseEntity.ok(courses);
         }
         CurriculumFullViewDto fullView = service.getFullCurriculum(curriculumVersionId);

@@ -72,7 +72,7 @@ class SubjectServiceTest {
         program.setCreatedAt(now);
         program.setUpdatedAt(now);
 
-        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.SEMESTER, null, now, now);
+        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, null, now, now);
         org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
 
         course = new Course();
@@ -106,7 +106,7 @@ class SubjectServiceTest {
         assertThat(response.credits()).isEqualTo(4);
         assertThat(response.theoryCredits()).isEqualTo(3);
         assertThat(response.labCredits()).isEqualTo(1);
-        assertThat(response.semester()).isEqualTo(1);
+        assertThat(response.termNumber()).isEqualTo(1);
         assertThat(response.course().id()).isEqualTo(1L);
         assertThat(response.department().id()).isEqualTo(1L);
 
@@ -245,7 +245,7 @@ class SubjectServiceTest {
         assertThat(response.name()).isEqualTo("Physiology");
         assertThat(response.code()).isEqualTo("PHYS101");
         assertThat(response.credits()).isEqualTo(5);
-        assertThat(response.semester()).isEqualTo(2);
+        assertThat(response.termNumber()).isEqualTo(2);
     }
 
     @Test

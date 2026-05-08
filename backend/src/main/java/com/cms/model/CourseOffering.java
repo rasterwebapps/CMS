@@ -21,7 +21,7 @@ import jakarta.persistence.UniqueConstraint;
 @Entity
 @Table(name = "course_offerings",
     uniqueConstraints = @UniqueConstraint(
-        columnNames = {"term_instance_id", "curriculum_version_id", "subject_id", "semester_number"}))
+        columnNames = {"term_instance_id", "curriculum_version_id", "subject_id", "term_number"}))
 @EntityListeners(AuditingEntityListener.class)
 public class CourseOffering {
 
@@ -41,7 +41,7 @@ public class CourseOffering {
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
 
-    @Column(name = "semester_number", nullable = false)
+    @Column(name = "term_number", nullable = false)
     private Integer semesterNumber;
 
     @Column(name = "faculty_id")

@@ -1,5 +1,5 @@
 <div class="list-page">
-  <app-page-header title="Student Fee Collection" subtitle="Semester-wise fee tracking and payment collection">
+  <app-page-header title="Student Fee Collection" subtitle="Installment-wise fee tracking and payment collection">
     <a actions class="btn-secondary" routerLink="/student-fees">
       <mat-icon>arrow_back</mat-icon> Back
     </a>
@@ -41,8 +41,8 @@
                 <th>Year</th>
                 <th class="text-right">Fee Amount (₹)</th>
                 <th>Due Date</th>
-                <th class="text-right">Semester 1</th>
-                <th class="text-right">Semester 2</th>
+                <th class="text-right">Installment 1</th>
+                <th class="text-right">Installment 2</th>
               </tr>
             </thead>
             <tbody>
@@ -103,8 +103,8 @@
         <div class="setup-footer">
           <p class="setup-note">
             <mat-icon>auto_awesome</mat-icon>
-            Each year will be split into <strong>2 equal semesters</strong>.
-            Payments cascade from Semester 1 → Semester 2 → Year 2 Semester 1 → … in order.
+            Each year will be split into <strong>2 equal installments</strong>.
+            Payments cascade from Installment 1 → Installment 2 → Year 2 Installment 1 → … in order.
           </p>
           <button class="btn-primary" (click)="createAllocation()" [disabled]="savingAlloc()">
             @if (savingAlloc()) {
@@ -160,12 +160,12 @@
       </div>
     }
 
-    <!-- Semester fee collection table -->
+    <!-- Installment fee collection table -->
     <div class="content-card">
       <div class="card-hdr">
         <div class="card-hdr__title">
           <mat-icon>account_balance_wallet</mat-icon>
-          Semester-wise Fee Status
+          Installment-wise Fee Status
         </div>
         <button class="btn-primary" (click)="openCollectPaymentDialog()">
           <mat-icon>payment</mat-icon>
@@ -178,7 +178,7 @@
           <table class="sem-table">
             <thead>
               <tr>
-                <th>Semester</th>
+                <th>Installment</th>
                 <th class="text-right">Fee Amount (₹)</th>
                 <th class="text-right">Paid (₹)</th>
                 <th class="text-right">Outstanding (₹)</th>
@@ -187,7 +187,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (sem of alloc.semesterFees; track sem.id) {
+              @for (sem of alloc.installmentFees; track sem.id) {
                 <tr [class.row--next]="isNextDue(sem)"
                     [class.row--paid]="sem.paymentStatus === 'PAID'"
                     [class.row--overdue]="isOverdue(sem)">
@@ -195,7 +195,7 @@
                     <!-- Cascade order badge -->
                     <span class="seq-badge">{{ $index + 1 }}</span>
                     <div class="sem-info">
-                      <span class="sem-label">{{ sem.semesterLabel }}</span>
+                      <span class="sem-label">{{ sem.installmentLabel }}</span>
                       @if (isNextDue(sem)) {
                         <span class="next-tag">
                           <mat-icon>arrow_forward</mat-icon>Next payment
@@ -244,8 +244,8 @@
           <div class="cascade-note">
             <mat-icon>info_outline</mat-icon>
             Any payment will automatically fill
-            <strong>{{ nextDueSemester()?.semesterLabel }}</strong> first,
-            then cascade to subsequent semesters if the amount exceeds its balance.
+            <strong>{{ nextDueSemester()?.installmentLabel }}</strong> first,
+            then cascade to subsequent installments if the amount exceeds its balance.
           </div>
         }
       }
@@ -284,7 +284,7 @@
               </div>
               @for (line of group.lines; track line.id) {
                 <div class="receipt-line">
-                  <span class="receipt-line__sem">{{ line.semesterLabel }}</span>
+                  <span class="receipt-line__sem">{{ line.installmentLabel }}</span>
                   <span class="receipt-line__amt mono">{{ line.amountPaid | inr }}</span>
                 </div>
               }

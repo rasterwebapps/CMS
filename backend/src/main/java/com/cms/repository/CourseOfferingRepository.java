@@ -11,12 +11,12 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 
     List<CourseOffering> findByTermInstanceId(Long termInstanceId);
 
-    List<CourseOffering> findByTermInstanceIdAndSemesterNumber(Long termInstanceId, Integer semesterNumber);
+    List<CourseOffering> findByTermInstanceIdAndSemesterNumber(Long termInstanceId, Integer termNumber);
 
     List<CourseOffering> findByTermInstanceIdAndCurriculumVersionId(Long termInstanceId, Long cvId);
 
     List<CourseOffering> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
 
     Optional<CourseOffering> findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(
-        Long termInstanceId, Long curriculumVersionId, Long subjectId, Integer semesterNumber);
+        Long termInstanceId, Long curriculumVersionId, Long subjectId, Integer termNumber);
 }

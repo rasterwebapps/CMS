@@ -52,7 +52,7 @@ public class StudentService {
             request.lastName(),
             request.email(),
             program,
-            request.semester(),
+            request.yearOfStudy(),
             request.admissionDate(),
             status
         );
@@ -183,7 +183,7 @@ public class StudentService {
             student.setSpecializationDepartment(null);
         }
 
-        student.setSemester(request.semester());
+        student.setSemester(request.yearOfStudy());
         student.setAdmissionDate(request.admissionDate());
         student.setLabBatch(request.labBatch());
 
@@ -300,7 +300,7 @@ public class StudentService {
             student.getCourse() != null ? student.getCourse().getName() : null,
             student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getId() : null,
             student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getName() : null,
-            student.getSemester(),
+            student.getYearOfStudy(),
             student.getAdmissionDate(),
             student.getLabBatch(),
             student.getStatus(),

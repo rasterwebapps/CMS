@@ -53,7 +53,7 @@ class CurriculumSemesterCourseControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.semesterNumber").value(1))
+            .andExpect(jsonPath("$.termNumber").value(1))
             .andExpect(jsonPath("$.subjectName").value("Anatomy"));
 
         verify(service).addCourseToSemester(any(CurriculumSemesterCourseRequest.class));
@@ -62,7 +62,7 @@ class CurriculumSemesterCourseControllerTest {
     @Test
     void shouldReturnBadRequestWhenCurriculumVersionIdIsNull() throws Exception {
         String json = """
-            {"semesterNumber": 1, "subjectId": 1}
+            {"termNumber": 1, "subjectId": 1}
             """;
 
         mockMvc.perform(post("/curriculum-semester-courses")
@@ -92,14 +92,14 @@ class CurriculumSemesterCourseControllerTest {
 
     @Test
     void shouldGetFullCurriculumWhenNoSemesterNumber() throws Exception {
-        CurriculumFullViewDto fullView = new CurriculumFullViewDto(1L, "BSCN-2026", 1L, "BSc Nursing", com.cms.model.enums.AssessmentPattern.SEMESTER, 8, List.of());
+        CurriculumFullViewDto fullView = new CurriculumFullViewDto(1L, "BSCN-2026", 1L, "BSc Nursing", com.cms.model.enums.AssessmentPattern.TERM_BASED, 8, List.of());
 
         when(service.getFullCurriculum(1L)).thenReturn(fullView);
 
         mockMvc.perform(get("/curriculum-semester-courses").param("curriculumVersionId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.curriculumVersionId").value(1))
-            .andExpect(jsonPath("$.totalSemesters").value(8));
+            .andExpect(jsonPath("$.totalTerms").value(8));
 
         verify(service).getFullCurriculum(1L);
     }
@@ -112,10 +112,10 @@ class CurriculumSemesterCourseControllerTest {
 
         mockMvc.perform(get("/curriculum-semester-courses")
                 .param("curriculumVersionId", "1")
-                .param("semesterNumber", "1"))
+                .param("termNumber", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].semesterNumber").value(1));
+            .andExpect(jsonPath("$[0].termNumber").value(1));
 
         verify(service).getCoursesBySemester(1L, 1);
     }
