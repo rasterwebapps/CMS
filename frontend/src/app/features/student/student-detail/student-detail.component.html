@@ -15,95 +15,168 @@
   } @else if (student()) {
     <!-- ── Hero ────────────────────────────────────────── -->
     <header id="tour-stu-detail-hero" class="profile-hero">
-      <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
-      <div class="profile-hero__body">
-        <div class="page-title-row">
-          <h1 class="profile-hero__name">{{ student()!.fullName }}</h1>
-          <cms-tour-button tourKey="student-detail" [iconOnly]="true" iconVariant="info-circle" />
+      <div class="profile-hero__top">
+        <div class="profile-hero__identity">
+          <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          <div class="profile-hero__body">
+            <div class="page-title-row">
+              <h1 class="profile-hero__name">{{ student()!.fullName }}</h1>
+              <cms-tour-button tourKey="student-detail" [iconOnly]="true" iconVariant="info-circle" />
+            </div>
+            <div class="profile-hero__meta">
+              <cms-status-badge [status]="student()!.status"></cms-status-badge>
+              <span class="profile-hero__subtitle">
+                {{ student()!.rollNumber }}
+                <span class="dot-sep">·</span>
+                {{ student()!.programName }}
+                <span class="dot-sep">·</span>
+                Sem {{ student()!.semester }}
+                @if (student()!.labBatch) {
+                  <span class="dot-sep">·</span> Lab {{ student()!.labBatch }}
+                }
+              </span>
+            </div>
+          </div>
         </div>
-        <div class="profile-hero__meta">
-          <cms-status-badge [status]="student()!.status"></cms-status-badge>
-          <span class="cms-badge cms-badge--blue">{{ student()!.programName }}</span>
-          <span class="cms-badge cms-badge--gray">Sem {{ student()!.semester }}</span>
-        </div>
-        <div class="profile-hero__stats">
-          <div class="profile-stat">
-            <span class="profile-stat__value code-value">{{ student()!.rollNumber }}</span>
-            <span class="profile-stat__label">Roll Number</span>
-          </div>
-          <div class="profile-stat">
-            <span class="profile-stat__value">{{ student()!.programName }}</span>
-            <span class="profile-stat__label">Program</span>
-          </div>
-          <div class="profile-stat">
-            <span class="profile-stat__value">{{ student()!.admissionDate }}</span>
-            <span class="profile-stat__label">Admission Date</span>
-          </div>
-          <div class="profile-stat">
-            <span class="profile-stat__value">{{ student()!.labBatch || '—' }}</span>
-            <span class="profile-stat__label">Lab Batch</span>
-          </div>
+        <div class="profile-hero__actions">
+          <button class="btn-primary" (click)="editStudent()">
+            <mat-icon>edit</mat-icon> Edit
+          </button>
         </div>
       </div>
-      <div class="profile-hero__actions">
-        <button class="btn-primary" (click)="editStudent()">
-          <mat-icon>edit</mat-icon> Edit
-        </button>
+
+      <div class="profile-hero__kpis">
+        <div class="hero-kpi hero-kpi--indigo">
+          <mat-icon>school</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">Sem {{ student()!.semester }}</span>
+            <span class="hero-kpi__label">Current Semester</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--emerald">
+          <mat-icon>event_note</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">
+              @if (loadingEnrollments()) { — } @else { {{ enrollments().length }} }
+            </span>
+            <span class="hero-kpi__label">Enrollments</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--rose">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">
+              @if (loadingLedger()) { — } @else { {{ totalOutstanding() | inr:true:false }} }
+            </span>
+            <span class="hero-kpi__label">Outstanding Fee</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--amber">
+          <mat-icon>workspace_premium</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">
+              @if (loadingScholarships()) { — }
+              @else { {{ activeScholarshipCount() > 0 ? (activeScholarshipCount() + ' Active') : 'None' }} }
+            </span>
+            <span class="hero-kpi__label">Scholarships</span>
+          </div>
+        </div>
       </div>
     </header>
 
     <!-- ── Tabs ────────────────────────────────────────── -->
-    <mat-tab-group id="tour-stu-detail-content" class="detail-tabs">
-      <!-- Tab 1: Profile -->
-      <mat-tab label="Profile">
+    <mat-tab-group
+      id="tour-stu-detail-content"
+      class="detail-tabs"
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="selectedTabIndex.set($event)">
+
+      <!-- Tab 1: Overview -->
+      <mat-tab label="Overview">
         <div class="tab-content">
-          <div class="content-card">
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">Roll Number</span>
-                <span class="detail-value code-value">{{ student()!.rollNumber }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">University Reg. No.</span>
-                <span class="detail-value code-value">{{ student()!.universityRegistrationNumber || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">UMIS Number</span>
-                <span class="detail-value code-value">{{ student()!.umisNumber || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Full Name</span>
-                <span class="detail-value">{{ student()!.fullName }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Email</span>
-                <span class="detail-value">{{ student()!.email }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Phone</span>
-                <span class="detail-value">{{ student()!.phone || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Program</span>
-                <span class="detail-value">{{ student()!.programName }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Semester</span>
-                <span class="detail-value">{{ student()!.semester }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Lab Batch</span>
-                <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Status</span>
-                <cms-status-badge [status]="student()!.status"></cms-status-badge>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Admission Date</span>
-                <span class="detail-value">{{ student()!.admissionDate }}</span>
+          <div class="overview-grid">
+
+            <!-- Left: Identity -->
+            <div class="content-card overview-card">
+              <p class="overview-card__title">Identity</p>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Roll Number</span>
+                  <span class="detail-value code-value">{{ student()!.rollNumber }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">University Reg. No.</span>
+                  <span class="detail-value code-value">{{ student()!.universityRegistrationNumber || '—' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">UMIS Number</span>
+                  <span class="detail-value code-value">{{ student()!.umisNumber || '—' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Admission Date</span>
+                  <span class="detail-value">{{ student()!.admissionDate }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Email</span>
+                  <span class="detail-value">{{ student()!.email }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Phone</span>
+                  <span class="detail-value">{{ student()!.phone || '—' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Lab Batch</span>
+                  <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
+                </div>
               </div>
             </div>
+
+            <!-- Right: Current term + Quick links -->
+            <div class="overview-side">
+              <div class="content-card overview-card">
+                <p class="overview-card__title">Current Term</p>
+                @if (loadingEnrollments()) {
+                  <cms-skeleton [lines]="3" height="14px"></cms-skeleton>
+                } @else if (sortedEnrollments().length > 0) {
+                  @let current = sortedEnrollments()[0];
+                  <div class="detail-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Term</span>
+                      <span class="detail-value">{{ current.termInstanceLabel }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Semester</span>
+                      <span class="detail-value">{{ current.semesterNumber }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Year of Study</span>
+                      <span class="detail-value">Year {{ current.yearOfStudy }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Status</span>
+                      <cms-status-badge [status]="current.status" />
+                    </div>
+                  </div>
+                } @else {
+                  <p class="no-data">No term enrolments yet.</p>
+                }
+              </div>
+
+              <div class="content-card overview-card">
+                <p class="overview-card__title">Quick Links</p>
+                <div class="quick-links">
+                  <a class="quick-link" [routerLink]="['/student-fees', student()!.id]">
+                    <mat-icon>account_balance_wallet</mat-icon>
+                    <span>Full Fee Details</span>
+                  </a>
+                  <button class="quick-link" type="button" (click)="switchTab(4)">
+                    <mat-icon>workspace_premium</mat-icon>
+                    <span>Scholarship Applications</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </mat-tab>
@@ -111,7 +184,7 @@
       <!-- Tab 2: Personal & Family -->
       <mat-tab label="Personal & Family">
         <div class="tab-content">
-          <div class="content-card">
+          <div class="content-card padded-card">
             <p class="form-section-title">Personal Details</p>
             <div class="detail-grid">
               <div class="detail-item"><span class="detail-label">Date of Birth</span><span class="detail-value">{{ student()!.dateOfBirth || '—' }}</span></div>
@@ -147,322 +220,169 @@
         </div>
       </mat-tab>
 
-      <!-- Tab 3: Academic (placeholder) -->
-      <mat-tab label="Academic">
-        <div class="tab-content">
-          <div class="content-card">
-            <div class="empty-state__content">
-              <p class="empty-state__text">Academic data will be available here.</p>
-            </div>
-          </div>
-        </div>
-      </mat-tab>
-
-      <!-- Tab 4: Finance (placeholder + link to fee details) -->
-      <mat-tab label="Finance">
-        <div class="tab-content">
-          <div class="content-card">
-            <div class="empty-state__content">
-              <p class="empty-state__text">Full finance details are available on the dedicated fee screen.</p>
-              <a class="btn-secondary" [routerLink]="['/student-fees', student()!.id]">
-                <mat-icon>account_balance_wallet</mat-icon> View Fee Details
-              </a>
-            </div>
-          </div>
-        </div>
-      </mat-tab>
-
-      <!-- Tab: Scholarships -->
-      <mat-tab label="Scholarships">
-        <div class="tab-content">
-          @if (loadingScholarships()) {
-            <cms-skeleton [lines]="4" height="48px"></cms-skeleton>
-          } @else {
-            <!-- ── Eligibility Profile ── -->
-            <div class="content-card">
-              <div class="card-section-hdr">
-                <div class="card-section-hdr__title"><mat-icon>school</mat-icon> Eligibility Profile</div>
-                <div class="card-section-hdr__actions">
-                  <button class="btn-secondary" type="button" (click)="openEligibilityEdit()">
-                    <mat-icon>edit_note</mat-icon> Edit Eligibility
-                  </button>
-                  <button class="btn-secondary" type="button" (click)="verifyEligibility()"
-                          [title]="scholarshipEligibility()?.verifiedAt ? 'Re-verify eligibility' : 'Verify eligibility'">
-                    <mat-icon>{{ scholarshipEligibility()?.verifiedAt ? 'verified' : 'pending_actions' }}</mat-icon>
-                    {{ scholarshipEligibility()?.verifiedAt ? 'Re-verify' : 'Verify' }}
-                  </button>
-                </div>
-              </div>
-
-              @if (scholarshipEligibility()?.verifiedAt) {
-                <div class="elig-verified-banner">
-                  <mat-icon>verified</mat-icon>
-                  Verified by <strong>{{ scholarshipEligibility()!.verifiedBy }}</strong>
-                  on {{ scholarshipEligibility()!.verifiedAt | appDate }}
-                  @if (scholarshipEligibility()?.verificationRemarks) {
-                    &mdash; {{ scholarshipEligibility()!.verificationRemarks }}
-                  }
-                </div>
-              }
-
-              <p class="form-section-title profile-subsection">Flags</p>
-              <div class="detail-grid detail-grid--4">
-                <div class="detail-item">
-                  <span class="detail-label">First Graduate</span>
-                  <span class="detail-value">
-                    <span [class]="scholarshipEligibility()?.isFirstGraduate ? 'cms-badge cms-badge--soft-success' : 'cms-badge cms-badge--soft-default'">
-                      {{ scholarshipEligibility()?.isFirstGraduate ? 'Yes' : 'No' }}
-                    </span>
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Merit Based</span>
-                  <span class="detail-value">
-                    <span [class]="scholarshipEligibility()?.isMeritBased ? 'cms-badge cms-badge--soft-success' : 'cms-badge cms-badge--soft-default'">
-                      {{ scholarshipEligibility()?.isMeritBased ? 'Yes' : 'No' }}
-                    </span>
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Sports Quota</span>
-                  <span class="detail-value">
-                    <span [class]="scholarshipEligibility()?.isSportsQuota ? 'cms-badge cms-badge--soft-success' : 'cms-badge cms-badge--soft-default'">
-                      {{ scholarshipEligibility()?.isSportsQuota ? 'Yes' : 'No' }}
-                    </span>
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">EWS</span>
-                  <span class="detail-value">
-                    <span [class]="scholarshipEligibility()?.isEconomicallyWeaker ? 'cms-badge cms-badge--soft-success' : 'cms-badge cms-badge--soft-default'">
-                      {{ scholarshipEligibility()?.isEconomicallyWeaker ? 'Yes' : 'No' }}
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              <p class="form-section-title profile-subsection">Income &amp; Community</p>
-              <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Community Category</span><span class="detail-value">{{ scholarshipEligibility()?.communityCategory || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Caste</span><span class="detail-value">{{ scholarshipEligibility()?.caste || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Annual Family Income</span><span class="detail-value">{{ scholarshipEligibility()?.annualFamilyIncome | inr }}</span></div>
-              </div>
-
-              <p class="form-section-title profile-subsection">Certificates</p>
-              <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Income Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.incomeCertificateNumber || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Income Cert Authority</span><span class="detail-value">{{ scholarshipEligibility()?.incomeCertIssuingAuthority || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Income Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.incomeCertIssueDate | appDate }}</span></div>
-                <div class="detail-item"><span class="detail-label">Community Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.communityCertificateNumber || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Community Cert Authority</span><span class="detail-value">{{ scholarshipEligibility()?.commCertIssuingAuthority || '—' }}</span></div>
-                <div class="detail-item"><span class="detail-label">Community Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.commCertIssueDate | appDate }}</span></div>
-                @if (scholarshipEligibility()?.isFirstGraduate) {
-                  <div class="detail-item"><span class="detail-label">First Grad Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.firstGraduateCertificateNumber || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">First Grad Authority</span><span class="detail-value">{{ scholarshipEligibility()?.firstGradCertIssuingAuthority || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">First Grad Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.firstGradCertIssueDate | appDate }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Father's Education</span><span class="detail-value">{{ scholarshipEligibility()?.fatherEducation || '—' }}</span></div>
-                  <div class="detail-item"><span class="detail-label">Mother's Education</span><span class="detail-value">{{ scholarshipEligibility()?.motherEducation || '—' }}</span></div>
-                }
-              </div>
-            </div>
-
-            <!-- ── Eligible Scholarships ── -->
-            <div class="content-card profile-subsection">
-              <div class="card-section-hdr"><div class="card-section-hdr__title"><mat-icon>recommend</mat-icon> Eligible Scholarships</div></div>
-              @if (eligibleScholarships().length === 0) {
-                <p class="no-data">No eligible scholarships detected. Update the eligibility profile above to see matches.</p>
-              } @else {
-                <table class="enrollments-table">
-                  <thead><tr><th>Code</th><th>Name</th><th>Value</th><th>Renewal</th><th></th></tr></thead>
-                  <tbody>
-                    @for (type of eligibleScholarships(); track type.id) {
-                      <tr>
-                        <td><span class="code-value">{{ type.code }}</span></td>
-                        <td>{{ type.name }}</td>
-                        <td>{{ type.discountType === 'PERCENTAGE' ? ((type.discountValue || 0) + '%') : (type.discountValue | inr:false:false) }}</td>
-                        <td>{{ type.renewalRequired ? 'Yes' : 'No' }}</td>
-                        <td>
-                          <button class="btn-secondary" type="button" [disabled]="hasScholarshipForCurrentYear()" (click)="applyForScholarship(type)">
-                            Apply
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              }
-            </div>
-
-            <!-- ── Applications ── -->
-            <div class="content-card profile-subsection">
-              <div class="card-section-hdr"><div class="card-section-hdr__title"><mat-icon>assignment</mat-icon> Applications</div></div>
-              @if (scholarshipApplications().length === 0) {
-                <p class="no-data">No scholarship applications found.</p>
-              } @else {
-                <table class="enrollments-table">
-                  <thead><tr><th>Academic Year</th><th>Scholarship</th><th>Status</th><th>Approved (₹)</th><th>Applied</th><th></th></tr></thead>
-                  <tbody>
-                    @for (app of scholarshipApplications(); track app.id) {
-                      <tr>
-                        <td>{{ app.academicYearName }}</td>
-                        <td>{{ app.scholarshipName }}</td>
-                        <td><cms-status-badge [status]="app.status" /></td>
-                        <td>{{ app.approvedAmount | inr:false:false }}</td>
-                        <td>{{ app.applicationDate | appDate }}</td>
-                        <td>
-                          @if (app.status === 'APPROVED' && app.renewalRequired) {
-                            <button class="btn-secondary" type="button" (click)="renewScholarship(app)">Renew</button>
-                          }
-                          @if (app.status === 'REJECTED') {
-                            <span class="elig-rejection-reason" [title]="app.rejectionReason ?? ''">
-                              <mat-icon>info</mat-icon> {{ app.rejectionReason || 'No reason' }}
-                            </span>
-                          }
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              }
-            </div>
-
-            <!-- ── Disbursements ── -->
-            <div class="content-card profile-subsection">
-              <div class="card-section-hdr"><div class="card-section-hdr__title"><mat-icon>payments</mat-icon> Disbursements</div></div>
-              @if (scholarshipDisbursements().length === 0) {
-                <p class="no-data">No disbursements recorded.</p>
-              } @else {
-                <table class="payments-table">
-                  <thead><tr><th>Date</th><th>Academic Year</th><th>Amount (₹)</th><th>Mode</th><th>Reference</th></tr></thead>
-                  <tbody>
-                    @for (d of scholarshipDisbursements(); track d.id) {
-                      <tr><td>{{ d.disbursementDate | appDate }}</td><td>{{ d.academicYearName || '—' }}</td><td>{{ d.amount | inr:true:false }}</td><td>{{ d.disbursementMode }}</td><td>{{ d.transactionReference || '—' }}</td></tr>
-                    }
-                  </tbody>
-                </table>
-              }
-            </div>
-          }
-        </div>
-      </mat-tab>
-      <!-- Tab 5: Term Enrollments -->
-      <mat-tab label="Term Enrollments">
+      <!-- Tab 3: Academics — enrollments + course registrations merged -->
+      <mat-tab label="Academics">
         <div class="tab-content">
           @if (loadingEnrollments()) {
-            <cms-skeleton></cms-skeleton>
-          } @else if (enrollments().length === 0) {
-            <p class="no-data">No term enrollments found.</p>
+            <cms-skeleton [lines]="4" height="52px"></cms-skeleton>
+          } @else if (sortedEnrollments().length === 0) {
+            <p class="no-data">No term enrolments found.</p>
           } @else {
-            <table class="enrollments-table">
-              <thead>
-                <tr>
-                  <th>Term</th>
-                  <th>Semester</th>
-                  <th>Year of Study</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (e of sortedEnrollments(); track e.id) {
-                  <tr>
-                    <td>{{ e.termInstanceLabel }}</td>
-                    <td>{{ e.semesterNumber }}</td>
-                    <td>Year {{ e.yearOfStudy }}</td>
-                    <td><cms-status-badge [status]="e.status" /></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        </div>
-      </mat-tab>
+            <div class="content-card acad-card">
+              @for (e of sortedEnrollments(); track e.id; let first = $first) {
+                <div class="acad-enrollment" [class.acad-enrollment--open]="isExpanded(e.id)">
 
-      <!-- Tab 6: Course Registrations -->
-      <mat-tab label="Course Registrations">
-        <div class="tab-content">
-          @if (loadingRegistrations()) {
-            <cms-skeleton></cms-skeleton>
-          } @else if (enrollments().length === 0) {
-            <p class="no-data">No term enrollments found.</p>
-          } @else {
-            @for (enrollment of sortedEnrollments(); track enrollment.id) {
-              @let regs = getRegistrationsForEnrollment(enrollment.id);
-              <div class="enrollment-section">
-                <div class="enrollment-section__header">
-                  <strong>{{ enrollment.termInstanceLabel }}</strong>
-                  <span class="cms-badge cms-badge--gray">Sem {{ enrollment.semesterNumber }}</span>
-                  <cms-status-badge [status]="enrollment.status" />
-                </div>
-                @if (regs.length === 0) {
-                  <p class="no-data">No course registrations for this term.</p>
-                } @else {
-                  <table class="enrollments-table enrollments-table--compact">
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>Code</th>
-                        <th>Semester</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (reg of regs; track reg.id) {
-                        <tr>
-                          <td>{{ reg.subjectName }}</td>
-                          <td><span class="code-value">{{ reg.subjectCode }}</span></td>
-                          <td>{{ reg.semesterNumber }}</td>
-                          <td><cms-status-badge [status]="reg.status" /></td>
-                        </tr>
+                  <button class="acad-enrollment__row" type="button" (click)="toggleEnrollment(e.id)">
+                    <div class="acad-enrollment__left">
+                      <span class="acad-enrollment__term">{{ e.termInstanceLabel }}</span>
+                      <div class="acad-enrollment__chips">
+                        <span class="cms-badge cms-badge--gray">Sem {{ e.semesterNumber }}</span>
+                        <span class="acad-year-chip">Year {{ e.yearOfStudy }}</span>
+                        <cms-status-badge [status]="e.status" />
+                        @if (first) { <span class="acad-current-chip">Current</span> }
+                      </div>
+                    </div>
+                    <div class="acad-enrollment__right">
+                      @if (!loadingRegistrations()) {
+                        <span class="acad-enrollment__count">
+                          {{ getRegistrationsForEnrollment(e.id).length }} course(s)
+                        </span>
                       }
-                    </tbody>
-                  </table>
-                }
-              </div>
-            }
+                      <mat-icon class="acad-enrollment__chevron">
+                        {{ isExpanded(e.id) ? 'expand_less' : 'expand_more' }}
+                      </mat-icon>
+                    </div>
+                  </button>
+
+                  @if (isExpanded(e.id)) {
+                    <div class="acad-enrollment__body">
+                      @if (loadingRegistrations()) {
+                        <cms-skeleton [lines]="3" height="36px"></cms-skeleton>
+                      } @else {
+                        @let regs = getRegistrationsForEnrollment(e.id);
+                        @if (regs.length === 0) {
+                          <p class="no-data acad-no-data">No course registrations for this term.</p>
+                        } @else {
+                          <table class="acad-courses-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Code</th>
+                                <th>Sem</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (reg of regs; track reg.id) {
+                                <tr>
+                                  <td>{{ reg.subjectName }}</td>
+                                  <td><span class="code-value">{{ reg.subjectCode }}</span></td>
+                                  <td>{{ reg.semesterNumber }}</td>
+                                  <td><cms-status-badge [status]="reg.status" /></td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        }
+                      }
+                    </div>
+                  }
+
+                </div>
+              }
+            </div>
           }
         </div>
       </mat-tab>
 
-      <!-- Tab: Fee Ledger -->
-      <mat-tab label="Fee Ledger">
+      <!-- Tab 4: Finance — fee ledger merged -->
+      <mat-tab label="Finance">
         <div class="tab-content">
           @if (loadingLedger()) {
-            <cms-skeleton [lines]="4" height="48px"></cms-skeleton>
+            <cms-skeleton [lines]="4" height="64px"></cms-skeleton>
           } @else if (!feeLedger() || feeLedger()!.entries.length === 0) {
-            <p class="empty-tab-message">No fee demands found for this student.</p>
+            <p class="no-data">No fee demands found for this student.</p>
           } @else {
+
+            <!-- Overall summary bar -->
+            <div class="finance-summary">
+              <div class="finance-kpi">
+                <span class="finance-kpi__label">Total Demand</span>
+                <span class="finance-kpi__value">{{ totalFeeDemand() | inr:true:false }}</span>
+              </div>
+              <div class="finance-kpi finance-kpi--success">
+                <span class="finance-kpi__label">Total Paid</span>
+                <span class="finance-kpi__value">{{ totalFeePaid() | inr:true:false }}</span>
+              </div>
+              <div class="finance-kpi finance-kpi--danger">
+                <span class="finance-kpi__label">Outstanding</span>
+                <span class="finance-kpi__value">{{ totalOutstanding() | inr:true:false }}</span>
+              </div>
+              <a class="finance-detail-link" [routerLink]="['/student-fees', student()!.id]">
+                <mat-icon>open_in_new</mat-icon> Full Fee Screen
+              </a>
+            </div>
+
+            <!-- Per-term entries -->
             @for (entry of feeLedger()!.entries; track entry.demandId) {
-              <div class="ledger-entry">
-                <div class="ledger-entry__header">
-                  <h4 class="ledger-entry__term">{{ entry.termLabel }}</h4>
-                  <span class="cms-badge"
-                    [class.cms-badge--soft-success]="entry.status === 'PAID'"
-                    [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
-                    [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
-                    [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
-                    {{ entry.status }}
-                  </span>
+              <div class="fee-entry content-card">
+
+                <div class="fee-entry__hdr">
+                  <div class="fee-entry__hdr-left">
+                    <h4 class="fee-entry__term">{{ entry.termLabel }}</h4>
+                    <span class="cms-badge"
+                      [class.cms-badge--soft-success]="entry.status === 'PAID'"
+                      [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
+                      [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
+                      [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                      {{ entry.status }}
+                    </span>
+                  </div>
+                  <span class="fee-entry__due">Due {{ entry.dueDate | appDate }}</span>
                 </div>
-                <div class="ledger-entry__summary">
-                  <div class="ledger-stat">
-                    <span class="ledger-stat__label">Total</span>
-                    <span class="ledger-stat__value">{{ entry.totalAmount | inr:true }}</span>
+
+                <!-- Progress bar -->
+                <div class="fee-entry__progress">
+                  <div class="fee-progress-track">
+                    <div class="fee-progress-fill"
+                         [class.fee-progress-fill--paid]="entry.status === 'PAID'"
+                         [class.fee-progress-fill--partial]="entry.status === 'PARTIAL'"
+                         [class.fee-progress-fill--unpaid]="entry.status === 'UNPAID'"
+                         [class.fee-progress-fill--waived]="entry.status === 'WAIVED'"
+                         [style.width.%]="paidPercent(entry.paidAmount, entry.totalAmount)">
+                    </div>
                   </div>
-                  <div class="ledger-stat">
-                    <span class="ledger-stat__label">Paid</span>
-                    <span class="ledger-stat__value text-success">{{ entry.paidAmount | inr:true }}</span>
-                  </div>
-                  <div class="ledger-stat">
-                    <span class="ledger-stat__label">Outstanding</span>
-                    <span class="ledger-stat__value text-danger">{{ entry.outstandingAmount | inr:true }}</span>
-                  </div>
-                  <div class="ledger-stat">
-                    <span class="ledger-stat__label">Due Date</span>
-                    <span class="ledger-stat__value">{{ entry.dueDate | appDate }}</span>
-                  </div>
+                  <span class="fee-progress-pct">{{ paidPercent(entry.paidAmount, entry.totalAmount) }}% paid</span>
                 </div>
+
+                <!-- Stats row -->
+                <div class="fee-entry__stats">
+                  <div class="fee-stat">
+                    <span class="fee-stat__label">Total</span>
+                    <span class="fee-stat__value">{{ entry.totalAmount | inr:true:false }}</span>
+                  </div>
+                  <div class="fee-stat">
+                    <span class="fee-stat__label">Paid</span>
+                    <span class="fee-stat__value fee-stat__value--success">{{ entry.paidAmount | inr:true:false }}</span>
+                  </div>
+                  <div class="fee-stat">
+                    <span class="fee-stat__label">Outstanding</span>
+                    <span class="fee-stat__value"
+                          [class.fee-stat__value--danger]="entry.outstandingAmount > 0">
+                      {{ entry.outstandingAmount | inr:true:false }}
+                    </span>
+                  </div>
+                  @if (entry.payments.length > 0) {
+                    <div class="fee-stat">
+                      <span class="fee-stat__label">Payments</span>
+                      <span class="fee-stat__value">{{ entry.payments.length }}</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Payment rows -->
                 @if (entry.payments.length > 0) {
-                  <table class="payments-table">
+                  <table class="fee-payments-table">
                     <thead>
                       <tr>
                         <th>Receipt</th>
@@ -473,22 +393,214 @@
                       </tr>
                     </thead>
                     <tbody>
-                      @for (payment of entry.payments; track payment.id) {
+                      @for (p of entry.payments; track p.id) {
                         <tr>
-                          <td><span class="code-value">{{ payment.receiptNumber }}</span></td>
-                          <td>{{ payment.paymentDate | appDate }}</td>
-                          <td>{{ payment.amountPaid | inr:true:false }}</td>
-                          <td>{{ payment.lateFeeApplied > 0 ? (payment.lateFeeApplied | number:'1.2-2') : '—' }}</td>
-                          <td>{{ payment.paymentMode }}</td>
+                          <td><span class="code-value">{{ p.receiptNumber }}</span></td>
+                          <td>{{ p.paymentDate | appDate }}</td>
+                          <td>{{ p.amountPaid | inr:true:false }}</td>
+                          <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
+                          <td>{{ p.paymentMode | paymentModeLabel }}</td>
                         </tr>
                       }
                     </tbody>
                   </table>
                 } @else {
-                  <p class="no-payments-msg">No payments recorded yet.</p>
+                  <p class="fee-no-payments">No payments recorded yet.</p>
                 }
+
               </div>
             }
+          }
+        </div>
+      </mat-tab>
+
+      <!-- Tab: Scholarships -->
+      <mat-tab label="Scholarships">
+        <div class="tab-content">
+          @if (loadingScholarships()) {
+            <cms-skeleton [lines]="4" height="48px"></cms-skeleton>
+          } @else {
+            <div class="scholarship-layout">
+
+              <!-- ── Left: Eligibility Profile ── -->
+              <div class="content-card scholar-card">
+                <div class="scholar-card__hdr">
+                  <p class="scholar-card__title">
+                    <mat-icon>verified_user</mat-icon> Eligibility Profile
+                  </p>
+                  <div class="scholar-card__hdr-actions">
+                    <button class="btn-ghost-sm" type="button" (click)="openEligibilityEdit()">
+                      <mat-icon>edit_note</mat-icon> Edit
+                    </button>
+                    <button class="btn-ghost-sm" type="button" (click)="verifyEligibility()"
+                            [title]="scholarshipEligibility()?.verifiedAt ? 'Re-verify eligibility' : 'Verify eligibility'">
+                      <mat-icon>{{ scholarshipEligibility()?.verifiedAt ? 'verified' : 'pending_actions' }}</mat-icon>
+                      {{ scholarshipEligibility()?.verifiedAt ? 'Re-verify' : 'Verify' }}
+                    </button>
+                  </div>
+                </div>
+
+                @if (scholarshipEligibility()?.verifiedAt) {
+                  <div class="elig-verified-banner">
+                    <mat-icon>verified</mat-icon>
+                    Verified by <strong>{{ scholarshipEligibility()!.verifiedBy }}</strong>
+                    on {{ scholarshipEligibility()!.verifiedAt | appDate }}
+                    @if (scholarshipEligibility()?.verificationRemarks) {
+                      &mdash; {{ scholarshipEligibility()!.verificationRemarks }}
+                    }
+                  </div>
+                }
+
+                <p class="scholar-section-label">Eligibility Flags</p>
+                <div class="elig-flags">
+                  <div class="elig-flag" [class.elig-flag--yes]="scholarshipEligibility()?.isFirstGraduate">
+                    <mat-icon>{{ scholarshipEligibility()?.isFirstGraduate ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <span>First Graduate</span>
+                  </div>
+                  <div class="elig-flag" [class.elig-flag--yes]="scholarshipEligibility()?.isMeritBased">
+                    <mat-icon>{{ scholarshipEligibility()?.isMeritBased ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <span>Merit Based</span>
+                  </div>
+                  <div class="elig-flag" [class.elig-flag--yes]="scholarshipEligibility()?.isSportsQuota">
+                    <mat-icon>{{ scholarshipEligibility()?.isSportsQuota ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <span>Sports Quota</span>
+                  </div>
+                  <div class="elig-flag" [class.elig-flag--yes]="scholarshipEligibility()?.isEconomicallyWeaker">
+                    <mat-icon>{{ scholarshipEligibility()?.isEconomicallyWeaker ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <span>EWS</span>
+                  </div>
+                </div>
+
+                <p class="scholar-section-label">Income &amp; Community</p>
+                <div class="detail-grid">
+                  <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">{{ scholarshipEligibility()?.communityCategory || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Caste</span><span class="detail-value">{{ scholarshipEligibility()?.caste || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Annual Family Income</span><span class="detail-value">{{ scholarshipEligibility()?.annualFamilyIncome | inr }}</span></div>
+                </div>
+
+                <p class="scholar-section-label">Certificates</p>
+                <div class="detail-grid">
+                  <div class="detail-item"><span class="detail-label">Income Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.incomeCertificateNumber || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Income Cert Authority</span><span class="detail-value">{{ scholarshipEligibility()?.incomeCertIssuingAuthority || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Income Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.incomeCertIssueDate | appDate }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Community Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.communityCertificateNumber || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Community Cert Authority</span><span class="detail-value">{{ scholarshipEligibility()?.commCertIssuingAuthority || '—' }}</span></div>
+                  <div class="detail-item"><span class="detail-label">Community Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.commCertIssueDate | appDate }}</span></div>
+                  @if (scholarshipEligibility()?.isFirstGraduate) {
+                    <div class="detail-item"><span class="detail-label">First Grad Cert No.</span><span class="detail-value code-value">{{ scholarshipEligibility()?.firstGraduateCertificateNumber || '—' }}</span></div>
+                    <div class="detail-item"><span class="detail-label">First Grad Authority</span><span class="detail-value">{{ scholarshipEligibility()?.firstGradCertIssuingAuthority || '—' }}</span></div>
+                    <div class="detail-item"><span class="detail-label">First Grad Cert Date</span><span class="detail-value">{{ scholarshipEligibility()?.firstGradCertIssueDate | appDate }}</span></div>
+                    <div class="detail-item"><span class="detail-label">Father's Education</span><span class="detail-value">{{ scholarshipEligibility()?.fatherEducation || '—' }}</span></div>
+                    <div class="detail-item"><span class="detail-label">Mother's Education</span><span class="detail-value">{{ scholarshipEligibility()?.motherEducation || '—' }}</span></div>
+                  }
+                </div>
+              </div>
+
+              <!-- ── Right: Eligible → Applications → Disbursements ── -->
+              <div class="scholarship-side">
+
+                <!-- Eligible to Apply -->
+                <div class="content-card scholar-card">
+                  <div class="scholar-card__hdr">
+                    <p class="scholar-card__title"><mat-icon>recommend</mat-icon> Eligible to Apply</p>
+                  </div>
+                  @if (eligibleScholarships().length === 0) {
+                    <p class="no-data scholar-no-data">No eligible scholarships. Update the eligibility profile to see matches.</p>
+                  } @else {
+                    <div class="scholar-apply-list">
+                      @for (type of eligibleScholarships(); track type.id) {
+                        <div class="scholar-apply-item">
+                          <div class="scholar-apply-item__info">
+                            <span class="scholar-apply-item__name">{{ type.name }}</span>
+                            <span class="scholar-apply-item__meta">
+                              <span class="code-value">{{ type.code }}</span>
+                              <span class="dot-sep">·</span>
+                              {{ type.discountType === 'PERCENTAGE' ? ((type.discountValue || 0) + '%') : (type.discountValue | inr:false:false) }}
+                              @if (type.renewalRequired) {
+                                <span class="dot-sep">·</span> Renewal required
+                              }
+                            </span>
+                          </div>
+                          <button class="btn-secondary" type="button"
+                                  [disabled]="hasScholarshipForCurrentYear()"
+                                  (click)="applyForScholarship(type)">
+                            Apply
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Applications -->
+                <div class="content-card scholar-card">
+                  <div class="scholar-card__hdr">
+                    <p class="scholar-card__title"><mat-icon>assignment</mat-icon> Applications</p>
+                  </div>
+                  @if (scholarshipApplications().length === 0) {
+                    <p class="no-data scholar-no-data">No scholarship applications found.</p>
+                  } @else {
+                    <div class="scholar-app-list">
+                      @for (app of scholarshipApplications(); track app.id) {
+                        <div class="scholar-app">
+                          <div class="scholar-app__info">
+                            <div class="scholar-app__top">
+                              <span class="scholar-app__name">{{ app.scholarshipName }}</span>
+                              <cms-status-badge [status]="app.status" />
+                            </div>
+                            <div class="scholar-app__meta">
+                              <span>{{ app.academicYearName }}</span>
+                              @if (app.approvedAmount) {
+                                <span class="dot-sep">·</span>
+                                <span class="scholar-app__amount">{{ app.approvedAmount | inr:true:false }}</span>
+                              }
+                              <span class="dot-sep">·</span>
+                              <span>{{ app.applicationDate | appDate }}</span>
+                            </div>
+                            @if (app.status === 'REJECTED' && app.rejectionReason) {
+                              <span class="elig-rejection-reason" [title]="app.rejectionReason">
+                                <mat-icon>info</mat-icon> {{ app.rejectionReason }}
+                              </span>
+                            }
+                          </div>
+                          @if (app.status === 'APPROVED' && app.renewalRequired) {
+                            <button class="btn-secondary" type="button" (click)="renewScholarship(app)">Renew</button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Disbursements -->
+                <div class="content-card scholar-card">
+                  <div class="scholar-card__hdr">
+                    <p class="scholar-card__title"><mat-icon>payments</mat-icon> Disbursements</p>
+                  </div>
+                  @if (scholarshipDisbursements().length === 0) {
+                    <p class="no-data scholar-no-data">No disbursements recorded.</p>
+                  } @else {
+                    <table class="payments-table">
+                      <thead>
+                        <tr><th>Date</th><th>Academic Year</th><th>Amount (₹)</th><th>Mode</th><th>Reference</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (d of scholarshipDisbursements(); track d.id) {
+                          <tr>
+                            <td>{{ d.disbursementDate | appDate }}</td>
+                            <td>{{ d.academicYearName || '—' }}</td>
+                            <td>{{ d.amount | inr:true:false }}</td>
+                            <td>{{ d.disbursementMode }}</td>
+                            <td>{{ d.transactionReference || '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </div>
+
+              </div>
+            </div>
           }
         </div>
       </mat-tab>

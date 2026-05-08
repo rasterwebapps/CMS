@@ -30,7 +30,7 @@
             </div>
             <div class="receipt-row">
               <span class="receipt-label">Payment Mode</span>
-              <span class="receipt-value">{{ receipt.paymentMode }}</span>
+              <span class="receipt-value">{{ receipt.paymentMode | paymentModeLabel }}</span>
             </div>
             @if (receipt.transactionReference) {
               <div class="receipt-row">
@@ -268,7 +268,7 @@
                 <select id="epc-mode" class="field-select" formControlName="paymentMode" [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched">
                   <option value="" disabled>Select mode</option>
                   @for (mode of paymentModes; track mode) {
-                    <option [value]="mode">{{ mode }}</option>
+                    <option [value]="mode">{{ getPaymentModeLabel(mode) }}</option>
                   }
                 </select>
                 @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {

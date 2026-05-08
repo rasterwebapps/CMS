@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { LowerCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -23,7 +24,7 @@ import { DOCUMENT_SUBMISSION_LIST_TOUR } from '../../../shared/tour/tours/enquir
   selector: 'app-document-submission-list',
   standalone: true,
   imports: [
-    InrPipe, AppDatePipe, FormsModule,
+    InrPipe, AppDatePipe, FormsModule, LowerCasePipe,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatTooltipModule,
     CmsEmptyStateComponent,
@@ -55,12 +56,14 @@ export class DocumentSubmissionListComponent implements OnInit {
   protected readonly filteredCount     = computed(() => this.dataSource.filteredData.length);
 
   // ── Column visibility ─────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'programName', 'courseName', 'status', 'finalizedNetFee', 'enquiryDate', 'actions'];
+  protected readonly ALL_COLS = ['name', 'programName', 'courseName', 'studentType', 'status', 'totalPaidAmount', 'finalizedNetFee', 'enquiryDate', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     name: 'Student', programName: 'Program', courseName: 'Course',
-    status: 'Payment Status', finalizedNetFee: 'Net Fee', enquiryDate: 'Date', actions: 'Actions',
+    studentType: 'Type', status: 'Payment Status',
+    totalPaidAmount: 'Paid (₹)', finalizedNetFee: 'Net Fee (₹)', enquiryDate: 'Date', actions: 'Actions',
   };
-  private readonly COLS_KEY     = 'document-submission-list-cols';
+  private readonly COLS_KEY     = 'document-submission-list-cols-v2';
+  private readonly DEFAULT_COLS = new Set(['name', 'programName', 'courseName', 'studentType', 'status', 'totalPaidAmount', 'finalizedNetFee', 'enquiryDate', 'actions']);
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
 
@@ -73,7 +76,8 @@ export class DocumentSubmissionListComponent implements OnInit {
       return row.name.toLowerCase().includes(q) ||
         (row.programName ?? '').toLowerCase().includes(q) ||
         (row.courseName  ?? '').toLowerCase().includes(q) ||
-        (row.phone       ?? '').includes(q);
+        (row.phone       ?? '').includes(q) ||
+        (row.email       ?? '').toLowerCase().includes(q);
     };
     this.load();
   }
@@ -96,7 +100,7 @@ export class DocumentSubmissionListComponent implements OnInit {
       const s = localStorage.getItem(this.COLS_KEY);
       if (s) return new Set<string>(JSON.parse(s) as string[]);
     } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
+    return new Set<string>(this.DEFAULT_COLS);
   }
 
   protected toggleColumn(col: string): void {

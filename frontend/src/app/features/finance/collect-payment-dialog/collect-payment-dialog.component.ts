@@ -9,12 +9,15 @@ import { FinanceService } from '../finance.service';
 import { CollectPaymentRequest, CollectPaymentResponse } from '../finance.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 
 @Component({
   selector: 'app-collect-payment-dialog',
   standalone: true,
   imports: [
     InrPipe,
+    PaymentModeLabelPipe,
     ReactiveFormsModule, MatDialogModule,
     MatButtonModule, MatProgressSpinnerModule, MatIconModule,
   ],
@@ -31,7 +34,8 @@ export class CollectPaymentDialogComponent {
   protected saving = false;
   protected result: CollectPaymentResponse | null = null;
 
-  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD'];
+  protected readonly paymentModes = PAYMENT_MODES;
+  protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
   protected readonly form: FormGroup = this.fb.group({
     amount:               [null, [Validators.required, Validators.min(1)]],
@@ -78,6 +82,6 @@ export class CollectPaymentDialogComponent {
 
   protected isTransactionRefRequired(): boolean {
     const mode = this.form.get('paymentMode')?.value;
-    return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(mode);
   }
 }

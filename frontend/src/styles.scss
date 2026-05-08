@@ -766,8 +766,16 @@ app-root {
 // ──────────────────────────────────────────────────
 // Dialog enhancements
 // ──────────────────────────────────────────────────
+// mat.theme() generates --mat-sys-surface-container-high from the
+// violet palette — a distinctly lavender tint. Override the MDC dialog
+// container colour token so all dialogs use the plain card background.
 .mat-mdc-dialog-container {
   border-radius: var(--cms-radius-lg) !important;
+  --mdc-dialog-container-color: var(--cms-bg-card) !important;
+}
+
+.mat-mdc-dialog-surface.mdc-dialog__surface {
+  background-color: var(--cms-bg-card) !important;
 }
 
 // ──────────────────────────────────────────────────

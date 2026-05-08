@@ -6,21 +6,32 @@
     </button>
   </app-page-header>
 
-  <div id="tour-rollno-filters" class="command-bar">
-    <div class="filter-pill-group">
-      <select class="filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()" aria-label="Filter by program">
+  <div id="tour-rollno-filters" class="roll-toolbar">
+    <div class="roll-toolbar__filters" aria-label="Roll number assignment filters">
+      <select class="roll-filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()" aria-label="Filter by program">
         <option [ngValue]="null">All Programs</option>
         @for (p of programs(); track p.id) {
           <option [ngValue]="p.id">{{ p.name }}</option>
         }
       </select>
 
-      <select class="filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()" aria-label="Filter by course">
+      <select class="roll-filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()" aria-label="Filter by course">
         <option [ngValue]="null">All Courses</option>
         @for (c of courses(); track c.id) {
           <option [ngValue]="c.id">{{ c.name }}</option>
         }
       </select>
+    </div>
+
+    <div class="roll-toolbar__meta">
+      @if (!loading()) {
+        <span class="roll-count">{{ assignments().length }} pending</span>
+      }
+      @if (hasActiveFilters) {
+        <button class="btn-toolbar btn-toolbar--clear" type="button" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      }
     </div>
   </div>
 
@@ -36,15 +47,26 @@
         <table mat-table [dataSource]="assignments()" matSort class="modern-table">
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
-            <td mat-cell *matCellDef="let row">{{ row.student.fullName }}</td>
+            <td mat-cell *matCellDef="let row">
+              <div>
+                <span class="cell-name">{{ row.student.fullName }}</span>
+                @if (row.student.phone) { <span class="cell-sub">{{ row.student.phone }}</span> }
+              </div>
+            </td>
           </ng-container>
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
             <td mat-cell *matCellDef="let row">{{ row.student.programName }}</td>
           </ng-container>
+          <ng-container matColumnDef="semester">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Sem</th>
+            <td mat-cell *matCellDef="let row" class="col-center">
+              <span class="cms-badge cms-badge--gray">{{ row.student.semester }}</span>
+            </td>
+          </ng-container>
           <ng-container matColumnDef="admissionDate">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Admission Date</th>
-            <td mat-cell *matCellDef="let row">{{ row.student.admissionDate }}</td>
+            <td mat-cell *matCellDef="let row">{{ appDate.transform(row.student.admissionDate) }}</td>
           </ng-container>
           <ng-container matColumnDef="rollNumber">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>

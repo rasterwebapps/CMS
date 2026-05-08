@@ -19,6 +19,7 @@ import { AcademicYear, TermInstance } from '../../academic-year/academic-year.mo
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService, CsvColumn } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 @Component({
@@ -26,6 +27,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
   standalone: true,
   imports: [
     AppDatePipe,
+    PaymentModeLabelPipe,
     InrPipe,
     DecimalPipe,
     ReactiveFormsModule,

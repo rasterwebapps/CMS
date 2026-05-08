@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { NgClass, TitleCasePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -19,6 +19,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-student-list',
@@ -26,6 +27,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   imports: [
     PageHeaderComponent,
     CmsTourButtonComponent,
+    AppDatePipe,
+    TitleCasePipe,
     NgClass,
     RouterLink,
     FormsModule,
@@ -55,18 +58,41 @@ export class StudentListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
+  // ── Filters ──────────────────────────────────────────────────────────────
+  protected filterProgram  = signal<string>('ALL');
+  protected filterStatus   = signal<string>('ALL');
+  protected filterSemester = signal<string>('ALL');
+  protected readonly programs = computed(() =>
+    [...new Set(this.dataSource.data.map(s => s.programName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly semesters = computed(() =>
+    [...new Set(this.dataSource.data.map(s => String(s.semester)).filter(Boolean))].sort((a, b) => +a - +b)
+  );
+  protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
+  protected readonly hasActiveFilters = computed(() =>
+    this.searchValue() !== '' ||
+    this.filterProgram()  !== 'ALL' ||
+    this.filterStatus()   !== 'ALL' ||
+    this.filterSemester() !== 'ALL'
+  );
+
   // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'semester', 'labBatch', 'status', 'actions'];
+  protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'semester', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     rollNumber: 'Roll No.',
     fullName: 'Name',
     programName: 'Program',
     semester: 'Semester',
+    admissionDate: 'Admission Date',
+    phone: 'Phone',
+    email: 'Email',
+    universityRegistrationNumber: 'Univ. Reg. No.',
     labBatch: 'Lab Batch',
     status: 'Status',
     actions: 'Actions',
   };
-  private readonly COLS_KEY = 'student-list-cols';
+  private readonly COLS_KEY = 'student-list-cols-v2';
+  private readonly DEFAULT_COLS = new Set(['rollNumber', 'fullName', 'programName', 'semester', 'phone', 'status', 'actions']);
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Student>([]);
@@ -79,17 +105,48 @@ export class StudentListComponent implements OnInit {
   }
 
   protected applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.searchValue.set(filterValue);
-    this.dataSource.filter = filterValue.trim().toLowerCase();
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    this.searchValue.set((event.target as HTMLInputElement).value);
+    this._applyFilters();
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this._applyFilters();
+  }
+
+  protected onFilterChange(): void { this._applyFilters(); }
+
+  protected clearAllFilters(): void {
+    this.searchValue.set('');
+    this.filterProgram.set('ALL');
+    this.filterStatus.set('ALL');
+    this.filterSemester.set('ALL');
+    this._applyFilters();
+  }
+
+  private _applyFilters(): void {
+    const term     = this.searchValue().toLowerCase().trim();
+    const program  = this.filterProgram();
+    const status   = this.filterStatus();
+    const semester = this.filterSemester();
+
+    this.dataSource.filterPredicate = (s) => {
+      if (program  !== 'ALL' && s.programName !== program)          return false;
+      if (status   !== 'ALL' && s.status !== status)                return false;
+      if (semester !== 'ALL' && String(s.semester) !== semester)    return false;
+      if (!term) return true;
+      return (
+        s.fullName.toLowerCase().includes(term) ||
+        (s.rollNumber ?? '').toLowerCase().includes(term) ||
+        (s.phone      ?? '').includes(term) ||
+        (s.email      ?? '').toLowerCase().includes(term) ||
+        s.programName.toLowerCase().includes(term)
+      );
+    };
+    this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL'
+      ? (term || program || status || semester || '_')
+      : '';
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   protected viewStudent(student: Student): void {
@@ -137,7 +194,7 @@ export class StudentListComponent implements OnInit {
       const s = localStorage.getItem(this.COLS_KEY);
       if (s) return new Set<string>(JSON.parse(s) as string[]);
     } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
+    return new Set<string>(this.DEFAULT_COLS);
   }
 
   protected toggleColumn(col: string): void {

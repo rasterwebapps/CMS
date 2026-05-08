@@ -1,195 +1,282 @@
-<div class="form-container">
-  <div id="tour-adm-detail-header" class="header">
-    <button mat-icon-button (click)="back()"><mat-icon>arrow_back</mat-icon></button>
-    @if (admission()) {
-      <div class="page-title-row">
-        <h2 class="page-title">Admission — {{ admission()!.studentName }}</h2>
-        <cms-tour-button tourKey="admission-detail" [iconOnly]="true" iconVariant="info-circle" />
-      </div>
-    } @else {
-      <div class="page-title-row">
-        <h2 class="page-title">Admission Detail</h2>
-        <cms-tour-button tourKey="admission-detail" [iconOnly]="true" iconVariant="info-circle" />
-      </div>
-    }
-    <div class="header-actions">
-      <button mat-stroked-button (click)="edit()"><mat-icon>edit</mat-icon> Edit</button>
-    </div>
-  </div>
-
+<div class="detail-page">
   @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="36"></mat-spinner></div>
+    <div class="profile-skeleton">
+      <cms-skeleton [circle]="true" height="64px"></cms-skeleton>
+      <div class="profile-skeleton__body">
+        <cms-skeleton [lines]="2" height="14px"></cms-skeleton>
+        <div class="profile-skeleton__chips">
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+          <cms-skeleton [lines]="1" height="40px"></cms-skeleton>
+        </div>
+      </div>
+    </div>
   } @else if (admission()) {
-    <mat-tab-group id="tour-adm-detail-tabs" animationDuration="200ms">
-      <!-- Application Tab -->
-      <mat-tab label="Application">
+    <!-- ── Hero ────────────────────────────────────────── -->
+    <header id="tour-adm-detail-header" class="profile-hero">
+      <div class="profile-hero__top">
+        <div class="profile-hero__identity">
+          <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          <div class="profile-hero__body">
+            <div class="page-title-row">
+              <h1 class="profile-hero__name">{{ admission()!.studentName }}</h1>
+              <cms-status-badge [status]="admission()!.studentStatus || ''" />
+              <cms-tour-button tourKey="admission-detail" [iconOnly]="true" iconVariant="info-circle" />
+            </div>
+            <div class="profile-hero__meta">
+              <span class="profile-hero__subtitle">
+                {{ admission()!.rollNumber || '—' }}
+                <span class="dot-sep">·</span>
+                {{ admission()!.programName || '—' }}
+                <span class="dot-sep">·</span>
+                {{ admission()!.joiningAcademicYearName || '—' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-hero__actions">
+          <button class="btn-primary" type="button" (click)="edit()">
+            <mat-icon>edit</mat-icon> Edit
+          </button>
+        </div>
+      </div>
+
+      <div class="profile-hero__kpis">
+        <div class="hero-kpi hero-kpi--indigo">
+          <mat-icon>event</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">{{ admission()!.joiningAcademicYearName || '—' }}</span>
+            <span class="hero-kpi__label">Joining Year</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--emerald">
+          <mat-icon>menu_book</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">{{ admission()!.programName || admission()!.courseName || '—' }}</span>
+            <span class="hero-kpi__label">Program</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--amber">
+          <mat-icon>school</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">{{ qualifications().length }}</span>
+            <span class="hero-kpi__label">Qualifications</span>
+          </div>
+        </div>
+        <div class="hero-kpi hero-kpi--rose">
+          <mat-icon>folder_open</mat-icon>
+          <div class="hero-kpi__body">
+            <span class="hero-kpi__value">{{ verifiedDocsCount() }} verified / {{ documents().length }} total</span>
+            <span class="hero-kpi__label">Documents</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Tabs ────────────────────────────────────────── -->
+    <mat-tab-group
+      id="tour-adm-detail-tabs"
+      class="detail-tabs"
+      animationDuration="200ms"
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="switchTab($event)">
+
+      <!-- Tab 1: Overview -->
+      <mat-tab label="Overview">
         <div class="tab-content">
-          <div class="content-card">
-            <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Student</span>
-                  <span class="detail-value">{{ admission()!.studentName }}</span>
-                </div>
+          <div class="overview-grid">
+            <div class="content-card overview-card">
+              <p class="overview-card__title">Application Details</p>
+              <div class="detail-grid">
                 <div class="detail-item">
                   <span class="detail-label">Application Date</span>
-                  <span class="detail-value">{{ admission()!.applicationDate }}</span>
+                  <span class="detail-value">{{ admission()!.applicationDate | appDate }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Joining Year</span>
-                  <span class="detail-value">{{ admission()!.joiningAcademicYearName || '—' }}</span>
+                  <span class="detail-label">Declaration Place</span>
+                  <span class="detail-value">{{ admission()!.declarationPlace || '—' }}</span>
                 </div>
-                @if (admission()!.expectedCompletionYear) {
-                  <div class="detail-item">
-                  <span class="detail-label">Expected Completion</span>
-                  <span class="detail-value">{{ admission()!.expectedCompletionYear }}</span>
+                <div class="detail-item">
+                  <span class="detail-label">Declaration Date</span>
+                  <span class="detail-value">{{ admission()!.declarationDate | appDate }}</span>
                 </div>
-              }
-              @if (admission()!.declarationPlace) {
-                  <div class="detail-item">
-                    <span class="detail-label">Declaration Place</span>
-                    <span class="detail-value">{{ admission()!.declarationPlace }}</span>
-                  </div>
-                }
-                @if (admission()!.declarationDate) {
-                  <div class="detail-item">
-                    <span class="detail-label">Declaration Date</span>
-                    <span class="detail-value">{{ admission()!.declarationDate }}</span>
-                  </div>
-                }
                 <div class="detail-item">
                   <span class="detail-label">Parent Consent</span>
-                  <span class="detail-value">{{ admission()!.parentConsentGiven ? 'Yes' : 'No' }}</span>
+                  <span class="detail-value">{{ yesNo(admission()!.parentConsentGiven) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Applicant Consent</span>
-                  <span class="detail-value">{{ admission()!.applicantConsentGiven ? 'Yes' : 'No' }}</span>
+                  <span class="detail-value">{{ yesNo(admission()!.applicantConsentGiven) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Expected Completion Year</span>
+                  <span class="detail-value code-value">{{ admission()!.expectedCompletionYear || '—' }}</span>
                 </div>
               </div>
+            </div>
+
+            <div class="overview-side">
+              <div class="content-card overview-card">
+                <p class="overview-card__title">Student Snapshot</p>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Roll Number</span>
+                    <span class="detail-value code-value">{{ admission()!.rollNumber || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Program</span>
+                    <span class="detail-value">{{ admission()!.programName || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Course</span>
+                    <span class="detail-value">{{ admission()!.courseName || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Semester</span>
+                    <span class="detail-value code-value">{{ admission()!.semester || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <cms-status-badge [status]="admission()!.studentStatus || ''" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="content-card overview-card">
+                <p class="overview-card__title">Quick Links</p>
+                <div class="quick-links">
+                  <a class="quick-link" [routerLink]="['/students', admission()!.studentId]">
+                    <mat-icon>person</mat-icon>
+                    <span>Student Profile</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </mat-tab>
 
-      <!-- Qualifications Tab -->
+      <!-- Tab 2: Qualifications -->
       <mat-tab label="Qualifications ({{ qualifications().length }})">
         <div class="tab-content">
-          <div class="tab-actions">
-            <button mat-flat-button color="primary" [routerLink]="['/admissions', admission()!.id, 'edit']">
-              <mat-icon>add</mat-icon> Manage Qualifications
-            </button>
-          </div>
           @if (qualifications().length === 0) {
-            <div class="empty-state">
-              <mat-icon class="empty-state__icon-mat">school</mat-icon>
-              <p class="empty-state__text">No qualifications recorded</p>
-            </div>
+            <p class="no-data">No qualifications recorded.</p>
           } @else {
-            <div class="table-wrapper">
-              <table mat-table [dataSource]="qualifications()" class="modern-table">
-                <ng-container matColumnDef="type">
-                  <th mat-header-cell *matHeaderCellDef>Type</th>
-                  <td mat-cell *matCellDef="let row">{{ row.qualificationType }}</td>
-                </ng-container>
-                <ng-container matColumnDef="school">
-                  <th mat-header-cell *matHeaderCellDef>Institution</th>
-                  <td mat-cell *matCellDef="let row">{{ row.schoolName || '—' }}</td>
-                </ng-container>
-                <ng-container matColumnDef="subject">
-                  <th mat-header-cell *matHeaderCellDef>Major Subject</th>
-                  <td mat-cell *matCellDef="let row">{{ row.majorSubject || '—' }}</td>
-                </ng-container>
-                <ng-container matColumnDef="marks">
-                  <th mat-header-cell *matHeaderCellDef>Total Marks</th>
-                  <td mat-cell *matCellDef="let row">{{ row.totalMarks ?? '—' }}</td>
-                </ng-container>
-                <ng-container matColumnDef="percentage">
-                  <th mat-header-cell *matHeaderCellDef>Percentage</th>
-                  <td mat-cell *matCellDef="let row">{{ row.percentage != null ? (row.percentage + '%') : '—' }}</td>
-                </ng-container>
-                <ng-container matColumnDef="passing">
-                  <th mat-header-cell *matHeaderCellDef>Year of Passing</th>
-                  <td mat-cell *matCellDef="let row">{{ row.monthAndYearOfPassing || '—' }}</td>
-                </ng-container>
-                <ng-container matColumnDef="board">
-                  <th mat-header-cell *matHeaderCellDef>University/Board</th>
-                  <td mat-cell *matCellDef="let row">{{ row.universityOrBoard || '—' }}</td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="qualColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: qualColumns" class="table-row"></tr>
-              </table>
+            <div class="content-card acad-card">
+              @for (qual of qualifications(); track qual.id) {
+                <div class="acad-enrollment" [class.acad-enrollment--open]="isQualExpanded(qual.id)">
+                  <button class="acad-enrollment__row" type="button" (click)="toggleQual(qual.id)">
+                    <div class="acad-enrollment__left">
+                      <span class="acad-enrollment__term">{{ qual.qualificationType }}</span>
+                      <div class="acad-enrollment__chips">
+                        <span class="cms-badge cms-badge--gray">{{ qual.qualificationType }}</span>
+                        <span class="acad-year-chip">{{ qual.monthAndYearOfPassing || 'Passing year —' }}</span>
+                      </div>
+                    </div>
+                    <div class="acad-enrollment__right">
+                      <mat-icon class="acad-enrollment__chevron">
+                        {{ isQualExpanded(qual.id) ? 'expand_less' : 'expand_more' }}
+                      </mat-icon>
+                    </div>
+                  </button>
+
+                  @if (isQualExpanded(qual.id)) {
+                    <div class="acad-enrollment__body">
+                      <div class="detail-grid qual-detail-grid">
+                        <div class="detail-item">
+                          <span class="detail-label">Institution</span>
+                          <span class="detail-value">{{ qual.schoolName || '—' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Major Subject</span>
+                          <span class="detail-value">{{ qual.majorSubject || '—' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Total Marks</span>
+                          <span class="detail-value code-value">{{ qual.totalMarks ?? '—' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Percentage</span>
+                          <span class="detail-value code-value">{{ qual.percentage != null ? (qual.percentage + '%') : '—' }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">University/Board</span>
+                          <span class="detail-value">{{ qual.universityOrBoard || '—' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
         </div>
       </mat-tab>
 
-      <!-- Documents Tab -->
+      <!-- Tab 3: Documents -->
       <mat-tab label="Documents">
         <div class="tab-content">
           @if (documents().length === 0 && getChecklistEntries().length === 0) {
-            <div class="empty-state">
-              <mat-icon class="empty-state__icon-mat">folder_open</mat-icon>
-              <p class="empty-state__text">No documents on record</p>
-            </div>
+            <p class="no-data">No documents on record.</p>
           } @else {
-            <!-- Checklist -->
-            @if (getChecklistEntries().length > 0) {
-              <h3 class="section-title">Document Checklist</h3>
-              <div class="table-wrapper">
-                <table mat-table [dataSource]="getChecklistEntries()" class="modern-table">
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef>Document Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.type }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Status</th>
-                    <td mat-cell *matCellDef="let row">
-                      <mat-chip>{{ row.status }}</mat-chip>
-                    </td>
-                  </ng-container>
-                  <tr mat-header-row *matHeaderRowDef="['type','status']"></tr>
-                  <tr mat-row *matRowDef="let row; columns: ['type','status']" class="table-row"></tr>
-                </table>
-              </div>
-            }
-
-            <!-- Individual Documents -->
-            @if (documents().length > 0) {
-              <h3 class="section-title">Documents</h3>
-              <div class="table-wrapper">
-                <table mat-table [dataSource]="documents()" class="modern-table">
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef>Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.documentType }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Verification Status</th>
-                    <td mat-cell *matCellDef="let row">
-                      <mat-chip>{{ row.verificationStatus }}</mat-chip>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="verifiedBy">
-                    <th mat-header-cell *matHeaderCellDef>Verified By</th>
-                    <td mat-cell *matCellDef="let row">{{ row.verifiedBy || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-                    <td mat-cell *matCellDef="let row">
-                      <div class="row-actions">
-                        <button class="btn-small btn-secondary" (click)="uploadPlaceholder()">
-                          <mat-icon>upload</mat-icon> Upload
-                        </button>
-                        <select class="field-select--inline" [value]="row.verificationStatus" (change)="verifyDocument(row, $any($event.target).value)">
-                          @for (s of verificationStatuses; track s) {
-                            <option [value]="s">{{ s }}</option>
-                          }
-                        </select>
+            <div class="content-card document-card">
+              @if (getChecklistEntries().length > 0) {
+                <section class="document-section">
+                  <p class="overview-card__title">Document Checklist</p>
+                  <div class="checklist-list">
+                    @for (entry of getChecklistEntries(); track entry.type) {
+                      <div class="checklist-row">
+                        <div class="detail-item">
+                          <span class="detail-label">Document Type</span>
+                          <span class="detail-value">{{ entry.type }}</span>
+                        </div>
+                        <div class="detail-item checklist-row__status">
+                          <span class="detail-label">Status</span>
+                          <cms-status-badge [status]="entry.status" />
+                        </div>
                       </div>
-                    </td>
-                  </ng-container>
-                  <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: docColumns" class="table-row"></tr>
-                </table>
-              </div>
-            }
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (documents().length > 0) {
+                <section class="document-section">
+                  <p class="overview-card__title">Documents</p>
+                  <div class="document-list">
+                    @for (doc of documents(); track doc.id) {
+                      <div class="document-row">
+                        <div class="document-row__main">
+                          <div class="document-row__top">
+                            <span class="document-row__type">{{ doc.documentType }}</span>
+                            <cms-status-badge [status]="doc.verificationStatus" />
+                          </div>
+                          <div class="document-row__meta">
+                            <span>Verified by {{ doc.verifiedBy || '—' }}</span>
+                            <span class="dot-sep">·</span>
+                            <span>Uploaded {{ doc.uploadedAt | appDate:'dateTime' }}</span>
+                          </div>
+                        </div>
+                        <div class="document-row__actions">
+                          <button class="btn-small btn-secondary" type="button" (click)="uploadPlaceholder()">
+                            <mat-icon>upload</mat-icon> Upload
+                          </button>
+                          <select
+                            class="field-select field-select--inline"
+                            [value]="doc.verificationStatus"
+                            (change)="verifyDocument(doc, $any($event.target).value)">
+                            @for (status of verificationStatuses; track status) {
+                              <option [value]="status">{{ status }}</option>
+                            }
+                          </select>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
           }
         </div>
       </mat-tab>

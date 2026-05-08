@@ -20,6 +20,7 @@ import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.componen
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
@@ -42,6 +43,7 @@ import {
   standalone: true,
   imports: [
     AppDatePipe,
+    PaymentModeLabelPipe,
     InrPipe,
     RouterLink,
     DecimalPipe,
@@ -79,12 +81,54 @@ export class StudentDetailComponent implements OnInit {
   protected readonly scholarshipDisbursements = signal<ScholarshipDisbursement[]>([]);
   protected readonly loadingScholarships = signal(false);
 
+  protected readonly selectedTabIndex = signal(0);
+  protected readonly expandedEnrollments = signal(new Set<number>());
+
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
 
   protected readonly sortedEnrollments = computed(() =>
     [...this.enrollments()].sort((a, b) => b.semesterNumber - a.semesterNumber),
   );
+
+  protected readonly totalOutstanding = computed(() => {
+    const l = this.feeLedger();
+    return l ? l.entries.reduce((s, e) => s + e.outstandingAmount, 0) : 0;
+  });
+
+  protected readonly totalFeeDemand = computed(() => {
+    const l = this.feeLedger();
+    return l ? l.entries.reduce((s, e) => s + e.totalAmount, 0) : 0;
+  });
+
+  protected readonly totalFeePaid = computed(() => {
+    const l = this.feeLedger();
+    return l ? l.entries.reduce((s, e) => s + e.paidAmount, 0) : 0;
+  });
+
+  protected paidPercent(paid: number, total: number): number {
+    return total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  }
+
+  protected readonly activeScholarshipCount = computed(() =>
+    this.scholarshipApplications().filter(a => a.status === 'APPROVED' || a.status === 'PENDING').length,
+  );
+
+  protected switchTab(index: number): void {
+    this.selectedTabIndex.set(index);
+  }
+
+  protected toggleEnrollment(id: number): void {
+    this.expandedEnrollments.update(set => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  protected isExpanded(id: number): boolean {
+    return this.expandedEnrollments().has(id);
+  }
 
   ngOnInit(): void {
     this.tourService.register('student-detail', STUDENT_DETAIL_TOUR);
@@ -124,6 +168,8 @@ export class StudentDetailComponent implements OnInit {
       next: (data) => {
         this.enrollments.set(data);
         this.loadingEnrollments.set(false);
+        const first = [...data].sort((a, b) => b.semesterNumber - a.semesterNumber)[0];
+        if (first) this.expandedEnrollments.set(new Set([first.id]));
         this.loadAllRegistrations(data);
       },
       error: () => {

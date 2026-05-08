@@ -274,7 +274,7 @@
                 <div class="receipt-group__left">
                   <span class="receipt-no">{{ group.receiptNumber }}</span>
                   <span class="receipt-meta">
-                    {{ group.paymentDate }} &bull; {{ group.paymentMode }}
+                    {{ group.paymentDate }} &bull; {{ group.paymentMode | paymentModeLabel }}
                     @if (group.transactionReference) {
                       &bull; Ref: {{ group.transactionReference }}
                     }

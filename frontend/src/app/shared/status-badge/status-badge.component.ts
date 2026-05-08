@@ -50,6 +50,9 @@ export class CmsStatusBadgeComponent {
       case 'PRESENT':
       case 'AVAILABLE':
       case 'PAID':
+      case 'APPROVED':
+      case 'ENROLLED':
+      case 'VERIFIED':
       case 'YES':
         return 'status-active';
 
@@ -59,6 +62,8 @@ export class CmsStatusBadgeComponent {
       case 'LATE':
       case 'IN_PROGRESS':
       case 'WARNING':
+      case 'UNDER_REVIEW':
+      case 'UPLOADED':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
@@ -66,6 +71,7 @@ export class CmsStatusBadgeComponent {
       case 'FEES_FINALIZED':
       case 'INTERESTED':
       case 'PENDING':
+      case 'SUBMITTED':
         return 'status-pending';
 
       // ── Negative / terminal failure states ───────────────────────────────
@@ -75,6 +81,9 @@ export class CmsStatusBadgeComponent {
       case 'RETIRED':
       case 'NOT_INTERESTED':
       case 'CLOSED':
+      case 'REJECTED':
+      case 'WITHDRAWN':
+      case 'NOT_UPLOADED':
       case 'NO':
         return 'status-inactive';
 

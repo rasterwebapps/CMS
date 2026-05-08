@@ -22,6 +22,21 @@
   <!-- ── Toolbar ────────────────────────────────────────────────── -->
   <div id="tour-adm-toolbar" class="adm-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
 
+    <!-- Filters -->
+    <select class="mlp-filter-select" [value]="filterProgram()" (change)="filterProgram.set($any($event.target).value); onFilterChange()" aria-label="Filter by program">
+      <option value="ALL">All Programs</option>
+      @for (p of programs(); track p) {
+        <option [value]="p">{{ p }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [value]="filterStatus()" (change)="filterStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by status">
+      <option value="ALL">All Statuses</option>
+      @for (s of STUDENT_STATUSES; track s) {
+        <option [value]="s">{{ s | titlecase }}</option>
+      }
+    </select>
+
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -46,6 +61,11 @@
     </div>
 
     <div class="toolbar-right">
+      @if (hasActiveFilters()) {
+        <button class="btn-toolbar btn-toolbar--clear" (click)="clearAllFilters()" aria-label="Clear all filters">
+          Clear Filters
+        </button>
+      }
       @if (!loading()) {
         <span class="row-count">
           {{ dataSource.filteredData.length }}
@@ -178,6 +198,27 @@
                   <span class="cell-sub">Completes {{ row.expectedCompletionYear }}</span>
                 }
               </div>
+            </td>
+          </ng-container>
+
+          <!-- Consent -->
+          <ng-container matColumnDef="consent">
+            <th mat-header-cell *matHeaderCellDef class="col-center">Consent</th>
+            <td mat-cell *matCellDef="let row" class="col-center">
+              <div class="consent-cell">
+                <span class="consent-dot" [class.consent-dot--yes]="row.parentConsentGiven" [class.consent-dot--no]="row.parentConsentGiven === false"
+                      [matTooltip]="'Parent: ' + (row.parentConsentGiven == null ? 'N/A' : row.parentConsentGiven ? 'Yes' : 'No')">P</span>
+                <span class="consent-dot" [class.consent-dot--yes]="row.applicantConsentGiven" [class.consent-dot--no]="row.applicantConsentGiven === false"
+                      [matTooltip]="'Applicant: ' + (row.applicantConsentGiven == null ? 'N/A' : row.applicantConsentGiven ? 'Yes' : 'No')">A</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Declaration Date -->
+          <ng-container matColumnDef="declarationDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Declaration Date</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.declarationDate | appDate }}</span>
             </td>
           </ng-container>
 

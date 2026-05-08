@@ -1,10 +1,14 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import {
   Enquiry,
   EnquiryDocument,
@@ -13,6 +17,7 @@ import {
 } from '../enquiry.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { STATUS_LABELS } from '../enquiry-list/enquiry-list.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -23,9 +28,17 @@ import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
   selector: 'app-enquiry-detail',
   standalone: true,
   imports: [
-    AppDatePipe, InrPipe, RouterLink,
-    MatTooltipModule, MatProgressSpinnerModule,
+    AppDatePipe,
+    PaymentModeLabelPipe,
+    InrPipe,
+    RouterLink,
+    MatTooltipModule,
+    MatTabsModule,
+    MatButtonModule,
+    MatIconModule,
     CmsEmptyStateComponent,
+    CmsStatusBadgeComponent,
+    CmsSkeletonComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
@@ -45,8 +58,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
 
-  protected readonly activeTab = signal<'overview' | 'documents' | 'payments' | 'history'>('overview');
-  protected readonly Math            = Math;
+  protected readonly selectedTabIndex = signal(0);
 
   protected readonly initials = computed(() => computeInitials(this.enquiry()?.name));
 
@@ -59,6 +71,10 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly totalPaid = computed(() =>
     this.payments().reduce((sum, p) => sum + (p.amountPaid ?? 0), 0),
   );
+  protected readonly outstandingAmount = computed(() => {
+    const netFee = this.enquiry()?.finalizedNetFee;
+    return netFee == null ? 0 : Math.max(0, netFee - this.totalPaid());
+  });
   protected readonly docsVerified = computed(
     () => this.documents().filter((d) => d.status === 'VERIFIED').length,
   );
@@ -123,12 +139,6 @@ export class EnquiryDetailComponent implements OnInit {
     const id = this.enquiry()?.id;
     if (id) void this.router.navigate(['/enquiries', id, 'convert']);
   }
-
-  /** Returns to the previous page using browser history (preserves list filters). */
-  protected goBack(): void {
-    window.history.back();
-  }
-
 
   /** Opens the stored document binary in a new tab for inline viewing. */
   protected viewDocumentFile(d: EnquiryDocument): void {

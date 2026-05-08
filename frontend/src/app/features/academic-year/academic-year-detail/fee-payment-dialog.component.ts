@@ -7,6 +7,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FeeDemand, PaymentMode, TermFeePaymentRequest } from '../academic-year.model';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
+import { getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
 
 @Component({
   selector: 'app-fee-payment-dialog',
@@ -61,7 +62,7 @@ import { transactionReferenceRequiredValidator } from '../../../shared/validator
           <select class="field-input" formControlName="paymentMode">
             <option value="">Select mode</option>
             @for (mode of paymentModes; track mode) {
-              <option [value]="mode">{{ mode.replace('_', ' ') }}</option>
+              <option [value]="mode">{{ getPaymentModeLabel(mode) }}</option>
             }
           </select>
           @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
@@ -141,8 +142,10 @@ export class FeePaymentDialogComponent {
   private readonly fb = inject(FormBuilder);
 
   readonly paymentModes: PaymentMode[] = [
-    'CASH', 'CARD', 'UPI', 'NET_BANKING', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT', 'SCHOLARSHIP',
+    'CASH', 'UPI', 'BANK_TRANSFER', 'CARD', 'CHEQUE', 'DEMAND_DRAFT', 'SCHOLARSHIP',
   ];
+
+  readonly getPaymentModeLabel = getPaymentModeLabel;
 
   readonly form: FormGroup = this.fb.group({
     amountPaid: [null, [Validators.required, Validators.min(0.01)]],

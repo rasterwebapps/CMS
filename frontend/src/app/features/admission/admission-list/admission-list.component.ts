@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LowerCasePipe } from '@angular/common';
+import { LowerCasePipe, TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -26,6 +26,7 @@ import { computeInitials } from '../../../shared/utils/initials';
   imports: [
     FormsModule,
     LowerCasePipe,
+    TitleCasePipe,
     AppDatePipe,
     CmsEmptyStateComponent,
     MatTableModule,
@@ -59,7 +60,7 @@ export class AdmissionListComponent implements OnInit {
   // ── Column visibility ────────────────────────────────────────
   protected readonly ALL_COLS = [
     'studentName', 'rollNumber', 'program', 'course',
-    'semester', 'applicationDate', 'academicYear', 'studentStatus', 'actions',
+    'semester', 'applicationDate', 'academicYear', 'consent', 'declarationDate', 'studentStatus', 'actions',
   ];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     studentName:     'Student',
@@ -69,15 +70,17 @@ export class AdmissionListComponent implements OnInit {
     semester:        'Sem',
     applicationDate: 'Application Date',
     academicYear:    'Joining Year',
+    consent:         'Consent',
+    declarationDate: 'Declaration Date',
     studentStatus:   'Status',
     actions:         'Actions',
   };
   // Default visible columns (hide rollNumber & course by default to keep table lean)
   private readonly DEFAULT_COLS = new Set([
     'studentName', 'program', 'course', 'semester',
-    'applicationDate', 'academicYear', 'studentStatus', 'actions',
+    'applicationDate', 'academicYear', 'consent', 'studentStatus', 'actions',
   ]);
-  private readonly COLS_KEY = 'admission-list-cols-v2';
+  private readonly COLS_KEY = 'admission-list-cols-v3';
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() =>
     this.ALL_COLS.filter(c => this._visibleCols().has(c)),
@@ -85,6 +88,17 @@ export class AdmissionListComponent implements OnInit {
 
   protected readonly dataSource = new MatTableDataSource<AdmissionResponse>([]);
   protected readonly loading = signal(false);
+
+  // ── Filters ──────────────────────────────────────────────────
+  protected filterProgram = signal<string>('ALL');
+  protected filterStatus  = signal<string>('ALL');
+  protected readonly programs = computed(() =>
+    [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly hasActiveFilters = computed(() =>
+    this.searchTerm() !== '' || this.filterProgram() !== 'ALL' || this.filterStatus() !== 'ALL'
+  );
+  protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
 
   // ── Filters ──────────────────────────────────────────────────
   protected readonly searchTerm = signal('');
@@ -106,6 +120,15 @@ export class AdmissionListComponent implements OnInit {
 
   protected clearSearch(): void {
     this.searchTerm.set('');
+    this.applyFilters();
+  }
+
+  protected onFilterChange(): void { this.applyFilters(); }
+
+  protected clearAllFilters(): void {
+    this.searchTerm.set('');
+    this.filterProgram.set('ALL');
+    this.filterStatus.set('ALL');
     this.applyFilters();
   }
 
@@ -147,18 +170,23 @@ export class AdmissionListComponent implements OnInit {
   }
 
   private applyFilters(): void {
+    const term    = this.searchTerm().toLowerCase().trim();
+    const program = this.filterProgram();
+    const status  = this.filterStatus();
+
     this.dataSource.filterPredicate = (row) => {
-      const term = this.searchTerm().toLowerCase().trim();
+      if (program !== 'ALL' && (row.programName ?? '') !== program) return false;
+      if (status  !== 'ALL' && (row.studentStatus ?? '') !== status) return false;
       if (!term) return true;
       return (
         row.studentName.toLowerCase().includes(term) ||
-        (row.rollNumber ?? '').toLowerCase().includes(term) ||
+        (row.rollNumber  ?? '').toLowerCase().includes(term) ||
         (row.programName ?? '').toLowerCase().includes(term) ||
-        (row.courseName ?? '').toLowerCase().includes(term)
+        (row.courseName  ?? '').toLowerCase().includes(term)
       );
     };
-    this.dataSource.filter = this.searchTerm() || '_';
-    if (!this.searchTerm()) this.dataSource.filter = '';
+    this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' ? (term || program || status || '_') : '';
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   protected view(item: AdmissionResponse): void {

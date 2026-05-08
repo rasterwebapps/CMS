@@ -1,19 +1,19 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
 import { AdmissionService } from '../admission.service';
 import {
-  AdmissionResponse,
   AcademicQualificationResponse,
   AdmissionDocumentResponse,
+  AdmissionResponse,
 } from '../admission.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tours';
@@ -22,35 +22,43 @@ import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tour
   selector: 'app-admission-detail',
   standalone: true,
   imports: [
+    AppDatePipe,
     RouterLink,
     FormsModule,
     MatTabsModule,
-    MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
-    MatChipsModule,
-    CmsTourButtonComponent],
+    CmsSkeletonComponent,
+    CmsStatusBadgeComponent,
+    CmsTourButtonComponent,
+  ],
   templateUrl: './admission-detail.component.html',
   styleUrl: './admission-detail.component.scss',
 })
 export class AdmissionDetailComponent implements OnInit {
+  private static readonly TAB_INDEX_KEY = 'admission-detail-tab-index';
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly admissionService = inject(AdmissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
 
-  protected readonly loading = signal(true);
-  protected readonly admission = signal<AdmissionResponse | null>(null);
-  protected readonly qualifications = signal<AcademicQualificationResponse[]>([]);
-  protected readonly documents = signal<AdmissionDocumentResponse[]>([]);
-  protected readonly checklist = signal<Record<string, string>>({});
+  readonly loading = signal(true);
+  readonly admission = signal<AdmissionResponse | null>(null);
+  readonly qualifications = signal<AcademicQualificationResponse[]>([]);
+  readonly documents = signal<AdmissionDocumentResponse[]>([]);
+  readonly checklist = signal<Record<string, string>>({});
 
-  protected readonly qualColumns = ['type', 'school', 'subject', 'marks', 'percentage', 'passing', 'board'];
-  protected readonly docColumns = ['type', 'status', 'verifiedBy', 'actions'];
+  readonly selectedTabIndex = signal(this.readSavedTabIndex());
+  readonly expandedQuals = signal(new Set<number>());
 
-  protected readonly verificationStatuses = ['UPLOADED', 'VERIFIED', 'REJECTED', 'NOT_UPLOADED'];
+  readonly initials = computed(() => computeInitials(this.admission()?.studentName));
+
+  readonly verifiedDocsCount = computed(
+    () => this.documents().filter((doc) => doc.verificationStatus === 'VERIFIED').length,
+  );
+
+  readonly verificationStatuses = ['UPLOADED', 'VERIFIED', 'REJECTED', 'NOT_UPLOADED'];
 
   ngOnInit(): void {
     this.tourService.register('admission-detail', ADMISSION_DETAIL_TOUR);
@@ -93,11 +101,37 @@ export class AdmissionDetailComponent implements OnInit {
     });
   }
 
-  protected getChecklistEntries(): { type: string; status: string }[] {
+  getChecklistEntries(): { type: string; status: string }[] {
     return Object.entries(this.checklist()).map(([type, status]) => ({ type, status }));
   }
 
-  protected verifyDocument(doc: AdmissionDocumentResponse, newStatus: string): void {
+  switchTab(index: number): void {
+    this.selectedTabIndex.set(index);
+    try {
+      localStorage.setItem(AdmissionDetailComponent.TAB_INDEX_KEY, String(index));
+    } catch {
+      // Ignore storage failures (private browsing, quota, etc.).
+    }
+  }
+
+  toggleQual(id: number): void {
+    this.expandedQuals.update((set) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  isQualExpanded(id: number): boolean {
+    return this.expandedQuals().has(id);
+  }
+
+  yesNo(value: boolean | null): string {
+    if (value == null) return '—';
+    return value ? 'Yes' : 'No';
+  }
+
+  verifyDocument(doc: AdmissionDocumentResponse, newStatus: string): void {
     const verifiedBy = 'admin';
     this.admissionService.verifyDocument(doc.id, newStatus, verifiedBy).subscribe({
       next: (updated) => {
@@ -115,16 +149,21 @@ export class AdmissionDetailComponent implements OnInit {
     });
   }
 
-  protected uploadPlaceholder(): void {
+  uploadPlaceholder(): void {
     this.toast.info('File upload will be available soon');
   }
 
-  protected edit(): void {
+  edit(): void {
     const a = this.admission();
     if (a) void this.router.navigate(['/admissions', a.id, 'edit']);
   }
 
-  protected back(): void {
-    void this.router.navigate(['/admissions']);
+  private readSavedTabIndex(): number {
+    try {
+      const value = Number(localStorage.getItem(AdmissionDetailComponent.TAB_INDEX_KEY));
+      return Number.isInteger(value) && value >= 0 && value <= 2 ? value : 0;
+    } catch {
+      return 0;
+    }
   }
 }

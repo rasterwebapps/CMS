@@ -13,6 +13,7 @@ import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ROLL_NUMBER_ASSIGNMENT_TOUR } from '../../../shared/tour/tours/student.tours';
@@ -43,6 +44,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   private readonly courseService = inject(CourseService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  protected readonly appDate = new AppDatePipe();
 
   protected readonly programs = signal<Program[]>([]);
   protected readonly courses = signal<Course[]>([]);
@@ -53,7 +55,7 @@ export class RollNumberAssignmentComponent implements OnInit {
   protected selectedProgramId: number | null = null;
   protected selectedCourseId: number | null = null;
 
-  protected readonly displayedColumns = ['name', 'programName', 'admissionDate', 'rollNumber', 'actions'];
+  protected readonly displayedColumns = ['name', 'programName', 'semester', 'admissionDate', 'rollNumber', 'actions'];
 
   ngOnInit(): void {
     this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);

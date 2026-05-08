@@ -2,7 +2,7 @@ import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 /**
  * Custom validator that makes transactionReference required when payment mode
- * is UPI, BANK_TRANSFER, or CHEQUE.
+ * is UPI, BANK_TRANSFER, CHEQUE, or DEMAND_DRAFT.
  *
  * @param paymentModeControlName - The name of the payment mode form control
  * @returns ValidatorFn for the transactionReference control
@@ -21,7 +21,7 @@ export function transactionReferenceRequiredValidator(
     }
 
     const paymentMode = paymentModeControl.value;
-    const requiresTransactionRef = ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(paymentMode);
+    const requiresTransactionRef = ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(paymentMode);
 
     if (requiresTransactionRef) {
       const value = control.value;

@@ -96,7 +96,7 @@
           </div>
           <div class="receipt-row">
             <span class="r-label">Payment Mode</span>
-            <span class="r-value">{{ r.paymentMode }}</span>
+            <span class="r-value">{{ r.paymentMode | paymentModeLabel }}</span>
           </div>
           @if (r.transactionRef) {
             <div class="receipt-row">
@@ -320,7 +320,7 @@
                       [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched">
                 <option value="" disabled>Select mode</option>
                 @for (mode of paymentModes; track mode) {
-                  <option [value]="mode">{{ mode }}</option>
+                  <option [value]="mode">{{ getPaymentModeLabel(mode) }}</option>
                 }
               </select>
               @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
@@ -339,7 +339,7 @@
             <input class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No."
                    [class.field-input--error]="form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched" />
             @if (isTransactionRefRequired()) {
-              <p class="field-hint">Required for UPI, Bank Transfer, and Cheque payments</p>
+              <p class="field-hint">Required for UPI, Bank Transfer, Cheque, and DD payments</p>
             }
             @if (form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched) {
               <p class="field-error">Transaction reference is required for this payment mode</p>

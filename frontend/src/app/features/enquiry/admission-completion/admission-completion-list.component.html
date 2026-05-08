@@ -109,6 +109,7 @@
                 <div class="student-info">
                   <span class="cell-name">{{ row.name }}</span>
                   @if (row.phone) { <span class="cell-sub">{{ row.phone }}</span> }
+                  @if (row.email) { <span class="cell-sub">{{ row.email }}</span> }
                 </div>
               </div>
             </td>
@@ -137,21 +138,41 @@
             </td>
           </ng-container>
 
-          <!-- Net Fee -->
-          <ng-container matColumnDef="finalizedNetFee">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Net Fee</th>
-            <td mat-cell *matCellDef="let row">
-              @if (row.finalizedNetFee) {
-                <span class="cell-mono">{{ row.finalizedNetFee | inr }}</span>
+          <!-- Amount Paid -->
+          <ng-container matColumnDef="totalPaidAmount">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-right">Paid (₹)</th>
+            <td mat-cell *matCellDef="let row" class="col-right">
+              @if (row.totalPaidAmount != null) {
+                <span class="cell-mono">{{ row.totalPaidAmount | inr:false:false }}</span>
               } @else {
                 <span class="cell-muted">—</span>
               }
             </td>
           </ng-container>
 
-          <!-- Date -->
+          <!-- Net Fee -->
+          <ng-container matColumnDef="finalizedNetFee">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-right">Net Fee (₹)</th>
+            <td mat-cell *matCellDef="let row" class="col-right">
+              @if (row.finalizedNetFee) {
+                <span class="cell-mono">{{ row.finalizedNetFee | inr:false:false }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Fees Finalized At -->
+          <ng-container matColumnDef="finalizedAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Fees Finalized</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.finalizedAt | appDate }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Enquiry Date -->
           <ng-container matColumnDef="enquiryDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Enquiry Date</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-date">{{ row.enquiryDate | appDate }}</span>
             </td>

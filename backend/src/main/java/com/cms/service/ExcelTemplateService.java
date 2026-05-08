@@ -212,7 +212,7 @@ public class ExcelTemplateService {
 
         // ── Col L (11): payment_mode ───────────────────────────────────
         setCell(ref, 0, 11, "payment_mode", hdr);
-        String[] pm = {"CASH","CHEQUE","UPI","BANK_TRANSFER","NET_BANKING","CARD","DEMAND_DRAFT","SCHOLARSHIP"};
+        String[] pm = {"CASH","UPI","BANK_TRANSFER","CARD","CHEQUE","DEMAND_DRAFT","SCHOLARSHIP"};
         for (int i = 0; i < pm.length; i++) setCell(ref, i + 1, 11, pm[i], null);
 
         for (int c = 0; c < 12; c++) ref.autoSizeColumn(c);

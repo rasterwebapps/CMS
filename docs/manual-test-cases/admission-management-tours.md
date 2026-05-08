@@ -110,3 +110,61 @@
 
 **Status:** NOT TESTED
 
+# Admission Management Detail Revamp — Manual Test Cases
+
+## TC-ADM-DETAIL-001: Admission detail shows redesigned profile hero and KPI tiles
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- At least one admission exists with a linked student, joining academic year, qualifications, and documents.
+
+**Steps:**
+1. Navigate to `/admissions`.
+2. Open an existing admission detail page.
+3. Verify the old back-button header is not shown.
+4. Verify the profile hero shows avatar initials, student name, status badge, roll number, program, and joining academic year.
+5. Verify KPI tiles show Joining Year, Program, Qualifications count, and verified/total Documents.
+
+**Expected Result:**
+- Admission detail uses the redesigned `detail-page` and `profile-hero` layout.
+- KPI values are accurate and status uses `cms-status-badge`.
+
+**Status:** NOT TESTED
+
+## TC-ADM-DETAIL-002: Admission detail loading state uses profile skeleton
+
+**Preconditions:**
+- User is logged in with admission management access.
+- Browser network throttling is enabled or backend response is delayed.
+
+**Steps:**
+1. Open an admission detail URL directly.
+2. Observe the loading state before data renders.
+
+**Expected Result:**
+- The screen shows one circular skeleton, two text-line skeletons, and four chip skeletons.
+- No Material spinner is displayed.
+
+**Status:** NOT TESTED
+
+## TC-ADM-DETAIL-003: Overview, Qualifications, and Documents tabs render revamped content
+
+**Preconditions:**
+- User is logged in with admission management access.
+- Admission has application details, qualifications, and document records.
+
+**Steps:**
+1. Select the Overview tab and verify Application Details, Student Snapshot, and Student Profile quick link.
+2. Select the Qualifications tab and expand/collapse a qualification card.
+3. Verify the expanded qualification shows Institution, Major Subject, Total Marks, Percentage, and University/Board.
+4. Select the Documents tab and verify checklist rows and document card rows.
+5. Change a document status from the inline `field-select` dropdown.
+6. Refresh the page after selecting Documents.
+
+**Expected Result:**
+- Dates use `appDate`, missing values show `—`, and the student quick link opens `/students/:studentId`.
+- Qualifications use accordion cards, not `mat-table`.
+- Documents use card/list rows with `cms-status-badge`; existing verify/upload behavior is unchanged.
+- The selected tab persists after refresh.
+
+**Status:** NOT TESTED

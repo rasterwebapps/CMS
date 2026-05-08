@@ -2,6 +2,312 @@
 // (.detail-page, .profile-hero*, .profile-stat*, .detail-grid). This file
 // only adds component-scoped tweaks.
 
+// ── Button definitions (btn-secondary not in global styles) ──
+
+// Standard secondary — used for inline list-row actions (Apply, Renew)
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-secondary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+  text-decoration: none;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--cms-bg-muted);
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// Ghost-small — for card header actions (Edit, Verify) where
+// a full bordered button competes with the section title
+.btn-ghost-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--cms-bg-hover);
+    border-color: var(--cms-primary-alpha-30);
+    color: var(--cms-primary);
+
+    mat-icon { color: var(--cms-primary); }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// Hero primary button mat-icon sizing
+.btn-primary mat-icon {
+  font-size: 17px;
+  width: 17px;
+  height: 17px;
+}
+
+// ── Global fixes scoped to this component ────────────────────
+// --cms-space-md / --cms-space-xl are never declared in the design
+// token sheet; var() falls back to the initial value (0 for grid gap).
+// Override with concrete values so detail-grid items breathe.
+.detail-grid {
+  gap: 16px 24px;
+}
+
+// ── Simple padded card (Personal & Family, any flat detail view) ──
+.padded-card {
+  padding: 24px;
+}
+
+// Section headers inside padded cards — match the micro-label style
+// used in Overview / Scholar cards for visual consistency.
+.padded-card .form-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+  margin: 0 0 14px;
+}
+
+// Each subsequent section gets a divider instead of bare margin.
+.padded-card .profile-subsection {
+  margin-top: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--cms-border-light);
+}
+
+// ── Hero: column layout override ─────────────────────────────
+.profile-hero {
+  flex-direction: column;
+  gap: 0;
+  padding: 24px 28px 20px;
+}
+
+.profile-hero__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.profile-hero__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-hero__subtitle {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: var(--cms-text-secondary);
+
+  .dot-sep {
+    color: var(--cms-text-muted);
+  }
+}
+
+// ── Hero KPI cards ────────────────────────────────────────────
+.profile-hero__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+  width: 100%;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.hero-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--cms-radius-md);
+  border: 1px solid transparent;
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  &--indigo {
+    background: var(--cms-primary-light);
+    border-color: var(--cms-primary-alpha-30);
+    mat-icon { color: var(--cms-primary); }
+  }
+
+  &--emerald {
+    background: var(--cms-success-light);
+    border-color: rgba(16, 185, 129, 0.25);
+    mat-icon { color: var(--cms-success); }
+  }
+
+  &--rose {
+    background: var(--cms-bg-card);
+    border-color: var(--cms-border-default);
+    mat-icon { color: var(--cms-danger); }
+    .hero-kpi__value { color: var(--cms-danger); }
+  }
+
+  &--amber {
+    background: var(--cms-warning-light);
+    border-color: rgba(245, 158, 11, 0.25);
+    mat-icon { color: var(--cms-warning); }
+  }
+}
+
+.hero-kpi__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hero-kpi__value {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hero-kpi__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+// ── Overview tab ──────────────────────────────────────────────
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.overview-card {
+  padding: 20px 24px;
+}
+
+.overview-card__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+  margin: 0 0 16px;
+}
+
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--cms-radius-md);
+  text-decoration: none;
+  color: var(--cms-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: var(--cms-transition);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--cms-primary);
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--cms-bg-hover);
+    color: var(--cms-primary);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+
 .tab-content {
   padding: 16px 0;
 }
@@ -164,22 +470,576 @@
   padding: 8px 0;
 }
 
-// Card header with multiple action buttons
-.card-section-hdr__actions {
+// ── Finance tab ───────────────────────────────────────────────
+.finance-summary {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  box-shadow: var(--cms-shadow-sm);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.finance-kpi {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--cms-border-default);
+
+  &--success .finance-kpi__value { color: var(--cms-success); }
+  &--danger  .finance-kpi__value { color: var(--cms-danger); }
+}
+
+.finance-kpi__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-text-muted);
+}
+
+.finance-kpi__value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-detail-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover { background: var(--cms-bg-hover); }
+}
+
+// Per-term fee entry card
+.fee-entry {
+  padding: 0;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.fee-entry__hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-muted);
+  border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+  flex-wrap: wrap;
+}
+
+.fee-entry__hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fee-entry__term {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+}
+
+.fee-entry__due {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+// Progress bar
+.fee-entry__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px 4px;
+}
+
+.fee-progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--cms-radius-full);
+  background: var(--cms-border-default);
+  overflow: hidden;
+}
+
+.fee-progress-fill {
+  height: 100%;
+  border-radius: var(--cms-radius-full);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &--paid    { background: var(--cms-success); }
+  &--partial { background: var(--cms-warning); }
+  &--unpaid  { background: var(--cms-danger); }
+  &--waived  { background: var(--cms-text-muted); }
+}
+
+.fee-progress-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+  min-width: 56px;
+  text-align: right;
+}
+
+// Stats row
+.fee-entry__stats {
+  display: flex;
+  gap: 0;
+  padding: 12px 20px 16px;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.fee-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 28px;
+}
+
+.fee-stat__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+}
+
+.fee-stat__value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-variant-numeric: tabular-nums;
+
+  &--success { color: var(--cms-success); }
+  &--danger  { color: var(--cms-danger); }
+}
+
+// Payment rows table
+.fee-payments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  border-top: 1px solid var(--cms-border-default);
+
+  th {
+    text-align: left;
+    padding: 8px 20px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cms-text-table-header);
+    background: var(--cms-bg-subtle);
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  td {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--cms-border-light);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--cms-bg-hover); }
+}
+
+.fee-no-payments {
+  font-size: 0.875rem;
+  color: var(--cms-text-muted);
+  font-style: italic;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--cms-border-light);
+}
+
+// ── Academics tab — accordion ────────────────────────────────
+.acad-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.acad-enrollment {
+  border-bottom: 1px solid var(--cms-border-default);
+
+  &:last-child { border-bottom: none; }
+}
+
+.acad-enrollment__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background var(--cms-transition);
+
+  &:hover {
+    background: var(--cms-bg-hover);
+  }
+
+  .acad-enrollment--open & {
+    background: var(--cms-primary-alpha-8);
+  }
+}
+
+.acad-enrollment__left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.acad-enrollment__term {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acad-enrollment__chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acad-year-chip {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cms-text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--cms-radius-full);
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-muted);
+}
+
+.acad-current-chip {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-primary);
+  padding: 2px 8px;
+  border-radius: var(--cms-radius-full);
+  border: 1px solid var(--cms-primary-alpha-30);
+  background: var(--cms-primary-light);
+}
+
+.acad-enrollment__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.acad-enrollment__count {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+.acad-enrollment__chevron {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--cms-text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+
+  .acad-enrollment--open & {
+    color: var(--cms-primary);
+  }
+}
+
+.acad-enrollment__body {
+  padding: 0 0 12px;
+  border-top: 1px solid var(--cms-border-light);
+  background: var(--cms-bg-subtle);
+}
+
+.acad-no-data {
+  padding: 12px 20px;
+}
+
+.acad-courses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 8px 20px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cms-text-table-header);
+    border-bottom: 1px solid var(--cms-border-default);
+    background: var(--cms-bg-subtle);
+  }
+
+  td {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--cms-border-light);
+    vertical-align: middle;
+    color: var(--cms-text-primary);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: var(--cms-bg-hover); }
+}
+
+// ── Scholarships tab ─────────────────────────────────────────
+.scholarship-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scholarship-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.scholar-card {
+  padding: 0;
+}
+
+.scholar-card__hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-muted);
+  border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+  flex-wrap: wrap;
+}
+
+.scholar-card__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    color: var(--cms-primary);
+  }
+}
+
+.scholar-card__hdr-actions {
+  display: flex;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-// 4-column detail grid for flags row
-.detail-grid--4 {
-  grid-template-columns: repeat(4, 1fr);
+.scholar-section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-text-muted);
+  margin: 20px 20px 10px;
+}
 
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+// First section inside a card (no top gap from header)
+.scholar-section-label:first-of-type {
+  margin-top: 16px;
+}
+
+.scholar-card .detail-grid {
+  padding: 0 20px;
+  margin-bottom: 4px;
+  gap: 12px 20px;
+}
+
+.scholar-card .elig-verified-banner {
+  margin: 12px 20px 0;
+}
+
+// Eligibility flags — 2×2 chip grid
+.elig-flags {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 0 20px 4px;
+}
+
+.elig-flag {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--cms-radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-secondary);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--cms-text-muted);
+  }
+
+  &--yes {
+    background: var(--cms-success-light);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #065f46;
+
+    mat-icon { color: var(--cms-success); }
   }
 }
+
+// Eligible to apply — action list
+.scholar-apply-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.scholar-apply-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.scholar-apply-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scholar-apply-item__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.scholar-apply-item__meta {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+// Applications — card list
+.scholar-app-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.scholar-app {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.scholar-app__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scholar-app__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scholar-app__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.scholar-app__meta {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scholar-app__amount {
+  font-weight: 600;
+  color: var(--cms-success);
+}
+
+.scholar-no-data {
+  padding: 16px 20px;
+  font-size: 0.875rem;
+  color: var(--cms-text-muted);
+  font-style: italic;
+}
+
+// Remove the old card-section-hdr__actions — replaced by scholar-card__hdr-actions
 
 // Green verification banner
 .elig-verified-banner {

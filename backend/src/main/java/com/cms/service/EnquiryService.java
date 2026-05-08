@@ -250,8 +250,24 @@ public class EnquiryService {
             );
         }
 
-        BigDecimal authoritativeTotal = normalizeAmount(
-            enquiry.getFinalCalculatedFee() != null ? enquiry.getFinalCalculatedFee() : request.totalFee());
+        // Validate that fee cannot be increased - only discounts are allowed
+        BigDecimal originalCalculatedFee = enquiry.getFinalCalculatedFee();
+        if (originalCalculatedFee == null) {
+            throw new IllegalStateException(
+                "Cannot finalize fees: no calculated fee found for this enquiry. Please ensure the fee is calculated first."
+            );
+        }
+
+        BigDecimal requestedTotal = normalizeAmount(request.totalFee());
+        if (requestedTotal.compareTo(originalCalculatedFee) > 0) {
+            throw new IllegalArgumentException(
+                "Fee increase is not allowed. Requested fee ₹" + requestedTotal +
+                " exceeds the original calculated fee ₹" + originalCalculatedFee +
+                ". Only discounts can be applied during finalization."
+            );
+        }
+
+        BigDecimal authoritativeTotal = normalizeAmount(originalCalculatedFee);
         BigDecimal discount = normalizeAmount(request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO);
         if (discount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Discount amount cannot be negative");

@@ -18,6 +18,51 @@
 
 ---
 
+## TC-ENQ-UI-DETAIL-002: Shared design-system enquiry detail alignment
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_COLLEGE_ADMIN.
+- At least one enquiry exists with programme, course, student type, contact, source, country/state/district, fee, document, payment, and status-history data.
+
+**Steps:**
+1. Navigate to `/enquiries/{id}` for the prepared enquiry.
+2. Refresh the page and briefly observe the loading state.
+3. Verify the page root uses the shared detail layout visually: profile skeleton, profile hero, Material tabs, shared status badges, and content-card detail sections.
+4. Verify no inline SVG action icons, custom back button, custom tab bar, or bespoke shimmer skeleton is visible.
+5. Verify the hero shows status, programme/course/student type subtitle, Material icon actions, and five KPI tiles: Enquiry Date, Days Active, Net Fee/Total Paid, Outstanding, and Documents.
+6. Verify the Overview tab shows Contact & Source, Fee Snapshot, Quick Links, and Notes only when remarks exist.
+
+**Expected Result:**
+- Enquiry detail is aligned with the shared student/admission detail design system while retaining enquiry-specific data and actions.
+- Statuses render through shared badges and dates/currency use the shared pipes.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-UI-DETAIL-003: Documents, payments, and history tabs after revamp
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_COLLEGE_ADMIN.
+- The enquiry has at least one verified document with a file, one rejected or pending document, one payment with receipt/reference/collector data, and at least one status-history row.
+
+**Steps:**
+1. Open `/enquiries/{id}` and select the Documents tab.
+2. Verify document tiles retain their grid/list layout, show Material icons (`check_circle`, `cancel`, or `insert_drive_file`), shared status badges, and Material icon buttons for View and Download.
+3. Select the Payments tab.
+4. Verify payments are displayed in a standard table with columns Receipt, Date, Amount (₹), Mode, Reference, and Collected By.
+5. Verify Amount values do not repeat the rupee symbol in table cells and the Total Paid row remains below the table.
+6. Select the History tab.
+7. Verify the timeline is inside a content card, uses shared status badges for from/to statuses, and uses a Material `arrow_forward` icon between statuses.
+
+**Expected Result:**
+- Documents, payments, and history preserve existing functionality while using shared Material/design-system elements.
+- Empty states still appear when each tab has no rows.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-ENQ-002: Create a new enquiry
 
 **Preconditions:**
@@ -1238,7 +1283,7 @@
 4. Verify quick actions (Edit, Submit Documents when eligible, Create Admission when eligible) remain visible in the hero action area.
 5. Open each tab: Overview, Documents, Payments, and History.
 6. Verify Overview shows only Contact & Source, Notes, and Fee Snapshot cards without repeated programme/date/payment data already shown in the hero.
-7. Verify Documents and Payments tabs show modern list cards and preserve View/Download document actions.
+7. Verify Documents uses document tiles with View/Download actions, and Payments uses a standard table with the Total Paid row below it.
 8. Verify History shows a single status journey timeline instead of duplicate timeline + change-log cards.
 9. Resize to a mobile-width viewport and verify hero actions, KPI cards, tabs, and list cards wrap cleanly.
 10. Click the Take a Tour icon and verify the hero, actions, and tab bar tour steps still highlight correctly.

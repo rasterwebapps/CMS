@@ -246,7 +246,7 @@
                     <td>{{ p.paymentDate | appDate }}</td>
                     <td>{{ p.amountPaid | number:'1.2-2' }}</td>
                     <td class="late-fee-cell">{{ p.lateFeeApplied | number:'1.2-2' }}</td>
-                    <td>{{ p.paymentMode }}</td>
+                    <td>{{ p.paymentMode | paymentModeLabel }}</td>
                   </tr>
                 }
               </tbody>
@@ -324,7 +324,7 @@
                         <td>{{ p.paymentDate | appDate }}</td>
                         <td>{{ p.amountPaid | number:'1.2-2' }}</td>
                         <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
-                        <td>{{ p.paymentMode }}</td>
+                        <td>{{ p.paymentMode | paymentModeLabel }}</td>
                       </tr>
                     }
                   </tbody>

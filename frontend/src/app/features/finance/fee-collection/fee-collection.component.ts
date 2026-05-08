@@ -16,6 +16,8 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -39,6 +41,7 @@ export interface FeeEntry {
   standalone: true,
   imports: [
     AppDatePipe,
+    PaymentModeLabelPipe,
     InrPipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
@@ -100,7 +103,8 @@ export class FeeCollectionComponent implements OnInit {
     this.feeEntries().reduce((s, e) => s + e.totalOutstanding, 0)
   );
 
-  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
+  protected readonly paymentModes = PAYMENT_MODES;
+  protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
   protected readonly form: FormGroup = this.fb.group({
     amount:               [null, [Validators.required, Validators.min(1)]],
@@ -345,6 +349,6 @@ export class FeeCollectionComponent implements OnInit {
 
   protected isTransactionRefRequired(): boolean {
     const mode = this.form.get('paymentMode')?.value;
-    return ['UPI', 'BANK_TRANSFER', 'CHEQUE'].includes(mode);
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(mode);
   }
 }

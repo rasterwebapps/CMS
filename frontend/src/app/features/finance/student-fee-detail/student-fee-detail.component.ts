@@ -16,6 +16,7 @@ import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 
 export interface ReceiptGroup {
   receiptNumber: string;
@@ -30,6 +31,7 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
+    PaymentModeLabelPipe,
     InrPipe, RouterLink, ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
     MatDialogModule, MatTooltipModule,

@@ -635,6 +635,7 @@ class EnquiryServiceTest {
     void shouldFinalizeFees() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
             new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null, null
@@ -696,6 +697,85 @@ class EnquiryServiceTest {
         assertThatThrownBy(() -> enquiryService.finalizeFees(999L, request, "admin"))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Enquiry not found with id: 999");
+    }
+
+    @Test
+    void shouldThrowWhenAttemptingToIncreaseFee() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
+
+        // Trying to finalize with a higher fee (increase not allowed)
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("120000.00"), null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Fee increase is not allowed")
+            .hasMessageContaining("Only discounts can be applied");
+    }
+
+    @Test
+    void shouldThrowWhenNoCalculatedFeeExists() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        // finalCalculatedFee is null
+
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("no calculated fee found");
+    }
+
+    @Test
+    void shouldAllowFeeFinalizationAtOriginalAmount() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
+
+        // Finalizing at exact original amount (no increase, no discount)
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
+
+        assertThat(response.finalizedTotalFee()).isEqualTo(new BigDecimal("100000.00"));
+        assertThat(response.finalizedNetFee()).isEqualTo(new BigDecimal("100000.00"));
+        assertThat(response.status()).isEqualTo("FEES_FINALIZED");
+    }
+
+    @Test
+    void shouldAllowFeeFinalizationWithDiscount() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
+
+        // Finalizing with discount (reduction allowed)
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), new BigDecimal("10000.00"), "Merit scholarship", null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.FeeFinalizationResponse response = enquiryService.finalizeFees(1L, request, "admin");
+
+        assertThat(response.finalizedTotalFee()).isEqualTo(new BigDecimal("100000.00"));
+        assertThat(response.finalizedDiscountAmount()).isEqualTo(new BigDecimal("10000.00"));
+        assertThat(response.finalizedNetFee()).isEqualTo(new BigDecimal("90000.00"));
+        assertThat(response.status()).isEqualTo("FEES_FINALIZED");
     }
 
     @Test
@@ -1002,6 +1082,7 @@ class EnquiryServiceTest {
     void shouldFinalizeFeesWithYearWiseFees() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
             new BigDecimal("100000.00"), null, null, "[50000,50000]", null

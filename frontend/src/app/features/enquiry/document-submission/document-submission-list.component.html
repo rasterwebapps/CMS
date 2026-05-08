@@ -119,6 +119,7 @@
                 <div class="student-info">
                   <span class="cell-name">{{ row.name }}</span>
                   @if (row.phone) { <span class="cell-sub">{{ row.phone }}</span> }
+                  @if (row.email) { <span class="cell-sub">{{ row.email }}</span> }
                 </div>
               </div>
             </td>
@@ -136,6 +137,20 @@
             <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.courseName || '—' }}</td>
           </ng-container>
 
+          <!-- Student Type -->
+          <ng-container matColumnDef="studentType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Type</th>
+            <td mat-cell *matCellDef="let row" class="col-center">
+              @if (row.studentType) {
+                <span class="type-chip type-chip--{{ row.studentType | lowercase }}">
+                  {{ row.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
+                </span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
+          </ng-container>
+
           <!-- Payment Status -->
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Payment Status</th>
@@ -147,12 +162,24 @@
             </td>
           </ng-container>
 
+          <!-- Amount Paid -->
+          <ng-container matColumnDef="totalPaidAmount">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-right">Paid (₹)</th>
+            <td mat-cell *matCellDef="let row" class="col-right">
+              @if (row.totalPaidAmount != null) {
+                <span class="cell-mono">{{ row.totalPaidAmount | inr:false:false }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
+          </ng-container>
+
           <!-- Net Fee -->
           <ng-container matColumnDef="finalizedNetFee">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Net Fee</th>
-            <td mat-cell *matCellDef="let row">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-right">Net Fee (₹)</th>
+            <td mat-cell *matCellDef="let row" class="col-right">
               @if (row.finalizedNetFee) {
-                <span class="cell-mono">{{ row.finalizedNetFee | inr }}</span>
+                <span class="cell-mono">{{ row.finalizedNetFee | inr:false:false }}</span>
               } @else {
                 <span class="cell-muted">—</span>
               }

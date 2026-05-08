@@ -1,103 +1,213 @@
+// ── Dialog title bar ─────────────────────────────────────────
+.eed-dialog-title-bar {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 16px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.eed-dialog-title-bar__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-primary-light);
+  border: 1px solid var(--cms-primary-alpha-30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--cms-primary);
+  }
+}
+
+.eed-dialog-title-bar__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.eed-dialog-title-bar__sub {
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+// ── Dialog content / form ─────────────────────────────────────
+mat-dialog-content {
+  padding: 0 24px !important;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
 .eed-form {
   display: flex;
   flex-direction: column;
   gap: 0;
+  padding-top: 20px;
+  padding-bottom: 4px;
 }
 
+// ── Section titles ────────────────────────────────────────────
 .eed-section-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--mat-sys-primary);
-  margin: 1.25rem 0 0.75rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted);
+  margin: 24px 0 10px;
 
   &:first-child {
     margin-top: 0;
   }
 }
 
+// ── Flag toggle cards ─────────────────────────────────────────
 .eed-flags-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem 1.5rem;
-  margin-bottom: 1rem;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
-.eed-checkbox-row {
+.eed-flag-card {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
-  transition: background 0.15s;
+  transition: var(--cms-transition);
+  background: var(--cms-bg-muted);
+  user-select: none;
 
-  &:hover {
-    background: var(--mat-sys-surface-container);
+  &:hover:not(.eed-flag-card--on) {
+    border-color: var(--cms-border-hover);
+    background: var(--cms-bg-card);
   }
 
-  input[type='checkbox'] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--mat-sys-primary);
-    cursor: pointer;
-    flex-shrink: 0;
+  &--on {
+    background: var(--cms-primary-light);
+    border-color: var(--cms-primary-alpha-30);
+
+    .eed-flag-card__icon { color: var(--cms-primary); }
+    .eed-flag-card__name { color: var(--cms-primary); font-weight: 700; }
+    .eed-flag-card__badge {
+      background: var(--cms-primary);
+      color: #fff;
+    }
   }
 }
 
-.eed-checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  color: var(--mat-sys-on-surface);
+.eed-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: var(--mat-sys-on-surface-variant);
-  }
+.eed-flag-card__icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--cms-text-muted);
+  flex-shrink: 0;
+  transition: color var(--cms-transition);
+}
+
+.eed-flag-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.eed-flag-card__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  transition: color var(--cms-transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eed-flag-card__badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: var(--cms-radius-full);
+  background: var(--cms-border-default);
+  color: var(--cms-text-muted);
+  flex-shrink: 0;
+  transition: var(--cms-transition);
+}
+
+// ── Certificate sections ──────────────────────────────────────
+.eed-cert-section {
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  padding: 16px 16px 4px;
+  margin-bottom: 4px;
 }
 
 .eed-cert-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 0 1rem;
+  gap: 0 12px;
 }
 
+.eed-parents-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+  border-top: 1px solid var(--cms-border-light);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+// ── EWS income hint ───────────────────────────────────────────
 .eed-hint--ews {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  color: var(--mat-sys-primary);
+  gap: 5px;
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-primary-light);
+  border: 1px solid var(--cms-primary-alpha-30);
+  color: var(--cms-primary);
   font-size: 0.78rem;
+  font-weight: 500;
 
   mat-icon {
     font-size: 14px;
     width: 14px;
     height: 14px;
+    flex-shrink: 0;
   }
 }
 
-.dialog-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  &__sub {
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: var(--mat-sys-on-surface-variant);
-    margin-left: auto;
-  }
+// ── Dialog actions ────────────────────────────────────────────
+mat-dialog-actions {
+  padding: 12px 24px 20px !important;
+  gap: 8px;
+  border-top: 1px solid var(--cms-border-default);
+  margin: 0 !important;
 }
-
-mat-dialog-content {
-  max-height: 65vh;
-  overflow-y: auto;
-}
-

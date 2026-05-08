@@ -14,12 +14,15 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
   standalone: true,
   imports: [
     AppDatePipe,
+    PaymentModeLabelPipe,
     InrPipe,
     ReactiveFormsModule,
     MatButtonModule,
@@ -45,7 +48,8 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   protected readonly feeStatus = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly lastPaymentResponse = signal<EnquiryPaymentResponse | null>(null);
 
-  protected readonly paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'CARD', 'NET_BANKING', 'DEMAND_DRAFT'];
+  protected readonly paymentModes = PAYMENT_MODES;
+  protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
   protected readonly displayedColumns = [
     'name',

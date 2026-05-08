@@ -10,7 +10,7 @@ import jakarta.validation.ConstraintValidatorContext;
 
 /**
  * Validator that ensures transactionReference is provided when payment mode
- * is UPI, BANK_TRANSFER, or CHEQUE.
+ * requires a reference number: UPI, BANK_TRANSFER, CHEQUE, or DEMAND_DRAFT.
  */
 public class TransactionReferenceValidator
     implements ConstraintValidator<TransactionReferenceRequired, Object> {
@@ -47,7 +47,8 @@ public class TransactionReferenceValidator
     private boolean requiresTransactionReference(PaymentMode mode) {
         return mode == PaymentMode.UPI
             || mode == PaymentMode.BANK_TRANSFER
-            || mode == PaymentMode.CHEQUE;
+            || mode == PaymentMode.CHEQUE
+            || mode == PaymentMode.DEMAND_DRAFT;
     }
 }
 

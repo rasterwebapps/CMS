@@ -319,6 +319,9 @@
           @if (anyYearBelowZero()) {
             <p class="field-error-block">Year fee cannot be negative</p>
           }
+          @if (anyYearExceedsOriginal()) {
+            <p class="field-error-block">Fee increase not allowed. Year fee cannot exceed the original calculated amount. Only discounts can be applied.</p>
+          }
         </div>
 
         <!-- Global discount control -->
