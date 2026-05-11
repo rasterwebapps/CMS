@@ -6,6 +6,8 @@ export interface AppRoleResponse {
   isSystemRole: boolean;
   description: string | null;
   permissionCodes: string[];
+  /** Ordered dashboard widget keys configured for this role. */
+  dashboardWidgets: string[];
 }
 
 export interface AppUserResponse {

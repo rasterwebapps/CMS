@@ -241,6 +241,62 @@ class EnquiryDocumentServiceTest {
     }
 
     @Test
+    void shouldReturnAllVerifiedWhenAllMandatoryDocsAreVerified() {
+        when(enquiryRepository.existsById(1L)).thenReturn(true);
+
+        List<EnquiryDocument> docs = List.of(
+            createDocWithStatus(1L, testEnquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(2L, testEnquiry, DocumentType.TWELFTH_MARKSHEET, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(3L, testEnquiry, DocumentType.TRANSFER_CERTIFICATE, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(4L, testEnquiry, DocumentType.AADHAR_CARD, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(5L, testEnquiry, DocumentType.PASSPORT_PHOTO, DocumentVerificationStatus.VERIFIED)
+        );
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(docs);
+
+        com.cms.dto.DocumentVerificationStatusResponse response =
+            documentService.allMandatoryDocumentsVerified(1L);
+
+        assertThat(response.allVerified()).isTrue();
+        assertThat(response.allUploaded()).isTrue();
+        assertThat(response.unverifiedDocumentTypes()).isEmpty();
+        assertThat(response.notUploadedDocumentTypes()).isEmpty();
+    }
+
+    @Test
+    void shouldReturnUnverifiedListWhenSomeDocumentsOnlyUploaded() {
+        when(enquiryRepository.existsById(1L)).thenReturn(true);
+
+        List<EnquiryDocument> docs = List.of(
+            createDocWithStatus(1L, testEnquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.UPLOADED),
+            createDocWithStatus(2L, testEnquiry, DocumentType.TWELFTH_MARKSHEET, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(3L, testEnquiry, DocumentType.TRANSFER_CERTIFICATE, DocumentVerificationStatus.VERIFIED),
+            createDocWithStatus(4L, testEnquiry, DocumentType.AADHAR_CARD, DocumentVerificationStatus.UPLOADED),
+            createDocWithStatus(5L, testEnquiry, DocumentType.PASSPORT_PHOTO, DocumentVerificationStatus.VERIFIED)
+        );
+        when(documentRepository.findByEnquiryId(1L)).thenReturn(docs);
+
+        com.cms.dto.DocumentVerificationStatusResponse response =
+            documentService.allMandatoryDocumentsVerified(1L);
+
+        assertThat(response.allVerified()).isFalse();
+        // UPLOADED counts as uploaded, so allUploaded = true
+        assertThat(response.allUploaded()).isTrue();
+        assertThat(response.unverifiedDocumentTypes()).containsExactlyInAnyOrder(
+            "TENTH_MARKSHEET", "AADHAR_CARD");
+        // Both are UPLOADED (not missing), so notUploadedDocumentTypes is empty
+        assertThat(response.notUploadedDocumentTypes()).isEmpty();
+    }
+
+    @Test
+    void shouldThrowWhenEnquiryNotFoundOnVerificationCheck() {
+        when(enquiryRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> documentService.allMandatoryDocumentsVerified(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Enquiry not found with id: 999");
+    }
+
+    @Test
     void shouldUploadFileAndCreateNewDocumentWhenNoneExists() {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of());
@@ -395,6 +451,16 @@ class EnquiryDocumentServiceTest {
 
     private EnquiryDocument createDocument(Long id, Enquiry enquiry, DocumentType type) {
         EnquiryDocument doc = new EnquiryDocument(enquiry, type, DocumentVerificationStatus.NOT_UPLOADED);
+        doc.setId(id);
+        Instant now = Instant.now();
+        doc.setCreatedAt(now);
+        doc.setUpdatedAt(now);
+        return doc;
+    }
+
+    private EnquiryDocument createDocWithStatus(Long id, Enquiry enquiry, DocumentType type,
+                                                  DocumentVerificationStatus status) {
+        EnquiryDocument doc = new EnquiryDocument(enquiry, type, status);
         doc.setId(id);
         Instant now = Instant.now();
         doc.setCreatedAt(now);

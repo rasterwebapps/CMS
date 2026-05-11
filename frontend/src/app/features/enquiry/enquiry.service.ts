@@ -15,6 +15,7 @@ import {
   EnquiryConversionRequest,
   EnquiryConversionPrefillResponse,
   EnquiryYearWiseFeeStatusResponse,
+  DocumentVerificationStatus,
 } from './enquiry.model';
 
 @Injectable({
@@ -178,6 +179,16 @@ export class EnquiryService {
   getYearWiseFeeStatus(enquiryId: number): Observable<EnquiryYearWiseFeeStatusResponse> {
     return this.http.get<EnquiryYearWiseFeeStatusResponse>(
       `${this.baseUrl}/${enquiryId}/year-wise-fee-status`,
+    );
+  }
+
+  /**
+   * Checks whether all mandatory documents for this enquiry have been
+   * verified. Used as a pre-flight gate before completing admission.
+   */
+  getDocumentVerificationStatus(enquiryId: number): Observable<DocumentVerificationStatus> {
+    return this.http.get<DocumentVerificationStatus>(
+      `${this.baseUrl}/${enquiryId}/documents/verification-status`,
     );
   }
 }

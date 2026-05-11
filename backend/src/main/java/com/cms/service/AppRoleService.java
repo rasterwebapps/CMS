@@ -74,6 +74,10 @@ public class AppRoleService {
             role.getPermissions().addAll(permissions);
         }
 
+        if (request.dashboardWidgets() != null) {
+            role.getDashboardWidgets().addAll(request.dashboardWidgets());
+        }
+
         AppRole saved = appRoleRepository.save(role);
         auditLogService.record(actor, "ROLE_CREATED", "AppRole",
             String.valueOf(saved.getId()),
@@ -136,6 +140,24 @@ public class AppRoleService {
         return updatePermissions(roleId, permissionCodes, requesterPermissions, "system");
     }
 
+    /** Replaces the dashboard widget list for a role in the given order. */
+    @Transactional
+    public AppRoleResponse updateDashboardWidgets(Long roleId, List<String> widgetKeys, String actor) {
+        AppRole role = appRoleRepository.findById(roleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
+
+        role.getDashboardWidgets().clear();
+        if (widgetKeys != null) {
+            role.getDashboardWidgets().addAll(widgetKeys);
+        }
+
+        AppRole updated = appRoleRepository.save(role);
+        auditLogService.record(actor, "DASHBOARD_WIDGETS_UPDATED", "AppRole",
+            String.valueOf(updated.getId()),
+            "Dashboard widgets set to: " + widgetKeys);
+        return toResponse(updated);
+    }
+
     public List<String> getPermissions(Long roleId) {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
@@ -157,7 +179,8 @@ public class AppRoleService {
             role.getHierarchyLevel(),
             role.isSystemRole(),
             role.getDescription(),
-            codes
+            codes,
+            List.copyOf(role.getDashboardWidgets())
         );
     }
 }

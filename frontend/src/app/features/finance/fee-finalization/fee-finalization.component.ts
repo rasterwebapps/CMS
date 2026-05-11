@@ -114,10 +114,15 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly discountExceedsTotal = computed(() =>
     this.globalDiscount() > this.totalOriginal()
   );
+  /** True when a discount is entered but the reason field is empty. */
+  protected readonly discountReasonMissing = computed(() =>
+    this.hasDiscount() && !this.discountReasonCtrl.value?.trim()
+  );
   protected readonly canSubmit = computed(() =>
     !this.anyYearBelowZero() &&
     !this.anyYearExceedsOriginal() &&
     !this.discountExceedsTotal() &&
+    !this.discountReasonMissing() &&
     !!this.selectedEnquiry() &&
     this.yearRows().length > 0
   );

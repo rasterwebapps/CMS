@@ -1,0 +1,103 @@
+# Production docker-compose — deployment server: 172.16.7.209
+# Run from /docker_data on the server:
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# Required variables in /docker_data/.env (chmod 600):
+#   NEXUS_URL              → e.g. http://192.168.1.x:8081
+#   APP_VERSION            → build number, e.g. 42, or main-SNAPSHOT
+#   DB_USERNAME            → PostgreSQL username  (e.g. cms_user)
+#   DB_PASSWORD            → PostgreSQL password  (strong, unique)
+#   KEYCLOAK_ADMIN_PASSWORD→ Keycloak admin password (must differ from DB_PASSWORD)
+#   DEPLOY_HOST            → 172.16.7.209
+#
+# NOTE: HTTP-only until SSL certificate is provisioned.
+# When cert is ready: restore 443 port, SSL cert volumes, and HTTPS nginx.conf.
+
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  # Data persisted in Docker root (/docker_root/volumes/)
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       cms
+      POSTGRES_USER:     ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [cms-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d cms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Keycloak ───────────────────────────────────────────────────────────────
+  # Not port-exposed — accessible only through Nginx (/realms/ proxy).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    command: start --import-realm
+    environment:
+      KC_DB:                   postgres
+      KC_DB_URL:               jdbc:postgresql://postgres:5432/cms
+      KC_DB_USERNAME:          ${DB_USERNAME}
+      KC_DB_PASSWORD:          ${DB_PASSWORD}
+      KEYCLOAK_ADMIN:          admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME:             ${DEPLOY_HOST}
+      KC_HTTP_ENABLED:         "true"
+      KC_HOSTNAME_STRICT:      "false"
+      KC_PROXY_HEADERS:        xforwarded
+    volumes:
+      - ./infrastructure/keycloak:/opt/keycloak/data/import
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [cms-net]
+
+  # ── Backend (Spring Boot) ──────────────────────────────────────────────────
+  # Not port-exposed — accessible only through Nginx (/api/ proxy).
+  backend:
+    image: ${NEXUS_URL}/cms-docker/cms-backend:${APP_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL:                 jdbc:postgresql://postgres:5432/cms
+      DB_USERNAME:            ${DB_USERNAME}
+      DB_PASSWORD:            ${DB_PASSWORD}
+      # External URL — matches the 'iss' claim Keycloak puts in JWTs
+      KEYCLOAK_ISSUER_URI:    http://${DEPLOY_HOST}/realms/cms
+      # Internal Docker URL — backend fetches public keys without going through Nginx
+      KEYCLOAK_JWK_SET_URI:   http://keycloak:8080/realms/cms/protocol/openid-connect/certs
+      CORS_ALLOWED_ORIGINS:   http://${DEPLOY_HOST}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [cms-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (Nginx) ───────────────────────────────────────────────────────
+  # HTTP-only until SSL cert provisioned. Only port 80 exposed.
+  frontend:
+    image: ${NEXUS_URL}/cms-docker/cms-frontend:${APP_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks: [cms-net]
+
+volumes:
+  postgres_data:
+
+networks:
+  cms-net:
+    driver: bridge

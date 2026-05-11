@@ -150,3 +150,84 @@ collecting all student and admission details. On submit, both the `students` and
 - The "Complete Admission" item is not shown.
 
 **Status:** NOT TESTED
+---
+## TC-ADMCOMP-008: Verify Documents button opens document verification screen
+**Preconditions:**
+- At least one enquiry is in `DOCUMENTS_SUBMITTED` status.
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+**Steps:**
+1. Navigate to **Admission Management → Complete Admission**.
+2. Locate an enquiry in the list.
+3. Click the **"Verify Docs"** button (green shield icon) in the actions column.
+**Expected Result:**
+- Browser navigates to `/enquiries/document-submission/{id}?mode=verify`.
+- The document collection screen loads in **verify mode** — header shows "X/Y verified".
+- Section hint reads: "Verify each document — verified docs are locked and cannot be changed".
+- VERIFIED documents show a green "Locked" badge and have no edit/upload/status-change buttons.
+- UPLOADED (not yet verified) documents show the full verify/reject/upload controls.
+**Status:** NOT TESTED
+---
+## TC-ADMCOMP-009: Cannot complete admission without verifying all documents
+**Preconditions:**
+- An enquiry is in `DOCUMENTS_SUBMITTED` status with at least one document still in UPLOADED (not VERIFIED) status.
+- User is logged in with `ROLE_ADMIN`.
+**Steps:**
+1. Navigate to **Admission Management → Complete Admission**.
+2. Click the **"Complete"** button (or click the table row) for that enquiry.
+**Expected Result:**
+- A warning toast appears: "N document(s) still need verification. Please verify all documents first."
+- The browser navigates to the document verification screen for that enquiry (`?mode=verify`).
+- The convert/admission form screen is NOT opened.
+**Status:** NOT TESTED
+---
+## TC-ADMCOMP-010: Create Admission screen shows blocking banner when docs unverified
+**Preconditions:**
+- An enquiry is in `DOCUMENTS_SUBMITTED` status with at least one document in UPLOADED status.
+- User navigates directly to `/enquiries/{id}/convert` (bypassing the list check).
+**Steps:**
+1. Open the Create Admission screen via direct URL.
+**Expected Result:**
+- A yellow warning banner is displayed at the top of the form body.
+- Banner reads: "Document Verification Required — N mandatory document(s) have not been verified yet."
+- A "Go to Verify Documents" link is visible in the banner.
+- The "Create Admission" button is replaced with an amber "Verify Documents First" button that links to the verify screen.
+- Submitting the form is blocked (backend returns 400 with "mandatory documents must be verified").
+**Status:** NOT TESTED
+---
+## TC-ADMCOMP-011: All documents verified — admission can be completed
+**Preconditions:**
+- All mandatory enquiry documents are marked as VERIFIED.
+- User is logged in with `ROLE_ADMIN`.
+**Steps:**
+1. Navigate to **Admission Management → Complete Admission**.
+2. Click **"Complete"** for the enquiry.
+**Expected Result:**
+- No warning is shown.
+- Browser navigates directly to the Create Admission form.
+- The document verification banner is NOT visible.
+- The "Create Admission" button is enabled and submittable.
+**Status:** NOT TESTED
+---
+## TC-ADMCOMP-012: Verified documents are locked in verify mode
+**Preconditions:**
+- An enquiry has at least one VERIFIED and one UPLOADED document.
+- User opens the document verification screen via `?mode=verify`.
+**Steps:**
+1. Observe a document with status VERIFIED.
+2. Attempt to click the verify/reject/upload buttons on it.
+**Expected Result:**
+- The VERIFIED document card shows a green "Locked" badge.
+- No verify, reject, upload, replace, or delete buttons are visible for VERIFIED documents.
+- Remarks input is disabled (read-only) for VERIFIED documents.
+- Other UPLOADED documents still show the full set of action buttons.
+**Status:** NOT TESTED
+---
+## TC-ADMCOMP-013: Backend enforces document verification on conversion API
+**Preconditions:**
+- An enquiry is in `DOCUMENTS_SUBMITTED` status with UPLOADED documents (not VERIFIED).
+**Steps:**
+1. Send a POST request directly to `/api/v1/enquiries/{id}/convert` with a valid conversion payload.
+**Expected Result:**
+- Response status is `400 Bad Request`.
+- Response body contains: `"All mandatory documents must be verified before completing admission"`.
+**Status:** NOT TESTED

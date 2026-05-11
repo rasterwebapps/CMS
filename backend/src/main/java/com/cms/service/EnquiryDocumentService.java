@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.dto.MissingDocumentsResponse;
@@ -81,6 +82,44 @@ public class EnquiryDocumentService {
         }
 
         return new MissingDocumentsResponse(missing.isEmpty(), missing);
+    }
+
+    /**
+     * Checks whether every mandatory document for the given enquiry has been
+     * marked as {@code VERIFIED} by a staff member. Used as a pre-flight gate
+     * before completing admission.
+     */
+    public DocumentVerificationStatusResponse allMandatoryDocumentsVerified(Long enquiryId) {
+        if (!enquiryRepository.existsById(enquiryId)) {
+            throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
+        }
+
+        List<EnquiryDocument> documents = documentRepository.findByEnquiryId(enquiryId);
+
+        Set<DocumentType> verifiedTypes = documents.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.VERIFIED)
+            .map(EnquiryDocument::getDocumentType)
+            .collect(Collectors.toSet());
+
+        Set<DocumentType> uploadedOrVerifiedTypes = documents.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.UPLOADED
+                      || d.getStatus() == DocumentVerificationStatus.VERIFIED)
+            .map(EnquiryDocument::getDocumentType)
+            .collect(Collectors.toSet());
+
+        List<String> unverified = new ArrayList<>();
+        List<String> notUploaded = new ArrayList<>();
+        for (DocumentType mandatory : MANDATORY_DOCUMENTS) {
+            if (!verifiedTypes.contains(mandatory)) {
+                unverified.add(mandatory.name());
+                if (!uploadedOrVerifiedTypes.contains(mandatory)) {
+                    notUploaded.add(mandatory.name());
+                }
+            }
+        }
+
+        return new DocumentVerificationStatusResponse(
+            unverified.isEmpty(), notUploaded.isEmpty(), unverified, notUploaded);
     }
 
     public List<EnquiryDocumentResponse> findByEnquiryId(Long enquiryId) {

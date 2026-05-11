@@ -3,6 +3,7 @@ package com.cms.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,24 +25,28 @@ public class FeeReportController {
         this.feeReportService = feeReportService;
     }
 
+    @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")
     @GetMapping("/outstanding")
     public ResponseEntity<List<FeeDemandDto>> getOutstandingDemands(
             @RequestParam Long termInstanceId) {
         return ResponseEntity.ok(feeReportService.getOutstandingDemands(termInstanceId));
     }
 
+    @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")
     @GetMapping("/collection-summary")
     public ResponseEntity<List<FeeCollectionSummaryDto>> getCollectionSummary(
             @RequestParam Long termInstanceId) {
         return ResponseEntity.ok(feeReportService.getCollectionSummary(termInstanceId));
     }
 
+    @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")
     @GetMapping("/late-fee-collection")
     public ResponseEntity<List<TermFeePaymentDto>> getLateFeeCollection(
             @RequestParam Long termInstanceId) {
         return ResponseEntity.ok(feeReportService.getLateFeeCollection(termInstanceId));
     }
 
+    @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")
     @GetMapping("/student-ledger")
     public ResponseEntity<StudentFeeLedgerDto> getStudentLedger(
             @RequestParam Long studentId) {

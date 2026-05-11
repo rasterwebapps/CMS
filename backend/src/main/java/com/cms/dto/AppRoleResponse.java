@@ -9,5 +9,7 @@ public record AppRoleResponse(
     int hierarchyLevel,
     boolean isSystemRole,
     String description,
-    List<String> permissionCodes
+    List<String> permissionCodes,
+    /** Ordered dashboard widget keys configured for this role. */
+    List<String> dashboardWidgets
 ) {}

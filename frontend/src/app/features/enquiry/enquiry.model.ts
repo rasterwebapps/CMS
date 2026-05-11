@@ -110,6 +110,13 @@ export interface EnquiryDocumentRequest {
   remarks?: string;
 }
 
+export interface DocumentVerificationStatus {
+  allVerified: boolean;
+  allUploaded: boolean;
+  unverifiedDocumentTypes: string[];
+  notUploadedDocumentTypes: string[];
+}
+
 export interface EnquiryPaymentRequest {
   amountPaid: number;
   paymentDate: string;

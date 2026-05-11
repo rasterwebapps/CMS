@@ -3,9 +3,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
-import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest } from '../enquiry.model';
+import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest, DocumentVerificationStatus } from '../enquiry.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear } from '../../academic-year/academic-year.model';
 import { CommunityService } from '../../community/community.service';
@@ -26,6 +27,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     RouterLink,
     ReactiveFormsModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     InrPipe,
     CmsTourButtonComponent,
   ],
@@ -54,6 +56,10 @@ export class EnquiryConvertComponent implements OnInit {
   protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly loading          = signal(true);
   protected readonly saving           = signal(false);
+
+  /** Document verification status — loaded alongside the enquiry. */
+  protected readonly docVerification  = signal<DocumentVerificationStatus | null>(null);
+  protected readonly docsNotVerified  = signal(false);
 
   // Consent document files
   protected readonly parentConsentFile    = signal<File | null>(null);
@@ -115,12 +121,15 @@ export class EnquiryConvertComponent implements OnInit {
       years:    this.academicYearSvc.getAllAcademicYears(),
       communities: this.communityService.getActiveCommunities(),
       bloodGroups: this.bloodGroupService.getActiveBloodGroups(),
+      verification: this.enquiryService.getDocumentVerificationStatus(id),
     }).subscribe({
-      next: ({ enquiry, prefill, years, communities, bloodGroups }) => {
+      next: ({ enquiry, prefill, years, communities, bloodGroups, verification }) => {
         this.enquiry.set(enquiry);
         this.prefill.set(prefill);
         this.communities.set(communities);
         this.bloodGroups.set(bloodGroups);
+        this.docVerification.set(verification);
+        this.docsNotVerified.set(!verification.allVerified);
 
         // Sort years newest-first for the dropdown
         const sorted = [...years].sort((a, b) =>
@@ -182,6 +191,10 @@ export class EnquiryConvertComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.docsNotVerified()) {
+      this.toast.warning('All mandatory documents must be verified before completing admission.');
+      return;
+    }
     const id = this.enquiry()?.id;
     if (!id) return;
     this.saving.set(true);

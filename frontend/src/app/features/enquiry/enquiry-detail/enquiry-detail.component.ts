@@ -56,7 +56,6 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly payments = signal<EnquiryPaymentResponse[]>([]);
   protected readonly statusHistory = signal<EnquiryStatusHistoryResponse[]>([]);
   protected readonly loading = signal(true);
-  protected readonly submitting = signal(false);
 
   protected readonly selectedTabIndex = signal(0);
 
@@ -117,18 +116,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected submitDocuments(): void {
     const id = this.enquiry()?.id;
     if (!id) return;
-    this.submitting.set(true);
-    this.enquiryService.submitDocuments(id).subscribe({
-      next: () => {
-        this.toast.success('Documents submitted successfully');
-        this.load(id);
-        this.submitting.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to submit documents');
-        this.submitting.set(false);
-      },
-    });
+    void this.router.navigate(['/enquiries/document-submission', id]);
   }
 
   protected statusLabel(s: string | null | undefined): string {

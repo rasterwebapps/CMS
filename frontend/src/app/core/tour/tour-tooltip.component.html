@@ -2,17 +2,29 @@
   class="tour-tooltip"
   role="dialog"
   aria-modal="true"
-  [attr.aria-labelledby]="'tour-title-' + (stepIndex())"
-  (keydown.escape)="onEscape()">
+  [attr.aria-labelledby]="'tour-title-' + stepIndex()">
 
-  <!-- Step counter -->
+  <!-- Header: counter pill + close -->
   <div class="tour-header">
-    <span class="tour-counter">Step {{ stepIndex() + 1 }} of {{ totalSteps() }}</span>
+    <span class="tour-counter" aria-live="polite" aria-atomic="true">
+      Step {{ stepIndex() + 1 }} of {{ totalSteps() }}
+    </span>
     <button type="button" class="tour-close-btn" (click)="onDismiss()" aria-label="Close tour">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
         <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
+  </div>
+
+  <!-- Progress dots -->
+  <div class="tour-progress" role="presentation" aria-hidden="true">
+    @for (i of dots(); track i) {
+      <span
+        class="tour-dot"
+        [class.tour-dot--active]="i === stepIndex()"
+        [class.tour-dot--done]="i < stepIndex()">
+      </span>
+    }
   </div>
 
   <!-- Title -->
@@ -25,47 +37,61 @@
   @if (step()?.alignmentHint) {
     <div class="tour-alignment-demo">
       <div class="demo-label">Column alignment guide</div>
-      <table class="demo-table">
-        <thead>
-          <tr>
-            <th class="demo-th demo-th--left">Column type</th>
-            <th class="demo-th demo-th--right">Alignment</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'right' || step()?.alignmentHint === 'all'">
-            <td class="demo-td demo-td--left">
-              <span class="cell-secondary">Currency / Amount</span>
-            </td>
-            <td class="demo-td demo-td--right">
-              <span class="cell-currency">₹1,23,456</span>
-              <span class="demo-align-tag">Right-aligned</span>
-            </td>
-          </tr>
-          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'center' || step()?.alignmentHint === 'all'">
-            <td class="demo-td demo-td--left">
-              <span class="cell-secondary">Status / Badge</span>
-            </td>
-            <td class="demo-td demo-td--center">
+
+      <div class="demo-guide">
+
+        <!-- Header row with zone labels -->
+        <div class="demo-guide-row demo-guide-row--header">
+          <div class="demo-col-type">Column</div>
+          <div class="demo-col-zone demo-col-zone--left">← Left</div>
+          <div class="demo-col-zone demo-col-zone--center">Center</div>
+          <div class="demo-col-zone demo-col-zone--right">Right →</div>
+        </div>
+
+        <!-- Name / Text → LEFT zone -->
+        <div class="demo-guide-row" [class.demo-guide-row--active]="step()?.alignmentHint === 'left' || step()?.alignmentHint === 'all'">
+          <div class="demo-col-type">Name</div>
+          <div class="demo-col-zone demo-col-zone--left">
+            <div class="demo-cell">
+              <span class="cell-name">Dr. Priya</span>
+              <span class="demo-align-tag">Left-aligned</span>
+            </div>
+          </div>
+          <div class="demo-col-zone demo-col-zone--center"></div>
+          <div class="demo-col-zone demo-col-zone--right"></div>
+        </div>
+
+        <!-- Status / Badge → CENTER zone -->
+        <div class="demo-guide-row" [class.demo-guide-row--active]="step()?.alignmentHint === 'center' || step()?.alignmentHint === 'all'">
+          <div class="demo-col-type">Status</div>
+          <div class="demo-col-zone demo-col-zone--left"></div>
+          <div class="demo-col-zone demo-col-zone--center">
+            <div class="demo-cell">
               <span class="status-badge status-badge--active">Active</span>
               <span class="demo-align-tag">Centered</span>
-            </td>
-          </tr>
-          <tr [class.demo-row--highlight]="step()?.alignmentHint === 'left' || step()?.alignmentHint === 'all'">
-            <td class="demo-td demo-td--left">
-              <span class="cell-secondary">Name / Text</span>
-            </td>
-            <td class="demo-td demo-td--left">
-              <span class="cell-name">Dr. Priya Sharma</span>
-              <span class="demo-align-tag">Left-aligned</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+          <div class="demo-col-zone demo-col-zone--right"></div>
+        </div>
+
+        <!-- Currency / Amount → RIGHT zone -->
+        <div class="demo-guide-row" [class.demo-guide-row--active]="step()?.alignmentHint === 'right' || step()?.alignmentHint === 'all'">
+          <div class="demo-col-type">Currency</div>
+          <div class="demo-col-zone demo-col-zone--left"></div>
+          <div class="demo-col-zone demo-col-zone--center"></div>
+          <div class="demo-col-zone demo-col-zone--right">
+            <div class="demo-cell">
+              <span class="cell-currency">₹1,234</span>
+              <span class="demo-align-tag">Right-aligned</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   }
 
-  <!-- Event-driven hint -->
+  <!-- Event-driven waiting hint -->
   @if (isWaiting()) {
     <div class="tour-waiting-hint" role="status" aria-live="polite">
       <span class="tour-waiting-dot"></span>
@@ -73,22 +99,32 @@
     </div>
   }
 
-  <!-- Primary navigation -->
+  <!-- Navigation -->
   <div class="tour-actions">
     <button
       type="button"
-      class="btn-ghost tour-btn"
-      [disabled]="stepIndex() === 0"
-      (click)="onPrevious()">
-      Previous
+      class="btn-ghost tour-btn tour-btn--prev"
+      [disabled]="isFirstStep()"
+      (click)="onPrevious()"
+      aria-label="Previous step">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
     </button>
 
     <button
       type="button"
-      class="btn-primary tour-btn"
+      class="btn-primary tour-btn tour-btn--next"
       [disabled]="isWaiting()"
-      (click)="onNext()">
+      (click)="onNext()"
+      [attr.aria-label]="isLastStep() ? 'Finish tour' : 'Next step'">
       {{ isLastStep() ? 'Done' : 'Next' }}
+      @if (!isLastStep()) {
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      }
     </button>
   </div>
 
@@ -97,5 +133,10 @@
     <button type="button" class="tour-link-btn" (click)="onDismiss()">Dismiss</button>
     <span class="tour-dismiss-sep" aria-hidden="true">·</span>
     <button type="button" class="tour-link-btn" (click)="onHardClose()">Don't show again</button>
+  </div>
+
+  <!-- Keyboard hint -->
+  <div class="tour-kbd-hint" aria-hidden="true">
+    <kbd>←</kbd><kbd>→</kbd> navigate &nbsp;·&nbsp; <kbd>Esc</kbd> close
   </div>
 </div>

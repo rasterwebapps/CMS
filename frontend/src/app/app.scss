@@ -7,7 +7,7 @@
   border-bottom: 1px solid var(--cms-toolbar-border, #e5e7eb);
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
   color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
-  height: 56px;
+  height: 62px;
   padding: 0 !important; // let child sections handle their own padding
 
   button {
@@ -85,17 +85,24 @@
   // Fill the remaining viewport below the fixed toolbar (56 px).
   // Focus mode uses the same height since the focus-header is rendered
   // outside the container (same level as .app-toolbar).
-  height: calc(100vh - 56px);
+  height: calc(100vh - 62px);
 
-  // When sidenav is collapsed, override the content margin
+  // When sidenav is pinned-collapsed (icon rail), force the content margin to
+  // 68px. This is the authoritative CSS source for the collapsed state.
+  // Angular Material's ResizeObserver also detects the 68px CSS width and
+  // tries to set the same value inline — both agree, no conflict.
   &.sidenav-collapsed {
-    .mat-sidenav-content {
+    .mat-sidenav-content,
+    .mat-drawer-content {
       margin-left: 68px !important;
     }
   }
 
-  .mat-sidenav-content {
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  .mat-sidenav-content,
+  .mat-drawer-content {
+    // Smooth transition for both pinned expand/collapse AND Angular Material's
+    // own inline margin recalculation. Duration matches the sidenav width transition.
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     // Allow mat-sidenav-content to be the scroll container
     overflow-y: auto;
     // Override Angular Material's default (purple-tinted) surface background
@@ -124,6 +131,18 @@
     .sidenav-nav {
       padding: 8px 0;
     }
+  }
+
+  // ─── Hover-expanded overlay ───────────────────────────────────────────────
+  // When the user hovers over the 68px rail, the sidenav switches to
+  // mode='over' (see app.html binding). Angular Material renders it as an
+  // absolutely-positioned overlay so it NEVER pushes the content.
+  // We just need to set the full width and a drop-shadow so it floats above.
+  &.hover-expanded {
+    width: var(--cms-sidenav-width) !important;  // restore full 272px
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.22);
+    // z-index is managed by Angular Material's overlay in 'over' mode;
+    // no manual z-index needed here.
   }
 
   // sidenav-brand-header removed — toggle/expand is handled in the toolbar
@@ -184,27 +203,39 @@
     padding: 4px 0;
 
     // ── Kill Angular Material MDC state-layer & ink-ripple ──────────────
-    // Correct token names for AM 21 (mat-list- prefix, NOT mdc-list-list-item-)
     --mat-list-list-item-hover-state-layer-color: transparent;
     --mat-list-list-item-hover-state-layer-opacity: 0;
     --mat-list-list-item-focus-state-layer-color: transparent;
     --mat-list-list-item-focus-state-layer-opacity: 0;
-    // Active indicator is handled entirely by our .active-link class
     --mat-list-active-indicator-color: transparent;
     --mat-list-active-indicator-shape: var(--cms-radius-sm);
 
-    // Ink-ripple elements are injected into AM's internal template so we must
-    // use ::ng-deep to reach them.
     ::ng-deep .mat-ripple-element {
       display: none !important;
+    }
+
+    // AM 21 MDC list-item internal content spans — force left alignment
+    ::ng-deep .mdc-list-item__content {
+      text-align: left !important;
+    }
+    ::ng-deep .mdc-list-item__primary-text {
+      text-align: left !important;
     }
 
     a[mat-list-item] {
       border-radius: 10px !important;
       margin: 1px 8px;
+      // Zero out host padding — icon position controlled via MDC token below
+      padding: 0 !important;
       transition: var(--cms-transition);
       height: 36px !important;
       justify-content: flex-start !important;
+      text-align: left !important;
+
+      // Pull the MDC leading icon flush so it lands at the same x as .top-level-nav-item icons.
+      // top-level: margin(8) + padding(12) = 20px → here: margin(8) + mdc-start(12) = 20px
+      --mdc-list-list-item-leading-icon-start-space: 12px;
+      --mdc-list-list-item-leading-icon-end-space: 10px;
 
       mat-icon[matListItemIcon] {
         color: var(--cms-sidenav-group-text);
@@ -215,11 +246,11 @@
       }
 
       span[matListItemTitle] {
-        font-size: 0.8rem;
+        font-size: 0.8125rem;
         font-weight: 400;
         color: var(--cms-sidenav-text);
         transition: var(--cms-transition);
-        text-align: left;
+        text-align: left !important;
       }
 
       &:hover {
@@ -297,6 +328,35 @@
       width: 28px;
       object-fit: contain;
     }
+
+    // Icon-only utility buttons in the footer (keyboard shortcuts, help tour)
+    .sidenav-footer-shortcut-btn,
+    .sidenav-footer-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: var(--cms-radius-md);
+      color: var(--cms-sidenav-group-text);
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+
+      mat-icon {
+        font-size: 17px;
+        width: 17px;
+        height: 17px;
+      }
+
+      &:hover {
+        background: var(--cms-sidenav-hover);
+        color: var(--cms-sidenav-text-bright);
+      }
+    }
   }
 }
 
@@ -310,9 +370,9 @@
 }
 
 .collapsed-nav-btn {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: var(--cms-radius-sm) !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--cms-radius-md) !important;
   color: var(--cms-sidenav-group-text) !important;
   transition: var(--cms-transition) !important;
 
@@ -322,9 +382,41 @@
   }
 }
 
+// Collapsed group icon highlighted when any child item is the current route
+.collapsed-group-active {
+  background: var(--cms-sidenav-active-bg) !important;
+  color: var(--cms-sidenav-active-text) !important;
+  position: relative !important;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
+    border-radius: 0 3px 3px 0;
+  }
+}
+
 .collapsed-active {
   background: var(--cms-sidenav-active-bg) !important;
   color: var(--cms-sidenav-active-text) !important;
+  position: relative !important;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, var(--color-primary-400), var(--cms-primary));
+    border-radius: 0 3px 3px 0;
+  }
 }
 
 // Flyout menu from collapsed sidebar
@@ -357,59 +449,58 @@
   }
 
   mat-expansion-panel-header {
-    padding: 0 12px;
-    height: 38px !important;
+    // Style as a non-interactive section label, not a nav item
+    // left 20px = 8px item-margin + 12px item-padding → label text aligns with icons
+    padding: 16px 12px 4px 20px !important;
+    height: auto !important;
+    min-height: 28px !important;
+    text-align: left !important;
+    cursor: default;
 
+    // Hide the expand/collapse chevron — groups look always-open
+    &::ng-deep .mat-expansion-indicator {
+      display: none !important;
+    }
+
+    // AM 21 internal spans
+    &::ng-deep .mat-content {
+      justify-content: flex-start !important;
+      text-align: left !important;
+    }
+
+    // Hide the group icon — section labels are text only
     .nav-group-icon {
-      margin-right: 10px;
-      color: var(--cms-sidenav-group-text);
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      transition: var(--cms-transition);
+      display: none !important;
     }
 
     mat-panel-title {
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      color: var(--cms-sidenav-text) !important;
-      font-size: 0.8rem;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-    }
-
-    &::ng-deep .mat-expansion-indicator::after {
+      text-align: left;
+      // Section-label typography
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
       color: var(--cms-sidenav-group-text) !important;
     }
 
+    // No hover background — this is a label, not a button
     &:hover {
-      background: var(--cms-sidenav-hover) !important;
-
-      .nav-group-icon {
-        color: var(--cms-sidenav-text);
-      }
+      background: transparent !important;
     }
   }
 
-  &.mat-expanded {
-    mat-expansion-panel-header {
-      .nav-group-icon {
-        color: var(--cms-sidenav-active-text);
-      }
-      mat-panel-title {
-        color: var(--cms-sidenav-text-bright) !important;
-      }
-    }
+  // No state changes when expanded — label always looks the same
+  &.mat-expanded mat-expansion-panel-header mat-panel-title {
+    color: var(--cms-sidenav-group-text) !important;
   }
 
   mat-nav-list {
     padding-top: 0;
-    padding-bottom: 2px;
-
-    a[mat-list-item] {
-      padding-left: 30px !important;
-    }
+    padding-bottom: 6px;
+    // No margin-left or border-left — items sit at the same position as top-level items
   }
 }
 
@@ -439,7 +530,7 @@
   }
 
   .top-level-label {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--cms-sidenav-text);
@@ -479,7 +570,7 @@
     }
 
     .top-level-label {
-      color: var(--cms-sidenav-text-bright) !important;
+      color: var(--cms-sidenav-active-text) !important;
       font-weight: 600;
     }
   }
@@ -510,7 +601,7 @@
   }
 
   span[matListItemTitle] {
-    color: var(--cms-sidenav-text-bright) !important;
+    color: var(--cms-sidenav-active-text) !important;
     font-weight: 600 !important;
   }
 }
@@ -712,7 +803,14 @@
 }
 
 .toolbar-action-btn {
-  border-radius: var(--cms-radius-sm) !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: var(--cms-radius-lg) !important;
+  transition: var(--cms-transition) !important;
+
+  &:hover {
+    background: var(--cms-bg-surface-2) !important;
+  }
 }
 
 // Sidebar toggle button in the toolbar (hamburger / menu_open icon)

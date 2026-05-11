@@ -365,12 +365,21 @@
             </div>
 
             <div class="discount-reason-col">
-              <label class="field-label">Discount Reason</label>
+              <label class="field-label">
+                Discount Reason
+                @if (hasDiscount()) {
+                  <span class="field-required" aria-hidden="true">*</span>
+                }
+              </label>
               <input
                 class="field-input"
+                [class.field-input--error]="discountReasonMissing()"
                 [formControl]="discountReasonCtrl"
                 placeholder="e.g., Merit scholarship, Management quota…"
               />
+              @if (discountReasonMissing()) {
+                <span class="input-error-hint">Reason is required when a discount is applied</span>
+              }
             </div>
           </div>
 

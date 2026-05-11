@@ -1,314 +1,401 @@
 <div class="admin-dashboard">
 
   <!-- ──────────────────── Hero ──────────────────── -->
-  <div class="hero">
-    <div class="hero-ring"></div>
-    <div class="hero-ring-2"></div>
-    <div class="hero-ring-3"></div>
+  @if (show('hero')) {
+    <div class="hero">
+      <div class="hero-ring"></div>
+      <div class="hero-ring-2"></div>
+      <div class="hero-ring-3"></div>
 
-    <div class="hero-content">
-      <div class="hero-eyebrow">
-        <div class="hero-tag">{{ academicYearLabel() }}</div>
-        <div class="live-badge">
-          <div class="pulse-dot"></div>
-          {{ summary()?.totalStudents ?? 0 }} students enrolled
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          <div class="hero-tag">{{ academicYearLabel() }}</div>
+          <div class="live-badge">
+            <div class="pulse-dot"></div>
+            {{ summary()?.totalStudents ?? 0 }} students enrolled
+          </div>
         </div>
+        <div class="hero-title">Welcome back, <em>{{ authService.username() || 'Admin' }}</em></div>
+        <div class="hero-sub">Here's your college at a glance &mdash; all systems nominal.</div>
       </div>
-      <div class="hero-title">Welcome back, <em>{{ authService.username() || 'Admin' }}</em></div>
-      <div class="hero-sub">Here's your college at a glance &mdash; all systems nominal.</div>
-    </div>
 
-    <div class="hero-actions">
-      <a routerLink="/reports" class="btn-g">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M5 7h4M5 5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        View Reports
-      </a>
-      <a routerLink="/reports" class="btn-p">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path d="M7 1v9M3 7l4 4 4-4M1 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Generate Report
-      </a>
+      <div class="hero-actions">
+        <a routerLink="/reports" class="btn-g">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 7h4M5 5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          View Reports
+        </a>
+        <a routerLink="/reports" class="btn-p">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M7 1v9M3 7l4 4 4-4M1 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Generate Report
+        </a>
+      </div>
     </div>
-  </div>
+  }
 
   <!-- ──────────────────── Stats ──────────────────── -->
-  <div class="stats-grid">
+  @if (hasAnyStatCard) {
+    <div class="stats-grid">
 
-    <div class="sc c-accent">
-      @if (studentsBadge(); as b) {
-        <div class="sc-badge badge-info">{{ b }}</div>
-      }
-      <div class="sc-icon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M2 16c0-3.314 3.134-5.5 7-5.5s7 2.186 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="sc-val">{{ summary()?.totalStudents ?? 0 }}</div>
-      <div class="sc-label">Total Students</div>
-      <div class="sc-meta">Currently enrolled</div>
-    </div>
-
-    <div class="sc c-green">
-      <div class="sc-badge badge-up">Active</div>
-      <div class="sc-icon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-          <circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/>
-          <path d="M1 15c0-2.761 2.239-4.5 5-4.5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M9 15c0-2.761 1.343-4.5 3-4.5s3 1.739 3 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="sc-val">{{ summary()?.totalFaculty ?? 0 }}</div>
-      <div class="sc-label">Active Faculty</div>
-      <div class="sc-meta">Staff members</div>
-    </div>
-
-    <div class="sc c-purple">
-      <div class="sc-badge badge-purple">All active</div>
-      <div class="sc-icon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <path d="M3 15V7l6-5 6 5v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-          <rect x="6" y="10" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <div class="sc-val">{{ summary()?.totalLabs ?? 0 }}</div>
-      <div class="sc-label">Total Labs</div>
-      <div class="sc-meta">Operational</div>
-    </div>
-
-    <div class="sc c-amber">
-      <div class="sc-badge badge-warn">This month</div>
-      <div class="sc-icon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <rect x="2" y="5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M2 9h14" stroke="currentColor" stroke-width="1.5"/>
-          <circle cx="6" cy="13" r="1" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="sc-val">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</div>
-      <div class="sc-label">Fee Collected</div>
-      <div class="sc-meta">Current month</div>
-    </div>
-
-    <div class="sc c-red">
-      <div class="sc-badge badge-down">Pending</div>
-      <div class="sc-icon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <path d="M9 3v6M9 12.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <div class="sc-val">{{ (summary()?.feeOutstanding ?? 0) | inr }}</div>
-      <div class="sc-label">Outstanding</div>
-      <div class="sc-meta">Needs collection</div>
-    </div>
-
-  </div>
-
-  <!-- ──────────────────── Quick Actions ──────────────────── -->
-  <div class="qa-row">
-    <a routerLink="/students/new" class="qa-btn">
-      <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 2v11M3 7.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Enrol Student
-    </a>
-    <a routerLink="/reports" class="qa-btn">
-      <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><rect x="2" y="2" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h5M5 5h3M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      View Reports
-    </a>
-    <a routerLink="/student-fees" class="qa-btn">
-      <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 5v2.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Fee Waiver
-    </a>
-    <a routerLink="/settings" class="qa-btn">
-      <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 1v1.5M7.5 12v1.5M1 7.5h1.5M12 7.5h1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Settings
-    </a>
-    <a routerLink="/agents" class="qa-btn">
-      <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 1.5l1.6 4.9h5.1L10 9.8l1.6 4.9L7.5 12 3.4 14.7 5 9.8 1 6.4h5.1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-      Agents
-    </a>
-  </div>
-
-  <!-- ──────────────────── Trend + Approvals ──────────────────── -->
-  <div class="grid-2">
-
-    <!-- Admission Trend -->
-    <div class="card">
-      <div class="card-h">
-        <div class="card-ht">
-          <div class="card-hico card-hico--accent">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-              <path d="M1 12L5 7.5l3 3 3.5-5 2.5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          Admission Trend
-        </div>
-        <a routerLink="/reports" class="card-action">View all →</a>
-      </div>
-      <div class="card-b">
-        @if (trendsLoading()) {
-          <div class="chart-area chart-area--loading"></div>
-          <div class="chart-axis-row">
-            @for (n of [1,2,3,4,5,6,7]; track n) { <span>&nbsp;</span> }
-          </div>
-        } @else if (trendBars().length === 0) {
-          <p class="empty-hint">No enrolment data yet.</p>
-        } @else {
-          <div class="chart-area">
-            @for (bar of trendBars(); track bar.label) {
-              <div class="bar-grp">
-                <span class="bar-val" [class.bar-val--hi]="bar.emphasis === 'hi'">{{ bar.value }}</span>
-                <div class="bar"
-                     [class.hi]="bar.emphasis === 'hi'"
-                     [class.lo]="bar.emphasis === 'lo'"
-                     [style.height.%]="bar.height"
-                     [attr.title]="bar.value + ' admissions'"></div>
-              </div>
-            }
-          </div>
-          <div class="chart-axis-row">
-            @for (bar of trendBars(); track bar.label) {
-              <span>{{ bar.label }}</span>
-            }
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- Pending Approvals -->
-    <div class="card">
-      <div class="card-h">
-        <div class="card-ht">
-          <div class="card-hico card-hico--red">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-              <path d="M7.5 2v4M7.5 10v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-          </div>
-          Pending Approvals
-        </div>
-        @if (approvals().length > 0) {
-          <span class="count-badge">{{ approvals().length }}</span>
-        }
-      </div>
-      <div class="card-b">
-        @if (loading()) {
-          <p class="empty-hint">Loading…</p>
-        } @else if (approvals().length === 0) {
-          <div class="all-clear">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <circle cx="9" cy="9" r="7.5" stroke="#22C55E" stroke-width="1.5"/>
-              <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            All clear — nothing pending
-          </div>
-        } @else {
-          @for (item of approvals(); track item.title) {
-            <div class="ap-item">
-              <div class="ap-bullet" [attr.data-severity]="item.severity"></div>
-              <div class="ap-text">
-                <div class="ap-title">{{ item.title }}</div>
-                <div class="ap-sub">{{ item.subtitle }}</div>
-              </div>
-              <div class="ap-amt" [attr.data-severity]="item.severity">{{ item.amount }}</div>
-            </div>
+      @if (show('stat-students')) {
+        <div class="sc c-accent">
+          @if (studentsBadge(); as b) {
+            <div class="sc-badge badge-info">{{ b }}</div>
           }
-        }
-      </div>
-    </div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 16c0-3.314 3.134-5.5 7-5.5s7 2.186 7 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalStudents ?? 0 }}</div>
+          <div class="sc-label">Total Students</div>
+          <div class="sc-meta">Currently enrolled</div>
+        </div>
+      }
 
-  </div>
+      @if (show('stat-faculty')) {
+        <div class="sc c-green">
+          <div class="sc-badge badge-up">Active</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/>
+              <path d="M1 15c0-2.761 2.239-4.5 5-4.5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M9 15c0-2.761 1.343-4.5 3-4.5s3 1.739 3 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalFaculty ?? 0 }}</div>
+          <div class="sc-label">Active Faculty</div>
+          <div class="sc-meta">Staff members</div>
+        </div>
+      }
 
-  <!-- ──────────────────── Equipment + Fee ──────────────────── -->
-  <div class="grid-2">
+      @if (show('stat-labs')) {
+        <div class="sc c-purple">
+          <div class="sc-badge badge-purple">All active</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 15V7l6-5 6 5v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <rect x="6" y="10" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalLabs ?? 0 }}</div>
+          <div class="sc-label">Total Labs</div>
+          <div class="sc-meta">Operational</div>
+        </div>
+      }
 
-    <!-- Equipment Status -->
-    <div class="card">
-      <div class="card-h">
-        <div class="card-ht">
-          <div class="card-hico card-hico--purple">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      @if (show('stat-fee-collected')) {
+        <div class="sc c-amber">
+          <div class="sc-badge badge-warn">This month</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect x="2" y="5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 9h14" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="6" cy="13" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</div>
+          <div class="sc-label">Fee Collected</div>
+          <div class="sc-meta">Current month</div>
+        </div>
+      }
+
+      @if (show('stat-outstanding')) {
+        <div class="sc c-red">
+          <div class="sc-badge badge-down">Pending</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M9 3v6M9 12.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ (summary()?.feeOutstanding ?? 0) | inr }}</div>
+          <div class="sc-label">Outstanding</div>
+          <div class="sc-meta">Needs collection</div>
+        </div>
+      }
+
+      @if (show('stat-enquiries')) {
+        <div class="sc c-accent">
+          <div class="sc-badge badge-info">This month</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 7h6M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalEnquiriesThisMonth ?? 0 }}</div>
+          <div class="sc-label">Enquiries</div>
+          <div class="sc-meta">This month</div>
+        </div>
+      }
+
+      @if (show('stat-admissions')) {
+        <div class="sc c-green">
+          <div class="sc-badge badge-up">This month</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M9 2l2.5 5 5.5.8-4 3.9.95 5.5L9 14.5l-4.95 2.7.95-5.5-4-3.9 5.5-.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.admissionsThisMonth ?? 0 }}</div>
+          <div class="sc-label">Admissions</div>
+          <div class="sc-meta">This month</div>
+        </div>
+      }
+
+      @if (show('stat-departments')) {
+        <div class="sc c-purple">
+          <div class="sc-badge badge-purple">Active</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect x="2" y="7" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalDepartments ?? 0 }}</div>
+          <div class="sc-label">Departments</div>
+          <div class="sc-meta">Active</div>
+        </div>
+      }
+
+      @if (show('stat-programs')) {
+        <div class="sc c-amber">
+          <div class="sc-badge badge-warn">Running</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 15V7l6-4.5L15 7v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <rect x="6" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="sc-val">{{ summary()?.totalPrograms ?? 0 }}</div>
+          <div class="sc-label">Programs</div>
+          <div class="sc-meta">Running</div>
+        </div>
+      }
+
+      @if (show('stat-equipment')) {
+        <div class="sc c-accent">
+          <div class="sc-badge badge-info">Total</div>
+          <div class="sc-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <rect x="2" y="4" width="4" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
               <rect x="8" y="4" width="4" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/>
+              <rect x="14" y="6" width="2" height="5" rx="1" stroke="currentColor" stroke-width="1.5" opacity=".3"/>
             </svg>
           </div>
-          Equipment Status
+          <div class="sc-val">{{ summary()?.totalEquipment ?? 0 }}</div>
+          <div class="sc-label">Equipment</div>
+          <div class="sc-meta">Total items</div>
         </div>
-        <span class="section-badge">{{ summary()?.totalEquipment ?? 0 }} total</span>
-      </div>
-      <div class="card-b">
-        @if (equipmentRows().length === 0) {
-          <p class="empty-hint">No equipment data.</p>
-        } @else {
-          @for (row of equipmentRows(); track row.label) {
-            <div class="eq-item">
-              <div class="eq-meta">
-                <span class="eq-name">
-                  <span class="eq-dot" [attr.data-color]="row.color"></span>
-                  {{ row.label }}
-                </span>
-                <span class="eq-count">{{ row.count }} unit{{ row.count === 1 ? '' : 's' }}</span>
+      }
+
+    </div>
+  }
+
+  <!-- ──────────────────── Quick Actions ──────────────────── -->
+  @if (show('quick-actions')) {
+    <div class="qa-row">
+      <a routerLink="/students/new" class="qa-btn">
+        <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 2v11M3 7.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Enrol Student
+      </a>
+      <a routerLink="/reports" class="qa-btn">
+        <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><rect x="2" y="2" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h5M5 5h3M5 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        View Reports
+      </a>
+      <a routerLink="/student-fees" class="qa-btn">
+        <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 5v2.5H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Fee Waiver
+      </a>
+      <a routerLink="/settings" class="qa-btn">
+        <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 1v1.5M7.5 12v1.5M1 7.5h1.5M12 7.5h1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Settings
+      </a>
+      <a routerLink="/agents" class="qa-btn">
+        <svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 1.5l1.6 4.9h5.1L10 9.8l1.6 4.9L7.5 12 3.4 14.7 5 9.8 1 6.4h5.1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Agents
+      </a>
+    </div>
+  }
+
+  <!-- ──────────────────── Trend + Approvals ──────────────────── -->
+  @if (show('chart-trend') || show('pending-approvals')) {
+    <div class="grid-2">
+
+      @if (show('chart-trend')) {
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--accent">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <path d="M1 12L5 7.5l3 3 3.5-5 2.5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </div>
-              <div class="prog">
-                <div class="prog-f" [attr.data-color]="row.color" [style.width.%]="row.pct"></div>
-              </div>
+              Admission Trend
             </div>
-          }
-        }
-      </div>
-    </div>
-
-    <!-- Fee Overview -->
-    <div class="card">
-      <div class="card-h">
-        <div class="card-ht">
-          <div class="card-hico card-hico--green">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-              <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M5 7.5l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <a routerLink="/reports" class="card-action">View all →</a>
           </div>
-          Fee Overview
+          <div class="card-b">
+            @if (trendsLoading()) {
+              <div class="chart-area chart-area--loading"></div>
+              <div class="chart-axis-row">
+                @for (n of [1,2,3,4,5,6,7]; track n) { <span>&nbsp;</span> }
+              </div>
+            } @else if (trendBars().length === 0) {
+              <p class="empty-hint">No enrolment data yet.</p>
+            } @else {
+              <div class="chart-area">
+                @for (bar of trendBars(); track bar.label) {
+                  <div class="bar-grp">
+                    <span class="bar-val" [class.bar-val--hi]="bar.emphasis === 'hi'">{{ bar.value }}</span>
+                    <div class="bar"
+                         [class.hi]="bar.emphasis === 'hi'"
+                         [class.lo]="bar.emphasis === 'lo'"
+                         [style.height.%]="bar.height"
+                         [attr.title]="bar.value + ' admissions'"></div>
+                  </div>
+                }
+              </div>
+              <div class="chart-axis-row">
+                @for (bar of trendBars(); track bar.label) {
+                  <span>{{ bar.label }}</span>
+                }
+              </div>
+            }
+          </div>
         </div>
-        <a routerLink="/student-fees" class="card-action">Manage →</a>
-      </div>
-      <div class="card-b">
-        <div class="fee-item">
-          <span class="fee-name">
-            <span class="fee-dot fee-dot--green"></span>
-            Collected this month
-          </span>
-          <span class="fee-val col">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</span>
-        </div>
-        <div class="fee-item">
-          <span class="fee-name">
-            <span class="fee-dot fee-dot--red"></span>
-            Total outstanding
-          </span>
-          <span class="fee-val out">{{ (summary()?.feeOutstanding ?? 0) | inr }}</span>
-        </div>
-        <div class="fee-item">
-          <span class="fee-name">
-            <span class="fee-dot fee-dot--muted"></span>
-            Total payments recorded
-          </span>
-          <span class="fee-val neu">{{ summary()?.totalFeePayments ?? 0 }}</span>
-        </div>
-        <div class="fee-item">
-          <span class="fee-name">
-            <span class="fee-dot fee-dot--purple"></span>
-            Enquiries this month
-          </span>
-          <span class="fee-val neu">{{ summary()?.totalEnquiriesThisMonth ?? 0 }}</span>
-        </div>
-      </div>
-    </div>
+      }
 
-  </div>
+      @if (show('pending-approvals')) {
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--red">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <path d="M7.5 2v4M7.5 10v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </div>
+              Pending Approvals
+            </div>
+            @if (approvals().length > 0) {
+              <span class="count-badge">{{ approvals().length }}</span>
+            }
+          </div>
+          <div class="card-b">
+            @if (loading()) {
+              <p class="empty-hint">Loading…</p>
+            } @else if (approvals().length === 0) {
+              <div class="all-clear">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <circle cx="9" cy="9" r="7.5" stroke="#22C55E" stroke-width="1.5"/>
+                  <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                All clear — nothing pending
+              </div>
+            } @else {
+              @for (item of approvals(); track item.title) {
+                <div class="ap-item">
+                  <div class="ap-bullet" [attr.data-severity]="item.severity"></div>
+                  <div class="ap-text">
+                    <div class="ap-title">{{ item.title }}</div>
+                    <div class="ap-sub">{{ item.subtitle }}</div>
+                  </div>
+                  <div class="ap-amt" [attr.data-severity]="item.severity">{{ item.amount }}</div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- ──────────────────── Equipment + Fee ──────────────────── -->
+  @if (show('equipment-status') || show('fee-overview')) {
+    <div class="grid-2">
+
+      @if (show('equipment-status')) {
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--purple">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <rect x="2" y="4" width="4" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                  <rect x="8" y="4" width="4" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" opacity=".5"/>
+                </svg>
+              </div>
+              Equipment Status
+            </div>
+            <span class="section-badge">{{ summary()?.totalEquipment ?? 0 }} total</span>
+          </div>
+          <div class="card-b">
+            @if (equipmentRows().length === 0) {
+              <p class="empty-hint">No equipment data.</p>
+            } @else {
+              @for (row of equipmentRows(); track row.label) {
+                <div class="eq-item">
+                  <div class="eq-meta">
+                    <span class="eq-name">
+                      <span class="eq-dot" [attr.data-color]="row.color"></span>
+                      {{ row.label }}
+                    </span>
+                    <span class="eq-count">{{ row.count }} unit{{ row.count === 1 ? '' : 's' }}</span>
+                  </div>
+                  <div class="prog">
+                    <div class="prog-f" [attr.data-color]="row.color" [style.width.%]="row.pct"></div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      @if (show('fee-overview')) {
+        <div class="card">
+          <div class="card-h">
+            <div class="card-ht">
+              <div class="card-hico card-hico--green">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M5 7.5l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              Fee Overview
+            </div>
+            <a routerLink="/student-fees" class="card-action">Manage →</a>
+          </div>
+          <div class="card-b">
+            <div class="fee-item">
+              <span class="fee-name"><span class="fee-dot fee-dot--green"></span>Collected this month</span>
+              <span class="fee-val col">{{ (summary()?.feeCollectedThisMonth ?? 0) | inr }}</span>
+            </div>
+            <div class="fee-item">
+              <span class="fee-name"><span class="fee-dot fee-dot--red"></span>Total outstanding</span>
+              <span class="fee-val out">{{ (summary()?.feeOutstanding ?? 0) | inr }}</span>
+            </div>
+            <div class="fee-item">
+              <span class="fee-name"><span class="fee-dot fee-dot--muted"></span>Total payments recorded</span>
+              <span class="fee-val neu">{{ summary()?.totalFeePayments ?? 0 }}</span>
+            </div>
+            <div class="fee-item">
+              <span class="fee-name"><span class="fee-dot fee-dot--purple"></span>Enquiries this month</span>
+              <span class="fee-val neu">{{ summary()?.totalEnquiriesThisMonth ?? 0 }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
 
 </div>

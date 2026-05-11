@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.AddressRequest;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
@@ -79,6 +80,7 @@ public class EnquiryService {
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
+    private final EnquiryDocumentService enquiryDocumentService;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -91,7 +93,8 @@ public class EnquiryService {
                            AdmissionRepository admissionRepository,
                            EnquiryPaymentRepository enquiryPaymentRepository,
                            AcademicYearRepository academicYearRepository,
-                           FeeStructureService feeStructureService) {
+                           FeeStructureService feeStructureService,
+                           EnquiryDocumentService enquiryDocumentService) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -104,6 +107,7 @@ public class EnquiryService {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
+        this.enquiryDocumentService = enquiryDocumentService;
     }
 
     @Transactional
@@ -275,6 +279,10 @@ public class EnquiryService {
         if (discount.compareTo(authoritativeTotal) > 0) {
             throw new IllegalArgumentException("Discount amount cannot exceed total fee");
         }
+        if (discount.compareTo(BigDecimal.ZERO) > 0 &&
+                (request.discountReason() == null || request.discountReason().isBlank())) {
+            throw new IllegalArgumentException("Discount reason is required when a discount is applied");
+        }
         BigDecimal netFee = authoritativeTotal.subtract(discount).setScale(2, RoundingMode.UNNECESSARY);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
@@ -409,6 +417,16 @@ public class EnquiryService {
         if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
             throw new IllegalStateException(
                 "Enquiry must be in DOCUMENTS_SUBMITTED status to convert. Current: " + enquiry.getStatus()
+            );
+        }
+
+        // Mandatory: all required documents must be VERIFIED before admission can be completed.
+        DocumentVerificationStatusResponse verificationStatus =
+            enquiryDocumentService.allMandatoryDocumentsVerified(enquiryId);
+        if (!verificationStatus.allVerified()) {
+            throw new IllegalStateException(
+                "All mandatory documents must be verified before completing admission. " +
+                "Unverified: " + String.join(", ", verificationStatus.unverifiedDocumentTypes())
             );
         }
 

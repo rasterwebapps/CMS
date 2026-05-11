@@ -67,6 +67,16 @@ public class RoleManagementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    /** Replaces the ordered dashboard widget list for a role. */
+    @PutMapping("/{id}/dashboard-widgets")
+    public ResponseEntity<AppRoleResponse> updateDashboardWidgets(
+            @PathVariable Long id,
+            @RequestBody List<String> widgetKeys,
+            @AuthenticationPrincipal Jwt jwt) {
+        String actor = jwt.getClaimAsString("preferred_username");
+        return ResponseEntity.ok(appRoleService.updateDashboardWidgets(id, widgetKeys, actor));
+    }
+
     /** Replaces the permission set of an existing role. */
     @PutMapping("/{id}/permissions")
     public ResponseEntity<AppRoleResponse> updatePermissions(

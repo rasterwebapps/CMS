@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.model.enums.DocumentType;
@@ -71,6 +72,17 @@ public class EnquiryDocumentController {
     public ResponseEntity<Void> deleteDocument(@PathVariable Long enquiryId, @PathVariable Long id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Returns whether all mandatory documents for the given enquiry are
+     * verified and, if not, which ones still need verification. Used as a
+     * pre-flight check before completing admission.
+     */
+    @GetMapping("/verification-status")
+    public ResponseEntity<DocumentVerificationStatusResponse> getVerificationStatus(@PathVariable Long enquiryId) {
+        DocumentVerificationStatusResponse status = documentService.allMandatoryDocumentsVerified(enquiryId);
+        return ResponseEntity.ok(status);
     }
 
     /**

@@ -307,6 +307,8 @@
 }
 
 .doc-section__hint {
+  // ...existing code...
+  &--verify { color: var(--cms-warning, #d97706); }
   font-size: 0.6875rem;
   font-weight: 400;
   text-transform: none;
@@ -355,6 +357,27 @@
     &:hover { border-color: rgba(239, 68, 68, 0.3); }
   }
   &--saving { opacity: 0.65; pointer-events: none; }
+  &--locked {
+    background: color-mix(in srgb, var(--cms-success) 3%, var(--cms-bg-card));
+    border-left-color: var(--cms-success);
+    &:hover { border-color: rgba(16, 185, 129, 0.3); }
+  }
+
+  &__locked-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--cms-success);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    white-space: nowrap;
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+  }
 
   &__body {
     display: grid;
@@ -708,9 +731,144 @@
   }
 }
 
-// ── Responsive ────────────────────────────────────────────────────────────
+// ── Replace file button (in rejection banner) ─────────────────────────────
 
-@media (max-width: 640px) {
-  .hero-progress { min-width: 100%; }
-  .doc-card__body { grid-template-columns: 1fr; }
+.replace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1.5px solid #dc2626;
+  border-radius: 7px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.775rem;
+  font-weight: 700;
+  font-family: var(--cms-font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &:hover:not([disabled]) {
+    background: #dc2626;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+  }
+
+  &[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+  :host-context(.dark) & {
+    background: rgba(239, 68, 68, 0.1);
+    &:hover:not([disabled]) { background: #dc2626; }
+  }
+}
+
+// ── Rejection reason inline panel ─────────────────────────────────────────
+
+.reject-reason-panel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: reject-fade-in 0.15s ease;
+}
+
+@keyframes reject-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reject-reason-input {
+  flex: 1;
+  min-width: 150px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  border-radius: 7px;
+  background: rgba(239, 68, 68, 0.04);
+  font-size: 0.775rem;
+  color: var(--cms-text-primary);
+  font-family: var(--cms-font-ui);
+  outline: none;
+
+  &::placeholder { color: var(--cms-text-muted); font-style: italic; }
+  &:focus {
+    border-color: var(--cms-danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.06);
+  }
+}
+
+// ── Rejection banner ──────────────────────────────────────────────────────
+
+.doc-rejection-banner {
+  // ...existing code...
+  &__replace {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  &__action {
+    margin: 0;
+    font-size: 0.775rem;
+    color: #b91c1c;
+    line-height: 1.4;
+    font-style: italic;
+  }
+}
+
+.doc-rejection-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(254, 226, 226, 0.55);
+  margin-top: 2px;
+
+  :host-context(.dark) & {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  &__icon {
+    color: #dc2626;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #991b1b;
+  }
+
+  &__reason {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #7f1d1d;
+    line-height: 1.5;
+  }
+
+  &__action {
+    margin: 2px 0 0;
+    font-size: 0.775rem;
+    color: #b91c1c;
+    line-height: 1.4;
+    font-style: italic;
+  }
 }

@@ -2,12 +2,15 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { UserRoleService } from '../../core/permissions/user-role.service';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { AppRoleResponse, AllPermissionsResponse, PermissionGroup } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
+import { WIDGET_REGISTRY, WidgetDef } from '../dashboard/widget-registry';
 
-type PanelMode = 'create' | 'edit' | null;
+type PanelMode = 'create' | 'edit' | 'widgets' | null;
 
 interface PermSubGroup {
   prefix: string;
@@ -29,7 +32,7 @@ const ACTION_SUFFIXES = new Set([
 @Component({
   selector: 'app-role-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, MatIconModule, DragDropModule],
   templateUrl: './role-management.component.html',
   styleUrl: './role-management.component.scss',
 })
@@ -57,6 +60,17 @@ export class RoleManagementComponent implements OnInit {
 
   protected readonly canCreate = computed(() => this.perm.has('ROLE_CREATE'));
   protected readonly canEdit   = computed(() => this.perm.has('ROLE_EDIT'));
+
+  // ── Widget picker state ───────────────────────────────────────
+  protected readonly allWidgets = WIDGET_REGISTRY;
+  protected widgetEditTarget: AppRoleResponse | null = null;
+  protected availableWidgets: WidgetDef[] = [];
+  protected selectedWidgets: WidgetDef[] = [];
+
+  protected readonly widgetCategories = computed(() => {
+    const cats = new Set(WIDGET_REGISTRY.map(w => w.category));
+    return Array.from(cats);
+  });
 
   /** Full permission list grouped by category → sub-grouped by resource prefix */
   protected readonly permGroups = computed<PermGroupWithSubs[]>(() => {
@@ -165,6 +179,59 @@ export class RoleManagementComponent implements OnInit {
   protected closePanel(): void {
     this.panelMode.set(null);
     this.editTarget.set(null);
+    this.widgetEditTarget = null;
+  }
+
+  // ── Widget picker ─────────────────────────────────────────────
+  protected openWidgetPicker(role: AppRoleResponse): void {
+    this.widgetEditTarget = role;
+    const configuredKeys = new Set(role.dashboardWidgets ?? []);
+    // Preserve configured order in the selected list
+    this.selectedWidgets = (role.dashboardWidgets ?? [])
+      .map(k => WIDGET_REGISTRY.find(w => w.key === k))
+      .filter((w): w is WidgetDef => w !== undefined);
+    this.availableWidgets = WIDGET_REGISTRY.filter(w => !configuredKeys.has(w.key));
+    this.panelMode.set('widgets');
+  }
+
+  protected dropWidget(event: CdkDragDrop<WidgetDef[]>): void {
+    if (event.previousContainer === event.container) {
+      // Reorder within the same list — mutate in-place so CDK's reference stays valid
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    } else {
+      // Transfer between available ↔ selected — mutate both in-place
+      transferArrayItem(
+        event.previousContainer.data,
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex,
+      );
+    }
+  }
+
+  protected addWidget(widget: WidgetDef): void {
+    this.availableWidgets = this.availableWidgets.filter(w => w.key !== widget.key);
+    this.selectedWidgets  = [...this.selectedWidgets, widget];
+  }
+
+  protected removeWidget(widget: WidgetDef): void {
+    this.selectedWidgets  = this.selectedWidgets.filter(w => w.key !== widget.key);
+    this.availableWidgets = [...this.availableWidgets, widget];
+  }
+
+  protected saveWidgets(): void {
+    if (!this.widgetEditTarget) return;
+    this.saving.set(true);
+    const keys = this.selectedWidgets.map(w => w.key);
+    this.svc.updateRoleDashboardWidgets(this.widgetEditTarget.id, keys).subscribe({
+      next: (updated) => {
+        this.roles.update(rs => rs.map(r => r.id === updated.id ? updated : r));
+        this.toast.success('Dashboard widgets saved');
+        this.closePanel();
+        this.saving.set(false);
+      },
+      error: () => { this.toast.error('Failed to save widgets'); this.saving.set(false); },
+    });
   }
 
   // ── Permission checkbox helpers ───────────────────────────────

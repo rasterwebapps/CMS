@@ -113,7 +113,7 @@
   --cms-radius-sm: 5px;
   --cms-radius-md: 8px;
   --cms-radius-lg: 10px;
-  --cms-radius-xl: 14px;
+  --cms-radius-xl: 16px;
   --cms-radius-full: 9999px;
 
   // ─── Transitions ───
@@ -136,7 +136,7 @@
   --cms-sidenav-text: #475569;
   --cms-sidenav-text-bright: #1e293b;
   --cms-sidenav-hover: rgba(0, 0, 0, 0.04);
-  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.08);
+  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.12);
   --cms-sidenav-active-text: #6366f1;
   --cms-sidenav-border: rgba(0, 0, 0, 0.08);
   --cms-sidenav-group-text: #94a3b8;
@@ -622,13 +622,14 @@ app-root {
 // ──────────────────────────────────────────────────
 .mat-mdc-card {
   background-color: #ffffff !important;
-  border-radius: var(--cms-radius-md) !important;
+  border-radius: var(--cms-radius-xl) !important;
   transition: var(--cms-transition);
   border: 1px solid #e5e7eb !important;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04) !important;
 
   &:hover {
-    box-shadow: var(--cms-shadow-md);
+    transform: translateY(-3px);
+    box-shadow: var(--cms-shadow-card-hover) !important;
   }
 }
 
@@ -801,6 +802,24 @@ app-root {
       background-color: transparent !important;
     }
   }
+
+  // 3px coloured focus ring matching reference design
+  &.mat-focused {
+    .mdc-text-field--outlined,
+    .mdc-text-field--filled {
+      box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12);
+      border-radius: var(--cms-radius-md);
+    }
+  }
+}
+
+// Micro-label style for form field labels — uppercase, tight tracking
+.mat-mdc-form-field .mat-mdc-floating-label,
+.mat-mdc-form-field label {
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase;
 }
 
 // ──────────────────────────────────────────────────
@@ -1255,6 +1274,7 @@ app-root {
   transition: var(--cms-transition);
 
   &:hover {
+    transform: translateY(-3px);
     border-color: var(--cms-line-strong);
     box-shadow: var(--cms-shadow-card-hover);
   }

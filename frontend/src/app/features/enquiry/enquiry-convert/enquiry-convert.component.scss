@@ -323,14 +323,75 @@
   font-family: var(--cms-font-ui);
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+  text-decoration: none;
   &:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(var(--cms-primary-rgb), 0.35);
   }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  &--warn {
+    background: #d97706;
+    &:hover {
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+    }
+  }
 }
 .btn-spinner { display: inline-block; }
+
+// ── Document verification banner ──────────────────────────────
+.doc-verify-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  background: rgba(254, 243, 199, 0.6);
+  margin-bottom: 16px;
+
+  :host-context(.dark) & {
+    background: rgba(217, 119, 6, 0.1);
+    border-color: rgba(217, 119, 6, 0.3);
+  }
+
+  &__icon {
+    color: #d97706;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &__body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+  &__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  &__msg {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #78350f;
+    line-height: 1.5;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #d97706;
+    text-decoration: none;
+    transition: color 0.15s;
+    width: fit-content;
+
+    &:hover { color: #92400e; text-decoration: underline; }
+  }
+}
 // ── Student type chip ─────────────────────────────────────────
 .type-chip {
   display: inline-flex;
@@ -350,7 +411,7 @@
     border-color: rgba(var(--cms-primary-rgb), 0.2);
   }
 }
-I
+
 // ── Section optional tag & description ───────────────────────
 .section-optional {
   margin-left: auto;

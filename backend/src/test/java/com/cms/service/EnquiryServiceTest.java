@@ -75,6 +75,8 @@ class EnquiryServiceTest {
     private AcademicYearRepository academicYearRepository;
     @Mock
     private FeeStructureService feeStructureService;
+    @Mock
+    private com.cms.service.EnquiryDocumentService enquiryDocumentService;
 
     private EnquiryService enquiryService;
 
@@ -84,7 +86,7 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, facultyRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository, enquiryPaymentRepository, academicYearRepository, feeStructureService);
+        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, facultyRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository, enquiryPaymentRepository, academicYearRepository, feeStructureService, enquiryDocumentService);
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
             .thenReturn(java.math.BigDecimal.ZERO);
@@ -779,6 +781,42 @@ class EnquiryServiceTest {
     }
 
     @Test
+    void shouldThrowWhenDiscountProvidedWithoutReason() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
+
+        // Discount provided but no reason — must be rejected
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Discount reason is required");
+    }
+
+    @Test
+    void shouldThrowWhenDiscountProvidedWithBlankReason() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
+
+        // Blank reason — must also be rejected
+        com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "   ", null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Discount reason is required");
+    }
+
+    @Test
     void shouldSubmitDocumentsFromFeesPaidStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
@@ -1181,6 +1219,8 @@ class EnquiryServiceTest {
         admitted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
         when(admissionRepository.save(any(Admission.class))).thenReturn(new Admission());
@@ -1192,6 +1232,30 @@ class EnquiryServiceTest {
         assertThat(response.convertedStudentId()).isEqualTo(10L);
         verify(admissionRepository).save(any(Admission.class));
         verify(statusHistoryRepository).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenConvertingWithUnverifiedDocuments() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            100L, LocalDate.of(2024, 7, 1), true, true,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(
+                false, false,
+                java.util.List.of("TENTH_MARKSHEET", "AADHAR_CARD"),
+                java.util.List.of("TENTH_MARKSHEET", "AADHAR_CARD")));
+
+        assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("mandatory documents must be verified");
     }
 
     @Test
@@ -1235,6 +1299,8 @@ class EnquiryServiceTest {
         admitted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenAnswer(inv -> {
             Student s = inv.getArgument(0);
@@ -1326,6 +1392,8 @@ class EnquiryServiceTest {
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
         when(studentRepository.existsByEmail("existing@college.edu")).thenReturn(true);
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
@@ -1346,6 +1414,8 @@ class EnquiryServiceTest {
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))

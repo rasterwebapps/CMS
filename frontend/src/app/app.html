@@ -101,7 +101,7 @@
 </mat-toolbar>
 
 <mat-sidenav-container class="app-container"
-                       [class.sidenav-collapsed]="sidenavRail() && !isMobile()"
+                       [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()"
                        [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
                        [class.is-mobile]="isMobile()">
   <mat-sidenav
@@ -139,12 +139,20 @@
       @for (entry of filteredNavEntries(); track entry.label) {
         @if (isNavGroup(entry)) {
           @if (sidenavRail() && !isMobile()) {
-            <!-- Collapsed: show group icon as menu trigger -->
+            <!-- Collapsed: group icon → hover opens flyout with all items -->
             <div class="collapsed-group">
-              <button mat-icon-button [matMenuTriggerFor]="groupMenu" [matTooltip]="entry.label" matTooltipPosition="right" class="collapsed-nav-btn">
+              <button mat-icon-button
+                      [matMenuTriggerFor]="groupMenu"
+                      #groupTrigger="matMenuTrigger"
+                      (mouseenter)="openHoverMenu(groupTrigger)"
+                      (mouseleave)="scheduleCloseHoverMenu(groupTrigger)"
+                      (menuOpened)="attachHoverPanel(groupTrigger)"
+                      class="collapsed-nav-btn"
+                      [class.collapsed-group-active]="isGroupActive(entry)"
+                      [attr.aria-label]="entry.label">
                 <mat-icon>{{ entry.icon }}</mat-icon>
               </button>
-              <mat-menu #groupMenu="matMenu" class="collapsed-nav-menu">
+              <mat-menu #groupMenu="matMenu" [hasBackdrop]="false" class="collapsed-nav-menu">
                 <div class="collapsed-menu-title">{{ entry.label }}</div>
                 @for (item of entry.items; track item.route) {
                   <a mat-menu-item [routerLink]="item.route" routerLinkActive="active-menu-item">

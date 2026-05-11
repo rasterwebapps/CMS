@@ -198,9 +198,21 @@ export class TourService {
     const target = this.resolveTarget(step);
     this.isWaiting.set(false);
 
-    // Position / create the overlays.
-    this.updateSpotlight(target);
-    this.updateTooltip(step, target);
+    // Ensure the target is visible before positioning overlays.
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+
+    // Small delay so scroll settles before we read getBoundingClientRect.
+    const applyOverlays = (): void => {
+      this.updateSpotlight(target);
+      this.updateTooltip(step, target);
+    };
+    if (target) {
+      setTimeout(applyOverlays, 120);
+    } else {
+      applyOverlays();
+    }
 
     // For event-driven steps, subscribe to the DOM event.
     if (step.advanceOn && step.advanceOn !== 'next-button' && target) {

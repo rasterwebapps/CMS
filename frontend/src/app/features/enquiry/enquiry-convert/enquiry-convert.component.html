@@ -26,6 +26,49 @@
     <!-- ── Body ───────────────────────────────────────────────────────────── -->
     <div class="conv-body">
 
+      <!-- ── Document Verification Warning Banner ───────────────────────── -->
+      @if (docsNotVerified()) {
+        <div class="doc-verify-banner" role="alert">
+          <div class="doc-verify-banner__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="doc-verify-banner__body">
+            @if (docVerification() && !docVerification()!.allUploaded) {
+              <p class="doc-verify-banner__title">Documents Not Uploaded</p>
+              <p class="doc-verify-banner__msg">
+                {{ docVerification()!.notUploadedDocumentTypes.length }} mandatory document(s) have not been uploaded yet.
+                Please upload all required documents before completing this admission.
+              </p>
+              <a class="doc-verify-banner__link" [routerLink]="['/enquiries/document-submission', enquiry()?.id]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                </svg>
+                Go to Upload Documents
+              </a>
+            } @else {
+              <p class="doc-verify-banner__title">Document Verification Required</p>
+              <p class="doc-verify-banner__msg">
+                {{ docVerification()?.unverifiedDocumentTypes?.length }} mandatory document(s) have not been verified yet.
+                All documents must be verified before you can complete this admission.
+              </p>
+              <a class="doc-verify-banner__link" [routerLink]="['/enquiries/document-submission', enquiry()?.id]" [queryParams]="{ mode: 'verify' }">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Go to Verify Documents
+              </a>
+            }
+          </div>
+        </div>
+      }
+
       <!-- ── Left: Enquiry Summary ──────────────────────────────────────── -->
       <div id="tour-conv-summary" class="conv-summary anim-rise anim-rise--d1">
 
@@ -509,17 +552,30 @@
     <!-- ── Sticky footer ─────────────────────────────────────────────────── -->
     <div class="conv-footer">
       <a class="btn-cancel" [routerLink]="['/enquiries', enquiry()?.id]">Cancel</a>
-      <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
-        @if (saving()) {
-          <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-        } @else {
+      @if (docsNotVerified()) {
+        <a class="btn-submit btn-submit--warn"
+           [routerLink]="['/enquiries/document-submission', enquiry()?.id]"
+           [queryParams]="{ mode: 'verify' }"
+           matTooltip="Verify all documents before completing admission">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-        }
-        Create Admission
-      </button>
+          Verify Documents First
+        </a>
+      } @else {
+        <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
+          @if (saving()) {
+            <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/>
+            </svg>
+          }
+          Create Admission
+        </button>
+      }
     </div>
 
   }

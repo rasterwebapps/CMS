@@ -55,10 +55,17 @@
       <!-- Progress strip -->
       <div class="hero-progress" aria-label="Document collection progress">
         <div class="hero-progress__counts">
-          <span class="hero-progress__num" [class.hero-progress__num--done]="mandatorySatisfiedCount() === mandatoryTotal()">
-            {{ mandatorySatisfiedCount() }}<span class="hero-progress__of">/{{ mandatoryTotal() }}</span>
-          </span>
-          <span class="hero-progress__lbl">required docs</span>
+          @if (verifyMode()) {
+            <span class="hero-progress__num" [class.hero-progress__num--done]="allMandatoryVerified()">
+              {{ mandatoryVerifiedCount() }}<span class="hero-progress__of">/{{ mandatoryTotal() }}</span>
+            </span>
+            <span class="hero-progress__lbl">verified</span>
+          } @else {
+            <span class="hero-progress__num" [class.hero-progress__num--done]="mandatorySatisfiedCount() === mandatoryTotal()">
+              {{ mandatorySatisfiedCount() }}<span class="hero-progress__of">/{{ mandatoryTotal() }}</span>
+            </span>
+            <span class="hero-progress__lbl">required docs</span>
+          }
           @if (optionalRows().length > 0) {
             <span class="hero-progress__extra">· {{ optionalRows().length }} optional</span>
           }
@@ -66,14 +73,18 @@
         <div class="kpi-track" role="progressbar"
              [attr.aria-valuenow]="mandatoryProgressPct()" aria-valuemin="0" aria-valuemax="100">
           <div class="kpi-fill" [style.width.%]="mandatoryProgressPct()"
-               [class.kpi-fill--done]="mandatorySatisfiedCount() === mandatoryTotal()"></div>
+               [class.kpi-fill--done]="verifyMode() ? allMandatoryVerified() : mandatorySatisfiedCount() === mandatoryTotal()"></div>
         </div>
-        <span class="kpi-status" [class.kpi-status--done]="mandatorySatisfiedCount() === mandatoryTotal()">
-          @if (mandatorySatisfiedCount() === mandatoryTotal()) {
+        <span class="kpi-status" [class.kpi-status--done]="verifyMode() ? allMandatoryVerified() : mandatorySatisfiedCount() === mandatoryTotal()">
+          @if (verifyMode() ? allMandatoryVerified() : mandatorySatisfiedCount() === mandatoryTotal()) {
             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            All collected
+            @if (verifyMode()) { All verified } @else { All collected }
           } @else {
-            {{ mandatoryTotal() - mandatorySatisfiedCount() }} remaining
+            @if (verifyMode()) {
+              {{ mandatoryTotal() - mandatoryVerifiedCount() }} awaiting verification
+            } @else {
+              {{ mandatoryTotal() - mandatorySatisfiedCount() }} remaining
+            }
           }
         </span>
       </div>
@@ -88,7 +99,11 @@
         </div>
         <span>Required Documents</span>
         <span class="doc-section__count">{{ mandatoryTotal() }}</span>
-        <span class="doc-section__hint">All must be uploaded or verified before submission</span>
+        @if (verifyMode()) {
+          <span class="doc-section__hint doc-section__hint--verify">Verify each document — verified docs are locked and cannot be changed</span>
+        } @else {
+          <span class="doc-section__hint">All must be uploaded or verified before submission</span>
+        }
       </div>
 
       <div id="tour-doccol-list" class="doc-list">
@@ -99,6 +114,7 @@
             [class.doc-card--verified]="row.status === 'VERIFIED'"
             [class.doc-card--rejected]="row.status === 'REJECTED'"
             [class.doc-card--saving]="row.saving"
+            [class.doc-card--locked]="isRowLocked(row)"
           >
             <input
               #fileInput
@@ -136,43 +152,105 @@
                     <div class="file-info__actions">
                       <button type="button" class="file-action-btn" matTooltip="View document" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
                       <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download document"><mat-icon>download</mat-icon></button>
-                      @if (isAdminOrFrontOffice()) {
-                        <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
-                      }
-                    </div>
-                  </div>
-                } @else if (isAdminOrFrontOffice()) {
-                  <button type="button" class="upload-zone" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Browse and upload file">
-                    <mat-icon>upload</mat-icon>
-                    <span class="upload-zone__text">Click to upload</span>
-                    <span class="upload-zone__hint">PDF, JPG, PNG · max 10 MB</span>
-                  </button>
-                } @else {
-                  <span class="no-file-label">No file uploaded</span>
-                }
-              </div>
+                       @if (isAdminOrFrontOffice() && !isRowLocked(row)) {
+                         <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
+                       }
+                     </div>
+                   </div>
+                 } @else if (isAdminOrFrontOffice() && !isRowLocked(row)) {
+                   <button type="button" class="upload-zone" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Browse and upload file">
+                     <mat-icon>upload</mat-icon>
+                     <span class="upload-zone__text">Click to upload</span>
+                     <span class="upload-zone__hint">PDF, JPG, PNG · max 10 MB</span>
+                   </button>
+                 } @else {
+                   <span class="no-file-label">No file uploaded</span>
+                 }
+               </div>
 
               <div class="doc-card__controls">
                 <cms-status-badge [status]="row.status"></cms-status-badge>
                 @if (row.saving) {
                   <mat-spinner diameter="16"></mat-spinner>
+                } @else if (isRowLocked(row)) {
+                  <span class="doc-card__locked-tag" matTooltip="Verified documents cannot be changed">
+                    <mat-icon>lock</mat-icon> Locked
+                  </span>
                 } @else if (isAdminOrFrontOffice()) {
-                  <div class="doc-card__status-actions">
-                    <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'" matTooltip="Mark as uploaded" (click)="saveRow(row, 'UPLOADED')" [disabled]="row.status === 'UPLOADED'" aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
-                    <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'" matTooltip="Mark as verified" (click)="saveRow(row, 'VERIFIED')" [disabled]="row.status === 'VERIFIED'" aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
-                    <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="saveRow(row, 'REJECTED')" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
-                    @if (row.document) {
-                      <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
-                    }
-                  </div>
+                  @if (row.documentType === rejectingDocumentType()) {
+                    <!-- Inline rejection-reason prompt -->
+                    <div class="reject-reason-panel">
+                      <input
+                        type="text"
+                        class="reject-reason-input"
+                        [value]="rejectReason()"
+                        (input)="rejectReason.set($any($event.target).value)"
+                        placeholder="Rejection reason (required)…"
+                        (keyup.enter)="confirmReject(row)"
+                        (keyup.escape)="cancelReject()"
+                        autofocus
+                        aria-label="Enter rejection reason"
+                      />
+                      <button type="button" class="status-btn status-btn--active-red" (click)="confirmReject(row)" matTooltip="Confirm rejection" aria-label="Confirm rejection"><mat-icon>check</mat-icon></button>
+                      <button type="button" class="status-btn" (click)="cancelReject()" matTooltip="Cancel" aria-label="Cancel rejection"><mat-icon>close</mat-icon></button>
+                    </div>
+                  } @else {
+                    <div class="doc-card__status-actions">
+                      @if (!verifyMode()) {
+                        <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'"
+                          [matTooltip]="row.isMandatory && !row.document?.hasFile ? 'Upload a file first' : 'Mark as uploaded'"
+                          (click)="saveRow(row, 'UPLOADED')"
+                          [disabled]="row.status === 'UPLOADED' || (row.isMandatory && !row.document?.hasFile)"
+                          aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
+                      }
+                      <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'"
+                        [matTooltip]="row.isMandatory && !row.document?.hasFile ? 'Upload a file first' : 'Mark as verified'"
+                        (click)="saveRow(row, 'VERIFIED')"
+                        [disabled]="row.status === 'VERIFIED' || (row.isMandatory && !row.document?.hasFile)"
+                        aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
+                      <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                      @if (row.document) {
+                        <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
+                      }
+                    </div>
+                  }
                 }
               </div>
             </div>
 
             <div class="doc-card__remarks">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="remarks-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <input type="text" class="remarks-input" placeholder="Add a note or remark…" [(ngModel)]="row.remarks" [disabled]="row.saving || !isAdminOrFrontOffice()" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
+              <input type="text" class="remarks-input" placeholder="Add a note or remark…" [(ngModel)]="row.remarks" [disabled]="row.saving || !isAdminOrFrontOffice() || isRowLocked(row)" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
             </div>
+
+            @if (row.status === 'REJECTED') {
+              <div class="doc-rejection-banner" role="alert">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="doc-rejection-banner__icon" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div class="doc-rejection-banner__body">
+                  <p class="doc-rejection-banner__title">Document Rejected</p>
+                  @if (row.remarks) {
+                    <p class="doc-rejection-banner__reason">Reason: {{ row.remarks }}</p>
+                  } @else {
+                    <p class="doc-rejection-banner__reason">No reason provided. Please contact the front office.</p>
+                  }
+                  @if (isAdminOrFrontOffice()) {
+                    <div class="doc-rejection-banner__replace">
+                      <button type="button" class="replace-btn" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace rejected file">
+                        <mat-icon>upload</mat-icon>
+                        Replace File
+                      </button>
+                      <span class="doc-rejection-banner__action">Upload a corrected document, then mark it as {{ verifyMode() ? 'Verified' : 'Uploaded' }}.</span>
+                    </div>
+                  } @else {
+                    <p class="doc-rejection-banner__action">Please visit the front office to re-submit the correct document.</p>
+                  }
+                </div>
+              </div>
+            }
           </div>
         }
       </div>
@@ -257,14 +335,35 @@
                   @if (row.saving) {
                     <mat-spinner diameter="16"></mat-spinner>
                   } @else if (isAdminOrFrontOffice()) {
-                    <div class="doc-card__status-actions">
-                      <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'" matTooltip="Mark uploaded" (click)="saveRow(row, 'UPLOADED')" [disabled]="row.status === 'UPLOADED'" aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
-                      <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'" matTooltip="Mark verified" (click)="saveRow(row, 'VERIFIED')" [disabled]="row.status === 'VERIFIED'" aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
-                      <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark rejected" (click)="saveRow(row, 'REJECTED')" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
-                      @if (row.document) {
-                        <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
-                      }
-                    </div>
+                    @if (row.documentType === rejectingDocumentType()) {
+                      <!-- Inline rejection-reason prompt -->
+                      <div class="reject-reason-panel">
+                        <input
+                          type="text"
+                          class="reject-reason-input"
+                          [value]="rejectReason()"
+                          (input)="rejectReason.set($any($event.target).value)"
+                          placeholder="Rejection reason (required)…"
+                          (keyup.enter)="confirmReject(row)"
+                          (keyup.escape)="cancelReject()"
+                          autofocus
+                          aria-label="Enter rejection reason"
+                        />
+                        <button type="button" class="status-btn status-btn--active-red" (click)="confirmReject(row)" matTooltip="Confirm rejection" aria-label="Confirm rejection"><mat-icon>check</mat-icon></button>
+                        <button type="button" class="status-btn" (click)="cancelReject()" matTooltip="Cancel" aria-label="Cancel rejection"><mat-icon>close</mat-icon></button>
+                      </div>
+                    } @else {
+                      <div class="doc-card__status-actions">
+                        @if (!verifyMode()) {
+                          <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'" matTooltip="Mark uploaded" (click)="saveRow(row, 'UPLOADED')" [disabled]="row.status === 'UPLOADED'" aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
+                        }
+                        <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'" matTooltip="Mark verified" (click)="saveRow(row, 'VERIFIED')" [disabled]="row.status === 'VERIFIED'" aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
+                        <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                        @if (row.document) {
+                          <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
+                        }
+                      </div>
+                    }
                   }
                 </div>
               </div>
@@ -273,6 +372,24 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="remarks-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 <input type="text" class="remarks-input" placeholder="Add a note…" [(ngModel)]="row.remarks" [disabled]="row.saving || !isAdminOrFrontOffice()" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
               </div>
+              @if (row.status === 'REJECTED' && isAdminOrFrontOffice()) {
+                <div class="doc-rejection-banner" role="alert">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="doc-rejection-banner__icon" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <div class="doc-rejection-banner__body">
+                    <p class="doc-rejection-banner__title">Document Rejected</p>
+                    @if (row.remarks) { <p class="doc-rejection-banner__reason">Reason: {{ row.remarks }}</p> }
+                    <div class="doc-rejection-banner__replace">
+                      <button type="button" class="replace-btn" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Replace rejected file">
+                        <mat-icon>upload</mat-icon>
+                        Replace File
+                      </button>
+                      <span class="doc-rejection-banner__action">Upload a corrected document, then mark it as {{ verifyMode() ? 'Verified' : 'Uploaded' }}.</span>
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
           }
         </div>
@@ -282,7 +399,15 @@
     <!-- ── Footer ────────────────────────────────────────────────────── -->
     <div class="doccol-footer">
       <div class="doccol-footer__hint">
-        @if (!canSubmit()) {
+        @if (verifyMode()) {
+          @if (!allMandatoryVerified()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            All {{ mandatoryTotal() }} required documents must be <strong>verified</strong> before completing admission.
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            All documents verified — you can now complete the admission.
+          }
+        } @else if (!canSubmit()) {
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           All {{ mandatoryTotal() }} required documents must be uploaded or verified before submitting.
         }
@@ -292,21 +417,34 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           Back
         </button>
-        <button
-          type="button"
-          class="btn-action btn-action--primary"
-          [disabled]="!canSubmit() || !isAdminOrFrontOffice()"
-          (click)="submitDocuments()"
-          [matTooltip]="canSubmit() ? '' : 'Upload all required documents first'"
-        >
-          @if (submitting()) {
-            <mat-spinner diameter="14"></mat-spinner>
-            Submitting…
-          } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Submit Documents
-          }
-        </button>
+        @if (!verifyMode()) {
+          <button
+            type="button"
+            class="btn-action btn-action--primary"
+            [disabled]="!canSubmit() || !isAdminOrFrontOffice()"
+            (click)="submitDocuments()"
+            [matTooltip]="canSubmit() ? '' : 'Upload all required documents first'"
+          >
+            @if (submitting()) {
+              <mat-spinner diameter="14"></mat-spinner>
+              Submitting…
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Submit Documents
+            }
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn-action btn-action--primary"
+            [disabled]="!allMandatoryVerified()"
+            (click)="backToList()"
+            [matTooltip]="allMandatoryVerified() ? 'Return to list and complete admission' : 'Verify all documents first'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+            Done — Back to Admission
+          </button>
+        }
       </div>
     </div>
 

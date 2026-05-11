@@ -51,8 +51,17 @@ export class UserRoleService {
     return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/permissions`, permissionCodes);
   }
 
+  updateRoleDashboardWidgets(id: number, widgetKeys: string[]): Observable<AppRoleResponse> {
+    return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/dashboard-widgets`, widgetKeys);
+  }
+
   // ── Permissions ───────────────────────────────────────────────
   getAllPermissions(): Observable<AllPermissionsResponse[]> {
     return this.http.get<AllPermissionsResponse[]>(`${this.base}/permissions/all`);
+  }
+
+  // ── Dashboard ─────────────────────────────────────────────────
+  getUserDashboardWidgets(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.base}/dashboard/widgets`);
   }
 }

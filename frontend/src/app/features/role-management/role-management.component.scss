@@ -56,6 +56,7 @@
 .rm-roles-col {
   display: flex;
   flex-direction: column;
+  align-items: stretch;   // horizontal stretch only; height controlled per child
   gap: 10px;
   position: sticky;
   top: 24px;
@@ -78,12 +79,15 @@
   align-items: center;
   gap: 8px;
   height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  flex: 0 0 38px;   // never grow, never shrink — always exactly 38px tall
   padding: 0 10px;
   background: var(--cms-bg-card);
   border: 2px solid var(--cms-line-strong, var(--cms-line));
   border-radius: 8px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  flex-shrink: 0;
+  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 
   &:focus-within {
@@ -548,4 +552,172 @@ textarea.field-input { height: auto; padding: 10px 12px; resize: vertical; }
   font-size: 0.8125rem; font-weight: 500; cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   &:hover { border-color: var(--cms-primary); color: var(--cms-primary); }
+}
+
+// ── Dashboard button in banner controls ───────────────────────────────────────
+.link-btn--accent {
+  color: var(--cms-primary) !important;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Widget Picker Panel
+// ──────────────────────────────────────────────────────────────────────────────
+.wp-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wp-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid var(--cms-line);
+  flex-shrink: 0;
+
+  &__icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(var(--cms-primary-rgb), 0.1);
+    color: var(--cms-primary);
+    mat-icon { font-size: 20px; }
+  }
+
+  &__text { flex: 1; min-width: 0; }
+  &__title { margin: 0 0 3px; font-size: 1rem; font-weight: 700; color: var(--cms-text-primary); }
+  &__sub { margin: 0; font-size: 0.8125rem; color: var(--cms-text-muted); line-height: 1.5; }
+}
+
+.wp-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 24px;
+}
+
+.wp-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
+  &__title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--cms-text-muted); margin-bottom: 10px;
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  }
+
+  &__count {
+    margin-left: auto;
+    background: var(--cms-bg-surface-2);
+    border-radius: var(--cms-radius-full);
+    padding: 1px 8px;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--cms-text-secondary);
+  }
+}
+
+.wp-drop-zone {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--cms-radius-md);
+  border: 2px dashed var(--cms-line);
+  background: var(--cms-bg-surface-2);
+  min-height: 200px;
+  transition: border-color 0.2s, background 0.2s;
+
+  &.cdk-drop-list-dragging { border-color: var(--cms-primary); background: rgba(var(--cms-primary-rgb), 0.04); }
+  &--active { border-color: rgba(var(--cms-primary-rgb), 0.35); background: rgba(var(--cms-primary-rgb), 0.03); }
+}
+
+.wp-empty {
+  display: flex; align-items: center; justify-content: center;
+  flex: 1; color: var(--cms-text-muted); font-size: 0.8125rem;
+  font-style: italic; pointer-events: none;
+}
+
+.wp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-line);
+  border-radius: var(--cms-radius-md);
+  cursor: grab;
+  transition: box-shadow 0.15s, border-color 0.15s;
+
+  &:hover { border-color: var(--cms-line-strong); box-shadow: var(--cms-shadow-sm); }
+  &.cdk-drag-preview { box-shadow: var(--cms-shadow-lg); opacity: 0.95; }
+  &.cdk-drag-placeholder { opacity: 0.3; }
+  &.cdk-drag-animating { transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
+
+  &--active {
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    background: rgba(var(--cms-primary-rgb), 0.03);
+  }
+
+  &__drag {
+    color: var(--cms-text-muted); font-size: 18px !important;
+    width: 18px !important; height: 18px !important; flex-shrink: 0;
+    cursor: grab;
+  }
+
+  &__order {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--cms-primary); color: #fff;
+    font-size: 0.625rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  &__icon {
+    color: var(--cms-primary); font-size: 18px !important;
+    width: 18px !important; height: 18px !important; flex-shrink: 0;
+  }
+
+  &__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  &__label { font-size: 0.8125rem; font-weight: 600; color: var(--cms-text-primary); }
+  &__desc { font-size: 0.6875rem; color: var(--cms-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  &__cat {
+    font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--cms-text-muted); padding: 2px 6px; border-radius: var(--cms-radius-full);
+    background: var(--cms-bg-surface-2); flex-shrink: 0;
+  }
+
+  &__add, &__remove {
+    background: none; border: none; padding: 2px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; border-radius: 4px;
+    transition: color 0.15s;
+    mat-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; }
+  }
+  &__add { color: var(--cms-text-muted); &:hover { color: var(--cms-primary); } }
+  &__remove { color: var(--cms-text-muted); &:hover { color: var(--cms-danger); } }
+}
+
+.wp-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--cms-line);
+  flex-shrink: 0;
+
+  &__hint {
+    display: flex; align-items: center; gap: 5px;
+    flex: 1; font-size: 0.8rem; color: var(--cms-text-muted);
+    mat-icon { font-size: 15px !important; width: 15px !important; height: 15px !important; }
+  }
 }

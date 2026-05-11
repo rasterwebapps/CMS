@@ -164,6 +164,12 @@
             <button class="link-btn" (click)="expandAll()">Expand all</button>
             <span class="sep">·</span>
             <button class="link-btn" (click)="collapseAll()">Collapse all</button>
+            <span class="sep">·</span>
+            <button class="link-btn link-btn--accent" (click)="openWidgetPicker(editTarget()!)"
+                    matTooltip="Configure dashboard widgets for this role">
+              <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle">dashboard_customize</mat-icon>
+              Dashboard
+            </button>
             <button class="panel-close" (click)="closePanel()" aria-label="Close editor" matTooltip="Close">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -247,6 +253,112 @@
             Save Permissions
           </button>
         </div>
+
+      } @else if (panelMode() === 'widgets') {
+
+        <!-- ─── Widget Picker Panel ─────────────────────────────────────── -->
+        <div class="wp-wrap">
+
+          <div class="wp-hdr">
+            <div class="wp-hdr__icon">
+              <mat-icon>dashboard_customize</mat-icon>
+            </div>
+            <div class="wp-hdr__text">
+              <h2 class="wp-hdr__title">Dashboard Widgets</h2>
+              <p class="wp-hdr__sub">
+                Drag widgets to <strong>Active Widgets</strong> and reorder them.
+                Users with the <em>{{ widgetEditTarget?.displayName }}</em> role will see these widgets on their dashboard.
+              </p>
+            </div>
+            <button class="panel-close" (click)="closePanel()" aria-label="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="wp-body">
+
+            <!-- LEFT: Available widgets -->
+            <div class="wp-col">
+              <div class="wp-col__title">
+                <mat-icon>library_add</mat-icon>
+                Available Widgets
+                <span class="wp-col__count">{{ availableWidgets.length }}</span>
+              </div>
+              <div class="wp-drop-zone"
+                   cdkDropList
+                   id="wp-available"
+                   [cdkDropListData]="availableWidgets"
+                   [cdkDropListConnectedTo]="['wp-selected']"
+                   (cdkDropListDropped)="dropWidget($event)">
+                @if (availableWidgets.length === 0) {
+                  <div class="wp-empty">All widgets are active</div>
+                }
+                @for (w of availableWidgets; track w.key) {
+                  <div class="wp-item" cdkDrag [cdkDragData]="w">
+                    <mat-icon class="wp-item__drag">drag_indicator</mat-icon>
+                    <mat-icon class="wp-item__icon">{{ w.icon }}</mat-icon>
+                    <div class="wp-item__text">
+                      <span class="wp-item__label">{{ w.label }}</span>
+                      <span class="wp-item__desc">{{ w.description }}</span>
+                    </div>
+                    <span class="wp-item__cat">{{ w.category }}</span>
+                    <button class="wp-item__add" (click)="addWidget(w)" matTooltip="Add to dashboard">
+                      <mat-icon>add_circle</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- RIGHT: Selected widgets (ordered) -->
+            <div class="wp-col">
+              <div class="wp-col__title">
+                <mat-icon>view_module</mat-icon>
+                Active Widgets
+                <span class="wp-col__count">{{ selectedWidgets.length }}</span>
+              </div>
+              <div class="wp-drop-zone wp-drop-zone--active"
+                   cdkDropList
+                   id="wp-selected"
+                   [cdkDropListData]="selectedWidgets"
+                   [cdkDropListConnectedTo]="['wp-available']"
+                   (cdkDropListDropped)="dropWidget($event)">
+                @if (selectedWidgets.length === 0) {
+                  <div class="wp-empty">Drag widgets here or click +</div>
+                }
+                @for (w of selectedWidgets; track w.key; let i = $index) {
+                  <div class="wp-item wp-item--active" cdkDrag [cdkDragData]="w">
+                    <mat-icon class="wp-item__drag">drag_indicator</mat-icon>
+                    <span class="wp-item__order">{{ i + 1 }}</span>
+                    <mat-icon class="wp-item__icon">{{ w.icon }}</mat-icon>
+                    <div class="wp-item__text">
+                      <span class="wp-item__label">{{ w.label }}</span>
+                      <span class="wp-item__desc">{{ w.description }}</span>
+                    </div>
+                    <button class="wp-item__remove" (click)="removeWidget(w)" matTooltip="Remove">
+                      <mat-icon>remove_circle</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+
+          <div class="wp-footer">
+            <span class="wp-footer__hint">
+              <mat-icon>info</mat-icon>
+              {{ selectedWidgets.length }} widget{{ selectedWidgets.length === 1 ? '' : 's' }} will appear in this order on the dashboard.
+            </span>
+            <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving()" (click)="saveWidgets()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Save Widgets
+            </button>
+          </div>
+
+        </div><!-- /.wp-wrap -->
+
       }
 
     </div><!-- /.rm-editor-col -->

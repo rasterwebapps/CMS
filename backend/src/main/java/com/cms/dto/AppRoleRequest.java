@@ -13,5 +13,8 @@ public record AppRoleRequest(
 
     String description,
 
-    List<String> permissionCodes
+    List<String> permissionCodes,
+
+    /** Ordered dashboard widget keys for this role. May be null/empty. */
+    List<String> dashboardWidgets
 ) {}

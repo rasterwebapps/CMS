@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, PLATFORM_ID, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit, NgZone } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -7,7 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
@@ -74,7 +74,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App implements OnInit {
+export class App implements OnInit, AfterViewInit {
   protected readonly authService = inject(AuthService);
   protected readonly permissionService = inject(PermissionService);
   private readonly layoutService = inject(LayoutService);
@@ -85,6 +85,16 @@ export class App implements OnInit {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
+
+  private readonly ngZone = inject(NgZone);
+
+  /** Tracks the current route URL so collapsed-group active state is reactive. */
+  private readonly currentUrl = signal(this.router.url);
+
+  /** Shared timer for hover-open / hover-close delays on the collapsed flyout. */
+  private hoverMenuTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The trigger whose flyout is currently visible. */
+  private activeMenuTrigger: MatMenuTrigger | null = null;
 
   protected readonly darkTheme = signal(false);
   /**
@@ -287,6 +297,9 @@ export class App implements OnInit {
   });
 
   protected setGroupExpanded(groupLabel: string, expanded: boolean): void {
+    // Plain toggle — only collapse-on-navigate (syncExpandedGroupToRoute) enforces
+    // the one-open-at-a-time rule. Clicking a header must never collapse the
+    // currently active section or disturb the selected screen.
     this.expandedGroups.update((groups) => {
       const updated = { ...groups, [groupLabel]: expanded };
       this.saveExpandedGroups(updated);
@@ -296,6 +309,29 @@ export class App implements OnInit {
 
   protected isGroupExpanded(groupLabel: string): boolean {
     return this.expandedGroups()[groupLabel] ?? false;
+  }
+
+  /**
+   * Expands the group that owns the current route and collapses all others.
+   * Called on initial load and after every navigation so the sidenav always
+   * reflects exactly where the user is.
+   */
+  private syncExpandedGroupToRoute(url: string): void {
+    for (const entry of this.navEntries) {
+      if (!isNavGroup(entry)) continue;
+      const ownsRoute = entry.items.some(
+        (item) => url === item.route || url.startsWith(item.route + '/'),
+      );
+      if (ownsRoute) {
+        const next: Record<string, boolean> = {};
+        for (const e of this.navEntries) {
+          if (isNavGroup(e)) next[e.label] = e.label === entry.label;
+        }
+        this.expandedGroups.set(next);
+        this.saveExpandedGroups(next);
+        return;
+      }
+    }
   }
 
   private loadExpandedGroups(): Record<string, boolean> {
@@ -326,14 +362,14 @@ export class App implements OnInit {
     // Install global keyboard shortcuts (g-leader navigation + ? cheat-sheet).
     this.shortcutsService.install();
 
-    // Register the onboarding tour and auto-start it for first-time users.
-    if (isPlatformBrowser(this.platformId)) {
-      this.tourService.registerTour('onboarding', ONBOARDING_TOUR_STEPS);
-      this.tourService.maybeAutoStart('onboarding');
-    }
+    // Sync expanded group on initial load
+    this.syncExpandedGroupToRoute(this.router.url);
 
-    // Auto-close the mobile drawer on route changes.
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
+    // Keep currentUrl signal in sync, auto-expand the active group, auto-close mobile drawer.
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
+      const url = (e as NavigationEnd).urlAfterRedirects;
+      this.currentUrl.set(url);
+      this.syncExpandedGroupToRoute(url);
       if (this.isMobile()) {
         this.mobileDrawerOpen.set(false);
       }
@@ -353,6 +389,15 @@ export class App implements OnInit {
           error: () => { /* silently ignore badge fetch errors */ },
         });
     }
+  }
+
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    // Register and conditionally auto-start the onboarding tour.
+    // Delayed until after the first render+layout so that getBoundingClientRect()
+    // returns real positions instead of zeros, and @if blocks have resolved.
+    this.tourService.registerTour('onboarding', ONBOARDING_TOUR_STEPS);
+    setTimeout(() => this.tourService.maybeAutoStart('onboarding'), 900);
   }
 
   protected toggleTheme(): void {
@@ -446,6 +491,96 @@ export class App implements OnInit {
     const data = outlet.activatedRouteData?.['animation'];
     if (data) return data;
     return outlet.activatedRoute?.snapshot?.routeConfig?.path ?? '';
+  }
+
+  /**
+   * Open the flyout on hover.
+   * Immediately closes any other open flyout (no backdrop means we manage this ourselves).
+   * Cancels any pending close timer so re-entering the button keeps the menu alive.
+   */
+  protected openHoverMenu(trigger: MatMenuTrigger): void {
+    this.clearHoverTimer();
+    // Close the previously open group flyout immediately
+    if (this.activeMenuTrigger && this.activeMenuTrigger !== trigger) {
+      this.activeMenuTrigger.closeMenu();
+      this.activeMenuTrigger = null;
+    }
+    if (trigger.menuOpen) return;
+    this.hoverMenuTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        trigger.openMenu();
+        this.activeMenuTrigger = trigger;
+      });
+      this.hoverMenuTimer = null;
+    }, 100);
+  }
+
+  /**
+   * Schedule closing the menu after the cursor leaves the button or the panel.
+   * Also cancels a pending open so quickly brushing over a button never shows the flyout.
+   */
+  protected scheduleCloseHoverMenu(trigger: MatMenuTrigger): void {
+    this.clearHoverTimer();
+    if (!trigger.menuOpen) return;
+    this.hoverMenuTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        trigger.closeMenu();
+        if (this.activeMenuTrigger === trigger) this.activeMenuTrigger = null;
+      });
+      this.hoverMenuTimer = null;
+    }, 250);
+  }
+
+  /**
+   * Called via (menuOpened). Attaches hover listeners directly to the CDK panel
+   * element so moving from the button into the panel cancels the close timer.
+   * We also check immediately whether the cursor is already inside the panel
+   * (fast mouse movement can beat requestAnimationFrame).
+   */
+  protected attachHoverPanel(trigger: MatMenuTrigger): void {
+    const attach = () => {
+      const panels = document.querySelectorAll<HTMLElement>('.mat-mdc-menu-panel');
+      const panel = panels[panels.length - 1];
+      if (!panel) return;
+
+      const onEnter = () => this.clearHoverTimer();
+      const onLeave = () => this.scheduleCloseHoverMenu(trigger);
+
+      panel.addEventListener('mouseenter', onEnter);
+      panel.addEventListener('mouseleave', onLeave);
+
+      // If the cursor is already inside the panel, cancel any pending close now
+      if (panel.matches(':hover')) this.clearHoverTimer();
+
+      const sub = trigger.menuClosed.subscribe(() => {
+        panel.removeEventListener('mouseenter', onEnter);
+        panel.removeEventListener('mouseleave', onLeave);
+        if (this.activeMenuTrigger === trigger) this.activeMenuTrigger = null;
+        sub.unsubscribe();
+      });
+    };
+
+    // Try synchronously first; fall back to rAF if panel not yet in DOM
+    const immediate = document.querySelectorAll<HTMLElement>('.mat-mdc-menu-panel');
+    if (immediate.length) { attach(); } else { requestAnimationFrame(attach); }
+  }
+
+  private clearHoverTimer(): void {
+    if (this.hoverMenuTimer) {
+      clearTimeout(this.hoverMenuTimer);
+      this.hoverMenuTimer = null;
+    }
+  }
+
+  /**
+   * Returns true when any item inside the group matches the current route.
+   * Used to highlight the group icon in the collapsed icon rail.
+   */
+  protected isGroupActive(entry: NavGroup): boolean {
+    const url = this.currentUrl();
+    return entry.items.some(
+      (item) => url === item.route || url.startsWith(item.route + '/'),
+    );
   }
 
   protected async logout(): Promise<void> {

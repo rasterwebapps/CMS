@@ -10,7 +10,7 @@
     var(--cms-shadow-xl),
     0 0 0 1px rgba(var(--cms-primary-rgb), 0.08);
   padding: 20px;
-  width: 320px;
+  width: 400px;
   max-width: calc(100vw - 32px);
   font-family: var(--cms-font-ui);
   animation: tour-tooltip-in var(--cms-duration-md) var(--cms-ease-spring) both;
@@ -19,7 +19,7 @@
 @keyframes tour-tooltip-in {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(4px);
+    transform: scale(0.94) translateY(6px);
   }
   to {
     opacity: 1;
@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .tour-counter {
@@ -67,6 +67,34 @@
   }
 }
 
+// ── Progress dots ────────────────────────────────
+.tour-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.tour-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cms-line-strong);
+  transition:
+    width var(--cms-duration-md) var(--cms-ease-spring),
+    background var(--cms-duration-md) var(--cms-ease-out);
+
+  &.tour-dot--done {
+    background: rgba(var(--cms-primary-rgb), 0.4);
+  }
+
+  &.tour-dot--active {
+    width: 18px;
+    border-radius: 3px;
+    background: var(--cms-primary);
+  }
+}
+
 // ── Content ──────────────────────────────────────
 .tour-title {
   font-size: 0.9375rem;
@@ -83,7 +111,7 @@
   margin: 0 0 14px;
 }
 
-// ── Alignment demo table ─────────────────────────
+// ── Alignment demo guide ─────────────────────────
 .tour-alignment-demo {
   background: var(--cms-bg-surface-2);
   border: 1px solid var(--cms-line);
@@ -101,48 +129,110 @@
   }
 }
 
-.demo-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.75rem;
+// 4-column grid: type label | left zone | center zone | right zone
+.demo-guide {
+  display: flex;
+  flex-direction: column;
 }
 
-.demo-th {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--cms-text-table-header, #64748b);
-  padding: 4px 6px;
+.demo-guide-row {
+  display: grid;
+  grid-template-columns: 28% repeat(3, 1fr);
   border-bottom: 1px solid var(--cms-line);
 
-  &.demo-th--left { text-align: left; }
-  &.demo-th--right { text-align: right; }
-}
+  &:last-child {
+    border-bottom: none;
+  }
 
-.demo-td {
-  padding: 6px 6px;
-  vertical-align: middle;
+  &.demo-guide-row--header {
+    border-bottom: 1.5px solid var(--cms-line-strong);
+  }
 
-  &.demo-td--left { text-align: left; }
-  &.demo-td--right { text-align: right; }
-  &.demo-td--center { text-align: center; }
-}
+  &.demo-guide-row--active {
+    background: rgba(var(--cms-primary-rgb), 0.05);
+    border-radius: var(--cms-radius-sm);
 
-.demo-row--highlight {
-  background: rgba(var(--cms-primary-rgb), 0.05);
-  border-radius: var(--cms-radius-sm);
+    // Upgrade guide lines to primary colour on the active row
+    .demo-col-zone {
+      border-left-color: rgba(var(--cms-primary-rgb), 0.35);
+      border-left-style: solid;
+    }
 
-  .demo-align-tag {
-    display: inline;
-    font-weight: 700;
-    color: var(--cms-primary);
+    .demo-align-tag {
+      display: block;
+      color: var(--cms-primary);
+      font-weight: 700;
+    }
   }
 }
 
+// Row type label column
+.demo-col-type {
+  padding: 6px 6px 6px 0;
+  font-size: 0.6875rem;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Alignment zone columns — each has a left guide line
+.demo-col-zone {
+  padding: 6px 4px;
+  border-left: 1px dashed var(--cms-line-strong);
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+
+  // Header zone labels
+  .demo-guide-row--header & {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    padding: 4px 4px;
+    min-height: unset;
+    align-items: flex-end;
+  }
+
+  &.demo-col-zone--left  { justify-content: flex-start; text-align: left; }
+  &.demo-col-zone--center { justify-content: center;    text-align: center; }
+  &.demo-col-zone--right  { justify-content: flex-end;  text-align: right; }
+}
+
+// Value + tag stacked vertically inside a zone
+.demo-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+
+  .demo-col-zone--left &   { align-items: flex-start; }
+  .demo-col-zone--center & { align-items: center; }
+  .demo-col-zone--right &  { align-items: flex-end; }
+}
+
+// Font sizes for cell values
+.cell-currency {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cms-text-primary);
+}
+
+.cell-name {
+  font-size: 0.75rem;
+  color: var(--cms-text-primary);
+}
+
+// The "Left-aligned / Centered / Right-aligned" sub-label
 .demo-align-tag {
   display: none;
-  font-size: 0.625rem;
-  margin-left: 4px;
-  font-weight: 500;
+  font-size: 0.6rem;
+  white-space: nowrap;
   color: var(--cms-text-muted);
 }
 
@@ -178,20 +268,27 @@
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
+}
 
-  .tour-btn {
-    flex: 1;
-    justify-content: center;
-    padding: 9px 16px;
-    font-size: 0.8125rem;
+.tour-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 16px;
+  font-size: 0.8125rem;
+  flex: 1;
 
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none !important;
-      pointer-events: none;
-    }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    pointer-events: none;
   }
+}
+
+.tour-btn--next {
+  font-weight: 600;
 }
 
 // ── Dismiss row ──────────────────────────────────
@@ -200,6 +297,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .tour-dismiss-sep {
@@ -223,8 +321,32 @@
   }
 }
 
+// ── Keyboard hint ────────────────────────────────
+.tour-kbd-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.625rem;
+  color: var(--cms-text-muted);
+  letter-spacing: 0.02em;
+
+  kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 4px;
+    background: var(--cms-bg-surface-2);
+    border: 1px solid var(--cms-line-strong);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.625rem;
+    color: var(--cms-text-muted);
+    line-height: 1.4;
+  }
+}
+
 // ── Status badge variant used inside the demo table ─
-// (mirrors .status-badge--active from global styles)
 .status-badge--active {
   display: inline-flex;
   align-items: center;

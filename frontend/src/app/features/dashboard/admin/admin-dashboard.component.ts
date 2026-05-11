@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, Input, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { formatCurrency } from '@angular/common';
@@ -54,6 +54,23 @@ interface EquipmentRow {
 export class AdminDashboardComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly http = inject(HttpClient);
+
+  /**
+   * Ordered list of widget keys to render. Null means "show all" (used when
+   * the component is embedded directly without a config fetch, e.g. in dev).
+   */
+  @Input() visibleWidgets: string[] | null = null;
+
+  /** Returns true when the given widget key is included in the current config. */
+  protected show(key: string): boolean {
+    return this.visibleWidgets === null || this.visibleWidgets.includes(key);
+  }
+
+  /** True when at least one stat card is visible — used to show/hide the grid wrapper. */
+  protected get hasAnyStatCard(): boolean {
+    const statKeys = ['stat-students','stat-faculty','stat-labs','stat-fee-collected','stat-outstanding'];
+    return this.visibleWidgets === null || statKeys.some(k => this.visibleWidgets!.includes(k));
+  }
 
   protected readonly loading = signal(true);
   protected readonly trendsLoading = signal(true);

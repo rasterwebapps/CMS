@@ -65,10 +65,24 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
 
+  /**
+   * When true the component is in "verify" mode — opened from the
+   * Complete Admission list for a DOCUMENTS_SUBMITTED enquiry.
+   * In this mode:
+   *  - VERIFIED documents are locked (no edits allowed).
+   *  - The "Submit Documents" button is replaced by "Back to Admission".
+   */
+  protected readonly verifyMode = signal(false);
+
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly enquiry = signal<Enquiry | null>(null);
   protected readonly rows = signal<ChecklistRow[]>([]);
+
+  /** Tracks which document type is currently showing the inline rejection-reason prompt. */
+  protected readonly rejectingDocumentType = signal<string | null>(null);
+  /** Backing value for the inline rejection-reason input. */
+  protected readonly rejectReason = signal<string>('');
 
   /** Catalogue of all document types (with display labels), loaded from the backend. */
   private readonly documentCatalogue = signal<DocumentTypeInfo[]>([]);
@@ -83,6 +97,16 @@ export class DocumentCollectionComponent implements OnInit {
       this.rows().filter(
         (r) => r.isMandatory && (r.status === 'UPLOADED' || r.status === 'VERIFIED'),
       ).length,
+  );
+
+  /** Number of mandatory documents that have been VERIFIED (for verify-mode progress). */
+  protected readonly mandatoryVerifiedCount = computed(
+    () => this.rows().filter((r) => r.isMandatory && r.status === 'VERIFIED').length,
+  );
+
+  /** True when all mandatory documents are VERIFIED — enables "Back to Admission" in verify mode. */
+  protected readonly allMandatoryVerified = computed(
+    () => this.mandatoryTotal() > 0 && this.mandatoryVerifiedCount() === this.mandatoryTotal(),
   );
 
   protected readonly mandatoryTotal = computed(() => this.mandatoryTypes().size);
@@ -111,7 +135,7 @@ export class DocumentCollectionComponent implements OnInit {
   }
 
   protected isAdminOrFrontOffice(): boolean {
-    return this.authService.isAdmin() || this.authService.isFrontOffice();
+    return this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice();
   }
 
   protected initials(name: string): string {
@@ -146,6 +170,9 @@ export class DocumentCollectionComponent implements OnInit {
       void this.router.navigate(['/enquiries/document-submission']);
       return;
     }
+    // Query param ?mode=verify means we came from the Complete Admission list.
+    const mode = this.route.snapshot.queryParamMap.get('mode');
+    this.verifyMode.set(mode === 'verify');
     this.load(id);
   }
 
@@ -153,7 +180,11 @@ export class DocumentCollectionComponent implements OnInit {
     this.loading.set(true);
     this.enquiryService.getEnquiryById(id).subscribe({
       next: (enquiry) => {
-        if (enquiry.status !== 'FEES_PAID' && enquiry.status !== 'PARTIALLY_PAID') {
+        const allowedStatuses = this.verifyMode()
+          ? ['FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED']
+          : ['FEES_PAID', 'PARTIALLY_PAID'];
+
+        if (!allowedStatuses.includes(enquiry.status)) {
           this.toast.warning('Documents can only be collected for enquiries in FEES_PAID or PARTIALLY_PAID status');
           void this.router.navigate(['/enquiries/document-submission']);
           return;
@@ -240,7 +271,7 @@ export class DocumentCollectionComponent implements OnInit {
   /** Persists a row — creates a new EnquiryDocument or updates the existing one. */
   protected saveRow(row: ChecklistRow, newStatus: string): void {
     const enquiryId = this.enquiry()?.id;
-    if (!enquiryId || !this.isAdminOrFrontOffice()) return;
+    if (!enquiryId || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
 
     const request: EnquiryDocumentRequest = {
       documentType: row.documentType,
@@ -286,7 +317,7 @@ export class DocumentCollectionComponent implements OnInit {
 
   protected removeRow(row: ChecklistRow): void {
     const enquiryId = this.enquiry()?.id;
-    if (!enquiryId || !row.document || !this.isAdminOrFrontOffice()) return;
+    if (!enquiryId || !row.document || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
 
     this.updateRow(row, { ...row, saving: true });
     this.enquiryService.deleteDocument(enquiryId, row.document.id).subscribe({
@@ -312,7 +343,7 @@ export class DocumentCollectionComponent implements OnInit {
    * Browse / Upload button in the document checklist.
    */
   protected onBrowseFile(row: ChecklistRow, input: HTMLInputElement): void {
-    if (row.saving || !this.isAdminOrFrontOffice()) return;
+    if (row.saving || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
     input.value = '';
     input.click();
   }
@@ -327,7 +358,7 @@ export class DocumentCollectionComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     input.value = ''; // Allow re-selecting the same file later
-    if (!enquiryId || !file || !this.isAdminOrFrontOffice()) return;
+    if (!enquiryId || !file || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
 
     // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
     const MAX_BYTES = 10 * 1024 * 1024;
@@ -420,6 +451,44 @@ export class DocumentCollectionComponent implements OnInit {
     this.rows.update((rs) => rs.map((r) => (r.documentType === target.documentType ? next : r)));
   }
 
+  /** In verify mode, VERIFIED documents are locked — no status/file changes allowed. */
+  protected isRowLocked(row: ChecklistRow): boolean {
+    return this.verifyMode() && row.status === 'VERIFIED';
+  }
+
+  // ── Rejection reason flow ─────────────────────────────────────────────────
+
+  /** Opens the inline rejection-reason prompt for the given row. */
+  protected startReject(row: ChecklistRow): void {
+    if (row.saving || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    this.rejectingDocumentType.set(row.documentType);
+    this.rejectReason.set(row.remarks ?? '');
+  }
+
+  /**
+   * Validates that a reason has been entered, then persists the rejection.
+   * The reason is saved as the row's remarks so it appears in the rejection banner.
+   */
+  protected confirmReject(row: ChecklistRow): void {
+    const reason = this.rejectReason().trim();
+    if (!reason) {
+      this.toast.warning('Please provide a rejection reason before rejecting the document');
+      return;
+    }
+    // Merge the reason into the row so saveRow picks it up as the remarks value.
+    const rowWithReason: ChecklistRow = { ...row, remarks: reason };
+    this.updateRow(row, rowWithReason);
+    this.saveRow(rowWithReason, 'REJECTED');
+    this.rejectingDocumentType.set(null);
+    this.rejectReason.set('');
+  }
+
+  /** Dismisses the rejection-reason prompt without saving. */
+  protected cancelReject(): void {
+    this.rejectingDocumentType.set(null);
+    this.rejectReason.set('');
+  }
+
   protected submitDocuments(): void {
     const enquiryId = this.enquiry()?.id;
     if (!enquiryId || !this.canSubmit()) return;
@@ -444,6 +513,10 @@ export class DocumentCollectionComponent implements OnInit {
   }
 
   protected backToList(): void {
-    window.history.back();
+    if (this.verifyMode()) {
+      void this.router.navigate(['/enquiries/admission-completion']);
+    } else {
+      void this.router.navigate(['/enquiries/document-submission']);
+    }
   }
 }

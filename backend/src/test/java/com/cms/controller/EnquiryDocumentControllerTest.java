@@ -29,6 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -208,5 +209,27 @@ class EnquiryDocumentControllerTest {
             null, null, null, now, now,
             null, null, null, null, false
         );
+    }
+
+    @Test
+    void shouldReturnVerificationStatus() throws Exception {
+        when(documentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
+
+        mockMvc.perform(get("/enquiries/1/documents/verification-status"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allVerified").value(true))
+            .andExpect(jsonPath("$.unverifiedDocumentTypes").isArray());
+    }
+
+    @Test
+    void shouldReturnUnverifiedDocsInVerificationStatus() throws Exception {
+        when(documentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new DocumentVerificationStatusResponse(false, false, List.of("TENTH_MARKSHEET"), List.of("TENTH_MARKSHEET")));
+
+        mockMvc.perform(get("/enquiries/1/documents/verification-status"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allVerified").value(false))
+            .andExpect(jsonPath("$.unverifiedDocumentTypes[0]").value("TENTH_MARKSHEET"));
     }
 }

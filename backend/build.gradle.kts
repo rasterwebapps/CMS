@@ -3,10 +3,12 @@ plugins {
     id("org.springframework.boot") version "3.4.5"
     id("io.spring.dependency-management") version "1.1.7"
     jacoco
+    `maven-publish`
 }
 
 group = "com.cms"
-version = "0.0.1-SNAPSHOT"
+// Allow CI to override version via -Pversion=x.y.z or APP_VERSION env var
+version = System.getenv("APP_VERSION") ?: "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
@@ -114,3 +116,39 @@ tasks.jacocoTestCoverageVerification {
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
 }
+
+// ── Nexus Publishing ─────────────────────────────────────────────────────────
+// This Gradle project uses the `maven-publish` plugin to publish artifacts to Nexus.
+// "maven-publish" refers to the Maven REPOSITORY FORMAT (groupId/artifactId/version layout)
+// used by Nexus — NOT the Maven build tool. Gradle is the build tool throughout.
+//
+// To publish manually:
+//   NEXUS_URL=http://<nexus-ip>:8081 NEXUS_USER=cms-deploy NEXUS_PASS=xxx ./gradlew publish
+//
+// The Jenkinsfile sets NEXUS_URL, NEXUS_USER, NEXUS_PASS as environment variables.
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            artifact(tasks.named("bootJar"))
+            groupId    = "com.cms"
+            artifactId = "college-management-system"
+            version    = project.version.toString()
+        }
+    }
+    repositories {
+        maven {
+            name = "nexus"
+            val isSnapshot = project.version.toString().endsWith("SNAPSHOT")
+            val nexusBase  = System.getenv("NEXUS_URL") ?: "http://localhost:8081"
+            url = uri(
+                if (isSnapshot) "$nexusBase/repository/cms-snapshots/"
+                else            "$nexusBase/repository/cms-releases/"
+            )
+            credentials {
+                username = System.getenv("NEXUS_USER") ?: ""
+                password = System.getenv("NEXUS_PASS") ?: ""
+            }
+        }
+    }
+}
+

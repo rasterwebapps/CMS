@@ -6,21 +6,13 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { A11yModule } from '@angular/cdk/a11y';
 import { TourService } from './tour.service';
 import { TourStep } from './tour-step.model';
 
-/**
- * Floating tooltip rendered into a CDK `OverlayRef` by {@link TourService}.
- *
- * The component is intentionally thin — all state lives in `TourService`
- * (Angular signals) and this component just reflects it. This means the
- * service can dispose and re-create the overlay without losing state.
- */
 @Component({
   selector: 'cms-tour-tooltip',
   standalone: true,
-  imports: [A11yModule],
+  imports: [],
   templateUrl: './tour-tooltip.component.html',
   styleUrl: './tour-tooltip.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +26,13 @@ export class TourTooltipComponent implements OnInit, OnDestroy {
   protected readonly isLastStep = computed(
     () => this.tourService.currentStepIndex() === this.tourService.steps().length - 1,
   );
+  protected readonly isFirstStep = computed(() => this.tourService.currentStepIndex() === 0);
   protected readonly isWaiting = computed(() => this.tourService.isWaiting());
+
+  /** Zero-based index array for rendering progress dots. */
+  protected readonly dots = computed(() =>
+    Array.from({ length: this.tourService.steps().length }, (_, i) => i),
+  );
 
   ngOnInit(): void {
     document.addEventListener('keydown', this.onKeyDown);
@@ -61,14 +59,25 @@ export class TourTooltipComponent implements OnInit, OnDestroy {
     this.tourService.hardClose();
   }
 
-  protected onEscape(): void {
-    this.tourService.end();
-  }
-
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.tourService.end();
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        this.tourService.end();
+        break;
+      case 'ArrowRight':
+      case 'Enter':
+        if (!this.isWaiting()) {
+          event.preventDefault();
+          this.tourService.advance();
+        }
+        break;
+      case 'ArrowLeft':
+        if (!this.isFirstStep()) {
+          event.preventDefault();
+          this.tourService.previous();
+        }
+        break;
     }
   };
 }

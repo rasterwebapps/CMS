@@ -41,9 +41,9 @@
 
         <div id="tour-enq-detail-actions" class="profile-hero__actions">
           @if (canSubmitDocuments()) {
-            <button class="btn-primary" type="button" [disabled]="submitting()" (click)="submitDocuments()">
+            <button class="btn-primary" type="button" (click)="submitDocuments()">
               <mat-icon>upload</mat-icon>
-              {{ submitting() ? 'Submitting...' : 'Submit Documents' }}
+              Submit Documents
             </button>
           }
           @if (canConvert()) {
