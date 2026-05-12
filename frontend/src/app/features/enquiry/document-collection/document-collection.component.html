@@ -29,7 +29,7 @@
         <div class="hero-info">
           <div class="hero-name-row">
             <h1 class="hero-title">{{ enquiry()!.name }}</h1>
-            <cms-tour-button titleAction tourKey="document-collection" [iconOnly]="true" iconVariant="info-circle" />
+            <cms-tour-button tourKey="document-collection" [iconOnly]="true" iconVariant="info-circle" />
           </div>
           <div class="hero-chips">
             <cms-status-badge [status]="enquiry()!.status"></cms-status-badge>
@@ -152,12 +152,12 @@
                     <div class="file-info__actions">
                       <button type="button" class="file-action-btn" matTooltip="View document" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
                       <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download document"><mat-icon>download</mat-icon></button>
-                       @if (isAdminOrFrontOffice() && !isRowLocked(row)) {
+                       @if (canManageDocuments() && !isRowLocked(row)) {
                          <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
                        }
                      </div>
                    </div>
-                 } @else if (isAdminOrFrontOffice() && !isRowLocked(row)) {
+                 } @else if (canManageDocuments() && !isRowLocked(row)) {
                    <button type="button" class="upload-zone" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Browse and upload file">
                      <mat-icon>upload</mat-icon>
                      <span class="upload-zone__text">Click to upload</span>
@@ -176,7 +176,7 @@
                   <span class="doc-card__locked-tag" matTooltip="Verified documents cannot be changed">
                     <mat-icon>lock</mat-icon> Locked
                   </span>
-                } @else if (isAdminOrFrontOffice()) {
+                } @else if (canManageDocuments()) {
                   @if (row.documentType === rejectingDocumentType()) {
                     <!-- Inline rejection-reason prompt -->
                     <div class="reject-reason-panel">
@@ -220,7 +220,7 @@
 
             <div class="doc-card__remarks">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="remarks-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <input type="text" class="remarks-input" placeholder="Add a note or remark…" [(ngModel)]="row.remarks" [disabled]="row.saving || !isAdminOrFrontOffice() || isRowLocked(row)" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
+              <input type="text" class="remarks-input" placeholder="Add a note or remark…" [(ngModel)]="row.remarks" [disabled]="row.saving || !canManageDocuments() || isRowLocked(row)" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
             </div>
 
             @if (row.status === 'REJECTED') {
@@ -237,7 +237,7 @@
                   } @else {
                     <p class="doc-rejection-banner__reason">No reason provided. Please contact the front office.</p>
                   }
-                  @if (isAdminOrFrontOffice()) {
+                  @if (canManageDocuments()) {
                     <div class="doc-rejection-banner__replace">
                       <button type="button" class="replace-btn" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace rejected file">
                         <mat-icon>upload</mat-icon>
@@ -313,12 +313,12 @@
                       <div class="file-info__actions">
                         <button type="button" class="file-action-btn" matTooltip="View" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
                         <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download"><mat-icon>download</mat-icon></button>
-                        @if (isAdminOrFrontOffice()) {
+                        @if (canManageDocuments()) {
                           <button type="button" class="file-action-btn" matTooltip="Replace" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Replace"><mat-icon>swap_horiz</mat-icon></button>
                         }
                       </div>
                     </div>
-                  } @else if (isAdminOrFrontOffice()) {
+                  } @else if (canManageDocuments()) {
                     <button type="button" class="upload-zone upload-zone--compact" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Browse and upload">
                       <mat-icon>add</mat-icon>
                       <span class="upload-zone__text">Upload</span>
@@ -334,7 +334,7 @@
                   }
                   @if (row.saving) {
                     <mat-spinner diameter="16"></mat-spinner>
-                  } @else if (isAdminOrFrontOffice()) {
+                  } @else if (canManageDocuments()) {
                     @if (row.documentType === rejectingDocumentType()) {
                       <!-- Inline rejection-reason prompt -->
                       <div class="reject-reason-panel">
@@ -370,9 +370,9 @@
 
               <div class="doc-card__remarks">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="remarks-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <input type="text" class="remarks-input" placeholder="Add a note…" [(ngModel)]="row.remarks" [disabled]="row.saving || !isAdminOrFrontOffice()" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
+                <input type="text" class="remarks-input" placeholder="Add a note…" [(ngModel)]="row.remarks" [disabled]="row.saving || !canManageDocuments()" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
               </div>
-              @if (row.status === 'REJECTED' && isAdminOrFrontOffice()) {
+              @if (row.status === 'REJECTED' && canManageDocuments()) {
                 <div class="doc-rejection-banner" role="alert">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="doc-rejection-banner__icon" aria-hidden="true">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -421,7 +421,7 @@
           <button
             type="button"
             class="btn-action btn-action--primary"
-            [disabled]="!canSubmit() || !isAdminOrFrontOffice()"
+            [disabled]="!canSubmit() || !canManageDocuments()"
             (click)="submitDocuments()"
             [matTooltip]="canSubmit() ? '' : 'Upload all required documents first'"
           >

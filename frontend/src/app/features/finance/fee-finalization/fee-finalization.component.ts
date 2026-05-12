@@ -83,6 +83,7 @@ export class FeeFinalizationComponent implements OnInit {
   });
 
   protected readonly discountReasonCtrl = new FormControl('');
+  protected readonly discountReason = signal('');
 
   protected readonly displayedColumns = [
     'name', 'programName', 'courseName', 'referralTypeName', 'finalCalculatedFee', 'actions',
@@ -116,7 +117,7 @@ export class FeeFinalizationComponent implements OnInit {
   );
   /** True when a discount is entered but the reason field is empty. */
   protected readonly discountReasonMissing = computed(() =>
-    this.hasDiscount() && !this.discountReasonCtrl.value?.trim()
+    this.hasDiscount() && !this.discountReason().trim()
   );
   protected readonly canSubmit = computed(() =>
     !this.anyYearBelowZero() &&
@@ -183,6 +184,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected selectEnquiry(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
     this.discountReasonCtrl.setValue('');
+    this.discountReason.set('');
     this.globalDiscount.set(0);
     this.initYearRows(enquiry);
   }
@@ -292,6 +294,7 @@ export class FeeFinalizationComponent implements OnInit {
     this.yearRows.set([]);
     this.globalDiscount.set(0);
     this.discountReasonCtrl.setValue('');
+    this.discountReason.set('');
     this.loadList();
   }
 
@@ -304,7 +307,7 @@ export class FeeFinalizationComponent implements OnInit {
     const request: FeeFinalizationRequest = {
       totalFee:       this.totalOriginal(),
       discountAmount: this.totalDiscount() > 0 ? this.totalDiscount() : undefined,
-      discountReason: this.discountReasonCtrl.value?.trim() || undefined,
+      discountReason: this.discountReason().trim() || undefined,
       yearWiseFees:   yearWiseJson,
     };
 

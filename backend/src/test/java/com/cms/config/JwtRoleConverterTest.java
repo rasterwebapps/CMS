@@ -3,11 +3,9 @@ package com.cms.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -16,18 +14,15 @@ class JwtRoleConverterTest {
     private final JwtRoleConverter converter = new JwtRoleConverter();
 
     @Test
-    void shouldExtractRealmRolesFromJwt() {
+    void shouldNotExposeRealmRolesAsAuthorities() {
         Jwt jwt = buildJwt(Map.of(
-            "realm_access", Map.of("roles", List.of("ROLE_ADMIN", "ROLE_FACULTY"))
+            "realm_access", Map.of("roles", java.util.List.of("ROLE_ADMIN", "ROLE_FACULTY"))
         ));
 
         JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
 
         assertThat(token).isNotNull();
-        List<String> authorities = token.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .toList();
-        assertThat(authorities).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_FACULTY");
+        assertThat(token.getAuthorities()).isEmpty();
     }
 
     @Test
@@ -56,7 +51,7 @@ class JwtRoleConverterTest {
     void shouldUsePreferredUsernameAsName() {
         Jwt jwt = buildJwt(Map.of(
             "preferred_username", "admin",
-            "realm_access", Map.of("roles", List.of("ROLE_ADMIN"))
+            "realm_access", Map.of("roles", java.util.List.of("ROLE_ADMIN"))
         ));
 
         JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);
@@ -68,7 +63,7 @@ class JwtRoleConverterTest {
     @Test
     void shouldHandleEmptyRolesList() {
         Jwt jwt = buildJwt(Map.of(
-            "realm_access", Map.of("roles", List.of())
+            "realm_access", Map.of("roles", java.util.List.of())
         ));
 
         JwtAuthenticationToken token = (JwtAuthenticationToken) converter.convert(jwt);

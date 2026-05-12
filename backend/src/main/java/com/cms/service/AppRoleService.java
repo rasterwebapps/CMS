@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,8 @@ import com.cms.repository.PermissionRepository;
 @Service
 @Transactional(readOnly = true)
 public class AppRoleService {
+
+    private static final Set<String> IMMUTABLE_ROLE_NAMES = Set.of("DEVADMIN", "SUPPORTADMIN");
 
     private final AppRoleRepository appRoleRepository;
     private final PermissionRepository permissionRepository;
@@ -60,6 +63,12 @@ public class AppRoleService {
      */
     @Transactional
     public AppRoleResponse create(AppRoleRequest request, int requesterLevel, String actor) {
+        String normalizedName = normalizeRoleName(request.name());
+        if (IMMUTABLE_ROLE_NAMES.contains(normalizedName)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Role '" + request.name() + "' is reserved and cannot be created manually");
+        }
+
         if (appRoleRepository.findByName(request.name()).isPresent()) {
             throw new IllegalArgumentException("A role with name '" + request.name() + "' already exists");
         }
@@ -105,6 +114,8 @@ public class AppRoleService {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
+        ensureRoleIsEditable(role);
+
         if (permissionCodes != null) {
             for (String code : permissionCodes) {
                 if (!requesterPermissions.contains(code)) {
@@ -146,6 +157,8 @@ public class AppRoleService {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
+        ensureRoleIsEditable(role);
+
         role.getDashboardWidgets().clear();
         if (widgetKeys != null) {
             role.getDashboardWidgets().addAll(widgetKeys);
@@ -165,6 +178,17 @@ public class AppRoleService {
             .map(Permission::getCode)
             .sorted()
             .toList();
+    }
+
+    private void ensureRoleIsEditable(AppRole role) {
+        if (IMMUTABLE_ROLE_NAMES.contains(normalizeRoleName(role.getName()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Role '" + role.getName() + "' is immutable and cannot be modified");
+        }
+    }
+
+    private String normalizeRoleName(String roleName) {
+        return roleName.replace("_", "").toUpperCase(Locale.ROOT);
     }
 
     private AppRoleResponse toResponse(AppRole role) {

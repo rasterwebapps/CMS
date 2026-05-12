@@ -13,7 +13,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, DocumentVerificationStatus } from '../enquiry.model';
-import { AuthService } from '../../../core/auth/auth.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -35,7 +35,7 @@ import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enqui
 })
 export class AdmissionCompletionListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
-  private readonly authService    = inject(AuthService);
+  private readonly permissionService = inject(PermissionService);
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly tourService    = inject(TourService);
@@ -150,10 +150,8 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
-  protected isAdminOrFrontOffice(): boolean {
-    return this.authService.hasRole('ROLE_ADMIN') ||
-           this.authService.hasRole('ROLE_COLLEGE_ADMIN') ||
-           this.authService.hasRole('ROLE_FRONT_OFFICE');
+  protected canCompleteAdmission(): boolean {
+    return this.permissionService.hasAny('ADMISSION_CREATE', 'ADMISSION_EDIT');
   }
 
   private load(): void {

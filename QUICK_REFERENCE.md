@@ -131,6 +131,9 @@ Execute test cases in: `/docs/manual-test-cases/rbac-fixes-college-admin-cashier
 cd backend
 ./gradlew build
 # or for production
+DB_URL=jdbc:postgresql://localhost:5435/cmsdb \
+DB_USERNAME=cms \
+DB_PASSWORD=cms \
 SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
 
 # Frontend  

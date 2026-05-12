@@ -12,7 +12,7 @@ import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryDocument, EnquiryDocumentRequest } from '../enquiry.model';
 import { ProgramService } from '../../program/program.service';
 import { DocumentTypeInfo } from '../../program/program.model';
-import { AuthService } from '../../../core/auth/auth.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -61,7 +61,7 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly programService = inject(ProgramService);
-  private readonly authService = inject(AuthService);
+  private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
 
@@ -134,8 +134,8 @@ export class DocumentCollectionComponent implements OnInit {
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  protected isAdminOrFrontOffice(): boolean {
-    return this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice();
+  protected canManageDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
 
   protected initials(name: string): string {
@@ -271,7 +271,7 @@ export class DocumentCollectionComponent implements OnInit {
   /** Persists a row — creates a new EnquiryDocument or updates the existing one. */
   protected saveRow(row: ChecklistRow, newStatus: string): void {
     const enquiryId = this.enquiry()?.id;
-    if (!enquiryId || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    if (!enquiryId || !this.canManageDocuments() || this.isRowLocked(row)) return;
 
     const request: EnquiryDocumentRequest = {
       documentType: row.documentType,
@@ -317,7 +317,7 @@ export class DocumentCollectionComponent implements OnInit {
 
   protected removeRow(row: ChecklistRow): void {
     const enquiryId = this.enquiry()?.id;
-    if (!enquiryId || !row.document || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    if (!enquiryId || !row.document || !this.canManageDocuments() || this.isRowLocked(row)) return;
 
     this.updateRow(row, { ...row, saving: true });
     this.enquiryService.deleteDocument(enquiryId, row.document.id).subscribe({
@@ -343,7 +343,7 @@ export class DocumentCollectionComponent implements OnInit {
    * Browse / Upload button in the document checklist.
    */
   protected onBrowseFile(row: ChecklistRow, input: HTMLInputElement): void {
-    if (row.saving || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    if (row.saving || !this.canManageDocuments() || this.isRowLocked(row)) return;
     input.value = '';
     input.click();
   }
@@ -358,7 +358,7 @@ export class DocumentCollectionComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     input.value = ''; // Allow re-selecting the same file later
-    if (!enquiryId || !file || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    if (!enquiryId || !file || !this.canManageDocuments() || this.isRowLocked(row)) return;
 
     // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
     const MAX_BYTES = 10 * 1024 * 1024;
@@ -460,7 +460,7 @@ export class DocumentCollectionComponent implements OnInit {
 
   /** Opens the inline rejection-reason prompt for the given row. */
   protected startReject(row: ChecklistRow): void {
-    if (row.saving || !this.isAdminOrFrontOffice() || this.isRowLocked(row)) return;
+    if (row.saving || !this.canManageDocuments() || this.isRowLocked(row)) return;
     this.rejectingDocumentType.set(row.documentType);
     this.rejectReason.set(row.remarks ?? '');
   }

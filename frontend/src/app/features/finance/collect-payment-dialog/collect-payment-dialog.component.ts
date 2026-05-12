@@ -93,8 +93,8 @@ export class CollectPaymentDialogComponent {
     const r = this.result!;
     printFeeReceipt({
       receiptNumber: r.receiptNumber,
-      studentName: r.studentName,
-      rollNumber: r.rollNumber,
+      payerName: r.studentName,
+      payerIdentifier: r.rollNumber,
       amountPaid: r.amountPaid,
       paymentDate: r.paymentDate,
       paymentMode: r.paymentMode,

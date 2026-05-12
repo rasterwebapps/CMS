@@ -126,13 +126,13 @@ class AppRoleServiceTest {
 
     @Test
     void shouldCreateNewRole() {
-        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of());
+        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of(), List.of());
         when(appRoleRepository.findByName("CUSTOM")).thenReturn(Optional.empty());
 
         AppRole savedRole = createRole(10L, "CUSTOM", "Custom Role", 4, false);
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(savedRole);
 
-        AppRoleResponse response = appRoleService.create(request, 3);
+        AppRoleResponse response = appRoleService.create(request, 3, "tester");
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("CUSTOM");
@@ -147,27 +147,38 @@ class AppRoleServiceTest {
         Permission perm = new Permission("USER_VIEW", "View Users", "USER", "");
         perm.setId(1L);
 
-        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "desc", List.of("USER_VIEW"));
+        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "desc", List.of("USER_VIEW"), List.of());
         when(appRoleRepository.findByName("CUSTOM")).thenReturn(Optional.empty());
         when(permissionRepository.findByCodeIn(List.of("USER_VIEW"))).thenReturn(List.of(perm));
 
         AppRole savedRole = createRole(10L, "CUSTOM", "Custom Role", 4, false);
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(savedRole);
 
-        appRoleService.create(request, 3);
+        appRoleService.create(request, 3, "tester");
 
         verify(permissionRepository).findByCodeIn(List.of("USER_VIEW"));
     }
 
     @Test
     void shouldThrowWhenCreatingRoleWithDuplicateName() {
-        AppRoleRequest request = new AppRoleRequest("ADMIN", "Admin", "desc", null);
+        AppRoleRequest request = new AppRoleRequest("ADMIN", "Admin", "desc", null, null);
         when(appRoleRepository.findByName("ADMIN")).thenReturn(Optional.of(createRole(1L, "ADMIN", "Admin", 3, true)));
 
-        assertThatThrownBy(() -> appRoleService.create(request, 2))
+        assertThatThrownBy(() -> appRoleService.create(request, 2, "tester"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("ADMIN")
             .hasMessageContaining("already exists");
+
+        verify(appRoleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCreatingReservedSupportAdminRoleName() {
+        AppRoleRequest request = new AppRoleRequest("supportadmin", "Support Admin", "desc", List.of(), List.of());
+
+        assertThatThrownBy(() -> appRoleService.create(request, 1, "tester"))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("reserved");
 
         verify(appRoleRepository, never()).save(any());
     }
@@ -185,7 +196,7 @@ class AppRoleServiceTest {
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
 
         Set<String> requesterPerms = Set.of("COURSE_VIEW", "USER_VIEW");
-        AppRoleResponse response = appRoleService.updatePermissions(5L, List.of("COURSE_VIEW"), requesterPerms);
+        AppRoleResponse response = appRoleService.updatePermissions(5L, List.of("COURSE_VIEW"), requesterPerms, "tester");
 
         assertThat(response).isNotNull();
         verify(userPermissionService).evictAll();
@@ -198,7 +209,7 @@ class AppRoleServiceTest {
 
         Set<String> requesterPerms = Set.of("COURSE_VIEW");
 
-        assertThatThrownBy(() -> appRoleService.updatePermissions(5L, List.of("ADMIN_VIEW"), requesterPerms))
+        assertThatThrownBy(() -> appRoleService.updatePermissions(5L, List.of("ADMIN_VIEW"), requesterPerms, "tester"))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("ADMIN_VIEW");
     }
@@ -209,7 +220,7 @@ class AppRoleServiceTest {
         when(appRoleRepository.findById(5L)).thenReturn(Optional.of(role));
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
 
-        appRoleService.updatePermissions(5L, List.of(), Set.of("COURSE_VIEW"));
+        appRoleService.updatePermissions(5L, List.of(), Set.of("COURSE_VIEW"), "tester");
 
         verify(userPermissionService).evictAll();
     }
@@ -218,8 +229,20 @@ class AppRoleServiceTest {
     void shouldThrowWhenRoleNotFoundOnUpdate() {
         when(appRoleRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> appRoleService.updatePermissions(99L, List.of(), Set.of()))
+        assertThatThrownBy(() -> appRoleService.updatePermissions(99L, List.of(), Set.of(), "tester"))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldRejectPermissionUpdatesForImmutableDevAdminRole() {
+        AppRole role = createRole(1L, "DEV_ADMIN", "Developer Admin", 1, true);
+        when(appRoleRepository.findById(1L)).thenReturn(Optional.of(role));
+
+        assertThatThrownBy(() -> appRoleService.updatePermissions(1L, List.of("USER_VIEW"), Set.of("USER_VIEW"), "tester"))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("immutable");
+
+        verify(appRoleRepository, never()).save(any());
     }
 
     // -------------------------------------------------------------------------

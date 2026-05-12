@@ -45,6 +45,9 @@ class EnquiryPaymentServiceTest {
     @Mock
     private EnquiryStatusHistoryRepository statusHistoryRepository;
 
+    @Mock
+    private UnifiedReceiptService unifiedReceiptService;
+
     private EnquiryPaymentService enquiryPaymentService;
 
     private Enquiry testEnquiry;
@@ -53,7 +56,7 @@ class EnquiryPaymentServiceTest {
     void setUp() {
         enquiryPaymentService = new EnquiryPaymentService(
             enquiryPaymentRepository, enquiryRepository, statusHistoryRepository,
-            new ObjectMapper()
+            new ObjectMapper(), unifiedReceiptService
         );
 
         testEnquiry = new Enquiry("Ravi Kumar", "ravi@email.com", "9876543210", null,
@@ -80,6 +83,7 @@ class EnquiryPaymentServiceTest {
         savedPayment.setCreatedAt(Instant.now());
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("100000.00"));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
@@ -110,6 +114,7 @@ class EnquiryPaymentServiceTest {
         savedPayment.setCreatedAt(Instant.now());
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("50000.00"));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);

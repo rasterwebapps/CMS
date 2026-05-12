@@ -1,49 +1,6 @@
 {
   "realm": "cms",
   "enabled": true,
-  "roles": {
-    "realm": [
-      {
-        "name": "ROLE_ADMIN",
-        "description": "Developer Administrator with full system access to all screens and features"
-      },
-      {
-        "name": "ROLE_COLLEGE_ADMIN",
-        "description": "College Administrator with access to academic setup, admissions, finance and reports"
-      },
-      {
-        "name": "ROLE_FRONT_OFFICE",
-        "description": "Front Office staff with access to admission management screens and front office dashboard"
-      },
-      {
-        "name": "ROLE_CASHIER",
-        "description": "Accountant/Cashier with access to finance screens and cashier dashboard"
-      },
-      {
-        "name": "ROLE_FACULTY",
-        "description": "Faculty member"
-      },
-      {
-        "name": "ROLE_STUDENT",
-        "description": "Student"
-      },
-      {
-        "name": "ROLE_LAB_INCHARGE",
-        "description": "Lab in-charge responsible for lab management"
-      },
-      {
-        "name": "ROLE_TECHNICIAN",
-        "description": "Technician for lab maintenance"
-      },
-      {
-        "name": "ROLE_PARENT",
-        "description": "Parent/guardian with read-only access to their ward's progress"
-      }
-    ]
-  },
-  "defaultRoles": [
-    "ROLE_STUDENT"
-  ],
   "clients": [
     {
       "clientId": "cms-frontend",
@@ -93,27 +50,21 @@
           "value": "DevAdmin@123",
           "temporary": false
         }
-      ],
-      "realmRoles": [
-        "ROLE_ADMIN"
       ]
     },
     {
-      "username": "admin",
+      "username": "supportadmin",
       "enabled": true,
       "emailVerified": true,
-      "firstName": "Admin",
-      "lastName": "User",
-      "email": "admin@cms.local",
+      "firstName": "Support",
+      "lastName": "Admin",
+      "email": "supportadmin@cms.local",
       "credentials": [
         {
           "type": "password",
-          "value": "admin123",
+          "value": "SupportAdmin@123",
           "temporary": false
         }
-      ],
-      "realmRoles": [
-        "ROLE_ADMIN"
       ]
     },
     {
@@ -129,117 +80,6 @@
           "value": "College@123",
           "temporary": false
         }
-      ],
-      "realmRoles": [
-        "ROLE_COLLEGE_ADMIN"
-      ]
-    },
-    {
-      "username": "frontoffice",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Front",
-      "lastName": "Office",
-      "email": "frontoffice@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "FrontOffice@123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_FRONT_OFFICE"
-      ]
-    },
-    {
-      "username": "cashier",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Cashier",
-      "lastName": "User",
-      "email": "cashier@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Cashier@123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_CASHIER"
-      ]
-    },
-    {
-      "username": "faculty1",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Faculty",
-      "lastName": "User",
-      "email": "faculty1@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "faculty123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_FACULTY"
-      ]
-    },
-    {
-      "username": "student1",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Student",
-      "lastName": "User",
-      "email": "student1@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "student123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_STUDENT"
-      ]
-    },
-    {
-      "username": "labincharge1",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Lab",
-      "lastName": "Incharge",
-      "email": "labincharge1@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "lab123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_LAB_INCHARGE"
-      ]
-    },
-    {
-      "username": "parent1",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Parent",
-      "lastName": "User",
-      "email": "parent1@cms.local",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "parent123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ROLE_PARENT"
       ]
     }
   ]

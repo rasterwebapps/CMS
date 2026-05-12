@@ -2,16 +2,19 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { requiresPermission } from './core/permissions/permission.guard';
 
+const withAuth = [authGuard];
+const withPermission = (...codes: string[]) => [authGuard, requiresPermission(...codes)];
+
 export const routes: Routes = [
   {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: withAuth,
     loadComponent: () =>
       import('./features/dashboard/dashboard').then((m) => m.DashboardComponent),
   },
   {
     path: 'departments',
-    canActivate: [authGuard],
+    canActivate: withPermission('DEPT_VIEW', 'DEPT_MANAGE'),
     loadComponent: () =>
       import('./features/department/department-list/department-list.component').then(
         (m) => m.DepartmentListComponent
@@ -19,7 +22,7 @@ export const routes: Routes = [
   },
   {
     path: 'departments/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('DEPT_MANAGE'),
     loadComponent: () =>
       import('./features/department/department-form/department-form.component').then(
         (m) => m.DepartmentFormComponent
@@ -27,7 +30,7 @@ export const routes: Routes = [
   },
   {
     path: 'departments/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('DEPT_MANAGE'),
     loadComponent: () =>
       import('./features/department/department-form/department-form.component').then(
         (m) => m.DepartmentFormComponent
@@ -35,7 +38,7 @@ export const routes: Routes = [
   },
   {
     path: 'programs',
-    canActivate: [authGuard],
+    canActivate: withPermission('PROGRAM_VIEW', 'PROGRAM_MANAGE'),
     loadComponent: () =>
       import('./features/program/program-list/program-list.component').then(
         (m) => m.ProgramListComponent
@@ -43,7 +46,7 @@ export const routes: Routes = [
   },
   {
     path: 'programs/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('PROGRAM_MANAGE'),
     loadComponent: () =>
       import('./features/program/program-form/program-form.component').then(
         (m) => m.ProgramFormComponent
@@ -51,7 +54,7 @@ export const routes: Routes = [
   },
   {
     path: 'programs/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('PROGRAM_MANAGE'),
     loadComponent: () =>
       import('./features/program/program-form/program-form.component').then(
         (m) => m.ProgramFormComponent
@@ -59,7 +62,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses',
-    canActivate: [authGuard],
+    canActivate: withPermission('COURSE_VIEW', 'COURSE_MANAGE'),
     loadComponent: () =>
       import('./features/course/course-list/course-list.component').then(
         (m) => m.CourseListComponent
@@ -67,7 +70,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('COURSE_MANAGE'),
     loadComponent: () =>
       import('./features/course/course-form/course-form.component').then(
         (m) => m.CourseFormComponent
@@ -75,7 +78,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('COURSE_MANAGE'),
     loadComponent: () =>
       import('./features/course/course-form/course-form.component').then(
         (m) => m.CourseFormComponent
@@ -83,7 +86,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-years',
-    canActivate: [authGuard],
+    canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-year-list/academic-year-list.component').then(
         (m) => m.AcademicYearListComponent
@@ -91,7 +94,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-years/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-year-form/academic-year-form.component').then(
         (m) => m.AcademicYearFormComponent
@@ -99,7 +102,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-years/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-year-form/academic-year-form.component').then(
         (m) => m.AcademicYearFormComponent
@@ -107,7 +110,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-years/:id/detail',
-    canActivate: [authGuard],
+    canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-year-detail/academic-year-detail.component').then(
         (m) => m.AcademicYearDetailComponent
@@ -115,7 +118,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-calendar',
-    canActivate: [authGuard],
+    canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-calendar/academic-calendar.component').then(
         (m) => m.AcademicCalendarComponent
@@ -123,31 +126,31 @@ export const routes: Routes = [
   },
   {
     path: 'labs',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_VIEW', 'LAB_MANAGE'),
     loadComponent: () =>
       import('./features/lab/lab-list/lab-list.component').then((m) => m.LabListComponent),
   },
   {
     path: 'labs/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_MANAGE'),
     loadComponent: () =>
       import('./features/lab/lab-form/lab-form.component').then((m) => m.LabFormComponent),
   },
   {
     path: 'labs/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_VIEW', 'LAB_MANAGE'),
     loadComponent: () =>
       import('./features/lab/lab-detail/lab-detail.component').then((m) => m.LabDetailComponent),
   },
   {
     path: 'labs/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_MANAGE'),
     loadComponent: () =>
       import('./features/lab/lab-form/lab-form.component').then((m) => m.LabFormComponent),
   },
   {
     path: 'faculty',
-    canActivate: [authGuard],
+    canActivate: withPermission('FACULTY_VIEW', 'FACULTY_MANAGE'),
     loadComponent: () =>
       import('./features/faculty/faculty-list/faculty-list.component').then(
         (m) => m.FacultyListComponent
@@ -155,7 +158,7 @@ export const routes: Routes = [
   },
   {
     path: 'faculty/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('FACULTY_MANAGE'),
     loadComponent: () =>
       import('./features/faculty/faculty-form/faculty-form.component').then(
         (m) => m.FacultyFormComponent
@@ -163,7 +166,7 @@ export const routes: Routes = [
   },
   {
     path: 'faculty/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('FACULTY_VIEW', 'FACULTY_MANAGE'),
     loadComponent: () =>
       import('./features/faculty/faculty-detail/faculty-detail.component').then(
         (m) => m.FacultyDetailComponent
@@ -171,7 +174,7 @@ export const routes: Routes = [
   },
   {
     path: 'faculty/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('FACULTY_MANAGE'),
     loadComponent: () =>
       import('./features/faculty/faculty-form/faculty-form.component').then(
         (m) => m.FacultyFormComponent
@@ -179,7 +182,7 @@ export const routes: Routes = [
   },
   {
     path: 'students',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'),
     loadComponent: () =>
       import('./features/student/student-list/student-list.component').then(
         (m) => m.StudentListComponent
@@ -187,7 +190,7 @@ export const routes: Routes = [
   },
   {
     path: 'students/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_CREATE'),
     loadComponent: () =>
       import('./features/student/student-form/student-form.component').then(
         (m) => m.StudentFormComponent
@@ -195,7 +198,7 @@ export const routes: Routes = [
   },
   {
     path: 'students/roll-numbers',
-    canActivate: [authGuard],
+    canActivate: withPermission('ROLL_NUMBER_ASSIGN'),
     loadComponent: () =>
       import('./features/student/roll-number-assignment/roll-number-assignment.component').then(
         (m) => m.RollNumberAssignmentComponent
@@ -203,7 +206,7 @@ export const routes: Routes = [
   },
   {
     path: 'students/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_VIEW', 'STUDENT_EDIT'),
     loadComponent: () =>
       import('./features/student/student-detail/student-detail.component').then(
         (m) => m.StudentDetailComponent
@@ -211,7 +214,7 @@ export const routes: Routes = [
   },
   {
     path: 'students/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_EDIT'),
     loadComponent: () =>
       import('./features/student/student-form/student-form.component').then(
         (m) => m.StudentFormComponent
@@ -251,7 +254,7 @@ export const routes: Routes = [
   },
   {
     path: 'attendance',
-    canActivate: [authGuard],
+    canActivate: withPermission('ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE'),
     loadComponent: () =>
       import('./features/attendance/attendance-list/attendance-list.component').then(
         (m) => m.AttendanceListComponent
@@ -259,7 +262,7 @@ export const routes: Routes = [
   },
   {
     path: 'attendance/mark',
-    canActivate: [authGuard],
+    canActivate: withPermission('ATTENDANCE_MANAGE'),
     loadComponent: () =>
       import('./features/attendance/attendance-mark/attendance-mark.component').then(
         (m) => m.AttendanceMarkComponent
@@ -267,7 +270,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-structures',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-structure-list/fee-structure-list.component').then(
         (m) => m.FeeStructureListComponent
@@ -275,7 +278,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-structures/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_STRUCTURE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-structure-form/fee-structure-form.component').then(
         (m) => m.FeeStructureFormComponent
@@ -283,7 +286,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-structures/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_STRUCTURE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-structure-form/fee-structure-form.component').then(
         (m) => m.FeeStructureFormComponent
@@ -291,7 +294,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-structures/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_STRUCTURE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-structure-form/fee-structure-form.component').then(
         (m) => m.FeeStructureFormComponent
@@ -299,7 +302,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-collection',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_COLLECT'),
     loadComponent: () =>
       import('./features/finance/fee-collection/fee-collection.component').then(
         (m) => m.FeeCollectionComponent
@@ -307,7 +310,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-payments',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_COLLECT'),
     loadComponent: () =>
       import('./features/finance/fee-collection/fee-collection.component').then(
         (m) => m.FeeCollectionComponent
@@ -315,7 +318,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-payments/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_COLLECT'),
     loadComponent: () =>
       import('./features/finance/fee-payment-form/fee-payment-form.component').then(
         (m) => m.FeePaymentFormComponent
@@ -323,7 +326,7 @@ export const routes: Routes = [
   },
   {
     path: 'receipts',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_FEE_VIEW', 'FEE_COLLECT'),
     loadComponent: () =>
       import('./features/finance/receipts-list/receipts-list.component').then(
         (m) => m.ReceiptsListComponent
@@ -331,7 +334,7 @@ export const routes: Routes = [
   },
   {
     path: 'equipment',
-    canActivate: [authGuard],
+    canActivate: withPermission('EQUIPMENT_VIEW', 'EQUIPMENT_MANAGE'),
     loadComponent: () =>
       import('./features/equipment/equipment-list/equipment-list.component').then(
         (m) => m.EquipmentListComponent
@@ -339,7 +342,7 @@ export const routes: Routes = [
   },
   {
     path: 'equipment/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('EQUIPMENT_MANAGE'),
     loadComponent: () =>
       import('./features/equipment/equipment-form/equipment-form.component').then(
         (m) => m.EquipmentFormComponent
@@ -347,7 +350,7 @@ export const routes: Routes = [
   },
   {
     path: 'equipment/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('EQUIPMENT_MANAGE'),
     loadComponent: () =>
       import('./features/equipment/equipment-form/equipment-form.component').then(
         (m) => m.EquipmentFormComponent
@@ -355,7 +358,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory',
-    canActivate: [authGuard],
+    canActivate: withPermission('INVENTORY_VIEW', 'INVENTORY_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/inventory-list/inventory-list.component').then(
         (m) => m.InventoryListComponent
@@ -363,7 +366,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('INVENTORY_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/inventory-form/inventory-form.component').then(
         (m) => m.InventoryFormComponent
@@ -371,7 +374,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('INVENTORY_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/inventory-form/inventory-form.component').then(
         (m) => m.InventoryFormComponent
@@ -379,7 +382,7 @@ export const routes: Routes = [
   },
   {
     path: 'maintenance',
-    canActivate: [authGuard],
+    canActivate: withPermission('MAINTENANCE_VIEW', 'MAINTENANCE_MANAGE'),
     loadComponent: () =>
       import('./features/maintenance/maintenance-list/maintenance-list.component').then(
         (m) => m.MaintenanceListComponent
@@ -387,7 +390,7 @@ export const routes: Routes = [
   },
   {
     path: 'maintenance/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('MAINTENANCE_MANAGE'),
     loadComponent: () =>
       import('./features/maintenance/maintenance-form/maintenance-form.component').then(
         (m) => m.MaintenanceFormComponent
@@ -395,7 +398,7 @@ export const routes: Routes = [
   },
   {
     path: 'maintenance/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('MAINTENANCE_MANAGE'),
     loadComponent: () =>
       import('./features/maintenance/maintenance-form/maintenance-form.component').then(
         (m) => m.MaintenanceFormComponent
@@ -403,7 +406,7 @@ export const routes: Routes = [
   },
   {
     path: 'examinations',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXAMINATION_VIEW', 'EXAMINATION_MANAGE'),
     loadComponent: () =>
       import('./features/examination/examination-list/examination-list.component').then(
         (m) => m.ExaminationListComponent
@@ -411,7 +414,7 @@ export const routes: Routes = [
   },
   {
     path: 'examinations/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXAMINATION_MANAGE'),
     loadComponent: () =>
       import('./features/examination/examination-form/examination-form.component').then(
         (m) => m.ExaminationFormComponent
@@ -419,7 +422,7 @@ export const routes: Routes = [
   },
   {
     path: 'examinations/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXAMINATION_MANAGE'),
     loadComponent: () =>
       import('./features/examination/examination-form/examination-form.component').then(
         (m) => m.ExaminationFormComponent
@@ -427,7 +430,7 @@ export const routes: Routes = [
   },
   {
     path: 'exam-results',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'),
     loadComponent: () =>
       import('./features/examination/exam-result-list/exam-result-list.component').then(
         (m) => m.ExamResultListComponent
@@ -435,7 +438,7 @@ export const routes: Routes = [
   },
   {
     path: 'syllabi',
-    canActivate: [authGuard],
+    canActivate: withPermission('SYLLABUS_VIEW', 'SYLLABUS_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/syllabus-list/syllabus-list.component').then(
         (m) => m.SyllabusListComponent
@@ -443,7 +446,7 @@ export const routes: Routes = [
   },
   {
     path: 'syllabi/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('SYLLABUS_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/syllabus-form/syllabus-form.component').then(
         (m) => m.SyllabusFormComponent
@@ -451,7 +454,7 @@ export const routes: Routes = [
   },
   {
     path: 'syllabi/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('SYLLABUS_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/syllabus-form/syllabus-form.component').then(
         (m) => m.SyllabusFormComponent
@@ -459,7 +462,7 @@ export const routes: Routes = [
   },
   {
     path: 'experiments',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/experiment-list/experiment-list.component').then(
         (m) => m.ExperimentListComponent
@@ -467,7 +470,7 @@ export const routes: Routes = [
   },
   {
     path: 'experiments/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXPERIMENT_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/experiment-form/experiment-form.component').then(
         (m) => m.ExperimentFormComponent
@@ -475,7 +478,7 @@ export const routes: Routes = [
   },
   {
     path: 'experiments/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('EXPERIMENT_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/experiment-form/experiment-form.component').then(
         (m) => m.ExperimentFormComponent
@@ -483,7 +486,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-mappings',
-    canActivate: [authGuard],
+    canActivate: withPermission('COPO_VIEW', 'COPO_MANAGE', 'CURRICULUM_VIEW'),
     loadComponent: () =>
       import('./features/curriculum/co-po-mapping/co-po-mapping.component').then(
         (m) => m.CoPoMappingComponent
@@ -491,7 +494,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-mappings/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('COPO_MANAGE', 'CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/co-po-mapping-form/co-po-mapping-form.component').then(
         (m) => m.CoPoMappingFormComponent
@@ -499,7 +502,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-mappings/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('COPO_MANAGE', 'CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/co-po-mapping-form/co-po-mapping-form.component').then(
         (m) => m.CoPoMappingFormComponent
@@ -507,7 +510,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-versions',
-    canActivate: [authGuard],
+    canActivate: withPermission('CURRICULUM_VIEW', 'CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/curriculum-version-list/curriculum-version-list.component').then(
         (m) => m.CurriculumVersionListComponent
@@ -515,7 +518,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-versions/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
         (m) => m.CurriculumVersionFormComponent
@@ -523,7 +526,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-versions/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/curriculum-version-form/curriculum-version-form.component').then(
         (m) => m.CurriculumVersionFormComponent
@@ -531,7 +534,7 @@ export const routes: Routes = [
   },
   {
     path: 'curriculum-map/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('CURRICULUM_VIEW', 'CURRICULUM_MANAGE'),
     loadComponent: () =>
       import('./features/curriculum/curriculum-map/curriculum-map.component').then(
         (m) => m.CurriculumMapComponent
@@ -539,7 +542,7 @@ export const routes: Routes = [
   },
   {
     path: 'lab-schedules',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'),
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-list/lab-schedule-list.component').then(
         (m) => m.LabScheduleListComponent
@@ -547,7 +550,7 @@ export const routes: Routes = [
   },
   {
     path: 'lab-schedules/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_SCHEDULE_MANAGE'),
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
         (m) => m.LabScheduleFormComponent
@@ -555,7 +558,7 @@ export const routes: Routes = [
   },
   {
     path: 'lab-schedules/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('LAB_SCHEDULE_MANAGE'),
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
         (m) => m.LabScheduleFormComponent
@@ -563,7 +566,7 @@ export const routes: Routes = [
   },
   {
     path: 'fee-reports',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_REPORT_VIEW'),
     loadComponent: () =>
       import('./features/fee-reports/fee-reports-dashboard/fee-reports-dashboard.component').then(
         (m) => m.FeeReportsDashboardComponent
@@ -571,7 +574,7 @@ export const routes: Routes = [
   },
   {
     path: 'reports',
-    canActivate: [authGuard],
+    canActivate: withPermission('REPORT_VIEW'),
     loadComponent: () =>
       import('./features/reports/reports-dashboard/reports-dashboard.component').then(
         (m) => m.ReportsDashboardComponent
@@ -579,13 +582,13 @@ export const routes: Routes = [
   },
   {
     path: 'import',
-    canActivate: [authGuard],
+    canActivate: withPermission('IMPORT_DATA'),
     loadComponent: () =>
       import('./features/import/import.component').then((m) => m.ImportComponent),
   },
   {
     path: 'user-management',
-    canActivate: [authGuard],
+    canActivate: withPermission('USER_VIEW'),
     loadComponent: () =>
       import('./features/user-management/user-management.component').then(
         (m) => m.UserManagementComponent
@@ -593,7 +596,7 @@ export const routes: Routes = [
   },
   {
     path: 'role-management',
-    canActivate: [authGuard],
+    canActivate: withPermission('ROLE_VIEW'),
     loadComponent: () =>
       import('./features/role-management/role-management.component').then(
         (m) => m.RoleManagementComponent
@@ -601,7 +604,7 @@ export const routes: Routes = [
   },
   {
     path: 'settings',
-    canActivate: [authGuard],
+    canActivate: withPermission('SETTINGS_VIEW', 'SETTINGS_MANAGE'),
     loadComponent: () =>
       import('./features/settings/system-configuration-list/system-configuration-list.component').then(
         (m) => m.SystemConfigurationListComponent
@@ -609,7 +612,7 @@ export const routes: Routes = [
   },
   {
     path: 'settings/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('SETTINGS_MANAGE'),
     loadComponent: () =>
       import('./features/settings/system-configuration-form/system-configuration-form.component').then(
         (m) => m.SystemConfigurationFormComponent
@@ -617,7 +620,7 @@ export const routes: Routes = [
   },
   {
     path: 'settings/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('SETTINGS_MANAGE'),
     loadComponent: () =>
       import('./features/settings/system-configuration-form/system-configuration-form.component').then(
         (m) => m.SystemConfigurationFormComponent
@@ -625,7 +628,7 @@ export const routes: Routes = [
   },
   {
     path: 'agents',
-    canActivate: [authGuard],
+    canActivate: withPermission('AGENT_VIEW', 'AGENT_MANAGE'),
     loadComponent: () =>
       import('./features/agent/agent-list/agent-list.component').then(
         (m) => m.AgentListComponent
@@ -633,7 +636,7 @@ export const routes: Routes = [
   },
   {
     path: 'agents/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('AGENT_MANAGE'),
     loadComponent: () =>
       import('./features/agent/agent-form/agent-form.component').then(
         (m) => m.AgentFormComponent
@@ -641,7 +644,7 @@ export const routes: Routes = [
   },
   {
     path: 'agents/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('AGENT_MANAGE'),
     loadComponent: () =>
       import('./features/agent/agent-form/agent-form.component').then(
         (m) => m.AgentFormComponent
@@ -649,7 +652,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries',
-    canActivate: [authGuard],
+    canActivate: withPermission('ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'),
     loadComponent: () =>
       import('./features/enquiry/enquiry-list/enquiry-list.component').then(
         (m) => m.EnquiryListComponent
@@ -657,7 +660,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/document-submission',
-    canActivate: [authGuard],
+    canActivate: withPermission('DOCUMENT_SUBMISSION_VIEW', 'DOCUMENT_SUBMISSION_MANAGE'),
     loadComponent: () =>
       import('./features/enquiry/document-submission/document-submission-list.component').then(
         (m) => m.DocumentSubmissionListComponent
@@ -665,7 +668,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/document-submission/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('DOCUMENT_SUBMISSION_VIEW', 'DOCUMENT_SUBMISSION_MANAGE'),
     loadComponent: () =>
       import('./features/enquiry/document-collection/document-collection.component').then(
         (m) => m.DocumentCollectionComponent
@@ -673,7 +676,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/admission-completion',
-    canActivate: [authGuard],
+    canActivate: withPermission('ADMISSION_CREATE', 'ADMISSION_EDIT'),
     loadComponent: () =>
       import('./features/enquiry/admission-completion/admission-completion-list.component').then(
         (m) => m.AdmissionCompletionListComponent
@@ -681,7 +684,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('ENQUIRY_CREATE'),
     loadComponent: () =>
       import('./features/enquiry/enquiry-form/enquiry-form.component').then(
         (m) => m.EnquiryFormComponent
@@ -689,7 +692,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('ENQUIRY_EDIT'),
     loadComponent: () =>
       import('./features/enquiry/enquiry-form/enquiry-form.component').then(
         (m) => m.EnquiryFormComponent
@@ -697,7 +700,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/:id/convert',
-    canActivate: [authGuard],
+    canActivate: withPermission('ADMISSION_CREATE', 'ADMISSION_EDIT'),
     loadComponent: () =>
       import('./features/enquiry/enquiry-convert/enquiry-convert.component').then(
         (m) => m.EnquiryConvertComponent
@@ -705,7 +708,7 @@ export const routes: Routes = [
   },
   {
     path: 'enquiries/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('ENQUIRY_VIEW', 'ENQUIRY_EDIT'),
     loadComponent: () =>
       import('./features/enquiry/enquiry-detail/enquiry-detail.component').then(
         (m) => m.EnquiryDetailComponent
@@ -713,15 +716,23 @@ export const routes: Routes = [
   },
   {
     path: 'admissions',
-    canActivate: [authGuard],
+    canActivate: withPermission('ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'),
     loadComponent: () =>
       import('./features/admission/admission-list/admission-list.component').then(
         (m) => m.AdmissionListComponent
       ),
   },
   {
+    path: 'admissions/new',
+    canActivate: withPermission('ADMISSION_CREATE'),
+    loadComponent: () =>
+      import('./features/admission/admission-form/admission-form.component').then(
+        (m) => m.AdmissionFormComponent
+      ),
+  },
+  {
     path: 'admissions/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('ADMISSION_EDIT'),
     loadComponent: () =>
       import('./features/admission/admission-form/admission-form.component').then(
         (m) => m.AdmissionFormComponent
@@ -729,7 +740,7 @@ export const routes: Routes = [
   },
   {
     path: 'admissions/:id',
-    canActivate: [authGuard],
+    canActivate: withPermission('ADMISSION_VIEW', 'ADMISSION_EDIT'),
     loadComponent: () =>
       import('./features/admission/admission-detail/admission-detail.component').then(
         (m) => m.AdmissionDetailComponent
@@ -737,7 +748,7 @@ export const routes: Routes = [
   },
   {
     path: 'student-fees',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-explorer/fee-explorer.component').then(
         (m) => m.FeeExplorerComponent
@@ -745,7 +756,7 @@ export const routes: Routes = [
   },
   {
     path: 'student-fees/finalize',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_FINALIZE', 'STUDENT_FEE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/fee-finalization/fee-finalization.component').then(
         (m) => m.FeeFinalizationComponent
@@ -753,7 +764,7 @@ export const routes: Routes = [
   },
   {
     path: 'student-fees/collect-payment',
-    canActivate: [authGuard],
+    canActivate: withPermission('FEE_COLLECT'),
     loadComponent: () =>
       import('./features/finance/fee-collection/fee-collection.component').then(
         (m) => m.FeeCollectionComponent
@@ -761,7 +772,7 @@ export const routes: Routes = [
   },
   {
     path: 'student-fees/:studentId',
-    canActivate: [authGuard],
+    canActivate: withPermission('STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'),
     loadComponent: () =>
       import('./features/finance/student-fee-detail/student-fee-detail.component').then(
         (m) => m.StudentFeeDetailComponent
@@ -769,7 +780,7 @@ export const routes: Routes = [
   },
   {
     path: 'referral-types',
-    canActivate: [authGuard],
+    canActivate: withPermission('REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'),
     loadComponent: () =>
       import('./features/referral-type/referral-type-list/referral-type-list.component').then(
         (m) => m.ReferralTypeListComponent
@@ -777,7 +788,7 @@ export const routes: Routes = [
   },
   {
     path: 'referral-types/new',
-    canActivate: [authGuard],
+    canActivate: withPermission('REFERRAL_TYPE_MANAGE'),
     loadComponent: () =>
       import('./features/referral-type/referral-type-form/referral-type-form.component').then(
         (m) => m.ReferralTypeFormComponent
@@ -785,7 +796,7 @@ export const routes: Routes = [
   },
   {
     path: 'referral-types/:id/edit',
-    canActivate: [authGuard],
+    canActivate: withPermission('REFERRAL_TYPE_MANAGE'),
     loadComponent: () =>
       import('./features/referral-type/referral-type-form/referral-type-form.component').then(
         (m) => m.ReferralTypeFormComponent
@@ -844,7 +855,7 @@ export const routes: Routes = [
   // ── Administration: User & Role Management ───────────────────────────────
   {
     path: 'user-management',
-    canActivate: [authGuard],
+    canActivate: withPermission('USER_VIEW'),
     loadComponent: () =>
       import('./features/user-management/user-management.component').then(
         (m) => m.UserManagementComponent
@@ -852,7 +863,7 @@ export const routes: Routes = [
   },
   {
     path: 'role-management',
-    canActivate: [authGuard],
+    canActivate: withPermission('ROLE_VIEW'),
     loadComponent: () =>
       import('./features/role-management/role-management.component').then(
         (m) => m.RoleManagementComponent

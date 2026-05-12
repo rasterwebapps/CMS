@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,15 +41,18 @@ public class EnquiryPaymentService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final ObjectMapper objectMapper;
+    private final UnifiedReceiptService unifiedReceiptService;
 
     public EnquiryPaymentService(EnquiryPaymentRepository enquiryPaymentRepository,
                                   EnquiryRepository enquiryRepository,
                                   EnquiryStatusHistoryRepository statusHistoryRepository,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper,
+                                  UnifiedReceiptService unifiedReceiptService) {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.objectMapper = objectMapper;
+        this.unifiedReceiptService = unifiedReceiptService;
     }
 
     @Transactional
@@ -66,8 +68,7 @@ public class EnquiryPaymentService {
             );
         }
 
-        String receiptNumber = "RCP-" + LocalDate.now().toString().replace("-", "") + "-"
-            + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String receiptNumber = unifiedReceiptService.generateReceiptNumber();
 
         EnquiryPayment payment = new EnquiryPayment(
             enquiry,
@@ -98,6 +99,15 @@ public class EnquiryPaymentService {
         statusHistoryRepository.save(new EnquiryStatusHistory(
             enquiry, oldStatus, newStatus, collectedBy, "Payment collected"
         ));
+
+        // Persist to the unified receipts table
+        unifiedReceiptService.saveEnquiryReceipt(
+            receiptNumber,
+            enquiry.getId(), enquiry.getName(),
+            enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
+            request.amountPaid(), request.paymentDate(), request.paymentMode().name(),
+            request.transactionReference(), request.remarks(),
+            "Pre-enrollment Fee", collectedBy);
 
         return toResponse(saved, newStatus);
     }

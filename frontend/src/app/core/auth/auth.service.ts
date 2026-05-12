@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import Keycloak from 'keycloak-js';
 import { environment } from '../../../environments';
@@ -19,35 +19,6 @@ export class AuthService {
   readonly username = this._username.asReadonly();
   readonly roles = this._roles.asReadonly();
   readonly token = this._token.asReadonly();
-
-  readonly isAdmin = computed(() => this._roles().includes('ROLE_ADMIN'));
-  readonly isCollegeAdmin = computed(() => this._roles().includes('ROLE_COLLEGE_ADMIN'));
-  readonly isFrontOffice = computed(() => this._roles().includes('ROLE_FRONT_OFFICE'));
-  readonly isCashier = computed(() => this._roles().includes('ROLE_CASHIER'));
-  readonly isFaculty = computed(() => this._roles().includes('ROLE_FACULTY'));
-  readonly isStudent = computed(() => this._roles().includes('ROLE_STUDENT'));
-  readonly isLabIncharge = computed(() => this._roles().includes('ROLE_LAB_INCHARGE'));
-  readonly isTechnician = computed(() => this._roles().includes('ROLE_TECHNICIAN'));
-  readonly isParent = computed(() => this._roles().includes('ROLE_PARENT'));
-
-  /**
-   * Returns all dashboard-relevant roles the user holds, sorted by priority order.
-   * Used by the dashboard shell to determine which role-based dashboard(s) to render.
-   */
-  readonly dashboardRoles = computed(() => {
-    const priority = [
-      'ROLE_ADMIN',
-      'ROLE_COLLEGE_ADMIN',
-      'ROLE_FRONT_OFFICE',
-      'ROLE_CASHIER',
-      'ROLE_FACULTY',
-      'ROLE_LAB_INCHARGE',
-      'ROLE_TECHNICIAN',
-      'ROLE_STUDENT',
-      'ROLE_PARENT',
-    ];
-    return priority.filter((r) => this._roles().includes(r));
-  });
 
   async init(): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) {
@@ -121,10 +92,6 @@ export class AuthService {
       await this.login();
       return undefined;
     }
-  }
-
-  hasRole(role: string): boolean {
-    return this._roles().includes(role);
   }
 
   private updateState(): void {

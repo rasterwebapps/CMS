@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabService } from '../lab.service';
 import { Lab, LabInChargeAssignment, LabInChargeAssignmentRequest, LabInChargeRole } from '../lab.model';
-import { AuthService } from '../../../core/auth/auth.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -33,11 +33,10 @@ import { ToastService } from '../../../core/toast/toast.service';
 })
 export class LabDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly labService = inject(LabService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
-  protected readonly authService = inject(AuthService);
+  private readonly permissionService = inject(PermissionService);
 
   protected readonly lab = signal<Lab | null>(null);
   protected readonly assignments = signal<LabInChargeAssignment[]>([]);
@@ -113,6 +112,8 @@ export class LabDetailComponent implements OnInit {
   }
 
   protected toggleAssignmentForm(): void {
+    if (!this.canManageLabs()) return;
+
     this.showAssignmentForm.update((v) => !v);
     if (!this.showAssignmentForm()) {
       this.assignmentForm.reset({ assignedDate: new Date().toISOString().split('T')[0] });
@@ -120,7 +121,7 @@ export class LabDetailComponent implements OnInit {
   }
 
   protected submitAssignment(): void {
-    if (this.assignmentForm.invalid || !this.lab()) {
+    if (!this.canManageLabs() || this.assignmentForm.invalid || !this.lab()) {
       return;
     }
 
@@ -145,7 +146,7 @@ export class LabDetailComponent implements OnInit {
   }
 
   protected removeAssignment(assignmentId: number): void {
-    if (!this.lab()) {
+    if (!this.canManageLabs() || !this.lab()) {
       return;
     }
 
@@ -162,5 +163,9 @@ export class LabDetailComponent implements OnInit {
 
   protected formatDisplayDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
+  }
+
+  protected canManageLabs(): boolean {
+    return this.permissionService.has('LAB_MANAGE');
   }
 }

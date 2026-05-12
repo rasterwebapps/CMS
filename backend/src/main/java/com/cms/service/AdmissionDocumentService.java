@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.EnumMap;
@@ -14,42 +15,42 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
-import com.cms.model.AdmissionDocument;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
-import com.cms.repository.AdmissionDocumentRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class AdmissionDocumentService {
 
-    private final AdmissionDocumentRepository admissionDocumentRepository;
+    private final EnquiryDocumentRepository documentRepository;
     private final AdmissionRepository admissionRepository;
 
-    public AdmissionDocumentService(AdmissionDocumentRepository admissionDocumentRepository,
+    public AdmissionDocumentService(EnquiryDocumentRepository documentRepository,
                                     AdmissionRepository admissionRepository) {
-        this.admissionDocumentRepository = admissionDocumentRepository;
+        this.documentRepository = documentRepository;
         this.admissionRepository = admissionRepository;
     }
 
     public List<AdmissionDocumentResponse> findByAdmissionId(Long admissionId) {
-        return admissionDocumentRepository.findByAdmissionId(admissionId).stream()
-            .map(this::toResponse)
+        return documentRepository.findByAdmission_Id(admissionId).stream()
+            .map(document -> toResponse(document, admissionId))
             .toList();
     }
 
     @Transactional
     public AdmissionDocumentResponse updateVerification(Long docId, DocumentVerificationStatus status, String verifiedBy) {
-        AdmissionDocument document = admissionDocumentRepository.findById(docId)
-            .orElseThrow(() -> new ResourceNotFoundException("Admission document not found with id: " + docId));
-        document.setVerificationStatus(status);
+        EnquiryDocument document = documentRepository.findById(docId)
+            .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
+        document.setStatus(status);
         document.setVerifiedBy(verifiedBy);
-        document.setVerifiedAt(LocalDateTime.now(ZoneOffset.UTC));
-        AdmissionDocument updated = admissionDocumentRepository.save(document);
-        return toResponse(updated);
+        document.setVerifiedAt(Instant.now());
+        EnquiryDocument updated = documentRepository.save(document);
+        return toResponse(updated, null);
     }
 
     /**
@@ -68,10 +69,10 @@ public class AdmissionDocumentService {
         for (DocumentType type : applicable) {
             checklist.put(type, DocumentVerificationStatus.NOT_UPLOADED);
         }
-        List<AdmissionDocument> documents = admissionDocumentRepository.findByAdmissionId(admissionId);
-        for (AdmissionDocument doc : documents) {
+        List<EnquiryDocument> documents = documentRepository.findByAdmission_Id(admissionId);
+        for (EnquiryDocument doc : documents) {
             if (applicable.contains(doc.getDocumentType())) {
-                checklist.put(doc.getDocumentType(), doc.getVerificationStatus());
+                checklist.put(doc.getDocumentType(), doc.getStatus());
             }
         }
         return checklist;
@@ -91,20 +92,24 @@ public class AdmissionDocumentService {
         return new HashSet<>(Set.of(DocumentType.values()));
     }
 
-    private AdmissionDocumentResponse toResponse(AdmissionDocument document) {
+    private AdmissionDocumentResponse toResponse(EnquiryDocument document, Long admissionId) {
         return new AdmissionDocumentResponse(
             document.getId(),
-            document.getAdmission().getId(),
+            admissionId,
             document.getDocumentType(),
             document.getFileName(),
-            document.getStorageKey(),
-            document.getUploadedAt(),
-            document.getOriginalSubmitted(),
+            null,
+            toUtcLocalDateTime(document.getUploadedAt()),
+            null,
             document.getVerifiedBy(),
-            document.getVerifiedAt(),
-            document.getVerificationStatus(),
+            toUtcLocalDateTime(document.getVerifiedAt()),
+            document.getStatus(),
             document.getCreatedAt(),
             document.getUpdatedAt()
         );
+    }
+
+    private LocalDateTime toUtcLocalDateTime(Instant instant) {
+        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

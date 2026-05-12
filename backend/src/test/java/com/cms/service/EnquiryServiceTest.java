@@ -30,9 +30,12 @@ import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
+import com.cms.model.enums.DocumentType;
+import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FeeType;
 import com.cms.model.enums.StudentType;
@@ -40,6 +43,7 @@ import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
@@ -72,6 +76,8 @@ class EnquiryServiceTest {
     @Mock
     private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock
+    private EnquiryDocumentRepository enquiryDocumentRepository;
+    @Mock
     private AcademicYearRepository academicYearRepository;
     @Mock
     private FeeStructureService feeStructureService;
@@ -86,7 +92,22 @@ class EnquiryServiceTest {
 
     @BeforeEach
     void setUp() {
-        enquiryService = new EnquiryService(enquiryRepository, programRepository, agentRepository, studentRepository, facultyRepository, referralTypeRepository, courseRepository, statusHistoryRepository, admissionRepository, enquiryPaymentRepository, academicYearRepository, feeStructureService, enquiryDocumentService);
+        enquiryService = new EnquiryService(
+            enquiryRepository,
+            programRepository,
+            agentRepository,
+            studentRepository,
+            facultyRepository,
+            referralTypeRepository,
+            courseRepository,
+            statusHistoryRepository,
+            admissionRepository,
+            enquiryPaymentRepository,
+            enquiryDocumentRepository,
+            academicYearRepository,
+            feeStructureService,
+            enquiryDocumentService
+        );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
             .thenReturn(java.math.BigDecimal.ZERO);
@@ -98,6 +119,9 @@ class EnquiryServiceTest {
         org.mockito.Mockito.lenient()
             .when(academicYearRepository.findById(100L))
             .thenReturn(java.util.Optional.of(joiningAY));
+        org.mockito.Mockito.lenient()
+            .when(enquiryDocumentRepository.findByEnquiryId(org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(List.of());
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -1232,6 +1256,58 @@ class EnquiryServiceTest {
         assertThat(response.convertedStudentId()).isEqualTo(10L);
         verify(admissionRepository).save(any(Admission.class));
         verify(statusHistoryRepository).save(any());
+    }
+
+    @Test
+    void shouldMigrateEnquiryDocumentsToAdmissionOnConversion() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryDocument verifiedDoc = new EnquiryDocument(enquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.VERIFIED);
+        verifiedDoc.setFileName("10th.pdf");
+        verifiedDoc.setUploadedAt(Instant.parse("2026-05-01T10:15:30Z"));
+        verifiedDoc.setVerifiedBy("admin");
+        verifiedDoc.setVerifiedAt(Instant.parse("2026-05-02T08:00:00Z"));
+
+        EnquiryDocument uploadedDoc = new EnquiryDocument(enquiry, DocumentType.AADHAR_CARD, DocumentVerificationStatus.UPLOADED);
+        uploadedDoc.setFileName("aadhar.pdf");
+        uploadedDoc.setUploadedAt(Instant.parse("2026-05-01T10:20:30Z"));
+
+        EnquiryDocument notUploadedDoc = new EnquiryDocument(enquiry, DocumentType.PASSPORT_PHOTO, DocumentVerificationStatus.NOT_UPLOADED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            100L, LocalDate.of(2024, 7, 1), true, true,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
+        );
+
+        Student savedStudent = new Student(null, "Ravi", "Kumar", "ravi@college.edu",
+            testProgram, 1, LocalDate.of(2024, 7, 1), com.cms.model.enums.StudentStatus.ACTIVE);
+        savedStudent.setId(10L);
+
+        Admission savedAdmission = new Admission(savedStudent, new AcademicYear(), LocalDate.of(2024, 7, 1));
+        savedAdmission.setId(999L);
+
+        Enquiry admitted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
+        admitted.setConvertedStudentId(10L);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+        when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
+        when(admissionRepository.save(any(Admission.class))).thenReturn(savedAdmission);
+        when(enquiryDocumentRepository.findByEnquiryId(1L)).thenReturn(List.of(verifiedDoc, uploadedDoc, notUploadedDoc));
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(admitted);
+
+        enquiryService.convertToStudentWithData(1L, request, "admin");
+
+        verify(enquiryDocumentRepository).saveAll(List.of(verifiedDoc, uploadedDoc, notUploadedDoc));
+        assertThat(verifiedDoc.getAdmission()).isEqualTo(savedAdmission);
+        assertThat(uploadedDoc.getAdmission()).isEqualTo(savedAdmission);
+        assertThat(notUploadedDoc.getAdmission()).isEqualTo(savedAdmission);
     }
 
     @Test

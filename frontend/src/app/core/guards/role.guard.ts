@@ -1,9 +1,9 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, ActivatedRouteSnapshot, Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
+import { PermissionService } from '../permissions/permission.service';
 
 export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
-  const authService = inject(AuthService);
+  const permissionService = inject(PermissionService);
   const router = inject(Router);
 
   const requiredRoles = route.data['roles'] as string[] | undefined;
@@ -12,7 +12,7 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
     return true;
   }
 
-  const hasRole = requiredRoles.some((role) => authService.hasRole(role));
+  const hasRole = permissionService.loaded() && permissionService.isRole(...requiredRoles);
 
   if (hasRole) {
     return true;

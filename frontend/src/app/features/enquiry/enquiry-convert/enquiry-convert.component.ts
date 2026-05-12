@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -195,6 +196,10 @@ export class EnquiryConvertComponent implements OnInit {
       this.toast.warning('All mandatory documents must be verified before completing admission.');
       return;
     }
+    if (!this.selectedAcademicYearId()) {
+      this.toast.warning('Please select an academic year before creating admission.');
+      return;
+    }
     const id = this.enquiry()?.id;
     if (!id) return;
     this.saving.set(true);
@@ -203,8 +208,8 @@ export class EnquiryConvertComponent implements OnInit {
       next: () => {
         this.uploadConsentDocs(id);
       },
-      error: () => {
-        this.toast.error('Failed to create admission');
+      error: (error: HttpErrorResponse) => {
+        this.toast.error(this.getErrorMessage(error, 'Failed to create admission'));
         this.saving.set(false);
       },
     });
@@ -255,7 +260,7 @@ export class EnquiryConvertComponent implements OnInit {
       lastName:    v['lastName'] as string,
       email:       v['email'] as string,
       phone:       this.nullable(v['phone'] as string),
-      yearOfStudy: v['yearOfStudy'] as number,
+      semester:    v['yearOfStudy'] as number,
       admissionDate:        v['admissionDate'] as string,
       joiningAcademicYearId: this.selectedAcademicYearId()!,
       applicationDate:      v['applicationDate'] as string,
@@ -289,5 +294,12 @@ export class EnquiryConvertComponent implements OnInit {
       declarationPlace: this.nullable(v['declarationPlace'] as string) ?? null,
       declarationDate:  this.nullable(v['declarationDate'] as string) ?? null,
     };
+  }
+
+  private getErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    if (typeof error.error === 'string' && error.error.trim()) return error.error;
+    if (error.error?.message) return error.error.message;
+    if (error.error?.error) return error.error.error;
+    return fallback;
   }
 }

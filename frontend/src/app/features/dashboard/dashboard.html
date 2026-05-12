@@ -1,11 +1,11 @@
 <div class="dashboard-shell">
-  @if (activeRole() === 'ROLE_ADMIN' || activeRole() === 'ROLE_COLLEGE_ADMIN') {
+  @if (activeDashboard() === 'admin') {
     <app-admin-dashboard />
-  } @else if (activeRole() === 'ROLE_FRONT_OFFICE') {
+  } @else if (activeDashboard() === 'front-office') {
     <app-front-office-dashboard />
-  } @else if (activeRole() === 'ROLE_CASHIER') {
+  } @else if (activeDashboard() === 'cashier') {
     <app-cashier-dashboard />
-  } @else if (activeRole() === 'ROLE_FACULTY') {
+  } @else if (activeDashboard() === 'faculty') {
     <app-faculty-dashboard />
   }
 </div>

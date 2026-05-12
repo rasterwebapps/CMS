@@ -376,6 +376,7 @@
                 class="field-input"
                 [class.field-input--error]="discountReasonMissing()"
                 [formControl]="discountReasonCtrl"
+                (input)="discountReason.set($any($event.target).value)"
                 placeholder="e.g., Merit scholarship, Management quota…"
               />
               @if (discountReasonMissing()) {

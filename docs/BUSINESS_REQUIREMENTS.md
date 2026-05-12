@@ -30,6 +30,7 @@
 - [BR-21: Student First-Graduate & Parent Education Tracking](#br-21-student-first-graduate--parent-education-tracking)
 - [BR-22: Enquiry Form — Mandatory Fields, Location Defaults & Referral-Linked Person Search](#br-22-enquiry-form--mandatory-fields-location-defaults--referral-linked-person-search)
 - [BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules](#br-23-authoritative-fee-calculation--penny-safe-numeric-rules)
+- [BR-24: DB-Driven RBAC & Identity-Only Keycloak](#br-24-db-driven-rbac--identity-only-keycloak)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -84,9 +85,9 @@ All 8 fee types are grouped into two categories displayed on the fee structure s
 - `Program` — defines the program for which fees are configured
 - `AcademicYear` — scopes the fee structure to a specific year
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can create, update, and delete fee structures
+- `FEE_STRUCTURE_MANAGE` — can create, update, and delete fee structures
 
 ---
 
@@ -133,9 +134,9 @@ FeeStructureYearAmount:
   - createdAt, updatedAt (audit)
 ```
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can define year-wise fee amounts
+- `FEE_STRUCTURE_MANAGE` — can define year-wise fee amounts
 
 ---
 
@@ -192,10 +193,9 @@ The total fee displayed depends on the **student type** chosen on the enquiry fo
 └─────────────────────────────────┴──────────────────────────────┘
 ```
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can access enquiry form with fee guideline
-- **ROLE_FRONT_OFFICE** — can access enquiry form with fee guideline
+- `ENQUIRY_VIEW` / `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — can access enquiry form with fee guideline
 
 ---
 
@@ -236,13 +236,13 @@ ReferralType:
 
 - `GET /api/v1/referral-types` — List all (filter by isActive)
 - `GET /api/v1/referral-types/{id}` — Get by ID
-- `POST /api/v1/referral-types` — Create (ROLE_ADMIN)
-- `PUT /api/v1/referral-types/{id}` — Update (ROLE_ADMIN)
-- `DELETE /api/v1/referral-types/{id}` — Soft delete / deactivate (ROLE_ADMIN)
+- `POST /api/v1/referral-types` — Create (`REFERRAL_TYPE_MANAGE`)
+- `PUT /api/v1/referral-types/{id}` — Update (`REFERRAL_TYPE_MANAGE`)
+- `DELETE /api/v1/referral-types/{id}` — Soft delete / deactivate (`REFERRAL_TYPE_MANAGE`)
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — full CRUD on referral types
+- `REFERRAL_TYPE_MANAGE` — full CRUD on referral types
 
 ---
 
@@ -325,9 +325,9 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 | `finalizedBy` | System | Admin who finalized |
 | `finalizedAt` | System | Timestamp of finalization |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can finalize fees (exclusive; finalization is a management action)
+- `FEE_FINALIZE` — can finalize fees (exclusive; finalization is a management action)
 
 ---
 
@@ -357,10 +357,10 @@ After admin finalization (BR-6), the finalized fee data is presented to the **ac
 | **PENDING** | No payment yet, not overdue |
 | **OVERDUE** | Past due date with pending balance |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can collect payments and view all payment data
-- **ROLE_CASHIER** — can collect fee payments from enquiry prospects
+- `FEE_COLLECT` — can collect fee payments from enquiry prospects
+- `STUDENT_FEE_VIEW` — can view student fee/payment data
 
 ---
 
@@ -446,10 +446,10 @@ After fees are paid (fully or partially), the student must submit required docum
 - `EnquiryDocument` (new or linked to existing `AdmissionDocument`) — tracks submit documents per enquiry
 - Existing `AdmissionDocument` entity already supports document types and verification workflow
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can verify documents and track submission status
-- **ROLE_FRONT_OFFICE** — can record submit documents on behalf of prospects
+- `DOCUMENT_SUBMISSION_VIEW` — can view document submission status
+- `DOCUMENT_SUBMISSION_MANAGE` — can record and verify submitted documents
 
 ---
 
@@ -473,9 +473,9 @@ Once the enquiry reaches **DOCUMENTS_SUBMITTED** status, the system provides the
 5. The conversion is **irreversible** — once converted, the enquiry cannot be reverted.
 6. A roll number is generated for the student based on the institution's numbering scheme.
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can convert enquiry to student
+- `ADMISSION_CREATE` / `ADMISSION_EDIT` — can convert enquiry to student
 
 ---
 
@@ -500,10 +500,10 @@ All students created through the enquiry-to-admission process (and other admissi
 4. Each student row shows: roll number, name, program, semester, fee status, student status.
 5. Clicking a student navigates to their detailed profile.
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — full access to student explorer
-- **ROLE_FACULTY** — can view students in their assigned courses/programs
+- `STUDENT_VIEW` — can access student explorer
+- `STUDENT_EDIT` — can maintain student records where assigned
 
 ---
 
@@ -538,9 +538,9 @@ Every enquiry can optionally capture the **student type** — whether the studen
 - `Enquiry` — has `studentType` field (nullable, values: `DAY_SCHOLAR`, `HOSTELER`)
 - `FeeStructure` — filtered by fee type based on student type
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — can set/update student type on enquiry form
+- `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — can set/update student type on enquiry form
 
 ---
 
@@ -616,10 +616,10 @@ Scholarship types are managed as a **master entity** allowing administrators to 
 | PUT | `/api/v1/scholarships/{id}` | SCHOLARSHIP_MANAGE | Update scholarship type |
 | DELETE | `/api/v1/scholarships/{id}` | SCHOLARSHIP_MANAGE | Deactivate (soft delete) |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** — full CRUD; holds all scholarship permissions
-- **ROLE_COLLEGE_ADMIN** — full CRUD on scholarship types
+- `SCHOLARSHIP_VIEW` — list and view scholarship types
+- `SCHOLARSHIP_MANAGE` — create, update, and deactivate scholarship types
 
 ---
 
@@ -662,7 +662,7 @@ Government scholarship schemes (NSP, ePass TN) credit money directly to the stud
 
 ### Verification
 
-An admin or college admin can **verify** the eligibility profile, setting `verifiedBy`, `verifiedAt`, and `verificationRemarks`. Verification is a prerequisite for government portal scholarship applications.
+Users with `SCHOLARSHIP_APPROVE` can **verify** the eligibility profile, setting `verifiedBy`, `verifiedAt`, and `verificationRemarks`. Verification is a prerequisite for government portal scholarship applications.
 
 ### API Endpoints
 
@@ -672,9 +672,10 @@ An admin or college admin can **verify** the eligibility profile, setting `verif
 | PUT | `/api/v1/students/{id}/eligibility` | SCHOLARSHIP_MANAGE | Update eligibility profile |
 | PUT | `/api/v1/students/{id}/eligibility/verify` | SCHOLARSHIP_APPROVE | Verify/sign off the profile |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can update and verify eligibility profiles
+- `SCHOLARSHIP_MANAGE` — can update eligibility profiles
+- `SCHOLARSHIP_APPROVE` — can verify eligibility profiles
 
 ---
 
@@ -750,11 +751,11 @@ When the system computes which scholarships a student qualifies for, it checks:
 | PUT | `/api/v1/scholarship-applications/{id}/sanction` | SCHOLARSHIP_APPROVE | Record govt sanction (GOVT_PORTAL only) |
 | POST | `/api/v1/scholarship-applications/{id}/renew` | SCHOLARSHIP_APPLY | Renew approved scholarship for next year |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can approve, reject, sanction, and view all applications
-- **ROLE_FRONT_OFFICE** — can submit applications on behalf of students
-- **ROLE_STUDENT** — can view their own applications
+- `SCHOLARSHIP_APPROVE` — can approve, reject, sanction, and view pending applications
+- `SCHOLARSHIP_APPLY` — can submit or renew applications
+- `SCHOLARSHIP_VIEW` — can view scholarship applications
 
 ---
 
@@ -789,10 +790,10 @@ For **government portal** scholarships (GOVT_PORTAL mode), the government credit
 | GET | `/api/v1/scholarship-applications/{id}/disbursements` | SCHOLARSHIP_VIEW | Get disbursements for an application |
 | GET | `/api/v1/students/{id}/scholarships/disbursements` | SCHOLARSHIP_VIEW | All disbursement history for a student |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** — can record and view disbursements
-- **ROLE_CASHIER** — can record fee-waiver disbursements
+- `SCHOLARSHIP_DISBURSE` — can record disbursements and fee-waiver disbursements
+- `SCHOLARSHIP_VIEW` — can view scholarship disbursements
 
 ---
 
@@ -820,9 +821,9 @@ New columns on the `enquiries` table:
 | `state` | VARCHAR | Yes |
 | `district` | VARCHAR | Yes |
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — can set and update location fields on enquiry
+- `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — can set and update location fields on enquiry
 
 ---
 
@@ -910,9 +911,9 @@ To support first-graduate scholarship determination and government reports, a st
 - The detailed eligibility profile (`StudentScholarshipEligibility`) also holds `isFirstGraduate` plus supporting certificate details.
 - When the eligibility profile is updated via the eligibility API, the parent `Student.isFirstGraduate` field is **also updated automatically**.
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_COLLEGE_ADMIN** / **ROLE_FRONT_OFFICE** — can set these fields during student creation or edit
+- `STUDENT_CREATE` / `STUDENT_EDIT` — can set these fields during student creation or edit
 
 ---
 
@@ -995,9 +996,9 @@ Course is **conditionally required**:
 
 This is enforced via a dynamic Angular validator updated after each program change.
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — can create and edit enquiries with these fields
+- `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — can create and edit enquiries with these fields
 
 ---
 
@@ -1031,10 +1032,28 @@ An enquiry for BSc Nursing showed ₹23,45,000 even though the configured fee st
 
 For BSc Nursing with current-year total ₹10,00,000, an enquiry for any student including Mani must save and display `finalCalculatedFee = ₹10,00,000` unless the current active academic year's fee structure itself changes. Historical/previous-year fee rows and referral commissions must not change this amount.
 
-### Roles
+### Permissions
 
-- **ROLE_ADMIN** / **ROLE_FRONT_OFFICE** — create enquiries and view authoritative totals
-- **ROLE_ADMIN** — finalize fees using the authoritative total
+- `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — create enquiries and view authoritative totals
+- `FEE_FINALIZE` — finalize fees using the authoritative total
+
+---
+
+## BR-24: DB-Driven RBAC & Identity-Only Keycloak
+
+### Business Rule
+
+Application authorization is controlled by database role-permission mappings only. Keycloak is used for authentication and identity; Keycloak realm roles must not be used to grant application access.
+
+### Key Points
+
+1. Backend access checks use DB permission codes through `@perm.has('PERMISSION_CODE')`.
+2. Controllers and services must not authorize by hardcoded role names such as `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+3. Frontend navigation, route guards, and action buttons must use DB permissions returned by `/api/v1/permissions/my`.
+4. Keycloak realm exports must not define or assign application business roles through `roles.realm`, `defaultRoles`, or user `realmRoles`.
+5. Immutable platform roles are limited to `DEV_ADMIN` and `SUPPORT_ADMIN`; they are seeded and cannot be edited through role management.
+6. The DB role `collegeadmin` is the admission-focused operational role and receives only admission workflow, required master-view, student, and fee completion permissions.
+7. Other operational roles and assignments are managed by administrators in the application instead of being pre-seeded as Keycloak realm roles.
 
 ---
 
@@ -1091,6 +1110,7 @@ Step 7: STUDENT EXPLORER
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-12 | BR-24 | RBAC aligned to DB-driven authorization: Keycloak realm exports are identity-only, immutable default roles are limited to `DEV_ADMIN`/`SUPPORT_ADMIN`, and `collegeadmin` is scoped to admission-related DB permissions | — |
 | 2026-05-06 | BR-3, BR-5, BR-6, BR-23 | Fixed enquiry fee over-calculation risk: fee guideline lookup is current-academic-year scoped and active-row-only; backend recalculates enquiry fee totals from authoritative fee structures on create/update; referral/agent commission is decoupled from student fee and tracked separately; fee finalization uses backend-calculated totals and enforces exact two-decimal monetary values with discount bounds; frontend aggregation uses integer paise arithmetic to prevent rounding drift | — |
 | 2026-05-06 | BR-22 | Enquiry form mandatory fields (Phone, Country, State, Program, Course), Country/State pre-filled to India/Tamil Nadu; referral-linked person search: AGENT_REFERRAL→Agent dropdown (existing), ALUMNI/STUDENT→Student table search, FACULTY→Faculty table search; two new referral type seeds (STUDENT ₹500, FACULTY ₹500); `referred_student_id` and `referred_faculty_id` FK columns added to enquiries; course required conditionally based on program having courses | — |
 | 2026-05-06 | BR-14 to BR-21 | Added scholarship management module: (BR-14) Scholarship Type master with INSTITUTION/GOVT_PORTAL application modes, PERCENTAGE/FIXED_AMOUNT/FULL_WAIVER discount types, year-of-study eligibility bounds, renewal flag, govt portal fields; (BR-15) Student scholarship eligibility profile with EWS income auto-flag (₹3,00,000 limit), DBT bank account & Aadhaar fields, admin verification workflow; (BR-16) Scholarship application lifecycle — PENDING → APPROVED → SANCTIONED (govt-portal only) / REJECTED / ON_HOLD / CANCELLED, renewal across academic years, year-of-study restriction; (BR-17) Scholarship disbursement recording with DIRECT_CREDIT / FEE_WAIVER / CHEQUE modes; (BR-18) Optional country/state/district location fields on Enquiry; (BR-19) Transaction reference mandatory for UPI, BANK_TRANSFER, CHEQUE payments via custom `@TransactionReferenceRequired` Bean Validation annotation; (BR-20) FeeType enum expanded with CLINICAL_FEE, BOOK_AND_PACKET_FEE, UNIFORM_AND_SHOES_FEE, UNIVERSITY_REGISTRATION_FEE; LAB_FEE renamed LABORATORY_FEE; (BR-21) Student entity gains isFirstGraduate, fatherEducation, motherEducation fields auto-mirrored from eligibility profile | — |

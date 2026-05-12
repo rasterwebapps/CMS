@@ -1,0 +1,75 @@
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+limit_req_zone $binary_remote_addr zone=auth:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=api:10m  rate=30r/s;
+
+server {
+    listen 80;
+
+    # Keycloak JS requires Web Crypto, which browsers expose only in secure
+    # contexts. Always move production traffic to HTTPS.
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+
+    ssl_certificate     /etc/nginx/ssl/self.crt;
+    ssl_certificate_key /etc/nginx/ssl/self.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    # ── Security headers ──────────────────────────────────────────────────────
+    add_header X-Content-Type-Options "nosniff"                        always;
+    add_header X-Frame-Options        "SAMEORIGIN"                     always;
+    add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy     "geolocation=(), microphone=(), camera=()" always;
+
+    # ── Keycloak proxy ────────────────────────────────────────────────────────
+    location /realms/ {
+        limit_req zone=auth burst=30 nodelay;
+        proxy_pass http://${KEYCLOAK_UPSTREAM};
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $http_host;
+        proxy_set_header X-Forwarded-Port  ${EXTERNAL_HTTPS_PORT};
+        proxy_buffer_size  128k;
+        proxy_buffers      4 256k;
+    }
+
+    location /resources/ {
+        limit_req zone=auth burst=30 nodelay;
+        proxy_pass http://${KEYCLOAK_UPSTREAM};
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port  ${EXTERNAL_HTTPS_PORT};
+    }
+
+    # ── Spring Boot API proxy ─────────────────────────────────────────────────
+    location /api/ {
+        limit_req zone=api burst=60 nodelay;
+        proxy_pass http://${BACKEND_UPSTREAM};
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── env.js — never cache (content changes per deployment/server) ──────────
+    location = /assets/env.js {
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma        "no-cache" always;
+        expires 0;
+    }
+
+    # ── Angular SPA ───────────────────────────────────────────────────────────
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';" always;
+    }
+}

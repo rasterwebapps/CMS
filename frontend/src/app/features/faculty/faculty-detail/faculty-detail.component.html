@@ -42,7 +42,7 @@
           </div>
         </div>
       </div>
-      @if (authService.isAdmin()) {
+      @if (canManageFaculty()) {
         <div class="profile-hero__actions">
           <button class="btn-primary" (click)="editFaculty()">
             <mat-icon>edit</mat-icon> Edit

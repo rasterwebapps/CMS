@@ -20,7 +20,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -34,8 +33,12 @@ public class EnquiryDocument {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "enquiry_id", nullable = false)
+    @JoinColumn(name = "enquiry_id")
     private Enquiry enquiry;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admission_id")
+    private Admission admission;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "document_type", nullable = false)
@@ -69,6 +72,12 @@ public class EnquiryDocument {
     @Column(name = "uploaded_at")
     private Instant uploadedAt;
 
+    @Column(name = "storage_key")
+    private String storageKey;
+
+    @Column(name = "original_submitted")
+    private Boolean originalSubmitted;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -100,6 +109,14 @@ public class EnquiryDocument {
 
     public void setEnquiry(Enquiry enquiry) {
         this.enquiry = enquiry;
+    }
+
+    public Admission getAdmission() {
+        return admission;
+    }
+
+    public void setAdmission(Admission admission) {
+        this.admission = admission;
     }
 
     public DocumentType getDocumentType() {
@@ -196,5 +213,21 @@ public class EnquiryDocument {
 
     public void setUploadedAt(Instant uploadedAt) {
         this.uploadedAt = uploadedAt;
+    }
+
+    public String getStorageKey() {
+        return storageKey;
+    }
+
+    public void setStorageKey(String storageKey) {
+        this.storageKey = storageKey;
+    }
+
+    public Boolean getOriginalSubmitted() {
+        return originalSubmitted;
+    }
+
+    public void setOriginalSubmitted(Boolean originalSubmitted) {
+        this.originalSubmitted = originalSubmitted;
     }
 }

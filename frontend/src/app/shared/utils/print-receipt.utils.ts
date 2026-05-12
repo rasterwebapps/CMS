@@ -2,8 +2,12 @@ import { numberToWords } from './number-to-words.utils';
 
 export interface ReceiptPrintData {
   receiptNumber: string;
-  studentName: string;
-  rollNumber: string;
+  /** Primary payer name (student or enquiry person). */
+  payerName: string;
+  /** Identifier shown below name: roll number for students, empty/null for enquiries. */
+  payerIdentifier?: string | null;
+  /** Optional program name. */
+  programName?: string | null;
   amountPaid: number;
   paymentDate: string;
   paymentMode: string;
@@ -21,6 +25,9 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
   const towards = data.installmentBreakdown
     .map(s => `${s.installmentLabel} (₹${s.amountApplied.toLocaleString('en-IN')})`)
     .join(', ');
+  const payerLine = data.payerIdentifier
+    ? `${data.payerName} (${data.payerIdentifier})`
+    : data.payerName;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -87,7 +94,7 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
     <div class="line">
       <span class="line-label">Received with thanks from</span>
       <span class="line-dots"></span>
-      <span class="line-value">${data.studentName} (${data.rollNumber})</span>
+      <span class="line-value">${payerLine}</span>
     </div>
     <div class="line">
       <span class="line-label">the sum of Rupees</span>

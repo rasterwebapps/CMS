@@ -262,3 +262,48 @@ export interface ReceiptSummary {
   installmentBreakdown: InstallmentPaymentDetail[];
   createdAt: string;
 }
+
+/**
+ * UI display model used by FeeReceiptDialogComponent.
+ * Normalised from both enquiry payment and student payment API responses.
+ */
+export interface ReceiptDisplayData {
+  receiptNumber: string;
+  /** 'ENQUIRY' = pre-enrollment payment; 'STUDENT' = regular student installment */
+  payerType: 'ENQUIRY' | 'STUDENT';
+  payerName: string;
+  /** Roll number for students; null for enquiry payments */
+  payerIdentifier: string | null;
+  programName: string | null;
+  amountPaid: number;
+  paymentDate: string;
+  paymentMode: string;
+  transactionReference?: string | null;
+  remarks?: string | null;
+  /** Human-readable installment(s) covered, e.g. "Year 1 – Semester 1" */
+  installmentsCovered: string;
+  installmentBreakdown: Array<{ label: string; amount: number }>;
+}
+
+/**
+ * Unified receipt summary — combines student fee payments and enquiry
+ * pre-enrollment payments into a single list row. Matches the backend
+ * {@code UnifiedReceiptResponse} DTO returned by {@code GET /api/v1/receipts}.
+ */
+export interface UnifiedReceiptSummary {
+  id: number;
+  receiptNumber: string;
+  payerType: 'STUDENT' | 'ENQUIRY';
+  payerId: number;
+  payerName: string;
+  payerIdentifier: string | null;   // roll number for students, null for enquiries
+  programName: string | null;
+  amountPaid: number;
+  paymentDate: string;
+  paymentMode: string;
+  transactionReference: string | null;
+  remarks: string | null;
+  installmentsCovered: string | null;
+  collectedBy: string | null;
+  createdAt: string;
+}

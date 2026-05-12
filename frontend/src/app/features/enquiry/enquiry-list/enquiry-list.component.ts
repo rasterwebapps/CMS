@@ -12,7 +12,7 @@ import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { AuthService } from '../../../core/auth/auth.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -59,7 +59,7 @@ const STATUS_COLOURS: Record<string, string> = {
 })
 export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
-  private readonly authService    = inject(AuthService);
+  private readonly permissionService = inject(PermissionService);
   private readonly router         = inject(Router);
   private readonly route          = inject(ActivatedRoute);
   private readonly toast          = inject(ToastService);
@@ -357,17 +357,17 @@ export class EnquiryListComponent implements OnInit {
 
   protected canFinalizeFee(item: Enquiry): boolean {
     return item.status === 'INTERESTED' &&
-      (this.authService.isAdmin() || this.authService.isCollegeAdmin());
+      this.permissionService.hasAny('STUDENT_FEE_MANAGE', 'FEE_FINALIZE');
   }
 
   protected canCollectPayment(item: Enquiry): boolean {
     return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
-      (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isCashier());
+      this.permissionService.has('FEE_COLLECT');
   }
 
   protected canSubmitDocuments(item: Enquiry): boolean {
     return (item.status === 'FEES_PAID' || item.status === 'PARTIALLY_PAID') &&
-      (this.authService.isAdmin() || this.authService.isCollegeAdmin() || this.authService.isFrontOffice());
+      this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
 
   protected canDelete(item: Enquiry): boolean { return item.status === 'ENQUIRED'; }

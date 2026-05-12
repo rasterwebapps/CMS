@@ -1,0 +1,73 @@
+{
+  "realm": "cms",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "cms-frontend",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "https://172.16.7.209",
+      "redirectUris": [
+        "https://172.16.7.209/*"
+      ],
+      "webOrigins": [
+        "https://172.16.7.209"
+      ],
+      "protocol": "openid-connect",
+      "baseUrl": "https://172.16.7.209"
+    },
+    {
+      "clientId": "cms-backend",
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "devadmin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Developer",
+      "lastName": "Admin",
+      "email": "devadmin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevAdmin@123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "supportadmin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Support",
+      "lastName": "Admin",
+      "email": "supportadmin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "SupportAdmin@123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "collegeadmin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "College",
+      "lastName": "Admin",
+      "email": "collegeadmin@cms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "College@123",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

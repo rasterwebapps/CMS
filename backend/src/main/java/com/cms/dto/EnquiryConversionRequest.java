@@ -3,6 +3,7 @@ package com.cms.dto;
 import java.time.LocalDate;
 
 import com.cms.model.enums.Gender;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -13,7 +14,7 @@ public record EnquiryConversionRequest(
     @NotBlank String lastName,
     @Email String email,
     String phone,
-    @NotNull Integer semester,
+    @JsonAlias("yearOfStudy") @NotNull Integer semester,
     @NotNull LocalDate admissionDate,
     @NotNull Long joiningAcademicYearId,
     @NotNull LocalDate applicationDate,

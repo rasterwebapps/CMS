@@ -22,6 +22,7 @@ import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.dto.FrontOfficeEnquiryItem;
+import com.cms.repository.AppUserRepository;
 import com.cms.service.DashboardService;
 
 @WebMvcTest(controllers = DashboardController.class)
@@ -33,6 +34,9 @@ class DashboardControllerTest {
 
     @MockitoBean
     private DashboardService dashboardService;
+
+    @MockitoBean
+    private AppUserRepository appUserRepository;
 
     @Test
     void shouldGetDashboardSummary() throws Exception {

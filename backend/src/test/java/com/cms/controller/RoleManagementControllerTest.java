@@ -72,7 +72,7 @@ class RoleManagementControllerTest {
     }
 
     private AppRoleResponse buildRoleResponse(Long id, String name, int level) {
-        return new AppRoleResponse(id, name, name + " Display", level, false, null, List.of());
+        return new AppRoleResponse(id, name, name + " Display", level, false, null, List.of(), List.of());
     }
 
     @Test
@@ -124,7 +124,7 @@ class RoleManagementControllerTest {
     void shouldCreateRole() throws Exception {
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
 
-        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of());
+        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of(), List.of());
         AppRoleResponse created = buildRoleResponse(10L, "CUSTOM", 4);
         when(appRoleService.create(any(AppRoleRequest.class), eq(3), anyString())).thenReturn(created);
 

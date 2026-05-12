@@ -1,0 +1,380 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// 🧾 Fee Receipt Dialog — Slide-in side-panel overlay
+// Selector: cms-fee-receipt-dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+:host {
+  display: contents; // component node is invisible; only backdrop + panel render
+}
+
+// ── Backdrop ────────────────────────────────────────────────────────────────
+.rcp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  animation: rcp-fade-in 200ms ease;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+// ── Panel shell ─────────────────────────────────────────────────────────────
+.rcp-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 440px;
+  max-width: 100vw;
+  height: 100dvh;
+  background: var(--cms-bg-card, #ffffff);
+  border-left: 1px solid var(--cms-border-default, #e5e7eb);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: rcp-slide-in 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+// ── Header ──────────────────────────────────────────────────────────────────
+.rcp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  flex-shrink: 0;
+}
+
+.rcp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rcp-success-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  animation: rcp-pulse 2s ease infinite;
+  flex-shrink: 0;
+}
+
+.rcp-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.rcp-header-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+
+  strong {
+    font-weight: 700;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.rcp-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.35);
+  }
+}
+
+// ── Scrollable body ─────────────────────────────────────────────────────────
+.rcp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0 16px;
+  scroll-behavior: smooth;
+}
+
+// College info block
+.rcp-college {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--cms-border-light, #f3f4f6);
+}
+
+.rcp-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rcp-college-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cms-text-primary, #0f172a);
+}
+
+.rcp-college-addr {
+  font-size: 11px;
+  color: var(--cms-text-muted, #94a3b8);
+  margin-top: 2px;
+}
+
+// Amount hero block
+.rcp-amount-block {
+  padding: 20px 20px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--cms-border-light, #f3f4f6);
+}
+
+.rcp-amount-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted, #94a3b8);
+  margin-bottom: 4px;
+}
+
+.rcp-amount-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.rcp-amount-words {
+  font-size: 11px;
+  color: var(--cms-text-secondary, #475569);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+// Detail rows
+.rcp-details {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--cms-border-light, #f3f4f6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  &--towards {
+    align-items: flex-start;
+  }
+}
+
+.rcp-label {
+  font-size: 12px;
+  color: var(--cms-text-muted, #94a3b8);
+  font-weight: 500;
+  width: 112px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.rcp-value {
+  font-size: 13px;
+  color: var(--cms-text-primary, #0f172a);
+  font-weight: 500;
+  flex: 1;
+  word-break: break-word;
+}
+
+.rcp-code {
+  font-family: 'Roboto Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  background: var(--cms-primary-light, #eef2ff);
+  color: var(--cms-primary, #6366f1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.rcp-remarks {
+  color: var(--cms-text-secondary, #475569);
+  font-style: italic;
+}
+
+// Type badge
+.rcp-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--cms-bg-muted, #f8f9fa);
+  color: var(--cms-text-secondary, #475569);
+  border: 1px solid var(--cms-border-default, #e5e7eb);
+
+  &--student {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+  }
+}
+
+// Installment breakdown
+.rcp-breakdown {
+  padding: 12px 20px;
+}
+
+.rcp-breakdown-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cms-text-muted, #94a3b8);
+  margin-bottom: 8px;
+}
+
+.rcp-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--cms-border-light, #f3f4f6);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rcp-breakdown-label {
+  font-size: 13px;
+  color: var(--cms-text-secondary, #475569);
+}
+
+.rcp-breakdown-amount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cms-text-primary, #0f172a);
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Footer actions ───────────────────────────────────────────────────────────
+.rcp-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--cms-border-default, #e5e7eb);
+  background: var(--cms-bg-subtle, #fafbfc);
+  flex-shrink: 0;
+}
+
+.rcp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 150ms, opacity 150ms;
+
+  &--ghost {
+    background: transparent;
+    color: var(--cms-text-secondary, #475569);
+    border: 1px solid var(--cms-border-default, #e5e7eb);
+
+    &:hover {
+      background: var(--cms-bg-muted, #f8f9fa);
+    }
+  }
+
+  &--secondary {
+    background: var(--cms-bg-muted, #f8f9fa);
+    color: var(--cms-text-primary, #0f172a);
+    border: 1px solid var(--cms-border-default, #e5e7eb);
+
+    &:hover {
+      background: var(--cms-border-default, #e5e7eb);
+    }
+  }
+
+  &--primary {
+    background: var(--cms-primary, #6366f1);
+    color: #ffffff;
+    margin-left: auto;
+
+    &:hover {
+      background: var(--cms-primary-hover, #4f46e5);
+    }
+  }
+}
+
+// ── Animations ───────────────────────────────────────────────────────────────
+@keyframes rcp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rcp-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes rcp-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.1); }
+}
+
+// ── Print styles ─────────────────────────────────────────────────────────────
+@media print {
+  .rcp-backdrop,
+  .rcp-header .rcp-close-btn,
+  .rcp-footer {
+    display: none !important;
+  }
+
+  .rcp-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    border: none;
+    animation: none;
+  }
+
+  .rcp-body {
+    overflow: visible;
+  }
+}
+
+// ── Responsive — full-width on mobile ────────────────────────────────────────
+@media (max-width: 480px) {
+  .rcp-panel {
+    width: 100vw;
+  }
+}
+

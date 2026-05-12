@@ -24,20 +24,20 @@ import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
-import com.cms.model.AdmissionDocument;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.StudentStatus;
-import com.cms.repository.AdmissionDocumentRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AdmissionDocumentServiceTest {
 
     @Mock
-    private AdmissionDocumentRepository admissionDocumentRepository;
+    private EnquiryDocumentRepository enquiryDocumentRepository;
 
     @Mock
     private AdmissionRepository admissionRepository;
@@ -46,7 +46,7 @@ class AdmissionDocumentServiceTest {
 
     @BeforeEach
     void setUp() {
-        admissionDocumentService = new AdmissionDocumentService(admissionDocumentRepository, admissionRepository);
+        admissionDocumentService = new AdmissionDocumentService(enquiryDocumentRepository, admissionRepository);
     }
 
     private Admission createAdmission(Long id) {
@@ -71,9 +71,10 @@ class AdmissionDocumentServiceTest {
         return admission;
     }
 
-    private AdmissionDocument createDocument(Long id, Admission admission, DocumentType type) {
-        AdmissionDocument doc = new AdmissionDocument(admission, type, DocumentVerificationStatus.UPLOADED);
+    private EnquiryDocument createDocument(Long id, Admission admission, DocumentType type) {
+        EnquiryDocument doc = new EnquiryDocument(null, type, DocumentVerificationStatus.UPLOADED);
         doc.setId(id);
+        doc.setAdmission(admission);
         doc.setFileName("file.pdf");
         doc.setStorageKey("key123");
         doc.setCreatedAt(Instant.now());
@@ -84,19 +85,19 @@ class AdmissionDocumentServiceTest {
     @Test
     void shouldFindDocumentsByAdmissionId() {
         Admission admission = createAdmission(1L);
-        AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of(doc));
+        EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of(doc));
 
         List<AdmissionDocumentResponse> responses = admissionDocumentService.findByAdmissionId(1L);
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).documentType()).isEqualTo(DocumentType.AADHAR_CARD);
-        verify(admissionDocumentRepository).findByAdmissionId(1L);
+        verify(enquiryDocumentRepository).findByAdmission_Id(1L);
     }
 
     @Test
     void shouldReturnEmptyListWhenNoDocuments() {
-        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of());
+        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of());
         List<AdmissionDocumentResponse> responses = admissionDocumentService.findByAdmissionId(1L);
         assertThat(responses).isEmpty();
     }
@@ -104,40 +105,40 @@ class AdmissionDocumentServiceTest {
     @Test
     void shouldUpdateDocumentVerification() {
         Admission admission = createAdmission(1L);
-        AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        AdmissionDocument updated = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        updated.setVerificationStatus(DocumentVerificationStatus.VERIFIED);
+        EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        EnquiryDocument updated = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        updated.setStatus(DocumentVerificationStatus.VERIFIED);
         updated.setVerifiedBy("admin");
 
-        when(admissionDocumentRepository.findById(1L)).thenReturn(Optional.of(doc));
-        when(admissionDocumentRepository.save(any(AdmissionDocument.class))).thenReturn(updated);
+        when(enquiryDocumentRepository.findById(1L)).thenReturn(Optional.of(doc));
+        when(enquiryDocumentRepository.save(any(EnquiryDocument.class))).thenReturn(updated);
 
         AdmissionDocumentResponse response = admissionDocumentService.updateVerification(
             1L, DocumentVerificationStatus.VERIFIED, "admin");
 
         assertThat(response.verificationStatus()).isEqualTo(DocumentVerificationStatus.VERIFIED);
         assertThat(response.verifiedBy()).isEqualTo("admin");
-        verify(admissionDocumentRepository).findById(1L);
-        verify(admissionDocumentRepository).save(any(AdmissionDocument.class));
+        verify(enquiryDocumentRepository).findById(1L);
+        verify(enquiryDocumentRepository).save(any(EnquiryDocument.class));
     }
 
     @Test
     void shouldThrowExceptionWhenDocumentNotFoundForVerification() {
-        when(admissionDocumentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(enquiryDocumentRepository.findById(999L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> admissionDocumentService.updateVerification(
                 999L, DocumentVerificationStatus.VERIFIED, "admin"))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Admission document not found with id: 999");
-        verify(admissionDocumentRepository, never()).save(any());
+            .hasMessage("Document not found with id: 999");
+        verify(enquiryDocumentRepository, never()).save(any());
     }
 
     @Test
     void shouldGetChecklistWithAllDocumentTypesWhenProgramHasNoMapping() {
         Admission admission = createAdmission(1L);
-        AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        doc.setVerificationStatus(DocumentVerificationStatus.VERIFIED);
+        EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        doc.setStatus(DocumentVerificationStatus.VERIFIED);
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
-        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of(doc));
+        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of(doc));
 
         Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
 
@@ -151,7 +152,7 @@ class AdmissionDocumentServiceTest {
     void shouldReturnAllDocumentTypesAsNotUploadedWhenNoDocuments() {
         Admission admission = createAdmission(1L);
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
-        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of());
+        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of());
         Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
         assertThat(checklist).hasSize(DocumentType.values().length);
         checklist.values().forEach(status ->
@@ -166,10 +167,10 @@ class AdmissionDocumentServiceTest {
             DocumentType.PASSPORT_PHOTO
         );
         Admission admission = createAdmission(1L, required);
-        AdmissionDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        doc.setVerificationStatus(DocumentVerificationStatus.VERIFIED);
+        EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
+        doc.setStatus(DocumentVerificationStatus.VERIFIED);
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
-        when(admissionDocumentRepository.findByAdmissionId(1L)).thenReturn(List.of(doc));
+        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of(doc));
 
         Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
 

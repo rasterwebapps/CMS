@@ -168,7 +168,7 @@ export interface EnquiryConversionRequest {
   lastName: string;
   email: string;
   phone?: string;
-  yearOfStudy: number;
+  semester: number;
   admissionDate: string;
   joiningAcademicYearId: number;
   applicationDate: string;

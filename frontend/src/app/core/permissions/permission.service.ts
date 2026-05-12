@@ -21,8 +21,14 @@ export class PermissionService {
   readonly roleName  = computed(() => this._response()?.roleName ?? '');
   readonly roleLabel = computed(() => this._response()?.roleDisplayName ?? '');
   readonly level     = computed(() => this._response()?.hierarchyLevel ?? 99);
-  readonly isDevAdmin     = computed(() => this._response()?.roleName === 'DEV_ADMIN');
-  readonly isSupportAdmin = computed(() => this.level() <= 2);
+  readonly normalizedRoleName = computed(() =>
+    this.roleName()
+      .replace(/_/g, '')
+      .trim()
+      .toLowerCase(),
+  );
+  readonly isDevAdmin     = computed(() => this.isRole('devadmin'));
+  readonly isSupportAdmin = computed(() => this.isRole('supportadmin'));
   readonly isAdminOrAbove = computed(() => this.level() <= 3);
   readonly canManageUsers = computed(() => this.has('USER_VIEW'));
   readonly canManageRoles = computed(() => this.has('ROLE_VIEW'));
@@ -31,7 +37,10 @@ export class PermissionService {
   load(): Promise<void> {
     return new Promise((resolve) => {
       this.http.get<MyPermissionsResponse>(`${this.base}/my`).subscribe({
-        next: (r) => { this._response.set(r); resolve(); },
+        next: (response) => {
+          this._response.set(response);
+          resolve();
+        },
         error: () => resolve(),
       });
     });
@@ -45,13 +54,21 @@ export class PermissionService {
   /** Returns true if the user holds ANY of the given permission codes. */
   hasAny(...codes: string[]): boolean {
     const perms = this._response()?.permissions ?? [];
-    return codes.some(c => perms.includes(c));
+    return codes.some((code) => perms.includes(code));
   }
 
   /** Returns true if the user holds ALL of the given permission codes. */
   hasAll(...codes: string[]): boolean {
     const perms = this._response()?.permissions ?? [];
-    return codes.every(c => perms.includes(c));
+    return codes.every((code) => perms.includes(code));
+  }
+
+  /** Returns true if the user has any of the normalized roles. */
+  isRole(...roleNames: string[]): boolean {
+    const normalizedCurrentRole = this.normalizedRoleName();
+    return roleNames.some(
+      (roleName) => roleName.replace(/_/g, '').trim().toLowerCase() === normalizedCurrentRole,
+    );
   }
 
   clear(): void {

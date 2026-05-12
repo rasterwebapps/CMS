@@ -44,11 +44,11 @@
 
 **Preconditions:**
 - Docker Compose is running (`docker compose up -d`)
-- Backend configured with `prod` Spring profile: `SPRING_PROFILES_ACTIVE=prod`
+- Backend configured with `prod` Spring profile and PostgreSQL datasource variables
 - Flyway migrations V1–V44 have already been applied
 
 **Steps:**
-1. Start the backend: `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
+1. Start the backend: `DB_URL=jdbc:postgresql://localhost:5435/cmsdb DB_USERNAME=cms DB_PASSWORD=cms SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
 2. Confirm Flyway applies `V45__insert_seed_data.sql` in startup logs
 3. Obtain an admin access token from Keycloak for client `cms-frontend`
 4. Send authenticated GET requests to verify:

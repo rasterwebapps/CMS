@@ -1,4 +1,4 @@
-# Enquiry Admission Conversion — Manual Test Cases
+ # Enquiry Admission Conversion — Manual Test Cases
 
 These test cases verify the end-to-end "Create Admission" workflow that replaced the old "Convert to Student" action.
 
@@ -26,6 +26,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 - A new Student record exists with the submitted details.
 - A new Admission record linked to that student exists with status `APPROVED`, correct academic years, and both consent flags set to `true`.
 - The enquiry status is now `ADMITTED`.
+- Opening the created admission's **Documents** tab shows the previously verified/uploaded enquiry docs as `VERIFIED`/`UPLOADED` (not `NOT_UPLOADED`).
 
 **Status:** NOT TESTED
 

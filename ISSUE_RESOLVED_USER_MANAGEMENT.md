@@ -99,6 +99,9 @@ WHERE version = '88';"
 ### 4. Ran Backend with PostgreSQL
 ```bash
 cd backend
+DB_URL=jdbc:postgresql://localhost:5435/cmsdb \
+DB_USERNAME=cms \
+DB_PASSWORD=cms \
 SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
 ```
 
@@ -207,6 +210,9 @@ ps aux | grep "java.*CmsApplication"
 If not running:
 ```bash
 cd /home/raster/Idea\ Projects/SKSCMS/backend
+DB_URL=jdbc:postgresql://localhost:5435/cmsdb \
+DB_USERNAME=cms \
+DB_PASSWORD=cms \
 SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
 ```
 
@@ -236,7 +242,7 @@ If you run `./gradlew bootRun` WITHOUT `SPRING_PROFILES_ACTIVE=prod`:
 - ❌ Flyway is disabled
 - ❌ Migrations don't run
 
-**Always use:** `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
+**Always use:** `DB_URL=jdbc:postgresql://localhost:5435/cmsdb DB_USERNAME=cms DB_PASSWORD=cms SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
 
 ---
 

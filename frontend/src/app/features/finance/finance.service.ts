@@ -1,13 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments';
 import {
   FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
-  GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest,
+  GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest, UnifiedReceiptSummary,
 } from './finance.model';
 
 @Injectable({
@@ -134,5 +134,10 @@ export class FinanceService {
 
   getAllReceiptSummaries(): Observable<ReceiptSummary[]> {
     return this.http.get<ReceiptSummary[]>(`${this.studentFeeUrl}/receipts`);
+  }
+
+  /** Returns all receipts (student + enquiry) merged. Backed by GET /api/v1/receipts. */
+  getUnifiedReceipts(): Observable<UnifiedReceiptSummary[]> {
+    return this.http.get<UnifiedReceiptSummary[]>(`${environment.apiUrl}/receipts`);
   }
 }

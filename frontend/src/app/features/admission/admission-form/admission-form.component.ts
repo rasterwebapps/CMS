@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -302,8 +303,8 @@ export class AdmissionFormComponent implements OnInit {
         this.toast.success('Admission created and student enrolled successfully');
         void this.router.navigate(['/admissions']);
       },
-      error: () => {
-        this.toast.error('Failed to create admission');
+      error: (error: HttpErrorResponse) => {
+        this.toast.error(this.getErrorMessage(error, 'Failed to create admission'));
         this.saving.set(false);
       },
     });
@@ -359,7 +360,7 @@ export class AdmissionFormComponent implements OnInit {
       lastName: v['lastName'] as string,
       email: v['email'] as string,
       phone: this.nullableStr(v['phone'] as string) ?? undefined,
-      yearOfStudy: v['yearOfStudy'] as number,
+      semester: v['yearOfStudy'] as number,
       admissionDate: v['admissionDate'] as string,
       joiningAcademicYearId: this.selectedAcademicYearId()!,
       applicationDate: v['applicationDate'] as string,
@@ -407,6 +408,13 @@ export class AdmissionFormComponent implements OnInit {
   /** Typed convenience wrapper for string fields. */
   private nullableStr(value: string | null | undefined): string | null {
     return value === '' || value == null ? null : value;
+  }
+
+  private getErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    if (typeof error.error === 'string' && error.error.trim()) return error.error;
+    if (error.error?.message) return error.error.message;
+    if (error.error?.error) return error.error.error;
+    return fallback;
   }
 
   private finish(): void {

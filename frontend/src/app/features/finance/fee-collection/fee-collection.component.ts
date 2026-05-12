@@ -11,14 +11,14 @@ import { forkJoin } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
-import { StudentFeeSummary, InstallmentFeeDetail } from '../finance.model';
+import { StudentFeeSummary, InstallmentFeeDetail, ReceiptDisplayData } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
-import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
+import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -42,13 +42,13 @@ export interface FeeEntry {
   standalone: true,
   imports: [
     AppDatePipe,
-    PaymentModeLabelPipe,
     InrPipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,
     CmsEmptyStateComponent,
     CashDenominationComponent,
+    FeeReceiptDialogComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
@@ -73,10 +73,7 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly studentSemesters = signal<InstallmentFeeDetail[]>([]);
   protected readonly saving           = signal(false);
   protected readonly denominationValid = signal(false);
-  protected readonly receipt          = signal<{
-    receiptNumber: string; name: string; amount: number;
-    paymentDate: string; paymentMode: string; transactionRef: string | null;
-  } | null>(null);
+  protected readonly receipt          = signal<ReceiptDisplayData | null>(null);
 
   protected readonly searchTerm   = signal('');
   protected readonly filterType   = signal<FilterType>('ALL');
@@ -97,8 +94,7 @@ export class FeeCollectionComponent implements OnInit {
       if (term && !e.name.toLowerCase().includes(term) && !e.programName.toLowerCase().includes(term)) return false;
       if (type !== 'ALL' && e.type !== type) return false;
       if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
-      if (status === 'OUTSTANDING' && e.totalOutstanding <= 0) return false;
-      return true;
+      return status !== 'OUTSTANDING' || e.totalOutstanding > 0;
     });
   });
 
@@ -302,9 +298,18 @@ export class FeeCollectionComponent implements OnInit {
         next: (res) => {
           this.saving.set(false);
           this.receipt.set({
-            receiptNumber: res.receiptNumber, name: res.enquiryName,
-            amount: res.amountPaid, paymentDate: res.paymentDate,
-            paymentMode: res.paymentMode, transactionRef: res.transactionReference,
+            receiptNumber:       res.receiptNumber,
+            payerType:           'ENQUIRY',
+            payerName:           res.enquiryName,
+            payerIdentifier:     null,
+            programName:         entry.programName !== '—' ? entry.programName : null,
+            amountPaid:          Number(res.amountPaid),
+            paymentDate:         String(res.paymentDate),
+            paymentMode:         String(res.paymentMode),
+            transactionReference: res.transactionReference,
+            remarks:             res.remarks,
+            installmentsCovered: 'Pre-enrollment Fee',
+            installmentBreakdown: [{ label: 'Pre-enrollment Fee', amount: Number(res.amountPaid) }],
           });
         },
         error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
@@ -318,9 +323,21 @@ export class FeeCollectionComponent implements OnInit {
         next: (res) => {
           this.saving.set(false);
           this.receipt.set({
-            receiptNumber: res.receiptNumber, name: res.studentName,
-            amount: res.amountPaid, paymentDate: res.paymentDate,
-            paymentMode: res.paymentMode, transactionRef: res.transactionReference,
+            receiptNumber:       res.receiptNumber,
+            payerType:           'STUDENT',
+            payerName:           res.studentName,
+            payerIdentifier:     res.rollNumber,
+            programName:         entry.programName !== '—' ? entry.programName : null,
+            amountPaid:          Number(res.amountPaid),
+            paymentDate:         String(res.paymentDate),
+            paymentMode:         String(res.paymentMode),
+            transactionReference: res.transactionReference,
+            remarks:             res.remarks,
+            installmentsCovered: res.installmentBreakdown.map(i => i.installmentLabel).join(', '),
+            installmentBreakdown: res.installmentBreakdown.map(i => ({
+              label: i.installmentLabel,
+              amount: Number(i.amountApplied),
+            })),
           });
         },
         error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },

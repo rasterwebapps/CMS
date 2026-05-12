@@ -44,6 +44,7 @@ class PaymentCollectionServiceTest {
     @Mock private SemesterFeeRepository semesterFeeRepository;
     @Mock private FeeInstallmentRepository installmentRepository;
     @Mock private StudentRepository studentRepository;
+    @Mock private UnifiedReceiptService unifiedReceiptService;
 
     private PaymentCollectionService service;
 
@@ -56,7 +57,7 @@ class PaymentCollectionServiceTest {
     @BeforeEach
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
-            installmentRepository, studentRepository);
+            installmentRepository, studentRepository, unifiedReceiptService);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -94,6 +95,7 @@ class PaymentCollectionServiceTest {
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -101,8 +103,8 @@ class PaymentCollectionServiceTest {
         assertThat(response.amountPaid()).isEqualByComparingTo("100000");
         assertThat(response.studentName()).isEqualTo("John Doe");
         assertThat(response.installmentBreakdown()).hasSize(1);
-        assertThat(response.installmentBreakdown().get(0).installmentLabel()).isEqualTo("Year 1 - Semester 1");
-        assertThat(response.installmentBreakdown().get(0).amountApplied()).isEqualByComparingTo("100000");
+        assertThat(response.installmentBreakdown().getFirst().installmentLabel()).isEqualTo("Year 1 - Semester 1");
+        assertThat(response.installmentBreakdown().getFirst().amountApplied()).isEqualByComparingTo("100000");
     }
 
     @Test
@@ -117,6 +119,7 @@ class PaymentCollectionServiceTest {
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -145,6 +148,7 @@ class PaymentCollectionServiceTest {
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -168,6 +172,7 @@ class PaymentCollectionServiceTest {
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -175,7 +180,7 @@ class PaymentCollectionServiceTest {
         assertThat(response.allocationSummary()).contains("Year 1 - Semester 2");
         assertThat(response.allocationSummary()).doesNotContain("Year 1 - Semester 1");
         assertThat(response.installmentBreakdown()).hasSize(1);
-        assertThat(response.installmentBreakdown().get(0).sequence()).isEqualTo(2);
+        assertThat(response.installmentBreakdown().getFirst().sequence()).isEqualTo(2);
     }
 
     @Test
@@ -245,7 +250,7 @@ class PaymentCollectionServiceTest {
         List<ReceiptResponse> receipts = service.getReceipts(1L);
 
         assertThat(receipts).hasSize(1);
-        assertThat(receipts.get(0).receiptNumber()).isEqualTo("RCP-001");
+        assertThat(receipts.getFirst().receiptNumber()).isEqualTo("RCP-001");
     }
 
     @Test

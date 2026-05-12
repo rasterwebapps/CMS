@@ -15,7 +15,6 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { PermissionService } from './core/permissions/permission.service';
-import { BreadcrumbService } from './core/breadcrumb/breadcrumb.service';
 import { LayoutService } from './core/layout/layout.service';
 import { ResponsiveService } from './core/layout/responsive.service';
 import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.service';
@@ -23,8 +22,7 @@ import { ThemePickerComponent } from './shared/theme-picker/theme-picker.compone
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
 import { ToastHostComponent } from './core/toast/toast-host.component';
-import { TourService } from './core/tour/tour.service';
-import { ONBOARDING_TOUR_STEPS } from './core/tour/tours/onboarding.tour';
+import { TourService, ONBOARDING_TOUR_STEPS } from './core/tour';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -78,7 +76,6 @@ export class App implements OnInit, AfterViewInit {
   protected readonly authService = inject(AuthService);
   protected readonly permissionService = inject(PermissionService);
   private readonly layoutService = inject(LayoutService);
-  private readonly breadcrumbService = inject(BreadcrumbService);
   protected readonly responsiveService = inject(ResponsiveService);
   private readonly shortcutsService = inject(KeyboardShortcutsService);
   private readonly platformId = inject(PLATFORM_ID);
@@ -110,7 +107,6 @@ export class App implements OnInit, AfterViewInit {
   protected readonly mobileDrawerOpen = signal(false);
   protected readonly menuSearch = signal('');
   protected readonly toolbarLogoError = signal(false);
-  protected readonly sidenavLogoError = signal(false);
   protected readonly notificationCount = signal(0);
   protected readonly enquiryBadgeCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
@@ -122,47 +118,11 @@ export class App implements OnInit, AfterViewInit {
 
   protected readonly isMobile = this.responsiveService.isMobile;
 
-  /** Current top-level section label derived from BreadcrumbService for the toolbar sub-label. */
-  protected readonly currentSectionLabel = computed(() => {
-    const crumbs = this.breadcrumbService.breadcrumbs();
-    if (!crumbs || crumbs.length === 0) return '';
-    // First crumb is the top-level section (e.g., "Dashboard", "Enquiries")
-    return crumbs[0].label ?? '';
-  });
-
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
   private static readonly COLLAPSED_KEY = 'cms_sidenav_collapsed';
 
   protected readonly focusMode = this.layoutService.isFocusMode;
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
-
-  private readonly CMS_ROLE_NAMES: Record<string, string> = {
-    ROLE_ADMIN: 'Admin',
-    ROLE_COLLEGE_ADMIN: 'College Admin',
-    ROLE_CASHIER: 'Cashier',
-    ROLE_FACULTY: 'Faculty',
-    ROLE_STUDENT: 'Student',
-    ROLE_LAB_INCHARGE: 'Lab Incharge',
-    ROLE_TECHNICIAN: 'Technician',
-    ROLE_PARENT: 'Parent',
-    ROLE_FRONT_OFFICE: 'Front Office',
-  };
-
-  protected readonly primaryRole = computed(() => {
-    const priority = [
-      'ROLE_ADMIN',
-      'ROLE_COLLEGE_ADMIN',
-      'ROLE_CASHIER',
-      'ROLE_FACULTY',
-      'ROLE_LAB_INCHARGE',
-      'ROLE_TECHNICIAN',
-      'ROLE_FRONT_OFFICE',
-      'ROLE_STUDENT',
-      'ROLE_PARENT',
-    ];
-    const role = priority.find((r) => this.authService.roles().includes(r));
-    return role ? (this.CMS_ROLE_NAMES[role] ?? '') : '';
-  });
 
   private readonly navEntries: NavEntry[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
@@ -375,9 +335,8 @@ export class App implements OnInit, AfterViewInit {
       }
     });
 
-    // Fetch enquiry badge count for admin users from the dashboard summary endpoint.
-    // This avoids a separate API call by reusing the enquiry funnel data.
-    if (isPlatformBrowser(this.platformId) && this.authService.isAdmin()) {
+    // Fetch enquiry badge count for users who can view enquiry workflows.
+    if (isPlatformBrowser(this.platformId) && this.permissionService.has('ENQUIRY_VIEW')) {
       this.http
         .get<{ enquiryFunnel?: Record<string, number> }>(`${environment.apiUrl}/dashboard/summary`)
         .subscribe({
@@ -444,14 +403,6 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
-  protected toggleMobileDrawer(): void {
-    this.mobileDrawerOpen.update((v) => !v);
-  }
-
-  protected closeMobileDrawer(): void {
-    this.mobileDrawerOpen.set(false);
-  }
-
   protected openKeyboardShortcuts(): void {
     this.shortcutsService.openCheatSheet();
   }
@@ -483,15 +434,6 @@ export class App implements OnInit, AfterViewInit {
     window.history.back();
   }
 
-  /** Animation key used by the root `<router-outlet>` `[@routeAnim]` binding.
-   *  Prefer the route's static config path so dynamic params (e.g. `:id`) don't
-   *  re-trigger the transition when the same component stays mounted. */
-  protected getRouteAnimationData(outlet: RouterOutlet): unknown {
-    if (!outlet?.isActivated) return '';
-    const data = outlet.activatedRouteData?.['animation'];
-    if (data) return data;
-    return outlet.activatedRoute?.snapshot?.routeConfig?.path ?? '';
-  }
 
   /**
    * Open the flyout on hover.

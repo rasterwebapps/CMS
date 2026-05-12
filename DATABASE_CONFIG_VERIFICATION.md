@@ -107,6 +107,9 @@ docker run -d \
 #### Step 2: Run Backend with Production Profile
 ```bash
 cd backend
+DB_URL=jdbc:postgresql://localhost:5435/cmsdb \
+DB_USERNAME=cms \
+DB_PASSWORD=cms \
 SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
 ```
 
@@ -189,6 +192,9 @@ SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 2. **Run Backend with PostgreSQL**
    ```bash
    cd backend
+   DB_URL=jdbc:postgresql://localhost:5435/cmsdb \
+   DB_USERNAME=cms \
+   DB_PASSWORD=cms \
    SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
    ```
 
@@ -261,7 +267,7 @@ JOIN app_roles r ON u.app_role_id = r.id;
 | Scenario | Profile | Database | Flyway | Data Persists | Migrations Run |
 |----------|---------|----------|--------|---------------|----------------|
 | `./gradlew bootRun` | local | H2 in-memory | ❌ | ❌ | ❌ |
-| `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun` | prod | PostgreSQL | ✅ | ✅ | ✅ |
+| `DB_URL=jdbc:postgresql://localhost:5435/cmsdb DB_USERNAME=cms DB_PASSWORD=cms SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun` | prod | PostgreSQL | ✅ | ✅ | ✅ |
 | `docker compose up` | prod | PostgreSQL | ✅ | ✅ | ✅ |
 
 ---
@@ -272,7 +278,7 @@ To fix the User Management screen issue with persistent data:
 
 1. ✅ Start PostgreSQL: `docker run -d --name cms-postgres -e POSTGRES_DB=cmsdb -e POSTGRES_USER=cms -e POSTGRES_PASSWORD=cms -p 5435:5432 postgres:17`
 
-2. ✅ Run backend with prod profile: `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
+2. ✅ Run backend with prod profile: `DB_URL=jdbc:postgresql://localhost:5435/cmsdb DB_USERNAME=cms DB_PASSWORD=cms SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
 
 3. ✅ Verify migrations in logs: Look for V97 and V98
 

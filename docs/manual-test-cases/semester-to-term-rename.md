@@ -193,7 +193,7 @@ neutral equivalents throughout the backend and frontend.
 - No existing database (or fresh schema)
 
 **Steps:**
-1. Run `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
+1. Run `DB_URL=jdbc:postgresql://localhost:5435/cmsdb DB_USERNAME=cms DB_PASSWORD=cms SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun`
 2. Check Flyway migration logs
 3. Verify tables in PostgreSQL
 

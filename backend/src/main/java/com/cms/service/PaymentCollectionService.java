@@ -1,12 +1,10 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -36,15 +34,18 @@ public class PaymentCollectionService {
     private final SemesterFeeRepository semesterFeeRepository;
     private final FeeInstallmentRepository installmentRepository;
     private final StudentRepository studentRepository;
+    private final UnifiedReceiptService unifiedReceiptService;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
                                      FeeInstallmentRepository installmentRepository,
-                                     StudentRepository studentRepository) {
+                                     StudentRepository studentRepository,
+                                     UnifiedReceiptService unifiedReceiptService) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
         this.studentRepository = studentRepository;
+        this.unifiedReceiptService = unifiedReceiptService;
     }
 
     @Transactional
@@ -68,7 +69,7 @@ public class PaymentCollectionService {
         List<String> allocationDetails = new ArrayList<>();
         List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
         // One receipt number for the entire payment regardless of how many installments it covers
-        String receiptNumber = generateReceiptNumber();
+        String receiptNumber = unifiedReceiptService.generateReceiptNumber();
 
         for (SemesterFee sf : semesterFees) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
@@ -103,9 +104,24 @@ public class PaymentCollectionService {
             throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
         }
 
+        BigDecimal amountActuallyPaid = request.amount().subtract(remaining);
+        String installmentsCovered = installmentBreakdown.stream()
+            .map(SemesterPaymentDetail::installmentLabel)
+            .collect(Collectors.joining(", "));
+
+        // Persist to the unified receipts table
+        unifiedReceiptService.saveStudentReceipt(
+            receiptNumber,
+            student.getId(), student.getFullName(), student.getRollNumber(),
+            null, // programName – not directly on student; left null here
+            amountActuallyPaid,
+            request.paymentDate(), request.paymentMode().name(),
+            request.transactionReference(), request.remarks(),
+            installmentsCovered, null);
+
         return new CollectPaymentResponse(
             receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
-            request.amount().subtract(remaining), request.paymentDate(), request.paymentMode(),
+            amountActuallyPaid, request.paymentDate(), request.paymentMode(),
             request.transactionReference(), request.remarks(),
             String.join("; ", allocationDetails),
             installmentBreakdown,
@@ -189,9 +205,4 @@ public class PaymentCollectionService {
         );
     }
 
-    private String generateReceiptNumber() {
-        String date = LocalDate.now().toString().replace("-", "");
-        String uuid = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        return "RCP-" + date + "-" + uuid;
-    }
 }

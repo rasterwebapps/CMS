@@ -1,0 +1,140 @@
+@if (receipt(); as r) {
+  <div class="rcp-backdrop" (click)="close()" role="button" aria-label="Close receipt" tabindex="-1"></div>
+
+  <div class="rcp-panel" role="dialog" aria-modal="true" [attr.aria-label]="'Receipt ' + r.receiptNumber">
+    <div class="rcp-header">
+      <div class="rcp-header-left">
+        <div class="rcp-success-dot"></div>
+        <div>
+          <div class="rcp-header-title">Payment Successful</div>
+          <div class="rcp-header-sub">Receipt No: <strong>{{ r.receiptNumber }}</strong></div>
+        </div>
+      </div>
+      <button class="rcp-close-btn" (click)="close()" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="rcp-body">
+      <div class="rcp-college">
+        <img src="/assets/images/sks-logo-icon.svg" class="rcp-logo" alt="SKS logo" />
+        <div>
+          <div class="rcp-college-name">SKS College of Nursing</div>
+          <div class="rcp-college-addr">No.31, Neikkarapatti, Salem – 636 010</div>
+        </div>
+      </div>
+
+      <div class="rcp-amount-block">
+        <div class="rcp-amount-label">Amount Paid</div>
+        <div class="rcp-amount-value">{{ r.amountPaid | inr }}</div>
+        <div class="rcp-amount-words">{{ buildAmountWords(r.amountPaid) }}</div>
+      </div>
+
+      <div class="rcp-details">
+        <div class="rcp-row">
+          <span class="rcp-label">Name</span>
+          <span class="rcp-value">{{ r.payerName }}</span>
+        </div>
+        @if (isStudent() && r.payerIdentifier) {
+          <div class="rcp-row">
+            <span class="rcp-label">Roll No.</span>
+            <span class="rcp-value rcp-code">{{ r.payerIdentifier }}</span>
+          </div>
+        }
+        <div class="rcp-row">
+          <span class="rcp-label">Type</span>
+          <span class="rcp-value">
+            <span class="rcp-type-badge" [class.rcp-type-badge--student]="isStudent()">
+              {{ isStudent() ? 'Student' : 'Pre-enrollment' }}
+            </span>
+          </span>
+        </div>
+        @if (r.programName) {
+          <div class="rcp-row">
+            <span class="rcp-label">Program</span>
+            <span class="rcp-value">{{ r.programName }}</span>
+          </div>
+        }
+        <div class="rcp-row">
+          <span class="rcp-label">Payment Date</span>
+          <span class="rcp-value">{{ r.paymentDate | appDate }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-label">Payment Mode</span>
+          <span class="rcp-value">{{ r.paymentMode | paymentModeLabel }}</span>
+        </div>
+        @if (r.transactionReference) {
+          <div class="rcp-row">
+            <span class="rcp-label">Transaction Ref</span>
+            <span class="rcp-value rcp-code">{{ r.transactionReference }}</span>
+          </div>
+        }
+        @if (r.installmentsCovered) {
+          <div class="rcp-row rcp-row--towards">
+            <span class="rcp-label">Towards</span>
+            <span class="rcp-value">{{ r.installmentsCovered }}</span>
+          </div>
+        }
+        @if (r.remarks) {
+          <div class="rcp-row">
+            <span class="rcp-label">Remarks</span>
+            <span class="rcp-value rcp-remarks">{{ r.remarks }}</span>
+          </div>
+        }
+      </div>
+
+      @if (r.installmentBreakdown.length > 1) {
+        <div class="rcp-breakdown">
+          <div class="rcp-breakdown-title">Fee Breakdown</div>
+          @for (item of r.installmentBreakdown; track item.label) {
+            <div class="rcp-breakdown-row">
+              <span class="rcp-breakdown-label">{{ item.label }}</span>
+              <span class="rcp-breakdown-amount">{{ item.amount | inr:false:false }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="rcp-footer">
+      <button class="rcp-btn rcp-btn--ghost" (click)="close()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Close
+      </button>
+      @if (hasShare) {
+        <button class="rcp-btn rcp-btn--secondary" (click)="share()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          Share
+        </button>
+      }
+      <button class="rcp-btn rcp-btn--secondary" (click)="download()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download
+      </button>
+      <button class="rcp-btn rcp-btn--primary" (click)="print()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        Print
+      </button>
+    </div>
+  </div>
+}
+

@@ -1,7 +1,16 @@
 <div class="mlp-page">
 
+  <!-- Receipt dialog (renders as overlay on top of everything) -->
+  @if (receipt()) {
+    <cms-fee-receipt-dialog
+      [receipt]="receipt()"
+      (closed)="doneWithReceipt()"
+      (printed)="doneWithReceipt()"
+    />
+  }
+
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
-  @if (!selectedEntry() && !receipt()) {
+  @if (!selectedEntry()) {
     <div class="mlp-hdr">
       <div class="mlp-hdr-left">
         <h1 class="mlp-title">Fee <em>Collection</em></h1>
@@ -78,42 +87,6 @@
       }
     </div>
 
-  } @else if (receipt(); as r) {
-    <!-- Receipt -->
-    <div class="receipt-wrap">
-      <div class="receipt-card">
-        <div class="receipt-icon"><mat-icon>check_circle</mat-icon></div>
-        <h2 class="receipt-title">Payment Successful</h2>
-        <p class="receipt-sub">Receipt No: <strong>{{ r.receiptNumber }}</strong></p>
-        <div class="receipt-body">
-          <div class="receipt-row"><span class="r-label">Name</span><span class="r-value">{{ r.name }}</span></div>
-          <div class="receipt-row">
-            <span class="r-label">Amount Paid</span>
-            <span class="r-value r-amount">{{ r.amount | inr }}</span>
-          </div>
-          <div class="receipt-row">
-            <span class="r-label">Payment Date</span>
-            <span class="r-value">{{ r.paymentDate | appDate }}</span>
-          </div>
-          <div class="receipt-row">
-            <span class="r-label">Payment Mode</span>
-            <span class="r-value">{{ r.paymentMode | paymentModeLabel }}</span>
-          </div>
-          @if (r.transactionRef) {
-            <div class="receipt-row">
-              <span class="r-label">Transaction Ref</span>
-              <span class="r-value">{{ r.transactionRef }}</span>
-            </div>
-          }
-        </div>
-        <div class="receipt-actions">
-          <button class="btn-submit" (click)="doneWithReceipt()">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Fee Collection
-          </button>
-        </div>
-      </div>
-    </div>
 
   } @else if (!selectedEntry()) {
     @if (filteredEntries().length === 0) {

@@ -1,4 +1,4 @@
-package com.cms.service;
+ package com.cms.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,11 +31,11 @@ import com.cms.model.AcademicYear;
 import com.cms.model.Agent;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
@@ -47,6 +47,7 @@ import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.ProgramRepository;
@@ -78,6 +79,7 @@ public class EnquiryService {
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final AdmissionRepository admissionRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
     private final EnquiryDocumentService enquiryDocumentService;
@@ -92,6 +94,7 @@ public class EnquiryService {
                            EnquiryStatusHistoryRepository statusHistoryRepository,
                            AdmissionRepository admissionRepository,
                            EnquiryPaymentRepository enquiryPaymentRepository,
+                           EnquiryDocumentRepository enquiryDocumentRepository,
                            AcademicYearRepository academicYearRepository,
                            FeeStructureService feeStructureService,
                            EnquiryDocumentService enquiryDocumentService) {
@@ -105,6 +108,7 @@ public class EnquiryService {
         this.statusHistoryRepository = statusHistoryRepository;
         this.admissionRepository = admissionRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
         this.enquiryDocumentService = enquiryDocumentService;
@@ -499,7 +503,8 @@ public class EnquiryService {
         admission.setApplicantConsentGiven(request.applicantConsentGiven());
         admission.setDeclarationPlace(request.declarationPlace());
         admission.setDeclarationDate(request.declarationDate());
-        admissionRepository.save(admission);
+        Admission savedAdmission = admissionRepository.save(admission);
+        linkEnquiryDocumentsToAdmission(enquiryId, savedAdmission);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(EnquiryStatus.ADMITTED);
@@ -510,6 +515,14 @@ public class EnquiryService {
             "Admitted: student ID " + savedStudent.getId() + ", admission created");
 
         return toResponse(saved);
+    }
+
+    private void linkEnquiryDocumentsToAdmission(Long enquiryId, Admission admission) {
+        List<EnquiryDocument> enquiryDocuments = enquiryDocumentRepository.findByEnquiryId(enquiryId);
+        enquiryDocuments.forEach(doc -> doc.setAdmission(admission));
+        if (!enquiryDocuments.isEmpty()) {
+            enquiryDocumentRepository.saveAll(enquiryDocuments);
+        }
     }
 
     public EnquiryConversionPrefillResponse getConversionPrefill(Long enquiryId) {

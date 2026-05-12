@@ -29,7 +29,7 @@ import {
 } from '../academic-year.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
-import { AuthService } from '../../../core/auth/auth.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -101,7 +101,7 @@ export class AcademicCalendarComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly printService = inject(PrintService);
   private readonly csvExporter = inject(CsvExporterService);
-  protected readonly auth = inject(AuthService);
+  protected readonly permissionService = inject(PermissionService);
 
   @ViewChild('calendarPrintArea') calendarPrintArea!: ElementRef<HTMLElement>;
 
@@ -134,9 +134,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly eventTypeIcons = EVENT_TYPE_ICONS;
 
   // ─── Role helpers ───
-  protected readonly canManage = computed(
-    () => this.auth.isAdmin() || this.auth.isCollegeAdmin(),
-  );
+  protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_YEAR_MANAGE'));
 
   // ─── Stats ───
   protected readonly stats = computed(() => {
