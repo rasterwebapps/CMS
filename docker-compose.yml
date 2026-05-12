@@ -38,8 +38,8 @@ services:
     build: ./backend
     container_name: cms-backend
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/cmsdb
+      SPRING_PROFILES_ACTIVE: 243
+      DB_URL: jdbc:postgresql://172.17.3.133:5435/cmsdb
       DB_USERNAME: cms
       DB_PASSWORD: cms
       KEYCLOAK_ISSUER_URI: https://dev.raster.in:212/realms/cms

@@ -71,7 +71,7 @@ class UserPermissionServiceTest {
     }
 
     @Test
-    void shouldCachePermissionsOnSecondCall() {
+    void shouldLoadPermissionsOnEveryCall() {
         AppRole role = new AppRole("ADMIN", "Admin", 3, false, null);
         role.setId(1L);
         role.setPermissions(Set.of(new Permission("USER_VIEW", "View", "USER", "")));
@@ -81,10 +81,9 @@ class UserPermissionServiceTest {
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(user));
 
         userPermissionService.getPermissions("admin");
-        userPermissionService.getPermissions("admin"); // second call — should use cache
+        userPermissionService.getPermissions("admin");
 
-        // Repository should only be called once due to caching
-        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.times(1))
+        org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.times(2))
             .findByKeycloakUsername("admin");
     }
 
@@ -98,9 +97,9 @@ class UserPermissionServiceTest {
         user.setId(1L);
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(user));
 
-        userPermissionService.getPermissions("admin"); // loads into cache
-        userPermissionService.evict("admin");           // evicts
-        userPermissionService.getPermissions("admin"); // reloads from repository
+        userPermissionService.getPermissions("admin");
+        userPermissionService.evict("admin");
+        userPermissionService.getPermissions("admin");
 
         org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.times(2))
             .findByKeycloakUsername("admin");
@@ -120,8 +119,8 @@ class UserPermissionServiceTest {
         userPermissionService.getPermissions("user1");
         userPermissionService.getPermissions("user2");
         userPermissionService.evictAll();
-        userPermissionService.getPermissions("user1"); // re-load
-        userPermissionService.getPermissions("user2"); // re-load
+        userPermissionService.getPermissions("user1");
+        userPermissionService.getPermissions("user2");
 
         org.mockito.Mockito.verify(appUserRepository, org.mockito.Mockito.times(2))
             .findByKeycloakUsername("user1");

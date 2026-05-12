@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: 209
       DB_URL: jdbc:postgresql://localhost:5433/cms
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}

@@ -5,6 +5,9 @@ spring:
   application:
     name: cms-backend
 
+  cache:
+    type: none
+
   threads:
     virtual:
       enabled: true
@@ -38,3 +41,10 @@ server:
 # CORS allowed origins — override per profile or environment variable
 cors:
   allowed-origins: http://localhost:4200,http://localhost:4300
+
+# Seed data is opt-in only. The default local profile must use the actual
+# PostgreSQL data that is already present in the configured database.
+cms:
+  seed:
+    enabled: false
+

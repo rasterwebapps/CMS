@@ -2,7 +2,6 @@ package com.cms.service;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -17,19 +16,17 @@ public class UserPermissionService {
 
     private final AppUserRepository appUserRepository;
 
-    /** Simple in-process permission cache: username -> set of permission codes. */
-    private final ConcurrentHashMap<String, Set<String>> cache = new ConcurrentHashMap<>();
-
     public UserPermissionService(AppUserRepository appUserRepository) {
         this.appUserRepository = appUserRepository;
     }
 
     /**
      * Returns the set of permission codes for the given Keycloak username.
-     * Results are cached until evicted (e.g. on role or permission change).
+     * Results are loaded from the repository on each call so profile-based
+     * deployments always reflect current PostgreSQL data without stale cache reads.
      */
     public Set<String> getPermissions(String keycloakUsername) {
-        return cache.computeIfAbsent(keycloakUsername, this::loadPermissions);
+        return loadPermissions(keycloakUsername);
     }
 
     private Set<String> loadPermissions(String keycloakUsername) {
@@ -41,13 +38,17 @@ public class UserPermissionService {
             .orElse(Collections.emptySet());
     }
 
-    /** Evicts a single user's cached permissions (call when their role changes). */
+    /**
+     * Backwards-compatible no-op retained for callers that update user roles.
+     * Permission lookups are uncached and therefore need no eviction.
+     */
     public void evict(String keycloakUsername) {
-        cache.remove(keycloakUsername);
     }
 
-    /** Evicts all cached permissions (call when a role's permission set changes). */
+    /**
+     * Backwards-compatible no-op retained for callers that update role permissions.
+     * Permission lookups are uncached and therefore need no eviction.
+     */
     public void evictAll() {
-        cache.clear();
     }
 }

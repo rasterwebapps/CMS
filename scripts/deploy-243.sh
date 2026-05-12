@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Compatibility wrapper — the 243 deployment script was renamed
+#  CMS Deployment Script — deploys to 172.17.1.243 (dev.raster.in:212)
 #
 #  Usage:
 #    ./scripts/deploy-243.sh            → full rebuild (frontend + backend)
+#    ./scripts/deploy-243.sh frontend   → rebuild frontend only
+#    ./scripts/deploy-243.sh backend    → rebuild backend only
 # =============================================================================
 
 set -e
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/deploy-243.sh" "$@"
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVER="172.17.1.243"
@@ -17,9 +16,10 @@ SERVER_USER="raster"
 SERVER_PASS="ra5terpass@1234"
 REMOTE_DIR="~/skscms"
 LOCAL_DIR="$(cd "$(dirname "$0")/.." && pwd)"   # project root
+COMPOSE_FILE="$REMOTE_DIR/docker-compose.yml"
+COMPOSE_CMD="docker compose -f $COMPOSE_FILE"
 
 SSH_OPTS="-o StrictHostKeyChecking=no"
-SSHPASS="SSHPASS=$SERVER_PASS sshpass -e"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 rsync_to_server() {
@@ -94,37 +94,53 @@ fi
 # ── Step 2: Build Docker image(s) ─────────────────────────────────────────────
 if [ "$MODE" = "full" ]; then
   print_step "Building all Docker images (this takes 10-15 min)..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml build --no-cache"
+  ssh_run "$COMPOSE_CMD build --no-cache"
 
 elif [ "$MODE" = "frontend" ]; then
   print_step "Building frontend Docker image (3-4 min)..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml build --no-cache frontend"
+  ssh_run "$COMPOSE_CMD build --no-cache frontend"
 
 elif [ "$MODE" = "backend" ]; then
   print_step "Building backend Docker image (4-6 min)..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml build --no-cache backend"
+  ssh_run "$COMPOSE_CMD build --no-cache backend"
 fi
 
-# ── Step 3: Start containers ──────────────────────────────────────────────────
+# ── Step 3: Stop existing CMS containers ──────────────────────────────────────
 if [ "$MODE" = "full" ]; then
-  print_step "Starting all containers..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml up -d"
+  print_step "Stopping existing CMS containers..."
+  ssh_run "$COMPOSE_CMD down --remove-orphans"
 
 elif [ "$MODE" = "frontend" ]; then
-  print_step "Restarting frontend container..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml up -d --no-deps frontend"
+  print_step "Stopping existing frontend container..."
+  ssh_run "$COMPOSE_CMD stop frontend || true"
+  ssh_run "$COMPOSE_CMD rm -f frontend || true"
 
 elif [ "$MODE" = "backend" ]; then
-  print_step "Restarting backend container..."
-  ssh_run "docker compose -f $REMOTE_DIR/docker-compose.yml up -d --no-deps backend"
+  print_step "Stopping existing backend container..."
+  ssh_run "$COMPOSE_CMD stop backend || true"
+  ssh_run "$COMPOSE_CMD rm -f backend || true"
 fi
 
-# ── Step 4: Health check ──────────────────────────────────────────────────────
+# ── Step 4: Start latest containers ───────────────────────────────────────────
+if [ "$MODE" = "full" ]; then
+  print_step "Starting latest CMS containers..."
+  ssh_run "$COMPOSE_CMD up -d --force-recreate"
+
+elif [ "$MODE" = "frontend" ]; then
+  print_step "Starting latest frontend container..."
+  ssh_run "$COMPOSE_CMD up -d --no-deps --force-recreate frontend"
+
+elif [ "$MODE" = "backend" ]; then
+  print_step "Starting latest backend container..."
+  ssh_run "$COMPOSE_CMD up -d --no-deps --force-recreate backend"
+fi
+
+# ── Step 5: Health check ──────────────────────────────────────────────────────
 print_step "Running health checks..."
 sleep 6
 SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" "
   echo '--- Container Status ---'
-  echo '$SERVER_PASS' | sudo -S docker compose -f $REMOTE_DIR/docker-compose.yml ps 2>/dev/null
+  echo '$SERVER_PASS' | sudo -S $COMPOSE_CMD ps 2>/dev/null
   echo ''
   echo '--- Service Health ---'
   curl -sk -o /dev/null -w 'Frontend (HTTPS):  %{http_code}\n' https://localhost:8443/

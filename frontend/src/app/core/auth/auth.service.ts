@@ -47,7 +47,12 @@ export class AuthService {
   }
 
   async login(): Promise<void> {
-    await this.keycloak?.login();
+    // Strip any stale OAuth callback params from the hash so keycloak-js builds
+    // a clean redirect_uri. Without this, a failed check-sso leaves #code=...&state=...
+    // in the URL and the next login call re-encodes them into the redirect_uri, causing
+    // an infinite redirect loop.
+    const redirectUri = window.location.href.split('#')[0];
+    await this.keycloak?.login({ redirectUri });
   }
 
   async logout(): Promise<void> {

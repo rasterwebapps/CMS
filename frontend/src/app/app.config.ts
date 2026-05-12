@@ -50,11 +50,11 @@ export const appConfig: ApplicationConfig = {
 
       await permissionService.load();
 
-      if (!permissionService.loaded()) {
-        // Token was accepted by Keycloak but rejected by the backend (wrong issuer
-        // or user not in app_users). Force re-login to get a fresh token.
-        await authService.login();
-      }
+      // Note: if permissionService.loaded() is still false here, the backend returned
+      // an error (unreachable, 401 issuer mismatch, user not in app_users). We do NOT
+      // call login() in this path — doing so while a stale #code/state hash is in the
+      // URL would bake those params into the redirect_uri and cause an infinite loop.
+      // The user will land on the app with no permissions; role-guards will redirect to /dashboard.
     }),
     provideAppInitializer(() => {
       inject(ThemeService).init();
