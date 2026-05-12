@@ -17,55 +17,54 @@
     <cms-empty-state icon="verified" title="No pending applications" subtitle="Scholarship applications awaiting approval will appear here." />
   } @else {
     <div class="content-card mlp-table-card">
-      <table class="modern-table">
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>Scholarship</th>
-            <th>Academic Year</th>
-            <th>Applied</th>
-            <th class="cell-center">Status</th>
-            <th class="cell-right">Approved (₹)</th>
-            <th class="actions-header"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of applications(); track row.id) {
-            <tr class="table-row">
-              <td>
-                <span class="cell-name">{{ row.studentName }}</span><br />
-                <small class="code-value">{{ row.rollNumber || '—' }}</small>
-              </td>
-              <td>
-                {{ row.scholarshipName }}<br />
-                <small class="code-value">{{ row.scholarshipCode }}</small>
-              </td>
-              <td>{{ row.academicYearName }}</td>
-              <td>{{ row.applicationDate | appDate }}</td>
-              <td class="cell-center"><cms-status-badge [status]="row.status" /></td>
-              <td class="cell-right cell-currency">
-                {{ row.approvedAmount != null ? (row.approvedAmount | inr:false:false) : '—' }}
-              </td>
-              <td>
-                <div class="row-actions">
-                  @if (row.status === 'PENDING') {
-                    <button class="action-btn action-btn--primary" title="Approve" (click)="approve(row)">
-                      <mat-icon>check</mat-icon>
-                    </button>
-                    <button class="action-btn action-btn--danger" title="Reject" (click)="reject(row)">
-                      <mat-icon>close</mat-icon>
-                    </button>
-                  }
-                  @if (row.status === 'REJECTED' && row.rejectionReason) {
-                    <span class="sal-rejection-reason" [title]="row.rejectionReason">
-                      <mat-icon>info</mat-icon>
-                    </span>
-                  }
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
+      <table mat-table [dataSource]="sortedApplications()" matSort (matSortChange)="onSort($event)" class="modern-table">
+        <ng-container matColumnDef="studentName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+          <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.studentName }}</span><br /><small class="code-value">{{ row.rollNumber || '—' }}</small></td>
+        </ng-container>
+
+        <ng-container matColumnDef="scholarshipName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Scholarship</th>
+          <td mat-cell *matCellDef="let row">{{ row.scholarshipName }}<br /><small class="code-value">{{ row.scholarshipCode }}</small></td>
+        </ng-container>
+
+        <ng-container matColumnDef="academicYearName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Academic Year</th>
+          <td mat-cell *matCellDef="let row">{{ row.academicYearName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="applicationDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Applied</th>
+          <td mat-cell *matCellDef="let row">{{ row.applicationDate | appDate }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-center"><cms-status-badge [status]="row.status" /></td>
+        </ng-container>
+
+        <ng-container matColumnDef="approvedAmount">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Approved (₹)</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-right cell-currency">{{ row.approvedAmount != null ? (row.approvedAmount | inr:false:false) : '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let row">
+            <div class="row-actions">
+              @if (row.status === 'PENDING') {
+                <button class="action-btn action-btn--primary" title="Approve" (click)="approve(row)"><mat-icon>check</mat-icon></button>
+                <button class="action-btn action-btn--danger" title="Reject" (click)="reject(row)"><mat-icon>close</mat-icon></button>
+              }
+              @if (row.status === 'REJECTED' && row.rejectionReason) {
+                <span class="sal-rejection-reason" [title]="row.rejectionReason"><mat-icon>info</mat-icon></span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
       </table>
     </div>
   }

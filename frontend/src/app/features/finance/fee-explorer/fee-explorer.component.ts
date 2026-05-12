@@ -7,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DecimalPipe } from '@angular/common';
+import { formatCurrency } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
@@ -18,7 +18,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-fee-explorer',
   standalone: true,
   imports: [
-    DecimalPipe, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
+    RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, PageHeaderComponent, CmsStatusBadgeComponent],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -64,6 +64,10 @@ export class FeeExplorerComponent implements OnInit {
 
   protected viewDetails(student: StudentFeeSummary): void {
     void this.router.navigate(['/student-fees', student.studentId]);
+  }
+
+  protected formatInr(value: number | null | undefined): string {
+    return value == null ? '—' : formatCurrency(value, 'en-IN', '', 'INR', '1.0-0');
   }
 
   private load(search?: string): void {

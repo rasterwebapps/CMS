@@ -60,6 +60,10 @@ services:
     ports:
       - "80:80"
       - "8443:443"
+    environment:
+      KEYCLOAK_URL:      https://dev.raster.in:212
+      KEYCLOAK_UPSTREAM: keycloak:8280
+      BACKEND_UPSTREAM:  backend:8080
     depends_on:
       - backend
     networks:

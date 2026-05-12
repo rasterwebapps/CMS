@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../../enquiry/enquiry.service';
@@ -30,6 +31,7 @@ import { CashDenominationComponent } from '../../../shared/cash-denomination/cas
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
+    MatSortModule,
     MatTooltipModule,
     PageHeaderComponent,
     CashDenominationComponent],
@@ -62,6 +64,10 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
     'finalizedAt',
     'actions'];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
+
+  @ViewChild(MatSort) set sort(value: MatSort) {
+    if (value) this.dataSource.sort = value;
+  }
 
   protected readonly form: FormGroup = this.fb.group({
     amount: [null, [Validators.required, Validators.min(1)]],

@@ -6,8 +6,15 @@ COPY . .
 RUN npm run build -- --configuration=production
 
 FROM nginx:alpine
+# gettext supplies envsubst — used by entrypoint.sh to fill nginx.conf.template
+RUN apk add --no-cache gettext
+
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-# SSL certs are NOT baked into the image — they are bind-mounted from the host
-# at runtime via docker-compose.prod.yml → /opt/cms/ssl/
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY ssl/ /etc/nginx/ssl/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
+EXPOSE 443
+ENTRYPOINT ["/entrypoint.sh"]

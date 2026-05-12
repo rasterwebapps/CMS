@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AdmissionService } from '../admission.service';
@@ -41,6 +42,7 @@ type Mode = 'from-enquiry' | 'manual';
     MatIconModule,
     MatCheckboxModule,
     MatTableModule,
+    MatSortModule,
     MatProgressSpinnerModule,
     PageHeaderComponent,
     CmsTourButtonComponent],

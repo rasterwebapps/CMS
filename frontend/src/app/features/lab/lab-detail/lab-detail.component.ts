@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,6 +23,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatButtonModule,
     MatIconModule,
     MatTableModule,
+    MatSortModule,
     MatChipsModule,
     MatProgressSpinnerModule,
     MatTooltipModule,

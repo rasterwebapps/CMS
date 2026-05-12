@@ -33,6 +33,23 @@
   <!-- ── Toolbar ────────────────────────────────────────────────── -->
   <div id="tour-stu-toolbar" class="stu-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
 
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
+             placeholder="Search by name, roll no., program…" type="text" aria-label="Search students" />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+
     <select class="mlp-filter-select" [value]="filterProgram()"
             (change)="filterProgram.set($any($event.target).value); onFilterChange()" aria-label="Filter by program">
       <option value="ALL">All Programs</option>
@@ -56,23 +73,6 @@
         <option [value]="sem">Sem {{ sem }}</option>
       }
     </select>
-
-    <div class="search-bar" role="search">
-      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
-             placeholder="Search by name, roll no., program…" type="text" aria-label="Search students" />
-      @if (searchValue()) {
-        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      }
-    </div>
 
     <div class="toolbar-right">
       @if (hasActiveFilters()) {
@@ -180,8 +180,8 @@
 
           <!-- Semester -->
           <ng-container matColumnDef="yearOfStudy">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Sem</th>
-            <td mat-cell *matCellDef="let student" class="col-center">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Sem</th>
+            <td mat-cell *matCellDef="let student" class="cell-align-right">
               <span class="cell-number">{{ student.yearOfStudy ?? '—' }}</span>
             </td>
           </ng-container>
@@ -232,7 +232,7 @@
 
           <!-- Status -->
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef class="col-center">Status</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Status</th>
             <td mat-cell *matCellDef="let student" class="col-center">
               @if (student.status) {
                 <span class="status-chip status-chip--{{ student.status | lowercase }}">

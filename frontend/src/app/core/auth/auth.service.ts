@@ -58,8 +58,10 @@ export class AuthService {
 
     try {
       const authenticated = await this.keycloak.init({
-        onLoad: 'login-required',
+        onLoad: 'check-sso',
         checkLoginIframe: false,
+        // The deployed app is served over HTTPS, so use the supported PKCE S256 method.
+        pkceMethod: 'S256',
       });
 
       if (authenticated) {
@@ -67,7 +69,8 @@ export class AuthService {
       }
 
       return authenticated;
-    } catch {
+    } catch (err) {
+      console.error('[CMS] Keycloak init error:', err);
       return false;
     }
   }

@@ -82,15 +82,9 @@
 }
 
 .app-container {
-  // Fill the remaining viewport below the fixed toolbar (56 px).
-  // Focus mode uses the same height since the focus-header is rendered
-  // outside the container (same level as .app-toolbar).
   height: calc(100vh - 62px);
 
-  // When sidenav is pinned-collapsed (icon rail), force the content margin to
-  // 68px. This is the authoritative CSS source for the collapsed state.
-  // Angular Material's ResizeObserver also detects the 68px CSS width and
-  // tries to set the same value inline — both agree, no conflict.
+  // Collapsed icon rail: content sits at 68 px
   &.sidenav-collapsed {
     .mat-sidenav-content,
     .mat-drawer-content {
@@ -98,15 +92,23 @@
     }
   }
 
+  // Mobile: sidenav is always in 'over' mode — content starts at the left edge
+  &.is-mobile {
+    .mat-sidenav-content,
+    .mat-drawer-content {
+      margin-left: 0 !important;
+    }
+  }
+
   .mat-sidenav-content,
   .mat-drawer-content {
-    // Smooth transition for both pinned expand/collapse AND Angular Material's
-    // own inline margin recalculation. Duration matches the sidenav width transition.
+    // CSS fully owns the content margin so Angular Material's ResizeObserver
+    // never fires mid-transition and resets the animation.
+    // .sidenav-collapsed (specificity 3) overrides this (specificity 2).
+    // .is-mobile (specificity 3) overrides this for mobile.
+    margin-left: var(--cms-sidenav-width) !important;
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    // Allow mat-sidenav-content to be the scroll container
     overflow-y: auto;
-    // Override Angular Material's default (purple-tinted) surface background
-    // so the page shell colour fills all the way to the bottom of the viewport.
     background-color: var(--cms-bg-shell) !important;
   }
 }

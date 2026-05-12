@@ -38,10 +38,22 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(async () => {
       const authService = inject(AuthService);
       const permissionService = inject(PermissionService);
-      // Init Keycloak first, then fetch DB permissions so nav items render correctly.
+
       const authenticated = await authService.init();
-      if (authenticated) {
-        await permissionService.load();
+
+      if (!authenticated) {
+        // Not logged in — redirect to Keycloak login page.
+        // Using check-sso + explicit login() gives reliable PKCE-safe redirect.
+        await authService.login();
+        return; // browser will navigate away; stop initialisation here
+      }
+
+      await permissionService.load();
+
+      if (!permissionService.loaded()) {
+        // Token was accepted by Keycloak but rejected by the backend (wrong issuer
+        // or user not in app_users). Force re-login to get a fresh token.
+        await authService.login();
       }
     }),
     provideAppInitializer(() => {

@@ -22,6 +22,12 @@ export interface ColumnDef<T = Record<string, unknown>> {
   /** Text alignment for header and cells. Defaults to `'left'`. */
   align?: 'left' | 'center' | 'right';
 
+  /** Whether this data column is sortable. Defaults to `true`. */
+  sortable?: boolean;
+
+  /** Optional value accessor used for sorting instead of the rendered cell value. */
+  sortAccessor?: (row: T) => string | number | boolean | Date | null | undefined;
+
   /** Additional CSS class applied to each `<td>` in this column. */
   cssClass?: string;
 }

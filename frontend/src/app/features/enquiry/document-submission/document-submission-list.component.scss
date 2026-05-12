@@ -602,24 +602,19 @@
 
 .table-row--clickable {
   cursor: pointer;
-  position: relative;
   transition: background 0.12s;
 
-  // Left-border accent on hover
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: var(--cms-primary);
-    opacity: 0;
-    transition: opacity 0.15s;
-    border-radius: 0 2px 2px 0;
+  // Keep the hover accent inside the first real table cell. A pseudo-element
+  // directly on <tr> can be rendered as an anonymous table cell, causing an
+  // empty first column and shifting all row data under the wrong headers.
+  td:first-child {
+    box-shadow: inset 3px 0 0 transparent;
+    transition: box-shadow 0.15s;
   }
 
   &:hover {
     background: rgba(var(--cms-primary-rgb), 0.025);
-    &::before { opacity: 1; }
+    td:first-child { box-shadow: inset 3px 0 0 var(--cms-primary); }
   }
 }
 

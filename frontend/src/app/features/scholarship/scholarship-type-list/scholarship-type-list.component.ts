@@ -2,6 +2,8 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -11,7 +13,7 @@ import { ScholarshipService } from '../scholarship.service';
 @Component({
   selector: 'app-scholarship-type-list',
   standalone: true,
-  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, InrPipe, CmsEmptyStateComponent],
+  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',
 })
@@ -23,13 +25,16 @@ export class ScholarshipTypeListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly scholarships = signal<ScholarshipType[]>([]);
+  protected readonly displayedColumns = ['code', 'name', 'discountType', 'discountValue', 'renewalRequired', 'active', 'actions'];
+  protected readonly sortState = signal<Sort>({ active: '', direction: '' });
 
   protected readonly filteredScholarships = computed(() => {
     const q = this.searchValue().toLowerCase().trim();
-    if (!q) return this.scholarships();
-    return this.scholarships().filter(s =>
+    const rows = !q ? this.scholarships() : this.scholarships().filter(s =>
       s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
     );
+
+    return this.sortRows(rows, this.sortState());
   });
 
   ngOnInit(): void {
@@ -44,6 +49,10 @@ export class ScholarshipTypeListComponent implements OnInit {
     this.searchValue.set('');
   }
 
+  protected onSort(sort: Sort): void {
+    this.sortState.set(sort);
+  }
+
   protected edit(row: ScholarshipType): void {
     void this.router.navigate(['/scholarships', row.id, 'edit']);
   }
@@ -54,6 +63,28 @@ export class ScholarshipTypeListComponent implements OnInit {
       next: () => { this.toast.success('Scholarship deactivated'); this.load(); },
       error: () => this.toast.error('Failed to deactivate scholarship'),
     });
+  }
+
+  private sortRows(rows: ScholarshipType[], sort: Sort): ScholarshipType[] {
+    if (!sort.active || !sort.direction) return rows;
+    const factor = sort.direction === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const av = this.sortValue(a, sort.active);
+      const bv = this.sortValue(b, sort.active);
+      if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return av < bv ? -1 * factor : factor;
+    });
+  }
+
+  private sortValue(row: ScholarshipType, column: string): string | number | boolean | null | undefined {
+    switch (column) {
+      case 'discountValue': return row.discountValue ?? 0;
+      case 'renewalRequired': return row.renewalRequired;
+      case 'active': return row.active;
+      default: return String((row as unknown as Record<string, unknown>)[column] ?? '').toLowerCase();
+    }
   }
 
   private load(): void {

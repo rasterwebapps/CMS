@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
 import { CmsSkeletonComponent } from '../skeleton/skeleton.component';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
@@ -43,7 +44,14 @@ import { ColumnDef } from './column-def.model';
 @Component({
   selector: 'cms-data-table',
   standalone: true,
-  imports: [MatTableModule, MatIconModule, NgTemplateOutlet, CmsSkeletonComponent, CmsEmptyStateComponent],
+  imports: [
+    MatTableModule,
+    MatSortModule,
+    MatIconModule,
+    NgTemplateOutlet,
+    CmsSkeletonComponent,
+    CmsEmptyStateComponent,
+  ],
   templateUrl: './data-table.component.html',
   styleUrl: './data-table.component.scss',
 })
@@ -101,10 +109,31 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
   /** Internal signal tracking whether a custom mobile-card template was provided. */
   protected readonly hasMobileCard = signal(false);
 
+  /** Current sort state for the shared array-backed table. */
+  protected readonly sortState = signal<Sort>({ active: '', direction: '' });
+
   /** Displayed column keys, appending `_actions` when a template is provided. */
   protected readonly displayedColumns = computed(() => {
     const keys = this.columns.map((c) => c.key);
     return this.hasActions() ? [...keys, '_actions'] : keys;
+  });
+
+  /** Data sorted according to the active Material sort header. */
+  protected readonly sortedData = computed(() => {
+    const sort = this.sortState();
+
+    if (!sort.active || !sort.direction) {
+      return this.data;
+    }
+
+    const column = this.columns.find((col) => col.key === sort.active);
+    if (!column || column.sortable === false) {
+      return this.data;
+    }
+
+    return [...this.data].sort((a, b) =>
+      this.compareSortValues(this.sortValue(column, a), this.sortValue(column, b), sort.direction),
+    );
   });
 
   /** Array used to drive @for skeleton rows. */
@@ -123,6 +152,51 @@ export class CmsDataTableComponent<T = Record<string, unknown>> implements OnCha
   protected cellValue(col: ColumnDef<T>, row: T): string {
     const val = col.cell(row);
     return val !== null && val !== undefined && val !== '' ? String(val) : '—';
+  }
+
+  /** Material sort arrow is placed before right-aligned numeric headers and after all others. */
+  protected sortArrowPosition(col: ColumnDef<T>): 'before' | 'after' {
+    return col.align === 'right' ? 'before' : 'after';
+  }
+
+  /** Updates the sort state from Material's `matSortChange` event. */
+  protected updateSort(sort: Sort): void {
+    this.sortState.set(sort);
+  }
+
+  private sortValue(col: ColumnDef<T>, row: T): string | number | boolean | Date | null | undefined {
+    return col.sortAccessor ? col.sortAccessor(row) : col.cell(row);
+  }
+
+  private compareSortValues(
+    a: string | number | boolean | Date | null | undefined,
+    b: string | number | boolean | Date | null | undefined,
+    direction: SortDirection,
+  ): number {
+    const multiplier = direction === 'asc' ? 1 : -1;
+    const left = this.normalizeSortValue(a);
+    const right = this.normalizeSortValue(b);
+
+    if (left === right) return 0;
+    if (left === null) return 1;
+    if (right === null) return -1;
+
+    return left < right ? -1 * multiplier : multiplier;
+  }
+
+  private normalizeSortValue(value: string | number | boolean | Date | null | undefined): string | number | null {
+    if (value === null || value === undefined || value === '') return null;
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    if (typeof value === 'number') return value;
+
+    const text = String(value);
+    const numeric = Number(text.replace(/[^0-9.-]/g, ''));
+    if (!Number.isNaN(numeric) && /\d/.test(text)) {
+      return numeric;
+    }
+
+    return text.toLocaleLowerCase();
   }
 
   /**

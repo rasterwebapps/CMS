@@ -219,3 +219,24 @@ The workflow is:
 - The browser navigates to `/enquiries/document-submission/<id>` (the same entry screen as TC-DOCSUB-002).
 
 **Status:** NOT TESTED
+
+---
+
+## TC-DOCSUB-013: List table headers align with row data
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- At least one enquiry is visible on `/enquiries/document-submission`.
+
+**Steps:**
+1. Navigate to **Admission Management → Submit Documents**.
+2. Verify the first visible row against the table headers from left to right.
+3. Hover over the row to confirm the row accent appears without changing column alignment.
+
+**Expected Result:**
+- There is no blank first column before the student name.
+- Student details appear under **Student**, program under **Program**, course under **Course**, type under **Type**, payment badge under **Payment Status**, amounts under the amount headers, and actions under the final actions column.
+- Hovering the row shows the left accent inside the first cell and does not shift any cell content.
+
+**Status:** NOT TESTED
+

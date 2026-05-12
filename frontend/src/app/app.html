@@ -103,9 +103,10 @@
 <mat-sidenav-container class="app-container"
                        [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()"
                        [class.sidenav-hover-expanded]="hoverExpanded() && !isMobile()"
-                       [class.is-mobile]="isMobile()">
+                       [class.is-mobile]="isMobile()"
+                       [hasBackdrop]="isMobile()">
   <mat-sidenav
-    [mode]="isMobile() ? 'over' : 'side'"
+    [mode]="isMobile() || hoverExpanded() ? 'over' : 'side'"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
     class="app-sidenav"

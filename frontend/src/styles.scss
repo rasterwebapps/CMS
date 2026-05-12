@@ -1082,9 +1082,9 @@ app-root {
   flex: 1;
   min-width: 200px;
   max-width: 420px;
-  background: var(--cms-bg-muted);
+  background: var(--cms-bg-card);
   border-radius: var(--cms-radius-sm);
-  border: 1.5px solid transparent;
+  border: 1.5px solid var(--cms-border-default);
   padding: 0 14px;
   height: 40px;
   transition: var(--cms-transition);
@@ -1185,7 +1185,7 @@ app-root {
 .filter-select {
   height: 36px;
   padding: 0 var(--cms-space-md);
-  background: var(--cms-surface);
+  background: var(--cms-bg-card);
   border: 1.5px solid var(--cms-border);
   border-radius: var(--cms-radius-sm);
   color: var(--cms-text-primary);
@@ -1212,7 +1212,7 @@ app-root {
 .filter-date-input {
   height: 36px;
   padding: 0 var(--cms-space-sm);
-  background: var(--cms-surface);
+  background: var(--cms-bg-card);
   border: 1.5px solid var(--cms-border);
   border-radius: var(--cms-radius-sm);
   color: var(--cms-text-primary);
@@ -1384,7 +1384,8 @@ app-root {
   border-spacing: 0;
 
   // Header
-  th.mat-header-cell {
+  th.mat-header-cell,
+  th.mat-mdc-header-cell {
     font-size: 0.6875rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1394,10 +1395,15 @@ app-root {
     border-bottom: 1px solid var(--cms-border-default);
     padding: 14px 20px;
     white-space: nowrap;
+
+    .mat-sort-header-container {
+      width: 100%;
+    }
   }
 
   // Cells
-  td.mat-cell {
+  td.mat-cell,
+  td.mat-mdc-cell {
     padding: 14px 20px;
     border-bottom: 1px solid var(--cms-border-light);
     font-size: 0.875rem;
@@ -1418,7 +1424,8 @@ app-root {
       }
     }
 
-    &:last-child td.mat-cell {
+    &:last-child td.mat-cell,
+    &:last-child td.mat-mdc-cell {
       border-bottom: none;
     }
   }
@@ -1494,53 +1501,191 @@ app-root {
 .mat-column-outstandingAmount,
 .mat-column-finalizedNetFee,
 .mat-column-commissionAmount,
+.mat-column-baseFee,
+.mat-column-discountAmount,
+.mat-column-scholarshipAmount,
+.mat-column-netFee,
+.mat-column-examFee,
+.mat-column-labFee,
+.mat-column-feeAmount,
+.mat-column-balanceAmount,
+.mat-column-refundAmount,
+.mat-column-dueAmount,
 .mat-column-amount,
 .mat-column-count,
 .mat-column-total,
-.mat-column-feeCount {
+.mat-column-feeCount,
+.mat-column-capacity,
+.mat-column-credits,
+.mat-column-duration,
+.mat-column-semesterNumber,
+.mat-column-yearOfStudy,
+.mat-column-year,
+.mat-column-maxMarks,
+.mat-column-totalMarks,
+.mat-column-marksObtained,
+.mat-column-percentage,
+.mat-column-attendancePercentage,
+.mat-column-quantity,
+.mat-column-minimumStockLevel,
+.mat-column-availableQuantity,
+.mat-column-minimumStock,
+.mat-column-allottedSeats,
+.mat-column-expNumber,
+.mat-column-theoryHours,
+.mat-column-labHours,
+.mat-column-terms,
+.mat-column-totalPaidAmount,
+.mat-column-totalAmountPaid,
+.mat-column-totalPending,
+.mat-column-totalPenalty,
+.mat-column-finalCalculatedFee {
   text-align: right !important;
+  font-variant-numeric: tabular-nums;
 
-  // Sort icon on LEFT of text for right-aligned columns
+  // Numeric headers: right-aligned as a group, with sort icon visually before the label.
   .mat-sort-header-container {
-    justify-content: flex-end;  // Icon: [↑] Amount (₹)
+    flex-direction: row !important;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .mat-sort-header-arrow {
+    order: -1;
+    margin-left: 0;
+    margin-right: 6px;
   }
 }
 
 // Center-align status badges for visual balance
 .mat-column-status,
 .mat-column-paymentStatus,
+.mat-column-admissionStatus,
+.mat-column-documentStatus,
+.mat-column-finalizationStatus,
+.mat-column-verificationStatus,
+.mat-column-collectionStatus,
+.mat-column-approvalStatus,
+.mat-column-resultStatus,
+.mat-column-attendanceStatus,
+.mat-column-allocationStatus,
+.mat-column-studentStatus,
+.mat-column-availabilityStatus,
+.mat-column-conditionStatus,
+.mat-column-type,
+.mat-column-studentType,
+.mat-column-labType,
+.mat-column-examType,
+.mat-column-discountType,
+.mat-column-qualificationType,
+.mat-column-outcomeType,
+.mat-column-dataType,
+.mat-column-mode,
+.mat-column-paymentMode,
+.mat-column-paymentMethod,
+.mat-column-method,
+.mat-column-category,
+.mat-column-priority,
+.mat-column-grade,
+.mat-column-level,
+.mat-column-mappingLevel,
+.mat-column-renewalRequired,
+.mat-column-dayOfWeek,
+.mat-column-unit,
+.mat-column-role,
+.mat-column-access,
+.mat-column-designation,
 .mat-column-isActive,
-.mat-column-hasCommission {
+.mat-column-hasCommission,
+.mat-column-active,
+.mat-column-enabled,
+.mat-column-isCurrent,
+.mat-column-current,
+.mat-column-actions {
   text-align: center !important;
 
-  // Sort icon centered with text
+  // Enum/status headers are centered as a group and keep the sort icon after the label.
   .mat-sort-header-container {
+    flex-direction: row;
     justify-content: center;  // Icon: [↑] Status
+    width: 100%;
+  }
+
+  .mat-sort-header-arrow {
+    order: 0;
+    margin-left: 6px;
+    margin-right: 0;
   }
 }
 
 // Left-align text data (names, descriptions, dates) - natural reading flow
 .mat-column-name,
+.mat-column-id,
+.mat-column-rollNumber,
+.mat-column-studentId,
+.mat-column-enquiryId,
+.mat-column-receiptNumber,
+.mat-column-transactionId,
+.mat-column-universityRegistrationNumber,
+.mat-column-employeeCode,
+.mat-column-courseCode,
+.mat-column-outcomeCode,
+.mat-column-scholarshipCode,
 .mat-column-studentName,
+.mat-column-firstName,
+.mat-column-lastName,
+.mat-column-fullName,
+.mat-column-facultyName,
+.mat-column-agentName,
+.mat-column-labName,
+.mat-column-equipmentName,
+.mat-column-itemName,
+.mat-column-title,
 .mat-column-programName,
 .mat-column-courseName,
 .mat-column-departmentName,
+.mat-column-code,
+.mat-column-email,
+.mat-column-phone,
+.mat-column-mobile,
+.mat-column-building,
+.mat-column-room,
+.mat-column-location,
 .mat-column-description,
 .mat-column-date,
+.mat-column-createdAt,
+.mat-column-updatedAt,
+.mat-column-startDate,
+.mat-column-endDate,
 .mat-column-enquiryDate,
 .mat-column-paymentDate,
-.mat-column-dueDate {
+.mat-column-dueDate,
+.mat-column-submittedDate {
   text-align: left !important;
   // Sort icon on RIGHT of text (default Material behavior): Name [↑]
+
+  .mat-sort-header-container {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 // Utility classes for manual alignment control
 .cell-align-right {
   text-align: right !important;
 
-  // Sort icon on LEFT for manually right-aligned columns
+  // Numeric headers: right-aligned as a group, with sort icon visually before the label.
   .mat-sort-header-container {
+    flex-direction: row !important;
     justify-content: flex-end;
+    width: 100%;
+  }
+
+  .mat-sort-header-arrow {
+    order: -1;
+    margin-left: 0;
+    margin-right: 6px;
   }
 }
 
@@ -1549,13 +1694,30 @@ app-root {
 
   // Sort icon centered for manually center-aligned columns
   .mat-sort-header-container {
+    flex-direction: row;
     justify-content: center;
+    width: 100%;
   }
 }
 
 .cell-align-left {
   text-align: left !important;
   // Sort icon on RIGHT (default Material behavior)
+
+  .mat-sort-header-container {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+// Legacy alignment aliases still present in older templates.
+.col-right {
+  @extend .cell-align-right;
+}
+
+.col-center {
+  @extend .cell-align-center;
 }
 
 // Empty state indicator (en-dash for missing data)
@@ -3793,7 +3955,7 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   font-size: 0.8125rem;
   font-family: var(--cms-font-ui);
   color: var(--cms-text-primary);
-  background: var(--cms-bg-muted)
+  background: var(--cms-bg-card)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")
     right 10px center no-repeat;
   border: 1px solid var(--cms-border-default);
@@ -3806,6 +3968,21 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
 
   &:hover { border-color: var(--cms-border-hover); }
   &:focus { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+}
+
+// Feature-specific filter controls must also remain white in light theme.
+.filter-sel,
+.enq-filter-select,
+.date-input,
+.status-drop-btn {
+  background-color: var(--cms-bg-card) !important;
+}
+
+.filter-sel,
+.enq-filter-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-position: right 10px center !important;
+  background-repeat: no-repeat !important;
 }
 
 // ── Segmented view-mode control ───────────────────────────────

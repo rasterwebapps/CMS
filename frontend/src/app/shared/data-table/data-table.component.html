@@ -86,7 +86,7 @@
     } @else {
     <!-- ─── Data table ────────────────────────────────────────────────── -->
     <div class="table-wrapper">
-      <table mat-table [dataSource]="data" class="modern-table">
+      <table mat-table [dataSource]="sortedData()" matSort class="modern-table" (matSortChange)="updateSort($event)">
 
         <!-- Data columns — rendered dynamically from ColumnDef[] -->
         @for (col of columns; track col.key) {
@@ -94,6 +94,9 @@
             <th
               mat-header-cell
               *matHeaderCellDef
+              mat-sort-header
+              [disabled]="col.sortable === false"
+              [arrowPosition]="sortArrowPosition(col)"
               [style.width]="col.width"
               [style.text-align]="col.align ?? 'left'"
             >{{ col.header }}</th>

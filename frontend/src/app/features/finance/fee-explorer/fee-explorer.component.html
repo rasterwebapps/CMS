@@ -36,24 +36,24 @@
             <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
           </ng-container>
           <ng-container matColumnDef="totalFee">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Fee (₹)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalFee | number }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Fee (₹)</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalFee) }}</td>
           </ng-container>
           <ng-container matColumnDef="totalPaid">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Paid (₹)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalPaid | number }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Paid (₹)</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPaid) }}</td>
           </ng-container>
           <ng-container matColumnDef="totalPending">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Pending (₹)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalPending | number }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Pending (₹)</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPending) }}</td>
           </ng-container>
           <ng-container matColumnDef="totalPenalty">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Penalty (₹)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalPenalty | number }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Penalty (₹)</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPenalty) }}</td>
           </ng-container>
           <ng-container matColumnDef="allocationStatus">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-            <td mat-cell *matCellDef="let row"><cms-status-badge [status]="row.allocationStatus"></cms-status-badge></td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-center"><cms-status-badge [status]="row.allocationStatus"></cms-status-badge></td>
           </ng-container>
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>

@@ -464,9 +464,9 @@
                 </button>
               </div>
               @if (qualifications.length > 0) {
-                <table mat-table [dataSource]="qualifications.controls" class="qual-table">
+                <table mat-table [dataSource]="qualifications.controls" matSort class="qual-table">
                   <ng-container matColumnDef="qualificationType">
-                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
                     <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
                       <select class="field-select field-select--inline" formControlName="qualificationType">
                         @for (t of qualificationTypes; track t) {
@@ -476,19 +476,19 @@
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="schoolName">
-                    <th mat-header-cell *matHeaderCellDef>School/Institute</th>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>School/Institute</th>
                     <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
                       <input class="field-input field-input--inline" formControlName="schoolName" />
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="percentage">
-                    <th mat-header-cell *matHeaderCellDef>Percentage</th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Percentage</th>
+                    <td mat-cell *matCellDef="let row; let i = index" class="cell-align-right" [formGroup]="getQualGroup(i)">
                       <input class="field-input field-input--inline field-input--narrow" type="number" formControlName="percentage" />
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="monthAndYearOfPassing">
-                    <th mat-header-cell *matHeaderCellDef>Month & Year</th>
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Month & Year</th>
                     <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getQualGroup(i)">
                       <input class="field-input field-input--inline field-input--narrow" placeholder="MM/YYYY" formControlName="monthAndYearOfPassing" />
                     </td>
