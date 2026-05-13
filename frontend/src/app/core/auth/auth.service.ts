@@ -81,8 +81,19 @@ export class AuthService {
 
   /**
    * Returns a valid access token, refreshing it first if it expires within 30 seconds.
-   * If the refresh fails (e.g. the refresh token has also expired), the user is
-   * redirected to the Keycloak login page and `undefined` is returned.
+   *
+   * If the refresh fails (e.g. the refresh token has also expired), this method returns
+   * `undefined` and updates the `authenticated` signal to `false`.
+   *
+   * IMPORTANT: This method intentionally does NOT call `login()` on failure. Calling
+   * `login()` here would trigger a Keycloak browser-redirect from inside the HTTP
+   * interceptor while Angular may still be bootstrapping (`provideAppInitializer` is
+   * awaiting `permissionService.load()`). That race condition leaves a half-written
+   * PKCE `code_verifier` in `sessionStorage`, which corrupts the next page load and
+   * causes the "page unresponsive / rolling indefinitely" symptom reported on second visit.
+   *
+   * Re-authentication is handled by `authGuard`, which calls `login()` the moment the
+   * user navigates to any protected route after the session has expired.
    */
   async getValidToken(): Promise<string | undefined> {
     if (!this.keycloak) {
@@ -93,8 +104,9 @@ export class AuthService {
       this.updateState();
       return this.keycloak.token;
     } catch (err) {
-      console.error('Failed to refresh Keycloak token — redirecting to login', err);
-      await this.login();
+      console.warn('[CMS] Token refresh failed — session may have expired. Re-auth will happen on next navigation.', err);
+      // Sync the signal so authGuard detects the expired session on the next navigation.
+      this.updateState();
       return undefined;
     }
   }

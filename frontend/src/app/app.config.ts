@@ -10,7 +10,9 @@ import localeEnIn from '@angular/common/locales/en-IN';
 import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideClientHydration } from '@angular/platform-browser';
+// Note: provideClientHydration() intentionally omitted — this app is served from a
+// plain Nginx SPA (no SSR Node.js server). Including it without SSR causes unnecessary
+// hydration passes and can contribute to stale-state change-detection issues.
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 
 import { routes } from './app.routes';
@@ -29,7 +31,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withViewTransitions()),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
-    provideClientHydration(),
     { provide: LOCALE_ID, useValue: 'en-IN' },
     {
       provide: MAT_DIALOG_DEFAULT_OPTIONS,

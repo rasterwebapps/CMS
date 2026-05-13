@@ -4,6 +4,7 @@ import { FrontOfficeDashboardComponent } from './front-office/front-office-dashb
 import { FacultyDashboardComponent } from './faculty/faculty-dashboard.component';
 import { CashierDashboardComponent } from './cashier/cashier-dashboard.component';
 import { PermissionService } from '../../core/permissions/permission.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,7 +19,8 @@ import { PermissionService } from '../../core/permissions/permission.service';
   styleUrl: './dashboard.scss',
 })
 export class DashboardComponent {
-  private readonly permissionService = inject(PermissionService);
+  protected readonly permissionService = inject(PermissionService);
+  private readonly authService = inject(AuthService);
 
   protected readonly activeDashboard = computed<'admin' | 'front-office' | 'cashier' | 'faculty' | null>(() => {
     if (this.permissionService.isRole('devadmin', 'supportadmin', 'admin', 'collegeadmin', 'college_admin')) {
@@ -35,5 +37,10 @@ export class DashboardComponent {
     }
     return null;
   });
+
+  /** Signs the user out of Keycloak — shown on the "Account Not Configured" screen. */
+  protected logout(): void {
+    void this.authService.logout();
+  }
 }
 
