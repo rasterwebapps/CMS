@@ -243,28 +243,40 @@ export class ProfileDocumentsComponent implements OnChanges {
     }
     this.updateSlot(slot.documentType, { saving: true });
 
-    const upload$ = this.entityType === 'FACULTY'
-      ? this.facultyService.uploadDocument(this.entityId, slot.documentType, file)
-      : this.admissionService.uploadDocument(this.entityId, slot.documentType, file);
+    const onError = (): void => {
+      this.updateSlot(slot.documentType, { saving: false });
+      this.toast.error(`Failed to upload ${slot.label}`);
+    };
 
-    upload$.subscribe({
-      next: (saved) => {
-        this.updateSlot(slot.documentType, {
-          status: this.entityType === 'FACULTY'
-            ? (saved as { status: string }).status
-            : (saved as { verificationStatus: string }).verificationStatus,
-          documentId: saved.id,
-          hasFile: true,
-          remarks: undefined,
-          saving: false,
-        });
-        this.toast.success(`${slot.label} uploaded`);
-      },
-      error: () => {
-        this.updateSlot(slot.documentType, { saving: false });
-        this.toast.error(`Failed to upload ${slot.label}`);
-      },
-    });
+    if (this.entityType === 'FACULTY') {
+      this.facultyService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
+        next: (saved) => {
+          this.updateSlot(slot.documentType, {
+            status: saved.status,
+            documentId: saved.id,
+            hasFile: true,
+            remarks: undefined,
+            saving: false,
+          });
+          this.toast.success(`${slot.label} uploaded`);
+        },
+        error: onError,
+      });
+    } else {
+      this.admissionService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
+        next: (saved) => {
+          this.updateSlot(slot.documentType, {
+            status: saved.verificationStatus,
+            documentId: saved.id,
+            hasFile: true,
+            remarks: undefined,
+            saving: false,
+          });
+          this.toast.success(`${slot.label} uploaded`);
+        },
+        error: onError,
+      });
+    }
   }
 
   protected download(slot: DocumentSlot): void {

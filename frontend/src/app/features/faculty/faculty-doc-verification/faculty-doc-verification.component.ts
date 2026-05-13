@@ -43,7 +43,7 @@ export class FacultyDocVerificationComponent implements OnInit {
   protected readonly searchQuery = signal('');
   protected readonly filterDepartment = signal('ALL');
 
-  private readonly allData = signal<FacultyPendingDocumentsSummary[]>([]);
+  protected readonly allData = signal<FacultyPendingDocumentsSummary[]>([]);
   protected readonly dataSource = new MatTableDataSource<FacultyPendingDocumentsSummary>([]);
 
   protected readonly displayedColumns = [

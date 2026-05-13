@@ -54,7 +54,7 @@
           </div>
 
           <div class="slot-card__right">
-            <cms-status-badge [status]="statusColor(slot.status)" [label]="statusLabel(slot.status)" />
+            <cms-status-badge [status]="slot.status" />
 
             @if (slot.saving) {
               <mat-spinner diameter="20" />

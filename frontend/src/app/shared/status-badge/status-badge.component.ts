@@ -87,6 +87,10 @@ export class CmsStatusBadgeComponent {
       case 'NO':
         return 'status-inactive';
 
+      // ── Returned / handed-back documents ────────────────────────────────
+      case 'RETURNED':
+        return 'status-warning';
+
       // ── Completion states ────────────────────────────────────────────────
       case 'GRADUATED':
       case 'COMPLETED':

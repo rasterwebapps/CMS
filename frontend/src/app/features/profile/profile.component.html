@@ -1,0 +1,200 @@
+<div class="profile-page">
+
+  <!-- Loading skeleton -->
+  @if (loading()) {
+    <div class="profile-skeleton">
+      <cms-skeleton [circle]="true" height="72px" />
+      <div class="profile-skeleton__body">
+        <cms-skeleton [lines]="2" height="14px" />
+      </div>
+    </div>
+  }
+
+  <!-- Error / unresolved state -->
+  @if (!loading() && !identity()) {
+    <div class="profile-error">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Profile unavailable</strong>
+        <p>Unable to load your profile. Please refresh the page or contact support if the issue persists.</p>
+        <button mat-stroked-button (click)="ngOnInit()">
+          <mat-icon>refresh</mat-icon> Retry
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Faculty profile -->
+  @if (!loading() && identity()?.entityType === 'FACULTY' && faculty()) {
+    @let f = faculty()!;
+    <header class="profile-hero">
+      <div class="profile-hero__avatar">{{ initials }}</div>
+      <div class="profile-hero__info">
+        <h1 class="profile-hero__name">{{ f.fullName }}</h1>
+        <div class="profile-hero__meta">
+          <span class="meta-chip meta-chip--primary">{{ f.designation | titlecase }}</span>
+          <span class="meta-chip">{{ f.departmentName }}</span>
+          <span class="meta-chip meta-chip--code">{{ f.employeeCode }}</span>
+        </div>
+      </div>
+    </header>
+
+    <mat-tab-group class="profile-tabs" animationDuration="150ms">
+
+      <mat-tab label="My Information">
+        <div class="tab-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Full Name</span>
+              <span class="info-value">{{ f.fullName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ f.email }}</span>
+            </div>
+            @if (f.phone) {
+              <div class="info-item">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ f.phone }}</span>
+              </div>
+            }
+            <div class="info-item">
+              <span class="info-label">Department</span>
+              <span class="info-value">{{ f.departmentName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Designation</span>
+              <span class="info-value">{{ f.designation | titlecase }}</span>
+            </div>
+            @if (f.highestQualification) {
+              <div class="info-item">
+                <span class="info-label">Qualification</span>
+                <span class="info-value">{{ f.highestQualification }}</span>
+              </div>
+            }
+            <div class="info-item">
+              <span class="info-label">Joining Date</span>
+              <span class="info-value">{{ f.joiningDate | appDate }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="My Documents">
+        <div class="tab-body">
+          <cms-profile-documents
+            entityType="FACULTY"
+            [entityId]="f.id"
+            [canManage]="true"
+            [canVerify]="false"
+          />
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  }
+
+  <!-- Student profile -->
+  @if (!loading() && identity()?.entityType === 'STUDENT' && student()) {
+    @let s = student()!;
+    <header class="profile-hero">
+      <div class="profile-hero__avatar">{{ initials }}</div>
+      <div class="profile-hero__info">
+        <h1 class="profile-hero__name">{{ s.fullName }}</h1>
+        <div class="profile-hero__meta">
+          <span class="meta-chip meta-chip--primary">{{ s.programName }}</span>
+          @if (s.rollNumber) {
+            <span class="meta-chip meta-chip--code">{{ s.rollNumber }}</span>
+          }
+          <span class="meta-chip">Year {{ s.yearOfStudy }}</span>
+        </div>
+      </div>
+    </header>
+
+    <mat-tab-group class="profile-tabs" animationDuration="150ms">
+
+      <mat-tab label="My Information">
+        <div class="tab-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Full Name</span>
+              <span class="info-value">{{ s.fullName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ s.email }}</span>
+            </div>
+            @if (s.phone) {
+              <div class="info-item">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ s.phone }}</span>
+              </div>
+            }
+            <div class="info-item">
+              <span class="info-label">Program</span>
+              <span class="info-value">{{ s.programName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Year of Study</span>
+              <span class="info-value">Year {{ s.yearOfStudy }}</span>
+            </div>
+            @if (s.rollNumber) {
+              <div class="info-item">
+                <span class="info-label">Roll Number</span>
+                <span class="info-value code-value">{{ s.rollNumber }}</span>
+              </div>
+            }
+            <div class="info-item">
+              <span class="info-label">Admission Date</span>
+              <span class="info-value">{{ s.admissionDate | appDate }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="My Documents">
+        <div class="tab-body">
+          @if (identity()?.admissionId) {
+            <cms-profile-documents
+              entityType="STUDENT"
+              [entityId]="identity()!.admissionId!"
+              [programId]="identity()?.programId ?? undefined"
+              [canManage]="true"
+              [canVerify]="false"
+            />
+          } @else {
+            <p class="no-admission-note">
+              <mat-icon>info_outline</mat-icon>
+              No admission record is linked to your account yet. Please contact the administration.
+            </p>
+          }
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  }
+
+  <!-- Admin / unknown profile -->
+  @if (!loading() && identity()?.entityType === 'ADMIN') {
+    <header class="profile-hero">
+      <div class="profile-hero__avatar profile-hero__avatar--admin">{{ initials }}</div>
+      <div class="profile-hero__info">
+        <h1 class="profile-hero__name">{{ identity()!.displayName }}</h1>
+        <div class="profile-hero__meta">
+          <span class="meta-chip meta-chip--admin">Administrator</span>
+          @if (identity()!.email) {
+            <span class="meta-chip">{{ identity()!.email }}</span>
+          }
+        </div>
+      </div>
+    </header>
+    <div class="admin-notice">
+      <mat-icon>admin_panel_settings</mat-icon>
+      <div>
+        <strong>Administrator Account</strong>
+        <p>Your account is not linked to a faculty or student record. Profile document management is not applicable.</p>
+      </div>
+    </div>
+  }
+
+</div>

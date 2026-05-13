@@ -7,6 +7,12 @@ const withPermission = (...codes: string[]) => [authGuard, requiresPermission(..
 
 export const routes: Routes = [
   {
+    path: 'profile',
+    canActivate: withAuth,
+    loadComponent: () =>
+      import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+  },
+  {
     path: 'dashboard',
     canActivate: withAuth,
     loadComponent: () =>

@@ -86,6 +86,11 @@
           <span>{{ authService.username() }}</span>
         </div>
         <mat-divider></mat-divider>
+        <a mat-menu-item routerLink="/profile">
+          <mat-icon>account_circle</mat-icon>
+          <span>My Profile</span>
+        </a>
+        <mat-divider></mat-divider>
         <button mat-menu-item (click)="openKeyboardShortcuts()">
           <mat-icon>keyboard</mat-icon>
           <span>Keyboard shortcuts</span>

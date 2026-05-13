@@ -125,7 +125,8 @@ export class App implements OnInit, AfterViewInit {
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
 
   private readonly navEntries: NavEntry[] = [
-    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
+    { label: 'Dashboard',  icon: 'dashboard',    route: '/dashboard' },
+    { label: 'My Profile', icon: 'account_circle', route: '/profile' },
     {
       label: 'Preferences',
       icon: 'tune',

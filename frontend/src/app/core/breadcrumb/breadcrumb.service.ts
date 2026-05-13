@@ -46,6 +46,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   convert: 'Create Admission',
   mark: 'Mark Attendance',
   search: 'Search',
+  'profile': 'My Profile',
   'document-submission': 'Submit Documents',
   'document-verification': 'Document Verification',
   'document-config': 'Document Config',
