@@ -1,22 +1,27 @@
 <div class="profile-page">
 
-  <!-- Loading skeleton -->
+  <!-- ── Loading skeleton ───────────────────────────────────────── -->
   @if (loading()) {
     <div class="profile-skeleton">
-      <cms-skeleton [circle]="true" height="72px" />
-      <div class="profile-skeleton__body">
-        <cms-skeleton [lines]="2" height="14px" />
+      <div class="skeleton-cover"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-lines">
+          <div class="skeleton-line skeleton-line--wide"></div>
+          <div class="skeleton-line skeleton-line--medium"></div>
+          <div class="skeleton-line skeleton-line--narrow"></div>
+        </div>
       </div>
     </div>
   }
 
-  <!-- Error / unresolved state -->
+  <!-- ── Error ──────────────────────────────────────────────────── -->
   @if (!loading() && !identity()) {
     <div class="profile-error">
       <mat-icon>error_outline</mat-icon>
       <div>
         <strong>Profile unavailable</strong>
-        <p>Unable to load your profile. Please refresh the page or contact support if the issue persists.</p>
+        <p>Unable to load your profile. Please refresh or contact support.</p>
         <button mat-stroked-button (click)="ngOnInit()">
           <mat-icon>refresh</mat-icon> Retry
         </button>
@@ -24,177 +29,311 @@
     </div>
   }
 
-  <!-- Faculty profile -->
-  @if (!loading() && identity()?.entityType === 'FACULTY' && faculty()) {
-    @let f = faculty()!;
-    <header class="profile-hero">
-      <div class="profile-hero__avatar">{{ initials }}</div>
-      <div class="profile-hero__info">
-        <h1 class="profile-hero__name">{{ f.fullName }}</h1>
-        <div class="profile-hero__meta">
-          <span class="meta-chip meta-chip--primary">{{ f.designation | titlecase }}</span>
-          <span class="meta-chip">{{ f.departmentName }}</span>
-          <span class="meta-chip meta-chip--code">{{ f.employeeCode }}</span>
+  <!-- ══════════════ HERO (shared shell) ══════════════ -->
+  @if (!loading() && identity()) {
+    @let id = identity()!;
+    @let f  = faculty();
+    @let s  = student();
+
+    <!-- Aurora cover -->
+    <div class="aurora-cover">
+      <div class="aurora-blob aurora-blob--1"></div>
+      <div class="aurora-blob aurora-blob--2"></div>
+      <div class="aurora-blob aurora-blob--3"></div>
+      <div class="aurora-grid"></div>
+      <div class="aurora-cover__overlay"></div>
+    </div>
+
+    <!-- Identity card -->
+    <section class="hero-card anim-rise">
+      <div class="hero-card__inner">
+        <div class="hero-card__avatar-wrap">
+          <div
+            class="hero-card__avatar"
+            [class.hero-card__avatar--admin]="id.entityType === 'ADMIN'"
+          >{{ initials }}</div>
+          @if (id.entityType !== 'ADMIN' && progressPct() > 0) {
+            <div class="hero-card__avatar-ring" [attr.data-pct]="progressPct()">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" class="ring-track"/>
+                <circle cx="60" cy="60" r="54" class="ring-fill"
+                        [style.stroke-dashoffset]="339.3 - (339.3 * progressPct()) / 100"/>
+              </svg>
+            </div>
+          }
+        </div>
+
+        <div class="hero-card__identity">
+          <h1 class="hero-card__name">{{ id.displayName }}</h1>
+
+          <!-- FACULTY subtitle -->
+          @if (f) {
+            <div class="hero-card__role">
+              <span class="role-chip role-chip--primary">{{ f.designation | titlecase }}</span>
+              <span class="role-sep">·</span>
+              <span class="role-text">{{ f.departmentName }}</span>
+              @if (f.highestQualification) {
+                <span class="role-sep">·</span>
+                <span class="role-chip role-chip--soft">{{ qualificationLabel(f.highestQualification) }}</span>
+              }
+            </div>
+            <div class="hero-card__meta">
+              <span class="meta-pill"><mat-icon>badge</mat-icon>{{ f.employeeCode }}</span>
+              <span class="meta-pill"><mat-icon>email</mat-icon>{{ f.email }}</span>
+              @if (f.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ f.phone }}</span> }
+              <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Joined {{ f.joiningDate | appDate }}</span>
+            </div>
+          }
+
+          <!-- STUDENT subtitle -->
+          @if (s) {
+            <div class="hero-card__role">
+              <span class="role-chip role-chip--primary">{{ s.programName }}</span>
+              <span class="role-sep">·</span>
+              <span class="role-text">Year {{ s.yearOfStudy }}</span>
+              @if (s.rollNumber) {
+                <span class="role-sep">·</span>
+                <span class="role-chip role-chip--code">{{ s.rollNumber }}</span>
+              }
+            </div>
+            <div class="hero-card__meta">
+              <span class="meta-pill"><mat-icon>email</mat-icon>{{ s.email }}</span>
+              @if (s.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ s.phone }}</span> }
+              <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Admitted {{ s.admissionDate | appDate }}</span>
+            </div>
+          }
+
+          <!-- ADMIN subtitle -->
+          @if (id.entityType === 'ADMIN') {
+            <div class="hero-card__role">
+              <span class="role-chip role-chip--admin">
+                <mat-icon class="role-chip__icon">shield</mat-icon>
+                Administrator
+              </span>
+              @if (id.email) {
+                <span class="role-sep">·</span>
+                <span class="role-text">{{ id.email }}</span>
+              }
+            </div>
+            <div class="hero-card__meta">
+              <span class="meta-pill"><mat-icon>admin_panel_settings</mat-icon>Full System Access</span>
+              <span class="meta-pill"><mat-icon>verified_user</mat-icon>SKS College of Nursing</span>
+            </div>
+          }
+        </div>
+
+        <!-- Actions -->
+        <div class="hero-card__actions">
+          @if (editRoute()) {
+            <a mat-flat-button color="primary" class="btn-edit" [routerLink]="editRoute()">
+              <mat-icon>edit</mat-icon>
+              Edit Profile
+            </a>
+          }
+          @if (id.entityType === 'STUDENT' || id.entityType === 'FACULTY') {
+            <a mat-stroked-button class="btn-ghost"
+               [routerLink]="id.entityType === 'STUDENT' ? '/students/' + id.entityId : '/faculty/' + id.entityId"
+               matTooltip="Open full detail view">
+              <mat-icon>open_in_new</mat-icon>
+              View Detail
+            </a>
+          }
         </div>
       </div>
-    </header>
+    </section>
 
-    <mat-tab-group class="profile-tabs" animationDuration="150ms">
-
-      <mat-tab label="My Information">
-        <div class="tab-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Full Name</span>
-              <span class="info-value">{{ f.fullName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Email</span>
-              <span class="info-value">{{ f.email }}</span>
-            </div>
-            @if (f.phone) {
-              <div class="info-item">
-                <span class="info-label">Phone</span>
-                <span class="info-value">{{ f.phone }}</span>
-              </div>
-            }
-            <div class="info-item">
-              <span class="info-label">Department</span>
-              <span class="info-value">{{ f.departmentName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Designation</span>
-              <span class="info-value">{{ f.designation | titlecase }}</span>
-            </div>
-            @if (f.highestQualification) {
-              <div class="info-item">
-                <span class="info-label">Qualification</span>
-                <span class="info-value">{{ f.highestQualification }}</span>
-              </div>
-            }
-            <div class="info-item">
-              <span class="info-label">Joining Date</span>
-              <span class="info-value">{{ f.joiningDate | appDate }}</span>
-            </div>
+    <!-- ══════════════ STATS (faculty / student) ══════════════ -->
+    @if (f || (s && id.admissionId)) {
+      <section class="stats-row anim-rise anim-rise--d1">
+        <div class="stat-tile stat-tile--all">
+          <div class="stat-tile__icon"><mat-icon>folder_open</mat-icon></div>
+          <div class="stat-tile__body">
+            <span class="stat-tile__value">{{ docStats().total }}</span>
+            <span class="stat-tile__label">Total Documents</span>
           </div>
         </div>
-      </mat-tab>
+        <div class="stat-tile stat-tile--ok">
+          <div class="stat-tile__icon"><mat-icon>verified</mat-icon></div>
+          <div class="stat-tile__body">
+            <span class="stat-tile__value">{{ docStats().verified }}</span>
+            <span class="stat-tile__label">Verified</span>
+          </div>
+        </div>
+        <div class="stat-tile stat-tile--warn">
+          <div class="stat-tile__icon"><mat-icon>pending_actions</mat-icon></div>
+          <div class="stat-tile__body">
+            <span class="stat-tile__value">{{ docStats().pending }}</span>
+            <span class="stat-tile__label">Pending Review</span>
+          </div>
+        </div>
+        <div class="stat-tile stat-tile--miss">
+          <div class="stat-tile__icon"><mat-icon>upload_file</mat-icon></div>
+          <div class="stat-tile__body">
+            <span class="stat-tile__value">{{ docStats().missing }}</span>
+            <span class="stat-tile__label">Awaiting Upload</span>
+          </div>
+        </div>
+        <div class="stat-tile stat-tile--ring">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" class="ring-track"/>
+              <circle cx="22" cy="22" r="18" class="ring-fill" [style.stroke-dashoffset]="progressDashOffset()"/>
+            </svg>
+            <span class="ring-pct">{{ progressPct() }}%</span>
+          </div>
+          <div class="stat-tile__body">
+            <span class="stat-tile__value-sm">Profile Complete</span>
+            <span class="stat-tile__label">Verification progress</span>
+          </div>
+        </div>
+      </section>
+    }
 
-      <mat-tab label="My Documents">
-        <div class="tab-body">
+    <!-- ══════════════ ADMIN STATS ══════════════ -->
+    @if (id.entityType === 'ADMIN' && summary()) {
+      <section class="stats-row stats-row--admin anim-rise anim-rise--d1">
+        <div class="stat-tile stat-tile--ok"><div class="stat-tile__icon"><mat-icon>person</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalStudents }}</span><span class="stat-tile__label">Students</span></div></div>
+        <div class="stat-tile stat-tile--miss"><div class="stat-tile__icon"><mat-icon>groups</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalFaculty }}</span><span class="stat-tile__label">Faculty</span></div></div>
+        <div class="stat-tile stat-tile--all"><div class="stat-tile__icon"><mat-icon>business</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalDepartments }}</span><span class="stat-tile__label">Departments</span></div></div>
+        <div class="stat-tile stat-tile--warn"><div class="stat-tile__icon"><mat-icon>school</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalPrograms }}</span><span class="stat-tile__label">Programs</span></div></div>
+        <div class="stat-tile stat-tile--all"><div class="stat-tile__icon"><mat-icon>menu_book</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalSubjects }}</span><span class="stat-tile__label">Subjects</span></div></div>
+        <div class="stat-tile stat-tile--ok"><div class="stat-tile__icon"><mat-icon>quiz</mat-icon></div>
+          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalExaminations }}</span><span class="stat-tile__label">Examinations</span></div></div>
+      </section>
+    }
+
+    <!-- ══════════════ ABOUT ══════════════ -->
+    @if (f || s) {
+      <section class="surface-section anim-rise anim-rise--d2">
+        <header class="surface-section__header">
+          <div class="surface-section__title">
+            <mat-icon class="surface-section__icon">person_outline</mat-icon>
+            <div>
+              <h2>About</h2>
+              <p class="surface-section__sub">Personal &amp; contact information on record</p>
+            </div>
+          </div>
+          @if (editRoute()) {
+            <a class="link-action" [routerLink]="editRoute()">
+              <mat-icon>edit</mat-icon> Edit
+            </a>
+          }
+        </header>
+
+        <div class="info-grid">
+          @if (f) {
+            @for (item of facultyInfoItems(f); track item.label) {
+              <div class="info-card">
+                <div class="info-card__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                <div class="info-card__body">
+                  <div class="info-card__label">{{ item.label }}</div>
+                  <div class="info-card__value">{{ item.value }}</div>
+                </div>
+              </div>
+            }
+          }
+          @if (s) {
+            @for (item of studentInfoItems(s); track item.label) {
+              <div class="info-card">
+                <div class="info-card__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                <div class="info-card__body">
+                  <div class="info-card__label">{{ item.label }}</div>
+                  <div class="info-card__value">{{ item.value }}</div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ══════════════ DOCUMENTS ══════════════ -->
+    @if (f) {
+      <section class="surface-section anim-rise anim-rise--d3">
+        <header class="surface-section__header">
+          <div class="surface-section__title">
+            <mat-icon class="surface-section__icon">folder_open</mat-icon>
+            <div>
+              <h2>My Documents</h2>
+              <p class="surface-section__sub">Upload required documents — once verified, they cannot be altered</p>
+            </div>
+          </div>
+        </header>
+
+        <cms-profile-documents
+          entityType="FACULTY"
+          [entityId]="f.id"
+          [canManage]="true"
+          [canVerify]="false"
+          (slotsChange)="onSlotsChange($event)"
+        />
+      </section>
+    }
+
+    @if (s) {
+      <section class="surface-section anim-rise anim-rise--d3">
+        <header class="surface-section__header">
+          <div class="surface-section__title">
+            <mat-icon class="surface-section__icon">folder_open</mat-icon>
+            <div>
+              <h2>My Documents</h2>
+              <p class="surface-section__sub">Upload required documents — once verified, they cannot be altered</p>
+            </div>
+          </div>
+        </header>
+
+        @if (id.admissionId) {
           <cms-profile-documents
-            entityType="FACULTY"
-            [entityId]="f.id"
+            entityType="STUDENT"
+            [entityId]="id.admissionId"
+            [programId]="id.programId ?? undefined"
             [canManage]="true"
             [canVerify]="false"
+            (slotsChange)="onSlotsChange($event)"
           />
-        </div>
-      </mat-tab>
+        } @else {
+          <div class="empty-note">
+            <mat-icon>info_outline</mat-icon>
+            No admission record linked yet. Please contact administration.
+          </div>
+        }
+      </section>
+    }
 
-    </mat-tab-group>
-  }
-
-  <!-- Student profile -->
-  @if (!loading() && identity()?.entityType === 'STUDENT' && student()) {
-    @let s = student()!;
-    <header class="profile-hero">
-      <div class="profile-hero__avatar">{{ initials }}</div>
-      <div class="profile-hero__info">
-        <h1 class="profile-hero__name">{{ s.fullName }}</h1>
-        <div class="profile-hero__meta">
-          <span class="meta-chip meta-chip--primary">{{ s.programName }}</span>
-          @if (s.rollNumber) {
-            <span class="meta-chip meta-chip--code">{{ s.rollNumber }}</span>
-          }
-          <span class="meta-chip">Year {{ s.yearOfStudy }}</span>
-        </div>
-      </div>
-    </header>
-
-    <mat-tab-group class="profile-tabs" animationDuration="150ms">
-
-      <mat-tab label="My Information">
-        <div class="tab-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Full Name</span>
-              <span class="info-value">{{ s.fullName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Email</span>
-              <span class="info-value">{{ s.email }}</span>
-            </div>
-            @if (s.phone) {
-              <div class="info-item">
-                <span class="info-label">Phone</span>
-                <span class="info-value">{{ s.phone }}</span>
-              </div>
-            }
-            <div class="info-item">
-              <span class="info-label">Program</span>
-              <span class="info-value">{{ s.programName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Year of Study</span>
-              <span class="info-value">Year {{ s.yearOfStudy }}</span>
-            </div>
-            @if (s.rollNumber) {
-              <div class="info-item">
-                <span class="info-label">Roll Number</span>
-                <span class="info-value code-value">{{ s.rollNumber }}</span>
-              </div>
-            }
-            <div class="info-item">
-              <span class="info-label">Admission Date</span>
-              <span class="info-value">{{ s.admissionDate | appDate }}</span>
+    <!-- ══════════════ ADMIN QUICK ACCESS ══════════════ -->
+    @if (id.entityType === 'ADMIN') {
+      <section class="surface-section anim-rise anim-rise--d2">
+        <header class="surface-section__header">
+          <div class="surface-section__title">
+            <mat-icon class="surface-section__icon">grid_view</mat-icon>
+            <div>
+              <h2>Quick Access</h2>
+              <p class="surface-section__sub">Jump to any module across the system</p>
             </div>
           </div>
-        </div>
-      </mat-tab>
+        </header>
 
-      <mat-tab label="My Documents">
-        <div class="tab-body">
-          @if (identity()?.admissionId) {
-            <cms-profile-documents
-              entityType="STUDENT"
-              [entityId]="identity()!.admissionId!"
-              [programId]="identity()?.programId ?? undefined"
-              [canManage]="true"
-              [canVerify]="false"
-            />
-          } @else {
-            <p class="no-admission-note">
-              <mat-icon>info_outline</mat-icon>
-              No admission record is linked to your account yet. Please contact the administration.
-            </p>
+        <div class="quick-grid">
+          @for (link of adminQuickLinks; track link.route) {
+            <a class="quick-card quick-card--{{ link.color }}" [routerLink]="link.route">
+              <div class="quick-card__icon-wrap">
+                <mat-icon>{{ link.icon }}</mat-icon>
+              </div>
+              <div class="quick-card__body">
+                <span class="quick-card__label">{{ link.label }}</span>
+                <span class="quick-card__desc">{{ link.desc }}</span>
+              </div>
+              <mat-icon class="quick-card__arrow">arrow_forward_ios</mat-icon>
+            </a>
           }
         </div>
-      </mat-tab>
-
-    </mat-tab-group>
-  }
-
-  <!-- Admin / unknown profile -->
-  @if (!loading() && identity()?.entityType === 'ADMIN') {
-    <header class="profile-hero">
-      <div class="profile-hero__avatar profile-hero__avatar--admin">{{ initials }}</div>
-      <div class="profile-hero__info">
-        <h1 class="profile-hero__name">{{ identity()!.displayName }}</h1>
-        <div class="profile-hero__meta">
-          <span class="meta-chip meta-chip--admin">Administrator</span>
-          @if (identity()!.email) {
-            <span class="meta-chip">{{ identity()!.email }}</span>
-          }
-        </div>
-      </div>
-    </header>
-    <div class="admin-notice">
-      <mat-icon>admin_panel_settings</mat-icon>
-      <div>
-        <strong>Administrator Account</strong>
-        <p>Your account is not linked to a faculty or student record. Profile document management is not applicable.</p>
-      </div>
-    </div>
+      </section>
+    }
   }
 
 </div>

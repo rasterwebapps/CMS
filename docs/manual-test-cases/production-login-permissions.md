@@ -3,20 +3,23 @@
 ## TC-PROD-LOGIN-001: College admin can load permissions after login
 
 **Preconditions:**
-- Production application is running on `https://172.16.7.209`
+- Production application is running on `https://cms.nursing.sksh.ac.in`, `https://137.97.6.147`, and `https://172.16.7.209`
 - Keycloak user `collegeadmin` exists and is enabled
 - `app_users` contains `collegeadmin` mapped to `COLLEGE_ADMIN`
 
 **Steps:**
-1. Open `https://172.16.7.209` in a browser.
+1. Open `https://cms.nursing.sksh.ac.in` in a browser.
 2. Log in with username `collegeadmin`.
-3. Verify the app returns from Keycloak to the CMS frontend.
+3. Verify the app returns from Keycloak to the CMS frontend on `https://cms.nursing.sksh.ac.in`.
 4. Open browser developer tools and check the request to `/api/v1/permissions/my`.
+5. Repeat steps 1-4 for `https://137.97.6.147` from a public network.
+6. Repeat steps 1-4 for `https://172.16.7.209` from the local LAN.
 
 **Expected Result:**
 - The page does not blink or repeatedly redirect to login.
 - `/api/v1/permissions/my` returns `200 OK`.
 - Response contains `roleName` as `COLLEGE_ADMIN` and a non-empty `permissions` list.
+- Redirects and returned browser URLs remain on the entry origin used for that test.
 
 **Status:** NOT TESTED
 

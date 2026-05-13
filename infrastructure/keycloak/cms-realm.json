@@ -16,7 +16,9 @@
         "https://122.165.219.66:212/*",
         "https://172.17.1.243:8443/*",
         "https://122.165.219.66/*",
-        "http://172.16.7.209/*"
+        "https://cms.nursing.sksh.ac.in/*",
+        "https://137.97.6.147/*",
+        "https://172.16.7.209/*"
       ],
       "webOrigins": [
         "http://localhost:4200",
@@ -26,7 +28,9 @@
         "https://122.165.219.66:212",
         "https://172.17.1.243:8443",
         "https://122.165.219.66",
-        "http://172.16.7.209"
+        "https://cms.nursing.sksh.ac.in",
+        "https://137.97.6.147",
+        "https://172.16.7.209"
       ],
       "protocol": "openid-connect"
     },

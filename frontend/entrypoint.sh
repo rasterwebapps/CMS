@@ -6,7 +6,7 @@ set -e
 # on every deployment without rebuilding the image.
 cat > /usr/share/nginx/html/assets/env.js << EOF
 window.__env__ = {
-  keycloakUrl:      '${KEYCLOAK_URL:-http://localhost:8280}',
+  keycloakUrl:      '${KEYCLOAK_URL:-}',
   keycloakRealm:    '${KEYCLOAK_REALM:-cms}',
   keycloakClientId: '${KEYCLOAK_CLIENT_ID:-cms-frontend}'
 };

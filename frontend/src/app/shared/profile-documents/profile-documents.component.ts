@@ -1,9 +1,11 @@
 import {
   Component,
   computed,
+  EventEmitter,
   inject,
   Input,
   OnChanges,
+  Output,
   signal,
   SimpleChanges,
 } from '@angular/core';
@@ -60,6 +62,9 @@ export class ProfileDocumentsComponent implements OnChanges {
   @Input() programId?: number;
   @Input() canManage = false;
   @Input() canVerify = false;
+
+  /** Emits the current slot array whenever it changes — used by parent for stats. */
+  @Output() readonly slotsChange = new EventEmitter<{ status: string }[]>();
 
   private readonly facultyService = inject(FacultyService);
   private readonly admissionService = inject(AdmissionService);
@@ -151,6 +156,7 @@ export class ProfileDocumentsComponent implements OnChanges {
           });
 
         this.slots.set(slots);
+        this.slotsChange.emit(slots);
         this.loading.set(false);
       },
       error: () => {
@@ -209,6 +215,7 @@ export class ProfileDocumentsComponent implements OnChanges {
           });
 
         this.slots.set(slots);
+        this.slotsChange.emit(slots);
         this.loading.set(false);
       },
       error: () => {

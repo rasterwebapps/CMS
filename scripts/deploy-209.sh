@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  CMS Deployment Script — deploys to 172.16.7.209
+#  Public URL: https://cms.nursing.sksh.ac.in
 #
 #  Usage:
 #    DEPLOY209_PASS='ssh/sudo password' ./scripts/deploy-209.sh            → full rebuild
@@ -14,14 +15,28 @@ set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVER="${DEPLOY209_SERVER:-172.16.7.209}"
+PUBLIC_HOST="${DEPLOY209_PUBLIC_HOST:-cms.nursing.sksh.ac.in}"
+PUBLIC_IP="${DEPLOY209_PUBLIC_IP:-137.97.6.147}"
+LOCAL_HOST="${DEPLOY209_LOCAL_HOST:-172.16.7.209}"
 SERVER_USER="${DEPLOY209_USER:-sksadmin}"
 SERVER_PASS="${DEPLOY209_PASS:-ra5terpass@sksh}"
 DB_PASSWORD="${DEPLOY209_DB_PASS:-cms_db_pass_209@sksh}"
 KC_PASS="${DEPLOY209_KC_PASS:-K3yCloak@sksh}"
+TLS_CERT_FILE="${DEPLOY209_TLS_CERT_FILE:-/home/raster/Downloads/Telegram Desktop/Certificate.txt}"
+TLS_INTERMEDIATE_FILE="${DEPLOY209_TLS_INTERMEDIATE_FILE:-/home/raster/Downloads/Telegram Desktop/Intermediate Certificate.txt}"
+TLS_PRIVATE_KEY_FILE="${DEPLOY209_TLS_PRIVATE_KEY_FILE:-/home/raster/Downloads/Telegram Desktop/RSA Private Key.txt}"
 REMOTE_DIR="${DEPLOY209_DIR:-/docker_data/skscms209}"
 REMOTE_STAGE="${DEPLOY209_STAGE:-/tmp/skscms209-deploy}"
 PROJECT_NAME="skscms209"
 LOCAL_DIR="$(cd "$(dirname "$0")/.." && pwd)"   # project root
+TMP_TLS_DIR=""
+
+cleanup() {
+  if [ -n "$TMP_TLS_DIR" ] && [ -d "$TMP_TLS_DIR" ]; then
+    rm -rf "$TMP_TLS_DIR"
+  fi
+}
+trap cleanup EXIT
 
 SSH_OPTS="-o StrictHostKeyChecking=no"
 COMPOSE_CMD="docker compose -p $PROJECT_NAME -f $REMOTE_DIR/docker-compose.yml --env-file $REMOTE_DIR/.env"
@@ -79,6 +94,45 @@ rsync_to_server() {
   fi
 }
 
+prepare_tls_bundle() {
+  if [ "$MODE" != "full" ] && [ "$MODE" != "frontend" ]; then
+    return
+  fi
+
+  print_step "Preparing TLS certificate bundle..."
+
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "openssl is required to validate TLS files before deployment."
+    exit 1
+  fi
+
+  for file in "$TLS_CERT_FILE" "$TLS_INTERMEDIATE_FILE" "$TLS_PRIVATE_KEY_FILE"; do
+    if [ ! -r "$file" ]; then
+      echo "TLS file is missing or unreadable: $file"
+      exit 1
+    fi
+  done
+
+  TMP_TLS_DIR=$(mktemp -d /tmp/skscms209_tls_XXXXXX)
+  { cat "$TLS_CERT_FILE"; printf '\n'; cat "$TLS_INTERMEDIATE_FILE"; printf '\n'; } > "$TMP_TLS_DIR/self.crt"
+  cp "$TLS_PRIVATE_KEY_FILE" "$TMP_TLS_DIR/self.key"
+  chmod 600 "$TMP_TLS_DIR/self.key"
+
+  openssl x509 -in "$TMP_TLS_DIR/self.crt" -noout >/dev/null
+  openssl pkey -in "$TMP_TLS_DIR/self.key" -noout >/dev/null
+  openssl x509 -in "$TMP_TLS_DIR/self.crt" -pubkey -noout > "$TMP_TLS_DIR/cert.pub"
+  openssl pkey -in "$TMP_TLS_DIR/self.key" -pubout > "$TMP_TLS_DIR/key.pub"
+
+  if ! cmp -s "$TMP_TLS_DIR/cert.pub" "$TMP_TLS_DIR/key.pub"; then
+    echo "TLS certificate and private key do not match."
+    exit 1
+  fi
+
+  remote_run "mkdir -p $REMOTE_STAGE/tls"
+  rsync_to_server "$TMP_TLS_DIR/self.crt" "$REMOTE_STAGE/tls/self.crt"
+  rsync_to_server "$TMP_TLS_DIR/self.key" "$REMOTE_STAGE/tls/self.key"
+}
+
 print_step() {
   echo ""
   echo "──────────────────────────────────────────"
@@ -106,12 +160,16 @@ echo ""
 echo "============================================="
 echo "  CMS Deployment — mode: $MODE"
 echo "  Target: $SERVER_USER@$SERVER:$REMOTE_DIR"
+echo "  Public URL: https://$PUBLIC_HOST"
+echo "  Public IP URL: https://$PUBLIC_IP"
+echo "  Local URL: https://$LOCAL_HOST"
 echo "  Compose project: $PROJECT_NAME"
 echo "============================================="
 
 # ── Step 1: Stage files on server ─────────────────────────────────────────────
 print_step "Preparing remote staging directory..."
 remote_run "rm -rf $REMOTE_STAGE && mkdir -p $REMOTE_STAGE/deploy $REMOTE_STAGE/backend $REMOTE_STAGE/frontend"
+prepare_tls_bundle
 
 print_step "Syncing 209 deployment bundle..."
 rsync_to_server "$LOCAL_DIR/deploy/production-209/" "$REMOTE_STAGE/deploy/" \
@@ -129,7 +187,8 @@ if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
   rsync_to_server "$LOCAL_DIR/frontend/" "$REMOTE_STAGE/frontend/" \
     --exclude='node_modules' \
     --exclude='dist' \
-    --exclude='.angular'
+    --exclude='.angular' \
+    --exclude='ssl'
 fi
 
 # ── Step 2: Install staged files into /docker_data/skscms209 ──────────────────
@@ -142,13 +201,16 @@ fi
 
 if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
   ssh_run "mkdir -p $REMOTE_DIR/build/frontend && rsync -a --delete $REMOTE_STAGE/frontend/ $REMOTE_DIR/build/frontend/"
+  ssh_run "mkdir -p $REMOTE_DIR/ssl && cp $REMOTE_STAGE/tls/self.crt $REMOTE_DIR/ssl/self.crt && cp $REMOTE_STAGE/tls/self.key $REMOTE_DIR/ssl/self.key && chmod 644 $REMOTE_DIR/ssl/self.crt && chmod 600 $REMOTE_DIR/ssl/self.key"
 fi
 
 # ── Bootstrap .env on first run ───────────────────────────────────────────────
 print_step "Checking / bootstrapping .env on server..."
 TMP_ENV=$(mktemp /tmp/cms209_env_XXXXXX)
 cat > "$TMP_ENV" << EOF
-DEPLOY_HOST=172.16.7.209
+DEPLOY_HOST=${PUBLIC_HOST}
+PUBLIC_IP=${PUBLIC_IP}
+LOCAL_HOST=${LOCAL_HOST}
 DB_USERNAME=cms_user
 DB_PASSWORD=${DB_PASSWORD}
 KEYCLOAK_ADMIN_PASSWORD=${KC_PASS}
@@ -170,6 +232,29 @@ ssh_run "
     echo '.env already exists — not overwriting'
   fi
   rm -f $REMOTE_STAGE/.env.candidate
+"
+
+# Keep origin variables current without touching stored credentials.
+ssh_run "
+  if [ -f $REMOTE_DIR/.env ]; then
+    if grep -q '^DEPLOY_HOST=' $REMOTE_DIR/.env; then
+      sed -i 's|^DEPLOY_HOST=.*|DEPLOY_HOST=$PUBLIC_HOST|' $REMOTE_DIR/.env
+    else
+      printf '\nDEPLOY_HOST=$PUBLIC_HOST\n' >> $REMOTE_DIR/.env
+    fi
+    if grep -q '^PUBLIC_IP=' $REMOTE_DIR/.env; then
+      sed -i 's|^PUBLIC_IP=.*|PUBLIC_IP=$PUBLIC_IP|' $REMOTE_DIR/.env
+    else
+      printf 'PUBLIC_IP=$PUBLIC_IP\n' >> $REMOTE_DIR/.env
+    fi
+    if grep -q '^LOCAL_HOST=' $REMOTE_DIR/.env; then
+      sed -i 's|^LOCAL_HOST=.*|LOCAL_HOST=$LOCAL_HOST|' $REMOTE_DIR/.env
+    else
+      printf 'LOCAL_HOST=$LOCAL_HOST\n' >> $REMOTE_DIR/.env
+    fi
+    chmod 600 $REMOTE_DIR/.env
+    echo 'Origins set to $PUBLIC_HOST, $PUBLIC_IP, $LOCAL_HOST'
+  fi
 "
 
 # ── Step 3: Build Docker image(s) ─────────────────────────────────────────────
@@ -213,7 +298,34 @@ elif [ "$MODE" = "backend" ]; then
   ssh_run "$COMPOSE_CMD up -d --no-deps --force-recreate backend"
 fi
 
-# ── Step 6: Health check ──────────────────────────────────────────────────────
+# ── Step 6: Keycloak public URL reconciliation ────────────────────────────────
+if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+  print_step "Updating Keycloak client public URLs..."
+  ssh_run "
+    set -e
+    AUTH_OK=0
+    for attempt in \$(seq 1 30); do
+      if $COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8180 --realm master --user admin --password \"\$KEYCLOAK_ADMIN_PASSWORD\" >/dev/null 2>&1'; then
+        AUTH_OK=1
+        break
+      fi
+      echo \"Waiting for Keycloak admin API... attempt \$attempt/30\"
+      sleep 3
+    done
+    if [ \"\$AUTH_OK\" -ne 1 ]; then
+      echo 'Keycloak admin API was not ready in time'
+      exit 1
+    fi
+    CLIENT_UUID=\$($COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh get clients -r cms -q clientId=cms-frontend --fields id --format csv --noquotes' | tr -d '\r' | head -n 1)
+    if [ -z "\$CLIENT_UUID" ]; then
+      echo 'Unable to find Keycloak client cms-frontend'
+      exit 1
+    fi
+    $COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh update clients/'"\$CLIENT_UUID"' -r cms -s rootUrl= -s baseUrl= -s "redirectUris=[\\"https://$PUBLIC_HOST/*\\",\\"https://$PUBLIC_IP/*\\",\\"https://$LOCAL_HOST/*\\"]" -s "webOrigins=[\\"https://$PUBLIC_HOST\\",\\"https://$PUBLIC_IP\\",\\"https://$LOCAL_HOST\\"]"'
+  "
+fi
+
+# ── Step 7: Health check ──────────────────────────────────────────────────────
 print_step "Running health checks..."
 sleep 6
 ssh_run "$COMPOSE_CMD ps"
@@ -223,6 +335,7 @@ remote_run "
   curl -sk -o /dev/null -w 'Frontend (HTTPS):  %{http_code}\n' https://localhost/
   curl -sk -o /dev/null -w 'Keycloak (OIDC):   %{http_code}\n' https://localhost/realms/cms/.well-known/openid-configuration
   curl -sk -o /dev/null -w 'Backend API:       %{http_code}\n' https://localhost/api/v1/health
+  curl -sk -o /dev/null -w 'Local IP URL:      %{http_code}\n' https://$LOCAL_HOST/
 "
 
 print_step "Cleaning remote staging directory..."
@@ -231,6 +344,8 @@ remote_run "rm -rf $REMOTE_STAGE"
 echo ""
 echo "============================================="
 echo "  Deployment complete!"
-echo "  App URL: https://$SERVER"
+echo "  Public domain: https://$PUBLIC_HOST"
+echo "  Public IP:     https://$PUBLIC_IP"
+echo "  Local LAN:     https://$LOCAL_HOST"
 echo "============================================="
 echo ""

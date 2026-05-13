@@ -11,7 +11,6 @@ RUN apk add --no-cache gettext
 
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY ssl/ /etc/nginx/ssl/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

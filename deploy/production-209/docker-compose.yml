@@ -1,4 +1,5 @@
 # Production docker-compose — dedicated deployment server: 172.16.7.209
+# Public URL: https://cms.nursing.sksh.ac.in
 #
 # Run only on 172.16.7.209 from /docker_data/skscms209:
 #   docker compose -p skscms209 -f docker-compose.yml --env-file .env up -d
@@ -7,7 +8,9 @@
 #   DB_USERNAME
 #   DB_PASSWORD
 #   KEYCLOAK_ADMIN_PASSWORD
-#   DEPLOY_HOST=172.16.7.209
+#   DEPLOY_HOST=cms.nursing.sksh.ac.in
+#   PUBLIC_IP=137.97.6.147
+#   LOCAL_HOST=172.16.7.209
 #
 # This file is intentionally separate from legacy 243 deployment files.
 
@@ -41,7 +44,8 @@ services:
       KC_DB_PASSWORD: ${DB_PASSWORD}
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_HOSTNAME_URL: https://${DEPLOY_HOST}
+      # Dynamic hostname mode lets Keycloak issue URLs for whichever approved
+      # browser origin was used: domain, public IP, or LAN IP.
       KC_HTTP_ENABLED: 'true'
       KC_HTTP_PORT: '8180'
       KC_HOSTNAME_STRICT: 'false'
@@ -61,9 +65,12 @@ services:
       DB_URL: jdbc:postgresql://localhost:5433/cms
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      # Primary issuer remains for compatibility; SecurityConfig accepts all
+      # issuers listed in KEYCLOAK_ALLOWED_ISSUERS below.
       KEYCLOAK_ISSUER_URI: https://${DEPLOY_HOST}/realms/cms
       KEYCLOAK_JWK_SET_URI: http://localhost:8180/realms/cms/protocol/openid-connect/certs
-      CORS_ALLOWED_ORIGINS: https://${DEPLOY_HOST}
+      KEYCLOAK_ALLOWED_ISSUERS: https://${DEPLOY_HOST}/realms/cms,https://${PUBLIC_IP}/realms/cms,https://${LOCAL_HOST}/realms/cms
+      CORS_ALLOWED_ORIGINS: https://${DEPLOY_HOST},https://${PUBLIC_IP},https://${LOCAL_HOST}
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,12 +85,15 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      KEYCLOAK_URL: https://${DEPLOY_HOST}
+      # Leave KEYCLOAK_URL unset so Angular uses the current browser origin.
       KEYCLOAK_REALM: cms
       KEYCLOAK_CLIENT_ID: cms-frontend
       KEYCLOAK_UPSTREAM: 127.0.0.1:8180
       BACKEND_UPSTREAM: 127.0.0.1:8080
       EXTERNAL_HTTPS_PORT: '443'
+    volumes:
+      - ./ssl/self.crt:/etc/nginx/ssl/self.crt:ro
+      - ./ssl/self.key:/etc/nginx/ssl/self.key:ro
     depends_on:
       - backend
 

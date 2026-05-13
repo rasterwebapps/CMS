@@ -7,15 +7,19 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "rootUrl": "https://172.16.7.209",
+      "rootUrl": "",
       "redirectUris": [
+        "https://cms.nursing.sksh.ac.in/*",
+        "https://137.97.6.147/*",
         "https://172.16.7.209/*"
       ],
       "webOrigins": [
+        "https://cms.nursing.sksh.ac.in",
+        "https://137.97.6.147",
         "https://172.16.7.209"
       ],
       "protocol": "openid-connect",
-      "baseUrl": "https://172.16.7.209"
+      "baseUrl": ""
     },
     {
       "clientId": "cms-backend",
