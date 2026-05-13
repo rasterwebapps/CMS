@@ -155,11 +155,27 @@ class RoleManagementControllerTest {
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
         when(userPermissionService.getPermissions("admin")).thenReturn(java.util.Set.of("USER_VIEW"));
         AppRoleResponse updated = buildRoleResponse(5L, "FACULTY", 5);
-        when(appRoleService.updatePermissions(anyLong(), anyList(), anySet(), anyString())).thenReturn(updated);
+        when(appRoleService.updatePermissions(anyLong(), anyList(), anySet(), anyString(), anyInt()))
+            .thenReturn(updated);
 
         mockMvc.perform(put("/role-management/5/permissions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(List.of("USER_VIEW")))
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(5));
+    }
+
+    @Test
+    void shouldUpdateDashboardWidgets() throws Exception {
+        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        AppRoleResponse updated = buildRoleResponse(5L, "FACULTY", 5);
+        when(appRoleService.updateDashboardWidgets(anyLong(), anyList(), anyString(), anyInt()))
+            .thenReturn(updated);
+
+        mockMvc.perform(put("/role-management/5/dashboard-widgets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(List.of("kpi_students", "kpi_faculty")))
                 .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(5));

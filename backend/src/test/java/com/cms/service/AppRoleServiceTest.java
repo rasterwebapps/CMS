@@ -196,7 +196,9 @@ class AppRoleServiceTest {
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
 
         Set<String> requesterPerms = Set.of("COURSE_VIEW", "USER_VIEW");
-        AppRoleResponse response = appRoleService.updatePermissions(5L, List.of("COURSE_VIEW"), requesterPerms, "tester");
+        // requesterLevel=3 (ADMIN), role level=5 — strictly below → allowed
+        AppRoleResponse response = appRoleService.updatePermissions(5L, List.of("COURSE_VIEW"), requesterPerms,
+            "tester", 3);
 
         assertThat(response).isNotNull();
         verify(userPermissionService).evictAll();
@@ -209,7 +211,8 @@ class AppRoleServiceTest {
 
         Set<String> requesterPerms = Set.of("COURSE_VIEW");
 
-        assertThatThrownBy(() -> appRoleService.updatePermissions(5L, List.of("ADMIN_VIEW"), requesterPerms, "tester"))
+        assertThatThrownBy(() -> appRoleService.updatePermissions(5L, List.of("ADMIN_VIEW"),
+                requesterPerms, "tester", 3))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("ADMIN_VIEW");
     }
@@ -220,7 +223,7 @@ class AppRoleServiceTest {
         when(appRoleRepository.findById(5L)).thenReturn(Optional.of(role));
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
 
-        appRoleService.updatePermissions(5L, List.of(), Set.of("COURSE_VIEW"), "tester");
+        appRoleService.updatePermissions(5L, List.of(), Set.of("COURSE_VIEW"), "tester", 3);
 
         verify(userPermissionService).evictAll();
     }
@@ -229,7 +232,7 @@ class AppRoleServiceTest {
     void shouldThrowWhenRoleNotFoundOnUpdate() {
         when(appRoleRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> appRoleService.updatePermissions(99L, List.of(), Set.of(), "tester"))
+        assertThatThrownBy(() -> appRoleService.updatePermissions(99L, List.of(), Set.of(), "tester", 1))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -238,9 +241,57 @@ class AppRoleServiceTest {
         AppRole role = createRole(1L, "DEV_ADMIN", "Developer Admin", 1, true);
         when(appRoleRepository.findById(1L)).thenReturn(Optional.of(role));
 
-        assertThatThrownBy(() -> appRoleService.updatePermissions(1L, List.of("USER_VIEW"), Set.of("USER_VIEW"), "tester"))
+        // Even DEV_ADMIN itself (level 1) cannot change DEV_ADMIN's permissions
+        assertThatThrownBy(() -> appRoleService.updatePermissions(1L, List.of("USER_VIEW"),
+                Set.of("USER_VIEW"), "tester", 0))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("immutable");
+
+        verify(appRoleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAllowDevAdminToUpdateSupportAdminRolePermissions() {
+        // SUPPORT_ADMIN is at level 2; DEV_ADMIN requester is at level 1 (strictly above)
+        AppRole supportAdminRole = createRole(2L, "SUPPORT_ADMIN", "Support Admin", 2, true);
+        when(appRoleRepository.findById(2L)).thenReturn(Optional.of(supportAdminRole));
+        when(appRoleRepository.save(any(AppRole.class))).thenReturn(supportAdminRole);
+        when(permissionRepository.findByCodeIn(List.of("USER_VIEW"))).thenReturn(
+            List.of(new Permission("USER_VIEW", "View Users", "SYSTEM", "")));
+
+        Set<String> devAdminPerms = Set.of("USER_VIEW", "USER_EDIT");
+        AppRoleResponse response = appRoleService.updatePermissions(2L, List.of("USER_VIEW"),
+            devAdminPerms, "devadmin", 1);
+
+        assertThat(response).isNotNull();
+        verify(appRoleRepository).save(any(AppRole.class));
+        verify(userPermissionService).evictAll();
+    }
+
+    @Test
+    void shouldBlockSupportAdminFromEditingOwnRole() {
+        // SUPPORT_ADMIN at level 2 tries to edit SUPPORT_ADMIN (same level) → blocked
+        AppRole supportAdminRole = createRole(2L, "SUPPORT_ADMIN", "Support Admin", 2, true);
+        when(appRoleRepository.findById(2L)).thenReturn(Optional.of(supportAdminRole));
+
+        assertThatThrownBy(() -> appRoleService.updatePermissions(2L, List.of("USER_VIEW"),
+                Set.of("USER_VIEW"), "supportadmin", 2))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("above your own hierarchy level");
+
+        verify(appRoleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldBlockLowerRoleFromEditingHigherRole() {
+        // ADMIN (level 3) tries to edit SUPPORT_ADMIN (level 2) → blocked
+        AppRole supportAdminRole = createRole(2L, "SUPPORT_ADMIN", "Support Admin", 2, true);
+        when(appRoleRepository.findById(2L)).thenReturn(Optional.of(supportAdminRole));
+
+        assertThatThrownBy(() -> appRoleService.updatePermissions(2L, List.of("USER_VIEW"),
+                Set.of("USER_VIEW"), "someadmin", 3))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("above your own hierarchy level");
 
         verify(appRoleRepository, never()).save(any());
     }

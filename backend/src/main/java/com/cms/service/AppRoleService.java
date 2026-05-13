@@ -21,7 +21,19 @@ import com.cms.repository.PermissionRepository;
 @Transactional(readOnly = true)
 public class AppRoleService {
 
-    private static final Set<String> IMMUTABLE_ROLE_NAMES = Set.of("DEVADMIN", "SUPPORTADMIN");
+    /**
+     * Role names that cannot be created manually — they are pre-seeded system roles
+     * reserved exclusively for the development / platform support teams.
+     */
+    private static final Set<String> RESERVED_ROLE_NAMES = Set.of("DEVADMIN", "SUPPORTADMIN");
+
+    /**
+     * Role names whose permission set is absolutely immutable — nobody (not even
+     * DEV_ADMIN) can alter what DEV_ADMIN can do.
+     * SUPPORT_ADMIN is intentionally excluded: a DEV_ADMIN must be able to adjust
+     * the support team's access level when needed.
+     */
+    private static final Set<String> TRULY_IMMUTABLE_ROLE_NAMES = Set.of("DEVADMIN");
 
     private final AppRoleRepository appRoleRepository;
     private final PermissionRepository permissionRepository;
@@ -64,7 +76,7 @@ public class AppRoleService {
     @Transactional
     public AppRoleResponse create(AppRoleRequest request, int requesterLevel, String actor) {
         String normalizedName = normalizeRoleName(request.name());
-        if (IMMUTABLE_ROLE_NAMES.contains(normalizedName)) {
+        if (RESERVED_ROLE_NAMES.contains(normalizedName)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Role '" + request.name() + "' is reserved and cannot be created manually");
         }
@@ -106,15 +118,17 @@ public class AppRoleService {
 
     /**
      * Replaces the permission set of a role. The requester may only assign permissions
-     * that they themselves hold (no privilege escalation).
+     * that they themselves hold (no privilege escalation), and may only modify roles
+     * that are strictly below their own hierarchy level.
      */
     @Transactional
     public AppRoleResponse updatePermissions(Long roleId, List<String> permissionCodes,
-                                             Set<String> requesterPermissions, String actor) {
+                                             Set<String> requesterPermissions, String actor,
+                                             int requesterLevel) {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
-        ensureRoleIsEditable(role);
+        ensureRoleIsEditable(role, requesterLevel);
 
         if (permissionCodes != null) {
             for (String code : permissionCodes) {
@@ -141,23 +155,25 @@ public class AppRoleService {
     }
 
     /**
-     * Backwards-compatible overload — actor defaults to "system".
-     * @deprecated Prefer {@link #updatePermissions(Long, List, Set, String)}.
+     * Backwards-compatible overload — requester level defaults to 0 (bypasses hierarchy
+     * check; immutability guard for DEV_ADMIN is still enforced).
+     * @deprecated Prefer {@link #updatePermissions(Long, List, Set, String, int)}.
      */
     @Deprecated
     @Transactional
     public AppRoleResponse updatePermissions(Long roleId, List<String> permissionCodes,
-                                             Set<String> requesterPermissions) {
-        return updatePermissions(roleId, permissionCodes, requesterPermissions, "system");
+                                             Set<String> requesterPermissions, String actor) {
+        return updatePermissions(roleId, permissionCodes, requesterPermissions, actor, 0);
     }
 
     /** Replaces the dashboard widget list for a role in the given order. */
     @Transactional
-    public AppRoleResponse updateDashboardWidgets(Long roleId, List<String> widgetKeys, String actor) {
+    public AppRoleResponse updateDashboardWidgets(Long roleId, List<String> widgetKeys, String actor,
+                                                  int requesterLevel) {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
-        ensureRoleIsEditable(role);
+        ensureRoleIsEditable(role, requesterLevel);
 
         role.getDashboardWidgets().clear();
         if (widgetKeys != null) {
@@ -171,6 +187,17 @@ public class AppRoleService {
         return toResponse(updated);
     }
 
+    /**
+     * Backwards-compatible overload — requester level defaults to 0 (bypasses hierarchy
+     * check; immutability guard for DEV_ADMIN is still enforced).
+     * @deprecated Prefer {@link #updateDashboardWidgets(Long, List, String, int)}.
+     */
+    @Deprecated
+    @Transactional
+    public AppRoleResponse updateDashboardWidgets(Long roleId, List<String> widgetKeys, String actor) {
+        return updateDashboardWidgets(roleId, widgetKeys, actor, 0);
+    }
+
     public List<String> getPermissions(Long roleId) {
         AppRole role = appRoleRepository.findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
@@ -180,10 +207,17 @@ public class AppRoleService {
             .toList();
     }
 
-    private void ensureRoleIsEditable(AppRole role) {
-        if (IMMUTABLE_ROLE_NAMES.contains(normalizeRoleName(role.getName()))) {
+    private void ensureRoleIsEditable(AppRole role, int requesterLevel) {
+        // DEV_ADMIN is absolutely immutable — nobody can change its permissions.
+        if (TRULY_IMMUTABLE_ROLE_NAMES.contains(normalizeRoleName(role.getName()))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Role '" + role.getName() + "' is immutable and cannot be modified");
+        }
+        // A role can only be modified by someone strictly above it in the hierarchy.
+        // This prevents SUPPORT_ADMIN or lower from editing roles at their own level.
+        if (role.getHierarchyLevel() <= requesterLevel) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "You cannot modify a role at or above your own hierarchy level");
         }
     }
 

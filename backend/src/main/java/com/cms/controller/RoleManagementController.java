@@ -74,7 +74,8 @@ public class RoleManagementController {
             @RequestBody List<String> widgetKeys,
             @AuthenticationPrincipal Jwt jwt) {
         String actor = jwt.getClaimAsString("preferred_username");
-        return ResponseEntity.ok(appRoleService.updateDashboardWidgets(id, widgetKeys, actor));
+        int requesterLevel = resolveHierarchyLevel(jwt);
+        return ResponseEntity.ok(appRoleService.updateDashboardWidgets(id, widgetKeys, actor, requesterLevel));
     }
 
     /** Replaces the permission set of an existing role. */
@@ -84,8 +85,10 @@ public class RoleManagementController {
             @RequestBody List<String> permissionCodes,
             @AuthenticationPrincipal Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
+        int requesterLevel = resolveHierarchyLevel(jwt);
         var requesterPermissions = userPermissionService.getPermissions(username);
-        AppRoleResponse updated = appRoleService.updatePermissions(id, permissionCodes, requesterPermissions, username);
+        AppRoleResponse updated = appRoleService.updatePermissions(id, permissionCodes, requesterPermissions,
+            username, requesterLevel);
         return ResponseEntity.ok(updated);
     }
 

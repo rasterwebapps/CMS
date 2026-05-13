@@ -14,8 +14,10 @@ set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVER="${DEPLOY209_SERVER:-172.16.7.209}"
-SERVER_USER="${DEPLOY209_USER:-raster}"
-SERVER_PASS="${DEPLOY209_PASS:-${SERVER_PASS:-}}"
+SERVER_USER="${DEPLOY209_USER:-sksadmin}"
+SERVER_PASS="${DEPLOY209_PASS:-ra5terpass@sksh}"
+DB_PASSWORD="${DEPLOY209_DB_PASS:-cms_db_pass_209@sksh}"
+KC_PASS="${DEPLOY209_KC_PASS:-K3yCloak@sksh}"
 REMOTE_DIR="${DEPLOY209_DIR:-/docker_data/skscms209}"
 REMOTE_STAGE="${DEPLOY209_STAGE:-/tmp/skscms209-deploy}"
 PROJECT_NAME="skscms209"
@@ -44,12 +46,16 @@ remote_run() {
 
 ssh_run() {
   local command="$1"
-  local escaped
+  local escaped pass_escaped
   escaped=$(printf '%q' "$command")
 
   if [ -n "$SERVER_PASS" ]; then
+    # Embed the password in the remote command so it reaches sudo -S via pipe.
+    # sshpass -e intercepts SSH stdin, so <<< never reaches sudo -S — the pipe
+    # approach is the only reliable way.
+    pass_escaped=$(printf '%q' "$SERVER_PASS")
     SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
-      "sudo -S bash -lc $escaped 2>&1" <<< "$SERVER_PASS"
+      "echo ${pass_escaped} | sudo -S bash -lc ${escaped} 2>&1"
   else
     ssh $SSH_OPTS "$SERVER_USER@$SERVER" "sudo -n bash -lc $escaped 2>&1"
   fi
@@ -138,7 +144,33 @@ if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
   ssh_run "mkdir -p $REMOTE_DIR/build/frontend && rsync -a --delete $REMOTE_STAGE/frontend/ $REMOTE_DIR/build/frontend/"
 fi
 
-ssh_run "test -f $REMOTE_DIR/.env || { echo Missing required $REMOTE_DIR/.env; exit 1; }"
+# ── Bootstrap .env on first run ───────────────────────────────────────────────
+print_step "Checking / bootstrapping .env on server..."
+TMP_ENV=$(mktemp /tmp/cms209_env_XXXXXX)
+cat > "$TMP_ENV" << EOF
+DEPLOY_HOST=172.16.7.209
+DB_USERNAME=cms_user
+DB_PASSWORD=${DB_PASSWORD}
+KEYCLOAK_ADMIN_PASSWORD=${KC_PASS}
+EOF
+
+# Push candidate .env to staging area (no sudo needed for /tmp)
+remote_run "mkdir -p $REMOTE_STAGE"
+rsync_to_server "$TMP_ENV" "$REMOTE_STAGE/.env.candidate"
+rm -f "$TMP_ENV"
+
+# Move into place only if .env doesn't already exist (preserve live credentials)
+ssh_run "
+  if [ ! -f $REMOTE_DIR/.env ]; then
+    mkdir -p $REMOTE_DIR
+    cp $REMOTE_STAGE/.env.candidate $REMOTE_DIR/.env
+    chmod 600 $REMOTE_DIR/.env
+    echo '.env bootstrapped successfully'
+  else
+    echo '.env already exists — not overwriting'
+  fi
+  rm -f $REMOTE_STAGE/.env.candidate
+"
 
 # ── Step 3: Build Docker image(s) ─────────────────────────────────────────────
 if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
