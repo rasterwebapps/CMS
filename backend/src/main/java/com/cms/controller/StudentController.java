@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.BulkRollNumberAssignmentRequest;
 import com.cms.dto.GenerateRollNumbersRequest;
+import com.cms.dto.ProgramTransferAnalysis;
+import com.cms.dto.ProgramTransferRecord;
+import com.cms.dto.ProgramTransferRequest;
 import com.cms.dto.RollNumberAssignment;
 import com.cms.dto.RollNumberAssignmentRequest;
 import com.cms.dto.StudentRequest;
@@ -129,6 +132,28 @@ public class StudentController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         studentService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/program-transfer-analysis")
+    @PreAuthorize("@perm.has('STUDENT_EDIT')")
+    public ResponseEntity<ProgramTransferAnalysis> analyzeProgramTransfer(
+            @PathVariable Long id,
+            @RequestParam Long newProgramId) {
+        return ResponseEntity.ok(studentService.analyzeProgramTransfer(id, newProgramId));
+    }
+
+    @PostMapping("/{id}/program-transfer")
+    @PreAuthorize("@perm.has('STUDENT_EDIT')")
+    public ResponseEntity<ProgramTransferRecord> executeProgramTransfer(
+            @PathVariable Long id,
+            @Valid @RequestBody ProgramTransferRequest request) {
+        return ResponseEntity.ok(studentService.executeProgramTransfer(id, request));
+    }
+
+    @GetMapping("/{id}/program-transfers")
+    @PreAuthorize("@perm.has('STUDENT_VIEW', 'STUDENT_EDIT')")
+    public ResponseEntity<List<ProgramTransferRecord>> getTransferHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(studentService.getTransferHistory(id));
     }
 }
 

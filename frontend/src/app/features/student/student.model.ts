@@ -1,3 +1,43 @@
+export interface ProgramTransferDocumentInfo {
+  documentId: number | null;
+  documentType: string;
+  documentTypeLabel: string;
+  status: string;
+}
+
+export interface ProgramTransferAnalysis {
+  studentId: number;
+  studentName: string;
+  oldProgramId: number;
+  oldProgramName: string;
+  newProgramId: number;
+  newProgramName: string;
+  retainedDocuments: ProgramTransferDocumentInfo[];
+  irrelevantDocuments: ProgramTransferDocumentInfo[];
+  missingDocuments: ProgramTransferDocumentInfo[];
+}
+
+export interface ProgramTransferRequest {
+  newProgramId: number;
+  documentIdsToReturn: number[];
+  consentConfirmed: boolean;
+  notes?: string;
+}
+
+export interface ProgramTransferRecord {
+  id: number;
+  studentId: number;
+  studentName: string;
+  oldProgramId: number;
+  oldProgramName: string;
+  newProgramId: number;
+  newProgramName: string;
+  transferredAt: string;
+  transferredBy: string | null;
+  consentConfirmed: boolean;
+  notes: string | null;
+}
+
 export interface Student {
   id: number;
   rollNumber: string;

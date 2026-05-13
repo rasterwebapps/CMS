@@ -1,0 +1,180 @@
+<h2 mat-dialog-title>Change Student Program</h2>
+<mat-dialog-content>
+
+  <!-- Step 1: Select new program -->
+  @if (step() === 'SELECT') {
+    <div class="step">
+      <p class="step-intro">
+        Changing <strong>{{ data.studentName }}</strong>'s program from
+        <em>{{ data.currentProgramName }}</em>. Select the new program to see the
+        document impact before confirming.
+      </p>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>New Program</mat-label>
+        <mat-select [(ngModel)]="selectedProgramId">
+          @for (p of availablePrograms; track p.id) {
+            <mat-option [value]="p.id">{{ p.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  }
+
+  <!-- Step 2: Review document impact -->
+  @if (step() === 'REVIEW') {
+    @let an = analysis()!;
+    <div class="step">
+      <div class="transfer-arrow">
+        <span class="program-chip">{{ an.oldProgramName }}</span>
+        <mat-icon>arrow_forward</mat-icon>
+        <span class="program-chip program-chip--new">{{ an.newProgramName }}</span>
+      </div>
+
+      <!-- Retained -->
+      @if (an.retainedDocuments.length > 0) {
+        <div class="doc-section">
+          <div class="doc-section__header doc-section__header--retained">
+            <mat-icon>check_circle</mat-icon>
+            <span>{{ an.retainedDocuments.length }} Document{{ an.retainedDocuments.length !== 1 ? 's' : '' }} Retained</span>
+          </div>
+          <p class="doc-section__note">Required by both programs — stays as-is.</p>
+          <div class="doc-chips">
+            @for (d of an.retainedDocuments; track d.documentType) {
+              <span class="doc-chip doc-chip--retained">
+                <mat-icon class="doc-chip__icon">{{ statusIcon(d.status) }}</mat-icon>
+                {{ d.documentTypeLabel }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Irrelevant -->
+      @if (an.irrelevantDocuments.length > 0) {
+        <div class="doc-section">
+          <div class="doc-section__header doc-section__header--irrelevant">
+            <mat-icon>undo</mat-icon>
+            <span>{{ an.irrelevantDocuments.length }} Document{{ an.irrelevantDocuments.length !== 1 ? 's' : '' }} to Return</span>
+          </div>
+          <p class="doc-section__note">Only required by the old program. Physical copies will be returned to the student.</p>
+          <div class="doc-chips">
+            @for (d of an.irrelevantDocuments; track d.documentType) {
+              <span class="doc-chip doc-chip--irrelevant">
+                <mat-icon class="doc-chip__icon">{{ statusIcon(d.status) }}</mat-icon>
+                {{ d.documentTypeLabel }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Missing / New -->
+      @if (an.missingDocuments.length > 0) {
+        <div class="doc-section">
+          <div class="doc-section__header doc-section__header--missing">
+            <mat-icon>add_circle_outline</mat-icon>
+            <span>{{ an.missingDocuments.length }} New Document{{ an.missingDocuments.length !== 1 ? 's' : '' }} Required</span>
+          </div>
+          <p class="doc-section__note">Required by the new program — student will need to upload these.</p>
+          <div class="doc-chips">
+            @for (d of an.missingDocuments; track d.documentType) {
+              <span class="doc-chip doc-chip--missing">
+                <mat-icon class="doc-chip__icon">upload_file</mat-icon>
+                {{ d.documentTypeLabel }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (an.retainedDocuments.length === 0 && an.irrelevantDocuments.length === 0 && an.missingDocuments.length === 0) {
+        <p class="no-impact">No document changes required — both programs have the same document requirements.</p>
+      }
+    </div>
+  }
+
+  <!-- Step 3: Confirm consent -->
+  @if (step() === 'CONFIRM') {
+    @let an = analysis()!;
+    <div class="step">
+      <div class="confirm-summary">
+        <div class="confirm-summary__row">
+          <span class="confirm-summary__label">Student</span>
+          <span>{{ an.studentName }}</span>
+        </div>
+        <div class="confirm-summary__row">
+          <span class="confirm-summary__label">From</span>
+          <span>{{ an.oldProgramName }}</span>
+        </div>
+        <div class="confirm-summary__row">
+          <span class="confirm-summary__label">To</span>
+          <strong>{{ an.newProgramName }}</strong>
+        </div>
+        @if (irrelevantWithFile.length > 0) {
+          <div class="confirm-summary__row">
+            <span class="confirm-summary__label">Documents returned</span>
+            <span>{{ irrelevantWithFile.length }} file{{ irrelevantWithFile.length !== 1 ? 's' : '' }}</span>
+          </div>
+        }
+      </div>
+
+      @if (irrelevantWithFile.length > 0) {
+        <div class="consent-box">
+          <mat-checkbox [(ngModel)]="consentConfirmed" color="primary">
+            I confirm that the physical documents listed above have been returned to the student
+            and this transfer has the student's consent.
+          </mat-checkbox>
+        </div>
+      } @else {
+        <div class="consent-box">
+          <mat-checkbox [(ngModel)]="consentConfirmed" color="primary">
+            I confirm this program transfer is correct and authorised.
+          </mat-checkbox>
+        </div>
+      }
+
+      <div class="notes-field">
+        <label class="notes-label">Notes (optional)</label>
+        <textarea
+          class="notes-input"
+          [(ngModel)]="notes"
+          rows="3"
+          placeholder="Reason for transfer, additional context…"
+        ></textarea>
+      </div>
+    </div>
+  }
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (step() === 'SELECT') {
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button
+      mat-flat-button color="primary"
+      [disabled]="!selectedProgramId || loading()"
+      (click)="analyzeTransfer()"
+    >
+      @if (loading()) { <mat-spinner diameter="16" /> } @else { Analyse Impact }
+    </button>
+  }
+
+  @if (step() === 'REVIEW') {
+    <button mat-button (click)="back()">Back</button>
+    <button mat-flat-button color="primary" (click)="proceedToConfirm()">
+      Continue
+    </button>
+  }
+
+  @if (step() === 'CONFIRM') {
+    <button mat-button (click)="back()" [disabled]="submitting()">Back</button>
+    <button
+      mat-flat-button color="warn"
+      [disabled]="!consentConfirmed || submitting()"
+      (click)="executeTransfer()"
+    >
+      @if (submitting()) { <mat-spinner diameter="16" /> } @else { Confirm Transfer }
+    </button>
+  }
+</mat-dialog-actions>

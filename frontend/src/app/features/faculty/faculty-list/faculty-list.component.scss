@@ -1,3 +1,30 @@
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-lowest);
+  color: var(--mat-sys-on-surface);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background: var(--mat-sys-surface-container); }
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
 // fac-card__* card content styles for Faculty list
 .fac-card__code {
   margin-bottom: 6px;

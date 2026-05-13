@@ -97,6 +97,24 @@ yarn-error.log*
 *.bak
 *.tmp
 
+# ------------------------------------------------------------
+# AI-generated implementation notes — root level only
+# These are transient dev artifacts, not project documentation.
+# Leading / anchors each pattern to the repository root.
+# ------------------------------------------------------------
+/*_SUMMARY.md
+/*_IMPLEMENTATION*.md
+/*_COMPLETE.md
+/*_COMPLETION.md
+/*_REMOVAL*.md
+/*_FIX.md
+/ISSUE_RESOLVED_*.md
+/FILES_MODIFIED.md
+/QUICK_REFERENCE.md
+/DATABASE_CONFIG_VERIFICATION.md
+/*.prompt.md
+/cms-realm.json
+
 # ============================================================
 # FRONTEND (Angular)
 # ============================================================

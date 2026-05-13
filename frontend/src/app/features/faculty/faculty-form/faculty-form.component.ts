@@ -14,10 +14,12 @@ import {
   FacultyDocumentSlot,
   Designation,
   FacultyStatus,
+  FacultyQualification,
   FACULTY_DOCUMENT_SLOTS,
   DESIGNATION_OPTIONS,
   FACULTY_STATUS_OPTIONS,
   FACULTY_TYPE_OPTIONS,
+  FACULTY_QUALIFICATION_OPTIONS,
   GENDER_OPTIONS,
   MARITAL_STATUS_OPTIONS,
   BANK_ACCOUNT_TYPE_OPTIONS,
@@ -69,6 +71,7 @@ export class FacultyFormComponent implements OnInit {
   protected readonly designationOptions = DESIGNATION_OPTIONS;
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
   protected readonly facultyTypeOptions = FACULTY_TYPE_OPTIONS;
+  protected readonly qualificationOptions = FACULTY_QUALIFICATION_OPTIONS;
   protected readonly genderOptions = GENDER_OPTIONS;
   protected readonly maritalStatusOptions = MARITAL_STATUS_OPTIONS;
   protected readonly bankAccountTypeOptions = BANK_ACCOUNT_TYPE_OPTIONS;
@@ -126,6 +129,7 @@ export class FacultyFormComponent implements OnInit {
     departmentId: [null as number | null, [Validators.required]],
     designation: [null as Designation | null, [Validators.required]],
     facultyType: [null as string | null],
+    highestQualification: [null as FacultyQualification | null],
     specialization: ['', [Validators.maxLength(255)]],
     labExpertise: ['', [Validators.maxLength(1000)]],
     joiningDate: ['', [Validators.required]],
@@ -217,6 +221,7 @@ export class FacultyFormComponent implements OnInit {
       joiningDate: v.joiningDate,
       status: v.status || undefined,
       facultyType: v.facultyType || undefined,
+      highestQualification: (v.highestQualification as FacultyQualification) || undefined,
       panNumber: v.panNumber?.trim()?.toUpperCase() || undefined,
       aadhaarNumber: v.aadhaarNumber?.trim() || undefined,
       dateOfBirth: v.dateOfBirth || undefined,
@@ -439,6 +444,7 @@ export class FacultyFormComponent implements OnInit {
           departmentId: faculty.departmentId,
           designation: faculty.designation,
           facultyType: faculty.facultyType ?? null,
+          highestQualification: faculty.highestQualification ?? null,
           specialization: faculty.specialization || '',
           labExpertise: faculty.labExpertise || '',
           joiningDate: faculty.joiningDate,

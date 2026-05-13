@@ -121,6 +121,15 @@
                   }
                 </select>
               </div>
+              <div class="field-group">
+                <label for="fac-qualification" class="field-label">Highest Qualification</label>
+                <select id="fac-qualification" class="field-select" formControlName="highestQualification">
+                  <option [ngValue]="null">Select qualification</option>
+                  @for (option of qualificationOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
             </div>
 
             <div class="field-row">

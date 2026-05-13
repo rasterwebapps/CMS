@@ -9,30 +9,40 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.FacultyDocumentHistoryResponse;
 import com.cms.dto.FacultyDocumentRequest;
 import com.cms.dto.FacultyDocumentResponse;
+import com.cms.dto.FacultyPendingDocumentsSummary;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
+import com.cms.model.FacultyDocumentHistory;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.repository.FacultyDocumentHistoryRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.util.CurrentUserResolver;
 
 @Service
 @Transactional(readOnly = true)
 public class FacultyDocumentService {
 
-    /** Maximum allowed upload size: 10 MB. */
     public static final long MAX_FILE_SIZE_BYTES = 10L * 1024L * 1024L;
 
     private final FacultyDocumentRepository documentRepository;
+    private final FacultyDocumentHistoryRepository historyRepository;
     private final FacultyRepository facultyRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public FacultyDocumentService(FacultyDocumentRepository documentRepository,
-                                   FacultyRepository facultyRepository) {
+                                   FacultyDocumentHistoryRepository historyRepository,
+                                   FacultyRepository facultyRepository,
+                                   CurrentUserResolver currentUserResolver) {
         this.documentRepository = documentRepository;
+        this.historyRepository = historyRepository;
         this.facultyRepository = facultyRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     public List<FacultyDocumentResponse> findByFacultyId(Long facultyId) {
@@ -41,6 +51,37 @@ public class FacultyDocumentService {
         }
         return documentRepository.findByFacultyId(facultyId).stream()
             .map(this::toResponse)
+            .toList();
+    }
+
+    public List<FacultyPendingDocumentsSummary> findPendingSummaries() {
+        return documentRepository.findByStatus(DocumentVerificationStatus.UPLOADED).stream()
+            .collect(java.util.stream.Collectors.groupingBy(
+                doc -> doc.getFaculty().getId(),
+                java.util.LinkedHashMap::new,
+                java.util.stream.Collectors.toList()
+            ))
+            .entrySet().stream()
+            .map(entry -> {
+                var faculty = entry.getValue().get(0).getFaculty();
+                return new FacultyPendingDocumentsSummary(
+                    faculty.getId(),
+                    faculty.getFullName(),
+                    faculty.getEmployeeCode(),
+                    faculty.getDepartment().getName(),
+                    faculty.getDesignation().name(),
+                    entry.getValue().size()
+                );
+            })
+            .toList();
+    }
+
+    public List<FacultyDocumentHistoryResponse> getHistory(Long documentId) {
+        if (!documentRepository.existsById(documentId)) {
+            throw new ResourceNotFoundException("Document not found with id: " + documentId);
+        }
+        return historyRepository.findByFacultyDocumentIdOrderByChangedAtDesc(documentId).stream()
+            .map(this::toHistoryResponse)
             .toList();
     }
 
@@ -61,12 +102,22 @@ public class FacultyDocumentService {
     public FacultyDocumentResponse updateDocument(Long id, FacultyDocumentRequest request) {
         FacultyDocument document = documentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
+
+        DocumentVerificationStatus previousStatus = document.getStatus();
+
         document.setDocumentType(request.documentType());
         if (request.status() != null) {
             document.setStatus(request.status());
         }
         document.setRemarks(request.remarks());
-        return toResponse(documentRepository.save(document));
+
+        FacultyDocument saved = documentRepository.save(document);
+
+        if (request.status() != null && request.status() != previousStatus) {
+            recordHistory(saved, previousStatus, saved.getStatus());
+        }
+
+        return toResponse(saved);
     }
 
     @Transactional
@@ -99,6 +150,8 @@ public class FacultyDocumentService {
             .findFirst()
             .orElseGet(() -> new FacultyDocument(faculty, documentType, DocumentVerificationStatus.NOT_UPLOADED));
 
+        DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
+
         try {
             document.setFileData(file.getBytes());
         } catch (IOException ex) {
@@ -113,7 +166,10 @@ public class FacultyDocumentService {
             document.setRemarks(remarks);
         }
 
-        return toResponse(documentRepository.save(document));
+        FacultyDocument saved = documentRepository.save(document);
+        recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);
+
+        return toResponse(saved);
     }
 
     public DocumentFileDownload getFileForDownload(Long documentId) {
@@ -130,6 +186,22 @@ public class FacultyDocumentService {
             ? document.getContentType()
             : "application/octet-stream";
         return new DocumentFileDownload(fileName, contentType, data);
+    }
+
+    private void recordHistory(FacultyDocument doc, DocumentVerificationStatus previous,
+                                DocumentVerificationStatus next) {
+        FacultyDocumentHistory history = new FacultyDocumentHistory();
+        history.setFacultyDocument(doc);
+        history.setFaculty(doc.getFaculty());
+        history.setDocumentType(doc.getDocumentType());
+        history.setPreviousStatus(previous);
+        history.setNewStatus(next);
+        history.setFileName(doc.getFileName());
+        history.setFileSize(doc.getFileSize());
+        history.setContentType(doc.getContentType());
+        history.setRemarks(doc.getRemarks());
+        history.setChangedBy(currentUserResolver.resolve());
+        historyRepository.save(history);
     }
 
     private String sanitizeFileName(String original) {
@@ -157,6 +229,24 @@ public class FacultyDocumentService {
             doc.getFileSize(),
             doc.getUploadedAt(),
             hasFile
+        );
+    }
+
+    private FacultyDocumentHistoryResponse toHistoryResponse(FacultyDocumentHistory h) {
+        DocumentType dt = h.getDocumentType();
+        return new FacultyDocumentHistoryResponse(
+            h.getId(),
+            h.getFacultyDocument().getId(),
+            dt,
+            dt != null ? dt.getDisplayName() : null,
+            h.getPreviousStatus(),
+            h.getNewStatus(),
+            h.getFileName(),
+            h.getFileSize(),
+            h.getContentType(),
+            h.getRemarks(),
+            h.getChangedBy(),
+            h.getChangedAt()
         );
     }
 }

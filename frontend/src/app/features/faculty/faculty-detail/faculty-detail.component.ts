@@ -4,10 +4,11 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FacultyService } from '../faculty.service';
-import { Faculty, DESIGNATION_OPTIONS } from '../faculty.model';
+import { Faculty, FacultyQualification, DESIGNATION_OPTIONS, FACULTY_QUALIFICATION_OPTIONS } from '../faculty.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -22,7 +23,8 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
     MatButtonModule,
     MatIconModule,
     CmsStatusBadgeComponent,
-    CmsSkeletonComponent],
+    CmsSkeletonComponent,
+    ProfileDocumentsComponent],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
 })
@@ -64,6 +66,10 @@ export class FacultyDetailComponent implements OnInit {
   protected getDesignationLabel(designation: string): string {
     const option = DESIGNATION_OPTIONS.find((o) => o.value === designation);
     return option ? option.label : designation;
+  }
+
+  protected qualificationLabel(q: FacultyQualification): string {
+    return FACULTY_QUALIFICATION_OPTIONS.find((o) => o.value === q)?.label ?? q;
   }
 
 

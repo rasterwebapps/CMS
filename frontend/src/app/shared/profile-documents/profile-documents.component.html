@@ -1,0 +1,127 @@
+<div class="profile-docs">
+
+  <!-- Progress Header -->
+  <div class="progress-header">
+    <div class="progress-header__text">
+      <span class="progress-label">Documents Verified</span>
+      <span class="progress-count">{{ verifiedCount() }} / {{ totalCount() }}</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" [style.width.%]="progressPct()"></div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32" />
+      <span>Loading documents…</span>
+    </div>
+  } @else if (slots().length === 0) {
+    <cms-empty-state
+      icon="folder_open"
+      title="No documents required"
+      message="No document requirements are configured for this profile."
+    />
+  } @else {
+    <div class="slots-list">
+      @for (slot of slots(); track slot.documentType) {
+        <div class="slot-card" [class.slot-card--verified]="slot.status === 'VERIFIED'"
+             [class.slot-card--rejected]="slot.status === 'REJECTED'">
+
+          <div class="slot-card__left">
+            <div class="doc-icon-wrap">
+              <mat-icon>{{ docIcon(slot.documentType) }}</mat-icon>
+            </div>
+            <div class="slot-card__info">
+              <div class="slot-card__name">
+                {{ slot.label }}
+                @if (slot.isMandatory) {
+                  <span class="mandatory-dot" matTooltip="Required">*</span>
+                }
+              </div>
+              @if (slot.status === 'REJECTED' && slot.remarks) {
+                <div class="rejection-reason">
+                  <mat-icon class="rejection-reason__icon">error_outline</mat-icon>
+                  {{ slot.remarks }}
+                </div>
+              }
+              @if (slot.verifiedBy && slot.status === 'VERIFIED') {
+                <div class="verified-by">
+                  Verified by {{ slot.verifiedBy }}
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="slot-card__right">
+            <cms-status-badge [status]="statusColor(slot.status)" [label]="statusLabel(slot.status)" />
+
+            @if (slot.saving) {
+              <mat-spinner diameter="20" />
+            } @else {
+              <div class="slot-actions">
+                @if (slot.hasFile) {
+                  <button mat-icon-button matTooltip="View / Download" (click)="download(slot)">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                }
+
+                @if (canManage && slot.status !== 'VERIFIED') {
+                  <button
+                    mat-icon-button
+                    [matTooltip]="slot.status === 'REJECTED' ? 'Re-upload document' : 'Upload document'"
+                    (click)="triggerUpload(slot)"
+                  >
+                    <mat-icon>upload_file</mat-icon>
+                  </button>
+                }
+
+                @if (canVerify && slot.hasFile && slot.status === 'UPLOADED') {
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    matTooltip="Verify document"
+                    (click)="verify(slot)"
+                  >
+                    <mat-icon>check_circle_outline</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    matTooltip="Reject document"
+                    (click)="startReject(slot)"
+                  >
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <!-- Inline reject reason prompt -->
+        @if (rejectingType === slot.documentType) {
+          <div class="reject-prompt">
+            <span class="reject-prompt__label">Rejection reason</span>
+            <input
+              class="reject-prompt__input"
+              [(ngModel)]="rejectReason"
+              placeholder="Explain why this document is rejected…"
+              (keydown.enter)="confirmReject(slot)"
+              (keydown.escape)="cancelReject()"
+              autofocus
+            />
+            <div class="reject-prompt__actions">
+              <button mat-flat-button color="warn" [disabled]="!rejectReason.trim()"
+                      (click)="confirmReject(slot)">Confirm Reject</button>
+              <button mat-button (click)="cancelReject()">Cancel</button>
+            </div>
+          </div>
+        }
+
+      }
+    </div>
+  }
+
+</div>

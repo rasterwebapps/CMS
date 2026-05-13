@@ -42,6 +42,11 @@
           <button class="btn-primary" (click)="editStudent()">
             <mat-icon>edit</mat-icon> Edit
           </button>
+          @if (canEditStudent()) {
+            <button class="btn-secondary" (click)="openProgramTransfer()">
+              <mat-icon>swap_horiz</mat-icon> Change Program
+            </button>
+          }
         </div>
       </div>
 
@@ -604,6 +609,49 @@
           }
         </div>
       </mat-tab>
+
+      <mat-tab label="Documents">
+        <div class="tab-content">
+          @if (admissionId()) {
+            <cms-profile-documents
+              entityType="STUDENT"
+              [entityId]="admissionId()!"
+              [programId]="student()?.programId"
+              [canManage]="canManageDocuments()"
+              [canVerify]="canManageDocuments()"
+            />
+          } @else {
+            <p class="no-data-note">No admission record found for this student.</p>
+          }
+        </div>
+      </mat-tab>
+
+      @if (transferHistory().length > 0) {
+        <mat-tab label="Program History">
+          <div class="tab-content">
+            <div class="transfer-history">
+              @for (record of transferHistory(); track record.id) {
+                <div class="transfer-card">
+                  <div class="transfer-card__arrow">
+                    <span class="t-program">{{ record.oldProgramName }}</span>
+                    <mat-icon>arrow_forward</mat-icon>
+                    <span class="t-program t-program--new">{{ record.newProgramName }}</span>
+                  </div>
+                  <div class="transfer-card__meta">
+                    <span>{{ record.transferredAt | appDate }}</span>
+                    @if (record.transferredBy) {
+                      <span>by {{ record.transferredBy }}</span>
+                    }
+                    @if (record.notes) {
+                      <span class="transfer-notes">{{ record.notes }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      }
     </mat-tab-group>
   }
 </div>

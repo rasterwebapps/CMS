@@ -67,6 +67,10 @@ export interface AdmissionDocumentResponse {
   verificationStatus: string;
   createdAt: string;
   updatedAt: string;
+  hasFile: boolean;
+  remarks: string | null;
+  contentType: string | null;
+  fileSize: number | null;
 }
 
 

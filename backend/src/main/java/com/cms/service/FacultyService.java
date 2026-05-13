@@ -143,6 +143,7 @@ public class FacultyService {
 
     private void applyExtendedFields(Faculty faculty, FacultyRequest r) {
         faculty.setFacultyType(r.facultyType());
+        faculty.setHighestQualification(r.highestQualification());
         faculty.setPanNumber(trim(r.panNumber()));
         faculty.setAadhaarNumber(trim(r.aadhaarNumber()));
         faculty.setDateOfBirth(r.dateOfBirth());
@@ -221,6 +222,7 @@ public class FacultyService {
             faculty.getJoiningDate(),
             faculty.getStatus(),
             faculty.getFacultyType(),
+            faculty.getHighestQualification(),
             faculty.getPanNumber(),
             faculty.getAadhaarNumber(),
             faculty.getDateOfBirth(),

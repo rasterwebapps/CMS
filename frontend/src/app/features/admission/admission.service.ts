@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -64,5 +64,28 @@ export class AdmissionService {
 
   getDocumentChecklist(admissionId: number): Observable<Record<string, string>> {
     return this.http.get<Record<string, string>>(`${this.baseUrl}/${admissionId}/documents/checklist`);
+  }
+
+  uploadDocument(
+    admissionId: number,
+    documentType: string,
+    file: File,
+    remarks?: string,
+  ): Observable<AdmissionDocumentResponse> {
+    const formData = new FormData();
+    formData.append('documentType', documentType);
+    formData.append('file', file);
+    if (remarks) formData.append('remarks', remarks);
+    return this.http.post<AdmissionDocumentResponse>(
+      `${this.baseUrl}/${admissionId}/documents/upload`,
+      formData,
+    );
+  }
+
+  downloadDocumentBlob(documentId: number): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/documents/${documentId}/download`, {
+      observe: 'response',
+      responseType: 'blob',
+    });
   }
 }

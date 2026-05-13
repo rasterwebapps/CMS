@@ -4,7 +4,9 @@ import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyStatus, FACULTY_STATUS_OPTIONS } from '../faculty.model';
@@ -29,6 +31,8 @@ import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
     MatPaginatorModule,
     MatSortModule,
     MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
     MatTooltipModule,
   ],
   templateUrl: './faculty-list.component.html',

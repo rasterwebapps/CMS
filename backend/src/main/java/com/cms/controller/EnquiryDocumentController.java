@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
 import com.cms.dto.DocumentVerificationStatusResponse;
+import com.cms.dto.EnquiryDocumentHistoryResponse;
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.model.enums.DocumentType;
@@ -99,6 +100,13 @@ public class EnquiryDocumentController {
             @RequestPart("file") MultipartFile file) {
         EnquiryDocumentResponse response = documentService.uploadFile(enquiryId, documentType, remarks, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<EnquiryDocumentHistoryResponse>> getHistory(
+            @PathVariable Long enquiryId,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(documentService.getHistory(id));
     }
 
     /**

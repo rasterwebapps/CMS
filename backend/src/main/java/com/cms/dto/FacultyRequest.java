@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
+import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
 import com.cms.model.enums.Gender;
@@ -55,6 +56,8 @@ public record FacultyRequest(
 
     // ── Extended profile (all optional) ─────────────────────────
     FacultyType facultyType,
+
+    FacultyQualification highestQualification,
 
     @Size(max = 20)
     String panNumber,

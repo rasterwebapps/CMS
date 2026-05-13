@@ -4,6 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   CourseRegistration,
+  ProgramTransferAnalysis,
+  ProgramTransferRecord,
+  ProgramTransferRequest,
   Student,
   StudentFeeLedger,
   StudentRequest,
@@ -81,5 +84,23 @@ export class StudentService {
     return this.http.get<StudentFeeLedger>(
       `${baseUrl}/api/fee-reports/student-ledger?studentId=${studentId}`,
     );
+  }
+
+  analyzeProgramTransfer(studentId: number, newProgramId: number): Observable<ProgramTransferAnalysis> {
+    return this.http.get<ProgramTransferAnalysis>(
+      `${this.baseUrl}/${studentId}/program-transfer-analysis`,
+      { params: { newProgramId: newProgramId.toString() } },
+    );
+  }
+
+  executeProgramTransfer(studentId: number, request: ProgramTransferRequest): Observable<ProgramTransferRecord> {
+    return this.http.post<ProgramTransferRecord>(
+      `${this.baseUrl}/${studentId}/program-transfer`,
+      request,
+    );
+  }
+
+  getTransferHistory(studentId: number): Observable<ProgramTransferRecord[]> {
+    return this.http.get<ProgramTransferRecord[]>(`${this.baseUrl}/${studentId}/program-transfers`);
   }
 }

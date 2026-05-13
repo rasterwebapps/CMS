@@ -13,16 +13,20 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
 import com.cms.dto.DocumentVerificationStatusResponse;
+import com.cms.dto.EnquiryDocumentHistoryResponse;
 import com.cms.dto.EnquiryDocumentRequest;
 import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.dto.MissingDocumentsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
+import com.cms.model.EnquiryDocumentHistory;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.repository.EnquiryDocumentHistoryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.util.CurrentUserResolver;
 
 @Service
 @Transactional(readOnly = true)
@@ -37,12 +41,27 @@ public class EnquiryDocumentService {
     );
 
     private final EnquiryDocumentRepository documentRepository;
+    private final EnquiryDocumentHistoryRepository historyRepository;
     private final EnquiryRepository enquiryRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public EnquiryDocumentService(EnquiryDocumentRepository documentRepository,
-                                   EnquiryRepository enquiryRepository) {
+                                   EnquiryDocumentHistoryRepository historyRepository,
+                                   EnquiryRepository enquiryRepository,
+                                   CurrentUserResolver currentUserResolver) {
         this.documentRepository = documentRepository;
+        this.historyRepository = historyRepository;
         this.enquiryRepository = enquiryRepository;
+        this.currentUserResolver = currentUserResolver;
+    }
+
+    public List<EnquiryDocumentHistoryResponse> getHistory(Long documentId) {
+        if (!documentRepository.existsById(documentId)) {
+            throw new ResourceNotFoundException("Document not found with id: " + documentId);
+        }
+        return historyRepository.findByEnquiryDocumentIdOrderByChangedAtDesc(documentId).stream()
+            .map(this::toHistoryResponse)
+            .toList();
     }
 
     @Transactional
@@ -136,6 +155,8 @@ public class EnquiryDocumentService {
         EnquiryDocument document = documentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
 
+        DocumentVerificationStatus previousStatus = document.getStatus();
+
         document.setDocumentType(request.documentType());
         if (request.status() != null) {
             document.setStatus(request.status());
@@ -143,6 +164,11 @@ public class EnquiryDocumentService {
         document.setRemarks(request.remarks());
 
         EnquiryDocument updated = documentRepository.save(document);
+
+        if (request.status() != null && request.status() != previousStatus) {
+            recordHistory(updated, previousStatus, updated.getStatus());
+        }
+
         return toResponse(updated);
     }
 
@@ -188,6 +214,8 @@ public class EnquiryDocumentService {
             .findFirst()
             .orElseGet(() -> new EnquiryDocument(enquiry, documentType, DocumentVerificationStatus.NOT_UPLOADED));
 
+        DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
+
         try {
             document.setFileData(file.getBytes());
         } catch (IOException ex) {
@@ -203,6 +231,7 @@ public class EnquiryDocumentService {
         }
 
         EnquiryDocument saved = documentRepository.save(document);
+        recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);
         return toResponse(saved);
     }
 
@@ -224,6 +253,45 @@ public class EnquiryDocumentService {
             ? document.getContentType()
             : "application/octet-stream";
         return new DocumentFileDownload(fileName, contentType, data);
+    }
+
+    private void recordHistory(EnquiryDocument doc, DocumentVerificationStatus previous,
+                               DocumentVerificationStatus next) {
+        EnquiryDocumentHistory history = new EnquiryDocumentHistory();
+        history.setEnquiryDocument(doc);
+        history.setEnquiry(doc.getEnquiry());
+        history.setAdmission(doc.getAdmission());
+        history.setDocumentType(doc.getDocumentType());
+        history.setPreviousStatus(previous);
+        history.setNewStatus(next);
+        history.setFileName(doc.getFileName());
+        history.setFileSize(doc.getFileSize());
+        history.setContentType(doc.getContentType());
+        history.setRemarks(doc.getRemarks());
+        history.setChangedBy(currentUserResolver.resolve());
+        historyRepository.save(history);
+    }
+
+    private EnquiryDocumentHistoryResponse toHistoryResponse(EnquiryDocumentHistory h) {
+        DocumentType dt = h.getDocumentType();
+        Long enquiryId = h.getEnquiry() != null ? h.getEnquiry().getId() : null;
+        Long admissionId = h.getAdmission() != null ? h.getAdmission().getId() : null;
+        return new EnquiryDocumentHistoryResponse(
+            h.getId(),
+            h.getEnquiryDocument().getId(),
+            enquiryId,
+            admissionId,
+            dt,
+            dt != null ? dt.getDisplayName() : null,
+            h.getPreviousStatus(),
+            h.getNewStatus(),
+            h.getFileName(),
+            h.getFileSize(),
+            h.getContentType(),
+            h.getRemarks(),
+            h.getChangedBy(),
+            h.getChangedAt()
+        );
     }
 
     /**

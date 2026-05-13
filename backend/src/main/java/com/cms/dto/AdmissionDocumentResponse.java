@@ -18,5 +18,9 @@ public record AdmissionDocumentResponse(
     LocalDateTime verifiedAt,
     DocumentVerificationStatus verificationStatus,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    boolean hasFile,
+    String remarks,
+    String contentType,
+    Long fileSize
 ) {}

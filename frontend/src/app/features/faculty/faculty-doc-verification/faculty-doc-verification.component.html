@@ -1,0 +1,133 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-title">Faculty Document Verification</h1>
+      <p class="page-subtitle">
+        Faculty members with documents awaiting verification. Click a row to open their profile
+        and verify or reject uploaded documents.
+      </p>
+    </div>
+
+    @if (!loading() && allData().length > 0) {
+      <div class="summary-pill">
+        <mat-icon>pending_actions</mat-icon>
+        {{ totalPending() }} document{{ totalPending() !== 1 ? 's' : '' }} pending across
+        {{ allData().length }} faculty member{{ allData().length !== 1 ? 's' : '' }}
+      </div>
+    }
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <mat-icon class="search-box__icon">search</mat-icon>
+      <input
+        class="search-box__input"
+        type="text"
+        placeholder="Search by name or employee code…"
+        [value]="searchQuery()"
+        (input)="onSearch($event)"
+      />
+      @if (searchQuery()) {
+        <button class="search-box__clear" mat-icon-button (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <select class="filter-select" [value]="filterDepartment()" (change)="onDeptChange($any($event.target).value)">
+      <option value="ALL">All Departments</option>
+      @for (dept of departments(); track dept) {
+        <option [value]="dept">{{ dept }}</option>
+      }
+    </select>
+
+    @if (hasActiveFilters()) {
+      <button mat-stroked-button (click)="clearFilters()">
+        <mat-icon>filter_list_off</mat-icon> Clear
+      </button>
+    }
+  </div>
+
+  <!-- Table -->
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="36" />
+      <span>Loading pending verifications…</span>
+    </div>
+  } @else if (dataSource.data.length === 0 && !hasActiveFilters()) {
+    <cms-empty-state
+      icon="check_circle"
+      title="All documents verified"
+      message="No faculty documents are currently awaiting verification."
+    />
+  } @else {
+    <div class="table-card">
+      <table mat-table [dataSource]="dataSource" matSort class="verification-table">
+
+        <ng-container matColumnDef="faculty">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="fullName">Faculty</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="faculty-cell">
+              <div class="faculty-avatar">{{ row.fullName.charAt(0) }}</div>
+              <div class="faculty-cell__info">
+                <span class="faculty-name">{{ row.fullName }}</span>
+                <span class="faculty-code">{{ row.employeeCode }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="department">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="departmentName">Department</th>
+          <td mat-cell *matCellDef="let row">{{ row.departmentName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="designation">
+          <th mat-header-cell *matHeaderCellDef>Designation</th>
+          <td mat-cell *matCellDef="let row">{{ designationLabel(row.designation) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="pendingCount">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="pendingCount">Pending</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="pending-badge">{{ row.pendingCount }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <button
+              mat-flat-button
+              color="primary"
+              (click)="openDocuments(row)"
+            >
+              Review
+              <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns;"
+          class="table-row"
+          (click)="openDocuments(row)"
+        ></tr>
+      </table>
+
+      @if (dataSource.filteredData.length === 0 && hasActiveFilters()) {
+        <div class="no-results">
+          <mat-icon>search_off</mat-icon>
+          No results match your filters.
+        </div>
+      }
+
+      <mat-paginator [pageSizeOptions]="[15, 30, 50]" showFirstLastButtons />
+    </div>
+  }
+
+</div>

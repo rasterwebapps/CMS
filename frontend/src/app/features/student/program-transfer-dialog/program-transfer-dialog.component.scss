@@ -1,0 +1,164 @@
+.step {
+  min-width: 480px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.step-intro {
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.full-width { width: 100%; }
+
+// ── Transfer arrow ──────────────────────────────────────────────
+.transfer-arrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  mat-icon { color: var(--mat-sys-on-surface-variant); }
+}
+
+.program-chip {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  &--new {
+    background: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+// ── Document sections ───────────────────────────────────────────
+.doc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    &--retained { color: var(--mat-sys-tertiary); }
+    &--irrelevant { color: var(--mat-sys-secondary); }
+    &--missing { color: var(--mat-sys-primary); }
+  }
+
+  &__note {
+    font-size: 12px;
+    color: var(--mat-sys-on-surface-variant);
+    margin: 0;
+  }
+}
+
+.doc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 6px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &__icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &--retained {
+    background: color-mix(in srgb, var(--mat-sys-tertiary-container) 60%, transparent);
+    color: var(--mat-sys-on-tertiary-container);
+  }
+
+  &--irrelevant {
+    background: color-mix(in srgb, var(--mat-sys-secondary-container) 60%, transparent);
+    color: var(--mat-sys-on-secondary-container);
+  }
+
+  &--missing {
+    background: color-mix(in srgb, var(--mat-sys-primary-container) 60%, transparent);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.no-impact {
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+  margin: 0;
+}
+
+// ── Confirm step ────────────────────────────────────────────────
+.confirm-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  &__label {
+    min-width: 120px;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 12px;
+  }
+}
+
+.consent-box {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-lowest);
+  font-size: 13px;
+}
+
+.notes-label {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.notes-input {
+  width: 100%;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+
+  &:focus { border-color: var(--mat-sys-primary); }
+}

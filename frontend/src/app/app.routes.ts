@@ -157,6 +157,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'faculty/document-config',
+    canActivate: withPermission('FACULTY_MANAGE'),
+    loadComponent: () =>
+      import('./features/faculty/faculty-doc-config/faculty-doc-config.component').then(
+        (m) => m.FacultyDocConfigComponent
+      ),
+  },
+  {
+    path: 'faculty/document-verification',
+    canActivate: withPermission('FACULTY_MANAGE'),
+    loadComponent: () =>
+      import('./features/faculty/faculty-doc-verification/faculty-doc-verification.component').then(
+        (m) => m.FacultyDocVerificationComponent
+      ),
+  },
+  {
     path: 'faculty/new',
     canActivate: withPermission('FACULTY_MANAGE'),
     loadComponent: () =>

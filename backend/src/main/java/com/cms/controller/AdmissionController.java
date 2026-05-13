@@ -1,10 +1,16 @@
 package com.cms.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,7 +22,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.cms.dto.DocumentFileDownload;
 
 import com.cms.dto.AcademicQualificationRequest;
 import com.cms.dto.AcademicQualificationResponse;
@@ -133,5 +143,30 @@ public class AdmissionController {
     public ResponseEntity<Map<DocumentType, DocumentVerificationStatus>> getChecklist(
             @PathVariable Long admissionId) {
         return ResponseEntity.ok(admissionDocumentService.getChecklist(admissionId));
+    }
+
+    @PostMapping(value = "/{admissionId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
+    public ResponseEntity<AdmissionDocumentResponse> uploadDocument(
+            @PathVariable Long admissionId,
+            @RequestParam("documentType") DocumentType documentType,
+            @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(admissionDocumentService.uploadFile(admissionId, documentType, remarks, file));
+    }
+
+    @GetMapping("/documents/{id}/download")
+    public ResponseEntity<Resource> downloadDocument(@PathVariable Long id) {
+        DocumentFileDownload download = admissionDocumentService.getFileForDownload(id);
+        ByteArrayResource resource = new ByteArrayResource(download.data());
+        String encoded = URLEncoder.encode(download.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        String contentDisposition = "inline; filename=\"" + download.fileName().replaceAll("[\\\\\"\\r\\n]", "_")
+            + "\"; filename*=UTF-8''" + encoded;
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+            .contentType(MediaType.parseMediaType(download.contentType()))
+            .contentLength(download.data().length)
+            .body(resource);
     }
 }

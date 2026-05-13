@@ -2,7 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Faculty, FacultyDocument, FacultyRequest, FacultyStatus } from './faculty.model';
+import {
+  Faculty,
+  FacultyDocument,
+  FacultyDocumentTypeRequirement,
+  FacultyDocumentTypeRequirementRequest,
+  FacultyPendingDocumentsSummary,
+  FacultyRequest,
+  FacultyStatus,
+} from './faculty.model';
 
 @Injectable({
   providedIn: 'root',
@@ -10,6 +18,7 @@ import { Faculty, FacultyDocument, FacultyRequest, FacultyStatus } from './facul
 export class FacultyService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/faculty`;
+  private readonly requirementsUrl = `${environment.apiUrl}/faculty-document-type-requirements`;
 
   getAll(): Observable<Faculty[]> {
     return this.http.get<Faculty[]>(this.baseUrl);
@@ -41,9 +50,46 @@ export class FacultyService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
+  getPendingDocumentsSummary(): Observable<FacultyPendingDocumentsSummary[]> {
+    return this.http.get<FacultyPendingDocumentsSummary[]>(`${this.baseUrl}/pending-documents`);
+  }
+
+  // ── Faculty Document Type Requirements (config) ───────────────
+  getDocumentTypeRequirements(): Observable<FacultyDocumentTypeRequirement[]> {
+    return this.http.get<FacultyDocumentTypeRequirement[]>(this.requirementsUrl);
+  }
+
+  createDocumentTypeRequirement(
+    request: FacultyDocumentTypeRequirementRequest,
+  ): Observable<FacultyDocumentTypeRequirement> {
+    return this.http.post<FacultyDocumentTypeRequirement>(this.requirementsUrl, request);
+  }
+
+  deleteDocumentTypeRequirement(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.requirementsUrl}/${id}`);
+  }
+
+  getRequiredDocumentTypesForFaculty(facultyId: number): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/${facultyId}/documents/required-types`);
+  }
+
   // ── Faculty Documents ─────────────────────────────────────────
   getDocuments(facultyId: number): Observable<FacultyDocument[]> {
     return this.http.get<FacultyDocument[]>(`${this.baseUrl}/${facultyId}/documents`);
+  }
+
+  updateDocumentStatus(
+    facultyId: number,
+    documentId: number,
+    documentType: string,
+    status: string,
+    remarks?: string,
+  ): Observable<FacultyDocument> {
+    return this.http.put<FacultyDocument>(`${this.baseUrl}/${facultyId}/documents/${documentId}`, {
+      documentType,
+      status,
+      remarks,
+    });
   }
 
   uploadDocument(

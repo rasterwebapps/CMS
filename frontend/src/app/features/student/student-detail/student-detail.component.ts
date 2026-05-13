@@ -31,6 +31,13 @@ import {
   ScholarshipEligibility,
   ScholarshipType,
 } from '../../scholarship/scholarship.model';
+import { AdmissionService } from '../../admission/admission.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
+import { ProgramTransferDialogComponent, ProgramTransferDialogData } from '../program-transfer-dialog/program-transfer-dialog.component';
+import { ProgramTransferRecord } from '../student.model';
+import { Program } from '../../program/program.model';
+import { ProgramService } from '../../program/program.service';
 import {
   EligibilityEditDialogComponent,
 } from '../../scholarship/eligibility-edit-dialog/eligibility-edit-dialog.component';
@@ -53,12 +60,17 @@ import {
     MatDialogModule,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    ProfileDocumentsComponent,
+    ProgramTransferDialogComponent],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
 })
 export class StudentDetailComponent implements OnInit {
   private readonly studentService = inject(StudentService);
+  private readonly admissionService = inject(AdmissionService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly programService = inject(ProgramService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -81,6 +93,9 @@ export class StudentDetailComponent implements OnInit {
   protected readonly scholarshipDisbursements = signal<ScholarshipDisbursement[]>([]);
   protected readonly loadingScholarships = signal(false);
 
+  protected readonly admissionId = signal<number | null>(null);
+  protected readonly transferHistory = signal<ProgramTransferRecord[]>([]);
+  protected readonly allPrograms = signal<Program[]>([]);
   protected readonly selectedTabIndex = signal(0);
   protected readonly expandedEnrollments = signal(new Set<number>());
 
@@ -154,6 +169,8 @@ export class StudentDetailComponent implements OnInit {
         this.loadEnrollments(id);
         this.loadFeeLedger(id);
         this.loadScholarships(id);
+        this.loadAdmission(id);
+        this.loadTransferHistory(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
@@ -293,6 +310,69 @@ export class StudentDetailComponent implements OnInit {
     this.scholarshipService.getEligibleScholarships(studentId).subscribe({
       next: (eligible) => this.eligibleScholarships.set(eligible),
       error: () => {},
+    });
+  }
+
+  private loadAdmission(studentId: number): void {
+    this.admissionService.getByStudent(studentId).subscribe({
+      next: (admission) => this.admissionId.set(admission.id),
+      error: () => {},
+    });
+  }
+
+  private loadTransferHistory(studentId: number): void {
+    this.studentService.getTransferHistory(studentId).subscribe({
+      next: (history) => this.transferHistory.set(history),
+      error: () => {},
+    });
+  }
+
+  protected canManageDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
+  }
+
+  protected canEditStudent(): boolean {
+    return this.permissionService.has('STUDENT_EDIT');
+  }
+
+  protected openProgramTransfer(): void {
+    const s = this.student();
+    if (!s) return;
+
+    if (this.allPrograms().length === 0) {
+      this.programService.getAll().subscribe({
+        next: (programs) => {
+          this.allPrograms.set(programs);
+          this.showProgramTransferDialog();
+        },
+        error: () => this.toast.error('Failed to load programs'),
+      });
+    } else {
+      this.showProgramTransferDialog();
+    }
+  }
+
+  private showProgramTransferDialog(): void {
+    const s = this.student()!;
+    const dialogData: ProgramTransferDialogData = {
+      studentId: s.id,
+      studentName: s.fullName,
+      currentProgramId: s.programId,
+      currentProgramName: s.programName,
+      programs: this.allPrograms(),
+    };
+    const ref = this.dialog.open(ProgramTransferDialogComponent, {
+      data: dialogData,
+      width: '640px',
+      maxWidth: '95vw',
+      disableClose: true,
+    });
+    ref.afterClosed().subscribe((record: ProgramTransferRecord | undefined) => {
+      if (record) {
+        this.toast.success(`Program changed to ${record.newProgramName}`);
+        this.loadStudent(s.id);
+        this.loadTransferHistory(s.id);
+      }
     });
   }
 

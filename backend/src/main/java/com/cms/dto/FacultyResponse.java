@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
+import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
 import com.cms.model.enums.Gender;
@@ -27,6 +28,7 @@ public record FacultyResponse(
     LocalDate joiningDate,
     FacultyStatus status,
     FacultyType facultyType,
+    FacultyQualification highestQualification,
     String panNumber,
     String aadhaarNumber,
     LocalDate dateOfBirth,

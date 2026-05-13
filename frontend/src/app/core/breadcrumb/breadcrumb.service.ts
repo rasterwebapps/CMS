@@ -47,6 +47,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   mark: 'Mark Attendance',
   search: 'Search',
   'document-submission': 'Submit Documents',
+  'document-verification': 'Document Verification',
+  'document-config': 'Document Config',
   'admission-completion': 'Complete Admission',
   'year-wise-fee-status': 'Year-wise Fee Status',
 };

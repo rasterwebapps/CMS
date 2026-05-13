@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Designation;
+import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
 import com.cms.model.enums.Gender;
@@ -75,6 +76,10 @@ public class Faculty {
     @Enumerated(EnumType.STRING)
     @Column(name = "faculty_type")
     private FacultyType facultyType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "highest_qualification", length = 50)
+    private FacultyQualification highestQualification;
 
     // ── Identity & demographics ────────────────────────────────
     @Column(name = "pan_number")
@@ -208,6 +213,9 @@ public class Faculty {
 
     public FacultyType getFacultyType() { return facultyType; }
     public void setFacultyType(FacultyType facultyType) { this.facultyType = facultyType; }
+
+    public FacultyQualification getHighestQualification() { return highestQualification; }
+    public void setHighestQualification(FacultyQualification highestQualification) { this.highestQualification = highestQualification; }
 
     public String getPanNumber() { return panNumber; }
     public void setPanNumber(String panNumber) { this.panNumber = panNumber; }

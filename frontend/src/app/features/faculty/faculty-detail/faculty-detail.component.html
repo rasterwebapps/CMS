@@ -78,6 +78,12 @@
                 <span class="detail-label">Designation</span>
                 <span class="detail-value">{{ getDesignationLabel(faculty()!.designation) }}</span>
               </div>
+              @if (faculty()!.highestQualification) {
+                <div class="detail-item">
+                  <span class="detail-label">Highest Qualification</span>
+                  <span class="detail-value">{{ qualificationLabel(faculty()!.highestQualification!) }}</span>
+                </div>
+              }
               <div class="detail-item">
                 <span class="detail-label">Status</span>
                 <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
@@ -139,6 +145,17 @@
               </a>
             </div>
           </div>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Documents">
+        <div class="tab-content">
+          <cms-profile-documents
+            entityType="FACULTY"
+            [entityId]="faculty()!.id"
+            [canManage]="canManageFaculty()"
+            [canVerify]="canManageFaculty()"
+          />
         </div>
       </mat-tab>
     </mat-tab-group>

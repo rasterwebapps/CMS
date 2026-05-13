@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.FacultyPendingDocumentsSummary;
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.service.FacultyDocumentService;
 import com.cms.service.FacultyService;
 
 import jakarta.validation.Valid;
@@ -27,9 +29,11 @@ import jakarta.validation.Valid;
 public class FacultyController {
 
     private final FacultyService facultyService;
+    private final FacultyDocumentService facultyDocumentService;
 
-    public FacultyController(FacultyService facultyService) {
+    public FacultyController(FacultyService facultyService, FacultyDocumentService facultyDocumentService) {
         this.facultyService = facultyService;
+        this.facultyDocumentService = facultyDocumentService;
     }
 
     @PostMapping
@@ -74,5 +78,11 @@ public class FacultyController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facultyService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/pending-documents")
+    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    public ResponseEntity<List<FacultyPendingDocumentsSummary>> getPendingDocuments() {
+        return ResponseEntity.ok(facultyDocumentService.findPendingSummaries());
     }
 }

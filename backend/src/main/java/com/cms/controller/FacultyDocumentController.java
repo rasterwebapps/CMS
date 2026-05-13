@@ -3,6 +3,9 @@ package com.cms.controller;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+
+import com.cms.dto.FacultyDocumentHistoryResponse;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -28,6 +31,7 @@ import com.cms.dto.FacultyDocumentRequest;
 import com.cms.dto.FacultyDocumentResponse;
 import com.cms.model.enums.DocumentType;
 import com.cms.service.FacultyDocumentService;
+import com.cms.service.FacultyDocumentTypeRequirementService;
 
 import jakarta.validation.Valid;
 
@@ -36,14 +40,29 @@ import jakarta.validation.Valid;
 public class FacultyDocumentController {
 
     private final FacultyDocumentService documentService;
+    private final FacultyDocumentTypeRequirementService requirementService;
 
-    public FacultyDocumentController(FacultyDocumentService documentService) {
+    public FacultyDocumentController(FacultyDocumentService documentService,
+            FacultyDocumentTypeRequirementService requirementService) {
         this.documentService = documentService;
+        this.requirementService = requirementService;
     }
 
     @GetMapping
     public ResponseEntity<List<FacultyDocumentResponse>> findByFacultyId(@PathVariable Long facultyId) {
         return ResponseEntity.ok(documentService.findByFacultyId(facultyId));
+    }
+
+    @GetMapping("/required-types")
+    public ResponseEntity<Set<String>> getRequiredDocumentTypes(@PathVariable Long facultyId) {
+        return ResponseEntity.ok(requirementService.getRequiredDocumentTypesForFaculty(facultyId));
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<FacultyDocumentHistoryResponse>> getHistory(
+            @PathVariable Long facultyId,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(documentService.getHistory(id));
     }
 
     @PostMapping

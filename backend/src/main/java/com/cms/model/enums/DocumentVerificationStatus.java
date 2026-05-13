@@ -4,5 +4,6 @@ public enum DocumentVerificationStatus {
     NOT_UPLOADED,
     UPLOADED,
     VERIFIED,
-    REJECTED
+    REJECTED,
+    RETURNED
 }

@@ -26,6 +26,8 @@ export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED' | 'OTH
 
 export type BankAccountType = 'SAVINGS' | 'CURRENT' | 'SALARY';
 
+export type FacultyQualification = 'UG' | 'PG' | 'MPHIL' | 'PHD' | 'OTHER';
+
 export type DocumentVerificationStatus =
   | 'NOT_UPLOADED'
   | 'UPLOADED'
@@ -57,6 +59,7 @@ export interface Faculty {
   joiningDate: string;
   status: FacultyStatus;
   facultyType?: FacultyType;
+  highestQualification?: FacultyQualification;
   panNumber?: string;
   aadhaarNumber?: string;
   dateOfBirth?: string;
@@ -95,6 +98,7 @@ export interface FacultyRequest {
   joiningDate: string;
   status?: FacultyStatus;
   facultyType?: FacultyType;
+  highestQualification?: FacultyQualification;
   panNumber?: string;
   aadhaarNumber?: string;
   dateOfBirth?: string;
@@ -180,6 +184,42 @@ export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string 
   { value: 'SAVINGS', label: 'Savings' },
   { value: 'CURRENT', label: 'Current' },
   { value: 'SALARY', label: 'Salary' },
+];
+
+export interface FacultyPendingDocumentsSummary {
+  facultyId: number;
+  fullName: string;
+  employeeCode: string;
+  departmentName: string;
+  designation: string;
+  pendingCount: number;
+}
+
+export interface FacultyDocumentTypeRequirement {
+  id: number;
+  documentType: string;
+  documentTypeLabel: string;
+  designation?: string;
+  departmentId?: number;
+  departmentName?: string;
+  qualification?: FacultyQualification;
+  qualificationLabel?: string;
+  createdAt: string;
+}
+
+export interface FacultyDocumentTypeRequirementRequest {
+  documentType: string;
+  designation?: string;
+  departmentId?: number;
+  qualification?: FacultyQualification;
+}
+
+export const FACULTY_QUALIFICATION_OPTIONS: { value: FacultyQualification; label: string }[] = [
+  { value: 'UG', label: 'Under Graduate' },
+  { value: 'PG', label: 'Post Graduate' },
+  { value: 'MPHIL', label: 'M.Phil' },
+  { value: 'PHD', label: 'Ph.D' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 /**
