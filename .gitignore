@@ -1,0 +1,131 @@
+# ============================================================
+# SKSCMS — Root .gitignore
+# ============================================================
+
+# ------------------------------------------------------------
+# IDE — IntelliJ IDEA / JetBrains
+# ------------------------------------------------------------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ------------------------------------------------------------
+# IDE — VS Code
+# ------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/
+
+# ------------------------------------------------------------
+# OS generated files
+# ------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ------------------------------------------------------------
+# Environment & Secrets — NEVER commit real credentials
+# ------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env
+secrets/
+*.pem
+*.p12
+*.jks
+*.keystore
+
+# ------------------------------------------------------------
+# SSL Certificates & Keys — even self-signed dev certs
+# ------------------------------------------------------------
+frontend/ssl/
+ssl/*.key
+ssl/*.crt
+ssl/*.pem
+*.key
+*.crt
+*.cert
+
+# ------------------------------------------------------------
+# Python
+# ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+.Python
+.pytest_cache/
+
+# ------------------------------------------------------------
+# Docker / Deployment — local overrides only
+# ------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+
+# ------------------------------------------------------------
+# Claude Code — local settings only (keep commands/ tracked)
+# ------------------------------------------------------------
+.claude/settings.local.json
+
+# ------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ------------------------------------------------------------
+# Temporary / Editor swap files
+# ------------------------------------------------------------
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
+# ============================================================
+# FRONTEND (Angular)
+# ============================================================
+
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/bazel-out/
+frontend/node_modules/
+frontend/.angular/cache
+frontend/.sass-cache/
+frontend/connect.lock
+frontend/coverage/
+frontend/libpeerconnection.log
+frontend/testem.log
+frontend/typings/
+frontend/__screenshots__/
+
+# ============================================================
+# BACKEND (Spring Boot / Gradle)
+# ============================================================
+
+backend/.gradle/
+backend/build/
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# JaCoCo coverage reports
+backend/build/reports/
+
+# Spring Boot devtools restart files
+backend/.reloadtrigger
+
