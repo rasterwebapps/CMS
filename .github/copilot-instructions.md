@@ -436,6 +436,26 @@ The backend supports multiple Spring profiles for database configuration:
 11. **Follow existing patterns** in the codebase when adding new features
 12. **Use the `local` profile** for development (H2) and `prod` for production (PostgreSQL)
 
+## Mandatory File-Write Verification Protocol
+
+**Every single file edit MUST follow this exact sequence — no exceptions:**
+
+1. **Write** — use `replace_string_in_file` (preferred) or `insert_edit_into_file`
+2. **Read back immediately** — call `read_file` on the same file right after the write
+3. **Confirm the exact changed lines are visible** in the read-back output
+4. **Only then declare success** — never say "done" or "saved" before step 3 passes
+
+**Why this rule exists:**  
+On 13 May 2026, `insert_edit_into_file` and `replace_string_in_file` both reported "success" on multiple calls but left the original files completely unchanged on disk. The failure was only discovered when the files were read back. Declaring success before a read-back verification caused wasted time and user frustration across two separate sessions.
+
+**Non-negotiable rules:**
+- Never trust tool return messages alone — always read back
+- If a read-back shows the old content, try `replace_string_in_file` with a more precise `oldString`
+- If two attempts fail, report the failure explicitly to the user rather than silently claiming success
+- Batch read-backs are acceptable (read multiple files in one turn) but every edited file must be in the batch
+
+---
+
 ## AI Code Generation Quality
 
 When generating code for this project, adhere to these quality rules to prevent hallucinations and ensure grounded, deterministic output:
