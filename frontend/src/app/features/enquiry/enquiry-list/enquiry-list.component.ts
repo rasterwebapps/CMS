@@ -357,7 +357,7 @@ export class EnquiryListComponent implements OnInit {
 
   protected canFinalizeFee(item: Enquiry): boolean {
     return item.status === 'INTERESTED' &&
-      this.permissionService.hasAny('STUDENT_FEE_MANAGE', 'FEE_FINALIZE');
+      this.permissionService.has('FEE_FINALIZE');
   }
 
   protected canCollectPayment(item: Enquiry): boolean {

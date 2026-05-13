@@ -778,7 +778,7 @@ export const routes: Routes = [
   },
   {
     path: 'student-fees/finalize',
-    canActivate: withPermission('FEE_FINALIZE', 'STUDENT_FEE_MANAGE'),
+    canActivate: withPermission('FEE_FINALIZE'),
     loadComponent: () =>
       import('./features/finance/fee-finalization/fee-finalization.component').then(
         (m) => m.FeeFinalizationComponent

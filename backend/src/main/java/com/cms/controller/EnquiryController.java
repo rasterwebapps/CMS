@@ -146,7 +146,7 @@ public class EnquiryController {
     }
 
     @PostMapping("/{id}/finalize-fees")
-    @PreAuthorize("@perm.has('ENQUIRY_DELETE')")
+    @PreAuthorize("@perm.has('FEE_FINALIZE')")
     public ResponseEntity<FeeFinalizationResponse> finalizeFees(
             @PathVariable Long id,
             @Valid @RequestBody FeeFinalizationRequest request,

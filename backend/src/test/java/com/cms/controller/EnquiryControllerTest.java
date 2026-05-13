@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Method;
+import java.security.Principal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,6 +36,7 @@ import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
+import com.cms.dto.FeeFinalizationRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.PaymentMode;
@@ -352,6 +356,17 @@ class EnquiryControllerTest {
             .andExpect(jsonPath("$.status").value("FEES_FINALIZED"));
 
         verify(enquiryService).finalizeFees(eq(1L), any(com.cms.dto.FeeFinalizationRequest.class), any(String.class));
+    }
+
+    @Test
+    void finalizeFeesEndpointShouldRequireFeeFinalizePermission() throws Exception {
+        Method method = EnquiryController.class.getDeclaredMethod(
+            "finalizeFees", Long.class, FeeFinalizationRequest.class, Principal.class);
+
+        PreAuthorize preAuthorize = method.getAnnotation(PreAuthorize.class);
+
+        org.assertj.core.api.Assertions.assertThat(preAuthorize).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(preAuthorize.value()).isEqualTo("@perm.has('FEE_FINALIZE')");
     }
 
     @Test

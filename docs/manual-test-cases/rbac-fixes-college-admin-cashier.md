@@ -60,6 +60,7 @@
 
 **Preconditions**:
 - User is logged in as College Admin
+- College Admin has `FEE_FINALIZE` permission; `ENQUIRY_DELETE` is not required
 - Application is running
 - At least one enquiry exists with status `INTERESTED`
 
@@ -73,7 +74,7 @@
 7. Review the fee breakdown by year
 8. Optionally apply a global discount
 9. Click "Finalize Fee" button
-10. Verify HTTP 201 response and success message
+10. Verify HTTP 200 response and success message
 11. Verify enquiry status changes from `INTERESTED` to `FEES_FINALIZED`
 12. Verify fee allocation appears in student fee records
 
@@ -81,7 +82,7 @@
 - ✅ College Admin can see "Finalize Fee" button for INTERESTED enquiries
 - ✅ College Admin can navigate to fee finalization screen
 - ✅ Fee finalization form pre-fills correctly
-- ✅ Backend returns HTTP 201
+- ✅ Backend authorizes using `FEE_FINALIZE` and returns HTTP 200
 - ✅ Success message displayed
 - ✅ Enquiry status transitions to FEES_FINALIZED
 - ✅ Fee allocation saved to database

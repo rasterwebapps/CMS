@@ -9,7 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { PercentPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
@@ -318,11 +318,18 @@ export class FeeFinalizationComponent implements OnInit {
         this.backToList();
         this.saving.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to finalize fee');
+      error: (error: unknown) => {
+        this.toast.error(this.getFinalizeErrorMessage(error));
         this.saving.set(false);
       },
     });
+  }
+
+  private getFinalizeErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
+      return error.error.message;
+    }
+    return 'Failed to finalize fee';
   }
 
   private amountToPaise(value: number | null | undefined): number {
