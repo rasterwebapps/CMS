@@ -301,28 +301,86 @@ fi
 # ── Step 6: Keycloak public URL reconciliation ────────────────────────────────
 if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
   print_step "Updating Keycloak client public URLs..."
-  ssh_run "
-    set -e
-    AUTH_OK=0
-    for attempt in \$(seq 1 30); do
-      if $COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8180 --realm master --user admin --password \"\$KEYCLOAK_ADMIN_PASSWORD\" >/dev/null 2>&1'; then
-        AUTH_OK=1
-        break
-      fi
-      echo \"Waiting for Keycloak admin API... attempt \$attempt/30\"
-      sleep 3
-    done
-    if [ \"\$AUTH_OK\" -ne 1 ]; then
-      echo 'Keycloak admin API was not ready in time'
-      exit 1
+
+  TOKEN_JSON=""
+  for attempt in $(seq 1 30); do
+    TOKEN_JSON=$(curl -sk -X POST "http://$LOCAL_HOST:8180/realms/master/protocol/openid-connect/token" \
+      -H 'Content-Type: application/x-www-form-urlencoded' \
+      --data-urlencode 'client_id=admin-cli' \
+      --data-urlencode 'username=admin' \
+      --data-urlencode "password=$KC_PASS" \
+      --data-urlencode 'grant_type=password' || true)
+
+    if TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY' >/dev/null 2>&1
+import json, os
+payload = json.loads(os.environ['TOKEN_JSON'])
+raise SystemExit(0 if payload.get('access_token') else 1)
+PY
+    then
+      break
     fi
-    CLIENT_UUID=\$($COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh get clients -r cms -q clientId=cms-frontend --fields id --format csv --noquotes' | tr -d '\r' | head -n 1)
-    if [ -z "\$CLIENT_UUID" ]; then
-      echo 'Unable to find Keycloak client cms-frontend'
-      exit 1
-    fi
-    $COMPOSE_CMD exec -T keycloak /bin/sh -lc '/opt/keycloak/bin/kcadm.sh update clients/'"\$CLIENT_UUID"' -r cms -s rootUrl= -s baseUrl= -s "redirectUris=[\\"https://$PUBLIC_HOST/*\\",\\"https://$PUBLIC_IP/*\\",\\"https://$LOCAL_HOST/*\\"]" -s "webOrigins=[\\"https://$PUBLIC_HOST\\",\\"https://$PUBLIC_IP\\",\\"https://$LOCAL_HOST\\"]"'
-  "
+
+    echo "Waiting for Keycloak admin API... attempt $attempt/30"
+    sleep 3
+  done
+
+  TOKEN=$(TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY'
+import json, os, sys
+payload = json.loads(os.environ['TOKEN_JSON'])
+if 'access_token' not in payload:
+    print(payload, file=sys.stderr)
+    sys.exit(1)
+print(payload['access_token'])
+PY
+)
+
+  CLIENT_JSON=$(curl -sk -H "Authorization: Bearer $TOKEN" \
+    "http://$LOCAL_HOST:8180/admin/realms/cms/clients?clientId=cms-frontend")
+  CLIENT_ID=$(CLIENT_JSON="$CLIENT_JSON" python3 - <<'PY'
+import json, os, sys
+items = json.loads(os.environ['CLIENT_JSON'])
+if not items:
+    print('cms-frontend client not found', file=sys.stderr)
+    sys.exit(1)
+print(items[0]['id'])
+PY
+)
+
+  CLIENT_UPDATE=$(mktemp /tmp/cms209_client_update_XXXXXX.json)
+  cat > "$CLIENT_UPDATE" <<JSON
+{
+  "clientId": "cms-frontend",
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "directAccessGrantsEnabled": true,
+  "rootUrl": "",
+  "baseUrl": "",
+  "redirectUris": [
+    "https://$PUBLIC_HOST/*",
+    "https://$PUBLIC_IP/*",
+    "https://$LOCAL_HOST/*"
+  ],
+  "webOrigins": [
+    "https://$PUBLIC_HOST",
+    "https://$PUBLIC_IP",
+    "https://$LOCAL_HOST"
+  ],
+  "protocol": "openid-connect"
+}
+JSON
+
+  STATUS=$(curl -sk -o /tmp/cms209_keycloak_update.out -w '%{http_code}' \
+    -X PUT \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@$CLIENT_UPDATE" \
+    "http://$LOCAL_HOST:8180/admin/realms/cms/clients/$CLIENT_ID")
+  rm -f "$CLIENT_UPDATE" /tmp/cms209_keycloak_update.out
+
+  if [ "$STATUS" != "204" ]; then
+    echo "Failed to update Keycloak cms-frontend client. HTTP status: $STATUS"
+    exit 1
+  fi
 fi
 
 # ── Step 7: Health check ──────────────────────────────────────────────────────
