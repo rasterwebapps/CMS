@@ -14,19 +14,14 @@ export interface ColorSwatch {
  * as a primary navigation/action colour (users associate them with alerts).
  */
 export const COLOR_SWATCHES: ColorSwatch[] = [
-  { id: 'indigo', name: 'Indigo', hex: '#6366f1' },
-  { id: 'violet', name: 'Violet', hex: '#8b5cf6' },
-  { id: 'purple', name: 'Purple', hex: '#a855f7' },
-  { id: 'blue', name: 'Blue', hex: '#3b82f6' },
-  { id: 'sky', name: 'Sky', hex: '#0ea5e9' },
-  { id: 'cyan', name: 'Cyan', hex: '#06b6d4' },
-  { id: 'teal', name: 'Teal', hex: '#14b8a6' },
-  { id: 'emerald', name: 'Emerald', hex: '#10b981' },
-  { id: 'rose', name: 'Rose', hex: '#f43f5e' },
-  { id: 'pink', name: 'Pink', hex: '#ec4899' },
-  { id: 'azure', name: 'Azure', hex: '#3B9EFF' },
-  { id: 'vermillion', name: 'Vermillion', hex: '#FF5C3A' },
-  { id: 'gold', name: 'Gold', hex: '#F59E0B' },
+  { id: 'electric-indigo',    name: 'Electric Indigo',    hex: '#6366f1' },
+  { id: 'cosmic-cobalt',      name: 'Cosmic Cobalt',      hex: '#2563eb' },
+  { id: 'aurora-sky',         name: 'Aurora Sky',         hex: '#0ea5e9' },
+  { id: 'transformative-teal',name: 'Transformative Teal',hex: '#00d4c1' },
+  { id: 'radiant-emerald',    name: 'Radiant Emerald',    hex: '#059669' },
+  { id: 'hyper-violet',       name: 'Hyper Violet',       hex: '#7c3aed' },
+  { id: 'digital-fuchsia',    name: 'Digital Fuchsia',    hex: '#d946ef' },
+  { id: 'crimson-spark',      name: 'Crimson Spark',      hex: '#e11d48' },
 ];
 
 const DEFAULT_SWATCH = COLOR_SWATCHES[0];
@@ -42,70 +37,45 @@ type Shade = (typeof SHADES)[number];
  * unlike HSL interpolation which looks "muddy" on warm/light hues.
  */
 const TAILWIND_PALETTES: Record<string, Record<Shade, string>> = {
-  indigo: {
+  'electric-indigo': {
     50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
     400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
     800: '#3730a3', 900: '#312e81', 950: '#1e1b4b',
   },
-  violet: {
-    50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
-    400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
-    800: '#5b21b6', 900: '#4c1d95', 950: '#2e1065',
+  'cosmic-cobalt': {
+    50: '#eff6ff', 100: '#dbeafe', 200: '#b8d1fc', 300: '#85b0f9',
+    400: '#5289f5', 500: '#2563eb', 600: '#1a4fc8', 700: '#133ca0',
+    800: '#0e2e7c', 900: '#0a2260', 950: '#05123a',
   },
-  purple: {
-    50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe',
-    400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce',
-    800: '#6b21a8', 900: '#581c87', 950: '#3b0764',
-  },
-  blue: {
-    50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-    400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-    800: '#1e40af', 900: '#1e3a8a', 950: '#172554',
-  },
-  sky: {
+  'aurora-sky': {
     50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
     400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
     800: '#075985', 900: '#0c4a6e', 950: '#082f49',
   },
-  cyan: {
-    50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9',
-    400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490',
-    800: '#155e75', 900: '#164e63', 950: '#083344',
+  'transformative-teal': {
+    50: '#f0fffe', 100: '#ccfff9', 200: '#99fff2', 300: '#60f5e8',
+    400: '#2ae5d5', 500: '#00d4c1', 600: '#00a89a', 700: '#007c72',
+    800: '#005c55', 900: '#003d39', 950: '#002220',
   },
-  teal: {
-    50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
-    400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
-    800: '#115e59', 900: '#134e4a', 950: '#042f2e',
+  'radiant-emerald': {
+    50: '#ecfdf5', 100: '#d1fae8', 200: '#a3f4d0', 300: '#67e5b3',
+    400: '#2dcf90', 500: '#059669', 600: '#047a54', 700: '#035c3f',
+    800: '#024430', 900: '#012e21', 950: '#001811',
   },
-  emerald: {
-    50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
-    400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
-    800: '#065f46', 900: '#064e3b', 950: '#022c22',
+  'hyper-violet': {
+    50: '#f3f1ff', 100: '#e8e4fe', 200: '#d4ccfd', 300: '#b8abfc',
+    400: '#9a78f7', 500: '#7c3aed', 600: '#6424d0', 700: '#4e18a8',
+    800: '#3c1284', 900: '#2d0d66', 950: '#1a0740',
   },
-  rose: {
-    50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
-    400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
-    800: '#9f1239', 900: '#881337', 950: '#4c0519',
+  'digital-fuchsia': {
+    50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc',
+    400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf',
+    800: '#86198f', 900: '#701a75', 950: '#4a044e',
   },
-  pink: {
-    50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
-    400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d',
-    800: '#9d174d', 900: '#831843', 950: '#500724',
-  },
-  azure: {
-    50: '#eff8ff', 100: '#dbeeff', 200: '#b8ddff', 300: '#85c5ff',
-    400: '#52a8ff', 500: '#3B9EFF', 600: '#1a6fcc', 700: '#1558a3',
-    800: '#154580', 900: '#173869', 950: '#112440',
-  },
-  vermillion: {
-    50: '#fff3f0', 100: '#ffe4dd', 200: '#ffccbf', 300: '#ffaa94',
-    400: '#ff7d5c', 500: '#FF5C3A', 600: '#cc3a1f', 700: '#a32e18',
-    800: '#842718', 900: '#6d2418', 950: '#3c0f09',
-  },
-  gold: {
-    50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
-    400: '#fbbf24', 500: '#F59E0B', 600: '#d97706', 700: '#b45309',
-    800: '#92400e', 900: '#78350f', 950: '#451a03',
+  'crimson-spark': {
+    50: '#fff0f2', 100: '#ffe1e5', 200: '#ffc2cc', 300: '#ff94a6',
+    400: '#fc5c76', 500: '#e11d48', 600: '#be1239', 700: '#98102e',
+    800: '#7a0e25', 900: '#630c1e', 950: '#380610',
   },
 };
 
@@ -244,6 +214,9 @@ export class ThemeService {
 
     // Core brand tokens
     root.style.setProperty('--cms-primary', primaryHex);
+    // Foreground colour safe for text/icons placed ON a --primary-theme surface.
+    // Black when the 500-shade is too bright for white text (WCAG AA).
+    root.style.setProperty('--primary-fg', this.failsWhiteTextContrast(palette[500]) ? '#000000' : '#ffffff');
     // Update --cms-primary-rgb so rgba() usages in SCSS work correctly
     root.style.setProperty('--cms-primary-rgb', `${r}, ${g}, ${b}`);
     root.style.setProperty('--cms-primary-hover', palette[shades.hover]);

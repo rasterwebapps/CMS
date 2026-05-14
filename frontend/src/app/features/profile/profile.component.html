@@ -1,339 +1,608 @@
-<div class="profile-page">
+<!-- ═══════════════════════════════════════════════════════════════════════════
+  Profile page root — [style.--primary-theme] is the SINGLE source of truth
+  for every themed colour: glows, borders, gradients, ring, dock, buttons.
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="profile-page" [style.--primary-theme]="primaryColor()">
 
-  <!-- ── Loading skeleton ───────────────────────────────────────── -->
-  @if (loading()) {
-    <div class="profile-skeleton">
-      <div class="skeleton-cover"></div>
-      <div class="skeleton-body">
-        <div class="skeleton-avatar"></div>
-        <div class="skeleton-lines">
-          <div class="skeleton-line skeleton-line--wide"></div>
-          <div class="skeleton-line skeleton-line--medium"></div>
-          <div class="skeleton-line skeleton-line--narrow"></div>
+  <!-- ══ 1. LIQUID AURORA BACKGROUND (position: absolute, fills .profile-page) ══ -->
+  <div class="aurora-bg" aria-hidden="true">
+    <div class="aurora-blob aurora-blob--1"></div>
+    <div class="aurora-blob aurora-blob--2"></div>
+    <div class="aurora-blob aurora-blob--3"></div>
+    <div class="aurora-noise"></div>
+  </div>
+
+  <!-- ══ 2. THEME DROPDOWN ══ -->
+  <div class="theme-bar">
+    <div class="theme-dropdown" (click)="$event.stopPropagation()">
+
+      <!-- Trigger: shows active color only -->
+      <button
+        class="theme-trigger"
+        [class.theme-trigger--open]="themeOpen()"
+        [style.--sw]="activeSwatch().hex"
+        (click)="themeOpen.update(v => !v)"
+        aria-label="Change theme color"
+      >
+        <span class="theme-trigger__dot"></span>
+        <span class="theme-trigger__name">{{ activeSwatch().name }}</span>
+        <mat-icon class="theme-trigger__chevron">expand_more</mat-icon>
+      </button>
+
+      <!-- Panel -->
+      @if (themeOpen()) {
+        <div class="theme-panel" role="listbox" aria-label="Theme colors">
+          @for (sw of swatches; track sw.id) {
+            <button
+              class="theme-option"
+              [class.theme-option--active]="sw.id === activeSwatch().id"
+              [style.--sw]="sw.hex"
+              (click)="selectTheme(sw)"
+              role="option"
+              [attr.aria-selected]="sw.id === activeSwatch().id"
+            >
+              <span class="theme-option__dot"></span>
+              <span class="theme-option__name">{{ sw.name }}</span>
+              @if (sw.id === activeSwatch().id) {
+                <mat-icon class="theme-option__check">check</mat-icon>
+              }
+            </button>
+          }
         </div>
+      }
+
+    </div>
+  </div>
+
+  <!-- ══ LOADING SKELETON ══ -->
+  @if (loading()) {
+    <div class="skeleton-hero">
+      <div class="sk-avatar"></div>
+      <div class="sk-lines">
+        <div class="sk-line sk-line--70"></div>
+        <div class="sk-line sk-line--45"></div>
+        <div class="sk-line sk-line--30"></div>
       </div>
+    </div>
+    <div class="skeleton-grid">
+      <div class="sk-card sk-card--tall"></div>
+      <div class="sk-card"></div>
+      <div class="sk-card sk-card--short"></div>
     </div>
   }
 
-  <!-- ── Error ──────────────────────────────────────────────────── -->
+  <!-- ══ ERROR STATE ══ -->
   @if (!loading() && !identity()) {
-    <div class="profile-error">
-      <mat-icon>error_outline</mat-icon>
-      <div>
-        <strong>Profile unavailable</strong>
-        <p>Unable to load your profile. Please refresh or contact support.</p>
-        <button mat-stroked-button (click)="ngOnInit()">
-          <mat-icon>refresh</mat-icon> Retry
-        </button>
-      </div>
+    <div class="glass-card error-card"
+         (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+      <mat-icon class="error-card__icon">error_outline</mat-icon>
+      <strong>Profile unavailable</strong>
+      <p>Unable to load your profile. Please refresh or contact support.</p>
+      <button class="btn-primary" (click)="ngOnInit()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
     </div>
   }
 
-  <!-- ══════════════ HERO (shared shell) ══════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+    MAIN PROFILE (once identity is resolved)
+  ════════════════════════════════════════════════════════════════════════ -->
   @if (!loading() && identity()) {
     @let id = identity()!;
     @let f  = faculty();
     @let s  = student();
 
-    <!-- Aurora cover -->
-    <div class="aurora-cover">
-      <div class="aurora-blob aurora-blob--1"></div>
-      <div class="aurora-blob aurora-blob--2"></div>
-      <div class="aurora-blob aurora-blob--3"></div>
-      <div class="aurora-grid"></div>
-      <div class="aurora-cover__overlay"></div>
-    </div>
+    <!-- ══ 3. HERO SECTION ══ -->
+    <section class="hero glass-card"
+             (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
 
-    <!-- Identity card -->
-    <section class="hero-card anim-rise">
-      <div class="hero-card__inner">
-        <div class="hero-card__avatar-wrap">
-          <div
-            class="hero-card__avatar"
-            [class.hero-card__avatar--admin]="id.entityType === 'ADMIN'"
-          >{{ initials }}</div>
-          @if (id.entityType !== 'ADMIN' && progressPct() > 0) {
-            <div class="hero-card__avatar-ring" [attr.data-pct]="progressPct()">
-              <svg viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" class="ring-track"/>
-                <circle cx="60" cy="60" r="54" class="ring-fill"
-                        [style.stroke-dashoffset]="339.3 - (339.3 * progressPct()) / 100"/>
-              </svg>
-            </div>
-          }
+      <!-- Avatar with breathing glow + rotating conic ring + progress SVG -->
+      <div class="avatar-zone">
+        <div class="avatar-conic-ring"></div>
+        <div class="avatar-pulse-ring"></div>
+        <div class="avatar" [class.avatar--admin]="id.entityType === 'ADMIN'">
+          {{ initials }}
         </div>
+        @if (id.entityType !== 'ADMIN' && docStats().total > 0) {
+          <svg class="avatar-progress-svg" viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="54" class="avp-track"/>
+            <circle cx="60" cy="60" r="54" class="avp-fill"
+                    [style.stroke-dashoffset]="avatarRingOffset()"/>
+          </svg>
+          <span class="avatar-pct-badge">{{ progressPct() }}%</span>
+        }
+        <span class="online-dot" title="Online"></span>
+      </div>
 
-        <div class="hero-card__identity">
-          <h1 class="hero-card__name">{{ id.displayName }}</h1>
+      <!-- Identity text block -->
+      <div class="hero__info">
+        <h1 class="hero__name">{{ id.displayName }}</h1>
 
-          <!-- FACULTY subtitle -->
-          @if (f) {
-            <div class="hero-card__role">
-              <span class="role-chip role-chip--primary">{{ f.designation | titlecase }}</span>
+        @if (f) {
+          <div class="hero__roles">
+            <span class="role-chip role-chip--primary">{{ f.designation | titlecase }}</span>
+            <span class="role-sep">·</span>
+            <span class="role-text">{{ f.departmentName }}</span>
+            @if (f.highestQualification) {
               <span class="role-sep">·</span>
-              <span class="role-text">{{ f.departmentName }}</span>
-              @if (f.highestQualification) {
-                <span class="role-sep">·</span>
-                <span class="role-chip role-chip--soft">{{ qualificationLabel(f.highestQualification) }}</span>
-              }
-            </div>
-            <div class="hero-card__meta">
-              <span class="meta-pill"><mat-icon>badge</mat-icon>{{ f.employeeCode }}</span>
-              <span class="meta-pill"><mat-icon>email</mat-icon>{{ f.email }}</span>
-              @if (f.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ f.phone }}</span> }
-              <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Joined {{ f.joiningDate | appDate }}</span>
-            </div>
-          }
+              <span class="role-chip role-chip--soft">{{ qualificationLabel(f.highestQualification) }}</span>
+            }
+          </div>
+          <div class="hero__meta">
+            <span class="meta-pill"><mat-icon>badge</mat-icon>{{ f.employeeCode }}</span>
+            <span class="meta-pill"><mat-icon>email</mat-icon>{{ f.email }}</span>
+            @if (f.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ f.phone }}</span> }
+            <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Joined {{ f.joiningDate | appDate }}</span>
+          </div>
+        }
 
-          <!-- STUDENT subtitle -->
-          @if (s) {
-            <div class="hero-card__role">
-              <span class="role-chip role-chip--primary">{{ s.programName }}</span>
+        @if (s) {
+          <div class="hero__roles">
+            <span class="role-chip role-chip--primary">{{ s.programName }}</span>
+            <span class="role-sep">·</span>
+            <span class="role-text">Year {{ s.yearOfStudy }}</span>
+            @if (s.rollNumber) {
               <span class="role-sep">·</span>
-              <span class="role-text">Year {{ s.yearOfStudy }}</span>
-              @if (s.rollNumber) {
-                <span class="role-sep">·</span>
-                <span class="role-chip role-chip--code">{{ s.rollNumber }}</span>
-              }
-            </div>
-            <div class="hero-card__meta">
-              <span class="meta-pill"><mat-icon>email</mat-icon>{{ s.email }}</span>
-              @if (s.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ s.phone }}</span> }
-              <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Admitted {{ s.admissionDate | appDate }}</span>
-            </div>
-          }
+              <span class="role-chip role-chip--code">{{ s.rollNumber }}</span>
+            }
+          </div>
+          <div class="hero__meta">
+            <span class="meta-pill"><mat-icon>email</mat-icon>{{ s.email }}</span>
+            @if (s.phone) { <span class="meta-pill"><mat-icon>phone</mat-icon>{{ s.phone }}</span> }
+            <span class="meta-pill"><mat-icon>calendar_today</mat-icon>Admitted {{ s.admissionDate | appDate }}</span>
+          </div>
+        }
 
-          <!-- ADMIN subtitle -->
-          @if (id.entityType === 'ADMIN') {
-            <div class="hero-card__role">
-              <span class="role-chip role-chip--admin">
-                <mat-icon class="role-chip__icon">shield</mat-icon>
-                Administrator
-              </span>
-              @if (id.email) {
-                <span class="role-sep">·</span>
-                <span class="role-text">{{ id.email }}</span>
-              }
-            </div>
-            <div class="hero-card__meta">
-              <span class="meta-pill"><mat-icon>admin_panel_settings</mat-icon>Full System Access</span>
-              <span class="meta-pill"><mat-icon>verified_user</mat-icon>SKS College of Nursing</span>
-            </div>
-          }
-        </div>
+        @if (id.entityType === 'ADMIN') {
+          <div class="hero__roles">
+            <span class="role-chip role-chip--admin">
+              <mat-icon class="role-chip__icon">shield</mat-icon> Administrator
+            </span>
+            @if (id.email) { <span class="role-sep">·</span><span class="role-text">{{ id.email }}</span> }
+          </div>
+          <div class="hero__meta">
+            <span class="meta-pill"><mat-icon>admin_panel_settings</mat-icon>Full System Access</span>
+            <span class="meta-pill"><mat-icon>verified_user</mat-icon>SKS College of Nursing</span>
+          </div>
+        }
+      </div>
 
-        <!-- Actions -->
-        <div class="hero-card__actions">
-          @if (editRoute()) {
-            <a mat-flat-button color="primary" class="btn-edit" [routerLink]="editRoute()">
-              <mat-icon>edit</mat-icon>
-              Edit Profile
-            </a>
-          }
-          @if (id.entityType === 'STUDENT' || id.entityType === 'FACULTY') {
-            <a mat-stroked-button class="btn-ghost"
-               [routerLink]="id.entityType === 'STUDENT' ? '/students/' + id.entityId : '/faculty/' + id.entityId"
-               matTooltip="Open full detail view">
-              <mat-icon>open_in_new</mat-icon>
-              View Detail
-            </a>
-          }
-        </div>
+      <!-- CTA buttons -->
+      <div class="hero__actions">
+        @if (editRoute()) {
+          <a class="btn-primary shimmer-btn" [routerLink]="editRoute()">
+            <mat-icon>edit</mat-icon> Edit Profile
+          </a>
+        }
+        <button class="btn-ghost">
+          <mat-icon>ios_share</mat-icon> Share
+        </button>
+        <button class="btn-ghost">
+          <mat-icon>more_horiz</mat-icon>
+        </button>
       </div>
     </section>
 
-    <!-- ══════════════ STATS (faculty / student) ══════════════ -->
+    <!-- ══ 4. STATS ROW — faculty / student ══ -->
     @if (f || (s && id.admissionId)) {
-      <section class="stats-row anim-rise anim-rise--d1">
-        <div class="stat-tile stat-tile--all">
-          <div class="stat-tile__icon"><mat-icon>folder_open</mat-icon></div>
-          <div class="stat-tile__body">
-            <span class="stat-tile__value">{{ docStats().total }}</span>
-            <span class="stat-tile__label">Total Documents</span>
-          </div>
+      <div class="stats-row">
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--neutral">folder_open</mat-icon>
+          <span class="sv">{{ animTotal() }}</span>
+          <span class="sl">Total Docs</span>
         </div>
-        <div class="stat-tile stat-tile--ok">
-          <div class="stat-tile__icon"><mat-icon>verified</mat-icon></div>
-          <div class="stat-tile__body">
-            <span class="stat-tile__value">{{ docStats().verified }}</span>
-            <span class="stat-tile__label">Verified</span>
-          </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--ok">verified</mat-icon>
+          <span class="sv sv--ok">{{ animVerified() }}</span>
+          <span class="sl">Verified</span>
         </div>
-        <div class="stat-tile stat-tile--warn">
-          <div class="stat-tile__icon"><mat-icon>pending_actions</mat-icon></div>
-          <div class="stat-tile__body">
-            <span class="stat-tile__value">{{ docStats().pending }}</span>
-            <span class="stat-tile__label">Pending Review</span>
-          </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--warn">pending_actions</mat-icon>
+          <span class="sv sv--warn">{{ animPending() }}</span>
+          <span class="sl">Pending</span>
         </div>
-        <div class="stat-tile stat-tile--miss">
-          <div class="stat-tile__icon"><mat-icon>upload_file</mat-icon></div>
-          <div class="stat-tile__body">
-            <span class="stat-tile__value">{{ docStats().missing }}</span>
-            <span class="stat-tile__label">Awaiting Upload</span>
-          </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--primary">upload_file</mat-icon>
+          <span class="sv sv--primary">{{ animMissing() }}</span>
+          <span class="sl">To Upload</span>
         </div>
-        <div class="stat-tile stat-tile--ring">
-          <div class="ring-wrap">
+        <div class="stat-item stat-item--ring glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <div class="mini-ring">
             <svg viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" class="ring-track"/>
-              <circle cx="22" cy="22" r="18" class="ring-fill" [style.stroke-dashoffset]="progressDashOffset()"/>
+              <circle cx="22" cy="22" r="18" class="mr-track"/>
+              <circle cx="22" cy="22" r="18" class="mr-fill" [style.stroke-dashoffset]="miniRingOffset()"/>
             </svg>
-            <span class="ring-pct">{{ progressPct() }}%</span>
+            <span class="mr-pct">{{ progressPct() }}%</span>
           </div>
-          <div class="stat-tile__body">
-            <span class="stat-tile__value-sm">Profile Complete</span>
-            <span class="stat-tile__label">Verification progress</span>
-          </div>
+          <span class="sl">Complete</span>
         </div>
-      </section>
+      </div>
     }
 
-    <!-- ══════════════ ADMIN STATS ══════════════ -->
+    <!-- ══ 4b. STATS ROW — admin ══ -->
     @if (id.entityType === 'ADMIN' && summary()) {
-      <section class="stats-row stats-row--admin anim-rise anim-rise--d1">
-        <div class="stat-tile stat-tile--ok"><div class="stat-tile__icon"><mat-icon>person</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalStudents }}</span><span class="stat-tile__label">Students</span></div></div>
-        <div class="stat-tile stat-tile--miss"><div class="stat-tile__icon"><mat-icon>groups</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalFaculty }}</span><span class="stat-tile__label">Faculty</span></div></div>
-        <div class="stat-tile stat-tile--all"><div class="stat-tile__icon"><mat-icon>business</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalDepartments }}</span><span class="stat-tile__label">Departments</span></div></div>
-        <div class="stat-tile stat-tile--warn"><div class="stat-tile__icon"><mat-icon>school</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalPrograms }}</span><span class="stat-tile__label">Programs</span></div></div>
-        <div class="stat-tile stat-tile--all"><div class="stat-tile__icon"><mat-icon>menu_book</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalSubjects }}</span><span class="stat-tile__label">Subjects</span></div></div>
-        <div class="stat-tile stat-tile--ok"><div class="stat-tile__icon"><mat-icon>quiz</mat-icon></div>
-          <div class="stat-tile__body"><span class="stat-tile__value">{{ summary()!.totalExaminations }}</span><span class="stat-tile__label">Examinations</span></div></div>
-      </section>
+      @let sm = summary()!;
+      <div class="stats-row">
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--ok">person</mat-icon>
+          <span class="sv sv--ok">{{ sm.totalStudents }}</span>
+          <span class="sl">Students</span>
+        </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--primary">groups</mat-icon>
+          <span class="sv sv--primary">{{ sm.totalFaculty }}</span>
+          <span class="sl">Faculty</span>
+        </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--warn">business</mat-icon>
+          <span class="sv sv--warn">{{ sm.totalDepartments }}</span>
+          <span class="sl">Departments</span>
+        </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--neutral">school</mat-icon>
+          <span class="sv">{{ sm.totalPrograms }}</span>
+          <span class="sl">Programs</span>
+        </div>
+        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <mat-icon class="si si--ok">quiz</mat-icon>
+          <span class="sv sv--ok">{{ sm.totalExaminations }}</span>
+          <span class="sl">Exams</span>
+        </div>
+      </div>
     }
 
-    <!-- ══════════════ ABOUT ══════════════ -->
-    @if (f || s) {
-      <section class="surface-section anim-rise anim-rise--d2">
-        <header class="surface-section__header">
-          <div class="surface-section__title">
-            <mat-icon class="surface-section__icon">person_outline</mat-icon>
-            <div>
-              <h2>About</h2>
-              <p class="surface-section__sub">Personal &amp; contact information on record</p>
-            </div>
-          </div>
-          @if (editRoute()) {
-            <a class="link-action" [routerLink]="editRoute()">
-              <mat-icon>edit</mat-icon> Edit
-            </a>
-          }
-        </header>
+    <!-- ══ 5. BENTO GRID ══ -->
+    <div class="bento-grid">
 
-        <div class="info-grid">
+      <!-- ── COLUMN A (40%) ── -->
+      <div class="bcol bcol-a">
+
+        <!-- Bio Card -->
+        <div class="glass-card bio-card"
+             (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <div class="card-hdr">
+            <div class="card-hdr__icon"><mat-icon>auto_stories</mat-icon></div>
+            <h3>About</h3>
+          </div>
           @if (f) {
-            @for (item of facultyInfoItems(f); track item.label) {
-              <div class="info-card">
-                <div class="info-card__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
-                <div class="info-card__body">
-                  <div class="info-card__label">{{ item.label }}</div>
-                  <div class="info-card__value">{{ item.value }}</div>
-                </div>
-              </div>
-            }
+            <p class="bio-text gradient-text">
+              Passionate about nursing education, clinical excellence, and shaping the next
+              generation of healthcare professionals. Dedicated to {{ f.departmentName }}
+              @if (f.highestQualification) { with {{ qualificationLabel(f.highestQualification) }} expertise. }
+            </p>
+            <div class="tag-cloud">
+              <span class="tag">Nursing</span>
+              <span class="tag">Education</span>
+              <span class="tag">{{ f.departmentName }}</span>
+              <span class="tag">Clinical</span>
+              <span class="tag">Research</span>
+            </div>
           }
           @if (s) {
-            @for (item of studentInfoItems(s); track item.label) {
-              <div class="info-card">
-                <div class="info-card__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
-                <div class="info-card__body">
-                  <div class="info-card__label">{{ item.label }}</div>
-                  <div class="info-card__value">{{ item.value }}</div>
+            <p class="bio-text gradient-text">
+              {{ s.programName }} student at SKS College of Nursing, currently in Year {{ s.yearOfStudy }}.
+              Committed to excellence in nursing practice and compassionate patient care.
+            </p>
+            <div class="tag-cloud">
+              <span class="tag">{{ s.programName }}</span>
+              <span class="tag">Year {{ s.yearOfStudy }}</span>
+              <span class="tag">Nursing</span>
+              <span class="tag">Healthcare</span>
+            </div>
+          }
+          @if (id.entityType === 'ADMIN') {
+            <p class="bio-text gradient-text">
+              Administrator at SKS College of Nursing with full system access. Overseeing academic
+              programs, faculty management, student services, and institutional operations.
+            </p>
+            <div class="tag-cloud">
+              <span class="tag">Administration</span>
+              <span class="tag">Management</span>
+              <span class="tag">Operations</span>
+              <span class="tag">Healthcare</span>
+            </div>
+          }
+        </div>
+
+        <!-- Document Status Overview (faculty / student) -->
+        @if (f || (s && id.admissionId)) {
+          <div class="glass-card doc-overview-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>folder_open</mat-icon></div>
+              <h3>Document Overview</h3>
+              <span class="card-badge">{{ docStats().total }}</span>
+            </div>
+            <div class="doc-bars">
+              <div class="doc-bar-row">
+                <div class="doc-bar-meta">
+                  <span class="dot dot--ok"></span>
+                  <span>Verified</span>
+                  <span class="doc-bar-count">{{ docStats().verified }}</span>
+                </div>
+                <div class="doc-bar-track">
+                  <div class="doc-bar-fill doc-bar-fill--ok"
+                       [style.width.%]="docStats().total ? (docStats().verified / docStats().total)*100 : 0">
+                  </div>
+                </div>
+              </div>
+              <div class="doc-bar-row">
+                <div class="doc-bar-meta">
+                  <span class="dot dot--warn"></span>
+                  <span>Pending Review</span>
+                  <span class="doc-bar-count">{{ docStats().pending }}</span>
+                </div>
+                <div class="doc-bar-track">
+                  <div class="doc-bar-fill doc-bar-fill--warn"
+                       [style.width.%]="docStats().total ? (docStats().pending / docStats().total)*100 : 0">
+                  </div>
+                </div>
+              </div>
+              <div class="doc-bar-row">
+                <div class="doc-bar-meta">
+                  <span class="dot dot--miss"></span>
+                  <span>Awaiting Upload</span>
+                  <span class="doc-bar-count">{{ docStats().missing }}</span>
+                </div>
+                <div class="doc-bar-track">
+                  <div class="doc-bar-fill doc-bar-fill--miss"
+                       [style.width.%]="docStats().total ? (docStats().missing / docStats().total)*100 : 0">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Admin: system health mini-card -->
+        @if (id.entityType === 'ADMIN') {
+          <div class="glass-card health-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>monitoring</mat-icon></div>
+              <h3>System Health</h3>
+              <span class="status-ok-chip">All Systems Operational</span>
+            </div>
+            <div class="health-rows">
+              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Database</span><span class="h-val">Connected</span></div>
+              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>API</span><span class="h-val">Operational</span></div>
+              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Auth (Keycloak)</span><span class="h-val">Live</span></div>
+              <div class="health-row"><span class="h-dot h-dot--warn"></span><span>Storage</span><span class="h-val">68% Used</span></div>
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- ── COLUMN B (35%) ── -->
+      <div class="bcol bcol-b">
+
+        <!-- Activity Timeline -->
+        <div class="glass-card activity-card"
+             (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <div class="card-hdr">
+            <div class="card-hdr__icon"><mat-icon>history</mat-icon></div>
+            <h3>Recent Activity</h3>
+          </div>
+          <div class="timeline">
+            @for (item of activityItems; track item.id) {
+              <div class="tl-item">
+                <div class="tl-dot" [style.background]="item.color">
+                  <mat-icon>{{ item.icon }}</mat-icon>
+                </div>
+                <div class="tl-line" *ngIf="!$last"></div>
+                <div class="tl-body">
+                  <p class="tl-text">{{ item.text }}</p>
+                  <span class="tl-time">{{ item.time }}</span>
                 </div>
               </div>
             }
+          </div>
+        </div>
+
+        <!-- Personal Info (faculty / student) -->
+        @if (f || s) {
+          <div class="glass-card info-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>person_outline</mat-icon></div>
+              <h3>Personal Info</h3>
+              @if (editRoute()) {
+                <a class="card-edit-btn" [routerLink]="editRoute()" matTooltip="Edit Profile">
+                  <mat-icon>edit</mat-icon>
+                </a>
+              }
+            </div>
+            <div class="info-list">
+              @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
+              @for (item of items.slice(0, 7); track item.label) {
+                <div class="info-row">
+                  <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                  <div class="info-row__body">
+                    <span class="info-row__label">{{ item.label }}</span>
+                    <span class="info-row__value">{{ item.value }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Admin info card -->
+        @if (id.entityType === 'ADMIN') {
+          <div class="glass-card info-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>admin_panel_settings</mat-icon></div>
+              <h3>Account Details</h3>
+            </div>
+            <div class="info-list">
+              <div class="info-row">
+                <div class="info-row__icon"><mat-icon>badge</mat-icon></div>
+                <div class="info-row__body"><span class="info-row__label">Role</span><span class="info-row__value">Developer Administrator</span></div>
+              </div>
+              <div class="info-row">
+                <div class="info-row__icon"><mat-icon>email</mat-icon></div>
+                <div class="info-row__body"><span class="info-row__label">Email</span><span class="info-row__value">{{ id.email }}</span></div>
+              </div>
+              <div class="info-row">
+                <div class="info-row__icon"><mat-icon>shield</mat-icon></div>
+                <div class="info-row__body"><span class="info-row__label">Access Level</span><span class="info-row__value">Full System</span></div>
+              </div>
+              <div class="info-row">
+                <div class="info-row__icon"><mat-icon>verified_user</mat-icon></div>
+                <div class="info-row__body"><span class="info-row__label">Institution</span><span class="info-row__value">SKS College of Nursing</span></div>
+              </div>
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- ── COLUMN C (25%) ── -->
+      <div class="bcol bcol-c">
+
+        <!-- Completion Ring Card (faculty / student) -->
+        @if (f || (s && id.admissionId)) {
+          <div class="glass-card completion-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>donut_large</mat-icon></div>
+              <h3>Completion</h3>
+            </div>
+            <div class="big-ring-wrap">
+              <svg class="big-ring-svg" viewBox="0 0 140 140" aria-label="{{ progressPct() }}% documents verified">
+                <circle cx="70" cy="70" r="60" class="br-track"/>
+                <circle cx="70" cy="70" r="60" class="br-fill" [style.stroke-dashoffset]="bigRingOffset()"/>
+              </svg>
+              <div class="big-ring-center">
+                <span class="big-ring-pct">{{ progressPct() }}%</span>
+                <span class="big-ring-sub">Verified</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Connections Card -->
+        <div class="glass-card connections-card"
+             (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <div class="card-hdr">
+            <div class="card-hdr__icon"><mat-icon>group</mat-icon></div>
+            <h3>Colleagues</h3>
+            <span class="card-badge">{{ connections.length }}</span>
+          </div>
+          <div class="conn-list">
+            @for (p of connections; track p.id) {
+              <div class="conn-item">
+                <div class="conn-avatar">{{ p.initials }}</div>
+                <div class="conn-body">
+                  <span class="conn-name">{{ p.name }}</span>
+                  <span class="conn-role">{{ p.role }}</span>
+                </div>
+                <div class="conn-status" [class.conn-status--online]="p.online"
+                     [matTooltip]="p.online ? 'Online' : 'Offline'">
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Admin: no completion ring, show a features card -->
+        @if (id.entityType === 'ADMIN') {
+          <div class="glass-card features-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>star</mat-icon></div>
+              <h3>Key Features</h3>
+            </div>
+            <ul class="features-list">
+              <li><mat-icon>check</mat-icon> RBAC — Role-based access</li>
+              <li><mat-icon>check</mat-icon> Document verification flow</li>
+              <li><mat-icon>check</mat-icon> Flyway schema migrations</li>
+              <li><mat-icon>check</mat-icon> Keycloak SSO integration</li>
+              <li><mat-icon>check</mat-icon> Real-time audit trail</li>
+            </ul>
+          </div>
+        }
+
+      </div>
+    </div>
+    <!-- end Bento Grid -->
+
+    <!-- ══ 6. FULL DOCUMENT MANAGEMENT SECTION ══ -->
+    @if (f || (s && id.admissionId)) {
+      <section class="section-block">
+        <div class="section-header">
+          <div class="section-header__icon"><mat-icon>folder_open</mat-icon></div>
+          <div>
+            <h2>My Documents</h2>
+            <p>Upload, view and manage your required documents</p>
+          </div>
+        </div>
+        <div class="glass-card docs-full-card">
+          @if (f) {
+            <cms-profile-documents
+              entityType="FACULTY"
+              [entityId]="f.id"
+              [canManage]="true"
+              [canVerify]="false"
+              (slotsChange)="onSlotsChange($event)"
+            />
+          }
+          @if (s && id.admissionId) {
+            <cms-profile-documents
+              entityType="STUDENT"
+              [entityId]="id.admissionId!"
+              [programId]="id.programId ?? undefined"
+              [canManage]="true"
+              [canVerify]="false"
+              (slotsChange)="onSlotsChange($event)"
+            />
           }
         </div>
       </section>
     }
 
-    <!-- ══════════════ DOCUMENTS ══════════════ -->
-    @if (f) {
-      <section class="surface-section anim-rise anim-rise--d3">
-        <header class="surface-section__header">
-          <div class="surface-section__title">
-            <mat-icon class="surface-section__icon">folder_open</mat-icon>
-            <div>
-              <h2>My Documents</h2>
-              <p class="surface-section__sub">Upload required documents — once verified, they cannot be altered</p>
-            </div>
-          </div>
-        </header>
-
-        <cms-profile-documents
-          entityType="FACULTY"
-          [entityId]="f.id"
-          [canManage]="true"
-          [canVerify]="false"
-          (slotsChange)="onSlotsChange($event)"
-        />
-      </section>
-    }
-
-    @if (s) {
-      <section class="surface-section anim-rise anim-rise--d3">
-        <header class="surface-section__header">
-          <div class="surface-section__title">
-            <mat-icon class="surface-section__icon">folder_open</mat-icon>
-            <div>
-              <h2>My Documents</h2>
-              <p class="surface-section__sub">Upload required documents — once verified, they cannot be altered</p>
-            </div>
-          </div>
-        </header>
-
-        @if (id.admissionId) {
-          <cms-profile-documents
-            entityType="STUDENT"
-            [entityId]="id.admissionId"
-            [programId]="id.programId ?? undefined"
-            [canManage]="true"
-            [canVerify]="false"
-            (slotsChange)="onSlotsChange($event)"
-          />
-        } @else {
-          <div class="empty-note">
-            <mat-icon>info_outline</mat-icon>
-            No admission record linked yet. Please contact administration.
-          </div>
-        }
-      </section>
-    }
-
-    <!-- ══════════════ ADMIN QUICK ACCESS ══════════════ -->
+    <!-- ══ 7. ADMIN QUICK ACCESS GRID ══ -->
     @if (id.entityType === 'ADMIN') {
-      <section class="surface-section anim-rise anim-rise--d2">
-        <header class="surface-section__header">
-          <div class="surface-section__title">
-            <mat-icon class="surface-section__icon">grid_view</mat-icon>
-            <div>
-              <h2>Quick Access</h2>
-              <p class="surface-section__sub">Jump to any module across the system</p>
-            </div>
+      <section class="section-block">
+        <div class="section-header">
+          <div class="section-header__icon"><mat-icon>grid_view</mat-icon></div>
+          <div>
+            <h2>Quick Access</h2>
+            <p>Jump to any module instantly</p>
           </div>
-        </header>
-
-        <div class="quick-grid">
-          @for (link of adminQuickLinks; track link.route) {
-            <a class="quick-card quick-card--{{ link.color }}" [routerLink]="link.route">
-              <div class="quick-card__icon-wrap">
-                <mat-icon>{{ link.icon }}</mat-icon>
+        </div>
+        <div class="admin-grid">
+          @for (lnk of adminLinks; track lnk.route) {
+            <a class="admin-card admin-card--{{ lnk.cc }}" [routerLink]="lnk.route">
+              <div class="admin-card__icon"><mat-icon>{{ lnk.icon }}</mat-icon></div>
+              <div class="admin-card__body">
+                <span class="admin-card__label">{{ lnk.label }}</span>
+                <span class="admin-card__desc">{{ lnk.desc }}</span>
               </div>
-              <div class="quick-card__body">
-                <span class="quick-card__label">{{ link.label }}</span>
-                <span class="quick-card__desc">{{ link.desc }}</span>
-              </div>
-              <mat-icon class="quick-card__arrow">arrow_forward_ios</mat-icon>
+              <mat-icon class="admin-card__arrow">arrow_forward_ios</mat-icon>
             </a>
           }
         </div>
       </section>
     }
+
+  }
+  <!-- end @if identity -->
+
+  <!-- ══ 8. FLOATING DOCK (always visible after load) ══ -->
+  @if (!loading()) {
+    <nav class="floating-dock" aria-label="Profile navigation">
+      @for (item of dockItems; track item.route) {
+        <a class="dock-item" [routerLink]="item.route"
+           routerLinkActive="dock-item--active"
+           [matTooltip]="item.label" matTooltipPosition="above">
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <div class="dock-item__dot"></div>
+        </a>
+      }
+    </nav>
   }
 
 </div>
