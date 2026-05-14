@@ -1,0 +1,33 @@
+<div class="doc-stats-row">
+  <div class="doc-stat-tile">
+    <mat-icon class="ds-icon ds-icon--neutral">folder_open</mat-icon>
+    <span class="ds-value">{{ stats.total }}</span>
+    <span class="ds-label">Total Docs</span>
+  </div>
+  <div class="doc-stat-tile">
+    <mat-icon class="ds-icon ds-icon--ok">verified</mat-icon>
+    <span class="ds-value ds-value--ok">{{ stats.verified }}</span>
+    <span class="ds-label">Verified</span>
+  </div>
+  <div class="doc-stat-tile">
+    <mat-icon class="ds-icon ds-icon--warn">pending_actions</mat-icon>
+    <span class="ds-value ds-value--warn">{{ stats.pending }}</span>
+    <span class="ds-label">Pending</span>
+  </div>
+  <div class="doc-stat-tile">
+    <mat-icon class="ds-icon ds-icon--primary">upload_file</mat-icon>
+    <span class="ds-value ds-value--primary">{{ stats.missing }}</span>
+    <span class="ds-label">To Upload</span>
+  </div>
+  <div class="doc-stat-tile doc-stat-tile--ring">
+    <div class="ds-mini-ring">
+      <svg viewBox="0 0 44 44" aria-hidden="true">
+        <circle cx="22" cy="22" r="18" class="ds-mr-track" />
+        <circle cx="22" cy="22" r="18" class="ds-mr-fill" [style.stroke-dashoffset]="miniRingOffset" />
+      </svg>
+      <span class="ds-mr-pct">{{ progressPct }}%</span>
+    </div>
+    <span class="ds-label">Complete</span>
+  </div>
+</div>
+

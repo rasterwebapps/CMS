@@ -398,4 +398,58 @@
     </div>
   }
 
+  <!-- ──────────────────── System Health + Recent Activity ──────────────────── -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-h">
+        <div class="card-ht">
+          <div class="card-hico card-hico--green">
+            <mat-icon>monitoring</mat-icon>
+          </div>
+          System Health
+        </div>
+        <span class="status-ok-chip">All Systems Operational</span>
+      </div>
+      <div class="card-b">
+        <div class="health-rows">
+          <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Database</span><span class="h-val">Connected</span></div>
+          <div class="health-row"><span class="h-dot h-dot--ok"></span><span>API</span><span class="h-val">Operational</span></div>
+          <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Auth (Keycloak)</span><span class="h-val">Live</span></div>
+          <div class="health-row"><span class="h-dot h-dot--warn"></span><span>Storage</span><span class="h-val">68% Used</span></div>
+        </div>
+      </div>
+    </div>
+
+    <cms-recent-activity />
+  </div>
+
+  <!-- ──────────────────── Colleagues + Quick Access ──────────────────── -->
+  <div class="grid-2">
+    <cms-connections-card title="Team" />
+
+    <div class="card admin-quick-access">
+      <div class="card-h">
+        <div class="card-ht">
+          <div class="card-hico card-hico--accent">
+            <mat-icon>grid_view</mat-icon>
+          </div>
+          Quick Access
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="qa-grid">
+          @for (lnk of adminLinks; track lnk.route) {
+            <a class="qa-tile qa-tile--{{ lnk.cc }}" [routerLink]="lnk.route">
+              <div class="qa-tile__icon"><mat-icon>{{ lnk.icon }}</mat-icon></div>
+              <div class="qa-tile__body">
+                <span class="qa-tile__label">{{ lnk.label }}</span>
+                <span class="qa-tile__desc">{{ lnk.desc }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

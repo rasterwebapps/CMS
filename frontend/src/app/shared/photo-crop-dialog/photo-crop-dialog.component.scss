@@ -1,0 +1,241 @@
+// ── Photo Crop Dialog ─────────────────────────────────────────────────────────
+
+:host {
+  display: block;
+}
+
+.pcd-shell {
+  background: #0d0d1a;
+  border-radius: 20px;
+  overflow: hidden;
+  width: 400px;
+  max-width: 96vw;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.pcd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pcd-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.pcd-title-icon {
+  font-family: 'Material Icons';
+  font-size: 18px;
+  color: var(--cms-primary, #6366f1);
+}
+
+.pcd-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+// ── Viewport area ─────────────────────────────────────────────────────────────
+.pcd-viewport-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px 16px;
+  background: #080810;
+}
+
+.pcd-viewport {
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  border-radius: 12px;
+  background: #0a0a18;
+
+  &:active { cursor: grabbing; }
+}
+
+.pcd-img {
+  position: absolute;
+  /* top/left are set via [style.top.px] / [style.left.px] in the template
+     so the element centre aligns exactly with the viewport centre.
+     NO CSS transform here — [style.transform] handles everything. */
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+// ── SVG overlay mask ──────────────────────────────────────────────────────────
+.pcd-overlay-mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pcd-mask-svg {
+  display: block;
+}
+
+// ── Drag hint ─────────────────────────────────────────────────────────────────
+.pcd-drag-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 20;
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+.pcd-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pcd-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pcd-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  &--flip-v mat-icon {
+    transform: rotate(90deg);
+  }
+
+  &--fit {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 7px 14px;
+    color: rgba(255, 255, 255, 0.65);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+  }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+.pcd-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pcd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms, box-shadow 150ms, transform 100ms;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &--cancel {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+  }
+
+  &--apply {
+    background: var(--cms-primary, #6366f1);
+    color: #fff;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--cms-primary, #6366f1) 40%, transparent);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-primary-hover, #4f46e5);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--cms-primary, #6366f1) 55%, transparent);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ── Spin animation for apply button ──────────────────────────────────────────
+@keyframes pcd-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pcd-spin {
+  animation: pcd-spin 1s linear infinite;
+}
+

@@ -4294,3 +4294,22 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
 .driver-overlay {
   background: rgba(0, 0, 0, 0.42) !important;
 }
+
+// ── Photo Crop Dialog — global panel override ─────────────────────────────────
+// Remove default Material dialog padding/background so the component
+// can style its own shell (.pcd-shell) with the dark theme.
+.pcd-dialog-panel .mat-mdc-dialog-container {
+  padding: 0;
+  background: transparent;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.pcd-dialog-panel .mdc-dialog__surface {
+  background: transparent !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+

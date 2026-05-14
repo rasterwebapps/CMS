@@ -1,0 +1,19 @@
+<div class="content-card widget-card completion-ring-card">
+  <div class="widget-header">
+    <div class="widget-icon-wrap"><mat-icon>donut_large</mat-icon></div>
+    <h3 class="widget-title">Document Completion</h3>
+  </div>
+  <div class="cr-body">
+    <div class="cr-wrap">
+      <svg class="cr-svg" viewBox="0 0 140 140" [attr.aria-label]="progressPct + '% documents verified'">
+        <circle cx="70" cy="70" r="60" class="cr-track" />
+        <circle cx="70" cy="70" r="60" class="cr-fill" [style.stroke-dashoffset]="bigRingOffset" />
+      </svg>
+      <div class="cr-center">
+        <span class="cr-pct">{{ progressPct }}%</span>
+        <span class="cr-sub">Verified</span>
+      </div>
+    </div>
+  </div>
+</div>
+

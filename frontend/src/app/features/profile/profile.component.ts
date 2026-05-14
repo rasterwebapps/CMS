@@ -1,57 +1,72 @@
 import {
-  Component, computed, DestroyRef, HostListener, inject, OnInit, signal,
+  Component, computed, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, interval, of, take } from 'rxjs';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
-import { environment } from '../../../environments';
-import { ProfileService, ProfileIdentity } from './profile.service';
+import { ProfileService, ProfileIdentity, SelfUpdateRequest } from './profile.service';
 import { FacultyService } from '../faculty/faculty.service';
 import { StudentService } from '../student/student.service';
 import { Faculty, FacultyQualification, FACULTY_QUALIFICATION_OPTIONS } from '../faculty/faculty.model';
 import { Student } from '../student/student.model';
-import { DashboardSummary } from '../dashboard/dashboard.models';
 import { ThemeService, COLOR_SWATCHES, ColorSwatch } from '../../core/theme/theme.service';
 import { ProfileDocumentsComponent } from '../../shared/profile-documents/profile-documents.component';
-import { CmsSkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { computeInitials } from '../../shared/utils/initials';
 import { AppDatePipe } from '../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../core/toast/toast.service';
+import { DocumentSlotsService } from '../dashboard/services/document-slots.service';
+import {
+  PhotoCropDialogComponent,
+  PhotoCropDialogData,
+  PhotoCropDialogResult,
+} from '../../shared/photo-crop-dialog/photo-crop-dialog.component';
 
 export interface InfoItem { icon: string; label: string; value: string; }
-export interface DocStats { total: number; verified: number; pending: number; missing: number; }
 
-interface DockItem       { icon: string; label: string; route: string; }
-interface ActivityItem   { id: number; icon: string; text: string; time: string; color: string; }
-interface ConnectionItem { id: number; name: string; initials: string; role: string; online: boolean; }
-interface AdminLink      { icon: string; label: string; route: string; desc: string; cc: string; }
+interface QuickLink { icon: string; label: string; route: string; }
 
+/**
+ * Profile screen — focused identity + personal-document-vault page.
+ *
+ * Operational widgets (document stat counters, completion ring, recent activity,
+ * colleagues, admin quick links, system health) live on the role-specific
+ * Dashboard components. Profile keeps only:
+ *   - Hero (avatar, name, role, contact info)
+ *   - Theme picker
+ *   - Bio / About card
+ *   - Personal Info card
+ *   - Document vault (`<cms-profile-documents>`)
+ *
+ * Document slot updates are forwarded to {@link DocumentSlotsService} so the
+ * dashboard widgets stay in sync as the user uploads / verifies files here.
+ */
 @Component({
   selector: 'app-profile',
   standalone: true,
   imports: [
-    RouterLink, RouterLinkActive, TitleCasePipe,
-    MatButtonModule, MatIconModule, MatTooltipModule,
-    ProfileDocumentsComponent, CmsSkeletonComponent, AppDatePipe,
+    RouterLink, TitleCasePipe, FormsModule,
+    MatButtonModule, MatIconModule, MatTooltipModule, MatDialogModule,
+    ProfileDocumentsComponent, AppDatePipe,
   ],
   templateUrl: './profile.component.html',
   styleUrl:    './profile.component.scss',
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
+
+  @ViewChild('photoInput') private photoInput?: ElementRef<HTMLInputElement>;
 
   private readonly profileService = inject(ProfileService);
   private readonly facultyService = inject(FacultyService);
   private readonly studentService = inject(StudentService);
   private readonly themeService   = inject(ThemeService);
-  private readonly http           = inject(HttpClient);
   private readonly toast          = inject(ToastService);
-  private readonly destroyRef     = inject(DestroyRef);
+  private readonly docSlots       = inject(DocumentSlotsService);
+  private readonly dialog         = inject(MatDialog);
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   protected readonly swatches      = COLOR_SWATCHES;
@@ -64,73 +79,17 @@ export class ProfileComponent implements OnInit {
   protected readonly identity = signal<ProfileIdentity | null>(null);
   protected readonly faculty  = signal<Faculty | null>(null);
   protected readonly student  = signal<Student | null>(null);
-  protected readonly summary  = signal<DashboardSummary | null>(null);
 
-  // ── Document slots ────────────────────────────────────────────────────────
-  private readonly rawSlots = signal<{ status: string }[]>([]);
+  // ── Profile photo ─────────────────────────────────────────────────────────
+  /** Display URL for this page — reads from the shared service signal. */
+  protected readonly photoUrl = this.profileService.avatarDataUrl;
+  protected readonly uploadingPhoto = signal(false);
+  private photoObjectUrl: string | null = null;
 
-  protected readonly docStats = computed<DocStats>(() => {
-    const s = this.rawSlots();
-    return {
-      total:    s.length,
-      verified: s.filter(x => x.status === 'VERIFIED').length,
-      pending:  s.filter(x => x.status === 'UPLOADED').length,
-      missing:  s.filter(x => x.status !== 'VERIFIED' && x.status !== 'UPLOADED').length,
-    };
-  });
-
-  protected readonly progressPct = computed(() => {
-    const { total, verified } = this.docStats();
-    return total === 0 ? 0 : Math.round((verified / total) * 100);
-  });
-
-  // SVG ring offsets — r=60→376.99 | r=18→113.1 | r=54→339.3
-  protected readonly bigRingOffset    = computed(() => 376.99 - (376.99 * this.progressPct()) / 100);
-  protected readonly miniRingOffset   = computed(() => 113.1  - (113.1  * this.progressPct()) / 100);
-  protected readonly avatarRingOffset = computed(() => 339.3  - (339.3  * this.progressPct()) / 100);
-
-  // ── Count-up animation signals ────────────────────────────────────────────
-  protected readonly animTotal    = signal(0);
-  protected readonly animVerified = signal(0);
-  protected readonly animPending  = signal(0);
-  protected readonly animMissing  = signal(0);
-
-  // ── Static content ────────────────────────────────────────────────────────
-  protected readonly activityItems: ActivityItem[] = [
-    { id: 1, icon: 'verified',     text: 'Appointment Letter verified',   time: '2 days ago',  color: '#10b981' },
-    { id: 2, icon: 'upload_file',  text: 'PG Degree document uploaded',   time: '5 days ago',  color: '#f59e0b' },
-    { id: 3, icon: 'check_circle', text: 'Aadhaar Card verified',         time: '1 week ago',  color: '#10b981' },
-    { id: 4, icon: 'cancel',       text: 'Transfer Cert. rejected',       time: '2 weeks ago', color: '#ef4444' },
-    { id: 5, icon: 'upload_file',  text: 'UG Degree uploaded',            time: '3 weeks ago', color: '#f59e0b' },
-  ];
-
-  protected readonly connections: ConnectionItem[] = [
-    { id: 1, name: 'Dr. Ananya Kumar', initials: 'AK', role: 'Professor',          online: true  },
-    { id: 2, name: 'Prof. Meena Devi', initials: 'MD', role: 'Associate Professor', online: true  },
-    { id: 3, name: 'Dr. Ramesh Iyer',  initials: 'RI', role: 'Head of Department',  online: false },
-    { id: 4, name: 'Ms. Preethi S.',   initials: 'PS', role: 'Lecturer',            online: true  },
-  ];
-
-  protected readonly dockItems: DockItem[] = [
-    { icon: 'dashboard',     label: 'Dashboard', route: '/dashboard'  },
-    { icon: 'person',        label: 'Profile',   route: '/profile'    },
-    { icon: 'folder_open',   label: 'Documents', route: '/profile'    },
-    { icon: 'notifications', label: 'Alerts',    route: '/dashboard'  },
-    { icon: 'settings',      label: 'Settings',  route: '/settings'   },
-  ];
-
-  protected readonly adminLinks: AdminLink[] = [
-    { icon: 'school',                    label: 'Programs',    route: '/programs',                     desc: 'Academic programs',   cc: 'indigo'  },
-    { icon: 'business',                  label: 'Departments', route: '/departments',                  desc: 'Manage departments',  cc: 'violet'  },
-    { icon: 'groups',                    label: 'Faculty',     route: '/faculty',                      desc: 'Faculty & docs',      cc: 'blue'    },
-    { icon: 'person',                    label: 'Students',    route: '/students',                     desc: 'Student records',     cc: 'sky'     },
-    { icon: 'contact_mail',              label: 'Enquiries',   route: '/enquiries',                    desc: 'Admissions funnel',   cc: 'teal'    },
-    { icon: 'assignment_ind',            label: 'Admissions',  route: '/admissions',                   desc: 'Student admissions',  cc: 'emerald' },
-    { icon: 'upload_file',               label: 'Documents',   route: '/enquiries/document-submission',desc: 'Submit & verify',     cc: 'cyan'    },
-    { icon: 'account_balance_wallet',    label: 'Fees',        route: '/student-fees',                 desc: 'Fee management',      cc: 'rose'    },
-    { icon: 'manage_accounts',           label: 'Users',       route: '/user-management',              desc: 'Roles & access',      cc: 'pink'    },
-    { icon: 'assessment',                label: 'Reports',     route: '/reports',                      desc: 'Academic & financial',cc: 'amber'   },
-  ];
+  // ── Inline self-edit ──────────────────────────────────────────────────────
+  protected readonly editMode = signal(false);
+  protected readonly savingSelfInfo = signal(false);
+  protected editForm: SelfUpdateRequest = {};
 
   // ── Computed helpers ──────────────────────────────────────────────────────
   protected get initials(): string { return computeInitials(this.identity()?.displayName ?? ''); }
@@ -141,6 +100,34 @@ export class ProfileComponent implements OnInit {
     if (id.entityType === 'FACULTY' && id.entityId) return `/faculty/${id.entityId}/edit`;
     if (id.entityType === 'STUDENT' && id.entityId) return `/students/${id.entityId}/edit`;
     return null;
+  });
+
+  protected readonly quickLinks = computed<QuickLink[]>(() => {
+    const id = this.identity();
+    if (!id) return [];
+    if (id.entityType === 'FACULTY') {
+      return [
+        { icon: 'calendar_month', label: 'Academic Calendar', route: '/academic-calendar' },
+        { icon: 'checklist', label: 'Attendance', route: '/attendance' },
+        { icon: 'science', label: 'Lab Schedule', route: '/lab-schedules' },
+        { icon: 'folder_open', label: 'My Documents', route: '/profile' },
+      ];
+    }
+    if (id.entityType === 'STUDENT') {
+      return [
+        { icon: 'calendar_month', label: 'Academic Calendar', route: '/academic-calendar' },
+        { icon: 'payments', label: 'My Fees', route: '/student-fees' },
+        { icon: 'checklist', label: 'Attendance', route: '/attendance' },
+        { icon: 'emoji_events', label: 'Exam Results', route: '/exam-results' },
+      ];
+    }
+    return [
+      { icon: 'school', label: 'Programs', route: '/programs' },
+      { icon: 'groups', label: 'Faculty', route: '/faculty' },
+      { icon: 'person', label: 'Students', route: '/students' },
+      { icon: 'bar_chart', label: 'Reports', route: '/reports' },
+      { icon: 'manage_accounts', label: 'Users', route: '/user-management' },
+    ];
   });
 
   protected qualificationLabel(q: FacultyQualification): string {
@@ -173,6 +160,41 @@ export class ProfileComponent implements OnInit {
     ].filter(i => !!i.value);
   }
 
+  protected contactInfoItems(): InfoItem[] {
+    const f = this.faculty();
+    const s = this.student();
+    if (f) {
+      return [
+        { icon: 'phone', label: 'Phone', value: f.phone ?? '—' },
+        { icon: 'bloodtype', label: 'Blood Group', value: f.bloodGroup ?? '—' },
+        { icon: 'cake', label: 'Date of Birth', value: f.dateOfBirth ?? '—' },
+        { icon: 'wc', label: 'Gender', value: f.gender ?? '—' },
+        { icon: 'location_on', label: 'Address', value: this.formatFacultyAddress(f) },
+      ];
+    }
+    if (s) {
+      return [
+        { icon: 'phone', label: 'Phone', value: s.phone ?? '—' },
+        { icon: 'bloodtype', label: 'Blood Group', value: s.bloodGroup ?? '—' },
+        { icon: 'cake', label: 'Date of Birth', value: s.dateOfBirth ?? '—' },
+        { icon: 'wc', label: 'Gender', value: s.gender ?? '—' },
+        { icon: 'family_restroom', label: 'Parent Mobile', value: s.parentMobile ?? s.fatherPhone ?? '—' },
+        { icon: 'location_on', label: 'Address', value: this.formatStudentAddress(s) },
+      ];
+    }
+    return [];
+  }
+
+  protected formatFacultyAddress(f: Faculty): string {
+    const a = f.address;
+    if (!a) return '—';
+    return [a.street, a.city, a.district, a.state, a.pincode].filter(Boolean).join(', ') || '—';
+  }
+
+  protected formatStudentAddress(s: Student): string {
+    return [s.street, s.city, s.district, s.state, s.pincode].filter(Boolean).join(', ') || '—';
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loading.set(true);
@@ -181,28 +203,179 @@ export class ProfileComponent implements OnInit {
     this.profileService.getMyProfile().subscribe({
       next: id => {
         this.identity.set(id);
+        this.loadPhoto();
         if (id.entityType === 'FACULTY' && id.entityId) {
           this.facultyService.getById(id.entityId).subscribe({
-            next:  f => { this.faculty.set(f); this.loading.set(false); },
+            next:  f => { this.faculty.set(f); this.initEditForm(); this.loading.set(false); },
             error: () => { this.toast.error('Failed to load faculty profile'); this.loading.set(false); },
           });
         } else if (id.entityType === 'STUDENT' && id.entityId) {
           this.studentService.getById(id.entityId).subscribe({
-            next:  s => { this.student.set(s); this.loading.set(false); },
+            next:  s => { this.student.set(s); this.initEditForm(); this.loading.set(false); },
             error: () => { this.toast.error('Failed to load student profile'); this.loading.set(false); },
           });
         } else {
-          this.http.get<DashboardSummary>(`${environment.apiUrl}/dashboard/summary`)
-            .pipe(catchError(() => of(null)))
-            .subscribe(sm => { this.summary.set(sm); this.loading.set(false); });
+          // Admin — no extra fetch needed; identity is enough.
+          this.loading.set(false);
         }
       },
       error: () => { this.toast.error('Failed to load profile'); this.loading.set(false); },
     });
   }
 
+  ngOnDestroy(): void {
+    this.revokePhotoObjectUrl();
+  }
+
+  // ── Profile photo ─────────────────────────────────────────────────────────
+  protected triggerPhotoUpload(): void {
+    this.photoInput?.nativeElement.click();
+  }
+
+  protected onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      this.toast.error('Only JPEG or PNG images are allowed');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.toast.error('Photo must be under 10 MB');
+      return;
+    }
+
+    // Open the crop dialog
+    const dialogRef = this.dialog.open<PhotoCropDialogComponent, PhotoCropDialogData, PhotoCropDialogResult>(
+      PhotoCropDialogComponent,
+      {
+        data: { file },
+        panelClass: 'pcd-dialog-panel',
+        maxWidth: '96vw',
+        disableClose: false,
+      },
+    );
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (!result?.blob) return;
+      // Upload the cropped blob
+      const croppedFile = new File([result.blob], file.name.replace(/\.(jpg|jpeg|png)$/i, '.jpg'), {
+        type: 'image/jpeg',
+      });
+      this.uploadCroppedPhoto(croppedFile);
+    });
+  }
+
+  private uploadCroppedPhoto(file: File): void {
+    this.uploadingPhoto.set(true);
+    this.profileService.uploadPhoto(file).subscribe({
+      next: () => {
+        this.toast.success('Profile photo updated');
+        this.uploadingPhoto.set(false);
+        this.loadPhoto();
+      },
+      error: err => {
+        this.toast.error(err?.error?.message ?? 'Failed to upload profile photo');
+        this.uploadingPhoto.set(false);
+      },
+    });
+  }
+
+  protected removePhoto(event: MouseEvent): void {
+    event.stopPropagation();
+    this.profileService.deletePhoto().subscribe({
+      next: () => {
+        this.toast.success('Profile photo removed');
+        this.profileService.setAvatarDataUrl(null);
+      },
+      error: err => this.toast.error(err?.error?.message ?? 'Failed to remove profile photo'),
+    });
+  }
+
+  private loadPhoto(): void {
+    this.profileService.loadAvatar();
+  }
+
+  private revokePhotoObjectUrl(): void {
+    if (this.photoObjectUrl) {
+      URL.revokeObjectURL(this.photoObjectUrl);
+      this.photoObjectUrl = null;
+    }
+  }
+
+  // ── Self-edit ─────────────────────────────────────────────────────────────
+  protected enterEditMode(): void {
+    this.initEditForm();
+    this.editMode.set(true);
+  }
+
+  protected cancelEdit(): void {
+    this.initEditForm();
+    this.editMode.set(false);
+  }
+
+  protected saveSelfInfo(): void {
+    this.savingSelfInfo.set(true);
+    this.profileService.updateSelfInfo(this.editForm).subscribe({
+      next: () => {
+        this.toast.success('Profile updated');
+        this.savingSelfInfo.set(false);
+        this.editMode.set(false);
+        this.reloadLinkedProfile();
+      },
+      error: err => {
+        this.toast.error(err?.error?.message ?? 'Failed to update profile');
+        this.savingSelfInfo.set(false);
+      },
+    });
+  }
+
+  private initEditForm(): void {
+    const f = this.faculty();
+    const s = this.student();
+    if (f) {
+      this.editForm = {
+        phone: f.phone ?? '',
+        bloodGroup: f.bloodGroup ?? '',
+        postalAddress: f.address?.postalAddress ?? '',
+        street: f.address?.street ?? '',
+        city: f.address?.city ?? '',
+        district: f.address?.district ?? '',
+        state: f.address?.state ?? '',
+        pincode: f.address?.pincode ?? '',
+      };
+    } else if (s) {
+      this.editForm = {
+        phone: s.phone ?? '',
+        bloodGroup: s.bloodGroup ?? '',
+        postalAddress: s.postalAddress ?? '',
+        street: s.street ?? '',
+        city: s.city ?? '',
+        district: s.district ?? '',
+        state: s.state ?? '',
+        pincode: s.pincode ?? '',
+      };
+    }
+  }
+
+  private reloadLinkedProfile(): void {
+    const id = this.identity();
+    if (id?.entityType === 'FACULTY' && id.entityId) {
+      this.facultyService.getById(id.entityId).subscribe({ next: f => this.faculty.set(f) });
+    }
+    if (id?.entityType === 'STUDENT' && id.entityId) {
+      this.studentService.getById(id.entityId).subscribe({ next: s => this.student.set(s) });
+    }
+  }
+
   // ── Theme ─────────────────────────────────────────────────────────────────
   protected applyColor(swatch: ColorSwatch): void { this.themeService.applyTheme(swatch); }
+
+  protected toggleThemeDropdown(): void {
+    this.themeOpen.update(open => !open);
+  }
 
   protected selectTheme(swatch: ColorSwatch): void {
     this.themeService.applyTheme(swatch);
@@ -212,27 +385,12 @@ export class ProfileComponent implements OnInit {
   @HostListener('document:click')
   protected closeThemeDropdown(): void { this.themeOpen.set(false); }
 
-  // ── ProfileDocumentsComponent output ──────────────────────────────────────
+  // ── Forward slot updates to the shared dashboard service ──────────────────
   protected onSlotsChange(slots: { status: string }[]): void {
-    this.rawSlots.set(slots);
-    this.runCountUp();
+    this.docSlots.setSlots(slots);
   }
 
-  // ── Count-up: 60 fps, ease-out-cubic over 1 s ─────────────────────────────
-  private runCountUp(): void {
-    const t = { ...this.docStats() };
-    let step = 0;
-    interval(16).pipe(take(61), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      step++;
-      const ease = 1 - Math.pow(1 - step / 60, 3);
-      this.animTotal.set(Math.round(t.total * ease));
-      this.animVerified.set(Math.round(t.verified * ease));
-      this.animPending.set(Math.round(t.pending * ease));
-      this.animMissing.set(Math.round(t.missing * ease));
-    });
-  }
-
-  // ── Mouse spotlight ───────────────────────────────────────────────────────
+  // ── Mouse spotlight (decorative card hover) ───────────────────────────────
   protected onCardMouseMove(e: MouseEvent): void {
     const el = e.currentTarget as HTMLElement;
     const r  = el.getBoundingClientRect();
@@ -245,3 +403,4 @@ export class ProfileComponent implements OnInit {
     el.style.removeProperty('--my');
   }
 }
+

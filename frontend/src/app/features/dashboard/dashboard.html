@@ -7,6 +7,8 @@
     <app-cashier-dashboard />
   } @else if (activeDashboard() === 'faculty') {
     <app-faculty-dashboard />
+  } @else if (activeDashboard() === 'student') {
+    <app-student-dashboard />
   } @else {
     <!-- Shown when the user is authenticated but has no recognised role or
          when the /permissions/my API returned an error (user not in app_users).

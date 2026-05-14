@@ -615,3 +615,82 @@ $purple: #A78BFA;
   .stats-grid   { grid-template-columns: repeat(2, 1fr); }
   .hero-title   { font-size: 26px; }
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// System Health rows (moved from Profile)
+// ─────────────────────────────────────────────────────────────────────────────
+.health-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.health-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-1, #111827);
+}
+.h-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .15);
+  &--ok   { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, .15); }
+  &--warn { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .15); }
+}
+.h-val {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+.status-ok-chip {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, .12);
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 700;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Quick Access tile grid (moved from Profile)
+// ─────────────────────────────────────────────────────────────────────────────
+.admin-quick-access .qa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.qa-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2, #f9fafb);
+  border: 1px solid var(--border-1, rgba(0, 0, 0, .06));
+  text-decoration: none;
+  color: var(--text-1, #111827);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+    border-color: var(--primary-theme, #6366f1);
+  }
+}
+.qa-tile__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-theme, #6366f1);
+  color: #fff;
+  flex-shrink: 0;
+  mat-icon { font-size: 18px; height: 18px; width: 18px; }
+}
+.qa-tile__body { display: flex; flex-direction: column; min-width: 0; }
+.qa-tile__label { font-size: 13px; font-weight: 600; }
+.qa-tile__desc  { font-size: 11px; color: var(--text-muted, #6b7280); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

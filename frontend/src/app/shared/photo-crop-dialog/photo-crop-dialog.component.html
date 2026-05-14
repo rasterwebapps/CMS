@@ -1,0 +1,103 @@
+<!-- Photo Crop Dialog — social-network style circular cropper -->
+<div class="pcd-shell">
+
+  <!-- Header -->
+  <div class="pcd-header">
+    <span class="pcd-title">
+      <span class="pcd-title-icon">crop</span>
+      Crop Profile Photo
+    </span>
+    <button class="pcd-close-btn" type="button" (click)="cancel()" matTooltip="Cancel">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Viewport -->
+  <div class="pcd-viewport-wrap">
+    <div
+      class="pcd-viewport"
+      [style.width.px]="VIEWPORT"
+      [style.height.px]="VIEWPORT"
+      (pointerdown)="onPointerDown($event)"
+    >
+      @if (imageSrc()) {
+        <img
+          #imgEl
+          class="pcd-img"
+          [src]="imageSrc()"
+          [style.width.px]="displayW()"
+          [style.height.px]="displayH()"
+          [style.top.px]="centerY()"
+          [style.left.px]="centerX()"
+          [style.transform]="imgTransform()"
+          (load)="onImageLoad()"
+          draggable="false"
+          alt="Photo preview"
+        />
+      }
+
+      <!-- Darkened overlay with circular hole -->
+      <div class="pcd-overlay-mask" [style.--r.px]="CROP_R">
+        <svg class="pcd-mask-svg" [attr.width]="VIEWPORT" [attr.height]="VIEWPORT">
+          <defs>
+            <mask id="pcd-hole">
+              <rect width="100%" height="100%" fill="white"/>
+              <circle [attr.cx]="VIEWPORT/2" [attr.cy]="VIEWPORT/2" [attr.r]="CROP_R" fill="black"/>
+            </mask>
+          </defs>
+          <rect width="100%" height="100%" fill="rgba(0,0,0,0.58)" mask="url(#pcd-hole)"/>
+          <circle
+            [attr.cx]="VIEWPORT/2"
+            [attr.cy]="VIEWPORT/2"
+            [attr.r]="CROP_R"
+            fill="none"
+            stroke="rgba(255,255,255,0.85)"
+            stroke-width="2"
+          />
+        </svg>
+      </div>
+
+      <!-- Drag hint -->
+      <span class="pcd-drag-hint">Drag to reposition</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="pcd-controls">
+    <div class="pcd-ctrl-group">
+      <button class="pcd-ctrl-btn" type="button" (click)="flipH()" matTooltip="Flip horizontal">
+        <mat-icon>flip</mat-icon>
+      </button>
+      <button class="pcd-ctrl-btn pcd-ctrl-btn--flip-v" type="button" (click)="flipV()" matTooltip="Flip vertical">
+        <mat-icon>flip</mat-icon>
+      </button>
+    </div>
+
+    <div class="pcd-ctrl-group">
+      <button class="pcd-ctrl-btn" type="button" (click)="zoomOut()" matTooltip="Zoom out">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+      <button class="pcd-ctrl-btn" type="button" (click)="zoomIn()" matTooltip="Zoom in">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+    </div>
+
+    <button class="pcd-ctrl-btn pcd-ctrl-btn--fit" type="button" (click)="resetFit()" matTooltip="Fit to circle">
+      <mat-icon>fit_screen</mat-icon>
+      <span>Reset</span>
+    </button>
+  </div>
+
+  <!-- Actions -->
+  <div class="pcd-actions">
+    <button class="pcd-btn pcd-btn--cancel" type="button" (click)="cancel()">
+      Cancel
+    </button>
+    <button class="pcd-btn pcd-btn--apply" type="button" (click)="apply()" [disabled]="applying()">
+      <mat-icon [class.pcd-spin]="applying()">{{ applying() ? 'sync' : 'check_circle' }}</mat-icon>
+      {{ applying() ? 'Applying…' : 'Apply' }}
+    </button>
+  </div>
+
+</div>
+

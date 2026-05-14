@@ -2,6 +2,7 @@ import { Component, computed, inject, Input, OnInit, signal } from '@angular/cor
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { formatCurrency } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments';
@@ -10,6 +11,9 @@ import {
   DashboardTrendPoint,
   DashboardTrends,
 } from '../dashboard.models';
+import { RecentActivityComponent } from '../widgets/recent-activity/recent-activity.component';
+import { ConnectionsCardComponent } from '../widgets/connections-card/connections-card.component';
+import { ADMIN_QUICK_LINKS } from '../widgets/widget.models';
 
 /**
  * One row inside the "Pending Approvals" widget — title + subtitle + numeric amount.
@@ -47,13 +51,15 @@ interface EquipmentRow {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [ InrPipe,RouterLink],
+  imports: [InrPipe, RouterLink, MatIconModule, RecentActivityComponent, ConnectionsCardComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss',
 })
 export class AdminDashboardComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly http = inject(HttpClient);
+
+  protected readonly adminLinks = ADMIN_QUICK_LINKS;
 
   /**
    * Ordered list of widget keys to render. Null means "show all" (used when

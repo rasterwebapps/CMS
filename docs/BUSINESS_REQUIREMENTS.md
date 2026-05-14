@@ -31,6 +31,7 @@
 - [BR-22: Enquiry Form — Mandatory Fields, Location Defaults & Referral-Linked Person Search](#br-22-enquiry-form--mandatory-fields-location-defaults--referral-linked-person-search)
 - [BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules](#br-23-authoritative-fee-calculation--penny-safe-numeric-rules)
 - [BR-24: DB-Driven RBAC & Identity-Only Keycloak](#br-24-db-driven-rbac--identity-only-keycloak)
+- [BR-25: Profile Self-Service Editing and User Profile Photo](#br-25-profile-self-service-editing-and-user-profile-photo)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1108,10 +1109,38 @@ Step 7: STUDENT EXPLORER
 ---
 
 
+## BR-25: Profile Self-Service Editing and User Profile Photo
+
+Users may personalize their own Profile page without gaining access to admin-only Faculty/Student edit forms.
+
+### Self-edit whitelist
+
+The `/api/v1/profile/me/self-info` endpoint resolves the caller exclusively from the authenticated JWT. It does not accept a target user ID.
+
+| Field | Faculty self-edit | Student self-edit | Admin self-edit |
+|-------|-------------------|-------------------|-----------------|
+| Phone | Yes | Yes | No |
+| Blood Group | Yes | Yes | No |
+| Address: postal address/street/city/district/state/pincode | Yes | Yes | No |
+| Profile Photo | Yes | Yes | Yes |
+| Employee Code / Designation / Department / Status / Joining Date | No — admin-only | N/A | N/A |
+| Roll Number / Program / Year of Study / Admission Date | N/A | No — admin-only | N/A |
+| Email / Login Identity | No — SSO/admin-managed | No — SSO/admin-managed | No — SSO/admin-managed |
+
+### Profile photo rules
+
+- Profile photos are stored on the `app_users` record, not in Faculty/Student document verification records.
+- Faculty `FACULTY_PHOTO` documents are not reused for profile avatars.
+- All users may upload/remove their own profile photo.
+- Supported upload types: JPEG and PNG only.
+- Maximum size: 2 MB.
+
+
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-14 | BR-25 | Added profile self-service rules: authenticated users can update only their own phone, blood group, and address; profile photos are stored on `app_users` for all roles with JPEG/PNG and 2 MB limits; admin-only academic/employment/login fields remain locked | — |
 | 2026-05-12 | BR-24 | RBAC aligned to DB-driven authorization: Keycloak realm exports are identity-only, immutable default roles are limited to `DEV_ADMIN`/`SUPPORT_ADMIN`, and `collegeadmin` is scoped to admission-related DB permissions | — |
 | 2026-05-06 | BR-3, BR-5, BR-6, BR-23 | Fixed enquiry fee over-calculation risk: fee guideline lookup is current-academic-year scoped and active-row-only; backend recalculates enquiry fee totals from authoritative fee structures on create/update; referral/agent commission is decoupled from student fee and tracked separately; fee finalization uses backend-calculated totals and enforces exact two-decimal monetary values with discount bounds; frontend aggregation uses integer paise arithmetic to prevent rounding drift | — |
 | 2026-05-06 | BR-22 | Enquiry form mandatory fields (Phone, Country, State, Program, Course), Country/State pre-filled to India/Tamil Nadu; referral-linked person search: AGENT_REFERRAL→Agent dropdown (existing), ALUMNI/STUDENT→Student table search, FACULTY→Faculty table search; two new referral type seeds (STUDENT ₹500, FACULTY ₹500); `referred_student_id` and `referred_faculty_id` FK columns added to enquiries; course required conditionally based on program having courses | — |

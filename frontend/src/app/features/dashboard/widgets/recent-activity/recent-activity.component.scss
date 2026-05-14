@@ -1,0 +1,66 @@
+:host { display: block; }
+
+.activity-card { padding: 20px; }
+
+.ra-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+
+.ra-item {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+
+.ra-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+
+  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+}
+
+.ra-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.ra-text {
+  font-size: 13px;
+  color: var(--text-1, #111827);
+  margin: 0 0 3px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.ra-meta {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
+.ra-item:not(:last-child) .ra-body::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: -10px;
+  width: 1px;
+  background: rgba(0, 0, 0, .08);
+}
+
+.empty-hint {
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+

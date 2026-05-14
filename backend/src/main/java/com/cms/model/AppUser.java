@@ -56,6 +56,12 @@ public class AppUser {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "profile_photo")
+    private byte[] profilePhoto;
+
+    @Column(name = "profile_photo_type", length = 50)
+    private String profilePhotoType;
+
     public AppUser() {
     }
 
@@ -147,5 +153,21 @@ public class AppUser {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public byte[] getProfilePhoto() {
+        return profilePhoto;
+    }
+
+    public void setProfilePhoto(byte[] profilePhoto) {
+        this.profilePhoto = profilePhoto;
+    }
+
+    public String getProfilePhotoType() {
+        return profilePhotoType;
+    }
+
+    public void setProfilePhotoType(String profilePhotoType) {
+        this.profilePhotoType = profilePhotoType;
     }
 }

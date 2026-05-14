@@ -1,0 +1,51 @@
+<div class="student-dashboard">
+
+  <!-- ── Hero strip ─────────────────────────────────────── -->
+  <div class="student-hero anim-rise">
+    <div class="student-hero__greeting">
+      <p class="student-hero__hi font-display">
+        Welcome, {{ authService.username() || 'Student' }}
+      </p>
+      <p class="student-hero__date">{{ today }}</p>
+    </div>
+    @if (docSlots.docStats().total > 0) {
+      <div class="student-hero__stats">
+        <span class="student-hero__stat">
+          <strong class="font-mono">{{ docSlots.docStats().verified }}</strong>
+          / {{ docSlots.docStats().total }} documents verified
+        </span>
+      </div>
+    }
+  </div>
+
+  <!-- ── Personal document widgets ──────────────────────── -->
+  <cms-document-stats-row
+    [stats]="docSlots.docStats()"
+    [progressPct]="docSlots.progressPct()"
+  />
+
+  <div class="student-row">
+    <cms-completion-ring [progressPct]="docSlots.progressPct()" />
+    <cms-recent-activity />
+  </div>
+
+  <!-- ── Quick links ────────────────────────────────────── -->
+  <div class="content-card widget-card student-quicklinks">
+    <div class="widget-header">
+      <div class="widget-icon-wrap"><mat-icon>flash_on</mat-icon></div>
+      <h3 class="widget-title">Quick Links</h3>
+    </div>
+    <div class="widget-card__body sql-grid">
+      <a routerLink="/profile" class="sql-tile">
+        <mat-icon>folder_open</mat-icon>
+        <span>My Documents</span>
+      </a>
+      <a routerLink="/profile" class="sql-tile">
+        <mat-icon>person</mat-icon>
+        <span>My Profile</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+

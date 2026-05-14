@@ -68,13 +68,15 @@
         <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
           <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
         </button>
-
-        <app-theme-picker />
       }
 
       <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
         <div class="avatar-circle">
-          <mat-icon>person</mat-icon>
+          @if (profileService.avatarDataUrl()) {
+            <img class="toolbar-avatar-photo" [src]="profileService.avatarDataUrl()!" alt="Profile photo" />
+          } @else {
+            <mat-icon>person</mat-icon>
+          }
         </div>
         @if (authService.username() && !isMobile()) {
           <span class="toolbar-username">{{ authService.username() }}</span>

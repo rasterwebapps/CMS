@@ -1,10 +1,10 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
-  Profile page root — [style.--primary-theme] is the SINGLE source of truth
-  for every themed colour: glows, borders, gradients, ring, dock, buttons.
+  Profile page — identity, self-service contact editing, account security,
+  profile photo, role shortcuts, and personal documents.
 ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="profile-page" [style.--primary-theme]="primaryColor()">
 
-  <!-- ══ 1. LIQUID AURORA BACKGROUND (position: absolute, fills .profile-page) ══ -->
+  <!-- ══ Liquid aurora background ══ -->
   <div class="aurora-bg" aria-hidden="true">
     <div class="aurora-blob aurora-blob--1"></div>
     <div class="aurora-blob aurora-blob--2"></div>
@@ -12,16 +12,14 @@
     <div class="aurora-noise"></div>
   </div>
 
-  <!-- ══ 2. THEME DROPDOWN ══ -->
+  <!-- ══ Theme dropdown ══ -->
   <div class="theme-bar">
     <div class="theme-dropdown" (click)="$event.stopPropagation()">
-
-      <!-- Trigger: shows active color only -->
       <button
         class="theme-trigger"
         [class.theme-trigger--open]="themeOpen()"
         [style.--sw]="activeSwatch().hex"
-        (click)="themeOpen.update(v => !v)"
+        (click)="toggleThemeDropdown()"
         aria-label="Change theme color"
       >
         <span class="theme-trigger__dot"></span>
@@ -29,7 +27,6 @@
         <mat-icon class="theme-trigger__chevron">expand_more</mat-icon>
       </button>
 
-      <!-- Panel -->
       @if (themeOpen()) {
         <div class="theme-panel" role="listbox" aria-label="Theme colors">
           @for (sw of swatches; track sw.id) {
@@ -50,11 +47,19 @@
           }
         </div>
       }
-
     </div>
   </div>
 
-  <!-- ══ LOADING SKELETON ══ -->
+  <input
+    #photoInput
+    class="photo-file-input"
+    type="file"
+    accept="image/jpeg,image/png"
+    (change)="onPhotoSelected($event)"
+    aria-hidden="true"
+  />
+
+  <!-- ══ Loading skeleton ══ -->
   @if (loading()) {
     <div class="skeleton-hero">
       <div class="sk-avatar"></div>
@@ -67,11 +72,10 @@
     <div class="skeleton-grid">
       <div class="sk-card sk-card--tall"></div>
       <div class="sk-card"></div>
-      <div class="sk-card sk-card--short"></div>
     </div>
   }
 
-  <!-- ══ ERROR STATE ══ -->
+  <!-- ══ Error state ══ -->
   @if (!loading() && !identity()) {
     <div class="glass-card error-card"
          (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
@@ -85,36 +89,39 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════════
-    MAIN PROFILE (once identity is resolved)
+    MAIN PROFILE
   ════════════════════════════════════════════════════════════════════════ -->
   @if (!loading() && identity()) {
     @let id = identity()!;
     @let f  = faculty();
     @let s  = student();
 
-    <!-- ══ 3. HERO SECTION ══ -->
+    <!-- ══ Hero section ══ -->
     <section class="hero glass-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
 
-      <!-- Avatar with breathing glow + rotating conic ring + progress SVG -->
-      <div class="avatar-zone">
+      <div
+        class="avatar-zone avatar-zone--clickable"
+        [class.avatar-zone--uploading]="uploadingPhoto()"
+        (click)="triggerPhotoUpload()"
+        matTooltip="Upload profile photo"
+      >
         <div class="avatar-conic-ring"></div>
         <div class="avatar-pulse-ring"></div>
-        <div class="avatar" [class.avatar--admin]="id.entityType === 'ADMIN'">
-          {{ initials }}
-        </div>
-        @if (id.entityType !== 'ADMIN' && docStats().total > 0) {
-          <svg class="avatar-progress-svg" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="54" class="avp-track"/>
-            <circle cx="60" cy="60" r="54" class="avp-fill"
-                    [style.stroke-dashoffset]="avatarRingOffset()"/>
-          </svg>
-          <span class="avatar-pct-badge">{{ progressPct() }}%</span>
+        @if (photoUrl()) {
+          <img class="avatar avatar-photo" [src]="photoUrl()!" [alt]="id.displayName" />
+        } @else {
+          <div class="avatar" [class.avatar--admin]="id.entityType === 'ADMIN'">
+            {{ initials }}
+          </div>
         }
+        <div class="avatar-upload-overlay" aria-hidden="true">
+          <mat-icon [class.overlay-icon--spin]="uploadingPhoto()">{{ uploadingPhoto() ? 'sync' : 'photo_camera' }}</mat-icon>
+          <span>{{ uploadingPhoto() ? 'Uploading' : 'Change' }}</span>
+        </div>
         <span class="online-dot" title="Online"></span>
       </div>
 
-      <!-- Identity text block -->
       <div class="hero__info">
         <h1 class="hero__name">{{ id.displayName }}</h1>
 
@@ -167,97 +174,25 @@
         }
       </div>
 
-      <!-- CTA buttons -->
       <div class="hero__actions">
         @if (editRoute()) {
           <a class="btn-primary shimmer-btn" [routerLink]="editRoute()">
-            <mat-icon>edit</mat-icon> Edit Profile
+            <mat-icon>admin_panel_settings</mat-icon> Admin Edit
           </a>
         }
-        <button class="btn-ghost">
-          <mat-icon>ios_share</mat-icon> Share
-        </button>
-        <button class="btn-ghost">
-          <mat-icon>more_horiz</mat-icon>
-        </button>
+        @if (photoUrl()) {
+          <button class="btn-ghost-photo" type="button" (click)="removePhoto($event)">
+            <mat-icon>no_photography</mat-icon> Remove Photo
+          </button>
+        }
       </div>
     </section>
 
-    <!-- ══ 4. STATS ROW — faculty / student ══ -->
-    @if (f || (s && id.admissionId)) {
-      <div class="stats-row">
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--neutral">folder_open</mat-icon>
-          <span class="sv">{{ animTotal() }}</span>
-          <span class="sl">Total Docs</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--ok">verified</mat-icon>
-          <span class="sv sv--ok">{{ animVerified() }}</span>
-          <span class="sl">Verified</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--warn">pending_actions</mat-icon>
-          <span class="sv sv--warn">{{ animPending() }}</span>
-          <span class="sl">Pending</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--primary">upload_file</mat-icon>
-          <span class="sv sv--primary">{{ animMissing() }}</span>
-          <span class="sl">To Upload</span>
-        </div>
-        <div class="stat-item stat-item--ring glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <div class="mini-ring">
-            <svg viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" class="mr-track"/>
-              <circle cx="22" cy="22" r="18" class="mr-fill" [style.stroke-dashoffset]="miniRingOffset()"/>
-            </svg>
-            <span class="mr-pct">{{ progressPct() }}%</span>
-          </div>
-          <span class="sl">Complete</span>
-        </div>
-      </div>
-    }
+    <!-- ══ Bento grid: identity + self-service layout ══ -->
+    <div class="bento-grid bento-grid--profile">
 
-    <!-- ══ 4b. STATS ROW — admin ══ -->
-    @if (id.entityType === 'ADMIN' && summary()) {
-      @let sm = summary()!;
-      <div class="stats-row">
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--ok">person</mat-icon>
-          <span class="sv sv--ok">{{ sm.totalStudents }}</span>
-          <span class="sl">Students</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--primary">groups</mat-icon>
-          <span class="sv sv--primary">{{ sm.totalFaculty }}</span>
-          <span class="sl">Faculty</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--warn">business</mat-icon>
-          <span class="sv sv--warn">{{ sm.totalDepartments }}</span>
-          <span class="sl">Departments</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--neutral">school</mat-icon>
-          <span class="sv">{{ sm.totalPrograms }}</span>
-          <span class="sl">Programs</span>
-        </div>
-        <div class="stat-item glass-card" (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-          <mat-icon class="si si--ok">quiz</mat-icon>
-          <span class="sv sv--ok">{{ sm.totalExaminations }}</span>
-          <span class="sl">Exams</span>
-        </div>
-      </div>
-    }
-
-    <!-- ══ 5. BENTO GRID ══ -->
-    <div class="bento-grid">
-
-      <!-- ── COLUMN A (40%) ── -->
+      <!-- Column A: Bio / About -->
       <div class="bcol bcol-a">
-
-        <!-- Bio Card -->
         <div class="glass-card bio-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
           <div class="card-hdr">
@@ -304,118 +239,100 @@
           }
         </div>
 
-        <!-- Document Status Overview (faculty / student) -->
-        @if (f || (s && id.admissionId)) {
-          <div class="glass-card doc-overview-card"
-               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-            <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>folder_open</mat-icon></div>
-              <h3>Document Overview</h3>
-              <span class="card-badge">{{ docStats().total }}</span>
-            </div>
-            <div class="doc-bars">
-              <div class="doc-bar-row">
-                <div class="doc-bar-meta">
-                  <span class="dot dot--ok"></span>
-                  <span>Verified</span>
-                  <span class="doc-bar-count">{{ docStats().verified }}</span>
-                </div>
-                <div class="doc-bar-track">
-                  <div class="doc-bar-fill doc-bar-fill--ok"
-                       [style.width.%]="docStats().total ? (docStats().verified / docStats().total)*100 : 0">
-                  </div>
-                </div>
-              </div>
-              <div class="doc-bar-row">
-                <div class="doc-bar-meta">
-                  <span class="dot dot--warn"></span>
-                  <span>Pending Review</span>
-                  <span class="doc-bar-count">{{ docStats().pending }}</span>
-                </div>
-                <div class="doc-bar-track">
-                  <div class="doc-bar-fill doc-bar-fill--warn"
-                       [style.width.%]="docStats().total ? (docStats().pending / docStats().total)*100 : 0">
-                  </div>
-                </div>
-              </div>
-              <div class="doc-bar-row">
-                <div class="doc-bar-meta">
-                  <span class="dot dot--miss"></span>
-                  <span>Awaiting Upload</span>
-                  <span class="doc-bar-count">{{ docStats().missing }}</span>
-                </div>
-                <div class="doc-bar-track">
-                  <div class="doc-bar-fill doc-bar-fill--miss"
-                       [style.width.%]="docStats().total ? (docStats().missing / docStats().total)*100 : 0">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-
-        <!-- Admin: system health mini-card -->
-        @if (id.entityType === 'ADMIN') {
-          <div class="glass-card health-card"
-               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-            <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>monitoring</mat-icon></div>
-              <h3>System Health</h3>
-              <span class="status-ok-chip">All Systems Operational</span>
-            </div>
-            <div class="health-rows">
-              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Database</span><span class="h-val">Connected</span></div>
-              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>API</span><span class="h-val">Operational</span></div>
-              <div class="health-row"><span class="h-dot h-dot--ok"></span><span>Auth (Keycloak)</span><span class="h-val">Live</span></div>
-              <div class="health-row"><span class="h-dot h-dot--warn"></span><span>Storage</span><span class="h-val">68% Used</span></div>
-            </div>
-          </div>
-        }
-
-      </div>
-
-      <!-- ── COLUMN B (35%) ── -->
-      <div class="bcol bcol-b">
-
-        <!-- Activity Timeline -->
-        <div class="glass-card activity-card"
+        <div class="glass-card security-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
           <div class="card-hdr">
-            <div class="card-hdr__icon"><mat-icon>history</mat-icon></div>
-            <h3>Recent Activity</h3>
+            <div class="card-hdr__icon"><mat-icon>lock</mat-icon></div>
+            <h3>Account &amp; Security</h3>
           </div>
-          <div class="timeline">
-            @for (item of activityItems; track item.id) {
-              <div class="tl-item">
-                <div class="tl-dot" [style.background]="item.color">
-                  <mat-icon>{{ item.icon }}</mat-icon>
-                </div>
-                <div class="tl-line" *ngIf="!$last"></div>
-                <div class="tl-body">
-                  <p class="tl-text">{{ item.text }}</p>
-                  <span class="tl-time">{{ item.time }}</span>
-                </div>
-              </div>
-            }
+          <div class="info-list">
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>vpn_key</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">SSO Provider</span><span class="info-row__value">Keycloak</span></div>
+            </div>
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>email</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Login Email</span><span class="info-row__value">{{ id.email || '—' }}</span></div>
+            </div>
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>verified_user</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Session</span><span class="info-row__value">Managed by Keycloak SSO</span></div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Personal Info (faculty / student) -->
+      <!-- Column B: Personal Info + self-edit -->
+      <div class="bcol bcol-b">
+
         @if (f || s) {
           <div class="glass-card info-card"
                (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
             <div class="card-hdr">
               <div class="card-hdr__icon"><mat-icon>person_outline</mat-icon></div>
               <h3>Personal Info</h3>
-              @if (editRoute()) {
-                <a class="card-edit-btn" [routerLink]="editRoute()" matTooltip="Edit Profile">
+              @if (!editMode()) {
+                <button class="card-edit-btn" type="button" (click)="enterEditMode()" matTooltip="Edit your contact details">
                   <mat-icon>edit</mat-icon>
-                </a>
+                </button>
               }
             </div>
+
+            @if (!editMode()) {
+              <div class="info-list">
+                @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
+                @for (item of items; track item.label) {
+                  <div class="info-row">
+                    <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                    <div class="info-row__body">
+                      <span class="info-row__label">{{ item.label }}</span>
+                      <span class="info-row__value">{{ item.value }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="self-edit-form">
+                <label class="self-field">
+                  <span>Phone</span>
+                  <input type="tel" [(ngModel)]="editForm.phone" placeholder="Mobile number" />
+                </label>
+                <label class="self-field">
+                  <span>Blood Group</span>
+                  <input type="text" [(ngModel)]="editForm.bloodGroup" placeholder="e.g. B+" />
+                </label>
+                <div class="self-edit-title">Address</div>
+                <label class="self-field">
+                  <span>Street</span>
+                  <input type="text" [(ngModel)]="editForm.street" placeholder="Street / door no." />
+                </label>
+                <div class="self-grid">
+                  <label class="self-field"><span>City</span><input type="text" [(ngModel)]="editForm.city" /></label>
+                  <label class="self-field"><span>District</span><input type="text" [(ngModel)]="editForm.district" /></label>
+                </div>
+                <div class="self-grid">
+                  <label class="self-field"><span>State</span><input type="text" [(ngModel)]="editForm.state" /></label>
+                  <label class="self-field"><span>Pincode</span><input type="text" [(ngModel)]="editForm.pincode" /></label>
+                </div>
+                <div class="self-actions">
+                  <button class="btn-self-cancel" type="button" (click)="cancelEdit()" [disabled]="savingSelfInfo()">Cancel</button>
+                  <button class="btn-self-save" type="button" (click)="saveSelfInfo()" [disabled]="savingSelfInfo()">
+                    <mat-icon [class.overlay-icon--spin]="savingSelfInfo()">{{ savingSelfInfo() ? 'sync' : 'check' }}</mat-icon>
+                    {{ savingSelfInfo() ? 'Saving...' : 'Save Changes' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="glass-card contact-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>contact_phone</mat-icon></div>
+              <h3>Contact &amp; Emergency</h3>
+            </div>
             <div class="info-list">
-              @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
-              @for (item of items.slice(0, 7); track item.label) {
+              @for (item of contactInfoItems(); track item.label) {
                 <div class="info-row">
                   <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
                   <div class="info-row__body">
@@ -428,7 +345,6 @@
           </div>
         }
 
-        <!-- Admin info card -->
         @if (id.entityType === 'ADMIN') {
           <div class="glass-card info-card"
                (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
@@ -459,77 +375,29 @@
 
       </div>
 
-      <!-- ── COLUMN C (25%) ── -->
+      <!-- Column C: Quick Links -->
       <div class="bcol bcol-c">
-
-        <!-- Completion Ring Card (faculty / student) -->
-        @if (f || (s && id.admissionId)) {
-          <div class="glass-card completion-card"
-               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-            <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>donut_large</mat-icon></div>
-              <h3>Completion</h3>
-            </div>
-            <div class="big-ring-wrap">
-              <svg class="big-ring-svg" viewBox="0 0 140 140" aria-label="{{ progressPct() }}% documents verified">
-                <circle cx="70" cy="70" r="60" class="br-track"/>
-                <circle cx="70" cy="70" r="60" class="br-fill" [style.stroke-dashoffset]="bigRingOffset()"/>
-              </svg>
-              <div class="big-ring-center">
-                <span class="big-ring-pct">{{ progressPct() }}%</span>
-                <span class="big-ring-sub">Verified</span>
-              </div>
-            </div>
-          </div>
-        }
-
-        <!-- Connections Card -->
-        <div class="glass-card connections-card"
+        <div class="glass-card quick-links-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
           <div class="card-hdr">
-            <div class="card-hdr__icon"><mat-icon>group</mat-icon></div>
-            <h3>Colleagues</h3>
-            <span class="card-badge">{{ connections.length }}</span>
+            <div class="card-hdr__icon"><mat-icon>apps</mat-icon></div>
+            <h3>Quick Links</h3>
           </div>
-          <div class="conn-list">
-            @for (p of connections; track p.id) {
-              <div class="conn-item">
-                <div class="conn-avatar">{{ p.initials }}</div>
-                <div class="conn-body">
-                  <span class="conn-name">{{ p.name }}</span>
-                  <span class="conn-role">{{ p.role }}</span>
-                </div>
-                <div class="conn-status" [class.conn-status--online]="p.online"
-                     [matTooltip]="p.online ? 'Online' : 'Offline'">
-                </div>
-              </div>
+          <div class="quick-link-list">
+            @for (link of quickLinks(); track link.route) {
+              <a class="quick-link-item" [routerLink]="link.route">
+                <span class="quick-link-icon"><mat-icon>{{ link.icon }}</mat-icon></span>
+                <span class="quick-link-label">{{ link.label }}</span>
+                <mat-icon class="quick-link-arrow">chevron_right</mat-icon>
+              </a>
             }
           </div>
         </div>
-
-        <!-- Admin: no completion ring, show a features card -->
-        @if (id.entityType === 'ADMIN') {
-          <div class="glass-card features-card"
-               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-            <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>star</mat-icon></div>
-              <h3>Key Features</h3>
-            </div>
-            <ul class="features-list">
-              <li><mat-icon>check</mat-icon> RBAC — Role-based access</li>
-              <li><mat-icon>check</mat-icon> Document verification flow</li>
-              <li><mat-icon>check</mat-icon> Flyway schema migrations</li>
-              <li><mat-icon>check</mat-icon> Keycloak SSO integration</li>
-              <li><mat-icon>check</mat-icon> Real-time audit trail</li>
-            </ul>
-          </div>
-        }
-
       </div>
     </div>
-    <!-- end Bento Grid -->
+    <!-- end bento grid -->
 
-    <!-- ══ 6. FULL DOCUMENT MANAGEMENT SECTION ══ -->
+    <!-- ══ Document Vault (faculty / student only) ══ -->
     @if (f || (s && id.admissionId)) {
       <section class="section-block">
         <div class="section-header">
@@ -563,46 +431,8 @@
       </section>
     }
 
-    <!-- ══ 7. ADMIN QUICK ACCESS GRID ══ -->
-    @if (id.entityType === 'ADMIN') {
-      <section class="section-block">
-        <div class="section-header">
-          <div class="section-header__icon"><mat-icon>grid_view</mat-icon></div>
-          <div>
-            <h2>Quick Access</h2>
-            <p>Jump to any module instantly</p>
-          </div>
-        </div>
-        <div class="admin-grid">
-          @for (lnk of adminLinks; track lnk.route) {
-            <a class="admin-card admin-card--{{ lnk.cc }}" [routerLink]="lnk.route">
-              <div class="admin-card__icon"><mat-icon>{{ lnk.icon }}</mat-icon></div>
-              <div class="admin-card__body">
-                <span class="admin-card__label">{{ lnk.label }}</span>
-                <span class="admin-card__desc">{{ lnk.desc }}</span>
-              </div>
-              <mat-icon class="admin-card__arrow">arrow_forward_ios</mat-icon>
-            </a>
-          }
-        </div>
-      </section>
-    }
-
   }
   <!-- end @if identity -->
 
-  <!-- ══ 8. FLOATING DOCK (always visible after load) ══ -->
-  @if (!loading()) {
-    <nav class="floating-dock" aria-label="Profile navigation">
-      @for (item of dockItems; track item.route) {
-        <a class="dock-item" [routerLink]="item.route"
-           routerLinkActive="dock-item--active"
-           [matTooltip]="item.label" matTooltipPosition="above">
-          <mat-icon>{{ item.icon }}</mat-icon>
-          <div class="dock-item__dot"></div>
-        </a>
-      }
-    </nav>
-  }
-
 </div>
+

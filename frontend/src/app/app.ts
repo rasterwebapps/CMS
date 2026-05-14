@@ -18,11 +18,11 @@ import { PermissionService } from './core/permissions/permission.service';
 import { LayoutService } from './core/layout/layout.service';
 import { ResponsiveService } from './core/layout/responsive.service';
 import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.service';
-import { ThemePickerComponent } from './shared/theme-picker/theme-picker.component';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
 import { ToastHostComponent } from './core/toast/toast-host.component';
 import { TourService, ONBOARDING_TOUR_STEPS } from './core/tour';
+import { ProfileService } from './features/profile/profile.service';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -64,7 +64,6 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
     MatExpansionModule,
     MatDivider,
     MatBadgeModule,
-    ThemePickerComponent,
     GlobalSearchComponent,
     BreadcrumbBarComponent,
     ToastHostComponent,
@@ -75,6 +74,7 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 export class App implements OnInit, AfterViewInit {
   protected readonly authService = inject(AuthService);
   protected readonly permissionService = inject(PermissionService);
+  protected readonly profileService = inject(ProfileService);
   private readonly layoutService = inject(LayoutService);
   protected readonly responsiveService = inject(ResponsiveService);
   private readonly shortcutsService = inject(KeyboardShortcutsService);
@@ -324,6 +324,9 @@ export class App implements OnInit, AfterViewInit {
   ngOnInit(): void {
     // Install global keyboard shortcuts (g-leader navigation + ? cheat-sheet).
     this.shortcutsService.install();
+
+    // Load initial profile avatar for the toolbar.
+    this.profileService.loadAvatar();
 
     // Sync expanded group on initial load
     this.syncExpandedGroupToRoute(this.router.url);

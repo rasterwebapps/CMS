@@ -5,6 +5,14 @@
   padding: 8px 4px 32px;
 }
 
+.faculty-doc-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  gap: 16px;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
 // ── Hero strip ──────────────────────────────────────────
 .faculty-hero {
   display: flex;

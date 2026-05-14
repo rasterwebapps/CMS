@@ -1,0 +1,23 @@
+<div class="content-card widget-card connections-card">
+  <div class="widget-header">
+    <div class="widget-icon-wrap"><mat-icon>group</mat-icon></div>
+    <h3 class="widget-title">{{ title }}</h3>
+    <span class="cn-badge">{{ people.length }}</span>
+  </div>
+  <div class="widget-card__body">
+    <div class="cn-list">
+      @for (p of people; track p.id) {
+        <div class="cn-item">
+          <div class="cn-avatar">{{ p.initials }}</div>
+          <div class="cn-body">
+            <span class="cn-name">{{ p.name }}</span>
+            <span class="cn-role">{{ p.role }}</span>
+          </div>
+          <div class="cn-status" [class.cn-status--online]="p.online"
+               [matTooltip]="p.online ? 'Online' : 'Offline'"></div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
