@@ -91,6 +91,10 @@
           <mat-icon>keyboard</mat-icon>
           <span>Keyboard shortcuts</span>
         </button>
+        <button mat-menu-item (click)="startTour()">
+          <mat-icon>tour</mat-icon>
+          <span>Help tour</span>
+        </button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="logout()">
           <mat-icon>logout</mat-icon>
@@ -119,22 +123,37 @@
 
 
     @if (!sidenavRail() || isMobile()) {
-      <div class="sidenav-search">
-        <mat-icon class="sidenav-search-icon">search</mat-icon>
-        <input
-          type="text"
-          class="sidenav-search-input"
-          placeholder="Find menu..."
-          [value]="menuSearch()"
-          (input)="onMenuSearchInput($event)"
-          aria-label="Search navigation menu"
-        />
-        @if (menuSearch()) {
-          <button mat-icon-button class="sidenav-search-clear" (click)="menuSearch.set('')" matTooltip="Clear">
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </div>
+      <!-- Desktop: input is invisible until / is pressed -->
+      @if (navSearchActive()) {
+        <div class="sidenav-search">
+          <mat-icon class="sidenav-search-icon">search</mat-icon>
+          <input
+            #navSearchInput
+            type="text"
+            class="sidenav-search-input"
+            placeholder="Filter menu..."
+            [value]="menuSearch()"
+            (input)="onMenuSearchInput($event)"
+            (keydown)="onNavSearchKeyDown($event)"
+            aria-label="Filter navigation menu"
+            autocomplete="off"
+          />
+          @if (menuSearch()) {
+            <button mat-icon-button class="sidenav-search-clear" (click)="clearNavSearch()" matTooltip="Clear">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      }
+      <!-- Mobile: visible tap-target since there is no keyboard shortcut -->
+      @if (!navSearchActive() && isMobile()) {
+        <button class="sidenav-filter-trigger" type="button"
+                (click)="activateNavSearch()"
+                aria-label="Filter menu items">
+          <mat-icon class="sidenav-search-icon">search</mat-icon>
+          <span class="sidenav-filter-hint-text">Filter menu</span>
+        </button>
+      }
     }
 
     <div class="sidenav-nav">
@@ -175,6 +194,7 @@
                 <mat-panel-title>
                   <mat-icon class="nav-group-icon">{{ entry.icon }}</mat-icon>
                   <span class="nav-group-label">{{ entry.label }}</span>
+                  <mat-icon class="nav-group-chevron">chevron_right</mat-icon>
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <mat-nav-list dense>
@@ -201,7 +221,8 @@
               </a>
             </div>
           } @else {
-            <a [routerLink]="entry.route" routerLinkActive="top-level-active" class="top-level-nav-item">
+            <a [routerLink]="entry.route" routerLinkActive="top-level-active"
+               class="top-level-nav-item">
               <mat-icon class="top-level-icon">{{ entry.icon }}</mat-icon>
               <span class="top-level-label">{{ entry.label }}</span>
             </a>
@@ -210,34 +231,27 @@
       }
     </div>
 
-    <!-- Sidenav footer — OneCMS logo + keyboard shortcuts trigger -->
+    <!-- Sidenav footer — product identity -->
     <div class="sidenav-footer">
       @if (!sidenavRail() || isMobile()) {
-        <button type="button" class="sidenav-footer-shortcut-btn" (click)="openKeyboardShortcuts()"
-                matTooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-          <mat-icon>keyboard</mat-icon>
-        </button>
-        <button type="button" class="sidenav-footer-shortcut-btn" (click)="startTour()"
-                matTooltip="Help tour" aria-label="Start help tour">
-          <mat-icon>help_outline</mat-icon>
-        </button>
         <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
-           class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" aria-label="Raster Images Private Limited">
-          <img src="assets/images/cms-logo.svg" alt="OneCMS by Raster" class="sidenav-footer-logo"/>
+           class="sidenav-footer-brand"
+           matTooltip="Raster Images Private Limited"
+           aria-label="OneCMS by Raster Images Private Limited">
+          <img src="assets/images/raster-icon.png" alt="" aria-hidden="true"
+               class="sidenav-footer-product-icon" />
+          <div class="sidenav-footer-product-text">
+            <span class="sidenav-footer-product-name">OneCMS</span>
+            <span class="sidenav-footer-product-by">Raster Images Pvt. Ltd.</span>
+          </div>
         </a>
       } @else {
-        <button type="button" class="sidenav-footer-icon-btn" (click)="openKeyboardShortcuts()"
-                matTooltip="Keyboard shortcuts (?)" matTooltipPosition="right" aria-label="Show keyboard shortcuts">
-          <mat-icon>keyboard</mat-icon>
-        </button>
-        <button type="button" class="sidenav-footer-icon-btn" (click)="startTour()"
-                matTooltip="Help tour" matTooltipPosition="right" aria-label="Start help tour">
-          <mat-icon>help_outline</mat-icon>
-        </button>
         <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
-           class="sidenav-footer-brand-link" matTooltip="Raster Images Private Limited" matTooltipPosition="right"
-           aria-label="Raster Images Private Limited">
-          <img src="assets/images/cms-icon.svg" alt="OneCMS" class="sidenav-footer-icon-logo"/>
+           class="sidenav-footer-brand sidenav-footer-brand--icon-only"
+           matTooltip="OneCMS · Raster Images" matTooltipPosition="right"
+           aria-label="OneCMS by Raster Images Private Limited">
+          <img src="assets/images/raster-icon.png" alt="Raster"
+               class="sidenav-footer-product-icon" />
         </a>
       }
     </div>

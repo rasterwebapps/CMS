@@ -56,6 +56,7 @@ export class KeyboardShortcutsService {
     { keys: 'g p', description: 'Go to Fee Payments' },
     // Listed for completeness in the cheat-sheet — actually handled by GlobalSearchComponent.
     { keys: 'Ctrl/⌘ K', description: 'Focus global search' },
+    { keys: '/', description: 'Filter sidebar menu' },
     { keys: '?', description: 'Show this keyboard shortcuts dialog' },
     { keys: 'h', description: 'Start Help tour' },
   ];

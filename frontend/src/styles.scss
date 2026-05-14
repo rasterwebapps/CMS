@@ -136,10 +136,12 @@
   --cms-sidenav-text: #475569;
   --cms-sidenav-text-bright: #1e293b;
   --cms-sidenav-hover: rgba(0, 0, 0, 0.04);
-  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.12);
+  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.16);
   --cms-sidenav-active-text: #6366f1;
+  --cms-sidenav-active-border: rgba(99, 102, 241, 0.24);
+  --cms-sidenav-icon: #7c8fa6;
   --cms-sidenav-border: rgba(0, 0, 0, 0.08);
-  --cms-sidenav-group-text: #94a3b8;
+  --cms-sidenav-group-text: #64748b;
   --cms-sidenav-search-bg: rgba(0, 0, 0, 0.02);
   --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.02);
   --cms-sidenav-footer-text: #94a3b8;
@@ -276,8 +278,10 @@ html {
     --cms-sidenav-text: #cbd5e1;
     --cms-sidenav-text-bright: #f1f5f9;
     --cms-sidenav-hover: rgba(255, 255, 255, 0.08);
-    --cms-sidenav-active-bg: rgba(99, 102, 241, 0.15);
+    --cms-sidenav-active-bg: rgba(99, 102, 241, 0.20);
     --cms-sidenav-active-text: #a5b4fc;
+    --cms-sidenav-active-border: rgba(99, 102, 241, 0.28);
+    --cms-sidenav-icon: #94a3b8;
     --cms-sidenav-border: rgba(255, 255, 255, 0.04);
     --cms-sidenav-group-text: #64748b;
     --cms-sidenav-search-bg: rgba(255, 255, 255, 0.03);
@@ -372,8 +376,10 @@ html {
   --cms-sidenav-text: #cbd5e1;
   --cms-sidenav-text-bright: #f1f5f9;
   --cms-sidenav-hover: rgba(255, 255, 255, 0.08);
-  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.15);
+  --cms-sidenav-active-bg: rgba(99, 102, 241, 0.20);
   --cms-sidenav-active-text: #a5b4fc;
+  --cms-sidenav-active-border: rgba(99, 102, 241, 0.28);
+  --cms-sidenav-icon: #94a3b8;
   --cms-sidenav-border: rgba(255, 255, 255, 0.04);
   --cms-sidenav-group-text: #64748b;
   --cms-sidenav-search-bg: rgba(255, 255, 255, 0.03);

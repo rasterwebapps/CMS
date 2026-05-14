@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit, NgZone } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit, NgZone } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -93,6 +93,9 @@ export class App implements OnInit, AfterViewInit {
   /** The trigger whose flyout is currently visible. */
   private activeMenuTrigger: MatMenuTrigger | null = null;
 
+  protected readonly navSearchActive = signal(false);
+  @ViewChild('navSearchInput') private navSearchInputRef?: ElementRef<HTMLInputElement>;
+
   protected readonly darkTheme = signal(false);
   /**
    * `true` → user collapsed the sidenav into a 68 px icon rail.
@@ -125,56 +128,57 @@ export class App implements OnInit, AfterViewInit {
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
 
   private readonly navEntries: NavEntry[] = [
-    { label: 'Dashboard',  icon: 'dashboard',    route: '/dashboard' },
-    { label: 'My Profile', icon: 'account_circle', route: '/profile' },
+    // 1. Overview — primary landmarks
     {
-      label: 'Preferences',
-      icon: 'tune',
+      label: 'Overview',
+      icon: 'home',
       items: [
-        { label: 'Departments',     icon: 'business',         route: '/departments',      permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
-        { label: 'Programs',        icon: 'school',           route: '/programs',         permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
-        { label: 'Courses',         icon: 'menu_book',        route: '/courses',          permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
-        { label: 'Academic Years',  icon: 'calendar_month',   route: '/academic-years',   permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
-        { label: 'Semesters',       icon: 'date_range',       route: '/semesters',        permissions: ['SEMESTER_VIEW', 'SEMESTER_MANAGE'] },
-        { label: 'Academic Calendar', icon: 'event_note',     route: '/academic-calendar', permissions: ['ACADEMIC_YEAR_MANAGE'] },
-        { label: 'Labs',            icon: 'science',          route: '/labs',             permissions: ['LAB_MANAGE'] },
-        { label: 'Fee Structures',  icon: 'account_balance',  route: '/fee-structures',   permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
-        { label: 'Equipment',       icon: 'devices',          route: '/equipment',        permissions: ['EQUIPMENT_MANAGE'] },
-        { label: 'Faculty',              icon: 'groups',           route: '/faculty',                     permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
-        { label: 'Faculty Doc Config',   icon: 'rule',             route: '/faculty/document-config',     permissions: ['FACULTY_MANAGE'] },
-        { label: 'Agents',          icon: 'support_agent',    route: '/agents',           permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
-        { label: 'Referral Types',  icon: 'share',            route: '/referral-types',   permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
-        { label: 'Communities',     icon: 'people',           route: '/communities',      permissions: ['COMMUNITY_VIEW', 'COMMUNITY_MANAGE'] },
-        { label: 'Blood Groups',    icon: 'bloodtype',        route: '/blood-groups',     permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE'] },
-        { label: 'Settings',        icon: 'settings',         route: '/settings',         permissions: ['SETTINGS_MANAGE'] },
+        { label: 'Dashboard',  icon: 'dashboard',      route: '/dashboard' },
+        { label: 'My Profile', icon: 'account_circle', route: '/profile' },
       ],
     },
+    // 2. Admission Management
     {
       label: 'Admission Management',
       icon: 'how_to_reg',
       items: [
-        { label: 'Enquiries',            icon: 'contact_mail',  route: '/enquiries',                    permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'] },
-        { label: 'Submit Documents',         icon: 'upload_file',      route: '/enquiries/document-submission',  permissions: ['DOCUMENT_SUBMISSION_MANAGE'] },
-        { label: 'Faculty Doc Verification', icon: 'pending_actions',  route: '/faculty/document-verification',  permissions: ['FACULTY_MANAGE'] },
-        { label: 'Complete Admission',   icon: 'how_to_reg',    route: '/enquiries/admission-completion', permissions: ['ADMISSION_CREATE'] },
-        { label: 'Admissions',           icon: 'assignment_ind', route: '/admissions',                  permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
-        { label: 'Students',             icon: 'person',        route: '/students',                     permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'] },
-        { label: 'Roll Number Assignment', icon: 'tag',         route: '/students/roll-numbers',        permissions: ['ROLL_NUMBER_ASSIGN'] },
-        { label: 'Import Data',          icon: 'upload',        route: '/import',                       permissions: ['IMPORT_DATA'] },
+        { label: 'Enquiries',                icon: 'contact_mail',     route: '/enquiries',                     permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'] },
+        { label: 'Submit Documents',         icon: 'upload_file',      route: '/enquiries/document-submission', permissions: ['DOCUMENT_SUBMISSION_MANAGE'] },
+        { label: 'Faculty Doc Verification', icon: 'pending_actions',  route: '/faculty/document-verification', permissions: ['FACULTY_MANAGE'] },
+        { label: 'Complete Admission',       icon: 'how_to_reg',       route: '/enquiries/admission-completion', permissions: ['ADMISSION_CREATE'] },
+        { label: 'Admissions',               icon: 'assignment_ind',   route: '/admissions',                    permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
+        { label: 'Students',                 icon: 'person',           route: '/students',                      permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'] },
+        { label: 'Roll Number Assignment',   icon: 'tag',              route: '/students/roll-numbers',         permissions: ['ROLL_NUMBER_ASSIGN'] },
+        { label: 'Import Data',              icon: 'upload',           route: '/import',                        permissions: ['IMPORT_DATA'] },
       ],
     },
+    // 3. Finance
+    {
+      label: 'Finance',
+      icon: 'account_balance_wallet',
+      items: [
+        { label: 'Student Fees',             icon: 'account_balance_wallet', route: '/student-fees',              permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
+        { label: 'Fee Collection',           icon: 'payments',               route: '/fee-collection',            permissions: ['FEE_COLLECT'] },
+        { label: 'Receipts',                 icon: 'receipt_long',           route: '/receipts',                  permissions: ['STUDENT_FEE_VIEW', 'FEE_COLLECT'] },
+        { label: 'Fee Finalization',         icon: 'lock',                   route: '/student-fees/finalize',     permissions: ['FEE_FINALIZE'] },
+        { label: 'Scholarships',             icon: 'school',                 route: '/scholarships',              permissions: ['SCHOLARSHIP_MANAGE'] },
+        { label: 'Scholarship Applications', icon: 'verified',               route: '/scholarship-applications',  permissions: ['SCHOLARSHIP_APPROVE'] },
+      ],
+    },
+    // 4. Curriculum & Academics
     {
       label: 'Curriculum & Academics',
       icon: 'auto_stories',
       items: [
-        { label: 'Syllabi',             icon: 'library_books',      route: '/syllabi',            permissions: ['SYLLABUS_VIEW', 'SYLLABUS_MANAGE'] },
-        { label: 'Experiments',         icon: 'biotech',            route: '/experiments',        permissions: ['EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'] },
+        { label: 'Syllabi',             icon: 'library_books',      route: '/syllabi',             permissions: ['SYLLABUS_VIEW', 'SYLLABUS_MANAGE'] },
+        { label: 'Experiments',         icon: 'biotech',            route: '/experiments',         permissions: ['EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'] },
         { label: 'CO/PO Mapping',       icon: 'account_tree',       route: '/curriculum-mappings', permissions: ['COPO_VIEW', 'COPO_MANAGE', 'CURRICULUM_VIEW'] },
         { label: 'Curriculum Versions', icon: 'layers',             route: '/curriculum-versions', permissions: ['CURRICULUM_VIEW', 'CURRICULUM_MANAGE'] },
-        { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',      permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'] },
-        { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',         permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE'] },
+        { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'] },
+        { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',          permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE'] },
       ],
     },
+    // 5. Examinations
     {
       label: 'Examinations',
       icon: 'quiz',
@@ -183,18 +187,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Exam Results', icon: 'grade', route: '/exam-results',  permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'] },
       ],
     },
-    {
-      label: 'Finance',
-      icon: 'account_balance_wallet',
-      items: [
-        { label: 'Student Fees',    icon: 'account_balance_wallet', route: '/student-fees',        permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
-        { label: 'Fee Collection',  icon: 'payments',               route: '/fee-collection',      permissions: ['FEE_COLLECT'] },
-        { label: 'Receipts',        icon: 'receipt_long',           route: '/receipts',             permissions: ['STUDENT_FEE_VIEW', 'FEE_COLLECT'] },
-        { label: 'Fee Finalization', icon: 'lock',                  route: '/student-fees/finalize', permissions: ['FEE_FINALIZE'] },
-        { label: 'Scholarships',    icon: 'school',                 route: '/scholarships',        permissions: ['SCHOLARSHIP_MANAGE'] },
-        { label: 'Scholarship Applications', icon: 'verified',      route: '/scholarship-applications', permissions: ['SCHOLARSHIP_APPROVE'] },
-      ],
-    },
+    // 6. Lab & Infrastructure
     {
       label: 'Lab & Infrastructure',
       icon: 'construction',
@@ -203,11 +196,42 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_MANAGE'] },
       ],
     },
-    { label: 'Reports',     icon: 'assessment',     route: '/reports',      permissions: ['REPORT_VIEW'] },
-    { label: 'Fee Reports', icon: 'request_quote',  route: '/fee-reports',  permissions: ['FEE_REPORT_VIEW'] },
+    // 7. Reports & Analytics
     {
-      label: 'Administration',
-      icon: 'admin_panel_settings',
+      label: 'Reports & Analytics',
+      icon: 'analytics',
+      items: [
+        { label: 'Reports',     icon: 'assessment',    route: '/reports',     permissions: ['REPORT_VIEW'] },
+        { label: 'Fee Reports', icon: 'request_quote', route: '/fee-reports', permissions: ['FEE_REPORT_VIEW'] },
+      ],
+    },
+    // 8. Preferences
+    {
+      label: 'Preferences',
+      icon: 'tune',
+      items: [
+        { label: 'Departments',          icon: 'business',         route: '/departments',             permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
+        { label: 'Programs',             icon: 'school',           route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
+        { label: 'Courses',              icon: 'menu_book',        route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
+        { label: 'Academic Years',       icon: 'calendar_month',   route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Semesters',            icon: 'date_range',       route: '/semesters',               permissions: ['SEMESTER_VIEW', 'SEMESTER_MANAGE'] },
+        { label: 'Academic Calendar',    icon: 'event_note',       route: '/academic-calendar',       permissions: ['ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Labs',                 icon: 'science',          route: '/labs',                    permissions: ['LAB_MANAGE'] },
+        { label: 'Fee Structures',       icon: 'account_balance',  route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
+        { label: 'Equipment',            icon: 'devices',          route: '/equipment',               permissions: ['EQUIPMENT_MANAGE'] },
+        { label: 'Faculty',              icon: 'groups',           route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
+        { label: 'Faculty Doc Config',   icon: 'rule',             route: '/faculty/document-config', permissions: ['FACULTY_MANAGE'] },
+        { label: 'Agents',               icon: 'support_agent',    route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
+        { label: 'Referral Types',       icon: 'share',            route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
+        { label: 'Communities',          icon: 'people',           route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_MANAGE'] },
+        { label: 'Blood Groups',         icon: 'bloodtype',        route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE'] },
+        { label: 'Settings',             icon: 'settings',         route: '/settings',                permissions: ['SETTINGS_MANAGE'] },
+      ],
+    },
+    // 9. User & Roles
+    {
+      label: 'User & Roles',
+      icon: 'manage_accounts',
       items: [
         { label: 'User Management',    icon: 'manage_accounts', route: '/user-management', permissions: ['USER_VIEW'] },
         { label: 'Roles & Permissions', icon: 'shield',         route: '/role-management', permissions: ['ROLE_VIEW'] },
@@ -336,6 +360,8 @@ export class App implements OnInit, AfterViewInit {
       const url = (e as NavigationEnd).urlAfterRedirects;
       this.currentUrl.set(url);
       this.syncExpandedGroupToRoute(url);
+      this.navSearchActive.set(false);
+      this.menuSearch.set('');
       if (this.isMobile()) {
         this.mobileDrawerOpen.set(false);
       }
@@ -434,6 +460,32 @@ export class App implements OnInit, AfterViewInit {
 
   protected onMenuSearchInput(event: Event): void {
     this.menuSearch.set((event.target as HTMLInputElement).value);
+  }
+
+  protected activateNavSearch(): void {
+    this.navSearchActive.set(true);
+    setTimeout(() => this.navSearchInputRef?.nativeElement.focus(), 0);
+  }
+
+  protected clearNavSearch(): void {
+    this.menuSearch.set('');
+    this.navSearchActive.set(false);
+  }
+
+  protected onNavSearchKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') this.clearNavSearch();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  protected onDocumentSlashKey(event: KeyboardEvent): void {
+    if (event.key !== '/') return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const tag = (event.target as HTMLElement).tagName;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+    if ((event.target as HTMLElement).isContentEditable) return;
+    if (this.sidenavRail() && !this.isMobile()) return;
+    event.preventDefault();
+    this.activateNavSearch();
   }
 
   protected navigateBack(): void {
