@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, Input, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
@@ -22,6 +22,12 @@ import { FrontOfficeDashboard } from '../dashboard.models';
   styleUrl: './front-office-dashboard.component.scss',
 })
 export class FrontOfficeDashboardComponent implements OnInit {
+  @Input() visibleWidgets: string[] | null = null;
+
+  protected show(key: string): boolean {
+    return this.visibleWidgets === null || this.visibleWidgets.includes(key);
+  }
+
   protected readonly authService = inject(AuthService);
   private readonly http = inject(HttpClient);
 

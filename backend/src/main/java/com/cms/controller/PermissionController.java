@@ -49,12 +49,17 @@ public class PermissionController {
             .sorted()
             .toList();
 
+        List<String> widgetKeys = (role != null && role.getDashboardWidgets() != null)
+            ? role.getDashboardWidgets()
+            : List.of();
+
         MyPermissionsResponse response = new MyPermissionsResponse(
             username,
             role != null ? role.getName() : null,
             role != null ? role.getDisplayName() : null,
             role != null ? role.getHierarchyLevel() : 0,
-            permissionCodes
+            permissionCodes,
+            widgetKeys
         );
         return ResponseEntity.ok(response);
     }

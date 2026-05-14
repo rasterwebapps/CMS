@@ -1,19 +1,28 @@
 package com.cms.service;
 
+import java.util.Map;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AddressRequest;
+import com.cms.dto.FacultyDocumentReviewSummary;
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
+import com.cms.model.FacultyDocument;
+import com.cms.model.enums.DocumentType;
+import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.DepartmentRepository;
+import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
 
 @Service
@@ -22,10 +31,17 @@ public class FacultyService {
 
     private final FacultyRepository facultyRepository;
     private final DepartmentRepository departmentRepository;
+    private final FacultyDocumentRepository facultyDocumentRepository;
+    private final FacultyDocumentTypeRequirementService requirementService;
 
-    public FacultyService(FacultyRepository facultyRepository, DepartmentRepository departmentRepository) {
+    public FacultyService(FacultyRepository facultyRepository,
+                          DepartmentRepository departmentRepository,
+                          FacultyDocumentRepository facultyDocumentRepository,
+                          FacultyDocumentTypeRequirementService requirementService) {
         this.facultyRepository = facultyRepository;
         this.departmentRepository = departmentRepository;
+        this.facultyDocumentRepository = facultyDocumentRepository;
+        this.requirementService = requirementService;
     }
 
     @Transactional
@@ -245,7 +261,68 @@ public class FacultyService {
             faculty.getClinicalExperiencePgYears(),
             faculty.getClinicalExperiencePhdYears(),
             faculty.getCreatedAt(),
-            faculty.getUpdatedAt()
+            faculty.getUpdatedAt(),
+            documentReviewSummary(faculty)
         );
+    }
+
+    private FacultyDocumentReviewSummary documentReviewSummary(Faculty faculty) {
+        if (faculty.getId() == null) {
+            return emptyDocumentReviewSummary();
+        }
+
+        List<FacultyDocument> documents = facultyDocumentRepository.findByFacultyId(faculty.getId());
+        if (documents == null) {
+            documents = List.of();
+        }
+        Set<String> requiredTypes = requirementService.getRequiredDocumentTypesForFaculty(faculty.getId());
+        if (requiredTypes == null) {
+            requiredTypes = Set.of();
+        }
+        Map<DocumentType, FacultyDocument> byType = documents.stream()
+            .collect(Collectors.toMap(FacultyDocument::getDocumentType, Function.identity(), (first, ignored) -> first));
+
+        int totalDocumentCount = (int) documents.stream().filter(this::hasFile).count();
+        int pendingVerificationCount = (int) documents.stream()
+            .filter(this::hasFile)
+            .filter(doc -> doc.getStatus() == DocumentVerificationStatus.UPLOADED)
+            .count();
+        int rejectedCount = (int) documents.stream()
+            .filter(this::hasFile)
+            .filter(doc -> doc.getStatus() == DocumentVerificationStatus.REJECTED)
+            .count();
+        int missingRequiredCount = 0;
+        int verifiedRequiredCount = 0;
+
+        for (String requiredType : requiredTypes) {
+            DocumentType documentType = DocumentType.valueOf(requiredType);
+            FacultyDocument document = byType.get(documentType);
+            if (document == null || !hasFile(document) || document.getStatus() == DocumentVerificationStatus.NOT_UPLOADED) {
+                missingRequiredCount++;
+            } else if (document.getStatus() == DocumentVerificationStatus.VERIFIED) {
+                verifiedRequiredCount++;
+            }
+        }
+
+        return new FacultyDocumentReviewSummary(
+            totalDocumentCount,
+            requiredTypes.size(),
+            pendingVerificationCount,
+            rejectedCount,
+            missingRequiredCount,
+            verifiedRequiredCount,
+            totalDocumentCount > 0,
+            pendingVerificationCount > 0,
+            rejectedCount > 0,
+            !requiredTypes.isEmpty() && missingRequiredCount == 0 && verifiedRequiredCount == requiredTypes.size()
+        );
+    }
+
+    private boolean hasFile(FacultyDocument document) {
+        return document.getFileName() != null;
+    }
+
+    private FacultyDocumentReviewSummary emptyDocumentReviewSummary() {
+        return new FacultyDocumentReviewSummary(0, 0, 0, 0, 0, 0, false, false, false, false);
     }
 }

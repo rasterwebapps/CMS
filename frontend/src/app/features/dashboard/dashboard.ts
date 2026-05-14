@@ -6,6 +6,7 @@ import { CashierDashboardComponent } from './cashier/cashier-dashboard.component
 import { StudentDashboardComponent } from './student/student-dashboard.component';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { DEFAULT_WIDGET_KEYS } from './widget-registry';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,6 +24,16 @@ import { AuthService } from '../../core/auth/auth.service';
 export class DashboardComponent {
   protected readonly permissionService = inject(PermissionService);
   private readonly authService = inject(AuthService);
+
+  /**
+   * Ordered widget keys sourced directly from the already-loaded permissions
+   * response. No extra API call — data is available before the route activates.
+   * Falls back to DEFAULT_WIDGET_KEYS when the role has no saved config.
+   */
+  protected readonly visibleWidgets = computed<string[] | null>(() => {
+    const widgets = this.permissionService.dashboardWidgets();
+    return widgets.length > 0 ? widgets : DEFAULT_WIDGET_KEYS;
+  });
 
   protected readonly activeDashboard = computed<'admin' | 'front-office' | 'cashier' | 'faculty' | 'student' | null>(() => {
     if (this.permissionService.isRole('devadmin', 'supportadmin', 'admin', 'collegeadmin', 'college_admin')) {

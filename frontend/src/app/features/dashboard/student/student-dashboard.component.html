@@ -19,17 +19,26 @@
   </div>
 
   <!-- ── Personal document widgets ──────────────────────── -->
-  <cms-document-stats-row
-    [stats]="docSlots.docStats()"
-    [progressPct]="docSlots.progressPct()"
-  />
+  @if (show('doc-stats')) {
+    <cms-document-stats-row
+      [stats]="docSlots.docStats()"
+      [progressPct]="docSlots.progressPct()"
+    />
+  }
 
-  <div class="student-row">
-    <cms-completion-ring [progressPct]="docSlots.progressPct()" />
-    <cms-recent-activity />
-  </div>
+  @if (show('completion-ring') || show('recent-activity')) {
+    <div class="student-row">
+      @if (show('completion-ring')) {
+        <cms-completion-ring [progressPct]="docSlots.progressPct()" />
+      }
+      @if (show('recent-activity')) {
+        <cms-recent-activity />
+      }
+    </div>
+  }
 
   <!-- ── Quick links ────────────────────────────────────── -->
+  @if (show('student-quicklinks')) {
   <div class="content-card widget-card student-quicklinks">
     <div class="widget-header">
       <div class="widget-icon-wrap"><mat-icon>flash_on</mat-icon></div>
@@ -46,6 +55,7 @@
       </a>
     </div>
   </div>
+  }
 
 </div>
 

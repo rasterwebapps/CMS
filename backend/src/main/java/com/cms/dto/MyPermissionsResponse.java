@@ -7,5 +7,6 @@ public record MyPermissionsResponse(
     String roleName,
     String roleDisplayName,
     int hierarchyLevel,
-    List<String> permissions
+    List<String> permissions,
+    List<String> dashboardWidgets
 ) {}

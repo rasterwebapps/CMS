@@ -21,16 +21,25 @@
   </div>
 
   <!-- ── Personal document widgets (moved from Profile) ─── -->
-  <cms-document-stats-row
-    [stats]="docSlots.docStats()"
-    [progressPct]="docSlots.progressPct()"
-  />
+  @if (show('doc-stats')) {
+    <cms-document-stats-row
+      [stats]="docSlots.docStats()"
+      [progressPct]="docSlots.progressPct()"
+    />
+  }
 
-  <div class="faculty-doc-row">
-    <cms-completion-ring [progressPct]="docSlots.progressPct()" />
-    <cms-connections-card />
-  </div>
+  @if (show('completion-ring') || show('colleagues')) {
+    <div class="faculty-doc-row">
+      @if (show('completion-ring')) {
+        <cms-completion-ring [progressPct]="docSlots.progressPct()" />
+      }
+      @if (show('colleagues')) {
+        <cms-connections-card />
+      }
+    </div>
+  }
 
+  @if (show('classes-today')) {
   @if (loading()) {
     <div class="faculty-loading">
       <mat-icon>hourglass_top</mat-icon>
@@ -147,10 +156,13 @@
         </div>
 
         <!-- Recent Activity (moved from Profile) -->
-        <cms-recent-activity />
+        @if (show('recent-activity')) {
+          <cms-recent-activity />
+        }
 
       </div>
 
     </div>
+  }
   }
 </div>

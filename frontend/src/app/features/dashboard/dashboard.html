@@ -1,14 +1,14 @@
 <div class="dashboard-shell">
   @if (activeDashboard() === 'admin') {
-    <app-admin-dashboard />
+    <app-admin-dashboard [visibleWidgets]="visibleWidgets()" />
   } @else if (activeDashboard() === 'front-office') {
-    <app-front-office-dashboard />
+    <app-front-office-dashboard [visibleWidgets]="visibleWidgets()" />
   } @else if (activeDashboard() === 'cashier') {
-    <app-cashier-dashboard />
+    <app-cashier-dashboard [visibleWidgets]="visibleWidgets()" />
   } @else if (activeDashboard() === 'faculty') {
-    <app-faculty-dashboard />
+    <app-faculty-dashboard [visibleWidgets]="visibleWidgets()" />
   } @else if (activeDashboard() === 'student') {
-    <app-student-dashboard />
+    <app-student-dashboard [visibleWidgets]="visibleWidgets()" />
   } @else {
     <!-- Shown when the user is authenticated but has no recognised role or
          when the /permissions/my API returned an error (user not in app_users).

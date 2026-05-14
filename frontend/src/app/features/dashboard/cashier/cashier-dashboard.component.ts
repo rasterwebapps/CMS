@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, Input, inject, OnInit, signal, computed } from '@angular/core';
 import { formatCurrency } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -34,6 +34,12 @@ interface CashierKpiCard {
   styleUrl: './cashier-dashboard.component.scss',
 })
 export class CashierDashboardComponent implements OnInit {
+  @Input() visibleWidgets: string[] | null = null;
+
+  protected show(key: string): boolean {
+    return this.visibleWidgets === null || this.visibleWidgets.includes(key);
+  }
+
   protected readonly authService = inject(AuthService);
   private readonly http = inject(HttpClient);
 

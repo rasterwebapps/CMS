@@ -51,5 +51,6 @@ public record FacultyResponse(
     BigDecimal clinicalExperiencePgYears,
     BigDecimal clinicalExperiencePhdYears,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    FacultyDocumentReviewSummary documentReview
 ) {}

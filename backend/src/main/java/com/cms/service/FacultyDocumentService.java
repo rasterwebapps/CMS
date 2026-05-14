@@ -104,16 +104,31 @@ public class FacultyDocumentService {
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
 
         DocumentVerificationStatus previousStatus = document.getStatus();
+        DocumentVerificationStatus nextStatus = request.status();
+
+        if (nextStatus == DocumentVerificationStatus.REJECTED && isBlank(request.remarks())) {
+            throw new IllegalArgumentException("Rejection reason is required");
+        }
+        if (nextStatus == DocumentVerificationStatus.VERIFIED && !hasFile(document)) {
+            throw new IllegalArgumentException("Cannot verify a document before a file is uploaded");
+        }
 
         document.setDocumentType(request.documentType());
-        if (request.status() != null) {
-            document.setStatus(request.status());
+        if (nextStatus != null) {
+            document.setStatus(nextStatus);
+            if (nextStatus == DocumentVerificationStatus.VERIFIED) {
+                document.setVerifiedBy(currentUserResolver.resolve());
+                document.setVerifiedAt(Instant.now());
+            } else if (previousStatus == DocumentVerificationStatus.VERIFIED) {
+                document.setVerifiedBy(null);
+                document.setVerifiedAt(null);
+            }
         }
         document.setRemarks(request.remarks());
 
         FacultyDocument saved = documentRepository.save(document);
 
-        if (request.status() != null && request.status() != previousStatus) {
+        if (nextStatus != null && nextStatus != previousStatus) {
             recordHistory(saved, previousStatus, saved.getStatus());
         }
 
@@ -150,6 +165,10 @@ public class FacultyDocumentService {
             .findFirst()
             .orElseGet(() -> new FacultyDocument(faculty, documentType, DocumentVerificationStatus.NOT_UPLOADED));
 
+        if (document.getStatus() == DocumentVerificationStatus.VERIFIED) {
+            throw new IllegalStateException("Verified documents cannot be replaced");
+        }
+
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
 
         try {
@@ -162,6 +181,8 @@ public class FacultyDocumentService {
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
+        document.setVerifiedBy(null);
+        document.setVerifiedAt(null);
         if (remarks != null) {
             document.setRemarks(remarks);
         }
@@ -210,6 +231,14 @@ public class FacultyDocumentService {
         int slash = name.lastIndexOf('/');
         if (slash >= 0) name = name.substring(slash + 1);
         return name.isBlank() ? null : name;
+    }
+
+    private boolean hasFile(FacultyDocument document) {
+        return document.getFileName() != null;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private FacultyDocumentResponse toResponse(FacultyDocument doc) {

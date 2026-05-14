@@ -8,6 +8,7 @@ export interface MyPermissionsResponse {
   roleDisplayName: string;
   hierarchyLevel: number;
   permissions: string[];
+  dashboardWidgets: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -17,10 +18,12 @@ export class PermissionService {
 
   private readonly _response = signal<MyPermissionsResponse | null>(null);
 
-  readonly loaded    = computed(() => this._response() !== null);
-  readonly roleName  = computed(() => this._response()?.roleName ?? '');
-  readonly roleLabel = computed(() => this._response()?.roleDisplayName ?? '');
-  readonly level     = computed(() => this._response()?.hierarchyLevel ?? 99);
+  readonly loaded           = computed(() => this._response() !== null);
+  readonly roleName         = computed(() => this._response()?.roleName ?? '');
+  readonly roleLabel        = computed(() => this._response()?.roleDisplayName ?? '');
+  readonly level            = computed(() => this._response()?.hierarchyLevel ?? 99);
+  /** Ordered widget keys for this user's role. Empty until permissions are loaded. */
+  readonly dashboardWidgets = computed(() => this._response()?.dashboardWidgets ?? []);
   readonly normalizedRoleName = computed(() =>
     this.roleName()
       .replace(/_/g, '')

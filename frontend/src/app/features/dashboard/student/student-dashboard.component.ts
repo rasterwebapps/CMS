@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, Input, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -24,6 +24,12 @@ import { RecentActivityComponent } from '../widgets/recent-activity/recent-activ
   styleUrl: './student-dashboard.component.scss',
 })
 export class StudentDashboardComponent implements OnInit {
+  @Input() visibleWidgets: string[] | null = null;
+
+  protected show(key: string): boolean {
+    return this.visibleWidgets === null || this.visibleWidgets.includes(key);
+  }
+
   protected readonly authService = inject(AuthService);
   private readonly profileService = inject(ProfileService);
   protected readonly docSlots = inject(DocumentSlotsService);

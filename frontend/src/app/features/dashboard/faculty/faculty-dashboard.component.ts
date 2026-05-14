@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, Input, inject, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -36,6 +36,12 @@ import { ConnectionsCardComponent } from '../widgets/connections-card/connection
   styleUrl: './faculty-dashboard.component.scss',
 })
 export class FacultyDashboardComponent implements OnInit {
+  @Input() visibleWidgets: string[] | null = null;
+
+  protected show(key: string): boolean {
+    return this.visibleWidgets === null || this.visibleWidgets.includes(key);
+  }
+
   protected readonly authService = inject(AuthService);
   private readonly http = inject(HttpClient);
   private readonly profileService = inject(ProfileService);

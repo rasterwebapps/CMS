@@ -27,6 +27,15 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { key: 'pending-approvals',  label: 'Pending Approvals',  description: 'Outstanding items requiring attention',            icon: 'pending_actions',  category: 'lists' },
   { key: 'equipment-status',   label: 'Equipment Status',   description: 'Equipment status breakdown with progress bars',   icon: 'inventory_2',      category: 'lists' },
   { key: 'fee-overview',       label: 'Fee Overview',       description: 'Fee collection and outstanding summary',          icon: 'account_balance',  category: 'lists' },
+  // ── Faculty & Student shared widgets ─────────────────────────────────
+  { key: 'doc-stats',          label: 'Document Stats',     description: 'Document completion statistics row',              icon: 'folder_open',      category: 'stats' },
+  { key: 'completion-ring',    label: 'Completion Ring',    description: 'Visual progress ring for document completion',    icon: 'donut_large',      category: 'stats' },
+  { key: 'recent-activity',    label: 'Recent Activity',    description: 'Recent system activity feed',                     icon: 'history',          category: 'lists' },
+  { key: 'colleagues',         label: 'Colleagues',         description: 'Connected faculty members or peers',              icon: 'group',            category: 'lists' },
+  // ── Faculty-specific ─────────────────────────────────────────────────
+  { key: 'classes-today',      label: 'Classes & Schedule', description: 'Today\'s classes, pending attendance, lab slots', icon: 'calendar_today',   category: 'lists' },
+  // ── Student-specific ─────────────────────────────────────────────────
+  { key: 'student-quicklinks', label: 'Quick Links',        description: 'Student quick-navigation shortcuts',              icon: 'flash_on',         category: 'layout' },
 ];
 
 /** Widget keys shown by default when a role has no saved configuration. */
