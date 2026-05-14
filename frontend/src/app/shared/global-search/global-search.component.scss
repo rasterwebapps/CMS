@@ -80,6 +80,21 @@
     }
   }
 
+  &__kbd {
+    font-family: inherit;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--cms-text-muted);
+    background: var(--cms-bg-hover, rgba(0, 0, 0, 0.05));
+    border: 1px solid var(--cms-border-default);
+    border-radius: 5px;
+    padding: 2px 5px;
+    flex-shrink: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
   &__spinner {
     width: 14px;
     height: 14px;
@@ -216,7 +231,8 @@
       pointer-events: none;
     }
 
-    &__close {
+    &__close,
+    &__kbd {
       display: none;
     }
 

@@ -159,7 +159,7 @@
   --cms-primary-rgb:    99, 102, 241;   /* updated dynamically by ThemeService */
 
   // ─── Toolbar ───
-  --cms-toolbar-bg: #ffffff;
+  --cms-toolbar-bg: rgba(255, 255, 255, 0.85);
   --cms-toolbar-text: var(--cms-text-primary);
   --cms-toolbar-border: var(--cms-border-default);
   --cms-toolbar-btn-color: var(--cms-text-secondary);
@@ -289,15 +289,15 @@ html {
     --cms-danger-light: rgba(239, 68, 68, 0.12);
     --cms-info-light: rgba(59, 130, 246, 0.12);
 
-    // ─── Toolbar dark override: primary background + white text ───
-    --cms-toolbar-bg: var(--cms-primary);
-    --cms-toolbar-text: #ffffff;
-    --cms-toolbar-border: transparent;
-    --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
-    --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
-    --cms-toolbar-btn-hover-color: #ffffff;
-    --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
-    --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
+    // ─── Toolbar dark override: near-black neutral, not the accent colour ───
+    --cms-toolbar-bg: #0d0f1c;
+    --cms-toolbar-text: #f1f5f9;
+    --cms-toolbar-border: rgba(255, 255, 255, 0.06);
+    --cms-toolbar-btn-color: #94a3b8;
+    --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.08);
+    --cms-toolbar-btn-hover-color: #f1f5f9;
+    --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.14);
+    --cms-toolbar-avatar-hover-border: var(--cms-primary);
 
     // ─── Additional Surface Tokens (dark) ─────────────────────────────────
     --cms-bg-surface-2:   #1D2333;
@@ -385,19 +385,15 @@ html {
   --cms-danger-light: rgba(239, 68, 68, 0.12);
   --cms-info-light: rgba(59, 130, 246, 0.12);
 
-  // ─── Toolbar dark override ───────────────────────────────────────────────
-  // Use palette[900] (the deep dark shade) rather than --cms-primary (palette[500]).
-  // Full-saturation 500 as a toolbar background looks like an error/alert state
-  // — especially for warm or bright accent colours. The 900 shade gives a rich,
-  // dark, tonal surface that still reflects the chosen accent hue.
-  --cms-toolbar-bg: var(--color-primary-900);
-  --cms-toolbar-text: #ffffff;
-  --cms-toolbar-border: transparent;
-  --cms-toolbar-btn-color: rgba(255, 255, 255, 0.8);
-  --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.12);
-  --cms-toolbar-btn-hover-color: #ffffff;
-  --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.22);
-  --cms-toolbar-avatar-hover-border: rgba(255, 255, 255, 0.55);
+  // ─── Toolbar dark override: near-black neutral, not the accent colour ───
+  --cms-toolbar-bg: #0d0f1c;
+  --cms-toolbar-text: #f1f5f9;
+  --cms-toolbar-border: rgba(255, 255, 255, 0.06);
+  --cms-toolbar-btn-color: #94a3b8;
+  --cms-toolbar-btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --cms-toolbar-btn-hover-color: #f1f5f9;
+  --cms-toolbar-avatar-border: rgba(255, 255, 255, 0.14);
+  --cms-toolbar-avatar-hover-border: var(--cms-primary);
 
   // ─── Additional Surface Tokens (dark) ───────────────────────────────────
   --cms-bg-surface-2:   #1D2333;
@@ -405,54 +401,6 @@ html {
   --cms-line:           rgba(255, 255, 255, 0.06);
   --cms-line-strong:    rgba(255, 255, 255, 0.10);
   --cms-glow-opacity:   0.18;
-}
-
-// ──────────────────────────────────────────────────
-// Global Search — dark toolbar context overrides
-// In dark mode the toolbar uses the primary colour as its background.
-// The default pill background (--cms-bg-muted: #1e2235) creates a jarring
-// dark blob on the coloured toolbar.  Override with a translucent-white
-// style so the pill integrates with the toolbar instead of fighting it.
-// ──────────────────────────────────────────────────
-@mixin gs-pill-dark-toolbar {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
-
-  &:focus-within {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.55);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
-  }
-
-  .gs-pill__icon { color: rgba(255, 255, 255, 0.65); }
-
-  .gs-pill__input {
-    color: rgba(255, 255, 255, 0.9);
-    &::placeholder { color: rgba(255, 255, 255, 0.45); }
-  }
-
-  .gs-pill__spinner {
-    border-color: rgba(255, 255, 255, 0.25);
-    border-top-color: rgba(255, 255, 255, 0.85);
-  }
-
-  .gs-pill__close {
-    color: rgba(255, 255, 255, 0.65);
-    &:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.15);
-    }
-  }
-}
-
-html.dark-theme .app-toolbar app-global-search .gs-pill {
-  @include gs-pill-dark-toolbar;
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not(.light-theme) .app-toolbar app-global-search .gs-pill {
-    @include gs-pill-dark-toolbar;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -3008,11 +2956,6 @@ html.dark-theme body::after {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes cms-live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
 
 // Animation utility classes
 .anim-rise {

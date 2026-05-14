@@ -46,14 +46,6 @@
     } @else {
       <span class="toolbar-spacer"></span>
 
-      <!-- Live indicator chip — hidden on mobile -->
-      @if (!isMobile()) {
-        <div class="toolbar-live-chip">
-          <span class="toolbar-live-dot"></span>
-          <span class="toolbar-live-label">Live</span>
-        </div>
-      }
-
       <app-global-search />
 
       @if (!isMobile()) {
@@ -69,6 +61,8 @@
           <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
         </button>
       }
+
+      <div class="toolbar-divider" aria-hidden="true"></div>
 
       <button [matMenuTriggerFor]="userMenu" matTooltip="Account" class="toolbar-avatar-btn">
         <div class="avatar-circle">

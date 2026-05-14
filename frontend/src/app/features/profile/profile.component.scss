@@ -37,6 +37,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: transparent; // transparent so theme page background shows through any PNG transparency
 }
 
 .avatar-upload-overlay {
@@ -548,6 +549,13 @@
 
   &--admin {
     background: linear-gradient(135deg, #3b4a5a 0%, #1e2a38 100%);
+  }
+
+  // When displaying an actual photo, clear the dark background so transparent
+  // PNG areas show the page/theme background instead of this dark gradient.
+  &.avatar-photo {
+    background: transparent;
+    border: none;
   }
 }
 

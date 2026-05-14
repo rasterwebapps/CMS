@@ -260,9 +260,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (!result?.blob) return;
-      // Upload the cropped blob
-      const croppedFile = new File([result.blob], file.name.replace(/\.(jpg|jpeg|png)$/i, '.jpg'), {
-        type: 'image/jpeg',
+      // Upload the cropped blob as PNG to preserve transparency
+      const croppedFile = new File([result.blob], file.name.replace(/\.(jpg|jpeg|png|webp)$/i, '.png'), {
+        type: 'image/png',
       });
       this.uploadCroppedPhoto(croppedFile);
     });

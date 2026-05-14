@@ -1,174 +1,185 @@
 import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
-  ViewChild,
-  signal,
-  computed,
-  OnInit,
   OnDestroy,
+  OnInit,
+  ViewChild,
   inject,
-  ChangeDetectionStrategy,
+  signal,
 } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-/** Data passed into the dialog. */
-export interface PhotoCropDialogData {
-  file: File;
-}
+export interface PhotoCropDialogData   { file: File; }
+export interface PhotoCropDialogResult { blob: Blob; }
 
-/** Result returned by the dialog on confirm. */
-export interface PhotoCropDialogResult {
-  blob: Blob;
-}
-
-/** Size of the visible crop viewport in CSS pixels. */
-const VIEWPORT_PX = 320;
-/** Diameter of the circular crop area (centred in the viewport). */
-const CROP_CIRCLE_PX = 280;
-/** Output square canvas size (diameter of final image → circle). */
-const OUTPUT_PX = 500;
+const VIEWPORT_PX    = 320;  // size of the visible drag area in CSS px
+const CROP_CIRCLE_PX = 280;  // diameter of the circular crop zone
+const OUTPUT_PX      = 500;  // output canvas side length
 
 @Component({
   selector: 'app-photo-crop-dialog',
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule],
   templateUrl: './photo-crop-dialog.component.html',
-  styleUrl: './photo-crop-dialog.component.scss',
+  styleUrl:    './photo-crop-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PhotoCropDialogComponent implements OnInit, OnDestroy {
-  @ViewChild('imgEl') private imgEl!: ElementRef<HTMLImageElement>;
+export class PhotoCropDialogComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  private readonly dialogRef = inject<MatDialogRef<PhotoCropDialogComponent, PhotoCropDialogResult>>(MatDialogRef);
+  // ── The preview IS a <canvas> — what you see is what gets cropped ──────────
+  @ViewChild('previewCanvas') private canvasRef?: ElementRef<HTMLCanvasElement>;
+
+  private readonly dialogRef =
+    inject<MatDialogRef<PhotoCropDialogComponent, PhotoCropDialogResult>>(MatDialogRef);
   private readonly data = inject<PhotoCropDialogData>(MAT_DIALOG_DATA);
 
-  /** Object URL created from the incoming file — revoked on dialog close. */
-  protected readonly imageSrc = signal('');
-
-  // ── Transform state ────────────────────────────────────────────────────────
-  /** Pan offset in viewport CSS pixels (relative to image centre). */
-  protected readonly tx = signal(0);
-  protected readonly ty = signal(0);
-  /** Zoom multiplier (1 = fit-to-circle). */
-  protected readonly zoom = signal(1);
-  /** Flip direction multipliers. */
-  protected readonly fh = signal(1);  // 1 = normal, -1 = flipped
-  protected readonly fv = signal(1);
-
-  /** CSS transform applied to <img>. Operates around the element's centre (= viewport centre). */
-  protected readonly imgTransform = computed(() =>
-    `translate(${this.tx()}px, ${this.ty()}px) scale(${this.zoom()}) scaleX(${this.fh()}) scaleY(${this.fv()})`,
-  );
-
-  /** Natural dimensions set once the image loads. */
+  // ── Loaded image ──────────────────────────────────────────────────────────
+  private img: HTMLImageElement | null = null;
+  private objectUrl = '';
+  /** Natural pixel dimensions */
   private nw = 1;
   private nh = 1;
-  /** Scale applied to the image element to make it cover the crop circle at zoom=1. */
+  /** Scale that makes the image cover the crop circle at zoom 1 */
   private fitScale = 1;
+  /** Display dimensions (display-space pixels, used by canvas draw) */
+  private dw = 0;
+  private dh = 0;
 
-  /**
-   * CSS top/left of the <img> element so its centre sits at the viewport centre.
-   * Recomputed whenever displayW/displayH change (i.e. after onImageLoad).
-   * Together with transform-origin:center the element centre == viewport centre
-   * regardless of image dimensions — which is the pivot point assumed by renderCrop.
-   */
-  protected readonly centerX = computed(() => (VIEWPORT_PX - this.displayW()) / 2);
-  protected readonly centerY = computed(() => (VIEWPORT_PX - this.displayH()) / 2);
+  // ── User transform state (plain numbers, NOT signals, for perf) ────────────
+  private _tx = 0;
+  private _ty = 0;
+  private _zoom = 1;
+  private _fh = 1;   // 1 = normal, -1 = flip horizontal
+  private _fv = 1;
 
-  /** Initial element display size so CSS width/height can be set. */
-  protected readonly displayW = signal(0);
-  protected readonly displayH = signal(0);
+  // ── Reactive signals for the template only ────────────────────────────────
+  protected readonly imageReady = signal(false);
+  protected readonly applying   = signal(false);
+
+  // ── Constants exposed to template ─────────────────────────────────────────
+  protected readonly VIEWPORT = VIEWPORT_PX;
+  protected readonly CROP_R   = CROP_CIRCLE_PX / 2;
 
   // ── Drag state ─────────────────────────────────────────────────────────────
   private dragging = false;
   private lastX = 0;
   private lastY = 0;
-  private readonly boundPointerMove = this.onPointerMove.bind(this);
-  private readonly boundPointerUp = this.onPointerUp.bind(this);
+  private readonly boundMove = this.onPointerMove.bind(this);
+  private readonly boundUp   = this.onPointerUp.bind(this);
 
-  protected readonly applying = signal(false);
+  private viewReady = false;
 
-  /** Viewport and circle size exposed to the template. */
-  protected readonly VIEWPORT = VIEWPORT_PX;
-  protected readonly CROP_R = CROP_CIRCLE_PX / 2;
+  // ══════════════════════════════════════════════════════════════════════════
+  // Lifecycle
+  // ══════════════════════════════════════════════════════════════════════════
 
   ngOnInit(): void {
-    const objectUrl = URL.createObjectURL(this.data.file);
-    this.imageSrc.set(objectUrl);
+    this.objectUrl = URL.createObjectURL(this.data.file);
+    const img = new Image();
+    img.onload = () => {
+      this.img      = img;
+      this.nw       = img.naturalWidth;
+      this.nh       = img.naturalHeight;
+      // Cover fit: neither dimension smaller than the crop circle
+      this.fitScale = Math.max(CROP_CIRCLE_PX / this.nw, CROP_CIRCLE_PX / this.nh);
+      this.dw       = this.nw * this.fitScale;
+      this.dh       = this.nh * this.fitScale;
+      // Reset transforms
+      this._tx = 0; this._ty = 0; this._zoom = 1; this._fh = 1; this._fv = 1;
+      this.imageReady.set(true);
+      this.draw();
+    };
+    img.src = this.objectUrl;
+  }
+
+  ngAfterViewInit(): void {
+    this.viewReady = true;
+    this.draw(); // in case image loaded before view init
   }
 
   ngOnDestroy(): void {
-    const src = this.imageSrc();
-    if (src) URL.revokeObjectURL(src);
-    document.removeEventListener('pointermove', this.boundPointerMove);
-    document.removeEventListener('pointerup', this.boundPointerUp);
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    document.removeEventListener('pointermove', this.boundMove);
+    document.removeEventListener('pointerup',   this.boundUp);
   }
 
-  /** Called once the <img> has loaded — compute natural dimensions and fit scale. */
-  protected onImageLoad(): void {
-    const img = this.imgEl.nativeElement;
-    this.nw = img.naturalWidth;
-    this.nh = img.naturalHeight;
+  // ══════════════════════════════════════════════════════════════════════════
+  // Canvas draw  — THE SINGLE SOURCE OF TRUTH
+  //
+  //   translate(VIEWPORT/2 + tx, VIEWPORT/2 + ty)
+  //   scale(fh * zoom, fv * zoom)
+  //   drawImage centred at (0, 0) with size (dw, dh)
+  //
+  // Because renderCrop() reads from this same canvas, what you see = what is saved.
+  // ══════════════════════════════════════════════════════════════════════════
+  private draw(): void {
+    if (!this.viewReady || !this.img) return;
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
 
-    // Fit: the entire image should fit inside the crop circle at zoom=1.
-    // Use "cover" semantics so neither dimension is smaller than the circle.
-    this.fitScale = Math.max(CROP_CIRCLE_PX / this.nw, CROP_CIRCLE_PX / this.nh);
-    this.displayW.set(Math.round(this.nw * this.fitScale));
-    this.displayH.set(Math.round(this.nh * this.fitScale));
-    // Centre the image
-    this.tx.set(0);
-    this.ty.set(0);
-    this.zoom.set(1);
-    this.fh.set(1);
-    this.fv.set(1);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, VIEWPORT_PX, VIEWPORT_PX);
+    ctx.save();
+    ctx.translate(VIEWPORT_PX / 2 + this._tx, VIEWPORT_PX / 2 + this._ty);
+    ctx.scale(this._fh * this._zoom, this._fv * this._zoom);
+    ctx.drawImage(this.img, -this.dw / 2, -this.dh / 2, this.dw, this.dh);
+    ctx.restore();
   }
 
-  // ── Controls ───────────────────────────────────────────────────────────────
-  protected flipH(): void { this.fh.update(v => v * -1); }
-  protected flipV(): void { this.fv.update(v => v * -1); }
+  // ══════════════════════════════════════════════════════════════════════════
+  // Controls
+  // ══════════════════════════════════════════════════════════════════════════
 
-  /** Zoom in / out in 10% steps. */
-  protected zoomIn():  void { this.zoom.update(v => Math.min(v + 0.1, 4)); }
-  protected zoomOut(): void { this.zoom.update(v => Math.max(v - 0.1, 0.5)); }
+  protected flipH(): void  { this._fh *= -1; this.draw(); }
+  protected flipV(): void  { this._fv *= -1; this.draw(); }
+  protected zoomIn(): void  { this._zoom = Math.min(this._zoom + 0.1, 4);   this.draw(); }
+  protected zoomOut(): void { this._zoom = Math.max(this._zoom - 0.1, 0.5); this.draw(); }
 
-  /** Reset pan and zoom to the initial cover-fit state. */
   protected resetFit(): void {
-    this.tx.set(0);
-    this.ty.set(0);
-    this.zoom.set(1);
+    this._tx = 0; this._ty = 0; this._zoom = 1;
+    this.draw();
   }
 
-  // ── Drag ───────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // Drag
+  // ══════════════════════════════════════════════════════════════════════════
+
   protected onPointerDown(e: PointerEvent): void {
     e.preventDefault();
     this.dragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
-    document.addEventListener('pointermove', this.boundPointerMove);
-    document.addEventListener('pointerup', this.boundPointerUp);
+    document.addEventListener('pointermove', this.boundMove);
+    document.addEventListener('pointerup',   this.boundUp);
   }
 
   private onPointerMove(e: PointerEvent): void {
     if (!this.dragging) return;
-    this.tx.update(v => v + (e.clientX - this.lastX));
-    this.ty.update(v => v + (e.clientY - this.lastY));
+    this._tx += e.clientX - this.lastX;
+    this._ty += e.clientY - this.lastY;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
+    this.draw();
   }
 
   private onPointerUp(): void {
     this.dragging = false;
-    document.removeEventListener('pointermove', this.boundPointerMove);
-    document.removeEventListener('pointerup', this.boundPointerUp);
+    document.removeEventListener('pointermove', this.boundMove);
+    document.removeEventListener('pointerup',   this.boundUp);
   }
 
-  // ── Apply / cancel ─────────────────────────────────────────────────────────
-  protected cancel(): void {
-    this.dialogRef.close();
-  }
+  // ══════════════════════════════════════════════════════════════════════════
+  // Crop — copies from the preview canvas (WYSIWYG)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  protected cancel(): void { this.dialogRef.close(); }
 
   protected async apply(): Promise<void> {
     this.applying.set(true);
@@ -181,64 +192,42 @@ export class PhotoCropDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Two-pass crop that is guaranteed to match the visual preview exactly.
-   *
-   * Pass 1 — replicate the CSS display:
-   *   Draw the image onto a VIEWPORT_PX × VIEWPORT_PX scratch canvas exactly
-   *   as the browser shows it: at displayW × displayH, centred at
-   *   (VIEWPORT/2, VIEWPORT/2), then apply translate(tx,ty) + zoom + flip.
-   *   This eliminates any natural-vs-display-size ambiguity in drawImage.
-   *
-   * Pass 2 — extract the crop circle:
-   *   We know the crop circle centre = (VIEWPORT/2, VIEWPORT/2), radius = CROP_R.
-   *   Copy that exact square region from the scratch canvas into the OUTPUT_PX
-   *   output, clipped to a circle.
+   * The preview canvas is exactly VIEWPORT_PX × VIEWPORT_PX and already contains
+   * the transformed image. The crop circle occupies the square
+   *   [cx, cy, cx + CROP_CIRCLE_PX, cy + CROP_CIRCLE_PX]
+   * inside that canvas. We copy that region into the output canvas and clip to circle.
    */
   private renderCrop(): Promise<Blob> {
     return new Promise((resolve, reject) => {
-      const img = this.imgEl.nativeElement;
+      const preview = this.canvasRef?.nativeElement;
+      if (!preview) { reject(new Error('No preview canvas')); return; }
 
-      // ── Pass 1: paint the transformed image at display size ───────────────
-      const scratch = document.createElement('canvas');
-      scratch.width  = VIEWPORT_PX;
-      scratch.height = VIEWPORT_PX;
-      const sc = scratch.getContext('2d');
-      if (!sc) { reject(new Error('No scratch 2D context')); return; }
+      // Force a fresh draw so we always read the latest state.
+      this.draw();
 
-      const dw = this.displayW();
-      const dh = this.displayH();
-
-      sc.save();
-      // Move to crop-circle centre, apply user transforms, draw image centred
-      sc.translate(VIEWPORT_PX / 2 + this.tx(), VIEWPORT_PX / 2 + this.ty());
-      sc.scale(this.fh() * this.zoom(), this.fv() * this.zoom());
-      sc.drawImage(img, -dw / 2, -dh / 2, dw, dh);
-      sc.restore();
-
-      // ── Pass 2: extract crop circle → output canvas ───────────────────────
       const out = document.createElement('canvas');
       out.width  = OUTPUT_PX;
       out.height = OUTPUT_PX;
       const oc = out.getContext('2d');
-      if (!oc) { reject(new Error('No output 2D context')); return; }
+      if (!oc) { reject(new Error('No output context')); return; }
 
-      // Circular clip
+      // Circular clip on output
       oc.beginPath();
       oc.arc(OUTPUT_PX / 2, OUTPUT_PX / 2, OUTPUT_PX / 2, 0, Math.PI * 2);
       oc.clip();
 
-      // Source rect in scratch canvas: the square enclosing the crop circle
-      const cx = VIEWPORT_PX / 2 - CROP_CIRCLE_PX / 2;
-      const cy = VIEWPORT_PX / 2 - CROP_CIRCLE_PX / 2;
-      oc.drawImage(scratch, cx, cy, CROP_CIRCLE_PX, CROP_CIRCLE_PX, 0, 0, OUTPUT_PX, OUTPUT_PX);
+      // Source: the square that encloses the crop circle inside the preview canvas
+      const src_x = (VIEWPORT_PX - CROP_CIRCLE_PX) / 2;
+      const src_y = (VIEWPORT_PX - CROP_CIRCLE_PX) / 2;
+      oc.drawImage(
+        preview,
+        src_x, src_y, CROP_CIRCLE_PX, CROP_CIRCLE_PX,  // source region
+        0, 0, OUTPUT_PX, OUTPUT_PX,                      // full output
+      );
 
       out.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to create blob'));
-        },
-        'image/jpeg',
-        0.92,
+        blob => blob ? resolve(blob) : reject(new Error('toBlob failed')),
+        'image/png',  // PNG format preserves transparency from transparent PNGs
       );
     });
   }

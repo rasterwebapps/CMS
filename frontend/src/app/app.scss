@@ -3,9 +3,11 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--cms-toolbar-bg, #ffffff) !important;
-  border-bottom: 1px solid var(--cms-toolbar-border, #e5e7eb);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  background: var(--cms-toolbar-bg, rgba(255, 255, 255, 0.85)) !important;
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--cms-toolbar-border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
   color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
   height: 62px;
   padding: 0 !important; // let child sections handle their own padding
@@ -629,8 +631,8 @@
 // Logo button: toggles sidebar, stays fixed size
 .toolbar-logo-btn {
    flex-shrink: 0;
-   width: 60px !important;
-   height: 60px !important;
+   width: 40px !important;
+   height: 40px !important;
    display: flex;
    align-items: center;
    justify-content: center;
@@ -645,16 +647,16 @@
    }
 
    .toolbar-brand-icon {
-     width: 52px;
-     height: 52px;
+     width: 30px;
+     height: 30px;
      object-fit: contain;
      border-radius: 6px;
      display: block;
    }
 
    .toolbar-brand-fallback {
-     width: 52px;
-     height: 52px;
+     width: 30px;
+     height: 30px;
      border-radius: 6px;
      background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
      display: flex;
@@ -662,9 +664,9 @@
      justify-content: center;
 
      mat-icon {
-       font-size: 32px;
-       width: 32px;
-       height: 32px;
+       font-size: 18px;
+       width: 18px;
+       height: 18px;
        color: #ffffff;
      }
    }
@@ -683,68 +685,14 @@
   letter-spacing: 0.3px;
 }
 
- // ── Phase 2: Toolbar brand text block (name + section label) ──
-.toolbar-brand-text-block {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.toolbar-brand-section {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--cms-toolbar-text, var(--cms-text-primary));
-  opacity: 0.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.01em;
-}
-
-// Static institution sub-label (e.g. "of Nursing") shown below the brand name
-.toolbar-brand-sub {
-  font-size: 0.6875rem;
-  font-weight: 400;
-  color: var(--cms-toolbar-text, var(--cms-text-primary));
-  opacity: 0.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0;
-  line-height: 1.2;
-}
-
-// ── Phase 2: Live indicator chip ──────────────────────────────
-.toolbar-live-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+// ── Vertical divider between action buttons and avatar cluster ────────────────
+.toolbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--cms-toolbar-border, rgba(0, 0, 0, 0.1));
   flex-shrink: 0;
-  margin-right: 4px;
+  margin: 0 6px;
 }
-
-.toolbar-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #22C55E;
-  flex-shrink: 0;
-  animation: cms-live-pulse 2s ease-in-out infinite;
-}
-
-.toolbar-live-label {
-   font-size: 0.625rem;
-   font-weight: 700;
-   letter-spacing: 0.06em;
-   text-transform: uppercase;
-   color: #22C55E;
-   white-space: nowrap;
- }
 
 // ──────────────────────────────────────────────────
 // Breadcrumb Strip
@@ -871,6 +819,12 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+  }
+
+  // When containing an actual photo, clear the gradient so transparent PNG areas
+  // inherit the toolbar background instead of showing the primary colour.
+  &:has(img) {
+    background: transparent;
   }
 }
 

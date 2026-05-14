@@ -1,4 +1,4 @@
-<!-- Photo Crop Dialog — social-network style circular cropper -->
+<!-- Photo Crop Dialog — canvas-based WYSIWYG circular cropper -->
 <div class="pcd-shell">
 
   <!-- Header -->
@@ -12,7 +12,7 @@
     </button>
   </div>
 
-  <!-- Viewport -->
+  <!-- Viewport: the <canvas> IS the preview -->
   <div class="pcd-viewport-wrap">
     <div
       class="pcd-viewport"
@@ -20,42 +20,42 @@
       [style.height.px]="VIEWPORT"
       (pointerdown)="onPointerDown($event)"
     >
-      @if (imageSrc()) {
-        <img
-          #imgEl
-          class="pcd-img"
-          [src]="imageSrc()"
-          [style.width.px]="displayW()"
-          [style.height.px]="displayH()"
-          [style.top.px]="centerY()"
-          [style.left.px]="centerX()"
-          [style.transform]="imgTransform()"
-          (load)="onImageLoad()"
-          draggable="false"
-          alt="Photo preview"
-        />
-      }
+      <!-- Preview canvas — same pixels are used for the crop -->
+      <canvas
+        #previewCanvas
+        class="pcd-preview-canvas"
+        [attr.width]="VIEWPORT"
+        [attr.height]="VIEWPORT"
+      ></canvas>
 
-      <!-- Darkened overlay with circular hole -->
-      <div class="pcd-overlay-mask" [style.--r.px]="CROP_R">
-        <svg class="pcd-mask-svg" [attr.width]="VIEWPORT" [attr.height]="VIEWPORT">
-          <defs>
-            <mask id="pcd-hole">
-              <rect width="100%" height="100%" fill="white"/>
-              <circle [attr.cx]="VIEWPORT/2" [attr.cy]="VIEWPORT/2" [attr.r]="CROP_R" fill="black"/>
-            </mask>
-          </defs>
-          <rect width="100%" height="100%" fill="rgba(0,0,0,0.58)" mask="url(#pcd-hole)"/>
-          <circle
-            [attr.cx]="VIEWPORT/2"
-            [attr.cy]="VIEWPORT/2"
-            [attr.r]="CROP_R"
-            fill="none"
-            stroke="rgba(255,255,255,0.85)"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
+      <!-- SVG overlay: darkens outside the circle, draws the white border ring -->
+      <svg class="pcd-mask-svg"
+           [attr.width]="VIEWPORT"
+           [attr.height]="VIEWPORT"
+           aria-hidden="true">
+        <defs>
+          <mask id="pcd-hole">
+            <rect width="100%" height="100%" fill="white"/>
+            <circle [attr.cx]="VIEWPORT/2" [attr.cy]="VIEWPORT/2" [attr.r]="CROP_R" fill="black"/>
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#pcd-hole)"/>
+        <circle
+          [attr.cx]="VIEWPORT/2"
+          [attr.cy]="VIEWPORT/2"
+          [attr.r]="CROP_R"
+          fill="none"
+          stroke="rgba(255,255,255,0.85)"
+          stroke-width="2"
+        />
+      </svg>
+
+      <!-- Loading state -->
+      @if (!imageReady()) {
+        <div class="pcd-loading" aria-label="Loading image">
+          <mat-icon class="pcd-spin">sync</mat-icon>
+        </div>
+      }
 
       <!-- Drag hint -->
       <span class="pcd-drag-hint">Drag to reposition</span>
@@ -82,7 +82,7 @@
       </button>
     </div>
 
-    <button class="pcd-ctrl-btn pcd-ctrl-btn--fit" type="button" (click)="resetFit()" matTooltip="Fit to circle">
+    <button class="pcd-ctrl-btn pcd-ctrl-btn--fit" type="button" (click)="resetFit()" matTooltip="Reset to fit">
       <mat-icon>fit_screen</mat-icon>
       <span>Reset</span>
     </button>
@@ -90,10 +90,8 @@
 
   <!-- Actions -->
   <div class="pcd-actions">
-    <button class="pcd-btn pcd-btn--cancel" type="button" (click)="cancel()">
-      Cancel
-    </button>
-    <button class="pcd-btn pcd-btn--apply" type="button" (click)="apply()" [disabled]="applying()">
+    <button class="pcd-btn pcd-btn--cancel" type="button" (click)="cancel()">Cancel</button>
+    <button class="pcd-btn pcd-btn--apply"  type="button" (click)="apply()" [disabled]="applying()">
       <mat-icon [class.pcd-spin]="applying()">{{ applying() ? 'sync' : 'check_circle' }}</mat-icon>
       {{ applying() ? 'Applying…' : 'Apply' }}
     </button>
