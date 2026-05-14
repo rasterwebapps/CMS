@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
-import { BulkFeeStructureRequest, FeeStructureItemRequest } from '../finance.model';
+import { BulkFeeStructureRequest, FeeStructureItemRequest, YearAmountRequest } from '../finance.model';
 import { environment } from '../../../../environments';
 import { LayoutService } from '../../../core/layout/layout.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
@@ -32,6 +32,26 @@ interface Course {
 interface AcademicYear {
   id: number;
   name: string;
+}
+
+interface RawYearAmountValue {
+  yearNumber: number;
+  yearLabel: string;
+  amount: number | null;
+}
+
+interface RawFeeStructureItemValue {
+  feeType: string;
+  amount: number | null;
+  description: string;
+  yearAmounts: RawYearAmountValue[];
+}
+
+interface NormalizedFeeStructureItemValue {
+  feeType: string;
+  amount: number;
+  description: string;
+  yearAmounts?: { yearNumber: number; yearLabel: string; amount: number }[];
 }
 
 @Component({
@@ -501,18 +521,20 @@ export class FeeStructureFormComponent implements OnInit {
       return;
     }
     const rv = this.bulkForm.getRawValue();
-    // Treat blank/null amounts as 0 and filter out items where the total is zero
-    const nonZeroItems = (rv.items as {
-      feeType: string;
-      amount: number;
-      description: string;
-      yearAmounts: { yearNumber: number; yearLabel: string; amount: number }[];
-    }[]).filter((item) => {
+    // Treat blank/null amounts as 0, then filter out fee types whose row total is zero.
+    const normalizedItems: NormalizedFeeStructureItemValue[] = (rv.items as RawFeeStructureItemValue[]).map((item) => {
       if (item.yearAmounts && item.yearAmounts.length > 0) {
-        return item.yearAmounts.some((ya) => Number(ya.amount) > 0);
+        const yearAmounts = item.yearAmounts.map((ya) => ({
+          ...ya,
+          amount: Number(ya.amount) || 0,
+        }));
+        const amount = yearAmounts.reduce((sum, ya) => sum + ya.amount, 0);
+        return { feeType: item.feeType, amount, description: item.description, yearAmounts };
       }
-      return Number(item.amount) > 0;
+      return { feeType: item.feeType, amount: Number(item.amount) || 0, description: item.description };
     });
+
+    const nonZeroItems = normalizedItems.filter((item) => item.amount > 0);
 
     // The grand total across all generic fee types must be > 0
     const totalFee = nonZeroItems
@@ -529,19 +551,19 @@ export class FeeStructureFormComponent implements OnInit {
       return;
     }
 
-    const items: FeeStructureItemRequest[] = nonZeroItems.map((item) => ({
-      feeType: item.feeType,
-      amount: item.amount,
-      description: item.description || undefined,
-      yearAmounts:
-        item.yearAmounts && item.yearAmounts.length > 0
-          ? item.yearAmounts.map((ya) => ({
-              yearNumber: ya.yearNumber,
-              yearLabel: ya.yearLabel,
-              amount: ya.amount,
-            }))
-          : undefined,
-    }));
+    const items: FeeStructureItemRequest[] = nonZeroItems.map((item): FeeStructureItemRequest => {
+      const yearAmounts: YearAmountRequest[] | undefined = item.yearAmounts?.map((ya) => ({
+        yearNumber: ya.yearNumber,
+        yearLabel: ya.yearLabel,
+        amount: Number(ya.amount) || 0,
+      }));
+      return {
+        feeType: item.feeType,
+        amount: item.amount,
+        description: item.description || undefined,
+        yearAmounts,
+      };
+    });
 
     const request: BulkFeeStructureRequest = {
       programId: rv.programId,

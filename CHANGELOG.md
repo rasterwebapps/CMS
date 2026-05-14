@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Contributing guide
 
 ### Fixed
+- **Fee Structure validation** — Year-wise amount inputs can now be left blank and are treated as `0`; saving is blocked only when the generic Course Total is not greater than zero.
 - **SubjectController** — Updated API base path from `/subjects` to `/api/v1/subjects` to follow project conventions
 - **SubjectControllerTest** — Updated all test paths to use `/api/v1/subjects` prefix
 - **CourseControllerTest** — Fixed compilation errors due to missing `rollNumberCode` parameter in `CourseRequest` and `CourseResponse` constructors

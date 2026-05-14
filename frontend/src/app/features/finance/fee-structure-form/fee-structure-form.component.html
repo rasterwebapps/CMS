@@ -148,6 +148,7 @@
                             <input class="grid-input"
                                    [class.grid-input--zero]="(ya.get('amount')?.value ?? 0) == 0"
                                    type="number" formControlName="amount" min="0"
+                                   (focus)="$any($event.target).value === '0' && $any($event.target).select()"
                                    (input)="onItemYearAmountChange(i)" />
                           </div>
                         }
@@ -157,6 +158,7 @@
                         <input class="grid-input"
                                [class.grid-input--zero]="(getItemGroup(i).get('amount')?.value ?? 0) == 0"
                                type="number" formControlName="amount" min="0"
+                               (focus)="$any($event.target).value === '0' && $any($event.target).select()"
                                (input)="onItemAmountChange()" />
                       </div>
                     }
@@ -238,6 +240,7 @@
                             <input class="grid-input grid-input--additional"
                                    [class.grid-input--zero]="(ya.get('amount')?.value ?? 0) == 0"
                                    type="number" formControlName="amount" min="0"
+                                   (focus)="$any($event.target).value === '0' && $any($event.target).select()"
                                    (input)="onItemYearAmountChange(i)" />
                           </div>
                         }
@@ -247,6 +250,7 @@
                         <input class="grid-input grid-input--additional"
                                [class.grid-input--zero]="(getItemGroup(i).get('amount')?.value ?? 0) == 0"
                                type="number" formControlName="amount" min="0"
+                               (focus)="$any($event.target).value === '0' && $any($event.target).select()"
                                (input)="onItemAmountChange()" />
                       </div>
                     }

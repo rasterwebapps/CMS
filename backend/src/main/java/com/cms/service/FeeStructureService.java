@@ -36,6 +36,19 @@ import com.cms.repository.ProgramRepository;
 @Transactional(readOnly = true)
 public class FeeStructureService {
 
+    private static final Set<FeeType> COURSE_FEE_TYPES = Set.of(
+        FeeType.TUITION,
+        FeeType.LABORATORY_FEE,
+        FeeType.CLINICAL_FEE,
+        FeeType.LIBRARY_FEE,
+        FeeType.EXAMINATION_FEE,
+        FeeType.BOOK_AND_PACKET_FEE,
+        FeeType.UNIFORM_AND_SHOES_FEE,
+        FeeType.UNIVERSITY_REGISTRATION_FEE,
+        FeeType.MISCELLANEOUS,
+        FeeType.LATE_FEE
+    );
+
     private final FeeStructureRepository feeStructureRepository;
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
@@ -60,6 +73,7 @@ public class FeeStructureService {
     @Transactional
     public List<FeeStructureResponse> bulkCreate(BulkFeeStructureRequest request) {
         validateNoDuplicateFeeTypes(request.items());
+        validateCourseTotalGreaterThanZero(request.items());
 
         programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
@@ -100,6 +114,7 @@ public class FeeStructureService {
 
     private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
         validateNoDuplicateFeeTypes(request.items());
+        validateCourseTotalGreaterThanZero(request.items());
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
@@ -116,9 +131,10 @@ public class FeeStructureService {
         for (FeeStructureItemRequest item : request.items()) {
             Boolean isMandatory = item.isMandatory() != null ? item.isMandatory() : true;
             Boolean isActive = item.isActive() != null ? item.isActive() : true;
+            BigDecimal amount = resolveItemAmount(item);
 
             FeeStructure feeStructure = new FeeStructure(
-                program, academicYear, item.feeType(), item.amount(), isMandatory, isActive
+                program, academicYear, item.feeType(), amount, isMandatory, isActive
             );
             feeStructure.setDescription(item.description());
             feeStructure.setCourse(course);
@@ -134,6 +150,9 @@ public class FeeStructureService {
 
     @Transactional
     public FeeStructureResponse create(FeeStructureRequest request) {
+        BigDecimal amount = resolveRequestAmount(request);
+        validateAmountGreaterThanZero(amount);
+
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
@@ -150,7 +169,7 @@ public class FeeStructureService {
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
         FeeStructure feeStructure = new FeeStructure(
-            program, academicYear, request.feeType(), request.amount(), isMandatory, isActive
+            program, academicYear, request.feeType(), amount, isMandatory, isActive
         );
         feeStructure.setDescription(request.description());
         feeStructure.setCourse(course);
@@ -221,6 +240,9 @@ public class FeeStructureService {
 
     @Transactional
     public FeeStructureResponse update(Long id, FeeStructureRequest request) {
+        BigDecimal amount = resolveRequestAmount(request);
+        validateAmountGreaterThanZero(amount);
+
         FeeStructure feeStructure = feeStructureRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Fee structure not found with id: " + id));
 
@@ -256,7 +278,7 @@ public class FeeStructureService {
         feeStructure.setAcademicYear(academicYear);
         feeStructure.setCourse(course);
         feeStructure.setFeeType(request.feeType());
-        feeStructure.setAmount(request.amount());
+        feeStructure.setAmount(amount);
         feeStructure.setDescription(request.description());
 
         if (request.isMandatory() != null) {
@@ -347,6 +369,7 @@ public class FeeStructureService {
     @Transactional
     public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
         validateNoDuplicateFeeTypes(request.items());
+        validateCourseTotalGreaterThanZero(request.items());
 
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
@@ -397,11 +420,12 @@ public class FeeStructureService {
         for (FeeStructureItemRequest item : request.items()) {
             Boolean isMandatory = item.isMandatory() != null ? item.isMandatory() : true;
             Boolean isActive = item.isActive() != null ? item.isActive() : true;
+            BigDecimal amount = resolveItemAmount(item);
 
             FeeStructure fs = existingByType.get(item.feeType());
             if (fs != null) {
                 // Update existing record in place — ID is preserved, no FK violation
-                fs.setAmount(item.amount());
+                fs.setAmount(amount);
                 fs.setDescription(item.description());
                 fs.setIsMandatory(isMandatory);
                 fs.setIsActive(isActive);
@@ -412,7 +436,7 @@ public class FeeStructureService {
             } else {
                 // New fee type — insert a fresh record
                 FeeStructure newFs = new FeeStructure(
-                    program, academicYear, item.feeType(), item.amount(), isMandatory, isActive);
+                    program, academicYear, item.feeType(), amount, isMandatory, isActive);
                 newFs.setDescription(item.description());
                 newFs.setCourse(course);
                 FeeStructure saved = feeStructureRepository.save(newFs);
@@ -471,12 +495,54 @@ public class FeeStructureService {
         if (yearAmountRequests != null && !yearAmountRequests.isEmpty()) {
             for (var ya : yearAmountRequests) {
                 FeeStructureYearAmount yearAmount = new FeeStructureYearAmount(
-                    feeStructure, ya.yearNumber(), ya.yearLabel(), ya.amount()
+                    feeStructure, ya.yearNumber(), ya.yearLabel(), normalizeAmount(ya.amount())
                 );
                 yearAmounts.add(yearAmountRepository.save(yearAmount));
             }
         }
         return yearAmounts;
+    }
+
+    private void validateCourseTotalGreaterThanZero(List<FeeStructureItemRequest> items) {
+        BigDecimal total = items.stream()
+            .filter(item -> COURSE_FEE_TYPES.contains(item.feeType()))
+            .map(this::resolveItemAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Total course fee must be greater than zero");
+        }
+    }
+
+    private void validateAmountGreaterThanZero(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Fee amount must be greater than zero");
+        }
+    }
+
+    private BigDecimal resolveItemAmount(FeeStructureItemRequest item) {
+        if (item.yearAmounts() != null && !item.yearAmounts().isEmpty()) {
+            return item.yearAmounts().stream()
+                .map(ya -> normalizeAmount(ya.amount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        return normalizeAmount(item.amount());
+    }
+
+    private BigDecimal resolveRequestAmount(FeeStructureRequest request) {
+        if (request.yearAmounts() != null && !request.yearAmounts().isEmpty()) {
+            return request.yearAmounts().stream()
+                .map(ya -> normalizeAmount(ya.amount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        return normalizeAmount(request.amount());
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal amount) {
+        BigDecimal normalized = amount != null ? amount : BigDecimal.ZERO;
+        if (normalized.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Amount must be zero or positive");
+        }
+        return normalized;
     }
 
     private FeeStructureResponse toResponse(FeeStructure fs, List<FeeStructureYearAmount> yearAmounts) {

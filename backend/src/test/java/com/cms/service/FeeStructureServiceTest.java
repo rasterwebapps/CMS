@@ -24,6 +24,7 @@ import com.cms.dto.BulkFeeStructureRequest;
 import com.cms.dto.FeeStructureItemRequest;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
+import com.cms.dto.YearAmountRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.FeeStructure;
@@ -535,6 +536,50 @@ class FeeStructureServiceTest {
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).courseId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldTreatBlankYearAmountsAsZeroWhenBulkCreating() {
+        YearAmountRequest yearOne = new YearAmountRequest(1, "Year 1", new BigDecimal("25000.00"));
+        YearAmountRequest yearTwo = new YearAmountRequest(2, "Year 2", null);
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, null, null, true, true, List.of(yearOne, yearTwo)
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(item));
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(1L, 1L)).thenReturn(List.of());
+        when(feeStructureRepository.save(any(FeeStructure.class))).thenAnswer(inv -> {
+            FeeStructure saved = inv.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        when(yearAmountRepository.save(any(com.cms.model.FeeStructureYearAmount.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<FeeStructureResponse> responses = feeStructureService.bulkCreate(request);
+
+        assertThat(responses).hasSize(1);
+        FeeStructureResponse response = responses.getFirst();
+        assertThat(response.amount()).isEqualByComparingTo(new BigDecimal("25000.00"));
+        assertThat(response.yearAmounts()).hasSize(2);
+        assertThat(response.yearAmounts().getLast().amount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void shouldRejectBulkCreateWhenCourseFeeTotalIsZero() {
+        YearAmountRequest yearOne = new YearAmountRequest(1, "Year 1", null);
+        YearAmountRequest yearTwo = new YearAmountRequest(2, "Year 2", BigDecimal.ZERO);
+        FeeStructureItemRequest item = new FeeStructureItemRequest(
+            FeeType.TUITION, null, null, true, true, List.of(yearOne, yearTwo)
+        );
+        BulkFeeStructureRequest request = new BulkFeeStructureRequest(1L, 1L, null, List.of(item));
+
+        assertThatThrownBy(() -> feeStructureService.bulkCreate(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Total course fee must be greater than zero");
+
+        verify(feeStructureRepository, never()).save(any());
     }
 
     @Test

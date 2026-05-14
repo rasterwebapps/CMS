@@ -78,6 +78,7 @@ All 8 fee types are grouped into two categories displayed on the fee structure s
 3. Fee structures from previous academic years are retained for historical reference but are not used for new enquiries or admissions.
 4. When a new academic year begins, administrators must create new fee structure entries for each program. Previous year entries are **not** automatically carried forward.
 5. The fee structure screen must allow filtering by both program and academic year.
+6. A fee structure group can be saved only when the **Course Total (Generic)** is greater than zero.
 
 ### Entities Involved
 
@@ -104,8 +105,9 @@ When selecting a program in the fee structure screen, the system must dynamicall
 3. Each box is labeled sequentially: "Year 1", "Year 2", "Year 3", "Year 4", etc.
 4. Each year-wise amount is stored as a separate record in the database, linked to the fee structure.
 5. The sum of all year-wise amounts for a fee type equals the total fee for that fee type.
-6. This allows institutions to have different fee amounts for different years of the same program.
-7. The year box count is driven by program duration; course selection only scopes which fee structure to save (per program+course+academic year).
+6. Blank year-wise amount boxes are treated as `0`; at least one generic fee year amount must be greater than zero before saving.
+7. This allows institutions to have different fee amounts for different years of the same program.
+8. The year box count is driven by program duration; course selection only scopes which fee structure to save (per program+course+academic year).
 
 ### Example
 

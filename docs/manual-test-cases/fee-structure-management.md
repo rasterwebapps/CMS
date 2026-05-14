@@ -42,7 +42,7 @@
 4. Click **Save All**
 
 **Expected Result:**
-- A snackbar message appears: "Enter an amount for at least one fee type"
+- A snackbar message appears: "Total course fee must be greater than zero"
 - No API call is made
 - User remains on the form
 
@@ -77,6 +77,35 @@
 
 **Expected Result:**
 - Fee structures are created with year-wise amounts saved correctly
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-003A: Blank year-wise amounts are treated as zero
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN`
+- A Course exists that belongs to a Program with `durationYears = 4`
+- Application is running
+
+**Steps:**
+1. Navigate to **Fee Structures → Add Fee Structure**
+2. Select an Academic Year, Program, and 4-year Course
+3. In the **Tuition Fee** row, locate the Year 1 amount box showing default `0`
+4. Click/focus the default `0` amount box and type `25000`
+5. Verify the field becomes `25000`, not `025000`
+6. Leave Year 2, Year 3, and Year 4 blank
+7. Leave all other course fee rows blank or zero
+8. Verify Total Course Fees is `₹25,000`
+9. Click **Save Fee Structure**
+
+**Expected Result:**
+- The form saves successfully
+- Blank yearly amount inputs are submitted/saved as `0`
+- Default `0` is selected on focus so typed digits replace it instead of appending to it
+- The saved Tuition Fee row total is `₹25,000`
+- No validation error appears for blank Year 2, Year 3, or Year 4
 
 **Status:** NOT TESTED
 
