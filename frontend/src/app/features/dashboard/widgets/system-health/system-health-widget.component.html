@@ -1,0 +1,39 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon" style="background:rgba(34,197,94,.16);color:#22C55E">
+      <mat-icon>monitoring</mat-icon>
+    </div>
+    <span class="widget-title">System Health</span>
+    @if (!loading() && !error() && data()) {
+      <span class="health-chip" [attr.data-status]="data()!.overall">
+        {{ data()!.overall === 'ok' ? 'All Systems Operational' : 'Issues Detected' }}
+      </span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div class="sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0"></div>
+            <div class="sk-line sk-line--75" style="flex:1"></div>
+            <div class="sk-line sk-line--40" style="width:80px"></div>
+          </div>
+        }
+      </div>
+    } @else if (error() || !data()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>Unable to check health</span></div>
+    } @else {
+      <div class="health-rows">
+        @for (check of data()!.checks; track check.name) {
+          <div class="health-row">
+            <span class="h-dot" [attr.data-s]="check.status"></span>
+            <span class="h-name">{{ check.name }}</span>
+            <span class="h-val">{{ check.detail }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

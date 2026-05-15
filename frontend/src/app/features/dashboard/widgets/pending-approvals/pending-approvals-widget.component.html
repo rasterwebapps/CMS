@@ -1,0 +1,46 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon" style="background:rgba(239,68,68,.16);color:#EF4444">
+      <mat-icon>pending_actions</mat-icon>
+    </div>
+    <span class="widget-title">Pending Approvals</span>
+    @if (items().length > 0) {
+      <span class="count-badge">{{ items().length }}</span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3]; track n) {
+          <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div class="sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px"></div>
+            <div style="flex:1">
+              <div class="sk-line sk-line--75"></div>
+              <div class="sk-line sk-line--55" style="margin-top:6px"></div>
+            </div>
+            <div class="sk-block" style="width:60px;height:14px;border-radius:6px;flex-shrink:0"></div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No data</span></div>
+    } @else if (items().length === 0) {
+      <div class="all-clear">
+        <mat-icon>check_circle</mat-icon>
+        All clear — nothing pending
+      </div>
+    } @else {
+      @for (item of items(); track item.title) {
+        <div class="ap-item">
+          <div class="ap-bullet" [attr.data-sev]="item.severity"></div>
+          <div class="ap-text">
+            <div class="ap-title">{{ item.title }}</div>
+            <div class="ap-sub">{{ item.subtitle }}</div>
+          </div>
+          <div class="ap-amt" [attr.data-sev]="item.severity">{{ item.amount }}</div>
+        </div>
+      }
+    }
+  </div>
+</div>

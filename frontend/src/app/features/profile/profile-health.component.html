@@ -1,0 +1,384 @@
+<div class="ph-page" [style.--pt]="primaryColor()">
+
+  <!-- Hidden file inputs -->
+  <input #photoInput class="ph-hidden-input" type="file" accept="image/jpeg,image/png"
+         (change)="onPhotoSelected($event)" aria-hidden="true" />
+  <input #coverInput class="ph-hidden-input" type="file" accept="image/jpeg,image/png"
+         (change)="onCoverSelected($event)" aria-hidden="true" />
+
+  <!-- ══ Hero / Banner ══════════════════════════════════════════════════════ -->
+  <div class="ph-hero" [class.ph-hero--has-cover]="!!coverUrl()">
+
+    <!-- gradient or cover image -->
+    <div class="ph-hero__bg"
+         [style.background-image]="coverUrl() ? 'url(' + coverUrl() + ')' : null">
+      <div class="ph-hero__overlay"></div>
+    </div>
+
+    <!-- cover actions -->
+    <div class="ph-cover-actions" (click)="$event.stopPropagation()">
+      <button class="ph-cover-btn" type="button" (click)="triggerCoverUpload()"
+              [title]="coverUrl() ? 'Change cover' : 'Add cover'">
+        <mat-icon>{{ uploadingCover() ? 'sync' : 'add_photo_alternate' }}</mat-icon>
+      </button>
+      @if (coverUrl()) {
+        <button class="ph-cover-btn ph-cover-btn--del" type="button"
+                (click)="removeCover()" title="Remove cover">
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- theme picker -->
+    <div class="ph-theme-wrap" (click)="$event.stopPropagation()">
+      <button class="ph-theme-btn" [style.--sw]="activeSwatch().hex"
+              (click)="toggleThemeDropdown()" aria-label="Theme color">
+        <span class="ph-theme-dot"></span>
+      </button>
+      @if (themeOpen()) {
+        <div class="ph-theme-panel" role="listbox">
+          @for (sw of swatches; track sw.id) {
+            <button class="ph-theme-option"
+                    [class.ph-theme-option--active]="sw.id === activeSwatch().id"
+                    [style.--sw]="sw.hex"
+                    (click)="selectTheme(sw)" role="option">
+              <span class="ph-theme-dot"></span>
+              <span>{{ sw.name }}</span>
+              @if (sw.id === activeSwatch().id) { <mat-icon>check</mat-icon> }
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+  </div><!-- /.ph-hero -->
+
+  <!-- ══ Identity row (avatar + name) ══════════════════════════════════════ -->
+  @if (!loading() && identity()) {
+    @let id = identity()!;
+    @let f  = faculty();
+    @let s  = student();
+    @let pc = profileCompletion();
+
+    <div class="ph-identity">
+
+      <!-- avatar -->
+      <div class="ph-avatar-wrap"
+           [class.ph-avatar-wrap--uploading]="uploadingPhoto()"
+           (click)="triggerPhotoUpload()" matTooltip="Change photo">
+        @if (photoUrl()) {
+          <img class="ph-avatar" [src]="photoUrl()!" [alt]="id.displayName" />
+        } @else {
+          <div class="ph-avatar ph-avatar--initials">{{ initials }}</div>
+        }
+        <div class="ph-avatar-camera" aria-hidden="true">
+          <mat-icon>{{ uploadingPhoto() ? 'sync' : 'photo_camera' }}</mat-icon>
+        </div>
+      </div>
+
+      <!-- name + role + actions -->
+      <div class="ph-identity__text">
+        <h1 class="ph-name">{{ id.displayName }}</h1>
+        @if (f) {
+          <p class="ph-role">{{ f.designation | titlecase }} · {{ f.departmentName }}</p>
+        }
+        @if (s) {
+          <p class="ph-role">{{ s.programName }} · Year {{ s.yearOfStudy }}</p>
+        }
+        @if (id.entityType === 'ADMIN') {
+          <p class="ph-role">Administrator · SKS College Of Nursing</p>
+        }
+      </div>
+
+      <div class="ph-identity__actions">
+        @if (editRoute()) {
+          <a class="ph-action-btn ph-action-btn--primary" [routerLink]="editRoute()">
+            <mat-icon>admin_panel_settings</mat-icon>
+          </a>
+        }
+        @if (!editMode()) {
+          <button class="ph-action-btn" type="button" (click)="enterEditMode()" title="Edit profile">
+            <mat-icon>edit</mat-icon>
+          </button>
+        }
+        @if (photoUrl()) {
+          <button class="ph-action-btn ph-action-btn--danger" type="button"
+                  (click)="removePhoto($event)" title="Remove photo">
+            <mat-icon>no_photography</mat-icon>
+          </button>
+        }
+      </div>
+    </div><!-- /.ph-identity -->
+
+    <!-- ══ Summary strip ══════════════════════════════════════════════════ -->
+    @if (f || s) {
+      <div class="ph-strip">
+        <div class="ph-strip__cell">
+          <span class="ph-strip__val">{{ pc.pct }}%</span>
+          <span class="ph-strip__label">Profile</span>
+        </div>
+        @if (f) {
+          <div class="ph-strip__div"></div>
+          <div class="ph-strip__cell">
+            <span class="ph-strip__val ph-strip__val--sm">{{ f.employeeCode }}</span>
+            <span class="ph-strip__label">Employee ID</span>
+          </div>
+          <div class="ph-strip__div"></div>
+          <div class="ph-strip__cell">
+            <span class="ph-strip__val ph-strip__val--sm">{{ f.departmentName }}</span>
+            <span class="ph-strip__label">Department</span>
+          </div>
+        }
+        @if (s) {
+          <div class="ph-strip__div"></div>
+          <div class="ph-strip__cell">
+            <span class="ph-strip__val ph-strip__val--sm">{{ s.rollNumber || '—' }}</span>
+            <span class="ph-strip__label">Roll No.</span>
+          </div>
+          <div class="ph-strip__div"></div>
+          <div class="ph-strip__cell">
+            <span class="ph-strip__val ph-strip__val--sm">Year {{ s.yearOfStudy }}</span>
+            <span class="ph-strip__label">Current Year</span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ══ Main content ═══════════════════════════════════════════════════ -->
+    <div class="ph-content">
+
+      <!-- Profile strength ────────────────────────────────────────────── -->
+      @if (f || s) {
+        <div class="ph-section">
+          <h2 class="ph-section-title">Profile Strength</h2>
+          <div class="ph-card ph-strength-card">
+            <div class="ph-strength-ring-wrap">
+              <svg class="ph-ring" viewBox="0 0 100 100">
+                <!-- Track -->
+                <circle class="ph-ring__track" cx="50" cy="50" r="42" />
+                <!-- Fill -->
+                <circle class="ph-ring__fill" cx="50" cy="50" r="42"
+                  [style.stroke-dashoffset]="264 * (1 - pc.score / pc.total)"
+                  [style.stroke]="pc.score === pc.total ? '#34C759' : 'var(--pt, #6366f1)'" />
+              </svg>
+              <div class="ph-ring__center">
+                <span class="ph-ring__pct">{{ pc.pct }}</span>
+                <span class="ph-ring__sym">%</span>
+              </div>
+            </div>
+            <div class="ph-strength-detail">
+              @if (pc.score === pc.total) {
+                <div class="ph-strength-done">
+                  <mat-icon>verified</mat-icon>
+                  <span>All fields complete!</span>
+                </div>
+              } @else {
+                <p class="ph-strength-headline">{{ pc.score }} of {{ pc.total }} fields complete</p>
+                <ul class="ph-checklist">
+                  @for (label of pc.missing; track label) {
+                    <li class="ph-checklist__item">
+                      <span class="ph-check ph-check--empty"></span>
+                      {{ label }}
+                    </li>
+                  }
+                </ul>
+              }
+              @if (!editMode()) {
+                <button class="ph-inline-edit-btn" type="button" (click)="enterEditMode()">
+                  Complete Profile →
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Bio / About ──────────────────────────────────────────────────── -->
+      @if (f || s) {
+        <div class="ph-section">
+          <h2 class="ph-section-title">About</h2>
+          <div class="ph-card">
+            @if (!editMode()) {
+              @let bioText = f?.bio || s?.bio;
+              @if (bioText) {
+                <p class="ph-bio-text">{{ bioText }}</p>
+              } @else {
+                <div class="ph-empty-row">
+                  <mat-icon>edit_note</mat-icon>
+                  <span>No bio yet.</span>
+                  <button class="ph-link-btn" type="button" (click)="enterEditMode()">Add bio →</button>
+                </div>
+              }
+            } @else {
+              <div class="ph-edit-field">
+                <label class="ph-field-label">Bio <span class="ph-field-hint">(max 500 chars)</span></label>
+                <textarea class="ph-textarea" rows="4" [(ngModel)]="editForm.bio"
+                          maxlength="500" placeholder="Write a short bio…"></textarea>
+                <span class="ph-char">{{ editForm.bio?.length ?? 0 }}/500</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- My Details ──────────────────────────────────────────────────── -->
+      @if (f || s) {
+        <div class="ph-section">
+          <div class="ph-section-header">
+            <h2 class="ph-section-title">My Details</h2>
+            @if (!editMode()) {
+              <button class="ph-section-action" type="button" (click)="enterEditMode()">Edit</button>
+            }
+          </div>
+
+          @if (!editMode()) {
+            <div class="ph-card ph-list-card">
+              @let rows = f ? facultyInfoRows(f) : studentInfoRows(s!);
+              @for (item of rows; track item.label; let last = $last) {
+                <div class="ph-row" [class.ph-row--last]="last">
+                  <div class="ph-row__icon">
+                    <mat-icon>{{ item.icon }}</mat-icon>
+                  </div>
+                  <div class="ph-row__body">
+                    <span class="ph-row__label">{{ item.label }}</span>
+                    <span class="ph-row__value">{{ item.value }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="ph-card ph-edit-card">
+              <div class="ph-edit-grid">
+                <label class="ph-field">
+                  <span class="ph-field-label">Phone</span>
+                  <input type="tel" class="ph-input" [(ngModel)]="editForm.phone" placeholder="Mobile number" />
+                </label>
+                <label class="ph-field">
+                  <span class="ph-field-label">Blood Group</span>
+                  <input type="text" class="ph-input" [(ngModel)]="editForm.bloodGroup" placeholder="e.g. B+" />
+                </label>
+              </div>
+              <p class="ph-edit-section-title">Address</p>
+              <label class="ph-field">
+                <span class="ph-field-label">Street</span>
+                <input type="text" class="ph-input" [(ngModel)]="editForm.street" placeholder="Street / door no." />
+              </label>
+              <div class="ph-edit-grid">
+                <label class="ph-field"><span class="ph-field-label">City</span><input type="text" class="ph-input" [(ngModel)]="editForm.city" /></label>
+                <label class="ph-field"><span class="ph-field-label">District</span><input type="text" class="ph-input" [(ngModel)]="editForm.district" /></label>
+              </div>
+              <div class="ph-edit-grid">
+                <label class="ph-field"><span class="ph-field-label">State</span><input type="text" class="ph-input" [(ngModel)]="editForm.state" /></label>
+                <label class="ph-field"><span class="ph-field-label">Pincode</span><input type="text" class="ph-input" [(ngModel)]="editForm.pincode" /></label>
+              </div>
+              <div class="ph-edit-actions">
+                <button class="ph-btn ph-btn--cancel" type="button" (click)="cancelEdit()" [disabled]="savingSelf()">Cancel</button>
+                <button class="ph-btn ph-btn--save" type="button" (click)="saveSelfInfo()" [disabled]="savingSelf()">
+                  <mat-icon [class.spin]="savingSelf()">{{ savingSelf() ? 'sync' : 'check' }}</mat-icon>
+                  {{ savingSelf() ? 'Saving…' : 'Save Changes' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Admin details ────────────────────────────────────────────────── -->
+      @if (id.entityType === 'ADMIN') {
+        <div class="ph-section">
+          <h2 class="ph-section-title">Account Details</h2>
+          <div class="ph-card ph-list-card">
+            @for (item of [
+              {icon:'badge', label:'Role', value:'Developer Administrator'},
+              {icon:'email', label:'Email', value: id.email ?? '—'},
+              {icon:'shield', label:'Access Level', value:'Full System'},
+              {icon:'verified_user', label:'Institution', value:'SKS College Of Nursing'}
+            ]; track item.label; let last = $last) {
+              <div class="ph-row" [class.ph-row--last]="last">
+                <div class="ph-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                <div class="ph-row__body">
+                  <span class="ph-row__label">{{ item.label }}</span>
+                  <span class="ph-row__value">{{ item.value }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Security ─────────────────────────────────────────────────────── -->
+      <div class="ph-section">
+        <h2 class="ph-section-title">Account &amp; Security</h2>
+        <div class="ph-card ph-list-card">
+          @for (item of [
+            {icon:'vpn_key', label:'SSO Provider', value:'Keycloak'},
+            {icon:'email',   label:'Login Email',  value: identity()?.email ?? '—'},
+            {icon:'verified_user', label:'Session', value:'Managed by Keycloak SSO'}
+          ]; track item.label; let last = $last) {
+            <div class="ph-row" [class.ph-row--last]="last">
+              <div class="ph-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+              <div class="ph-row__body">
+                <span class="ph-row__label">{{ item.label }}</span>
+                <span class="ph-row__value">{{ item.value }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Access ─────────────────────────────────────────────────── -->
+      <div class="ph-section">
+        <h2 class="ph-section-title">Quick Access</h2>
+        <div class="ph-card ph-list-card">
+          @for (link of quickLinks(); track link.route; let last = $last) {
+            <a class="ph-row ph-row--link" [class.ph-row--last]="last" [routerLink]="link.route">
+              <div class="ph-row__icon ph-row__icon--colored" [style.--ic]="link.color">
+                <mat-icon>{{ link.icon }}</mat-icon>
+              </div>
+              <div class="ph-row__body">
+                <span class="ph-row__value ph-row__value--bold">{{ link.label }}</span>
+              </div>
+              <mat-icon class="ph-row__chevron">chevron_right</mat-icon>
+            </a>
+          }
+        </div>
+      </div>
+
+      <!-- Documents ────────────────────────────────────────────────────── -->
+      @if (f || (s && id.admissionId)) {
+        <div class="ph-section">
+          <h2 class="ph-section-title">My Documents</h2>
+          <div class="ph-card">
+            @if (f) {
+              <cms-profile-documents entityType="FACULTY" [entityId]="f.id"
+                [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
+            }
+            @if (s && id.admissionId) {
+              <cms-profile-documents entityType="STUDENT" [entityId]="id.admissionId!"
+                [programId]="id.programId ?? undefined"
+                [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
+            }
+          </div>
+        </div>
+      }
+
+    </div><!-- /.ph-content -->
+
+  }
+
+  <!-- Loading skeleton -->
+  @if (loading()) {
+    <div class="ph-identity ph-identity--skeleton">
+      <div class="sk sk-avatar"></div>
+      <div style="flex:1">
+        <div class="sk sk-line" style="width:160px;height:22px;margin-bottom:8px"></div>
+        <div class="sk sk-line" style="width:220px;height:14px"></div>
+      </div>
+    </div>
+    <div class="ph-content">
+      <div class="ph-card" style="height:120px;margin-bottom:12px"></div>
+      <div class="ph-card" style="height:200px"></div>
+    </div>
+  }
+
+</div>

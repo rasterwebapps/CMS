@@ -127,6 +127,14 @@ export class App implements OnInit, AfterViewInit {
   protected readonly focusMode = this.layoutService.isFocusMode;
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
 
+  /** 1–2 letter initials derived from the Keycloak username. */
+  protected readonly userInitials = computed(() => {
+    const name = this.authService.username() ?? '';
+    const parts = name.split(/[\s_\-\.]+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  });
+
   private readonly navEntries: NavEntry[] = [
     // 1. Overview — primary landmarks
     {

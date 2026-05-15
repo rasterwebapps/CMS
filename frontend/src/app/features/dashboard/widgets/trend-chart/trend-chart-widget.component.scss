@@ -1,0 +1,48 @@
+@use '../widget-shell' as *;
+
+.chart-area {
+  display: flex; align-items: flex-end; gap: 6px; height: 110px;
+  &--loading { gap: 6px; }
+}
+
+.bar-grp {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; height: 100%; justify-content: flex-end;
+  &:hover .bar-val { opacity: 1; }
+}
+
+.bar-val {
+  font-size: 9px; font-weight: 700; color: rgba(255,255,255,.35);
+  opacity: 0; transition: opacity .15s;
+  &--hi { color: var(--cms-primary); }
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+}
+
+.bar {
+  width: 100%; border-radius: 5px 5px 0 0;
+  height: var(--bh, 50%);
+  animation: bar-grow .5s cubic-bezier(.4,0,.2,1) both;
+  animation-delay: calc(.1s + var(--bi, 0) * .04s);
+  cursor: pointer; transition: filter .15s;
+  &:hover { filter: brightness(1.25); }
+  &.hi { background: linear-gradient(to top, rgba(var(--cms-primary-rgb),.35), var(--cms-primary)); box-shadow: 0 0 14px rgba(var(--cms-primary-rgb),.28); }
+  &.lo { background: linear-gradient(to top, rgba(255,255,255,.04), rgba(255,255,255,.10)); }
+}
+
+.sk-bar {
+  flex: 1; border-radius: 5px 5px 0 0;
+  background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.06) 75%);
+  background-size: 200% 100%;
+  animation: wsk-shimmer 1.5s ease-in-out infinite;
+}
+
+.chart-axis {
+  display: flex; gap: 6px; margin-top: 9px;
+  span { flex: 1; text-align: center; font-size: 9.5px; color: rgba(255,255,255,.3); letter-spacing: .02em; }
+  :host-context(html:not(.dark-theme)) span { color: var(--cms-text-muted); }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
+}

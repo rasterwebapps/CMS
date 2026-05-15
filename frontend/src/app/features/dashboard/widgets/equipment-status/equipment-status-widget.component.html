@@ -1,0 +1,41 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>inventory_2</mat-icon></div>
+    <span class="widget-title">Equipment Status</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3]; track n) {
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+              <div class="sk-line sk-line--55"></div>
+              <div class="sk-line sk-line--40" style="width:50px"></div>
+            </div>
+            <div class="sk-block" style="height:6px;border-radius:10px"></div>
+          </div>
+        }
+      </div>
+    } @else if (error() || rows().length === 0) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No equipment data</span></div>
+    } @else {
+      @for (row of rows(); track row.label; let i = $index) {
+        <div class="eq-item">
+          <div class="eq-meta">
+            <span class="eq-name">
+              <span class="eq-dot" [attr.data-c]="row.color"></span>
+              {{ row.label }}
+            </span>
+            <span class="eq-count">{{ row.count }}</span>
+          </div>
+          <div class="prog">
+            <div class="prog-f" [attr.data-c]="row.color"
+                 [style.--pw]="row.pct + '%'"
+                 [style.--pi]="i"></div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>flash_on</mat-icon></div>
+    <span class="widget-title">Quick Actions</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="qa-grid">
+        @for (n of [1,2,3,4]; track n) {
+          <div class="sk-block" style="height:52px;border-radius:12px"></div>
+        }
+      </div>
+    } @else if (error() || actions().length === 0) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No actions</span></div>
+    } @else {
+      <div class="qa-grid">
+        @for (action of actions(); track action.route) {
+          <a class="qa-tile" [routerLink]="action.route" [title]="action.description">
+            <div class="qa-tile__icon"><mat-icon>{{ action.icon }}</mat-icon></div>
+            <span class="qa-tile__label">{{ action.label }}</span>
+          </a>
+        }
+      </div>
+    }
+  </div>
+</div>

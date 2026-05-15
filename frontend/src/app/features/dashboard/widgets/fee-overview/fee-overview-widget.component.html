@@ -1,0 +1,41 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon" style="background:rgba(34,197,94,.16);color:#22C55E">
+      <mat-icon>account_balance</mat-icon>
+    </div>
+    <span class="widget-title">Fee Overview</span>
+    <a routerLink="/student-fees" class="widget-action">Manage →</a>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div class="fee-item-skel">
+            <div class="sk-line sk-line--55"></div>
+            <div class="sk-line sk-line--40"></div>
+          </div>
+        }
+      </div>
+    } @else if (error() || !data()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No fee data</span></div>
+    } @else {
+      <div class="fee-item">
+        <span class="fee-name"><span class="fee-dot fee-dot--green"></span>Collected this month</span>
+        <span class="fee-val fee-val--green">{{ data()!.collectedThisMonth | inr }}</span>
+      </div>
+      <div class="fee-item">
+        <span class="fee-name"><span class="fee-dot fee-dot--red"></span>Total outstanding</span>
+        <span class="fee-val fee-val--red">{{ data()!.outstanding | inr }}</span>
+      </div>
+      <div class="fee-item">
+        <span class="fee-name"><span class="fee-dot fee-dot--muted"></span>Total payments recorded</span>
+        <span class="fee-val fee-val--muted">{{ data()!.totalPayments }}</span>
+      </div>
+      <div class="fee-item">
+        <span class="fee-name"><span class="fee-dot fee-dot--accent"></span>Enquiries this month</span>
+        <span class="fee-val fee-val--muted">{{ data()!.enquiriesThisMonth }}</span>
+      </div>
+    }
+  </div>
+</div>

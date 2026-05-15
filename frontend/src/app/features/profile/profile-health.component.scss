@@ -1,0 +1,759 @@
+@use 'sass:color';
+
+// ── Design tokens (Apple system palette) ─────────────────────────────────────
+$light-bg:       #f2f2f7;
+$light-card:     #ffffff;
+$light-card-2:   #f2f2f7;
+$light-sep:      rgba(60, 60, 67, 0.12);
+$light-label:    rgba(60, 60, 67, 0.6);
+$light-text:     #000000;
+$light-text-sec: #3c3c43;
+
+$dark-bg:        #000000;
+$dark-card:      #1c1c1e;
+$dark-card-2:    #2c2c2e;
+$dark-sep:       rgba(84, 84, 88, 0.65);
+$dark-label:     rgba(235, 235, 245, 0.6);
+$dark-text:      #ffffff;
+$dark-text-sec:  rgba(235, 235, 245, 0.8);
+
+// ── Host ──────────────────────────────────────────────────────────────────────
+:host {
+  display: block;
+  background: $light-bg;
+  min-height: 100%;
+}
+
+// ── Page wrapper ──────────────────────────────────────────────────────────────
+.ph-page {
+  --pt: #6366f1;     // primary theme color — overridden by [style.--pt]
+  min-height: 100%;
+  background: $light-bg;
+  padding-bottom: 48px;
+}
+
+.ph-hidden-input { display: none; }
+
+// ── Hero banner ───────────────────────────────────────────────────────────────
+.ph-hero {
+  position:   relative;
+  height:     200px;
+  overflow:   hidden;
+  flex-shrink: 0;
+}
+
+.ph-hero__bg {
+  position:            absolute;
+  inset:               0;
+  background-image:    none;
+  background-size:     cover;
+  background-position: center;
+  // Default: personalized gradient using theme color
+  background-color:    transparent;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--pt) 55%, #fff) 0%,
+      color-mix(in srgb, var(--pt) 20%, #f0e6ff) 45%,
+      color-mix(in srgb, var(--pt) 8%,  #e8f4fd) 100%
+    );
+}
+
+.ph-hero--has-cover .ph-hero__bg {
+  background: none;
+  background-size: cover;
+  background-position: center;
+}
+
+.ph-hero__overlay {
+  position:   absolute;
+  inset:      0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.18));
+}
+
+// Cover action buttons
+.ph-cover-actions {
+  position: absolute;
+  bottom:   12px;
+  right:    14px;
+  display:  flex;
+  gap:      6px;
+  z-index:  3;
+}
+
+.ph-cover-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          32px;
+  border:          1px solid rgba(255,255,255,.35);
+  border-radius:   50%;
+  background:      rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  color:           rgba(255,255,255,.9);
+  cursor:          pointer;
+  transition:      background 0.15s;
+
+  &:hover { background: rgba(0,0,0,.55); }
+  &--del  { color: #fca5a5; &:hover { background: rgba(239,68,68,.5); } }
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+// Theme picker
+.ph-theme-wrap {
+  position: absolute;
+  top:      12px;
+  right:    14px;
+  z-index:  4;
+}
+
+.ph-theme-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          32px;
+  border:          2px solid rgba(255,255,255,.7);
+  border-radius:   50%;
+  background:      rgba(0,0,0,.25);
+  backdrop-filter: blur(6px);
+  cursor:          pointer;
+  transition:      transform 0.15s;
+  &:hover { transform: scale(1.1); }
+}
+
+.ph-theme-dot {
+  width:         16px;
+  height:        16px;
+  border-radius: 50%;
+  background:    var(--sw, #6366f1);
+  box-shadow:    0 1px 3px rgba(0,0,0,.3);
+}
+
+.ph-theme-panel {
+  position:      absolute;
+  top:           38px;
+  right:         0;
+  background:    rgba(255,255,255,.96);
+  backdrop-filter: blur(16px);
+  border:        1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  box-shadow:    0 8px 32px rgba(0,0,0,.14);
+  padding:       6px;
+  min-width:     140px;
+  z-index:       50;
+}
+
+.ph-theme-option {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  width:         100%;
+  padding:       7px 10px;
+  border:        none;
+  border-radius: 8px;
+  background:    transparent;
+  cursor:        pointer;
+  font-size:     0.8125rem;
+  color:         $light-text;
+  transition:    background 0.12s;
+
+  &:hover { background: rgba(0,0,0,.05); }
+  &--active { background: rgba(0,0,0,.06); font-weight: 600; }
+  .ph-theme-dot { width: 14px; height: 14px; flex-shrink: 0; }
+  mat-icon { font-size: 14px; margin-left: auto; color: var(--pt); }
+}
+
+// ── Identity row ──────────────────────────────────────────────────────────────
+.ph-identity {
+  display:        flex;
+  align-items:    center;
+  gap:            16px;
+  padding:        0 20px 0 16px;
+  margin-top:     -44px;            // avatar overlaps the hero
+  position:       relative;
+  z-index:        2;
+
+  &--skeleton { margin-top: 0; padding-top: 24px; }
+}
+
+.ph-avatar-wrap {
+  position:        relative;
+  width:           88px;
+  height:          88px;
+  border-radius:   50%;
+  cursor:          pointer;
+  flex-shrink:     0;
+  border:          3px solid $light-card;
+  box-shadow:      0 2px 16px rgba(0,0,0,.14);
+  overflow:        hidden;
+  transition:      transform 0.15s;
+
+  &:hover { transform: scale(1.04); }
+  &--uploading { opacity: 0.7; }
+}
+
+.ph-avatar {
+  width:        100%;
+  height:       100%;
+  object-fit:   cover;
+  border-radius: 50%;
+
+  &--initials {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          100%;
+    background:      linear-gradient(135deg, var(--pt) 0%, color-mix(in srgb, var(--pt) 60%, #8b5cf6) 100%);
+    color:           #fff;
+    font-size:       1.75rem;
+    font-weight:     700;
+    letter-spacing:  -.02em;
+  }
+}
+
+.ph-avatar-camera {
+  position:         absolute;
+  inset:            0;
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  background:       rgba(0,0,0,.45);
+  border-radius:    50%;
+  opacity:          0;
+  transition:       opacity 0.15s;
+  color:            #fff;
+  mat-icon { font-size: 22px; }
+}
+
+.ph-avatar-wrap:hover .ph-avatar-camera { opacity: 1; }
+
+.ph-identity__text {
+  flex:     1;
+  min-width: 0;
+  padding-top: 48px;  // push text below hero bottom edge
+}
+
+.ph-name {
+  font-size:      1.625rem;
+  font-weight:    700;
+  color:          $light-text;
+  letter-spacing: -.02em;
+  margin:         0 0 2px;
+  line-height:    1.15;
+}
+
+.ph-role {
+  font-size:  0.875rem;
+  color:      $light-label;
+  margin:     0;
+  font-weight: 400;
+}
+
+.ph-identity__actions {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  padding-top: 48px;
+  flex-shrink: 0;
+}
+
+.ph-action-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           34px;
+  height:          34px;
+  border:          1px solid $light-sep;
+  border-radius:   50%;
+  background:      $light-card;
+  color:           $light-text-sec;
+  cursor:          pointer;
+  text-decoration: none;
+  transition:      background 0.14s, border-color 0.14s;
+
+  &:hover { background: color.adjust($light-card, $lightness: -4%); }
+  &--primary { background: var(--pt); border-color: var(--pt); color: #fff; }
+  &--danger  { color: #ef4444; &:hover { background: #fef2f2; border-color: #fecaca; } }
+
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+}
+
+// ── Summary strip ─────────────────────────────────────────────────────────────
+.ph-strip {
+  display:        flex;
+  align-items:    center;
+  justify-content: center;
+  gap:            0;
+  margin:         16px 16px 0;
+  background:     $light-card;
+  border:         1px solid $light-sep;
+  border-radius:  14px;
+  padding:        14px 0;
+  overflow:       hidden;
+}
+
+.ph-strip__cell {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             2px;
+  flex:            1;
+}
+
+.ph-strip__val {
+  font-size:      1.25rem;
+  font-weight:    700;
+  color:          $light-text;
+  letter-spacing: -.02em;
+  line-height:    1;
+
+  &--sm { font-size: 0.875rem; font-weight: 600; text-align: center; line-height: 1.2; }
+}
+
+.ph-strip__label {
+  font-size:  0.6875rem;
+  color:      $light-label;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.ph-strip__div {
+  width:   1px;
+  height:  32px;
+  background: $light-sep;
+  flex-shrink: 0;
+}
+
+// ── Content ───────────────────────────────────────────────────────────────────
+.ph-content {
+  padding: 20px 16px 0;
+  max-width: 860px;
+  margin: 0 auto;
+
+  @media (min-width: 680px) {
+    padding: 24px 24px 0;
+  }
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+.ph-section { margin-bottom: 32px; }
+
+.ph-section-header {
+  display:     flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ph-section-title {
+  font-size:      0.6875rem;
+  font-weight:    600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          $light-label;
+  margin:         0 0 8px 4px;
+}
+
+.ph-section-action {
+  border:      none;
+  background:  none;
+  color:       var(--pt);
+  font-size:   0.8125rem;
+  font-weight: 600;
+  cursor:      pointer;
+  padding:     0;
+  &:hover { opacity: 0.75; }
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+.ph-card {
+  background:    $light-card;
+  border:        1px solid $light-sep;
+  border-radius: 14px;
+  overflow:      hidden;
+}
+
+// ── List card (info rows) ─────────────────────────────────────────────────────
+.ph-list-card { padding: 0; }
+
+.ph-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     11px 16px;
+  border-bottom: 1px solid $light-sep;
+  text-decoration: none;
+  transition: background 0.12s;
+
+  &--last { border-bottom: none; }
+
+  &--link:hover { background: color.adjust($light-card, $lightness: -2%); cursor: pointer; }
+}
+
+.ph-row__icon {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           30px;
+  height:          30px;
+  border-radius:   8px;
+  background:      rgba(99, 102, 241, 0.1);
+  color:           var(--pt);
+  flex-shrink:     0;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &--colored {
+    background: color-mix(in srgb, var(--ic, var(--pt)) 15%, transparent);
+    color:      var(--ic, var(--pt));
+  }
+}
+
+.ph-row__body {
+  display:        flex;
+  flex-direction: column;
+  flex:           1;
+  min-width:      0;
+  gap:            1px;
+}
+
+.ph-row__label {
+  font-size:     0.6875rem;
+  color:         $light-label;
+  font-weight:   500;
+}
+
+.ph-row__value {
+  font-size:     0.875rem;
+  color:         $light-text;
+  font-weight:   400;
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+
+  &--bold { font-weight: 600; font-size: 0.9375rem; }
+}
+
+.ph-row__chevron {
+  font-size: 18px;
+  width:     18px;
+  height:    18px;
+  color:     $light-label;
+  flex-shrink: 0;
+}
+
+// ── Profile strength card ─────────────────────────────────────────────────────
+.ph-strength-card {
+  display:     flex;
+  align-items: center;
+  gap:         20px;
+  padding:     20px;
+}
+
+.ph-strength-ring-wrap {
+  position:        relative;
+  width:           90px;
+  height:          90px;
+  flex-shrink:     0;
+}
+
+.ph-ring {
+  width:     90px;
+  height:    90px;
+  transform: rotate(-90deg);
+
+  &__track {
+    fill:          none;
+    stroke:        $light-sep;
+    stroke-width:  10;
+  }
+
+  &__fill {
+    fill:              none;
+    stroke-width:      10;
+    stroke-linecap:    round;
+    stroke-dasharray:  264;
+    stroke-dashoffset: 264;
+    transition:        stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1), stroke 0.4s;
+  }
+}
+
+.ph-ring__center {
+  position:  absolute;
+  inset:     0;
+  display:   flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap:       1px;
+}
+
+.ph-ring__pct {
+  font-size:   1.375rem;
+  font-weight: 700;
+  color:       $light-text;
+  line-height: 1;
+}
+
+.ph-ring__sym {
+  font-size:   0.7rem;
+  font-weight: 600;
+  color:       $light-label;
+  align-self:  flex-start;
+  margin-top:  4px;
+}
+
+.ph-strength-detail { flex: 1; min-width: 0; }
+
+.ph-strength-headline {
+  font-size:   0.875rem;
+  font-weight: 600;
+  color:       $light-text;
+  margin:      0 0 10px;
+}
+
+.ph-strength-done {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   0.875rem;
+  font-weight: 600;
+  color:       #34C759;
+  mat-icon { font-size: 18px; }
+}
+
+.ph-checklist {
+  list-style:     none;
+  margin:         0 0 10px;
+  padding:        0;
+  display:        flex;
+  flex-direction: column;
+  gap:            5px;
+}
+
+.ph-checklist__item {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   0.8125rem;
+  color:       $light-label;
+}
+
+.ph-check {
+  width:         14px;
+  height:        14px;
+  border-radius: 50%;
+  flex-shrink:   0;
+
+  &--empty {
+    border: 1.5px solid $light-sep;
+    background: transparent;
+  }
+}
+
+.ph-inline-edit-btn {
+  border:      none;
+  background:  none;
+  color:       var(--pt);
+  font-size:   0.8125rem;
+  font-weight: 600;
+  cursor:      pointer;
+  padding:     0;
+  &:hover { opacity: 0.75; }
+}
+
+// ── Bio ───────────────────────────────────────────────────────────────────────
+.ph-bio-text {
+  font-size:   0.9375rem;
+  color:       $light-text;
+  line-height: 1.65;
+  margin:      0;
+  padding:     16px;
+}
+
+.ph-empty-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  padding:     16px;
+  font-size:   0.875rem;
+  color:       $light-label;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+}
+
+.ph-link-btn {
+  border:      none;
+  background:  none;
+  color:       var(--pt);
+  font-size:   0.875rem;
+  font-weight: 600;
+  cursor:      pointer;
+  padding:     0;
+  &:hover { opacity: 0.75; }
+}
+
+// ── Edit card ─────────────────────────────────────────────────────────────────
+.ph-edit-card { padding: 16px; }
+
+.ph-edit-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   12px;
+  margin-bottom:         12px;
+}
+
+.ph-edit-section-title {
+  font-size:      0.6875rem;
+  font-weight:    600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          $light-label;
+  margin:         16px 0 10px;
+}
+
+.ph-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  margin-bottom:  12px;
+
+  &:last-of-type { margin-bottom: 0; }
+}
+
+.ph-field-label {
+  font-size:  0.75rem;
+  font-weight: 600;
+  color:      $light-label;
+}
+
+.ph-field-hint { font-weight: 400; font-size: 0.68rem; margin-left: 4px; }
+
+.ph-input, .ph-textarea {
+  width:         100%;
+  padding:       9px 12px;
+  border:        1px solid $light-sep;
+  border-radius: 10px;
+  background:    $light-card-2;
+  font-size:     0.9375rem;
+  color:         $light-text;
+  font-family:   inherit;
+  transition:    border-color 0.15s;
+  box-sizing:    border-box;
+
+  &:focus { outline: none; border-color: var(--pt); }
+}
+
+.ph-textarea {
+  resize:     vertical;
+  min-height: 80px;
+  position:   relative;
+}
+
+.ph-char {
+  font-size:  0.65rem;
+  color:      $light-label;
+  text-align: right;
+}
+
+.ph-edit-field { display: flex; flex-direction: column; gap: 5px; padding: 12px 16px; }
+
+.ph-edit-actions {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+  margin-top:      16px;
+  padding-top:     14px;
+  border-top:      1px solid $light-sep;
+}
+
+.ph-btn {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       8px 18px;
+  border-radius: 10px;
+  border:        none;
+  font-size:     0.875rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background 0.14s, opacity 0.14s;
+
+  &[disabled] { opacity: 0.45; pointer-events: none; }
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  .spin     { animation: ph-spin 1s linear infinite; }
+
+  &--cancel { background: $light-card-2; color: $light-text-sec; border: 1px solid $light-sep; &:hover { background: color.adjust($light-card-2, $lightness: -3%); } }
+  &--save   { background: var(--pt); color: #fff; box-shadow: 0 2px 8px color-mix(in srgb, var(--pt) 28%, transparent); &:hover { filter: brightness(1.07); } }
+}
+
+@keyframes ph-spin { to { transform: rotate(360deg); } }
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.sk {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(0,0,0,.06) 25%, rgba(0,0,0,.1) 50%, rgba(0,0,0,.06) 75%);
+  background-size: 200% 100%;
+  animation: ph-shimmer 1.4s ease-in-out infinite;
+
+  &-avatar { width: 88px; height: 88px; border-radius: 50%; }
+  &-line   { display: block; }
+}
+
+@keyframes ph-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+// ══ DARK MODE ═════════════════════════════════════════════════════════════════
+@mixin ph-dark {
+  .ph-page        { background: $dark-bg; }
+  .ph-hero__bg    {
+    background: linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--pt) 45%, #000) 0%,
+      color-mix(in srgb, var(--pt) 18%, #1a1a2e) 50%,
+      #000 100%
+    );
+  }
+  .ph-name        { color: $dark-text; }
+  .ph-role        { color: $dark-label; }
+  .ph-avatar-wrap { border-color: $dark-card; }
+  .ph-action-btn  { background: $dark-card; border-color: $dark-sep; color: $dark-label;
+    &--primary { background: var(--pt); border-color: var(--pt); color: #fff; }
+  }
+  .ph-strip       { background: $dark-card; border-color: $dark-sep; }
+  .ph-strip__val  { color: $dark-text; }
+  .ph-strip__label{ color: $dark-label; }
+  .ph-strip__div  { background: $dark-sep; }
+  .ph-section-title { color: $dark-label; }
+  .ph-card        { background: $dark-card; border-color: $dark-sep; }
+  .ph-row         { border-color: $dark-sep; &--link:hover { background: $dark-card-2; } }
+  .ph-row__label  { color: $dark-label; }
+  .ph-row__value  { color: $dark-text; }
+  .ph-row__chevron{ color: $dark-label; }
+  .ph-ring__track { stroke: $dark-sep; }
+  .ph-ring__pct   { color: $dark-text; }
+  .ph-ring__sym   { color: $dark-label; }
+  .ph-strength-headline { color: $dark-text; }
+  .ph-checklist__item   { color: $dark-label; }
+  .ph-check--empty      { border-color: $dark-sep; }
+  .ph-bio-text    { color: $dark-text; }
+  .ph-empty-row   { color: $dark-label; }
+  .ph-input, .ph-textarea { background: $dark-card-2; border-color: $dark-sep; color: $dark-text; }
+  .ph-field-label { color: $dark-label; }
+  .ph-edit-section-title { color: $dark-label; }
+  .ph-edit-actions { border-color: $dark-sep; }
+  .ph-btn--cancel  { background: $dark-card-2; color: $dark-label; border-color: $dark-sep; }
+  .ph-theme-panel  { background: rgba(30,30,32,.96); border-color: $dark-sep; }
+  .ph-theme-option { color: $dark-text; &:hover { background: $dark-sep; } }
+  .sk { background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.1) 50%, rgba(255,255,255,.06) 75%); background-size: 200% 100%; }
+}
+
+:host-context(html.dark-theme)         { @include ph-dark; }
+@media (prefers-color-scheme: dark) {
+  :host-context(html:not(.light-theme)){ @include ph-dark; }
+}

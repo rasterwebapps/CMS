@@ -1,0 +1,33 @@
+<div class="widget-shell">
+  @if (loading()) {
+    <div class="widget-body">
+      <div class="widget-loading">
+        <div class="sk-block" style="width:40px;height:40px;border-radius:12px"></div>
+        <div style="margin-top:14px">
+          <div class="sk-line sk-line--55" style="height:30px;border-radius:8px"></div>
+          <div class="sk-line sk-line--75" style="height:11px;margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="widget-body widget-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>No data</span>
+    </div>
+  } @else {
+    <div class="sc-badge">{{ data()?.badge }}</div>
+    <div class="widget-body">
+      <div class="sc-icon-bubble">
+        <mat-icon>{{ iconName }}</mat-icon>
+      </div>
+      <div class="sc-val">
+        @if (isNumeric()) {
+          {{ animatedValue() | number }}
+        } @else {
+          {{ data()?.value }}
+        }
+      </div>
+      <div class="sc-label">{{ widgetLabel || data()?.key }}</div>
+    </div>
+  }
+</div>

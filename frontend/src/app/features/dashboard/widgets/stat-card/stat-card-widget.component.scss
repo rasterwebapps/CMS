@@ -1,0 +1,84 @@
+@use '../widget-shell' as *;
+@use 'sass:math';
+
+// --ca is set on the host via the component's host binding
+:host {
+  display: block;
+  height: 100%;
+}
+
+.widget-shell {
+  // Override with per-card accent
+  background:
+    color-mix(in srgb, var(--ca, var(--cms-primary)) 7%, transparent),
+    rgba(255,255,255,.04);
+  border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 14%, rgba(255,255,255,.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 0 24px color-mix(in srgb, var(--ca, var(--cms-primary)) 8%, transparent),
+    0 16px 32px rgba(0,0,0,.22);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--ca, var(--cms-primary)), color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent));
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ca, var(--cms-primary)) 50%, transparent);
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 28%, rgba(255,255,255,.10));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      0 0 36px color-mix(in srgb, var(--ca, var(--cms-primary)) 14%, transparent),
+      0 24px 48px rgba(0,0,0,.28);
+  }
+
+  :host-context(html:not(.dark-theme)) & {
+    background: #fff;
+    border-color: rgba(0,0,0,.07);
+    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    &::before { box-shadow: none; }
+  }
+}
+
+.sc-badge {
+  position: absolute; top: 12px; right: 14px;
+  font-size: 9.5px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(var(--cms-primary-rgb),.12);
+  color: var(--ca, var(--cms-primary));
+  border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 20%, transparent);
+}
+
+.sc-icon-bubble {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ca, var(--cms-primary)) 22%, transparent) 0%, transparent 70%);
+  border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, transparent);
+  color: var(--ca, var(--cms-primary));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ca, var(--cms-primary)) 35%, transparent));
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  :host-context(html:not(.dark-theme)) & { filter: none; }
+}
+
+.sc-val {
+  font-size: 26px; font-weight: 600; color: #fff;
+  letter-spacing: -.03em; line-height: 1; margin-bottom: 5px;
+  font-variant-numeric: tabular-nums;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
+}
+
+.sc-label {
+  font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.widget-error {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: rgba(255,255,255,.3); font-size: 12px;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}

@@ -1,0 +1,39 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>trending_up</mat-icon></div>
+    <span class="widget-title">Admission Trend</span>
+    <a routerLink="/reports" class="widget-action">View all →</a>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="chart-area chart-area--loading">
+        @for (n of [1,2,3,4,5,6]; track n) {
+          <div class="sk-bar" [style.height.%]="30 + n * 10"></div>
+        }
+      </div>
+    } @else if (error() || bars().length === 0) {
+      <div class="widget-error">
+        <mat-icon>bar_chart</mat-icon>
+        <span>No trend data available</span>
+      </div>
+    } @else {
+      <div class="chart-area">
+        @for (bar of bars(); track bar.label; let i = $index) {
+          <div class="bar-grp" [style.--bi]="i">
+            <span class="bar-val" [class.bar-val--hi]="bar.emphasis === 'hi'">{{ bar.value }}</span>
+            <div class="bar"
+                 [class.hi]="bar.emphasis === 'hi'"
+                 [class.lo]="bar.emphasis === 'lo'"
+                 [style.--bh]="bar.height + '%'"></div>
+          </div>
+        }
+      </div>
+      <div class="chart-axis">
+        @for (bar of bars(); track bar.label) {
+          <span>{{ bar.label }}</span>
+        }
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,30 @@
+@use '../widget-shell' as *;
+
+.sql-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.sql-tile {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+  text-decoration: none; color: rgba(255,255,255,.8);
+  font-size: 13px; font-weight: 600;
+  transition: transform .15s, background .15s, border-color .15s;
+
+  &:hover {
+    transform: translateY(-2px);
+    background: rgba(var(--cms-primary-rgb),.12);
+    border-color: rgba(var(--cms-primary-rgb),.22);
+    color: #fff;
+  }
+
+  mat-icon { color: var(--cms-primary); font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+
+  :host-context(html:not(.dark-theme)) & {
+    background: #fff; border-color: rgba(0,0,0,.07); color: var(--cms-text-primary);
+    &:hover { background: rgba(var(--cms-primary-rgb),.05); border-color: rgba(var(--cms-primary-rgb),.2); }
+  }
+}

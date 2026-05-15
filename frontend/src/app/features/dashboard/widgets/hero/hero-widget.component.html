@@ -1,0 +1,41 @@
+<div class="hero-shell">
+  <div class="hero-ring"></div>
+  <div class="hero-ring-2"></div>
+
+  @if (loading()) {
+    <div class="hero-loading">
+      <div class="sk-block" style="width:180px;height:20px;border-radius:10px"></div>
+      <div class="sk-block" style="width:280px;height:38px;border-radius:10px;margin-top:10px"></div>
+      <div class="sk-block" style="width:200px;height:14px;border-radius:8px;margin-top:8px"></div>
+    </div>
+  } @else if (error() || !data()) {
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <div class="hero-tag">Dashboard</div>
+      </div>
+      <div class="hero-title">{{ greeting() }}, <em>there</em></div>
+      <div class="hero-sub">Your dashboard is ready.</div>
+    </div>
+  } @else {
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <div class="hero-tag">{{ data()!.academicYear }}</div>
+        <div class="hero-role-tag">{{ data()!.roleLabel }}</div>
+      </div>
+      <div class="hero-title">{{ greeting() }}, <em>{{ data()!.username }}</em></div>
+      <div class="hero-sub">Here's your dashboard — everything at a glance.</div>
+    </div>
+
+    @if (data()!.quickStats.length > 0) {
+      <div class="hero-stats-strip">
+        @for (stat of data()!.quickStats; track stat.label; let last = $last) {
+          <div class="hero-stat">
+            <span class="hero-stat__val">{{ stat.value }}</span>
+            <span class="hero-stat__label">{{ stat.label }}</span>
+          </div>
+          @if (!last) { <div class="hero-stat-div"></div> }
+        }
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,44 @@
+@use '../widget-shell' as *;
+
+$green:  #22C55E;
+$amber:  #F59E0B;
+$red:    #EF4444;
+
+.eq-item { margin-bottom: 13px; &:last-child { margin-bottom: 0; } }
+
+.eq-meta { display: flex; justify-content: space-between; margin-bottom: 6px; }
+
+.eq-name {
+  font-size: 12px; font-weight: 500; color: rgba(255,255,255,.6);
+  display: flex; align-items: center; gap: 7px;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.eq-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  &[data-c='green']  { background: $green; }
+  &[data-c='accent'] { background: var(--cms-primary); }
+  &[data-c='amber']  { background: $amber; }
+  &[data-c='red']    { background: $red; }
+}
+
+.eq-count { font-size: 11.5px; color: rgba(255,255,255,.3); font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+
+.prog { height: 6px; background: rgba(255,255,255,.07); border-radius: 10px; overflow: hidden; :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.07); } }
+
+.prog-f {
+  height: 100%; border-radius: 10px;
+  width: var(--pw, 0%);
+  animation: prog-grow .7s cubic-bezier(.4,0,.2,1) both;
+  animation-delay: calc(.1s + var(--pi, 0) * .06s);
+
+  &[data-c='green']  { background: linear-gradient(90deg, rgba($green,.6), $green); }
+  &[data-c='accent'] { background: linear-gradient(90deg, rgba(var(--cms-primary-rgb),.6), var(--cms-primary)); }
+  &[data-c='amber']  { background: linear-gradient(90deg, rgba($amber,.6), $amber); }
+  &[data-c='red']    { background: linear-gradient(90deg, rgba($red,.6), $red); }
+}
+
+@keyframes prog-grow {
+  from { width: 0 !important; }
+  to   { width: var(--pw, 0%); }
+}

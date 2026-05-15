@@ -1,0 +1,120 @@
+@use '../widget-shell' as *;
+
+$green: #22C55E;
+
+:host { display: block; }
+
+.hero-shell {
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  padding: 28px 32px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  background:
+    color-mix(in srgb, var(--cms-primary) 8%, transparent),
+    rgba(255,255,255,.04);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 18%, rgba(255,255,255,.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 0 32px color-mix(in srgb, var(--cms-primary) 8%, transparent),
+    0 16px 40px rgba(0,0,0,.22);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cms-primary) 40%, rgba(var(--cms-primary-rgb),.2) 100%);
+  }
+
+  :host-context(html:not(.dark-theme)) & {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: linear-gradient(135deg, rgba(var(--cms-primary-rgb),.06) 0%, transparent 60%), #fff;
+    border-color: rgba(var(--cms-primary-rgb),.15);
+    box-shadow: 0 2px 16px rgba(0,0,0,.07);
+
+    // Rings — more visible in light mode
+    .hero-ring   { border: 2px solid rgba(var(--cms-primary-rgb),.22); }
+    .hero-ring-2 { border: 2px solid rgba(var(--cms-primary-rgb),.35); }
+
+    // Override dark-mode white text so it's visible on the light card
+    .hero-title {
+      color: var(--cms-text-primary);
+      em    { filter: none; color: var(--cms-primary); }
+    }
+    .hero-sub      { color: var(--cms-text-secondary); }
+    .hero-role-tag { color: var(--cms-text-secondary); background: rgba(var(--cms-primary-rgb),.08); border: 1px solid rgba(var(--cms-primary-rgb),.14); }
+    .hero-stats-strip {
+      background: rgba(var(--cms-primary-rgb),.06);
+      border-color: rgba(var(--cms-primary-rgb),.18);
+      backdrop-filter: none;
+      .hero-stat__val   { color: var(--cms-text-primary); font-size: 22px; }
+      .hero-stat__label { color: var(--cms-text-secondary); }
+    }
+    .hero-stat-div { background: rgba(var(--cms-primary-rgb),.18); }
+  }
+}
+
+.hero-ring, .hero-ring-2 {
+  position: absolute; border-radius: 50%; pointer-events: none;
+}
+.hero-ring   { right: -40px; top: -60px; width: 260px; height: 260px; border: 1px solid rgba(var(--cms-primary-rgb),.10); }
+.hero-ring-2 { right:  30px; top: -10px; width: 140px; height: 140px; border: 1px solid rgba(var(--cms-primary-rgb),.18); }
+
+.hero-content { position: relative; z-index: 1; flex: 1; min-width: 200px; }
+
+.hero-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+
+.hero-tag, .hero-role-tag {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.hero-tag      { color: var(--cms-primary); background: rgba(var(--cms-primary-rgb),.14); border: 1px solid rgba(var(--cms-primary-rgb),.20); }
+.hero-role-tag { color: rgba(255,255,255,.55); background: rgba(255,255,255,.06); }
+
+.hero-title {
+  font-size: 26px; font-weight: 700;
+  letter-spacing: -.02em; line-height: 1.1;
+  color: #fff; margin-bottom: 6px;
+  em {
+    font-style:  normal;
+    font-weight: 800;
+    color:       var(--cms-primary);
+    filter:      drop-shadow(0 0 8px rgba(var(--cms-primary-rgb),.45));
+  }
+}
+
+.hero-sub { font-size: 13px; color: rgba(255,255,255,.5); }
+
+.hero-stats-strip {
+  display: flex; align-items: center; gap: 18px;
+  padding: 14px 22px; border-radius: 14px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0; position: relative; z-index: 1;
+}
+
+.hero-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  &__val   { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -.02em; line-height: 1; }
+  &__label { font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.45); }
+}
+
+.hero-stat-div { width: 1px; height: 26px; background: rgba(255,255,255,.12); flex-shrink: 0; }
+
+.hero-loading {
+  display: flex; flex-direction: column; padding: 4px;
+  .sk-block {
+    background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 50%, rgba(255,255,255,.06) 75%);
+    background-size: 200% 100%;
+    animation: wsk-shimmer 1.5s ease-in-out infinite;
+  }
+}

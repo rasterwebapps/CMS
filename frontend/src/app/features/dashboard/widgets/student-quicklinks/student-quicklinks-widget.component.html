@@ -1,0 +1,16 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>flash_on</mat-icon></div>
+    <span class="widget-title">Quick Links</span>
+  </div>
+  <div class="widget-body">
+    <div class="sql-grid">
+      @for (link of links; track link.route) {
+        <a class="sql-tile" [routerLink]="link.route">
+          <mat-icon>{{ link.icon }}</mat-icon>
+          <span>{{ link.label }}</span>
+        </a>
+      }
+    </div>
+  </div>
+</div>

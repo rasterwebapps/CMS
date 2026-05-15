@@ -774,8 +774,83 @@
   text-overflow: ellipsis;
 }
 
+// ── User account menu panel ────────────────────────────────────────────────────
+::ng-deep .user-account-menu .mat-mdc-menu-panel {
+  min-width: 220px !important;
+  border-radius: var(--cms-radius-xl) !important;
+  overflow: hidden;
+  box-shadow: var(--cms-shadow-xl) !important;
+  border: 1px solid var(--cms-line) !important;
+}
+
+// Rich header block (not a mat-menu-item — no hover state)
 .user-menu-header {
-  opacity: 0.7;
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     14px 16px 12px;
+  cursor:      default;
+  user-select: none;
+}
+
+.user-menu-avatar {
+  width:           40px;
+  height:          40px;
+  border-radius:   50%;
+  flex-shrink:     0;
+  background:      linear-gradient(135deg, var(--cms-primary), var(--color-primary-700, #4338ca));
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  overflow:        hidden;
+  box-shadow:      0 2px 8px var(--cms-primary-alpha-30);
+
+  img {
+    width:        100%;
+    height:       100%;
+    object-fit:   cover;
+    border-radius: 50%;
+    display:      block;
+  }
+
+  span {
+    font-size:   0.875rem;
+    font-weight: 700;
+    color:       #fff;
+    letter-spacing: 0.02em;
+  }
+}
+
+.user-menu-meta {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  min-width:      0;
+}
+
+.user-menu-name {
+  font-size:     0.875rem;
+  font-weight:   600;
+  color:         var(--cms-text-primary);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-role {
+  font-size:  0.7rem;
+  color:      var(--cms-text-muted);
+  white-space: nowrap;
+  overflow:   hidden;
+  text-overflow: ellipsis;
+}
+
+// Logout item — red tint on hover
+.menu-item--danger {
+  &:hover {
+    color: var(--cms-danger) !important;
+    mat-icon { color: var(--cms-danger) !important; }
+  }
 }
 
 .toolbar-action-btn {
@@ -852,6 +927,14 @@
   &:has(img) {
     background: transparent;
   }
+}
+
+.avatar-initials {
+  font-size:   0.75rem;
+  font-weight: 700;
+  color:       #fff;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .toolbar-avatar-photo {
