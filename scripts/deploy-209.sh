@@ -175,6 +175,10 @@ print_step "Syncing 209 deployment bundle..."
 rsync_to_server "$LOCAL_DIR/deploy/production-209/" "$REMOTE_STAGE/deploy/" \
   --exclude='.env'
 
+print_step "Syncing Keycloak themes..."
+remote_run "mkdir -p $REMOTE_STAGE/deploy/keycloak/themes"
+rsync_to_server "$LOCAL_DIR/infrastructure/keycloak/themes/" "$REMOTE_STAGE/deploy/keycloak/themes/"
+
 if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
   print_step "Syncing backend files..."
   rsync_to_server "$LOCAL_DIR/backend/" "$REMOTE_STAGE/backend/" \
