@@ -385,6 +385,22 @@ JSON
     echo "Failed to update Keycloak cms-frontend client. HTTP status: $STATUS"
     exit 1
   fi
+
+  # ── Reconcile realm login theme ──────────────────────────────────────────
+  echo "Setting cms realm loginTheme to 'cms'..."
+  REALM_THEME_STATUS=$(curl -sk -o /tmp/cms209_realm_theme.out -w '%{http_code}' \
+    -X PUT \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d '{"loginTheme":"cms"}' \
+    "http://$LOCAL_HOST:8180/admin/realms/cms")
+  rm -f /tmp/cms209_realm_theme.out
+
+  if [ "$REALM_THEME_STATUS" != "204" ]; then
+    echo "Warning: Failed to set realm loginTheme. HTTP status: $REALM_THEME_STATUS (non-fatal)"
+  else
+    echo "Realm loginTheme set to 'cms' successfully."
+  fi
 fi
 
 # ── Step 7: Health check ──────────────────────────────────────────────────────
