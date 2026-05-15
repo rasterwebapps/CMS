@@ -84,11 +84,17 @@ elif [ "$MODE" = "frontend" ]; then
     --exclude='dist' \
     --exclude='.angular'
 
+  print_step "Syncing Keycloak themes..."
+  rsync_to_server "$LOCAL_DIR/infrastructure/keycloak/themes/" "$REMOTE_DIR/infrastructure/keycloak/themes/"
+
 elif [ "$MODE" = "backend" ]; then
   print_step "Syncing backend files to server..."
   rsync_to_server "$LOCAL_DIR/backend/" "$REMOTE_DIR/backend/" \
     --exclude='build' \
     --exclude='.gradle'
+
+  print_step "Syncing Keycloak themes..."
+  rsync_to_server "$LOCAL_DIR/infrastructure/keycloak/themes/" "$REMOTE_DIR/infrastructure/keycloak/themes/"
 fi
 
 # ── Step 2: Build Docker image(s) ─────────────────────────────────────────────
@@ -147,6 +153,62 @@ SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" "
   curl -sk -o /dev/null -w 'Keycloak (OIDC):   %{http_code}\n' https://localhost:8443/realms/cms
   curl -sk -o /dev/null -w 'Backend API:       %{http_code}\n' https://localhost:8443/api/v1/health
 "
+
+# ── Step 6: Keycloak realm theme reconciliation ───────────────────────────────
+if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+  print_step "Reconciling Keycloak realm login theme..."
+
+  KC_HOST="172.17.1.243"
+  KC_PORT="8280"
+  KC_ADMIN_USER="admin"
+  KC_ADMIN_PASS="admin"
+
+  TOKEN_JSON=""
+  for attempt in $(seq 1 20); do
+    TOKEN_JSON=$(curl -sk -X POST "http://$KC_HOST:$KC_PORT/realms/master/protocol/openid-connect/token" \
+      -H 'Content-Type: application/x-www-form-urlencoded' \
+      --data-urlencode 'client_id=admin-cli' \
+      --data-urlencode "username=$KC_ADMIN_USER" \
+      --data-urlencode "password=$KC_ADMIN_PASS" \
+      --data-urlencode 'grant_type=password' || true)
+
+    if TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY' >/dev/null 2>&1
+import json, os
+payload = json.loads(os.environ['TOKEN_JSON'])
+raise SystemExit(0 if payload.get('access_token') else 1)
+PY
+    then
+      break
+    fi
+
+    echo "Waiting for Keycloak admin API... attempt $attempt/20"
+    sleep 3
+  done
+
+  TOKEN=$(TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY'
+import json, os, sys
+payload = json.loads(os.environ['TOKEN_JSON'])
+if 'access_token' not in payload:
+    print(payload, file=sys.stderr)
+    sys.exit(1)
+print(payload['access_token'])
+PY
+)
+
+  REALM_THEME_STATUS=$(curl -sk -o /tmp/cms243_realm_theme.out -w '%{http_code}' \
+    -X PUT \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d '{"loginTheme":"cms"}' \
+    "http://$KC_HOST:$KC_PORT/admin/realms/cms")
+  rm -f /tmp/cms243_realm_theme.out
+
+  if [ "$REALM_THEME_STATUS" != "204" ]; then
+    echo "Warning: Failed to set realm loginTheme. HTTP status: $REALM_THEME_STATUS (non-fatal)"
+  else
+    echo "Realm loginTheme set to 'cms' successfully."
+  fi
+fi
 
 echo ""
 echo "============================================="
