@@ -68,6 +68,17 @@
       }
     </select>
 
+    <select
+      class="mlp-filter-select"
+      [value]="selectedDocumentReview()"
+      (change)="onDocumentReviewChange($any($event.target).value)"
+      aria-label="Filter by document review state"
+    >
+      @for (option of documentReviewOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+
     @if (hasActiveFilters()) {
       <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
     }
@@ -125,6 +136,15 @@
               <span class="status-badge fac-card__status" [class]="getStatusClass(item.status)">
                 {{ item.status | titlecase }}
               </span>
+              @let reviewBadge = documentReviewBadge(item);
+              <button
+                type="button"
+                [class]="'doc-review-badge ' + reviewBadge.className"
+                [matTooltip]="reviewBadge.tooltip"
+                (click)="viewDocuments(item, $event)"
+              >
+                {{ reviewBadge.label }}
+              </button>
             </div>
           </div>
         }
@@ -178,12 +198,30 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="documentReview">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Documents</th>
+            <td mat-cell *matCellDef="let faculty" class="cell-align-center">
+              @let reviewBadge = documentReviewBadge(faculty);
+              <button
+                type="button"
+                [class]="'doc-review-badge ' + reviewBadge.className"
+                [matTooltip]="reviewBadge.tooltip"
+                (click)="viewDocuments(faculty, $event)"
+              >
+                {{ reviewBadge.label }}
+              </button>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let faculty">
               <div class="row-actions">
                 <button class="action-btn action-btn--view" matTooltip="View" (click)="viewFaculty(faculty)" aria-label="View faculty">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="action-btn" matTooltip="Documents" (click)="viewDocuments(faculty, $event)" aria-label="Open faculty documents">
+                  <mat-icon>description</mat-icon>
                 </button>
                 <button class="action-btn" matTooltip="Edit" (click)="editFaculty(faculty)" aria-label="Edit faculty">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>

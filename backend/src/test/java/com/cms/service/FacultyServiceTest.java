@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,9 +25,13 @@ import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Department;
 import com.cms.model.Faculty;
+import com.cms.model.FacultyDocument;
 import com.cms.model.enums.Designation;
+import com.cms.model.enums.DocumentType;
+import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.DepartmentRepository;
+import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,13 +43,24 @@ class FacultyServiceTest {
     @Mock
     private DepartmentRepository departmentRepository;
 
+    @Mock
+    private FacultyDocumentRepository facultyDocumentRepository;
+
+    @Mock
+    private FacultyDocumentTypeRequirementService requirementService;
+
     private FacultyService facultyService;
 
     private Department testDepartment;
 
     @BeforeEach
     void setUp() {
-        facultyService = new FacultyService(facultyRepository, departmentRepository);
+        facultyService = new FacultyService(
+            facultyRepository,
+            departmentRepository,
+            facultyDocumentRepository,
+            requirementService
+        );
         testDepartment = createDepartment(1L, "Computer Science", "CS");
     }
 
@@ -153,12 +169,23 @@ class FacultyServiceTest {
         Faculty faculty2 = createFaculty(2L, "EMP002", "Jane", "Smith", "jane@college.edu",
             testDepartment, Designation.ASSISTANT_PROFESSOR, FacultyStatus.ACTIVE);
 
+        FacultyDocument uploaded = new FacultyDocument(faculty1, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
+        uploaded.setFileName("pan.pdf");
+        FacultyDocument rejected = new FacultyDocument(faculty1, DocumentType.UG_DEGREE, DocumentVerificationStatus.REJECTED);
+        rejected.setFileName("degree.pdf");
+
         when(facultyRepository.findAll()).thenReturn(List.of(faculty1, faculty2));
+        when(facultyDocumentRepository.findByFacultyId(1L)).thenReturn(List.of(uploaded, rejected));
+        when(requirementService.getRequiredDocumentTypesForFaculty(1L))
+            .thenReturn(Set.of(DocumentType.PAN_CARD.name(), DocumentType.UG_DEGREE.name(), DocumentType.PG_DEGREE.name()));
 
         List<FacultyResponse> responses = facultyService.findAll();
 
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).employeeCode()).isEqualTo("EMP001");
+        assertThat(responses.get(0).documentReview().pendingVerificationCount()).isEqualTo(1);
+        assertThat(responses.get(0).documentReview().rejectedCount()).isEqualTo(1);
+        assertThat(responses.get(0).documentReview().missingRequiredCount()).isEqualTo(1);
         assertThat(responses.get(1).employeeCode()).isEqualTo("EMP002");
         verify(facultyRepository).findAll();
     }
@@ -397,12 +424,19 @@ class FacultyServiceTest {
             String employeeCode, String firstName, String lastName, String email, String phone,
             Long departmentId, Designation designation, String specialization, String labExpertise,
             LocalDate joiningDate, FacultyStatus status) {
+        final com.cms.model.enums.FacultyType facultyType = null;
+        final com.cms.model.enums.FacultyQualification highestQualification = null;
+        final com.cms.model.enums.Gender gender = null;
+        final com.cms.model.enums.MaritalStatus maritalStatus = null;
+        final com.cms.model.enums.BankAccountType bankAccountType = null;
+        final com.cms.dto.AddressRequest address = null;
+        final java.math.BigDecimal years = null;
         return new FacultyRequest(
             employeeCode, firstName, lastName, email, phone, departmentId, designation,
             specialization, labExpertise, joiningDate, status,
-            null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null,
-            null, null, null, null, null, null
+            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            null, null, null, null, null, null, null, null, bankAccountType, address,
+            years, years, years, years, years, years
         );
     }
 

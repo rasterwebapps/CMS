@@ -10,9 +10,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import jakarta.persistence.CollectionTable;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -22,7 +21,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OrderColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -57,12 +57,10 @@ public class AppRole {
     )
     private Set<Permission> permissions = new HashSet<>();
 
-    /** Ordered list of dashboard widget keys shown to users with this role. */
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "role_dashboard_widgets", joinColumns = @JoinColumn(name = "role_id"))
-    @OrderColumn(name = "widget_order")
-    @Column(name = "widget_key")
-    private List<String> dashboardWidgets = new ArrayList<>();
+    /** Ordered widget configuration for this role's dashboard. */
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("widgetOrder ASC")
+    private List<RoleDashboardWidgetConfig> widgetConfigs = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -139,12 +137,19 @@ public class AppRole {
         this.permissions = permissions;
     }
 
-    public List<String> getDashboardWidgets() {
-        return dashboardWidgets;
+    public List<RoleDashboardWidgetConfig> getWidgetConfigs() {
+        return widgetConfigs;
     }
 
-    public void setDashboardWidgets(List<String> dashboardWidgets) {
-        this.dashboardWidgets = dashboardWidgets;
+    public void setWidgetConfigs(List<RoleDashboardWidgetConfig> widgetConfigs) {
+        this.widgetConfigs = widgetConfigs;
+    }
+
+    /** Convenience accessor — returns just the ordered key list (no span metadata). */
+    public List<String> getDashboardWidgets() {
+        return widgetConfigs.stream()
+                .map(RoleDashboardWidgetConfig::getWidgetKey)
+                .toList();
     }
 
     public Instant getCreatedAt() {

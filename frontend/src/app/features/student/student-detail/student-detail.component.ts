@@ -10,7 +10,6 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { StudentService } from '../student.service';
 import {
   CourseRegistration,
-  DemandStatus,
   Student,
   StudentFeeLedger,
   StudentTermEnrollment,
@@ -62,7 +61,7 @@ import {
     CmsSkeletonComponent,
     CmsTourButtonComponent,
     ProfileDocumentsComponent,
-    ProgramTransferDialogComponent],
+  ],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
 })
@@ -234,15 +233,6 @@ export class StudentDetailComponent implements OnInit {
         this.loadingLedger.set(false);
       },
     });
-  }
-
-  protected getDemandStatusClass(status: DemandStatus): string {
-    switch (status) {
-      case 'PAID': return 'success';
-      case 'PARTIAL': return 'warning';
-      case 'UNPAID': return 'danger';
-      case 'WAIVED': return 'default';
-    }
   }
 
   protected hasScholarshipForCurrentYear(): boolean {

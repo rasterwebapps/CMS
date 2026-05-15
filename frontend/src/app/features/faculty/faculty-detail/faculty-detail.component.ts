@@ -37,11 +37,16 @@ export class FacultyDetailComponent implements OnInit {
 
   protected readonly faculty = signal<Faculty | null>(null);
   protected readonly loading = signal(true);
+  protected readonly selectedTabIndex = signal(0);
 
   /** First + last initial of the faculty's full name. */
   protected readonly initials = computed(() => computeInitials(this.faculty()?.fullName));
 
   ngOnInit(): void {
+    this.route.fragment.subscribe((fragment) => {
+      this.selectedTabIndex.set(fragment === 'documents' ? 4 : 0);
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadFaculty(+id);

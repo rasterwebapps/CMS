@@ -1,7 +1,7 @@
-import { Component, computed, inject, Input, OnInit, signal } from '@angular/core';
+import { Component, WritableSignal, computed, inject, Input, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { formatCurrency } from '@angular/common';
+import { DecimalPipe, formatCurrency } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -51,7 +51,7 @@ interface EquipmentRow {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [InrPipe, RouterLink, MatIconModule, RecentActivityComponent, ConnectionsCardComponent],
+  imports: [DecimalPipe, InrPipe, RouterLink, MatIconModule, RecentActivityComponent, ConnectionsCardComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss',
 })
@@ -78,10 +78,42 @@ export class AdminDashboardComponent implements OnInit {
     return this.visibleWidgets === null || statKeys.some(k => this.visibleWidgets!.includes(k));
   }
 
-  protected readonly loading = signal(true);
+  protected readonly loading       = signal(true);
   protected readonly trendsLoading = signal(true);
-  protected readonly summary = signal<DashboardSummary | null>(null);
-  protected readonly trends = signal<DashboardTrends | null>(null);
+  protected readonly summary       = signal<DashboardSummary | null>(null);
+  protected readonly trends        = signal<DashboardTrends | null>(null);
+
+  // ── Count-up animated stat signals ───────────────────────────────────────
+  protected readonly animStudents   = signal(0);
+  protected readonly animFaculty    = signal(0);
+  protected readonly animLabs       = signal(0);
+  protected readonly animEquipment  = signal(0);
+  protected readonly animEnquiries  = signal(0);
+  protected readonly animAdmissions = signal(0);
+  protected readonly animDepts      = signal(0);
+  protected readonly animPrograms   = signal(0);
+
+  // Time-aware greeting
+  protected readonly greeting = computed(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  });
+
+  private animateCount(sig: WritableSignal<number>, target: number, delay = 0): void {
+    const duration = 900;
+    setTimeout(() => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t    = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        sig.set(Math.round(ease * target));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, delay);
+  }
 
   // Academic year derived from today's date.
   // Indian academic years start in June (month index 5): June–December → year N,
@@ -192,6 +224,14 @@ export class AdminDashboardComponent implements OnInit {
       next: (data) => {
         this.summary.set(data);
         this.loading.set(false);
+        this.animateCount(this.animStudents,   data.totalStudents            ?? 0,   0);
+        this.animateCount(this.animFaculty,    data.totalFaculty             ?? 0,  80);
+        this.animateCount(this.animLabs,       data.totalLabs                ?? 0, 160);
+        this.animateCount(this.animEquipment,  data.totalEquipment           ?? 0, 240);
+        this.animateCount(this.animEnquiries,  data.totalEnquiriesThisMonth  ?? 0, 320);
+        this.animateCount(this.animAdmissions, data.admissionsThisMonth      ?? 0, 400);
+        this.animateCount(this.animDepts,      data.totalDepartments         ?? 0, 480);
+        this.animateCount(this.animPrograms,   data.totalPrograms            ?? 0, 560);
       },
       error: () => this.loading.set(false),
     });

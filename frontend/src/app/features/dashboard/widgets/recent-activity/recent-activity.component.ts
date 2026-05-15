@@ -23,6 +23,10 @@ interface ActivityRow {
   styleUrl: './recent-activity.component.scss',
 })
 export class RecentActivityComponent {
+  // ngComponentOutletInputs compatibility — silently accepted, not used for display
+  @Input() widgetKey?:   string;
+  @Input() widgetLabel?: string;
+  @Input() widgetIcon?:  string;
   @Input() items: ActivityRow[] = SAMPLE_ACTIVITY;
 
   protected iconFor(action: string): string {

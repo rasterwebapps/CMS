@@ -4,6 +4,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import com.cms.dto.WidgetConfigDto;
+import com.cms.model.RoleDashboardWidgetConfig;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +45,9 @@ public class AppRoleService {
     private final PermissionRepository permissionRepository;
     private final UserPermissionService userPermissionService;
     private final AuditLogService auditLogService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public AppRoleService(AppRoleRepository appRoleRepository,
                           PermissionRepository permissionRepository,
@@ -96,7 +105,10 @@ public class AppRoleService {
         }
 
         if (request.dashboardWidgets() != null) {
-            role.getDashboardWidgets().addAll(request.dashboardWidgets());
+            int order = 0;
+            for (String key : request.dashboardWidgets()) {
+                role.getWidgetConfigs().add(new RoleDashboardWidgetConfig(role, key, order++, 1, 1));
+            }
         }
 
         AppRole saved = appRoleRepository.save(role);
@@ -175,9 +187,22 @@ public class AppRoleService {
 
         ensureRoleIsEditable(role, requesterLevel);
 
-        role.getDashboardWidgets().clear();
+        // Bulk DELETE executes immediately in SQL order.
+        // entityManager.clear() then discards the stale L1 cache so the subsequent
+        // findById() loads a clean role with an empty widgetConfigs collection,
+        // avoiding the unique-constraint violation Hibernate causes with clear()+add().
+        entityManager.createQuery("DELETE FROM RoleDashboardWidgetConfig c WHERE c.role.id = :roleId")
+            .setParameter("roleId", roleId).executeUpdate();
+        entityManager.clear();
+
+        role = appRoleRepository.findById(roleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
+
         if (widgetKeys != null) {
-            role.getDashboardWidgets().addAll(widgetKeys);
+            int order = 0;
+            for (String key : widgetKeys) {
+                role.getWidgetConfigs().add(new RoleDashboardWidgetConfig(role, key, order++, 1, 1));
+            }
         }
 
         AppRole updated = appRoleRepository.save(role);
@@ -188,14 +213,46 @@ public class AppRoleService {
     }
 
     /**
-     * Backwards-compatible overload — requester level defaults to 0 (bypasses hierarchy
-     * check; immutability guard for DEV_ADMIN is still enforced).
+     * Backwards-compatible overload — requester level defaults to 0.
      * @deprecated Prefer {@link #updateDashboardWidgets(Long, List, String, int)}.
      */
     @Deprecated
     @Transactional
     public AppRoleResponse updateDashboardWidgets(Long roleId, List<String> widgetKeys, String actor) {
         return updateDashboardWidgets(roleId, widgetKeys, actor, 0);
+    }
+
+    /** Full-metadata update used by the dynamic widget picker. */
+    @Transactional
+    public AppRoleResponse updateDashboardWidgetConfigs(Long roleId, List<WidgetConfigDto> configs,
+                                                        String actor, int requesterLevel) {
+        AppRole role = appRoleRepository.findById(roleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
+
+        ensureRoleIsEditable(role, requesterLevel);
+
+        entityManager.createQuery("DELETE FROM RoleDashboardWidgetConfig c WHERE c.role.id = :roleId")
+            .setParameter("roleId", roleId).executeUpdate();
+        entityManager.clear();
+
+        role = appRoleRepository.findById(roleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
+
+        if (configs != null) {
+            int order = 0;
+            for (WidgetConfigDto dto : configs) {
+                RoleDashboardWidgetConfig cfg =
+                    new RoleDashboardWidgetConfig(role, dto.key(), order++, dto.colSpan(), dto.rowSpan());
+                cfg.setConfigJson(dto.configJson());
+                role.getWidgetConfigs().add(cfg);
+            }
+        }
+
+        AppRole updated = appRoleRepository.save(role);
+        auditLogService.record(actor, "DASHBOARD_WIDGET_CONFIGS_UPDATED", "AppRole",
+            String.valueOf(updated.getId()),
+            "Dashboard widget configs updated: " + (configs != null ? configs.size() : 0) + " widgets");
+        return toResponse(updated);
     }
 
     public List<String> getPermissions(Long roleId) {
@@ -230,6 +287,11 @@ public class AppRoleService {
             .map(Permission::getCode)
             .sorted()
             .toList();
+        List<WidgetConfigDto> widgetConfigs = role.getWidgetConfigs().stream()
+            .sorted(java.util.Comparator.comparingInt(RoleDashboardWidgetConfig::getWidgetOrder))
+            .map(c -> new WidgetConfigDto(c.getWidgetKey(), c.getWidgetOrder(),
+                                         c.getColSpan(), c.getRowSpan(), c.getConfigJson()))
+            .toList();
         return new AppRoleResponse(
             role.getId(),
             role.getName(),
@@ -238,7 +300,7 @@ public class AppRoleService {
             role.isSystemRole(),
             role.getDescription(),
             codes,
-            List.copyOf(role.getDashboardWidgets())
+            widgetConfigs
         );
     }
 }

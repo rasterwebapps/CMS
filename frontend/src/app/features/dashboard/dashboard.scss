@@ -1,3 +1,115 @@
+// ── Dynamic dashboard shell ───────────────────────────────────────────────────
+.dynamic-dashboard {
+  position: relative;
+  z-index: 0;
+  min-height: 100%;
+  padding: 24px;
+}
+
+// Single ambient aurora blob — same visual language as the admin dashboard
+.dash-aurora {
+  position: absolute;
+  top: -120px;
+  left: -180px;
+  width: 800px;
+  height: 600px;
+  background: var(--cms-primary);
+  border-radius: 50%;
+  filter: blur(160px);
+  opacity: .05;
+  pointer-events: none;
+  z-index: 0;
+  animation: dash-aurora-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes dash-aurora-drift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(60px, 40px) scale(1.08); }
+}
+
+// ── Customize FAB ─────────────────────────────────────────────────────────────
+.customize-fab {
+  position:       absolute;
+  top:            20px;
+  right:          24px;
+  z-index:        5;
+  display:        inline-flex;
+  align-items:    center;
+  gap:            6px;
+  padding:        0.45rem 1rem;
+  background:     color-mix(in srgb, var(--cms-surface) 80%, transparent);
+  backdrop-filter: blur(8px);
+  border:         1px solid color-mix(in srgb, var(--cms-border) 60%, transparent);
+  border-radius:  99px;
+  color:          var(--cms-on-surface-variant);
+  font-size:      0.78rem;
+  font-weight:    500;
+  text-decoration: none;
+  transition:     background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow:     0 2px 8px rgba(0, 0, 0, 0.1);
+
+  mat-icon {
+    font-size:  16px;
+    width:      16px;
+    height:     16px;
+    transition: transform 0.2s;
+  }
+
+  &:hover {
+    background:  color-mix(in srgb, var(--cms-primary) 10%, var(--cms-surface));
+    border-color: var(--cms-primary);
+    color:       var(--cms-primary);
+    box-shadow:  0 4px 16px rgba(0, 0, 0, 0.15);
+
+    mat-icon { transform: rotate(20deg); }
+  }
+
+  @media (max-width: 540px) {
+    .customize-fab-label { display: none; }
+    padding: 0.55rem;
+    border-radius: 50%;
+  }
+}
+
+// ── 4-column widget grid ──────────────────────────────────────────────────────
+.widget-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: auto;
+  gap: 18px;
+}
+
+// Each cell spans its configured number of columns / rows.
+// --cs = col-span (1–4), --rs = row-span (1–2) — set inline by the template.
+.widget-cell {
+  grid-column: span min(var(--cs, 1), 4);
+  grid-row:    span var(--rs, 1);
+  min-height: 140px;
+
+  // Cascade: at tablet width (2-col) clamp spans > 2 down to 2
+  @media (max-width: 1060px) {
+    grid-column: span min(var(--cs, 1), 2);
+  }
+
+  // Mobile: every widget is full-width
+  @media (max-width: 720px) {
+    grid-column: span 1;
+  }
+}
+
+// ── Responsive grid column counts ─────────────────────────────────────────────
+@media (max-width: 1060px) {
+  .widget-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 720px) {
+  .widget-grid    { grid-template-columns: 1fr; }
+  .dynamic-dashboard { padding: 14px; }
+}
+
+// ── Legacy dashboard shell (kept until Phase 8) ───────────────────────────────
 .dashboard-shell {
   display: flex;
   flex-direction: column;

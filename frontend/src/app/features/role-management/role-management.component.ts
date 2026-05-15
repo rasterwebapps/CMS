@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { UserRoleService } from '../../core/permissions/user-role.service';
 import { PermissionService } from '../../core/permissions/permission.service';
-import { AppRoleResponse, AllPermissionsResponse, PermissionGroup } from '../../core/permissions/permission.model';
+import { AppRoleResponse, AllPermissionsResponse, PermissionGroup, WidgetConfigDto } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { WIDGET_REGISTRY, WidgetDef } from '../dashboard/widget-registry';
 
@@ -66,6 +66,8 @@ export class RoleManagementComponent implements OnInit {
   protected widgetEditTarget: AppRoleResponse | null = null;
   protected availableWidgets: WidgetDef[] = [];
   protected selectedWidgets: WidgetDef[] = [];
+  /** Tracks colSpan per widget key for the role picker. */
+  protected selectedWidgetSpans = new Map<string, 1 | 2 | 4>();
 
   protected readonly widgetCategories = computed(() => {
     const cats = new Set(WIDGET_REGISTRY.map(w => w.category));
@@ -180,50 +182,92 @@ export class RoleManagementComponent implements OnInit {
     this.panelMode.set(null);
     this.editTarget.set(null);
     this.widgetEditTarget = null;
+    this.selectedWidgetSpans.clear();
   }
 
   // ── Widget picker ─────────────────────────────────────────────
   protected openWidgetPicker(role: AppRoleResponse): void {
     this.widgetEditTarget = role;
-    const configuredKeys = new Set(role.dashboardWidgets ?? []);
-    // Preserve configured order in the selected list
-    this.selectedWidgets = (role.dashboardWidgets ?? [])
-      .map(k => WIDGET_REGISTRY.find(w => w.key === k))
+    const configs = role.dashboardWidgets ?? [];
+    const configuredKeys = new Set(configs.map(c => c.key));
+
+    // Preserve configured order and load span data from the saved config
+    this.selectedWidgets = configs
+      .map(c => WIDGET_REGISTRY.find(w => w.key === c.key))
       .filter((w): w is WidgetDef => w !== undefined);
+
+    // Populate the span map from the server data
+    this.selectedWidgetSpans = new Map(
+      configs.map(c => [c.key, this.coerceColSpan(c.colSpan)])
+    );
+
     this.availableWidgets = WIDGET_REGISTRY.filter(w => !configuredKeys.has(w.key));
     this.panelMode.set('widgets');
   }
 
+  private coerceColSpan(v: number): 1 | 2 | 4 {
+    if (v >= 4) return 4;
+    if (v >= 2) return 2;
+    return 1;
+  }
+
   protected dropWidget(event: CdkDragDrop<WidgetDef[]>): void {
     if (event.previousContainer === event.container) {
-      // Reorder within the same list — mutate in-place so CDK's reference stays valid
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
-      // Transfer between available ↔ selected — mutate both in-place
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
         event.currentIndex,
       );
+      // Keep span map in sync with drag transfers
+      const moved = event.container.data[event.currentIndex] as WidgetDef;
+      if (event.container.id === 'wp-selected') {
+        if (!this.selectedWidgetSpans.has(moved.key)) {
+          this.selectedWidgetSpans.set(moved.key, this.coerceColSpan(moved.defaultColSpan));
+        }
+      } else {
+        this.selectedWidgetSpans.delete(moved.key);
+      }
     }
   }
 
   protected addWidget(widget: WidgetDef): void {
     this.availableWidgets = this.availableWidgets.filter(w => w.key !== widget.key);
     this.selectedWidgets  = [...this.selectedWidgets, widget];
+    // Set default span from registry
+    this.selectedWidgetSpans.set(widget.key, this.coerceColSpan(widget.defaultColSpan));
   }
 
   protected removeWidget(widget: WidgetDef): void {
     this.selectedWidgets  = this.selectedWidgets.filter(w => w.key !== widget.key);
     this.availableWidgets = [...this.availableWidgets, widget];
+    this.selectedWidgetSpans.delete(widget.key);
+  }
+
+  protected setWidgetColSpan(key: string, span: 1 | 2 | 4): void {
+    this.selectedWidgetSpans.set(key, span);
+  }
+
+  protected getWidgetColSpan(key: string): 1 | 2 | 4 {
+    if (this.selectedWidgetSpans.has(key)) return this.selectedWidgetSpans.get(key)!;
+    // Fall back to registry default so chips show the correct initial selection
+    const def = WIDGET_REGISTRY.find(w => w.key === key);
+    return this.coerceColSpan(def?.defaultColSpan ?? 1);
   }
 
   protected saveWidgets(): void {
     if (!this.widgetEditTarget) return;
     this.saving.set(true);
-    const keys = this.selectedWidgets.map(w => w.key);
-    this.svc.updateRoleDashboardWidgets(this.widgetEditTarget.id, keys).subscribe({
+    const configs: WidgetConfigDto[] = this.selectedWidgets.map((w, i) => ({
+      key:        w.key,
+      order:      i,
+      colSpan:    this.selectedWidgetSpans.get(w.key) ?? this.coerceColSpan(w.defaultColSpan),
+      rowSpan:    w.defaultRowSpan,
+      configJson: null,
+    }));
+    this.svc.updateRoleDashboardWidgets(this.widgetEditTarget.id, configs).subscribe({
       next: (updated) => {
         this.roles.update(rs => rs.map(r => r.id === updated.id ? updated : r));
         this.toast.success('Dashboard widgets saved');

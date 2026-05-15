@@ -335,6 +335,17 @@
                       <span class="wp-item__label">{{ w.label }}</span>
                       <span class="wp-item__desc">{{ w.description }}</span>
                     </div>
+                    <div class="wp-size-chips">
+                      @for (span of [1, 2, 4]; track span) {
+                        <button
+                          class="wp-size-chip"
+                          [class.active]="getWidgetColSpan(w.key) === span"
+                          type="button"
+                          (click)="$event.stopPropagation(); setWidgetColSpan(w.key, $any(span))"
+                          [matTooltip]="span === 1 ? 'Compact (1 col)' : span === 2 ? 'Half width (2 col)' : 'Full width (4 col)'"
+                        >{{ span === 1 ? '¼' : span === 2 ? '½' : '■' }}</button>
+                      }
+                    </div>
                     <button class="wp-item__remove" (click)="removeWidget(w)" matTooltip="Remove">
                       <mat-icon>remove_circle</mat-icon>
                     </button>

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.AppRoleRequest;
 import com.cms.dto.AppRoleResponse;
+import com.cms.dto.WidgetConfigDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppUser;
 import com.cms.repository.AppUserRepository;
@@ -71,11 +72,11 @@ public class RoleManagementController {
     @PutMapping("/{id}/dashboard-widgets")
     public ResponseEntity<AppRoleResponse> updateDashboardWidgets(
             @PathVariable Long id,
-            @RequestBody List<String> widgetKeys,
+            @RequestBody List<WidgetConfigDto> configs,
             @AuthenticationPrincipal Jwt jwt) {
         String actor = jwt.getClaimAsString("preferred_username");
         int requesterLevel = resolveHierarchyLevel(jwt);
-        return ResponseEntity.ok(appRoleService.updateDashboardWidgets(id, widgetKeys, actor, requesterLevel));
+        return ResponseEntity.ok(appRoleService.updateDashboardWidgetConfigs(id, configs, actor, requesterLevel));
     }
 
     /** Replaces the permission set of an existing role. */

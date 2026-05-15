@@ -34,6 +34,28 @@ export type DocumentVerificationStatus =
   | 'VERIFIED'
   | 'REJECTED';
 
+export type FacultyDocumentReviewFilter =
+  | 'ALL'
+  | 'NEEDS_VERIFICATION'
+  | 'REJECTED'
+  | 'MISSING_REQUIRED'
+  | 'FULLY_VERIFIED'
+  | 'NO_DOCUMENTS'
+  | 'HAS_ANY_DOCUMENTS';
+
+export interface FacultyDocumentReviewSummary {
+  totalDocumentCount: number;
+  requiredDocumentCount: number;
+  pendingVerificationCount: number;
+  rejectedCount: number;
+  missingRequiredCount: number;
+  verifiedRequiredCount: number;
+  hasAnyDocuments: boolean;
+  hasPendingVerification: boolean;
+  hasRejectedDocuments: boolean;
+  allRequiredDocumentsVerified: boolean;
+}
+
 export interface AddressDto {
   postalAddress?: string;
   street?: string;
@@ -83,6 +105,7 @@ export interface Faculty {
   clinicalExperiencePhdYears?: number;
   createdAt: string;
   updatedAt: string;
+  documentReview?: FacultyDocumentReviewSummary;
 }
 
 export interface FacultyRequest {
@@ -159,6 +182,19 @@ export const FACULTY_STATUS_OPTIONS: { value: FacultyStatus; label: string }[] =
   { value: 'RESIGNED', label: 'Resigned' },
   { value: 'RETIRED', label: 'Retired' },
   { value: 'TERMINATED', label: 'Terminated' },
+];
+
+export const FACULTY_DOCUMENT_REVIEW_FILTER_OPTIONS: {
+  value: FacultyDocumentReviewFilter;
+  label: string;
+}[] = [
+  { value: 'ALL', label: 'All Document States' },
+  { value: 'NEEDS_VERIFICATION', label: 'Needs Verification' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'MISSING_REQUIRED', label: 'Missing Required' },
+  { value: 'FULLY_VERIFIED', label: 'Fully Verified' },
+  { value: 'NO_DOCUMENTS', label: 'No Documents' },
+  { value: 'HAS_ANY_DOCUMENTS', label: 'Has Any Documents' },
 ];
 
 export const FACULTY_TYPE_OPTIONS: { value: FacultyType; label: string }[] = [

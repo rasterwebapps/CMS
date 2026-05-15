@@ -19,6 +19,14 @@ export const routes: Routes = [
       import('./features/dashboard/dashboard').then((m) => m.DashboardComponent),
   },
   {
+    path: 'dashboard/configure',
+    canActivate: withPermission('DASHBOARD_CUSTOMIZE'),
+    loadComponent: () =>
+      import('./features/dashboard/configure/dashboard-configure.component').then(
+        (m) => m.DashboardConfigureComponent
+      ),
+  },
+  {
     path: 'departments',
     canActivate: withPermission('DEPT_VIEW', 'DEPT_MANAGE'),
     loadComponent: () =>

@@ -1,3 +1,12 @@
+/** Matches com.cms.dto.WidgetConfigDto — shared by role-level and user-level configs. */
+export interface WidgetConfigDto {
+  key:        string;
+  order:      number;
+  colSpan:    number;
+  rowSpan:    number;
+  configJson: string | null;
+}
+
 export interface AppRoleResponse {
   id: number;
   name: string;
@@ -6,8 +15,8 @@ export interface AppRoleResponse {
   isSystemRole: boolean;
   description: string | null;
   permissionCodes: string[];
-  /** Ordered dashboard widget keys configured for this role. */
-  dashboardWidgets: string[];
+  /** Ordered dashboard widget configs (key + span metadata) for this role. */
+  dashboardWidgets: WidgetConfigDto[];
 }
 
 export interface AppUserResponse {

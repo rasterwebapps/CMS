@@ -11,12 +11,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.MyPermissionsResponse;
+import com.cms.dto.WidgetConfigDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.model.Permission;
+import com.cms.model.RoleDashboardWidgetConfig;
+import com.cms.model.UserDashboardWidgetConfig;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.PermissionRepository;
+import com.cms.repository.UserDashboardWidgetConfigRepository;
 import com.cms.service.UserPermissionService;
 
 @RestController
@@ -26,16 +30,22 @@ public class PermissionController {
     private final AppUserRepository appUserRepository;
     private final PermissionRepository permissionRepository;
     private final UserPermissionService userPermissionService;
+    private final UserDashboardWidgetConfigRepository userWidgetConfigRepo;
 
     public PermissionController(AppUserRepository appUserRepository,
                                 PermissionRepository permissionRepository,
-                                UserPermissionService userPermissionService) {
-        this.appUserRepository = appUserRepository;
+                                UserPermissionService userPermissionService,
+                                UserDashboardWidgetConfigRepository userWidgetConfigRepo) {
+        this.appUserRepository    = appUserRepository;
         this.permissionRepository = permissionRepository;
         this.userPermissionService = userPermissionService;
+        this.userWidgetConfigRepo  = userWidgetConfigRepo;
     }
 
-    /** Returns the current user's role and full permission set. */
+    /**
+     * Returns the current user's role, permissions, and resolved dashboard widget config.
+     * Resolution order: user personal config → role default → empty list.
+     */
     @GetMapping("/my")
     public ResponseEntity<MyPermissionsResponse> getMyPermissions(
             @AuthenticationPrincipal Jwt jwt) {
@@ -49,9 +59,24 @@ public class PermissionController {
             .sorted()
             .toList();
 
-        List<String> widgetKeys = (role != null && role.getDashboardWidgets() != null)
-            ? role.getDashboardWidgets()
-            : List.of();
+        // User-level override takes priority; fall back to role default
+        List<WidgetConfigDto> widgetConfigs;
+        List<UserDashboardWidgetConfig> userConfigs =
+            userWidgetConfigRepo.findByUserIdOrderByWidgetOrderAsc(user.getId());
+
+        if (!userConfigs.isEmpty()) {
+            widgetConfigs = userConfigs.stream()
+                .map(c -> new WidgetConfigDto(c.getWidgetKey(), c.getWidgetOrder(),
+                                              c.getColSpan(), c.getRowSpan(), c.getConfigJson()))
+                .toList();
+        } else if (role != null) {
+            widgetConfigs = role.getWidgetConfigs().stream()
+                .map(c -> new WidgetConfigDto(c.getWidgetKey(), c.getWidgetOrder(),
+                                              c.getColSpan(), c.getRowSpan(), c.getConfigJson()))
+                .toList();
+        } else {
+            widgetConfigs = List.of();
+        }
 
         MyPermissionsResponse response = new MyPermissionsResponse(
             username,
@@ -59,7 +84,7 @@ public class PermissionController {
             role != null ? role.getDisplayName() : null,
             role != null ? role.getHierarchyLevel() : 0,
             permissionCodes,
-            widgetKeys
+            widgetConfigs
         );
         return ResponseEntity.ok(response);
     }

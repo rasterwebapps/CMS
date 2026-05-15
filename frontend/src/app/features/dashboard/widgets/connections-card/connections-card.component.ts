@@ -15,6 +15,10 @@ import { ConnectionItem, SAMPLE_CONNECTIONS } from '../widget.models';
   styleUrl: './connections-card.component.scss',
 })
 export class ConnectionsCardComponent {
+  // ngComponentOutletInputs compatibility
+  @Input() widgetKey?:   string;
+  @Input() widgetLabel?: string;
+  @Input() widgetIcon?:  string;
   @Input() title = 'Colleagues';
   @Input() people: ConnectionItem[] = SAMPLE_CONNECTIONS;
 }

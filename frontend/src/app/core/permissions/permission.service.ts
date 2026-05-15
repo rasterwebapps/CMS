@@ -1,6 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments';
+import { WidgetConfigDto } from './permission.model';
+
+export type { WidgetConfigDto };
 
 export interface MyPermissionsResponse {
   username: string;
@@ -8,7 +11,7 @@ export interface MyPermissionsResponse {
   roleDisplayName: string;
   hierarchyLevel: number;
   permissions: string[];
-  dashboardWidgets: string[];
+  dashboardWidgets: WidgetConfigDto[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -22,7 +25,7 @@ export class PermissionService {
   readonly roleName         = computed(() => this._response()?.roleName ?? '');
   readonly roleLabel        = computed(() => this._response()?.roleDisplayName ?? '');
   readonly level            = computed(() => this._response()?.hierarchyLevel ?? 99);
-  /** Ordered widget keys for this user's role. Empty until permissions are loaded. */
+  /** Ordered widget configs (key + span metadata) for this user's resolved dashboard. */
   readonly dashboardWidgets = computed(() => this._response()?.dashboardWidgets ?? []);
   readonly normalizedRoleName = computed(() =>
     this.roleName()

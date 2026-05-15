@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -17,7 +17,6 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
   selector: 'app-faculty-doc-verification',
   standalone: true,
   imports: [
-    RouterLink,
     FormsModule,
     MatTableModule,
     MatPaginatorModule,
@@ -61,8 +60,6 @@ export class FacultyDocVerificationComponent implements OnInit {
   protected readonly departments = computed(() =>
     [...new Set(this.allData().map((r) => r.departmentName))].sort(),
   );
-
-  protected readonly DESIGNATION_OPTIONS = DESIGNATION_OPTIONS;
 
   ngOnInit(): void {
     this.dataSource.filterPredicate = (row, _filter) => {

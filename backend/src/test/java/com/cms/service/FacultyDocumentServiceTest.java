@@ -27,8 +27,10 @@ import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.repository.FacultyDocumentHistoryRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.util.CurrentUserResolver;
 
 @ExtendWith(MockitoExtension.class)
 class FacultyDocumentServiceTest {
@@ -38,6 +40,12 @@ class FacultyDocumentServiceTest {
 
     @Mock
     private FacultyRepository facultyRepository;
+
+    @Mock
+    private FacultyDocumentHistoryRepository historyRepository;
+
+    @Mock
+    private CurrentUserResolver currentUserResolver;
 
     @InjectMocks
     private FacultyDocumentService service;
@@ -104,6 +112,45 @@ class FacultyDocumentServiceTest {
         assertThat(out.documentType()).isEqualTo(DocumentType.PG_DEGREE);
         assertThat(out.status()).isEqualTo(DocumentVerificationStatus.UPLOADED);
         assertThat(out.remarks()).isEqualTo("updated");
+    }
+
+    @Test
+    void updateDocumentShouldVerifyUploadedDocumentWithReviewerMetadata() {
+        Faculty faculty = new Faculty();
+        faculty.setId(10L);
+
+        FacultyDocument existing = new FacultyDocument(faculty, DocumentType.UG_DEGREE, DocumentVerificationStatus.UPLOADED);
+        existing.setId(1L);
+        existing.setFileName("degree.pdf");
+
+        when(documentRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(documentRepository.save(any(FacultyDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(currentUserResolver.resolve()).thenReturn("reviewer@college.edu");
+
+        FacultyDocumentRequest req = new FacultyDocumentRequest(DocumentType.UG_DEGREE, DocumentVerificationStatus.VERIFIED, null);
+        FacultyDocumentResponse out = service.updateDocument(1L, req);
+
+        assertThat(out.status()).isEqualTo(DocumentVerificationStatus.VERIFIED);
+        assertThat(out.verifiedBy()).isEqualTo("reviewer@college.edu");
+        assertThat(out.verifiedAt()).isNotNull();
+        verify(historyRepository).save(any());
+    }
+
+    @Test
+    void updateDocumentShouldRequireRejectionReason() {
+        Faculty faculty = new Faculty();
+        faculty.setId(10L);
+        FacultyDocument existing = new FacultyDocument(faculty, DocumentType.UG_DEGREE, DocumentVerificationStatus.UPLOADED);
+        existing.setId(1L);
+        existing.setFileName("degree.pdf");
+
+        when(documentRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        FacultyDocumentRequest req = new FacultyDocumentRequest(DocumentType.UG_DEGREE, DocumentVerificationStatus.REJECTED, " ");
+
+        assertThatThrownBy(() -> service.updateDocument(1L, req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Rejection reason is required");
     }
 
     @Test
@@ -237,6 +284,25 @@ class FacultyDocumentServiceTest {
         assertThat(out.hasFile()).isTrue();
 
         verify(documentRepository).save(eq(existing));
+    }
+
+    @Test
+    void uploadFileShouldRejectReplacementOfVerifiedDocument() {
+        Faculty faculty = new Faculty();
+        faculty.setId(10L);
+
+        FacultyDocument existing = new FacultyDocument(faculty, DocumentType.PAN_CARD, DocumentVerificationStatus.VERIFIED);
+        existing.setId(11L);
+        existing.setFileName("pan.pdf");
+
+        when(facultyRepository.findById(10L)).thenReturn(Optional.of(faculty));
+        when(documentRepository.findByFacultyId(10L)).thenReturn(List.of(existing));
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-pan.pdf", "application/pdf", "hello".getBytes());
+
+        assertThatThrownBy(() -> service.uploadFile(10L, DocumentType.PAN_CARD, null, file))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Verified documents cannot be replaced");
     }
 }
 

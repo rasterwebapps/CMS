@@ -5,7 +5,7 @@ import { environment } from '../../../environments';
 import {
   AppRoleResponse, AppUserResponse,
   CreateUserRequest, UpdateUserRequest,
-  AllPermissionsResponse,
+  AllPermissionsResponse, WidgetConfigDto,
 } from './permission.model';
 
 @Injectable({ providedIn: 'root' })
@@ -51,8 +51,8 @@ export class UserRoleService {
     return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/permissions`, permissionCodes);
   }
 
-  updateRoleDashboardWidgets(id: number, widgetKeys: string[]): Observable<AppRoleResponse> {
-    return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/dashboard-widgets`, widgetKeys);
+  updateRoleDashboardWidgets(id: number, configs: WidgetConfigDto[]): Observable<AppRoleResponse> {
+    return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/dashboard-widgets`, configs);
   }
 
   // ── Permissions ───────────────────────────────────────────────

@@ -10,6 +10,6 @@ public record AppRoleResponse(
     boolean isSystemRole,
     String description,
     List<String> permissionCodes,
-    /** Ordered dashboard widget keys configured for this role. */
-    List<String> dashboardWidgets
+    /** Ordered dashboard widget configs (key + span metadata) for this role. */
+    List<WidgetConfigDto> dashboardWidgets
 ) {}

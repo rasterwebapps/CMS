@@ -48,6 +48,59 @@
   align-items: center;
 }
 
+.doc-review-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  font-variant-numeric: tabular-nums;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.doc-review-badge--rejected {
+  background: var(--cms-danger-light, #fee2e2);
+  border-color: var(--cms-danger-ring, rgba(239, 68, 68, 0.2));
+  color: var(--cms-danger, #dc2626);
+}
+
+.doc-review-badge--pending {
+  background: var(--cms-info-light, #eff6ff);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: var(--cms-info, #2563eb);
+}
+
+.doc-review-badge--missing {
+  background: var(--cms-warning-light, #fef3c7);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--cms-warning, #b45309);
+}
+
+.doc-review-badge--verified {
+  background: var(--cms-success-light, #dcfce7);
+  border-color: var(--cms-success-ring, rgba(34, 197, 94, 0.2));
+  color: var(--cms-success, #047857);
+}
+
+.doc-review-badge--empty,
+.doc-review-badge--neutral {
+  background: var(--cms-bg-muted, #f3f4f6);
+  border-color: var(--cms-border-default, #e5e7eb);
+  color: var(--cms-text-secondary, #64748b);
+}
+
 // Faculty status badge colour overrides on cards
 .fac-card__status {
   &.fac-status--active {

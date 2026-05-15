@@ -30,6 +30,7 @@ import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.service.FacultyDocumentService;
 import com.cms.service.FacultyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -46,17 +47,27 @@ class FacultyControllerTest {
     @MockitoBean
     private FacultyService facultyService;
 
+    @MockitoBean
+    private FacultyDocumentService facultyDocumentService;
+
     /** Build a FacultyRequest with the legacy 11-argument signature; extended profile fields are null. */
     private static FacultyRequest basicFacultyRequest(
             String employeeCode, String firstName, String lastName, String email, String phone,
             Long departmentId, Designation designation, String specialization, String labExpertise,
             LocalDate joiningDate, FacultyStatus status) {
+        final com.cms.model.enums.FacultyType facultyType = null;
+        final com.cms.model.enums.FacultyQualification highestQualification = null;
+        final com.cms.model.enums.Gender gender = null;
+        final com.cms.model.enums.MaritalStatus maritalStatus = null;
+        final com.cms.model.enums.BankAccountType bankAccountType = null;
+        final com.cms.dto.AddressRequest address = null;
+        final java.math.BigDecimal years = null;
         return new FacultyRequest(
             employeeCode, firstName, lastName, email, phone, departmentId, designation,
             specialization, labExpertise, joiningDate, status,
-            null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null,
-            null, null, null, null, null, null
+            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            null, null, null, null, null, null, null, null, bankAccountType, address,
+            years, years, years, years, years, years
         );
     }
 
@@ -66,13 +77,20 @@ class FacultyControllerTest {
             String email, String phone, Long departmentId, String departmentName,
             Designation designation, String specialization, String labExpertise,
             LocalDate joiningDate, FacultyStatus status, Instant createdAt, Instant updatedAt) {
+        final com.cms.model.enums.FacultyType facultyType = null;
+        final com.cms.model.enums.FacultyQualification highestQualification = null;
+        final com.cms.model.enums.Gender gender = null;
+        final com.cms.model.enums.MaritalStatus maritalStatus = null;
+        final com.cms.model.enums.BankAccountType bankAccountType = null;
+        final com.cms.dto.AddressRequest address = null;
+        final java.math.BigDecimal years = null;
         return new FacultyResponse(
             id, employeeCode, firstName, lastName, fullName, email, phone, departmentId,
             departmentName, designation, specialization, labExpertise, joiningDate, status,
-            null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null,
-            null, null, null, null, null, null,
-            createdAt, updatedAt
+            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            null, null, null, null, null, null, null, null, bankAccountType, address,
+            years, years, years, years, years, years,
+            createdAt, updatedAt, null
         );
     }
 

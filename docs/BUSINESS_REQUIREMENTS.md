@@ -32,6 +32,7 @@
 - [BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules](#br-23-authoritative-fee-calculation--penny-safe-numeric-rules)
 - [BR-24: DB-Driven RBAC & Identity-Only Keycloak](#br-24-db-driven-rbac--identity-only-keycloak)
 - [BR-25: Profile Self-Service Editing and User Profile Photo](#br-25-profile-self-service-editing-and-user-profile-photo)
+- [BR-26: Faculty Document Review Summary and Verification Locks](#br-26-faculty-document-review-summary-and-verification-locks)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1135,11 +1136,37 @@ The `/api/v1/profile/me/self-info` endpoint resolves the caller exclusively from
 - Supported upload types: JPEG and PNG only.
 - Maximum size: 2 MB.
 
+---
+
+## BR-26: Faculty Document Review Summary and Verification Locks
+
+Faculty document verification must be visible from faculty discovery screens and must protect reviewed evidence from accidental overwrite.
+
+### Faculty list review status
+
+- Faculty list API responses include a derived `documentReview` summary with total documents, required documents, pending-verification, rejected, missing-required, and verified-required counts.
+- Document review is derived from faculty document rows and document-type requirements; it must not be stored as a separate faculty lifecycle state.
+- Faculty list UI displays a document-review badge for each faculty member in both card and table views.
+- Badge precedence is: rejected, needs verification, missing required, all verified, no documents, then has documents.
+- Users can filter faculty by document review status: all document states, needs verification, rejected, missing required, fully verified, no documents, or has any documents.
+- Clicking the document badge/action from the faculty list opens `/faculty/{id}#documents`, and the faculty detail page must select the Documents tab when this hash is present.
+
+### Verification lock rules
+
+- A document marked `VERIFIED` is read-only for file replacement until an authorized reviewer changes its status away from `VERIFIED`.
+- A document cannot be marked `VERIFIED` unless a file is uploaded.
+- A document cannot be marked `REJECTED` unless a rejection reason is provided.
+- Verification and rejection actions record reviewer identity, timestamp, and history for auditability.
+- Re-uploading a non-verified document resets its verification metadata and moves the document back to `UPLOADED` for review.
+- Faculty document review must use DB-driven permissions; no screen or API should hardcode role names for document actions.
+- Faculty document review must not add, replace, or overload `FacultyStatus`; employment status remains independent from document review status.
+
 
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |
 | 2026-05-14 | BR-25 | Added profile self-service rules: authenticated users can update only their own phone, blood group, and address; profile photos are stored on `app_users` for all roles with JPEG/PNG and 2 MB limits; admin-only academic/employment/login fields remain locked | — |
 | 2026-05-12 | BR-24 | RBAC aligned to DB-driven authorization: Keycloak realm exports are identity-only, immutable default roles are limited to `DEV_ADMIN`/`SUPPORT_ADMIN`, and `collegeadmin` is scoped to admission-related DB permissions | — |
 | 2026-05-06 | BR-3, BR-5, BR-6, BR-23 | Fixed enquiry fee over-calculation risk: fee guideline lookup is current-academic-year scoped and active-row-only; backend recalculates enquiry fee totals from authoritative fee structures on create/update; referral/agent commission is decoupled from student fee and tracked separately; fee finalization uses backend-calculated totals and enforces exact two-decimal monetary values with discount bounds; frontend aggregation uses integer paise arithmetic to prevent rounding drift | — |
