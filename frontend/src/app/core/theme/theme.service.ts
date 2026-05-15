@@ -9,22 +9,30 @@ export interface ColorSwatch {
 }
 
 /**
- * Curated set of swatches — warm "warning" colours (orange, amber) are
- * intentionally excluded because they create cognitive dissonance when used
- * as a primary navigation/action colour (users associate them with alerts).
+ * Curated 7-colour palette — balanced across the hue wheel.
+ *
+ * Exclusion rules:
+ *  - Orange / amber / yellow: excluded — users associate warm alert-tones with
+ *    warnings, creating cognitive dissonance on navigation and action elements.
+ *  - Near-duplicate blues (Aurora Sky, Transformative Teal, Midnight Navy, Pacific
+ *    Cyan) were removed after the blue cluster grew to 5 of 8 swatches.
+ *  - Digital Fuchsia: replaced by Berry Rose — same hue family, far more usable
+ *    in a professional management system without the neon quality.
+ *
+ * Hue coverage: Violet · Blue · Cyan · Teal-Green · Green · Purple · Pink · Red
  */
 export const COLOR_SWATCHES: ColorSwatch[] = [
-  { id: 'electric-indigo',    name: 'Electric Indigo',    hex: '#6366f1' },
-  { id: 'cosmic-cobalt',      name: 'Cosmic Cobalt',      hex: '#2563eb' },
-  { id: 'aurora-sky',         name: 'Aurora Sky',         hex: '#0ea5e9' },
-  { id: 'transformative-teal',name: 'Transformative Teal',hex: '#00d4c1' },
-  { id: 'radiant-emerald',    name: 'Radiant Emerald',    hex: '#059669' },
-  { id: 'hyper-violet',       name: 'Hyper Violet',       hex: '#7c3aed' },
-  { id: 'digital-fuchsia',    name: 'Digital Fuchsia',    hex: '#d946ef' },
-  { id: 'crimson-spark',      name: 'Crimson Spark',      hex: '#e11d48' },
+  { id: 'electric-indigo', name: 'Electric Indigo', hex: '#6366f1' },  // ~245° blue-violet
+  { id: 'cosmic-cobalt',   name: 'Cosmic Cobalt',   hex: '#2563eb' },  // ~220° blue
+  { id: 'pacific-cyan',    name: 'Pacific Cyan',    hex: '#0891b2' },  // ~192° cyan-blue
+  { id: 'forest-teal',     name: 'Forest Teal',     hex: '#0d9488' },  // ~177° teal-green
+  { id: 'radiant-emerald', name: 'Radiant Emerald', hex: '#059669' },  // ~155° green
+  { id: 'hyper-violet',    name: 'Hyper Violet',    hex: '#7c3aed' },  // ~265° violet
+  { id: 'berry-rose',      name: 'Berry Rose',      hex: '#be185d' },  // ~330° deep pink
+  { id: 'crimson-spark',   name: 'Crimson Spark',   hex: '#e11d48' },  // ~345° red
 ];
 
-const DEFAULT_SWATCH = COLOR_SWATCHES[0];
+const DEFAULT_SWATCH = COLOR_SWATCHES.find(s => s.id === 'cosmic-cobalt') ?? COLOR_SWATCHES[0];
 const STORAGE_KEY = 'cms_primary_theme';
 
 /** Shade numbers for the primary palette */
@@ -47,15 +55,20 @@ const TAILWIND_PALETTES: Record<string, Record<Shade, string>> = {
     400: '#5289f5', 500: '#2563eb', 600: '#1a4fc8', 700: '#133ca0',
     800: '#0e2e7c', 900: '#0a2260', 950: '#05123a',
   },
-  'aurora-sky': {
-    50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
-    400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
-    800: '#075985', 900: '#0c4a6e', 950: '#082f49',
+  // Pacific Cyan — cyan-600 used as the 500-equivalent primary.
+  // failsWhiteTextContrast(#0891b2) → true, so theme service promotes to palette[700].
+  'pacific-cyan': {
+    50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9',
+    400: '#22d3ee', 500: '#0891b2', 600: '#0e7490', 700: '#155e75',
+    800: '#164e63', 900: '#0c3547', 950: '#062030',
   },
-  'transformative-teal': {
-    50: '#f0fffe', 100: '#ccfff9', 200: '#99fff2', 300: '#60f5e8',
-    400: '#2ae5d5', 500: '#00d4c1', 600: '#00a89a', 700: '#007c72',
-    800: '#005c55', 900: '#003d39', 950: '#002220',
+  // Forest Teal — teal-600 used as the 500-equivalent primary.
+  // failsWhiteTextContrast(#0d9488) → true, so theme service automatically
+  // promotes to palette[700] (#115e59) for interactive elements.
+  'forest-teal': {
+    50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+    400: '#2dd4bf', 500: '#0d9488', 600: '#0f766e', 700: '#115e59',
+    800: '#0d4845', 900: '#093530', 950: '#042220',
   },
   'radiant-emerald': {
     50: '#ecfdf5', 100: '#d1fae8', 200: '#a3f4d0', 300: '#67e5b3',
@@ -67,10 +80,12 @@ const TAILWIND_PALETTES: Record<string, Record<Shade, string>> = {
     400: '#9a78f7', 500: '#7c3aed', 600: '#6424d0', 700: '#4e18a8',
     800: '#3c1284', 900: '#2d0d66', 950: '#1a0740',
   },
-  'digital-fuchsia': {
-    50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc',
-    400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf',
-    800: '#86198f', 900: '#701a75', 950: '#4a044e',
+  // Berry Rose — pink-700 used as the 500-equivalent primary.
+  // failsWhiteTextContrast(#be185d) → false — white text is WCAG AA safe.
+  'berry-rose': {
+    50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
+    400: '#f472b6', 500: '#be185d', 600: '#9d174d', 700: '#831843',
+    800: '#6b1237', 900: '#4f0d29', 950: '#2d0618',
   },
   'crimson-spark': {
     50: '#fff0f2', 100: '#ffe1e5', 200: '#ffc2cc', 300: '#ff94a6',

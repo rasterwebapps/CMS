@@ -1336,51 +1336,57 @@ app-root {
   border-collapse: separate;
   border-spacing: 0;
 
-  // Header
+  // ── Header — Change 1: 11px → 12px · Change 2: reduced tracking ─────────
+  // Change 2: sticky: true is set per-template; CSS makes it work correctly.
   th.mat-header-cell,
   th.mat-mdc-header-cell {
-    font-size: 0.6875rem;
-    font-weight: 600;
+    font-size:      0.75rem;           // was 0.6875rem (11px) — now 12px
+    font-weight:    600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--cms-text-table-header);
-    background: var(--cms-bg-subtle);
-    border-bottom: 1px solid var(--cms-border-default);
-    padding: 14px 20px;
-    white-space: nowrap;
+    letter-spacing: 0.04em;            // was 0.06em — less stretched
+    color:          var(--cms-text-table-header);
+    background:     var(--cms-bg-subtle);
+    border-bottom:  1px solid var(--cms-border-default);
+    padding:        13px 20px;
+    white-space:    nowrap;
+    // Required for sticky: true to work — keeps header above scrolling rows
+    position:       sticky;
+    top:            0;
+    z-index:        2;
 
-    .mat-sort-header-container {
-      width: 100%;
-    }
+    .mat-sort-header-container { width: 100%; }
   }
 
-  // Cells
+  // ── Cells — Change 4: tighter row density ────────────────────────────────
   td.mat-cell,
   td.mat-mdc-cell {
-    padding: 14px 20px;
+    padding:       12px 20px;          // was 14px 20px — saves ~4px per row
     border-bottom: 1px solid var(--cms-border-light);
-    font-size: 0.875rem;
-    color: var(--cms-text-secondary);
+    font-size:     0.875rem;
+    color:         var(--cms-text-secondary);
     vertical-align: middle;
   }
 
-  // Row hover
+  // ── Row hover + Change 3: row actions always visible at low opacity ───────
   tr.table-row {
     transition: var(--cms-transition);
+
+    // Row actions are always present at reduced opacity so they're
+    // discoverable on touch devices and by new users.
+    .row-actions {
+      opacity:        0.45;
+      pointer-events: auto;
+      transition:     opacity 0.15s;
+    }
 
     &:hover {
       background-color: var(--cms-bg-hover);
 
-      .row-actions {
-        opacity: 1;
-        pointer-events: auto;
-      }
+      .row-actions { opacity: 1; }
     }
 
     &:last-child td.mat-cell,
-    &:last-child td.mat-mdc-cell {
-      border-bottom: none;
-    }
+    &:last-child td.mat-mdc-cell { border-bottom: none; }
   }
 }
 

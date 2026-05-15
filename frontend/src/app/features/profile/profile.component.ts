@@ -1,8 +1,8 @@
 import {
-  Component, computed, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, ViewChild,
+  Component, computed, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, ViewChild, ViewChildren, QueryList,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TitleCasePipe } from '@angular/common';
+import { TitleCasePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -49,7 +49,7 @@ interface QuickLink { icon: string; label: string; route: string; }
   selector: 'app-profile',
   standalone: true,
   imports: [
-    RouterLink, TitleCasePipe, FormsModule,
+    RouterLink, TitleCasePipe, DecimalPipe, FormsModule,
     MatButtonModule, MatIconModule, MatTooltipModule, MatDialogModule,
     ProfileDocumentsComponent, AppDatePipe,
   ],
@@ -81,8 +81,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   protected readonly student  = signal<Student | null>(null);
 
   // ── Profile photo ─────────────────────────────────────────────────────────
-  /** Display URL for this page — reads from the shared service signal. */
-  protected readonly photoUrl = this.profileService.avatarDataUrl;
+  protected readonly photoUrl       = this.profileService.avatarDataUrl;
   protected readonly uploadingPhoto = signal(false);
   private photoObjectUrl: string | null = null;
 
@@ -90,6 +89,26 @@ export class ProfileComponent implements OnInit, OnDestroy {
   protected readonly editMode = signal(false);
   protected readonly savingSelfInfo = signal(false);
   protected editForm: SelfUpdateRequest = {};
+
+  // ── Profile completion ────────────────────────────────────────────────────
+  protected readonly profileCompletion = computed<{ score: number; total: number; missing: string[] }>(() => {
+    const f  = this.faculty();
+    const s  = this.student();
+    const id = this.identity();
+    const checks: Array<{ label: string; ok: boolean }> = [
+      { label: 'Profile photo', ok: !!this.photoUrl() },
+      { label: 'Bio',           ok: !!(f?.bio ?? s?.bio ?? id?.bio) },
+      ...( (f || s) ? [
+        { label: 'Phone number',  ok: !!(f?.phone ?? s?.phone) },
+        { label: 'Blood group',   ok: !!(f?.bloodGroup ?? s?.bloodGroup) },
+        { label: 'Date of birth', ok: !!(f?.dateOfBirth ?? s?.dateOfBirth) },
+        { label: 'Address',       ok: !!(f?.address?.city ?? s?.city) },
+      ] : []),
+    ];
+    const score   = checks.filter(c => c.ok).length;
+    const missing = checks.filter(c => !c.ok).map(c => c.label);
+    return { score, total: checks.length, missing };
+  });
 
   // ── Computed helpers ──────────────────────────────────────────────────────
   protected get initials(): string { return computeInitials(this.identity()?.displayName ?? ''); }
@@ -320,10 +339,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.savingSelfInfo.set(true);
     this.profileService.updateSelfInfo(this.editForm).subscribe({
       next: () => {
+        // Reload both identity (covers admin bio/phone/bloodGroup + faculty/student bio)
+        // and the linked faculty/student record (covers all other self-editable fields)
+        this.profileService.reloadIdentity().subscribe({
+          next: id => this.identity.set(id),
+        });
+        this.reloadLinkedProfile();
         this.toast.success('Profile updated');
         this.savingSelfInfo.set(false);
         this.editMode.set(false);
-        this.reloadLinkedProfile();
       },
       error: err => {
         this.toast.error(err?.error?.message ?? 'Failed to update profile');
@@ -333,29 +357,29 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   private initEditForm(): void {
-    const f = this.faculty();
-    const s = this.student();
+    const f  = this.faculty();
+    const s  = this.student();
+    const id = this.identity();
     if (f) {
       this.editForm = {
-        phone: f.phone ?? '',
-        bloodGroup: f.bloodGroup ?? '',
-        postalAddress: f.address?.postalAddress ?? '',
-        street: f.address?.street ?? '',
-        city: f.address?.city ?? '',
-        district: f.address?.district ?? '',
-        state: f.address?.state ?? '',
-        pincode: f.address?.pincode ?? '',
+        phone: f.phone ?? '', bloodGroup: f.bloodGroup ?? '', bio: f.bio ?? '',
+        postalAddress: f.address?.postalAddress ?? '', street: f.address?.street ?? '',
+        city: f.address?.city ?? '', district: f.address?.district ?? '',
+        state: f.address?.state ?? '', pincode: f.address?.pincode ?? '',
       };
     } else if (s) {
       this.editForm = {
-        phone: s.phone ?? '',
-        bloodGroup: s.bloodGroup ?? '',
-        postalAddress: s.postalAddress ?? '',
-        street: s.street ?? '',
-        city: s.city ?? '',
-        district: s.district ?? '',
-        state: s.state ?? '',
-        pincode: s.pincode ?? '',
+        phone: s.phone ?? '', bloodGroup: s.bloodGroup ?? '', bio: s.bio ?? '',
+        postalAddress: s.postalAddress ?? '', street: s.street ?? '',
+        city: s.city ?? '', district: s.district ?? '',
+        state: s.state ?? '', pincode: s.pincode ?? '',
+      };
+    } else {
+      // Admin — bio, phone, bloodGroup stored on app_users
+      this.editForm = {
+        bio:        id?.bio        ?? '',
+        phone:      id?.phone      ?? '',
+        bloodGroup: id?.bloodGroup ?? '',
       };
     }
   }

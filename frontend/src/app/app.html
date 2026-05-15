@@ -11,7 +11,7 @@
               [attr.aria-pressed]="!sidenavRail()"
               aria-label="Toggle sidebar">
         @if (!toolbarLogoError()) {
-          <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-brand-icon"
+          <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
                (error)="toolbarLogoError.set(true)" />
         } @else {
           <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
@@ -20,13 +20,13 @@
 
       <!-- Static text (not clickable) - visible only when expanded -->
       @if (!sidenavRail()) {
-        <span class="toolbar-brand-name">SKS College of Nursing</span>
+        <span class="toolbar-brand-name">SKS College Of Nursing</span>
       }
     } @else {
       <!-- Mobile: logo links to dashboard -->
       <a [routerLink]="'/dashboard'" class="toolbar-brand">
         @if (!toolbarLogoError()) {
-          <img src="assets/images/sks-logo-icon.svg" alt="SKS College of Nursing" class="toolbar-brand-icon"
+          <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
                (error)="toolbarLogoError.set(true)" />
         } @else {
           <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
@@ -69,24 +69,42 @@
           @if (profileService.avatarDataUrl()) {
             <img class="toolbar-avatar-photo" [src]="profileService.avatarDataUrl()!" alt="Profile photo" />
           } @else {
-            <mat-icon>person</mat-icon>
+            <span class="avatar-initials">{{ userInitials() }}</span>
           }
         </div>
         @if (authService.username() && !isMobile()) {
           <span class="toolbar-username">{{ authService.username() }}</span>
         }
       </button>
-      <mat-menu #userMenu="matMenu">
-        <div class="user-menu-header" mat-menu-item disabled>
-          <mat-icon>badge</mat-icon>
-          <span>{{ authService.username() }}</span>
+
+      <mat-menu #userMenu="matMenu" class="user-account-menu">
+
+        <!-- Rich header — not a menu item, no hover/click -->
+        <div class="user-menu-header" (click)="$event.stopPropagation()">
+          <div class="user-menu-avatar">
+            @if (profileService.avatarDataUrl()) {
+              <img [src]="profileService.avatarDataUrl()!" alt="Profile photo" />
+            } @else {
+              <span>{{ userInitials() }}</span>
+            }
+          </div>
+          <div class="user-menu-meta">
+            <span class="user-menu-name">{{ authService.username() }}</span>
+            @if (permissionService.roleLabel()) {
+              <span class="user-menu-role">{{ permissionService.roleLabel() }}</span>
+            }
+          </div>
         </div>
+
         <mat-divider></mat-divider>
+
         <a mat-menu-item routerLink="/profile">
           <mat-icon>account_circle</mat-icon>
           <span>My Profile</span>
         </a>
+
         <mat-divider></mat-divider>
+
         <button mat-menu-item (click)="openKeyboardShortcuts()">
           <mat-icon>keyboard</mat-icon>
           <span>Keyboard shortcuts</span>
@@ -95,11 +113,14 @@
           <mat-icon>tour</mat-icon>
           <span>Help tour</span>
         </button>
+
         <mat-divider></mat-divider>
-        <button mat-menu-item (click)="logout()">
+
+        <button mat-menu-item class="menu-item--danger" (click)="logout()">
           <mat-icon>logout</mat-icon>
           <span>Logout</span>
         </button>
+
       </mat-menu>
     }
   </div>
@@ -242,7 +263,7 @@
                class="sidenav-footer-product-icon" />
           <div class="sidenav-footer-product-text">
             <span class="sidenav-footer-product-name">OneCMS</span>
-            <span class="sidenav-footer-product-by">Raster Images Pvt. Ltd.</span>
+            <span class="sidenav-footer-product-by">Raster Images Private Limited</span>
           </div>
         </a>
       } @else {

@@ -15,5 +15,8 @@ public record ProfileIdentity(
     Long admissionId,
     Long programId,
     String displayName,
-    String email
+    String email,
+    String bio,
+    String phone,
+    String bloodGroup
 ) {}

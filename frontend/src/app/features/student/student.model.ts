@@ -48,6 +48,7 @@ export interface Student {
   fullName: string;
   email: string;
   phone?: string;
+  bio?: string;
   programId: number;
   programName: string;
   yearOfStudy: number;

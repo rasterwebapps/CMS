@@ -1,4 +1,4 @@
-# SKS College of Nursing
+# SKS College Of Nursing
 # College Administrator — User Guide
 
 **Version 2.0 | April 27, 2026**
@@ -8,7 +8,7 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
-2. [Your Role at SKS College of Nursing](#2-your-role-at-sks-college-of-nursing)
+2. [Your Role at SKS College Of Nursing](#2-your-role-at-sks-college-of-nursing)
 3. [Getting Started & Login](#3-getting-started--login)
 4. [Admin Dashboard](#4-admin-dashboard)
 5. [Preferences — Academic Setup](#5-preferences--academic-setup)
@@ -39,13 +39,13 @@
 
 ## 1. Introduction
 
-Welcome to the **SKS College of Nursing Management System**. This guide is written for **College Administrators** who are responsible for configuring academic operations, managing admissions from enquiry to enrollment, and overseeing financial collections.
+Welcome to the **SKS College Of Nursing Management System**. This guide is written for **College Administrators** who are responsible for configuring academic operations, managing admissions from enquiry to enrollment, and overseeing financial collections.
 
-SKS College of Nursing offers INC-approved programs in nursing and allied health sciences. The system is designed to help you manage the entire student journey from the first phone call to graduation.
+SKS College Of Nursing offers INC-approved programs in nursing and allied health sciences. The system is designed to help you manage the entire student journey from the first phone call to graduation.
 
 ---
 
-## 2. Your Role at SKS College of Nursing
+## 2. Your Role at SKS College Of Nursing
 
 ### Permissions at a Glance
 
@@ -119,7 +119,7 @@ From the **Enquiries list**, you can trigger key workflow steps with a single bu
 
 ## 5. Preferences — Academic Setup
 
-This section configures the academic and operational backbone of SKS College of Nursing. Set up Preferences **before** processing any admissions.
+This section configures the academic and operational backbone of SKS College Of Nursing. Set up Preferences **before** processing any admissions.
 
 ---
 
@@ -127,7 +127,7 @@ This section configures the academic and operational backbone of SKS College of 
 
 **Navigate**: Sidenav → Preferences → Departments
 
-SKS College of Nursing organizes its faculty and curriculum into the following departments:
+SKS College Of Nursing organizes its faculty and curriculum into the following departments:
 
 | Department Name | Code | Description |
 |----------------|------|-------------|
@@ -155,7 +155,7 @@ SKS College of Nursing organizes its faculty and curriculum into the following d
 
 **Navigate**: Sidenav → Preferences → Programs
 
-SKS College of Nursing offers the following INC-approved programs:
+SKS College Of Nursing offers the following INC-approved programs:
 
 | Program Name | Code | Duration | Intake Seats | Department |
 |-------------|------|----------|--------------|-----------|
@@ -285,7 +285,7 @@ Each academic year has two semesters for degree programs and three blocks for GN
 
 **Navigate**: Sidenav → Preferences → Fee Structures
 
-SKS College of Nursing fee structures comply with INC regulations and state government guidelines.
+SKS College Of Nursing fee structures comply with INC regulations and state government guidelines.
 
 #### B.Sc Nursing Fee Structure — 2026–27
 
@@ -349,7 +349,7 @@ SKS College of Nursing fee structures comply with INC regulations and state gove
 
 **Navigate**: Sidenav → Preferences → Faculty
 
-#### SKS College of Nursing — Faculty Register (Sample)
+#### SKS College Of Nursing — Faculty Register (Sample)
 
 | Name | Designation | Department | Qualification |
 |------|-------------|-----------|---------------|
@@ -492,7 +492,7 @@ From the enquiry list, these buttons appear automatically when the enquiry is in
 
 **Navigate**: Sidenav → Admission Management → Submit Documents
 
-SKS College of Nursing is affiliated with the **Indian Nursing Council (INC)** and **State Nurses Registration Council**, which mandates specific documents for admission:
+SKS College Of Nursing is affiliated with the **Indian Nursing Council (INC)** and **State Nurses Registration Council**, which mandates specific documents for admission:
 
 #### Mandatory Document Checklist (7 Documents)
 
@@ -700,12 +700,12 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 **Navigate**: Finance → Fee Payments  
 *Or click 💳 Collect Payment from enquiry list*
 
-#### Accepted Payment Modes at SKS College of Nursing
+#### Accepted Payment Modes at SKS College Of Nursing
 
 | Mode | Reference Required | Notes |
 |------|--------------------|-------|
 | CASH | No | Receipt issued immediately |
-| CHEQUE | Cheque number | Payable to "SKS College of Nursing" |
+| CHEQUE | Cheque number | Payable to "SKS College Of Nursing" |
 | NEFT / RTGS | UTR number | Bank transfer reference |
 | UPI | Transaction ID | Google Pay, PhonePe, BHIM UPI |
 | CARD | Terminal Auth code | Card swipe at campus terminal |
@@ -934,6 +934,6 @@ END OF DAY:
 
 ---
 
-**SKS College of Nursing | College Administrator User Guide**
+**SKS College Of Nursing | College Administrator User Guide**
 **Version 2.0 | April 27, 2026 | Next Review: July 2026**
 

@@ -1,4 +1,4 @@
-# SKS College of Nursing
+# SKS College Of Nursing
 # Cashier — User Guide
 
 **Version 2.0 | April 27, 2026**
@@ -8,7 +8,7 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
-2. [Your Role at SKS College of Nursing](#2-your-role)
+2. [Your Role at SKS College Of Nursing](#2-your-role)
 3. [Getting Started](#3-getting-started)
 4. [Cashier Dashboard](#4-cashier-dashboard)
 5. [Payment Collection](#5-payment-collection)
@@ -30,7 +30,7 @@
 
 ## 1. Introduction
 
-Welcome to the **SKS College of Nursing** Management System — Cashier Edition.
+Welcome to the **SKS College Of Nursing** Management System — Cashier Edition.
 
 As a **Cashier**, you are responsible for collecting fees from students and maintaining accurate financial records. Every rupee that comes into SKS College flows through your counter. Accurate recording, proper receipts, and daily reconciliation keep the college's finances clean and audit-ready.
 
@@ -224,7 +224,7 @@ The fastest way to collect a payment is from the **Enquiry List**:
 #### Procedure
 
 1. **Verify the cheque**:
-   - Payee name: **"SKS College of Nursing"** (exactly)
+   - Payee name: **"SKS College Of Nursing"** (exactly)
    - Amount in words matches amount in numbers
    - Date is today or recent (not post-dated unless authorized)
    - Signed by account holder
@@ -246,7 +246,7 @@ The fastest way to collect a payment is from the **Enquiry List**:
 #### Cheque Verification Checklist
 
 ```
-[ ] Payee is "SKS College of Nursing"
+[ ] Payee is "SKS College Of Nursing"
 [ ] Amount in words = amount in numbers
 [ ] Cheque is signed
 [ ] Not post-dated beyond current date (unless authorized)
@@ -272,7 +272,7 @@ The fastest way to collect a payment is from the **Enquiry List**:
 
 Provide students with official transfer details:
 ```
-Beneficiary Name:  SKS College of Nursing
+Beneficiary Name:  SKS College Of Nursing
 Account Number:    [Obtain from Finance Manager]
 IFSC Code:         [Obtain from Finance Manager]
 Bank & Branch:     [Obtain from Finance Manager]
@@ -284,7 +284,7 @@ UPI ID:            [If available]
 #### Procedure
 
 1. **Ask student for proof of transfer**:
-   - Bank SMS: "NEFT transfer ₹50,000 to SKS College of Nursing, UTR: xxxxxxxx"
+   - Bank SMS: "NEFT transfer ₹50,000 to SKS College Of Nursing, UTR: xxxxxxxx"
    - Or UPI app screenshot with transaction ID
    - Or bank transaction reference sheet
 
@@ -702,7 +702,7 @@ Print receipt → Give to student
 ### SKS Bank Details for NEFT Guidance to Students
 
 ```
-Beneficiary:   SKS College of Nursing
+Beneficiary:   SKS College Of Nursing
 Account No:    [From Finance Manager]
 IFSC Code:     [From Finance Manager]
 Bank & Branch: [From Finance Manager]
@@ -737,6 +737,6 @@ UPI ID:        [If enabled by college]
 
 ---
 
-**SKS College of Nursing | Cashier User Guide**
+**SKS College Of Nursing | Cashier User Guide**
 **Version 2.0 | April 27, 2026 | Next Review: July 2026**
 

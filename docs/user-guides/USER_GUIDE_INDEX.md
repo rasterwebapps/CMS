@@ -1,4 +1,4 @@
-# SKS College of Nursing
+# SKS College Of Nursing
 # CMS User Guide Index
 
 **Version 2.0 | April 27, 2026**
@@ -15,9 +15,9 @@
 
 ---
 
-## SKS College of Nursing — Quick Overview
+## SKS College Of Nursing — Quick Overview
 
-**SKS College of Nursing** is an INC-approved nursing institute offering:
+**SKS College Of Nursing** is an INC-approved nursing institute offering:
 
 | Program | Code | Duration | Seats |
 |---------|------|----------|-------|
@@ -249,6 +249,6 @@ A: Check college bank account to verify transfer. Once confirmed, record payment
 
 ---
 
-**SKS College of Nursing | CMS User Guides**
+**SKS College Of Nursing | CMS User Guides**
 **Version 2.0 | April 27, 2026**
 

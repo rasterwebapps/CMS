@@ -1,4 +1,4 @@
-/* SKS College of Nursing - User Guide Print Stylesheet */
+/* SKS College Of Nursing - User Guide Print Stylesheet */
 
 :root {
   --sks-primary: #1a5276;
@@ -268,7 +268,7 @@ h2 { page-break-before: auto; }
 @page {
   margin: 1.5cm 2cm;
   @bottom-center {
-    content: "SKS College of Nursing — " attr(data-guide-title) " | Page " counter(page);
+    content: "SKS College Of Nursing — " attr(data-guide-title) " | Page " counter(page);
     font-size: 9pt;
     color: #555;
   }

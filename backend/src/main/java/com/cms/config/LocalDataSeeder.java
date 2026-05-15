@@ -18,7 +18,7 @@ import com.cms.model.enums.*;
 import com.cms.repository.*;
 
 /**
- * Seeds demo data for SKS College of Nursing when running with the 'local' profile.
+ * Seeds demo data for SKS College Of Nursing when running with the 'local' profile.
  * This ensures all screens have meaningful data for development and testing.
  */
 @Configuration
@@ -63,7 +63,7 @@ public class LocalDataSeeder {
                 return;
             }
             
-            log.info("🌱 Seeding demo data for SKS College of Nursing...");
+            log.info("🌱 Seeding demo data for SKS College Of Nursing...");
 
             // ═══════════════════════════════════════════════════════════════
             // 1. DEPARTMENTS
@@ -353,7 +353,7 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 24. SYSTEM CONFIGURATIONS
             // ═══════════════════════════════════════════════════════════════
-            sysConfigRepo.save(new SystemConfiguration(null, "college.name", "SKS College of Nursing", "College name displayed across the application", "GENERAL"));
+            sysConfigRepo.save(new SystemConfiguration(null, "college.name", "SKS College Of Nursing", "College name displayed across the application", "GENERAL"));
             sysConfigRepo.save(new SystemConfiguration(null, "college.address", "Salem, Tamil Nadu 636001", "College address", "GENERAL"));
             sysConfigRepo.save(new SystemConfiguration(null, "college.email", "info@sksnursing.edu.in", "Official contact email", "GENERAL"));
             sysConfigRepo.save(new SystemConfiguration(null, "college.phone", "0427-2411234", "Official contact phone", "GENERAL"));

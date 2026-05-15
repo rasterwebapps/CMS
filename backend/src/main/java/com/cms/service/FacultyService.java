@@ -254,6 +254,7 @@ public class FacultyService {
             faculty.getBankAccountHolder(),
             faculty.getBankAccountType(),
             addressDto,
+            faculty.getBio(),
             faculty.getTeachingExperienceUgYears(),
             faculty.getTeachingExperiencePgYears(),
             faculty.getTeachingExperiencePhdYears(),

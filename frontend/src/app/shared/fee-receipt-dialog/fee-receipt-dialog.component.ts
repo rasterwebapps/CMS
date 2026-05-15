@@ -75,7 +75,7 @@ export class FeeReceiptDialogComponent {
       await navigator.share({
         title: `Fee Receipt – ${r.receiptNumber}`,
         text: [
-          `SKS College of Nursing`,
+          `SKS College Of Nursing`,
           `Receipt No: ${r.receiptNumber}`,
           `Name: ${r.payerName}`,
           `Amount: ₹${r.amountPaid.toLocaleString('en-IN')}`,
@@ -132,7 +132,7 @@ export class FeeReceiptDialogComponent {
   private buildReceiptText(r: ReceiptDisplayData): string {
     const sep = '─'.repeat(44);
     const lines = [
-      'SKS College of Nursing',
+      'SKS College Of Nursing',
       'No.31, Neikkarapatti, Salem – 636 010',
       sep,
       `Receipt No : ${r.receiptNumber}`,

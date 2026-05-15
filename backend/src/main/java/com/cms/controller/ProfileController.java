@@ -53,4 +53,21 @@ public class ProfileController {
         profileService.updateSelfInfo(request);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/me/cover")
+    public ResponseEntity<byte[]> getMyCoverPhoto() {
+        return profileService.getCoverPhoto();
+    }
+
+    @PostMapping(value = "/me/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadMyCoverPhoto(@RequestPart("file") MultipartFile file) {
+        profileService.uploadCoverPhoto(file);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/me/cover")
+    public ResponseEntity<Void> deleteMyCoverPhoto() {
+        profileService.deleteCoverPhoto();
+        return ResponseEntity.noContent().build();
+    }
 }

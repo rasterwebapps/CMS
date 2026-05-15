@@ -1,4 +1,4 @@
-# SKS College of Nursing
+# SKS College Of Nursing
 # Front Office Staff — User Guide
 
 **Version 2.0 | April 27, 2026**
@@ -8,7 +8,7 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
-2. [Your Role at SKS College of Nursing](#2-your-role-at-sks-college-of-nursing)
+2. [Your Role at SKS College Of Nursing](#2-your-role-at-sks-college-of-nursing)
 3. [Getting Started](#3-getting-started)
 4. [Front Office Dashboard](#4-front-office-dashboard)
 5. [Enquiry Management](#5-enquiry-management)
@@ -28,13 +28,13 @@
 
 ## 1. Introduction
 
-Welcome to the **SKS College of Nursing** Management System — Front Office Edition.
+Welcome to the **SKS College Of Nursing** Management System — Front Office Edition.
 
 As a **Front Office representative**, you are the first face students and parents see when they contact SKS. You create enquiry records, guide students through the admission process, collect payments, and upload documents. Your role spans from first contact all the way to creating the student's admission record.
 
 ---
 
-## 2. Your Role at SKS College of Nursing
+## 2. Your Role at SKS College Of Nursing
 
 ### What You Can Access
 
@@ -113,7 +113,7 @@ Your dashboard shows metrics relevant to your daily responsibilities.
 
 ## 5. Enquiry Management
 
-An **enquiry** is created the moment a student or parent expresses interest in joining SKS College of Nursing.
+An **enquiry** is created the moment a student or parent expresses interest in joining SKS College Of Nursing.
 
 ### 5.1 Creating an Enquiry
 
@@ -393,7 +393,7 @@ Collecting and verifying documents is one of your most important responsibilitie
 
 ### Mandatory Documents — INC Requirements
 
-SKS College of Nursing requires these **7 documents** for every admission:
+SKS College Of Nursing requires these **7 documents** for every admission:
 
 | # | Document | Requirement |
 |---|----------|-------------|
@@ -594,7 +594,7 @@ Student arrives at front office
          │
          ▼
 Greet student professionally:
-"Welcome to SKS College of Nursing!"
+"Welcome to SKS College Of Nursing!"
          │
          ▼
 Collect basic information:
@@ -805,6 +805,6 @@ creation appointment
 
 ---
 
-**SKS College of Nursing | Front Office User Guide**
+**SKS College Of Nursing | Front Office User Guide**
 **Version 2.0 | April 27, 2026 | Next Review: July 2026**
 

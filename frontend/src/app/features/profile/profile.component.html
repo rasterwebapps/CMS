@@ -1,10 +1,10 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
   Profile page — identity, self-service contact editing, account security,
-  profile photo, role shortcuts, and personal documents.
+  profile photo, cover photo, completion meter, role shortcuts, documents.
 ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="profile-page" [style.--primary-theme]="primaryColor()">
 
-  <!-- ══ Liquid aurora background ══ -->
+  <!-- ══ Aurora background ══ -->
   <div class="aurora-bg" aria-hidden="true">
     <div class="aurora-blob aurora-blob--1"></div>
     <div class="aurora-blob aurora-blob--2"></div>
@@ -12,52 +12,37 @@
     <div class="aurora-noise"></div>
   </div>
 
-  <!-- ══ Theme dropdown ══ -->
-  <div class="theme-bar">
-    <div class="theme-dropdown" (click)="$event.stopPropagation()">
-      <button
-        class="theme-trigger"
-        [class.theme-trigger--open]="themeOpen()"
-        [style.--sw]="activeSwatch().hex"
-        (click)="toggleThemeDropdown()"
-        aria-label="Change theme color"
-      >
-        <span class="theme-trigger__dot"></span>
-        <span class="theme-trigger__name">{{ activeSwatch().name }}</span>
-        <mat-icon class="theme-trigger__chevron">expand_more</mat-icon>
-      </button>
-
-      @if (themeOpen()) {
-        <div class="theme-panel" role="listbox" aria-label="Theme colors">
-          @for (sw of swatches; track sw.id) {
-            <button
-              class="theme-option"
-              [class.theme-option--active]="sw.id === activeSwatch().id"
-              [style.--sw]="sw.hex"
-              (click)="selectTheme(sw)"
-              role="option"
-              [attr.aria-selected]="sw.id === activeSwatch().id"
-            >
-              <span class="theme-option__dot"></span>
-              <span class="theme-option__name">{{ sw.name }}</span>
-              @if (sw.id === activeSwatch().id) {
-                <mat-icon class="theme-option__check">check</mat-icon>
-              }
-            </button>
-          }
-        </div>
-      }
-    </div>
+  <!-- ══ Theme picker FAB ══ -->
+  <div class="theme-dropdown" (click)="$event.stopPropagation()">
+    <button class="theme-trigger"
+            [class.theme-trigger--open]="themeOpen()"
+            [style.--sw]="activeSwatch().hex"
+            (click)="toggleThemeDropdown()"
+            aria-label="Change theme color">
+      <span class="theme-trigger__dot"></span>
+      <span class="theme-trigger__name">{{ activeSwatch().name }}</span>
+      <mat-icon class="theme-trigger__chevron">expand_more</mat-icon>
+    </button>
+    @if (themeOpen()) {
+      <div class="theme-panel" role="listbox">
+        @for (sw of swatches; track sw.id) {
+          <button class="theme-option"
+                  [class.theme-option--active]="sw.id === activeSwatch().id"
+                  [style.--sw]="sw.hex"
+                  (click)="selectTheme(sw)"
+                  role="option" [attr.aria-selected]="sw.id === activeSwatch().id">
+            <span class="theme-option__dot"></span>
+            <span class="theme-option__name">{{ sw.name }}</span>
+            @if (sw.id === activeSwatch().id) { <mat-icon class="theme-option__check">check</mat-icon> }
+          </button>
+        }
+      </div>
+    }
   </div>
 
-  <input
-    #photoInput
-    class="photo-file-input"
-    type="file"
-    accept="image/jpeg,image/png"
-    (change)="onPhotoSelected($event)"
-    aria-hidden="true"
-  />
+  <!-- Hidden file input -->
+  <input #photoInput class="photo-file-input" type="file" accept="image/jpeg,image/png"
+         (change)="onPhotoSelected($event)" aria-hidden="true" />
 
   <!-- ══ Loading skeleton ══ -->
   @if (loading()) {
@@ -75,7 +60,6 @@
     </div>
   }
 
-  <!-- ══ Error state ══ -->
   @if (!loading() && !identity()) {
     <div class="glass-card error-card"
          (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
@@ -88,32 +72,26 @@
     </div>
   }
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-    MAIN PROFILE
-  ════════════════════════════════════════════════════════════════════════ -->
   @if (!loading() && identity()) {
     @let id = identity()!;
     @let f  = faculty();
     @let s  = student();
+    @let pc = profileCompletion();
 
-    <!-- ══ Hero section ══ -->
+    <!-- ══ Hero ═══════════════════════════════════════════════════════════════ -->
     <section class="hero glass-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
 
-      <div
-        class="avatar-zone avatar-zone--clickable"
-        [class.avatar-zone--uploading]="uploadingPhoto()"
-        (click)="triggerPhotoUpload()"
-        matTooltip="Upload profile photo"
-      >
+      <div class="avatar-zone avatar-zone--clickable"
+           [class.avatar-zone--uploading]="uploadingPhoto()"
+           (click)="triggerPhotoUpload()"
+           matTooltip="Upload profile photo">
         <div class="avatar-conic-ring"></div>
         <div class="avatar-pulse-ring"></div>
         @if (photoUrl()) {
           <img class="avatar avatar-photo" [src]="photoUrl()!" [alt]="id.displayName" />
         } @else {
-          <div class="avatar" [class.avatar--admin]="id.entityType === 'ADMIN'">
-            {{ initials }}
-          </div>
+          <div class="avatar" [class.avatar--admin]="id.entityType === 'ADMIN'">{{ initials }}</div>
         }
         <div class="avatar-upload-overlay" aria-hidden="true">
           <mat-icon [class.overlay-icon--spin]="uploadingPhoto()">{{ uploadingPhoto() ? 'sync' : 'photo_camera' }}</mat-icon>
@@ -169,12 +147,34 @@
           </div>
           <div class="hero__meta">
             <span class="meta-pill"><mat-icon>admin_panel_settings</mat-icon>Full System Access</span>
-            <span class="meta-pill"><mat-icon>verified_user</mat-icon>SKS College of Nursing</span>
+            <span class="meta-pill"><mat-icon>verified_user</mat-icon>SKS College Of Nursing</span>
+          </div>
+        }
+
+        <!-- ── Profile completion meter ── -->
+        @if (identity()) {
+          <div class="completion-meter">
+            <div class="completion-meter__bar">
+              <div class="completion-meter__fill"
+                   [style.width.%]="(pc.score / pc.total) * 100"
+                   [class.completion-meter__fill--full]="pc.score === pc.total"></div>
+            </div>
+            <span class="completion-meter__label">
+              @if (pc.score === pc.total) {
+                <mat-icon>check_circle</mat-icon> Profile complete
+              } @else {
+                {{ pc.score }}/{{ pc.total }} complete
+                @if (pc.missing.length > 0) { · Missing: {{ pc.missing.slice(0,2).join(', ') }}{{ pc.missing.length > 2 ? '…' : '' }} }
+              }
+            </span>
           </div>
         }
       </div>
 
       <div class="hero__actions">
+        <button class="btn-edit-profile" type="button" (click)="enterEditMode()">
+          <mat-icon>edit</mat-icon> Edit Profile
+        </button>
         @if (editRoute()) {
           <a class="btn-primary shimmer-btn" [routerLink]="editRoute()">
             <mat-icon>admin_panel_settings</mat-icon> Admin Edit
@@ -188,10 +188,10 @@
       </div>
     </section>
 
-    <!-- ══ Bento grid: identity + self-service layout ══ -->
+    <!-- ══ Bento grid ══════════════════════════════════════════════════════════ -->
     <div class="bento-grid bento-grid--profile">
 
-      <!-- Column A: Bio / About -->
+      <!-- Column A: Bio + Security -->
       <div class="bcol bcol-a">
         <div class="glass-card bio-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
@@ -199,44 +199,36 @@
             <div class="card-hdr__icon"><mat-icon>auto_stories</mat-icon></div>
             <h3>About</h3>
           </div>
-          @if (f) {
-            <p class="bio-text gradient-text">
-              Passionate about nursing education, clinical excellence, and shaping the next
-              generation of healthcare professionals. Dedicated to {{ f.departmentName }}
-              @if (f.highestQualification) { with {{ qualificationLabel(f.highestQualification) }} expertise. }
-            </p>
-            <div class="tag-cloud">
-              <span class="tag">Nursing</span>
-              <span class="tag">Education</span>
-              <span class="tag">{{ f.departmentName }}</span>
-              <span class="tag">Clinical</span>
-              <span class="tag">Research</span>
+
+          @let bioText = f?.bio || s?.bio || id.bio;
+          @if (bioText) {
+            <p class="bio-text">{{ bioText }}</p>
+          } @else {
+            <div class="bio-empty">
+              <mat-icon>edit_note</mat-icon>
+              <p>No bio yet. <button class="bio-empty__link" type="button" (click)="enterEditMode()">Add one →</button></p>
             </div>
           }
-          @if (s) {
-            <p class="bio-text gradient-text">
-              {{ s.programName }} student at SKS College of Nursing, currently in Year {{ s.yearOfStudy }}.
-              Committed to excellence in nursing practice and compassionate patient care.
-            </p>
-            <div class="tag-cloud">
+          <div class="tag-cloud">
+            @if (f) {
+              <span class="tag">{{ f.departmentName }}</span>
+              <span class="tag">Nursing</span>
+              <span class="tag">Education</span>
+              <span class="tag">Clinical</span>
+              @if (f.highestQualification) { <span class="tag">{{ qualificationLabel(f.highestQualification) }}</span> }
+            }
+            @if (s) {
               <span class="tag">{{ s.programName }}</span>
               <span class="tag">Year {{ s.yearOfStudy }}</span>
               <span class="tag">Nursing</span>
               <span class="tag">Healthcare</span>
-            </div>
-          }
-          @if (id.entityType === 'ADMIN') {
-            <p class="bio-text gradient-text">
-              Administrator at SKS College of Nursing with full system access. Overseeing academic
-              programs, faculty management, student services, and institutional operations.
-            </p>
-            <div class="tag-cloud">
+            }
+            @if (id.entityType === 'ADMIN') {
               <span class="tag">Administration</span>
               <span class="tag">Management</span>
               <span class="tag">Operations</span>
-              <span class="tag">Healthcare</span>
-            </div>
-          }
+            }
+          </div>
         </div>
 
         <div class="glass-card security-card"
@@ -262,77 +254,21 @@
         </div>
       </div>
 
-      <!-- Column B: Personal Info + self-edit -->
+      <!-- Column B: Personal Info + Contact -->
       <div class="bcol bcol-b">
-
         @if (f || s) {
           <div class="glass-card info-card"
                (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
             <div class="card-hdr">
               <div class="card-hdr__icon"><mat-icon>person_outline</mat-icon></div>
               <h3>Personal Info</h3>
-              @if (!editMode()) {
-                <button class="card-edit-btn" type="button" (click)="enterEditMode()" matTooltip="Edit your contact details">
-                  <mat-icon>edit</mat-icon>
-                </button>
-              }
-            </div>
-
-            @if (!editMode()) {
-              <div class="info-list">
-                @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
-                @for (item of items; track item.label) {
-                  <div class="info-row">
-                    <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
-                    <div class="info-row__body">
-                      <span class="info-row__label">{{ item.label }}</span>
-                      <span class="info-row__value">{{ item.value }}</span>
-                    </div>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="self-edit-form">
-                <label class="self-field">
-                  <span>Phone</span>
-                  <input type="tel" [(ngModel)]="editForm.phone" placeholder="Mobile number" />
-                </label>
-                <label class="self-field">
-                  <span>Blood Group</span>
-                  <input type="text" [(ngModel)]="editForm.bloodGroup" placeholder="e.g. B+" />
-                </label>
-                <div class="self-edit-title">Address</div>
-                <label class="self-field">
-                  <span>Street</span>
-                  <input type="text" [(ngModel)]="editForm.street" placeholder="Street / door no." />
-                </label>
-                <div class="self-grid">
-                  <label class="self-field"><span>City</span><input type="text" [(ngModel)]="editForm.city" /></label>
-                  <label class="self-field"><span>District</span><input type="text" [(ngModel)]="editForm.district" /></label>
-                </div>
-                <div class="self-grid">
-                  <label class="self-field"><span>State</span><input type="text" [(ngModel)]="editForm.state" /></label>
-                  <label class="self-field"><span>Pincode</span><input type="text" [(ngModel)]="editForm.pincode" /></label>
-                </div>
-                <div class="self-actions">
-                  <button class="btn-self-cancel" type="button" (click)="cancelEdit()" [disabled]="savingSelfInfo()">Cancel</button>
-                  <button class="btn-self-save" type="button" (click)="saveSelfInfo()" [disabled]="savingSelfInfo()">
-                    <mat-icon [class.overlay-icon--spin]="savingSelfInfo()">{{ savingSelfInfo() ? 'sync' : 'check' }}</mat-icon>
-                    {{ savingSelfInfo() ? 'Saving...' : 'Save Changes' }}
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="glass-card contact-card"
-               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
-            <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>contact_phone</mat-icon></div>
-              <h3>Contact &amp; Emergency</h3>
+              <button class="card-edit-btn" type="button" (click)="enterEditMode()" matTooltip="Edit profile">
+                <mat-icon>edit</mat-icon>
+              </button>
             </div>
             <div class="info-list">
-              @for (item of contactInfoItems(); track item.label) {
+              @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
+              @for (item of items; track item.label) {
                 <div class="info-row">
                   <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
                   <div class="info-row__body">
@@ -342,6 +278,40 @@
                 </div>
               }
             </div>
+          </div>
+
+          <!-- Contact & Emergency — with empty-state prompt -->
+          <div class="glass-card contact-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>contact_phone</mat-icon></div>
+              <h3>Contact &amp; Emergency</h3>
+            </div>
+            @let contactItems = contactInfoItems();
+            @let hasData = contactItems.some(i => i.value && i.value !== '—');
+            @if (hasData) {
+              <div class="info-list">
+                @for (item of contactItems; track item.label) {
+                  <div class="info-row">
+                    <div class="info-row__icon"><mat-icon>{{ item.icon }}</mat-icon></div>
+                    <div class="info-row__body">
+                      <span class="info-row__label">{{ item.label }}</span>
+                      <span class="info-row__value" [class.info-row__value--empty]="item.value === '—'">{{ item.value }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-state-prompt">
+                <div class="empty-state-prompt__icon">
+                  <mat-icon>person_add</mat-icon>
+                </div>
+                <p class="empty-state-prompt__text">Complete your profile to help colleagues reach you</p>
+                <button class="empty-state-prompt__btn" type="button" (click)="enterEditMode()">
+                  <mat-icon>edit</mat-icon> Fill in details
+                </button>
+              </div>
+            }
           </div>
         }
 
@@ -367,37 +337,71 @@
               </div>
               <div class="info-row">
                 <div class="info-row__icon"><mat-icon>verified_user</mat-icon></div>
-                <div class="info-row__body"><span class="info-row__label">Institution</span><span class="info-row__value">SKS College of Nursing</span></div>
+                <div class="info-row__body"><span class="info-row__label">Institution</span><span class="info-row__value">SKS College Of Nursing</span></div>
               </div>
             </div>
           </div>
         }
-
       </div>
 
-      <!-- Column C: Quick Links -->
+      <!-- Column C: Document progress + Quick Links (icon tiles) -->
       <div class="bcol bcol-c">
+
+        <!-- Document progress summary -->
+        @if ((f || s) && profileCompletion().total > 0) {
+          <div class="glass-card doc-progress-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>folder_open</mat-icon></div>
+              <h3>Profile Strength</h3>
+            </div>
+            <div class="doc-ring-wrap">
+              <svg class="doc-ring" viewBox="0 0 80 80">
+                <circle class="doc-ring__track" cx="40" cy="40" r="32" />
+                <circle class="doc-ring__fill" cx="40" cy="40" r="32"
+                  [style.stroke-dashoffset]="201 - (201 * pc.score / pc.total)" />
+              </svg>
+              <div class="doc-ring__label">
+                <span class="doc-ring__pct">{{ (pc.score / pc.total * 100) | number:'1.0-0' }}%</span>
+                <span class="doc-ring__sub">complete</span>
+              </div>
+            </div>
+            @if (pc.missing.length > 0) {
+              <ul class="missing-list">
+                @for (m of pc.missing; track m) {
+                  <li class="missing-item">
+                    <mat-icon>radio_button_unchecked</mat-icon> {{ m }}
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="all-done"><mat-icon>verified</mat-icon> All fields complete!</p>
+            }
+          </div>
+        }
+
+        <!-- Quick Links — icon tile grid -->
         <div class="glass-card quick-links-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
           <div class="card-hdr">
             <div class="card-hdr__icon"><mat-icon>apps</mat-icon></div>
             <h3>Quick Links</h3>
           </div>
-          <div class="quick-link-list">
+          <div class="quick-tile-grid">
             @for (link of quickLinks(); track link.route) {
-              <a class="quick-link-item" [routerLink]="link.route">
-                <span class="quick-link-icon"><mat-icon>{{ link.icon }}</mat-icon></span>
-                <span class="quick-link-label">{{ link.label }}</span>
-                <mat-icon class="quick-link-arrow">chevron_right</mat-icon>
+              <a class="quick-tile" [routerLink]="link.route">
+                <span class="quick-tile__icon">
+                  <mat-icon>{{ link.icon }}</mat-icon>
+                </span>
+                <span class="quick-tile__label">{{ link.label }}</span>
               </a>
             }
           </div>
         </div>
       </div>
     </div>
-    <!-- end bento grid -->
 
-    <!-- ══ Document Vault (faculty / student only) ══ -->
+    <!-- ══ Document Vault ══════════════════════════════════════════════════════ -->
     @if (f || (s && id.admissionId)) {
       <section class="section-block">
         <div class="section-header">
@@ -409,30 +413,116 @@
         </div>
         <div class="glass-card docs-full-card">
           @if (f) {
-            <cms-profile-documents
-              entityType="FACULTY"
-              [entityId]="f.id"
-              [canManage]="true"
-              [canVerify]="false"
-              (slotsChange)="onSlotsChange($event)"
-            />
+            <cms-profile-documents entityType="FACULTY" [entityId]="f.id"
+              [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
           }
           @if (s && id.admissionId) {
-            <cms-profile-documents
-              entityType="STUDENT"
-              [entityId]="id.admissionId!"
+            <cms-profile-documents entityType="STUDENT" [entityId]="id.admissionId!"
               [programId]="id.programId ?? undefined"
-              [canManage]="true"
-              [canVerify]="false"
-              (slotsChange)="onSlotsChange($event)"
-            />
+              [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
           }
         </div>
       </section>
     }
-
   }
-  <!-- end @if identity -->
+
+  <!-- ══ Edit Profile Drawer ════════════════════════════════════════════════
+       Slides in from the right. Contains ALL editable fields in one place.
+       Opened by the "Edit Profile" button in the hero.
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  @if (editMode()) {
+    <div class="ep-backdrop" (click)="cancelEdit()" aria-hidden="true"></div>
+
+    <aside class="ep-drawer" role="dialog" aria-label="Edit Profile" aria-modal="true">
+
+      <!-- Header -->
+      <div class="ep-drawer__hdr">
+        <div class="ep-drawer__hdr-icon"><mat-icon>manage_accounts</mat-icon></div>
+        <div>
+          <h2 class="ep-drawer__title">Edit Profile</h2>
+          <p class="ep-drawer__sub">Changes are visible only to you and administrators</p>
+        </div>
+        <button class="ep-drawer__close" type="button" (click)="cancelEdit()" aria-label="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Scrollable body -->
+      <div class="ep-drawer__body">
+
+        <!-- Bio -->
+        <div class="ep-section">
+          <h3 class="ep-section-title">Bio</h3>
+          <div class="ep-field">
+            <textarea class="ep-textarea" rows="4" [(ngModel)]="editForm.bio"
+                      maxlength="500" placeholder="Write a short bio about yourself…"></textarea>
+            <span class="ep-char">{{ (editForm.bio?.length ?? 0) }}/500</span>
+          </div>
+        </div>
+
+        <!-- Contact — all users -->
+        <div class="ep-section">
+          <h3 class="ep-section-title">Contact</h3>
+          <div class="ep-field">
+            <label class="ep-label">Phone number</label>
+            <input class="ep-input" type="tel" [(ngModel)]="editForm.phone" placeholder="Mobile number" />
+          </div>
+          <div class="ep-field">
+            <label class="ep-label">Blood Group</label>
+            <input class="ep-input" type="text" [(ngModel)]="editForm.bloodGroup" placeholder="e.g. O+" />
+          </div>
+        </div>
+
+        <!-- Address — faculty / student only (stored on their records) -->
+        @if (faculty() || student()) {
+          <div class="ep-section">
+            <h3 class="ep-section-title">Address</h3>
+            <div class="ep-field">
+              <label class="ep-label">Street / Door no.</label>
+              <input class="ep-input" type="text" [(ngModel)]="editForm.street" placeholder="Street address" />
+            </div>
+            <div class="ep-row-2">
+              <div class="ep-field">
+                <label class="ep-label">City</label>
+                <input class="ep-input" type="text" [(ngModel)]="editForm.city" />
+              </div>
+              <div class="ep-field">
+                <label class="ep-label">District</label>
+                <input class="ep-input" type="text" [(ngModel)]="editForm.district" />
+              </div>
+            </div>
+            <div class="ep-row-2">
+              <div class="ep-field">
+                <label class="ep-label">State</label>
+                <input class="ep-input" type="text" [(ngModel)]="editForm.state" />
+              </div>
+              <div class="ep-field">
+                <label class="ep-label">Pincode</label>
+                <input class="ep-input" type="text" [(ngModel)]="editForm.pincode" />
+              </div>
+            </div>
+          </div>
+        }
+
+      </div><!-- /.ep-drawer__body -->
+
+      <!-- Sticky footer -->
+      <div class="ep-drawer__footer">
+        <button class="ep-btn ep-btn--cancel" type="button"
+                (click)="cancelEdit()" [disabled]="savingSelfInfo()">
+          Cancel
+        </button>
+        <button class="ep-btn ep-btn--save" type="button"
+                (click)="saveSelfInfo()" [disabled]="savingSelfInfo()">
+          @if (savingSelfInfo()) {
+            <mat-icon class="overlay-icon--spin">sync</mat-icon> Saving…
+          } @else {
+            <mat-icon>check</mat-icon> Save Changes
+          }
+        </button>
+      </div>
+
+    </aside>
+  }
 
 </div>
-

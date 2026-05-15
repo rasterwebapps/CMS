@@ -9,6 +9,7 @@ export const routes: Routes = [
   {
     path: 'profile',
     canActivate: withAuth,
+    // Apple Health redesign backed up in profile-health.component.* — swap import below to activate it
     loadComponent: () =>
       import('./features/profile/profile.component').then((m) => m.ProfileComponent),
   },

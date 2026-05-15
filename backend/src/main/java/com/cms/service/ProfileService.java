@@ -54,35 +54,38 @@ public class ProfileService {
         if (email != null && !email.isBlank()) {
             var faculty = facultyRepository.findByEmail(email);
             if (faculty.isPresent()) {
+                Faculty f = faculty.get();
                 return new ProfileIdentity(
-                    "FACULTY",
-                    faculty.get().getId(),
-                    null, null,
-                    faculty.get().getFullName(),
-                    email
+                    "FACULTY", f.getId(), null, null,
+                    f.getFullName(), email,
+                    f.getBio(), f.getPhone(), f.getBloodGroup()
                 );
             }
 
             var student = studentRepository.findByEmail(email);
             if (student.isPresent()) {
+                Student st = student.get();
                 Long admissionId = admissionRepository
-                    .findByStudentId(student.get().getId())
-                    .map(a -> a.getId())
-                    .orElse(null);
-                Long programId = student.get().getProgram() != null
-                    ? student.get().getProgram().getId() : null;
+                    .findByStudentId(st.getId()).map(a -> a.getId()).orElse(null);
+                Long programId = st.getProgram() != null ? st.getProgram().getId() : null;
                 return new ProfileIdentity(
-                    "STUDENT",
-                    student.get().getId(),
-                    admissionId,
-                    programId,
-                    student.get().getFullName(),
-                    email
+                    "STUDENT", st.getId(), admissionId, programId,
+                    st.getFullName(), email,
+                    st.getBio(), st.getPhone(), st.getBloodGroup()
                 );
             }
         }
 
-        return new ProfileIdentity("ADMIN", null, null, null, display, email);
+        // Admin — personal info stored on app_users
+        String adminBio = null; String adminPhone = null; String adminBlood = null;
+        try {
+            AppUser adminUser = resolveAppUser();
+            adminBio   = adminUser.getBio();
+            adminPhone = adminUser.getPhone();
+            adminBlood = adminUser.getBloodGroup();
+        } catch (Exception ignored) {}
+        return new ProfileIdentity("ADMIN", null, null, null, display, email,
+                                  adminBio, adminPhone, adminBlood);
     }
 
     public ResponseEntity<byte[]> getPhoto() {
@@ -129,6 +132,42 @@ public class ProfileService {
         appUserRepository.save(user);
     }
 
+    // ── Cover photo ────────────────────────────────────────────────────────────
+
+    public ResponseEntity<byte[]> getCoverPhoto() {
+        AppUser user = resolveAppUser();
+        if (user.getCoverPhoto() == null || user.getCoverPhoto().length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+        String contentType = user.getCoverPhotoType() == null || user.getCoverPhotoType().isBlank()
+            ? MediaType.IMAGE_JPEG_VALUE : user.getCoverPhotoType();
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(user.getCoverPhoto());
+    }
+
+    @Transactional
+    public void uploadCoverPhoto(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("File is required");
+        String contentType = file.getContentType();
+        if (!MediaType.IMAGE_JPEG_VALUE.equals(contentType) && !MediaType.IMAGE_PNG_VALUE.equals(contentType)) {
+            throw new IllegalArgumentException("Only JPEG or PNG images are allowed");
+        }
+        if (file.getSize() > MAX_PHOTO_BYTES) throw new IllegalArgumentException("Cover photo exceeds the 2 MB limit");
+        AppUser user = resolveAppUser();
+        try { user.setCoverPhoto(file.getBytes()); } catch (IOException ex) { throw new IllegalArgumentException("Unable to read uploaded photo", ex); }
+        user.setCoverPhotoType(contentType);
+        appUserRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteCoverPhoto() {
+        AppUser user = resolveAppUser();
+        user.setCoverPhoto(null);
+        user.setCoverPhotoType(null);
+        appUserRepository.save(user);
+    }
+
     @Transactional
     public void updateSelfInfo(SelfUpdateRequest request) {
         Jwt jwt = resolveJwt();
@@ -150,26 +189,29 @@ public class ProfileService {
             Student current = student.get();
             applySelfFields(current, request);
             studentRepository.save(current);
+            return;
         }
+
+        // Admin user — bio, phone, bloodGroup are self-editable
+        AppUser user = resolveAppUser();
+        boolean changed = false;
+        if (request.bio() != null)        { user.setBio(trimToNull(request.bio()));               changed = true; }
+        if (request.phone() != null)      { user.setPhone(trimToNull(request.phone()));            changed = true; }
+        if (request.bloodGroup() != null) { user.setBloodGroup(trimToNull(request.bloodGroup())); changed = true; }
+        if (changed) appUserRepository.save(user);
     }
 
     private void applySelfFields(Faculty faculty, SelfUpdateRequest request) {
-        if (request.phone() != null) {
-            faculty.setPhone(trimToNull(request.phone()));
-        }
-        if (request.bloodGroup() != null) {
-            faculty.setBloodGroup(trimToNull(request.bloodGroup()));
-        }
+        if (request.phone() != null)      faculty.setPhone(trimToNull(request.phone()));
+        if (request.bloodGroup() != null) faculty.setBloodGroup(trimToNull(request.bloodGroup()));
+        if (request.bio() != null)        faculty.setBio(trimToNull(request.bio()));
         faculty.setAddress(mergeAddress(faculty.getAddress(), request));
     }
 
     private void applySelfFields(Student student, SelfUpdateRequest request) {
-        if (request.phone() != null) {
-            student.setPhone(trimToNull(request.phone()));
-        }
-        if (request.bloodGroup() != null) {
-            student.setBloodGroup(trimToNull(request.bloodGroup()));
-        }
+        if (request.phone() != null)      student.setPhone(trimToNull(request.phone()));
+        if (request.bloodGroup() != null) student.setBloodGroup(trimToNull(request.bloodGroup()));
+        if (request.bio() != null)        student.setBio(trimToNull(request.bio()));
         student.setAddress(mergeAddress(student.getAddress(), request));
     }
 

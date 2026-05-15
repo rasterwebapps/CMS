@@ -71,9 +71,9 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
 <body>
 <div class="receipt">
   <div class="header">
-    <img class="logo" src="/assets/images/sks-logo-icon.svg" alt="SKS Logo" />
+    <img class="logo" src="/assets/images/sks-logo-icon.png" alt="SKS Logo" />
     <div class="header-text">
-      <div class="college-name">SKS College of Nursing</div>
+      <div class="college-name">SKS College Of Nursing</div>
       <div class="college-sub">
         Run By VS Educational Trust (Regn. No. 579 / 1997)<br/>
         No.31, Neikkarapatti, Salem &ndash; 636 010.

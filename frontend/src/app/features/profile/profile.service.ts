@@ -10,11 +10,15 @@ export interface ProfileIdentity {
   programId: number | null;
   displayName: string;
   email: string | null;
+  bio: string | null;
+  phone: string | null;
+  bloodGroup: string | null;
 }
 
 export interface SelfUpdateRequest {
   phone?: string | null;
   bloodGroup?: string | null;
+  bio?: string | null;
   postalAddress?: string | null;
   street?: string | null;
   city?: string | null;
@@ -61,6 +65,11 @@ export class ProfileService {
     return this.http.get<ProfileIdentity>(`${this.baseUrl}/me`);
   }
 
+  /** Re-fetches identity and emits the fresh value (used after self-info saves). */
+  reloadIdentity(): Observable<ProfileIdentity> {
+    return this.getMyProfile();
+  }
+
   getMyPhoto(): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/me/photo`, { responseType: 'blob' });
   }
@@ -77,5 +86,33 @@ export class ProfileService {
 
   updateSelfInfo(request: SelfUpdateRequest): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/me/self-info`, request);
+  }
+
+  // ── Cover photo ─────────────────────────────────────────────────────────────
+  private readonly _coverDataUrl = signal<string | null>(null);
+  readonly coverDataUrl = this._coverDataUrl.asReadonly();
+
+  setCoverDataUrl(url: string | null): void { this._coverDataUrl.set(url); }
+
+  loadCover(): void {
+    this.http.get(`${this.baseUrl}/me/cover`, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        if (!blob || blob.size === 0) { this._coverDataUrl.set(null); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => this._coverDataUrl.set((e.target?.result as string) ?? null);
+        reader.readAsDataURL(blob);
+      },
+      error: () => this._coverDataUrl.set(null),
+    });
+  }
+
+  uploadCover(file: File): Observable<void> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post<void>(`${this.baseUrl}/me/cover`, fd);
+  }
+
+  deleteCover(): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/me/cover`);
   }
 }

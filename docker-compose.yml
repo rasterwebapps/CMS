@@ -30,6 +30,7 @@ services:
       - "8280:8280"
     volumes:
       - ./infrastructure/keycloak/cms-realm.json:/opt/keycloak/data/import/cms-realm.json:ro
+      - ./infrastructure/keycloak/themes/cms:/opt/keycloak/themes/cms:ro
     networks:
       - cms-net
     restart: unless-stopped

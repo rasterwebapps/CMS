@@ -60,6 +60,8 @@ public record StudentResponse(
     String state,
     String pincode,
 
+    String bio,
+
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -78,6 +80,6 @@ public record StudentResponse(
             admissionDate, labBatch, status, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, postalAddress, street, city, district, state, pincode,
-            createdAt, updatedAt);
+            null, createdAt, updatedAt);
     }
 }

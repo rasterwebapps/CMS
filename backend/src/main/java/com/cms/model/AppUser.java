@@ -72,6 +72,21 @@ public class AppUser {
     @Column(name = "profile_photo_type", length = 50)
     private String profilePhotoType;
 
+    @Column(name = "cover_photo")
+    private byte[] coverPhoto;
+
+    @Column(name = "cover_photo_type", length = 50)
+    private String coverPhotoType;
+
+    @Column(name = "bio", length = 500)
+    private String bio;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "blood_group", length = 10)
+    private String bloodGroup;
+
     public AppUser() {
     }
 
@@ -180,6 +195,21 @@ public class AppUser {
     public void setProfilePhotoType(String profilePhotoType) {
         this.profilePhotoType = profilePhotoType;
     }
+
+    public byte[] getCoverPhoto() { return coverPhoto; }
+    public void setCoverPhoto(byte[] coverPhoto) { this.coverPhoto = coverPhoto; }
+
+    public String getCoverPhotoType() { return coverPhotoType; }
+    public void setCoverPhotoType(String coverPhotoType) { this.coverPhotoType = coverPhotoType; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getBloodGroup() { return bloodGroup; }
+    public void setBloodGroup(String bloodGroup) { this.bloodGroup = bloodGroup; }
 
     public List<UserDashboardWidgetConfig> getWidgetConfigs() {
         return widgetConfigs;

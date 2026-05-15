@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  SKS College of Nursing — User Guide PDF Generator
+#  SKS College Of Nursing — User Guide PDF Generator
 #  Usage:  ./generate-pdfs.sh
 #  Requires: pandoc, google-chrome (or chromium) installed
 # =============================================================================
@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║   SKS College of Nursing — PDF Guide Generator      ║"
+echo "║   SKS College Of Nursing — PDF Guide Generator      ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
@@ -68,7 +68,7 @@ for guide in "${GUIDES[@]}"; do
     -o "${guide}.html" \
     --standalone \
     --css="assets/guide-style.css" \
-    --metadata title="SKS College of Nursing" \
+    --metadata title="SKS College Of Nursing" \
     --toc \
     --toc-depth=3 \
     --highlight-style=tango \

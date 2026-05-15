@@ -7,6 +7,7 @@ package com.cms.dto;
 public record SelfUpdateRequest(
     String phone,
     String bloodGroup,
+    String bio,
     String postalAddress,
     String street,
     String city,

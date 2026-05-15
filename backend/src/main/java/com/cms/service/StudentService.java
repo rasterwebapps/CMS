@@ -360,6 +360,7 @@ public class StudentService {
             address != null ? address.getDistrict() : null,
             address != null ? address.getState() : null,
             address != null ? address.getPincode() : null,
+            student.getBio(),
             student.getCreatedAt(),
             student.getUpdatedAt()
         );

@@ -55,6 +55,9 @@ public class Student {
 
     private String phone;
 
+    @Column(name = "bio", length = 500)
+    private String bio;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
@@ -236,6 +239,9 @@ public class Student {
     public void setPhone(String phone) {
         this.phone = phone;
     }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 
     public Program getProgram() {
         return program;

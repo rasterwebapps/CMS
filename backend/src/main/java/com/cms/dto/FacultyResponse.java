@@ -44,6 +44,7 @@ public record FacultyResponse(
     String bankAccountHolder,
     BankAccountType bankAccountType,
     AddressRequest address,
+    String bio,
     BigDecimal teachingExperienceUgYears,
     BigDecimal teachingExperiencePgYears,
     BigDecimal teachingExperiencePhdYears,

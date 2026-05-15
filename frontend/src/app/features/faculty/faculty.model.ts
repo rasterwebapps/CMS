@@ -73,6 +73,7 @@ export interface Faculty {
   fullName: string;
   email: string;
   phone?: string;
+  bio?: string;
   departmentId: number;
   departmentName: string;
   designation: Designation;
