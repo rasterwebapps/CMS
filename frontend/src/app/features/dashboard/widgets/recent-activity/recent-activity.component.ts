@@ -44,7 +44,7 @@ export class RecentActivityComponent {
     if (a.includes('verified') || a.includes('paid')) return '#10b981';
     if (a.includes('rejected'))                       return '#ef4444';
     if (a.includes('uploaded'))                       return '#f59e0b';
-    return 'var(--primary-theme, #6366f1)';
+    return 'var(--cms-primary)';
   }
 }
 

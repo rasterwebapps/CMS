@@ -13,6 +13,7 @@ import { ConnectionItem, SAMPLE_CONNECTIONS } from '../widget.models';
   imports: [MatIconModule, MatTooltipModule],
   templateUrl: './connections-card.component.html',
   styleUrl: './connections-card.component.scss',
+  host: { '[style.--ca]': '"#10b981"' },
 })
 export class ConnectionsCardComponent {
   // ngComponentOutletInputs compatibility

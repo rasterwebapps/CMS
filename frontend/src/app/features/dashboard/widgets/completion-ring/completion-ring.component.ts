@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [MatIconModule],
   templateUrl: './completion-ring.component.html',
   styleUrl: './completion-ring.component.scss',
+  host: { '[style.--ca]': '"#10b981"' },
 })
 export class CompletionRingComponent {
   @Input() progressPct = 0;

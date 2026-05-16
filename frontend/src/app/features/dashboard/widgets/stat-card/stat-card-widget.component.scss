@@ -59,10 +59,28 @@
   background: radial-gradient(circle, color-mix(in srgb, var(--ca, var(--cms-primary)) 22%, transparent) 0%, transparent 70%);
   border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, transparent);
   color: var(--ca, var(--cms-primary));
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ca, var(--cms-primary)) 35%, transparent));
+  animation: icon-bubble-pulse 3.5s ease-in-out infinite;
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-  :host-context(html:not(.dark-theme)) & { filter: none; }
+  :host-context(html:not(.dark-theme)) & {
+    animation: icon-bubble-pulse-light 3.5s ease-in-out infinite;
+  }
+}
+
+@keyframes icon-bubble-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ca, var(--cms-primary)) 32%, transparent));
+  }
+  50% {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ca, var(--cms-primary)) 70%, transparent));
+  }
+}
+
+@keyframes icon-bubble-pulse-light {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.07); }
 }
 
 .sc-val {

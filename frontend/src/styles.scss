@@ -1217,6 +1217,55 @@ app-root {
   flex-direction: column;
 }
 
+// Dashboard widget cards (legacy style) — accent top bar + shimmer to match .widget-shell
+.content-card.widget-card {
+  position: relative;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--ca, var(--cms-primary)),
+      color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent)
+    );
+    border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+    z-index: 1;
+  }
+
+  // Shimmer sweep on hover
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -65%;
+    width: 55%; height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--cms-primary-rgb),.05),
+      transparent
+    );
+    transform: skewX(-18deg);
+    pointer-events: none;
+    transition: left 0s;
+    z-index: 2;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--cms-primary-rgb),.2);
+    box-shadow: 0 6px 22px rgba(0,0,0,.09);
+
+    &::after {
+      left: 130%;
+      transition: left .55s ease;
+    }
+  }
+}
+
 // ── CMS Card Anatomy ──────────────────────────────────
 // Base card — use instead of .content-card on new screens
 .cms-card {

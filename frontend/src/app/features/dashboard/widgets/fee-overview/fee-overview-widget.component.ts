@@ -19,6 +19,7 @@ interface FeeOverviewData {
   imports: [MatIconModule, RouterLink, InrPipe],
   templateUrl: './fee-overview-widget.component.html',
   styleUrl:    './fee-overview-widget.component.scss',
+  host: { '[style.--ca]': '"#f59e0b"' },
 })
 export class FeeOverviewWidgetComponent implements OnInit {
   @Input() widgetKey?:   string;

@@ -26,6 +26,40 @@
     0 16px 32px rgba(0,0,0,.22);
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 
+  // Accent top bar — per-widget colour via --ca, falls back to primary
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--ca, var(--cms-primary)),
+      color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent)
+    );
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--ca, var(--cms-primary)) 55%, transparent);
+    z-index: 1;
+  }
+
+  // Shimmer sweep — travels left → right on hover
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -65%;
+    width: 55%; height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.07),
+      transparent
+    );
+    transform: skewX(-18deg);
+    pointer-events: none;
+    transition: left 0s;
+    z-index: 2;
+  }
+
   &:hover {
     transform: translateY(-3px);
     border-color: color-mix(in srgb, var(--cms-primary) 22%, rgba(255,255,255,.10));
@@ -33,6 +67,11 @@
       inset 0 1px 0 rgba(255,255,255,.10),
       0 0 40px color-mix(in srgb, var(--cms-primary) 10%, transparent),
       0 24px 48px rgba(0,0,0,.28);
+
+    &::after {
+      left: 130%;
+      transition: left .55s ease;
+    }
   }
 }
 
@@ -60,10 +99,27 @@
   width: 27px; height: 27px;
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(var(--cms-primary-rgb),.14);
-  color: var(--cms-primary);
+  background: color-mix(in srgb, var(--ca, var(--cms-primary)) 14%, transparent);
+  color: var(--ca, var(--cms-primary));
   flex-shrink: 0;
+  animation: widget-icon-pulse 3.5s ease-in-out infinite;
   mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+@keyframes widget-icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    transform: scale(1.10);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--ca, var(--cms-primary)) 50%, transparent);
+  }
+}
+
+@keyframes widget-icon-pulse-light {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
 }
 
 .widget-body {
@@ -74,7 +130,7 @@
 
 .widget-action {
   font-size: 11.5px; font-weight: 600;
-  color: var(--cms-primary);
+  color: var(--ca, var(--cms-primary));
   text-decoration: none;
   opacity: .8;
   transition: opacity .15s;
@@ -98,9 +154,9 @@
   border-radius: 6px;
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,.06) 25%,
-    rgba(255,255,255,.14) 50%,
-    rgba(255,255,255,.06) 75%
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 25%,
+    color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, rgba(255,255,255,.06)) 50%,
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 75%
   );
   background-size: 200% 100%;
   animation: wsk-shimmer 1.5s ease-in-out infinite;
@@ -114,9 +170,9 @@
   border-radius: 10px;
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,.06) 25%,
-    rgba(255,255,255,.12) 50%,
-    rgba(255,255,255,.06) 75%
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 25%,
+    color-mix(in srgb, var(--ca, var(--cms-primary)) 16%, rgba(255,255,255,.05)) 50%,
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 75%
   );
   background-size: 200% 100%;
   animation: wsk-shimmer 1.5s ease-in-out infinite;
@@ -143,6 +199,20 @@
     background: #fff;
     border-color: rgba(0,0,0,.07);
     box-shadow: 0 2px 10px rgba(0,0,0,.05);
+
+    // Clean bar without glow in light mode
+    &::before { box-shadow: none; }
+
+    // Light-mode shimmer uses a primary tint instead of white
+    &::after {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(var(--cms-primary-rgb),.06),
+        transparent
+      );
+    }
+
     &:hover {
       border-color: rgba(var(--cms-primary-rgb),.2);
       box-shadow: 0 6px 22px rgba(0,0,0,.09);
@@ -151,12 +221,13 @@
   .widget-header   { border-bottom-color: rgba(0,0,0,.07); }
   .widget-title    { color: var(--cms-text-primary); }
   .widget-error    { color: var(--cms-text-muted); }
+  .widget-icon     { animation: widget-icon-pulse-light 3.5s ease-in-out infinite; }
   .sk-line, .sk-block {
     background: linear-gradient(
       90deg,
-      rgba(0,0,0,.05) 25%,
-      rgba(0,0,0,.10) 50%,
-      rgba(0,0,0,.05) 75%
+      color-mix(in srgb, var(--ca, var(--cms-primary))  6%, rgba(0,0,0,.03)) 25%,
+      color-mix(in srgb, var(--ca, var(--cms-primary)) 14%, rgba(0,0,0,.04)) 50%,
+      color-mix(in srgb, var(--ca, var(--cms-primary))  6%, rgba(0,0,0,.03)) 75%
     );
     background-size: 200% 100%;
   }

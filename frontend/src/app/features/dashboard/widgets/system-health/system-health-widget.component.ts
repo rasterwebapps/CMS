@@ -12,6 +12,7 @@ interface SystemHealthData { overall: 'ok' | 'warn' | 'error'; checks: HealthChe
   imports: [MatIconModule],
   templateUrl: './system-health-widget.component.html',
   styleUrl:    './system-health-widget.component.scss',
+  host: { '[style.--ca]': '"#10b981"' },
 })
 export class SystemHealthWidgetComponent implements OnInit {
   @Input() widgetKey?:   string;

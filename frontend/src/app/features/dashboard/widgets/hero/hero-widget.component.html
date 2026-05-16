@@ -1,6 +1,9 @@
 <div class="hero-shell">
+  <div class="hero-blob-a" aria-hidden="true"></div>
+  <div class="hero-blob-b" aria-hidden="true"></div>
   <div class="hero-ring"></div>
   <div class="hero-ring-2"></div>
+  <div class="hero-ring-3"></div>
 
   @if (loading()) {
     <div class="hero-loading">
@@ -28,9 +31,9 @@
 
     @if (data()!.quickStats.length > 0) {
       <div class="hero-stats-strip">
-        @for (stat of data()!.quickStats; track stat.label; let last = $last) {
+        @for (stat of data()!.quickStats; track stat.label; let i = $index; let last = $last) {
           <div class="hero-stat">
-            <span class="hero-stat__val">{{ stat.value }}</span>
+            <span class="hero-stat__val">{{ animatedStats()[i] ?? stat.value }}</span>
             <span class="hero-stat__label">{{ stat.label }}</span>
           </div>
           @if (!last) { <div class="hero-stat-div"></div> }

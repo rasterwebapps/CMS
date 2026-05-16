@@ -33,7 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-theme, #6366f1);
+  background: var(--ca, var(--cms-primary));
   color: #fff;
   font-size: 12px;
   font-weight: 700;

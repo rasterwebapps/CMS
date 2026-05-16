@@ -81,12 +81,24 @@
   gap: 18px;
 }
 
+// ── Widget entrance animation ─────────────────────────────────────────────────
+@keyframes widget-enter {
+  from { opacity: 0; transform: translateY(22px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);   }
+}
+
 // Each cell spans its configured number of columns / rows.
 // --cs = col-span (1–4), --rs = row-span (1–2) — set inline by the template.
 .widget-cell {
   grid-column: span min(var(--cs, 1), 4);
   grid-row:    span var(--rs, 1);
   min-height: 140px;
+  animation: widget-enter .45s cubic-bezier(.22,1,.36,1) both;
+
+  // Staggered delays — each widget cascades 70 ms after the previous
+  @for $i from 1 through 12 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 70}ms; }
+  }
 
   // Cascade: at tablet width (2-col) clamp spans > 2 down to 2
   @media (max-width: 1060px) {

@@ -12,6 +12,7 @@ import { DocStats } from '../../services/document-slots.service';
   imports: [MatIconModule],
   templateUrl: './document-stats-row.component.html',
   styleUrl: './document-stats-row.component.scss',
+  host: { '[style.--ca]': '"#10b981"' },
 })
 export class DocumentStatsRowComponent {
   @Input({ required: true }) stats!: DocStats;

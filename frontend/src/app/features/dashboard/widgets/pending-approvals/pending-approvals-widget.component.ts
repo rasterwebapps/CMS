@@ -16,6 +16,7 @@ interface PendingApprovalItem {
   imports: [MatIconModule],
   templateUrl: './pending-approvals-widget.component.html',
   styleUrl:    './pending-approvals-widget.component.scss',
+  host: { '[style.--ca]': '"#f43f5e"' },
 })
 export class PendingApprovalsWidgetComponent implements OnInit {
   @Input() widgetKey?:   string;

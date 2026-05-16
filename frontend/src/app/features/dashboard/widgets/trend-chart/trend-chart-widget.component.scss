@@ -14,7 +14,7 @@
 .bar-val {
   font-size: 9px; font-weight: 700; color: rgba(255,255,255,.35);
   opacity: 0; transition: opacity .15s;
-  &--hi { color: var(--cms-primary); }
+  &--hi { color: var(--ca, var(--cms-primary)); }
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
 }
 
@@ -25,13 +25,18 @@
   animation-delay: calc(.1s + var(--bi, 0) * .04s);
   cursor: pointer; transition: filter .15s;
   &:hover { filter: brightness(1.25); }
-  &.hi { background: linear-gradient(to top, rgba(var(--cms-primary-rgb),.35), var(--cms-primary)); box-shadow: 0 0 14px rgba(var(--cms-primary-rgb),.28); }
+  &.hi { background: linear-gradient(to top, color-mix(in srgb, var(--ca, var(--cms-primary)) 35%, transparent), var(--ca, var(--cms-primary))); box-shadow: 0 0 14px color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent); }
   &.lo { background: linear-gradient(to top, rgba(255,255,255,.04), rgba(255,255,255,.10)); }
 }
 
 .sk-bar {
   flex: 1; border-radius: 5px 5px 0 0;
-  background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.06) 75%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 25%,
+    color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, rgba(255,255,255,.06)) 50%,
+    color-mix(in srgb, var(--ca, var(--cms-primary))  7%, rgba(255,255,255,.03)) 75%
+  );
   background-size: 200% 100%;
   animation: wsk-shimmer 1.5s ease-in-out infinite;
 }
