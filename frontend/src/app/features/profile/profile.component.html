@@ -82,6 +82,11 @@
     <section class="hero glass-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
 
+      <!-- Concentric partial arcs — remove these 3 lines to revert -->
+      <div class="profile-arc profile-arc--1" aria-hidden="true"></div>
+      <div class="profile-arc profile-arc--2" aria-hidden="true"></div>
+      <div class="profile-arc profile-arc--3" aria-hidden="true"></div>
+
       <div class="avatar-zone avatar-zone--clickable"
            [class.avatar-zone--uploading]="uploadingPhoto()"
            (click)="triggerPhotoUpload()"

@@ -59,14 +59,14 @@ $green: #22C55E;
 
     &::after { box-shadow: none; }
 
-    // Blobs much subtler in light mode
-    .hero-blob-a { opacity: .18; }
-    .hero-blob-b { opacity: .14; }
+    // Blobs very subtle in light mode — present but not distracting
+    .hero-blob-a { opacity: .08; }
+    .hero-blob-b { opacity: .06; }
 
-    // Rings — more visible in light mode
-    .hero-ring   { border: 2px solid rgba(var(--cms-primary-rgb),.28); box-shadow: 0 0 14px color-mix(in srgb, var(--cms-primary) 12%, transparent); }
-    .hero-ring-2 { border: 2px solid rgba(var(--cms-primary-rgb),.42); box-shadow: 0 0 10px color-mix(in srgb, var(--cms-primary) 16%, transparent); }
-    .hero-ring-3 { border: 1.5px solid rgba(245,158,11,.30); box-shadow: 0 0 8px rgba(245,158,11,.12); }
+    // Rings — clean primary colour, no glow needed in light
+    .hero-ring   { border-color: rgba(var(--cms-primary-rgb),.18); }
+    .hero-ring-2 { border-color: rgba(var(--cms-primary-rgb),.28); }
+    .hero-ring-3 { background: rgba(var(--cms-primary-rgb),.07); }
 
     // Override dark-mode white text so it's visible on the light card
     .hero-title {
@@ -76,13 +76,15 @@ $green: #22C55E;
     .hero-sub      { color: var(--cms-text-secondary); }
     .hero-role-tag { color: var(--cms-text-secondary); background: rgba(var(--cms-primary-rgb),.08); border: 1px solid rgba(var(--cms-primary-rgb),.14); }
     .hero-stats-strip {
-      background: rgba(var(--cms-primary-rgb),.06);
-      border-color: rgba(var(--cms-primary-rgb),.18);
+      background:      #fff;
+      border-color:    rgba(var(--cms-primary-rgb),.15);
       backdrop-filter: none;
-      .hero-stat__val   { color: var(--cms-text-primary); font-size: 22px; }
+      -webkit-backdrop-filter: none;
+      box-shadow:      0 2px 12px rgba(0,0,0,.07);
+      .hero-stat__val   { color: var(--cms-text-primary); }
       .hero-stat__label { color: var(--cms-text-secondary); }
     }
-    .hero-stat-div { background: rgba(var(--cms-primary-rgb),.18); }
+    .hero-stat-div { background: rgba(0,0,0,.08); }
   }
 }
 
@@ -116,39 +118,34 @@ $green: #22C55E;
   70%      { transform: translate(12px,-9px)  scale(.91); }
 }
 
-// ── Decorative rings ──────────────────────────────────────────────────────────
-// Gradient mask fades rings to transparent toward the left so they never
-// overlap or bleed into the stats badges — they naturally tuck behind them.
+// ── Decorative rings — matching reference geometry ────────────────────────────
+// No mask: rings sit at the top-right edge only, well clear of the stats strip.
 .hero-ring, .hero-ring-2, .hero-ring-3 {
   position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
-  mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,.55) 50%, transparent 72%);
-  -webkit-mask-image: linear-gradient(to left, black 25%, rgba(0,0,0,.55) 50%, transparent 72%);
 }
 
-// Outer ring — large, mostly off-screen, cobalt glow
+// Outer ring — 320×320, mostly off-screen top-right
 .hero-ring {
-  right: -50px; top: -70px;
-  width: 280px; height: 280px;
-  border: 1.5px solid rgba(var(--cms-primary-rgb), .28);
-  box-shadow:
-    0 0 18px color-mix(in srgb, var(--cms-primary) 14%, transparent),
-    inset 0 0 10px color-mix(in srgb, var(--cms-primary) 8%, transparent);
+  right: -60px; top: -80px;
+  width: 320px; height: 320px;
+  border: 1px solid rgba(var(--cms-primary-rgb), .18);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cms-primary) 12%, transparent);
 }
 
-// Inner ring — tighter, brighter, amber tint for warmth
+// Mid ring — 180×180, sits just inside the outer
 .hero-ring-2 {
-  right: 25px; top: -5px;
-  width: 150px; height: 150px;
-  border: 1.5px solid rgba(var(--cms-primary-rgb), .38);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--cms-primary) 18%, transparent);
+  right: 20px; top: -20px;
+  width: 180px; height: 180px;
+  border: 1px solid rgba(var(--cms-primary-rgb), .28);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cms-primary) 16%, transparent);
 }
 
-// Mid ring — bridges the two, subtle amber-tinted arc
+// Inner filled circle — 90×90, no border, soft primary fill — the signature detail
 .hero-ring-3 {
-  right: -15px; top: -25px;
-  width: 200px; height: 200px;
-  border: 1px solid rgba(245, 158, 11, .22);
-  box-shadow: 0 0 10px rgba(245, 158, 11, .10);
+  right: 65px; top: 25px;
+  width: 90px; height: 90px;
+  background: rgba(var(--cms-primary-rgb), .10);
+  border: none;
 }
 
 .hero-content { position: relative; z-index: 1; flex: 1; min-width: 200px; }
@@ -164,14 +161,18 @@ $green: #22C55E;
 .hero-role-tag { color: rgba(255,255,255,.55); background: rgba(255,255,255,.06); }
 
 .hero-title {
-  font-size: 26px; font-weight: 700;
-  letter-spacing: -.02em; line-height: 1.1;
-  color: #fff; margin-bottom: 6px;
+  font-family:    var(--cms-font-display);
+  font-size:      32px;
+  font-weight:    400;
+  letter-spacing: -.01em;
+  line-height:    1.1;
+  color:          #fff;
+  margin-bottom:  6px;
   em {
-    font-style:  normal;
-    font-weight: 800;
+    font-style: italic;
+    font-weight: 400;
     color:       var(--cms-primary);
-    filter:      drop-shadow(0 0 8px rgba(var(--cms-primary-rgb),.45));
+    filter:      drop-shadow(0 0 10px rgba(var(--cms-primary-rgb),.50));
   }
 }
 
@@ -180,15 +181,30 @@ $green: #22C55E;
 .hero-stats-strip {
   display: flex; align-items: center; gap: 18px;
   padding: 14px 22px; border-radius: 14px;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
-  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.22);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   flex-shrink: 0; position: relative; z-index: 1;
 }
 
 .hero-stat {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  &__val   { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -.02em; line-height: 1; }
-  &__label { font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.45); }
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  &__val {
+    font-family:    var(--cms-font-mono);
+    font-size:      22px;
+    font-weight:    500;
+    color:          #fff;
+    letter-spacing: -.03em;
+    line-height:    1;
+  }
+  &__label {
+    font-size:      9px;
+    font-weight:    600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color:          rgba(255,255,255,.5);
+  }
 }
 
 .hero-stat-div { width: 1px; height: 26px; background: rgba(255,255,255,.12); flex-shrink: 0; }

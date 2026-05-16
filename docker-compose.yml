@@ -40,12 +40,13 @@ services:
     container_name: cms-backend
     environment:
       SPRING_PROFILES_ACTIVE: 243
-      DB_URL: jdbc:postgresql://172.17.3.133:5435/cmsdb
+      DB_URL: jdbc:postgresql://postgres:5432/cmsdb
       DB_USERNAME: cms
       DB_PASSWORD: cms
       KEYCLOAK_ISSUER_URI: https://dev.raster.in:212/realms/cms
       KEYCLOAK_JWK_SET_URI: http://keycloak:8280/realms/cms/protocol/openid-connect/certs
-      CORS_ALLOWED_ORIGINS: https://dev.raster.in:212
+      KEYCLOAK_ALLOWED_ISSUERS: https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms
+      CORS_ALLOWED_ORIGINS: https://dev.raster.in:212,https://122.165.219.66:212,https://172.17.1.243:8443
     depends_on:
       postgres:
         condition: service_started
@@ -62,9 +63,11 @@ services:
       - "80:80"
       - "8443:443"
     environment:
-      KEYCLOAK_URL:      https://dev.raster.in:212
-      KEYCLOAK_UPSTREAM: keycloak:8280
-      BACKEND_UPSTREAM:  backend:8080
+      KEYCLOAK_URL:            https://dev.raster.in:212
+      KEYCLOAK_UPSTREAM:       keycloak:8280
+      BACKEND_UPSTREAM:        backend:8080
+      KEYCLOAK_CANONICAL_HOST: dev.raster.in:212
+      KEYCLOAK_CANONICAL_PORT: "212"
     volumes:
       - ./frontend/ssl:/etc/nginx/ssl:ro
     depends_on:

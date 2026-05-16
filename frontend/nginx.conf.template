@@ -34,22 +34,29 @@ server {
     add_header Permissions-Policy     "geolocation=(), microphone=(), camera=()" always;
 
     # ── Keycloak proxy ────────────────────────────────────────────────────────
-    # IMPORTANT: X-Forwarded-Host is ALWAYS set to the canonical domain
-    # (dev.raster.in:212) regardless of how the user accessed the app.
-    # This ensures Keycloak always issues JWTs with the canonical issuer URI
-    # that the Spring Boot backend is configured to trust.
-    # The Keycloak JS redirect_uri is still browser-origin-based (handled by
-    # the Angular app), so post-login redirects return to whichever URL the
-    # user came from.
+    # X-Forwarded-Host is ALWAYS canonical (dev.raster.in:212) so JWTs always
+    # carry the same issuer the Spring Boot backend trusts.
+    #
+    # sub_filter rewrites absolute Keycloak URLs in HTML responses so that
+    # form actions and redirects point back to the origin the browser actually
+    # used. For dev.raster.in:212 this is a no-op; for 172.17.1.243:8443 it
+    # prevents the session-cookie/domain mismatch that causes HTTP 400 on
+    # login form submit.
     location /realms/ {
         limit_req zone=auth burst=30 nodelay;
         proxy_pass http://${KEYCLOAK_UPSTREAM};
-        proxy_set_header Host              dev.raster.in:212;
+        proxy_set_header Host              ${KEYCLOAK_CANONICAL_HOST};
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Host  dev.raster.in:212;
-        proxy_set_header X-Forwarded-Port  212;
+        proxy_set_header X-Forwarded-Host  ${KEYCLOAK_CANONICAL_HOST};
+        proxy_set_header X-Forwarded-Port  ${KEYCLOAK_CANONICAL_PORT};
+        # Disable upstream compression so sub_filter can read the body
+        proxy_set_header Accept-Encoding   "";
+        # Rewrite canonical URLs back to the browser's actual origin
+        sub_filter      'https://${KEYCLOAK_CANONICAL_HOST}' 'https://$http_host';
+        sub_filter_once off;
+        sub_filter_types text/html application/json;
         proxy_buffer_size  128k;
         proxy_buffers      4 256k;
     }
@@ -57,9 +64,13 @@ server {
     location /resources/ {
         limit_req zone=auth burst=30 nodelay;
         proxy_pass http://${KEYCLOAK_UPSTREAM};
-        proxy_set_header Host              dev.raster.in:212;
+        proxy_set_header Host              ${KEYCLOAK_CANONICAL_HOST};
         proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-Port  212;
+        proxy_set_header X-Forwarded-Port  ${KEYCLOAK_CANONICAL_PORT};
+        proxy_set_header Accept-Encoding   "";
+        sub_filter      'https://${KEYCLOAK_CANONICAL_HOST}' 'https://$http_host';
+        sub_filter_once off;
+        sub_filter_types text/html application/json;
     }
 
     # ── Spring Boot API proxy ─────────────────────────────────────────────────
@@ -84,6 +95,6 @@ server {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header Pragma "no-cache" always;
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none';" always;
     }
 }

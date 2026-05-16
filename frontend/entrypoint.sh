@@ -21,8 +21,10 @@ sed -i "s|assets/env.js\"|assets/env.js?v=${STAMP}\"|g" \
 # ── 3. Generate nginx.conf from template ──────────────────────────────────────
 export KEYCLOAK_UPSTREAM="${KEYCLOAK_UPSTREAM:-127.0.0.1:8180}"
 export BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-127.0.0.1:8080}"
+export KEYCLOAK_CANONICAL_HOST="${KEYCLOAK_CANONICAL_HOST:-dev.raster.in:212}"
+export KEYCLOAK_CANONICAL_PORT="${KEYCLOAK_CANONICAL_PORT:-212}"
 
-envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM}' \
+envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM} ${KEYCLOAK_CANONICAL_HOST} ${KEYCLOAK_CANONICAL_PORT}' \
   < /etc/nginx/templates/default.conf.template \
   > /etc/nginx/conf.d/default.conf
 

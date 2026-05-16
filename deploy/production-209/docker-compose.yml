@@ -91,7 +91,8 @@ services:
       KEYCLOAK_CLIENT_ID: cms-frontend
       KEYCLOAK_UPSTREAM: 127.0.0.1:8180
       BACKEND_UPSTREAM: 127.0.0.1:8080
-      EXTERNAL_HTTPS_PORT: '443'
+      KEYCLOAK_CANONICAL_HOST: cms.nursing.sksh.ac.in
+      KEYCLOAK_CANONICAL_PORT: "443"
     volumes:
       - ./ssl/self.crt:/etc/nginx/ssl/self.crt:ro
       - ./ssl/self.key:/etc/nginx/ssl/self.key:ro
