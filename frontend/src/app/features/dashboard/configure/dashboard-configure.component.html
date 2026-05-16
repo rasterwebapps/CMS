@@ -2,7 +2,7 @@
 
   <!-- ── Page header ──────────────────────────────────────────────────────── -->
   <div class="cfg-hdr">
-    <button class="cfg-hdr__back" type="button" (click)="cancel()" aria-label="Back">
+    <button class="cfg-hdr__back" type="button" (click)="onCancel()" aria-label="Back">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <div class="cfg-hdr__icon">
@@ -23,175 +23,13 @@
       <span>Loading your layout…</span>
     </div>
   } @else {
-
-    <!-- ── Two-column body ──────────────────────────────────────────────── -->
-    <div class="cfg-body">
-
-      <!-- LEFT: Active layout ──────────────────────────────────────────── -->
-      <div class="cfg-col">
-
-        <div class="cfg-col-header">
-          <div class="cfg-col-header__icon">
-            <mat-icon>view_module</mat-icon>
-          </div>
-          <div class="cfg-col-header__meta">
-            <span class="cfg-col-header__title">Your Layout</span>
-            <span class="cfg-col-header__sub">Drag rows to reorder</span>
-          </div>
-          <span class="cfg-col-header__badge">{{ activeItems.length }}</span>
-        </div>
-
-        <div class="cfg-drop-zone"
-             cdkDropList
-             [cdkDropListData]="activeItems"
-             (cdkDropListDropped)="drop($event)">
-
-          @if (activeItems.length === 0) {
-            <div class="cfg-empty">
-              <mat-icon>widgets</mat-icon>
-              <p>No widgets yet.<br>Add some from the library →</p>
-            </div>
-          }
-
-          @for (item of activeItems; track item.key; let idx = $index) {
-            <div class="cfg-item"
-                 [style.--wc]="categoryColor(item.def.category)"
-                 cdkDrag [cdkDragData]="item">
-
-              <!-- drag preview (shown while dragging) -->
-              <div class="cfg-drag-preview" *cdkDragPreview
-                   [style.--wc]="categoryColor(item.def.category)">
-                <div class="cfg-item__tile">
-                  <mat-icon>{{ item.def.icon }}</mat-icon>
-                </div>
-                <span>{{ item.def.label }}</span>
-              </div>
-              <div class="cfg-drag-placeholder" *cdkDragPlaceholder></div>
-
-              <!-- grab handle -->
-              <button class="cfg-item__handle" cdkDragHandle type="button" aria-label="Drag">
-                <mat-icon>drag_indicator</mat-icon>
-              </button>
-
-              <!-- order badge -->
-              <span class="cfg-item__order">{{ idx + 1 }}</span>
-
-              <!-- icon tile -->
-              <div class="cfg-item__tile">
-                <mat-icon>{{ item.def.icon }}</mat-icon>
-              </div>
-
-              <!-- text -->
-              <div class="cfg-item__text">
-                <span class="cfg-item__label">{{ item.def.label }}</span>
-                <span class="cfg-item__desc">{{ item.def.description }}</span>
-              </div>
-
-              <!-- visual size chips -->
-              <div class="cfg-size-group">
-                @for (span of [1, 2, 4]; track span) {
-                  <button class="cfg-size-chip"
-                          [class.active]="item.colSpan === span"
-                          [title]="colSpanLabel($any(span))"
-                          type="button"
-                          (click)="setColSpan(item, $any(span))">
-                    <span class="cfg-size-chip__grid">
-                      @for (cell of spanCells; track cell) {
-                        <span class="cfg-size-chip__cell"
-                              [class.on]="cell < filledCells($any(span))"></span>
-                      }
-                    </span>
-                  </button>
-                }
-              </div>
-
-              <!-- remove -->
-              <button class="cfg-item__remove" type="button"
-                      (click)="removeWidget(idx)" title="Remove">
-                <mat-icon>close</mat-icon>
-              </button>
-
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- RIGHT: Widget library ────────────────────────────────────────── -->
-      <div class="cfg-col">
-
-        <div class="cfg-col-header">
-          <div class="cfg-col-header__icon cfg-col-header__icon--lib">
-            <mat-icon>library_add</mat-icon>
-          </div>
-          <div class="cfg-col-header__meta">
-            <span class="cfg-col-header__title">Widget Library</span>
-            <span class="cfg-col-header__sub">Click + to add to your layout</span>
-          </div>
-          <span class="cfg-col-header__badge">{{ paletteItems.length }}</span>
-        </div>
-
-        <div class="cfg-palette">
-
-          @if (paletteItems.length === 0) {
-            <div class="cfg-empty cfg-empty--inline">
-              <mat-icon>check_circle</mat-icon>
-              <p>All widgets are active.</p>
-            </div>
-          }
-
-          @for (cat of categories; track cat) {
-            @let catWidgets = paletteByCategory(cat);
-            @if (catWidgets.length > 0) {
-              <div class="cfg-palette-group">
-                <span class="cfg-palette-label"
-                      [style.--wc]="categoryColor(cat)">
-                  {{ categoryLabel(cat) }}
-                </span>
-                <div class="cfg-palette-grid">
-                  @for (def of catWidgets; track def.key) {
-                    <div class="cfg-palette-tile"
-                         [style.--wc]="categoryColor(def.category)">
-                      <div class="cfg-palette-tile__icon">
-                        <mat-icon>{{ def.icon }}</mat-icon>
-                      </div>
-                      <span class="cfg-palette-tile__label">{{ def.label }}</span>
-                      <button class="cfg-palette-tile__add" type="button"
-                              (click)="addWidget(def)"
-                              [attr.aria-label]="'Add ' + def.label">
-                        <mat-icon>add</mat-icon>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          }
-
-        </div>
-      </div>
-
-    </div><!-- /.cfg-body -->
-
-    <!-- ── Footer ───────────────────────────────────────────────────────── -->
-    <div class="cfg-footer">
-      <span class="cfg-footer__hint">
-        <mat-icon>info</mat-icon>
-        {{ activeItems.length }} widget{{ activeItems.length === 1 ? '' : 's' }} · changes apply only to your view
-      </span>
-      <button class="btn-ghost" type="button" (click)="reset()" [disabled]="saving()"
-              title="Reset to role default">
-        <mat-icon>restart_alt</mat-icon>
-        Reset
-      </button>
-      <button class="btn-ghost" type="button" (click)="cancel()" [disabled]="saving()">
-        Cancel
-      </button>
-      <button class="btn-primary" type="button" (click)="save()" [disabled]="saving()">
-        @if (saving()) { <mat-spinner diameter="14" /> } @else { <mat-icon>save</mat-icon> }
-        Save Layout
-      </button>
-    </div>
-
+    <app-widget-picker
+      [initialWidgets]="initialWidgets"
+      [saving]="saving()"
+      [showReset]="true"
+      (saved)="onSave($event)"
+      (reset)="onReset()"
+      (cancelled)="onCancel()" />
   }
 
 </div>

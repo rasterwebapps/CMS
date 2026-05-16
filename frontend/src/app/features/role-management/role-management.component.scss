@@ -707,6 +707,29 @@ textarea.field-input { height: auto; padding: 10px 12px; resize: vertical; }
   &__remove { color: var(--cms-text-muted); &:hover { color: var(--cms-danger); } }
 }
 
+.wp-spans-block {
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+  flex-shrink:    0;
+}
+
+.wp-spans-row {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+}
+
+.wp-spans-label {
+  font-size:      9px;
+  font-weight:    800;
+  letter-spacing: 0.06em;
+  color:          var(--cms-text-muted);
+  width:          10px;
+  flex-shrink:    0;
+  user-select:    none;
+}
+
 .wp-size-chips {
   display:     flex;
   align-items: center;

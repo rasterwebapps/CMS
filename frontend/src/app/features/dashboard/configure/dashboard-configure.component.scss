@@ -379,7 +379,31 @@
   text-overflow: ellipsis;
 }
 
-// ── Visual size chips ─────────────────────────────────────────────────────────
+// ── Span controls block (width + height stacked) ─────────────────────────────
+.cfg-spans-block {
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+  flex-shrink:    0;
+}
+
+.cfg-spans-row {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+}
+
+.cfg-spans-label {
+  font-size:      9px;
+  font-weight:    800;
+  letter-spacing: 0.06em;
+  color:          var(--cms-text-muted);
+  width:          10px;
+  flex-shrink:    0;
+  user-select:    none;
+}
+
+// ── Width size chips ──────────────────────────────────────────────────────────
 .cfg-size-group {
   display:     flex;
   align-items: center;
@@ -436,6 +460,60 @@
 }
 
 .cfg-size-chip:hover .cfg-size-chip__cell.on {
+  background: var(--wc);
+}
+
+// ── Height chips (vertical 1×2 cell grid) ─────────────────────────────────────
+.cfg-height-chip {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           32px;
+  height:          28px;
+  border:          1px solid var(--cms-line);
+  border-radius:   6px;
+  background:      transparent;
+  cursor:          pointer;
+  transition:      border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  padding:         0;
+
+  &:hover {
+    border-color: var(--wc);
+    background:   color-mix(in srgb, var(--wc) 8%, transparent);
+  }
+
+  &.active {
+    border-color: var(--wc);
+    background:   color-mix(in srgb, var(--wc) 12%, transparent);
+    box-shadow:   0 0 0 1px color-mix(in srgb, var(--wc) 30%, transparent);
+
+    .cfg-height-chip__cell.on {
+      background: var(--wc);
+    }
+  }
+
+  // mini vertical 2-row grid (1 column)
+  &__grid {
+    display:               grid;
+    grid-template-rows:    repeat(2, 5px);
+    grid-template-columns: 14px;
+    gap:                   2px;
+  }
+
+  &__cell {
+    width:         14px;
+    height:        5px;
+    border-radius: 1px;
+    background:    var(--cms-line-strong);
+    transition:    background 0.15s;
+
+    &.on {
+      background: color-mix(in srgb, var(--wc) 55%, var(--cms-line-strong));
+    }
+  }
+}
+
+.cfg-height-chip:hover .cfg-height-chip__cell.on {
   background: var(--wc);
 }
 

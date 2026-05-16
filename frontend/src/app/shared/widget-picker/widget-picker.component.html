@@ -1,0 +1,183 @@
+<div class="wp-shell">
+
+  <!-- ── Two-column body ──────────────────────────────────────────────────── -->
+  <div class="wp-body">
+
+    <!-- LEFT: Active layout ──────────────────────────────────────────────── -->
+    <div class="wp-col">
+      <div class="wp-col-header">
+        <div class="wp-col-header__icon">
+          <mat-icon>view_module</mat-icon>
+        </div>
+        <div class="wp-col-header__meta">
+          <span class="wp-col-header__title">Your Layout</span>
+          <span class="wp-col-header__sub">Drag to reorder · × to remove</span>
+        </div>
+        <span class="wp-col-header__badge">{{ activeItems.length }}</span>
+      </div>
+
+      <div class="wp-drop-zone"
+           cdkDropList
+           [cdkDropListData]="activeItems"
+           (cdkDropListDropped)="drop($event)">
+
+        @if (activeItems.length === 0) {
+          <div class="wp-empty">
+            <mat-icon>widgets</mat-icon>
+            <p>No widgets yet.<br>Add some from the library →</p>
+          </div>
+        }
+
+        @for (item of activeItems; track item.key; let idx = $index) {
+          <div class="wp-item"
+               [style.--wc]="categoryColor(item.def.category)"
+               cdkDrag [cdkDragData]="item">
+
+            <div class="wp-drag-preview" *cdkDragPreview
+                 [style.--wc]="categoryColor(item.def.category)">
+              <div class="wp-item__tile"><mat-icon>{{ item.def.icon }}</mat-icon></div>
+              <span>{{ item.def.label }}</span>
+            </div>
+            <div class="wp-drag-placeholder" *cdkDragPlaceholder></div>
+
+            <button class="wp-item__handle" cdkDragHandle type="button" aria-label="Drag">
+              <mat-icon>drag_indicator</mat-icon>
+            </button>
+
+            <span class="wp-item__order">{{ idx + 1 }}</span>
+
+            <div class="wp-item__tile">
+              <mat-icon>{{ item.def.icon }}</mat-icon>
+            </div>
+
+            <div class="wp-item__text">
+              <span class="wp-item__label">{{ item.def.label }}</span>
+              <span class="wp-item__desc">{{ item.def.description }}</span>
+            </div>
+
+            <!-- Width + Height span controls -->
+            <div class="wp-spans-block">
+              <div class="wp-spans-row">
+                <span class="wp-spans-label" title="Width">W</span>
+                <div class="wp-size-group">
+                  @for (span of [1, 2, 4]; track span) {
+                    <button class="wp-size-chip"
+                            [class.active]="item.colSpan === span"
+                            [title]="colSpanLabel($any(span))"
+                            type="button"
+                            (click)="setColSpan(item, $any(span))">
+                      <span class="wp-size-chip__grid">
+                        @for (cell of spanCells; track cell) {
+                          <span class="wp-size-chip__cell"
+                                [class.on]="cell < filledCells($any(span))"></span>
+                        }
+                      </span>
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="wp-spans-row">
+                <span class="wp-spans-label" title="Height">H</span>
+                <div class="wp-size-group">
+                  @for (span of [1, 2]; track span) {
+                    <button class="wp-height-chip"
+                            [class.active]="item.rowSpan === span"
+                            [title]="rowSpanLabel($any(span))"
+                            type="button"
+                            (click)="setRowSpan(item, $any(span))">
+                      <span class="wp-height-chip__grid">
+                        @for (cell of heightCells; track cell) {
+                          <span class="wp-height-chip__cell"
+                                [class.on]="cell < span"></span>
+                        }
+                      </span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <button class="wp-item__remove" type="button"
+                    (click)="removeWidget(idx)" title="Remove">
+              <mat-icon>close</mat-icon>
+            </button>
+
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- RIGHT: Widget library ──────────────────────────────────────────────── -->
+    <div class="wp-col">
+      <div class="wp-col-header">
+        <div class="wp-col-header__icon wp-col-header__icon--lib">
+          <mat-icon>library_add</mat-icon>
+        </div>
+        <div class="wp-col-header__meta">
+          <span class="wp-col-header__title">Widget Library</span>
+          <span class="wp-col-header__sub">Click + to add to your layout</span>
+        </div>
+        <span class="wp-col-header__badge">{{ paletteItems.length }}</span>
+      </div>
+
+      <div class="wp-palette">
+        @if (paletteItems.length === 0) {
+          <div class="wp-empty wp-empty--inline">
+            <mat-icon>check_circle</mat-icon>
+            <p>All widgets are active.</p>
+          </div>
+        }
+
+        @for (cat of categories; track cat) {
+          @let catWidgets = paletteByCategory(cat);
+          @if (catWidgets.length > 0) {
+            <div class="wp-palette-group">
+              <span class="wp-palette-label" [style.--wc]="categoryColor(cat)">
+                {{ categoryLabel(cat) }}
+              </span>
+              <div class="wp-palette-grid">
+                @for (def of catWidgets; track def.key) {
+                  <div class="wp-palette-tile" [style.--wc]="categoryColor(def.category)">
+                    <div class="wp-palette-tile__icon">
+                      <mat-icon>{{ def.icon }}</mat-icon>
+                    </div>
+                    <span class="wp-palette-tile__label">{{ def.label }}</span>
+                    <button class="wp-palette-tile__add" type="button"
+                            (click)="addWidget(def)"
+                            [attr.aria-label]="'Add ' + def.label">
+                      <mat-icon>add</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+  </div><!-- /.wp-body -->
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+  <div class="wp-footer">
+    <span class="wp-footer__hint">
+      <mat-icon>info</mat-icon>
+      {{ activeItems.length }} widget{{ activeItems.length === 1 ? '' : 's' }} active
+    </span>
+    @if (showReset) {
+      <button class="btn-ghost" type="button" (click)="onReset()" [disabled]="saving"
+              title="Reset to role default">
+        <mat-icon>restart_alt</mat-icon>
+        Reset
+      </button>
+    }
+    <button class="btn-ghost" type="button" (click)="cancel()" [disabled]="saving">
+      Cancel
+    </button>
+    <button class="btn-primary" type="button" (click)="save()" [disabled]="saving">
+      @if (saving) { <mat-spinner diameter="14" /> } @else { <mat-icon>save</mat-icon> }
+      Save Layout
+    </button>
+  </div>
+
+</div>
