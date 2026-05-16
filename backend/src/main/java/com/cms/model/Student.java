@@ -38,6 +38,9 @@ public class Student {
     @Column(name = "roll_number", unique = true)
     private String rollNumber;
 
+    @Column(name = "admission_number", unique = true, length = 20)
+    private String admissionNumber;
+
     @Column(name = "university_registration_number", unique = true)
     private String universityRegistrationNumber;
 
@@ -190,6 +193,14 @@ public class Student {
 
     public void setRollNumber(String rollNumber) {
         this.rollNumber = rollNumber;
+    }
+
+    public String getAdmissionNumber() {
+        return admissionNumber;
+    }
+
+    public void setAdmissionNumber(String admissionNumber) {
+        this.admissionNumber = admissionNumber;
     }
 
     public String getUniversityRegistrationNumber() {

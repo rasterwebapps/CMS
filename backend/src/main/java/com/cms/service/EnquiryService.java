@@ -83,6 +83,7 @@ public class EnquiryService {
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
     private final EnquiryDocumentService enquiryDocumentService;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -97,7 +98,8 @@ public class EnquiryService {
                            EnquiryDocumentRepository enquiryDocumentRepository,
                            AcademicYearRepository academicYearRepository,
                            FeeStructureService feeStructureService,
-                           EnquiryDocumentService enquiryDocumentService) {
+                            EnquiryDocumentService enquiryDocumentService,
+                            ApplicationNumberSequenceService numberSequenceService) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -112,6 +114,7 @@ public class EnquiryService {
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
         this.enquiryDocumentService = enquiryDocumentService;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -505,6 +508,8 @@ public class EnquiryService {
         admission.setDeclarationDate(request.declarationDate());
         Admission savedAdmission = admissionRepository.save(admission);
         linkEnquiryDocumentsToAdmission(enquiryId, savedAdmission);
+        savedStudent.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(joiningYear));
+        studentRepository.save(savedStudent);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(EnquiryStatus.ADMITTED);
@@ -512,7 +517,8 @@ public class EnquiryService {
         Enquiry saved = enquiryRepository.save(enquiry);
 
         recordHistory(saved, oldStatus, EnquiryStatus.ADMITTED, performedBy,
-            "Admitted: student ID " + savedStudent.getId() + ", admission created");
+            "Admitted: student ID " + savedStudent.getId() + ", admission number "
+                + savedStudent.getAdmissionNumber() + ", admission created");
 
         return toResponse(saved);
     }

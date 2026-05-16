@@ -88,7 +88,7 @@ class FacultyControllerTest {
             id, employeeCode, firstName, lastName, fullName, email, phone, departmentId,
             departmentName, designation, specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, gender, maritalStatus,
-            null, null, null, null, null, null, null, null, bankAccountType, address,
+            null, null, null, null, null, null, null, null, bankAccountType, address, null,
             years, years, years, years, years, years,
             createdAt, updatedAt, null
         );

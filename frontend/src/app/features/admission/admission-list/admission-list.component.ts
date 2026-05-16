@@ -59,11 +59,12 @@ export class AdmissionListComponent implements OnInit {
 
   // ── Column visibility ────────────────────────────────────────
   protected readonly ALL_COLS = [
-    'studentName', 'rollNumber', 'program', 'course',
+    'studentName', 'admissionNumber', 'rollNumber', 'program', 'course',
     'yearOfStudy', 'applicationDate', 'academicYear', 'consent', 'declarationDate', 'studentStatus', 'actions',
   ];
   protected readonly COLUMN_LABELS: Record<string, string> = {
     studentName:     'Student',
+    admissionNumber: 'Admission No.',
     rollNumber:      'Roll No.',
     program:         'Program',
     course:          'Course',
@@ -75,9 +76,9 @@ export class AdmissionListComponent implements OnInit {
     studentStatus:   'Status',
     actions:         'Actions',
   };
-  // Default visible columns (hide rollNumber & course by default to keep table lean)
+  // Default visible columns (hide rollNumber by default until roll number generation is completed)
   private readonly DEFAULT_COLS = new Set([
-    'studentName', 'program', 'course', 'yearOfStudy',
+    'studentName', 'admissionNumber', 'program', 'course', 'yearOfStudy',
     'applicationDate', 'academicYear', 'consent', 'studentStatus', 'actions',
   ]);
   private readonly COLS_KEY = 'admission-list-cols-v3';
@@ -180,6 +181,7 @@ export class AdmissionListComponent implements OnInit {
       if (!term) return true;
       return (
         row.studentName.toLowerCase().includes(term) ||
+        (row.admissionNumber ?? '').toLowerCase().includes(term) ||
         (row.rollNumber  ?? '').toLowerCase().includes(term) ||
         (row.programName ?? '').toLowerCase().includes(term) ||
         (row.courseName  ?? '').toLowerCase().includes(term)

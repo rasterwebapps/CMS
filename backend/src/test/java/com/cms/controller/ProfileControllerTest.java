@@ -43,7 +43,7 @@ class ProfileControllerTest {
     @Test
     void getMyProfileReturnsIdentity() throws Exception {
         when(profileService.resolveCurrentUser()).thenReturn(
-            new ProfileIdentity("FACULTY", 1L, null, null, "Dr Test", "test@college.edu"));
+            new ProfileIdentity("FACULTY", 1L, null, null, "Dr Test", "test@college.edu", null, null, null));
 
         mockMvc.perform(get("/profile/me"))
             .andExpect(status().isOk())
@@ -95,7 +95,7 @@ class ProfileControllerTest {
     @Test
     void updateSelfInfoDelegatesToService() throws Exception {
         SelfUpdateRequest request = new SelfUpdateRequest(
-            "9876543210", "B+", null, "Main Road", "Chennai", "Chennai", "Tamil Nadu", "600001");
+            "9876543210", "B+", null, null, "Main Road", "Chennai", "Chennai", "Tamil Nadu", "600001");
 
         mockMvc.perform(put("/profile/me/self-info")
                 .contentType(MediaType.APPLICATION_JSON)

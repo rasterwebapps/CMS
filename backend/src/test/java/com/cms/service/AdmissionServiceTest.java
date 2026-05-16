@@ -62,15 +62,22 @@ class AdmissionServiceTest {
     @Mock
     private TermInstanceRepository termInstanceRepository;
 
+    @Mock
+    private ApplicationNumberSequenceService numberSequenceService;
+
     private AdmissionService admissionService;
 
     @BeforeEach
     void setUp() {
         admissionService = new AdmissionService(admissionRepository, studentRepository,
-            cohortRepository, intakeRuleRepository, academicYearRepository, termInstanceRepository);
+            cohortRepository, intakeRuleRepository, academicYearRepository, termInstanceRepository,
+            numberSequenceService);
         org.mockito.Mockito.lenient()
             .when(academicYearRepository.findById(100L))
             .thenReturn(Optional.of(createAcademicYear()));
+        org.mockito.Mockito.lenient()
+            .when(numberSequenceService.nextAdmissionNumber(any(AcademicYear.class)))
+            .thenReturn("ADM-2425-0001");
     }
 
     private AcademicYear createAcademicYear() {

@@ -40,13 +40,20 @@ class AdmissionDocumentServiceTest {
     private EnquiryDocumentRepository enquiryDocumentRepository;
 
     @Mock
+    private com.cms.repository.EnquiryDocumentHistoryRepository historyRepository;
+
+    @Mock
     private AdmissionRepository admissionRepository;
+
+    @Mock
+    private com.cms.util.CurrentUserResolver currentUserResolver;
 
     private AdmissionDocumentService admissionDocumentService;
 
     @BeforeEach
     void setUp() {
-        admissionDocumentService = new AdmissionDocumentService(enquiryDocumentRepository, admissionRepository);
+        admissionDocumentService = new AdmissionDocumentService(enquiryDocumentRepository, historyRepository,
+            admissionRepository, currentUserResolver);
     }
 
     private Admission createAdmission(Long id) {

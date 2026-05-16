@@ -32,7 +32,7 @@
         class="search-bar__input"
         [value]="searchValue()"
         (input)="searchValue.set($any($event.target).value)"
-        placeholder="Search by receipt no., name or roll no."
+        placeholder="Search by receipt, name, roll or admission no."
         type="text"
         aria-label="Search receipts"
       />
@@ -119,6 +119,9 @@
             <span class="cell-name">{{ row.payerName }}</span>
             @if (row.payerIdentifier) {
               <span class="cell-sub cell-code-sub">{{ row.payerIdentifier }}</span>
+            }
+            @if (row.admissionNumber) {
+              <span class="cell-sub cell-code-sub">Adm: {{ row.admissionNumber }}</span>
             }
             @if (row.programName) {
               <span class="cell-sub">{{ row.programName }}</span>

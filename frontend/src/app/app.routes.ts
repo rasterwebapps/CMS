@@ -140,6 +140,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'number-sequences',
+    canActivate: withPermission('NUMBER_SEQUENCE_VIEW'),
+    loadComponent: () =>
+      import('./features/settings/number-sequences/number-sequences-list.component').then(
+        (m) => m.NumberSequencesListComponent
+      ),
+  },
+  {
     path: 'labs',
     canActivate: withPermission('LAB_VIEW', 'LAB_MANAGE'),
     loadComponent: () =>
@@ -357,7 +365,7 @@ export const routes: Routes = [
   },
   {
     path: 'receipts',
-    canActivate: withPermission('STUDENT_FEE_VIEW', 'FEE_COLLECT'),
+    canActivate: withPermission('RECEIPT_VIEW'),
     loadComponent: () =>
       import('./features/finance/receipts-list/receipts-list.component').then(
         (m) => m.ReceiptsListComponent

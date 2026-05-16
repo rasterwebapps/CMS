@@ -1,4 +1,5 @@
 import { numberToWords } from './number-to-words.utils';
+import { formatCurrency } from '@angular/common';
 
 export interface ReceiptPrintData {
   receiptNumber: string;
@@ -6,6 +7,8 @@ export interface ReceiptPrintData {
   payerName: string;
   /** Identifier shown below name: roll number for students, empty/null for enquiries. */
   payerIdentifier?: string | null;
+  /** Permanent admission reference, shown after admission is completed. */
+  admissionNumber?: string | null;
   /** Optional program name. */
   programName?: string | null;
   amountPaid: number;
@@ -21,9 +24,9 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
   const formattedDate = new Date(data.paymentDate + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
-  const formattedAmount = data.amountPaid.toLocaleString('en-IN');
+  const formattedAmount = formatCurrency(data.amountPaid, 'en-IN', '₹', 'INR', '1.0-0');
   const towards = data.installmentBreakdown
-    .map(s => `${s.installmentLabel} (₹${s.amountApplied.toLocaleString('en-IN')})`)
+    .map(s => `${s.installmentLabel} (${formatCurrency(s.amountApplied, 'en-IN', '₹', 'INR', '1.0-0')})`)
     .join(', ');
   const payerLine = data.payerIdentifier
     ? `${data.payerName} (${data.payerIdentifier})`
@@ -85,7 +88,7 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
   <div class="meta-row">
     <div class="receipt-no">No. <strong>${data.receiptNumber}</strong></div>
     <div class="amount-box">
-      <div class="rs-label">Rs.</div>
+      <div class="rs-label">Amount</div>
       <div class="rs-value">${formattedAmount} /-</div>
     </div>
   </div>
@@ -96,6 +99,7 @@ export function printFeeReceipt(data: ReceiptPrintData): void {
       <span class="line-dots"></span>
       <span class="line-value">${payerLine}</span>
     </div>
+    ${data.admissionNumber ? `<div class="line"><span class="line-label">Admission No.</span><span class="line-dots"></span><span class="line-value">${data.admissionNumber}</span></div>` : ''}
     <div class="line">
       <span class="line-label">the sum of Rupees</span>
       <span class="line-dots"></span>

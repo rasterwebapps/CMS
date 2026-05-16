@@ -12,20 +12,17 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.PaymentReceipt;
 import com.cms.repository.PaymentReceiptRepository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-
 @Service
 @Transactional(readOnly = true)
 public class UnifiedReceiptService {
 
     private final PaymentReceiptRepository receiptRepository;
-    private final EntityManager entityManager;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public UnifiedReceiptService(PaymentReceiptRepository receiptRepository,
-                                  EntityManager entityManager) {
+                                  ApplicationNumberSequenceService numberSequenceService) {
         this.receiptRepository = receiptRepository;
-        this.entityManager = entityManager;
+        this.numberSequenceService = numberSequenceService;
     }
 
     /**
@@ -36,21 +33,7 @@ public class UnifiedReceiptService {
     @Transactional
     public String generateReceiptNumber() {
         int year = LocalDate.now().getYear();
-
-        // Upsert the sequence row with a SELECT FOR UPDATE so concurrent calls stay ordered
-        var result = entityManager.createNativeQuery(
-            """
-            INSERT INTO receipt_number_sequence (year, last_seq)
-            VALUES (:year, 1)
-            ON CONFLICT (year) DO UPDATE
-                SET last_seq = receipt_number_sequence.last_seq + 1
-            RETURNING last_seq
-            """)
-            .setParameter("year", year)
-            .getSingleResult();
-
-        int seq = ((Number) result).intValue();
-        return String.format("RCP-%d-%05d", year, seq);
+        return numberSequenceService.nextReceiptNumber(year);
     }
 
     /**
@@ -58,14 +41,14 @@ public class UnifiedReceiptService {
      */
     @Transactional
     public void saveStudentReceipt(String receiptNumber,
-                                    Long studentId, String studentName, String rollNumber,
+                                    Long studentId, String studentName, String rollNumber, String admissionNumber,
                                     String programName, BigDecimal amountPaid,
                                     LocalDate paymentDate, String paymentMode,
                                     String transactionReference, String remarks,
                                     String installmentsCovered, String collectedBy) {
         PaymentReceipt receipt = new PaymentReceipt(
             receiptNumber, "STUDENT", studentId,
-            studentName, rollNumber, programName,
+            studentName, rollNumber, admissionNumber, programName,
             amountPaid, paymentDate, paymentMode,
             transactionReference, remarks, installmentsCovered, collectedBy);
         receiptRepository.save(receipt);
@@ -115,7 +98,7 @@ public class UnifiedReceiptService {
         return new UnifiedReceiptResponse(
             r.getId(), r.getReceiptNumber(),
             r.getPayerType(), r.getPayerId(), r.getPayerName(),
-            r.getPayerIdentifier(), r.getProgramName(),
+            r.getPayerIdentifier(), r.getAdmissionNumber(), r.getProgramName(),
             r.getAmountPaid(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getRemarks(),
             r.getInstallmentsCovered(), r.getCollectedBy(), r.getCreatedAt());

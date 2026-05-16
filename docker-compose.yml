@@ -65,6 +65,8 @@ services:
       KEYCLOAK_URL:      https://dev.raster.in:212
       KEYCLOAK_UPSTREAM: keycloak:8280
       BACKEND_UPSTREAM:  backend:8080
+    volumes:
+      - ./frontend/ssl:/etc/nginx/ssl:ro
     depends_on:
       - backend
     networks:

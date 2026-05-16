@@ -320,6 +320,7 @@ public class StudentService {
         return new StudentResponse(
             student.getId(),
             student.getRollNumber(),
+            student.getAdmissionNumber(),
             student.getUniversityRegistrationNumber(),
             student.getUmisNumber(),
             student.getFirstName(),

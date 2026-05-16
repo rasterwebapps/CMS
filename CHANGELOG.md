@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Admission Number Generation** — permanent academic-year admission references in format `ADM-2526-0001`
+  - Generated only after successful admission completion/confirmation and stored on student records
+  - Added reusable number-sequence registry and read-only Number Sequences screen
+  - Receipts, admissions, and students now display/search admission numbers where practical
+  - Added manual test cases in `docs/manual-test-cases/admission-number-generation.md`
 - **Subject Management Manual Test Cases** — `docs/manual-test-cases/subject-management.md`
   - 23 comprehensive test cases covering CRUD operations, business rules, and integration scenarios
   - Includes validation, authorization, filtering by course/department, and error handling tests

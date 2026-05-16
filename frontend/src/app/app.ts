@@ -167,7 +167,7 @@ export class App implements OnInit, AfterViewInit {
       items: [
         { label: 'Student Fees',             icon: 'account_balance_wallet', route: '/student-fees',              permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
         { label: 'Fee Collection',           icon: 'payments',               route: '/fee-collection',            permissions: ['FEE_COLLECT'] },
-        { label: 'Receipts',                 icon: 'receipt_long',           route: '/receipts',                  permissions: ['STUDENT_FEE_VIEW', 'FEE_COLLECT'] },
+        { label: 'Receipts',                 icon: 'receipt_long',           route: '/receipts',                  permissions: ['RECEIPT_VIEW'] },
         { label: 'Fee Finalization',         icon: 'lock',                   route: '/student-fees/finalize',     permissions: ['FEE_FINALIZE'] },
         { label: 'Scholarships',             icon: 'school',                 route: '/scholarships',              permissions: ['SCHOLARSHIP_MANAGE'] },
         { label: 'Scholarship Applications', icon: 'verified',               route: '/scholarship-applications',  permissions: ['SCHOLARSHIP_APPROVE'] },
@@ -224,6 +224,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Academic Years',       icon: 'calendar_month',   route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
         { label: 'Semesters',            icon: 'date_range',       route: '/semesters',               permissions: ['SEMESTER_VIEW', 'SEMESTER_MANAGE'] },
         { label: 'Academic Calendar',    icon: 'event_note',       route: '/academic-calendar',       permissions: ['ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Number Sequences',     icon: 'tag',              route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW'] },
         { label: 'Labs',                 icon: 'science',          route: '/labs',                    permissions: ['LAB_MANAGE'] },
         { label: 'Fee Structures',       icon: 'account_balance',  route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
         { label: 'Equipment',            icon: 'devices',          route: '/equipment',               permissions: ['EQUIPMENT_MANAGE'] },

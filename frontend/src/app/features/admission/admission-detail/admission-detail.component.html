@@ -26,7 +26,7 @@
             </div>
             <div class="profile-hero__meta">
               <span class="profile-hero__subtitle">
-                {{ admission()!.rollNumber || '—' }}
+                {{ admission()!.admissionNumber || '—' }}
                 <span class="dot-sep">·</span>
                 {{ admission()!.programName || '—' }}
                 <span class="dot-sep">·</span>
@@ -120,6 +120,10 @@
               <div class="content-card overview-card">
                 <p class="overview-card__title">Student Snapshot</p>
                 <div class="detail-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Admission Number</span>
+                    <span class="detail-value code-value">{{ admission()!.admissionNumber || '—' }}</span>
+                  </div>
                   <div class="detail-item">
                     <span class="detail-label">Roll Number</span>
                     <span class="detail-value code-value">{{ admission()!.rollNumber || '—' }}</span>

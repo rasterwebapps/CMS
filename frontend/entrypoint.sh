@@ -6,7 +6,7 @@ set -e
 # on every deployment without rebuilding the image.
 cat > /usr/share/nginx/html/assets/env.js << EOF
 window.__env__ = {
-  keycloakUrl:      '${KEYCLOAK_URL:-}',
+  keycloakUrl:      '',
   keycloakRealm:    '${KEYCLOAK_REALM:-cms}',
   keycloakClientId: '${KEYCLOAK_CLIENT_ID:-cms-frontend}'
 };
@@ -21,9 +21,8 @@ sed -i "s|assets/env.js\"|assets/env.js?v=${STAMP}\"|g" \
 # ── 3. Generate nginx.conf from template ──────────────────────────────────────
 export KEYCLOAK_UPSTREAM="${KEYCLOAK_UPSTREAM:-127.0.0.1:8180}"
 export BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-127.0.0.1:8080}"
-export EXTERNAL_HTTPS_PORT="${EXTERNAL_HTTPS_PORT:-212}"
 
-envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM} ${EXTERNAL_HTTPS_PORT}' \
+envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM}' \
   < /etc/nginx/templates/default.conf.template \
   > /etc/nginx/conf.d/default.conf
 

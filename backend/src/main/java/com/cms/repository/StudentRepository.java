@@ -12,9 +12,13 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     Optional<Student> findByRollNumber(String rollNumber);
 
+    Optional<Student> findByAdmissionNumber(String admissionNumber);
+
     Optional<Student> findByEmail(String email);
 
     boolean existsByRollNumber(String rollNumber);
+
+    boolean existsByAdmissionNumber(String admissionNumber);
 
     boolean existsByEmail(String email);
 
@@ -33,6 +37,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByProgramIdAndRollNumberIsNull(Long programId);
 
     List<Student> findByRollNumberContainingIgnoreCase(String rollNumber);
+
+    List<Student> findByAdmissionNumberContainingIgnoreCase(String admissionNumber);
 
     List<Student> findByCohortIdAndStatus(Long cohortId, StudentStatus status);
 

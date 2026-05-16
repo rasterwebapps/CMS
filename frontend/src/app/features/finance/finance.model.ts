@@ -297,6 +297,7 @@ export interface UnifiedReceiptSummary {
   payerId: number;
   payerName: string;
   payerIdentifier: string | null;   // roll number for students, null for enquiries
+  admissionNumber: string | null;
   programName: string | null;
   amountPaid: number;
   paymentDate: string;

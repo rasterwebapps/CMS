@@ -13,6 +13,7 @@ export interface AdmissionResponse {
   id: number;
   studentId: number;
   studentName: string;
+  admissionNumber: string | null;
   rollNumber: string | null;
   programName: string | null;
   courseName: string | null;

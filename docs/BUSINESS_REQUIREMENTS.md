@@ -33,6 +33,7 @@
 - [BR-24: DB-Driven RBAC & Identity-Only Keycloak](#br-24-db-driven-rbac--identity-only-keycloak)
 - [BR-25: Profile Self-Service Editing and User Profile Photo](#br-25-profile-self-service-editing-and-user-profile-photo)
 - [BR-26: Faculty Document Review Summary and Verification Locks](#br-26-faculty-document-review-summary-and-verification-locks)
+- [BR-27: Permanent Admission Number Generation](#br-27-permanent-admission-number-generation)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1161,11 +1162,41 @@ Faculty document verification must be visible from faculty discovery screens and
 - Faculty document review must use DB-driven permissions; no screen or API should hardcode role names for document actions.
 - Faculty document review must not add, replace, or overload `FacultyStatus`; employment status remains independent from document review status.
 
+---
+
+## BR-27: Permanent Admission Number Generation
+
+### Business Rule
+
+Every completed admission must receive a permanent, immutable **admission number** that acts as the student's lifelong college reference until and beyond roll number, UMIS number, and university registration number generation.
+
+### Key Points
+
+1. The admission number is generated **only when admission completion/confirmation succeeds**.
+2. Failed admission attempts must not reserve or consume an admission number. A retry receives a number only after the successful transaction completes.
+3. Format is academic-year scoped: `ADM-2526-0001`.
+4. The sequence resets for each joining academic year and is unique across the college for that academic year.
+5. The number is stored on the student record as an immutable reference and is not manually editable from the UI.
+6. Receipts must display the receipt number and, once available, the admission number. Roll number remains optional until generated later.
+7. Admission and student list/detail screens must show and search by admission number.
+8. Generated number series must be visible in a read-only Number Sequences screen backed by DB-driven permissions.
+
+### Entities Involved
+
+- `Student.admissionNumber` — permanent admission reference.
+- `ApplicationNumberSequence` — common sequence registry for admission numbers and future generated numbers.
+- `PaymentReceipt.admissionNumber` — receipt snapshot of the admission reference when collecting student payments.
+
+### Permissions
+
+- `NUMBER_SEQUENCE_VIEW` — can view the generated number sequence registry.
+
 
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-16 | BR-27 | Added permanent admission number generation on successful admission completion/confirmation, academic-year format `ADM-2526-0001`, immutable student reference, receipt display, searchable admission/student screens, and read-only number sequence registry | — |
 | 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |
 | 2026-05-14 | BR-25 | Added profile self-service rules: authenticated users can update only their own phone, blood group, and address; profile photos are stored on `app_users` for all roles with JPEG/PNG and 2 MB limits; admin-only academic/employment/login fields remain locked | — |
 | 2026-05-12 | BR-24 | RBAC aligned to DB-driven authorization: Keycloak realm exports are identity-only, immutable default roles are limited to `DEV_ADMIN`/`SUPPORT_ADMIN`, and `collegeadmin` is scoped to admission-related DB permissions | — |

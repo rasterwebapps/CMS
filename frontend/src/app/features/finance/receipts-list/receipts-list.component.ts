@@ -61,7 +61,9 @@ export class ReceiptsListComponent implements OnInit {
 
     return this.allReceipts().filter(r => {
       if (search) {
-        const hay = [r.receiptNumber, r.payerName, r.payerIdentifier ?? ''].join(' ').toLowerCase();
+        const hay = [r.receiptNumber, r.payerName, r.payerIdentifier ?? '', r.admissionNumber ?? '']
+          .join(' ')
+          .toLowerCase();
         if (!hay.includes(search)) return false;
       }
       if (mode && r.paymentMode !== mode) return false;
@@ -103,6 +105,7 @@ export class ReceiptsListComponent implements OnInit {
       receiptNumber:    r.receiptNumber,
       payerName:        r.payerName,
       payerIdentifier:  r.payerIdentifier ?? '',
+      admissionNumber:  r.admissionNumber ?? '',
       programName:      r.programName ?? '',
       amountPaid:       r.amountPaid,
       paymentDate:      r.paymentDate,

@@ -112,7 +112,7 @@ public class PaymentCollectionService {
         // Persist to the unified receipts table
         unifiedReceiptService.saveStudentReceipt(
             receiptNumber,
-            student.getId(), student.getFullName(), student.getRollNumber(),
+            student.getId(), student.getFullName(), student.getRollNumber(), student.getAdmissionNumber(),
             null, // programName – not directly on student; left null here
             amountActuallyPaid,
             request.paymentDate(), request.paymentMode().name(),

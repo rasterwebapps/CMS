@@ -83,6 +83,8 @@ class EnquiryServiceTest {
     private FeeStructureService feeStructureService;
     @Mock
     private com.cms.service.EnquiryDocumentService enquiryDocumentService;
+    @Mock
+    private ApplicationNumberSequenceService numberSequenceService;
 
     private EnquiryService enquiryService;
 
@@ -106,7 +108,8 @@ class EnquiryServiceTest {
             enquiryDocumentRepository,
             academicYearRepository,
             feeStructureService,
-            enquiryDocumentService
+            enquiryDocumentService,
+            numberSequenceService
         );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
@@ -119,6 +122,9 @@ class EnquiryServiceTest {
         org.mockito.Mockito.lenient()
             .when(academicYearRepository.findById(100L))
             .thenReturn(java.util.Optional.of(joiningAY));
+        org.mockito.Mockito.lenient()
+            .when(numberSequenceService.nextAdmissionNumber(org.mockito.ArgumentMatchers.any(AcademicYear.class)))
+            .thenReturn("ADM-2425-0001");
         org.mockito.Mockito.lenient()
             .when(enquiryDocumentRepository.findByEnquiryId(org.mockito.ArgumentMatchers.anyLong()))
             .thenReturn(List.of());
@@ -1389,8 +1395,9 @@ class EnquiryServiceTest {
         enquiryService.convertToStudentWithData(1L, request, "admin");
 
         org.mockito.ArgumentCaptor<Student> studentCaptor = org.mockito.ArgumentCaptor.forClass(Student.class);
-        verify(studentRepository).save(studentCaptor.capture());
+        verify(studentRepository, org.mockito.Mockito.times(2)).save(studentCaptor.capture());
         Student persistedStudent = studentCaptor.getValue();
+        assertThat(persistedStudent.getAdmissionNumber()).isEqualTo("ADM-2425-0001");
         assertThat(persistedStudent.getDateOfBirth()).isEqualTo(LocalDate.of(2005, 5, 10));
         assertThat(persistedStudent.getGender()).isEqualTo(com.cms.model.enums.Gender.MALE);
         assertThat(persistedStudent.getAadharNumber()).isEqualTo("1234-5678-9012");

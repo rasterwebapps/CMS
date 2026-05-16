@@ -78,8 +78,9 @@ export class StudentListComponent implements OnInit {
   protected readonly activeCount = computed(() => this.dataSource.data.filter(s => s.status === 'ACTIVE').length);
 
   // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['rollNumber', 'fullName', 'programName', 'yearOfStudy', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
+  protected readonly ALL_COLS = ['admissionNumber', 'rollNumber', 'fullName', 'programName', 'yearOfStudy', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
   protected readonly COLUMN_LABELS: Record<string, string> = {
+    admissionNumber: 'Admission No.',
     rollNumber: 'Roll No.',
     fullName: 'Name',
     programName: 'Program',
@@ -93,7 +94,7 @@ export class StudentListComponent implements OnInit {
     actions: 'Actions',
   };
   private readonly COLS_KEY = 'student-list-cols-v2';
-  private readonly DEFAULT_COLS = new Set(['rollNumber', 'fullName', 'programName', 'yearOfStudy', 'phone', 'status', 'actions']);
+  private readonly DEFAULT_COLS = new Set(['admissionNumber', 'fullName', 'programName', 'yearOfStudy', 'phone', 'status', 'actions']);
   private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
   protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
   protected readonly dataSource = new MatTableDataSource<Student>([]);
@@ -138,6 +139,7 @@ export class StudentListComponent implements OnInit {
       if (!term) return true;
       return (
         s.fullName.toLowerCase().includes(term) ||
+        (s.admissionNumber ?? '').toLowerCase().includes(term) ||
         (s.rollNumber ?? '').toLowerCase().includes(term) ||
         (s.phone      ?? '').includes(term) ||
         (s.email      ?? '').toLowerCase().includes(term) ||

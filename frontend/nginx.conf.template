@@ -2,6 +2,13 @@
 limit_req_zone $binary_remote_addr zone=auth:10m rate=20r/s;
 limit_req_zone $binary_remote_addr zone=api:10m  rate=30r/s;
 
+# ── Dynamic port extraction from Host header ──────────────────────────────────
+# Handles both dev.raster.in:212 and 172.17.1.243:8443 transparently.
+map $http_host $forwarded_port {
+    ~:(\d+)$  $1;
+    default   443;
+}
+
 server {
     listen 80;
 
@@ -27,15 +34,22 @@ server {
     add_header Permissions-Policy     "geolocation=(), microphone=(), camera=()" always;
 
     # ── Keycloak proxy ────────────────────────────────────────────────────────
+    # IMPORTANT: X-Forwarded-Host is ALWAYS set to the canonical domain
+    # (dev.raster.in:212) regardless of how the user accessed the app.
+    # This ensures Keycloak always issues JWTs with the canonical issuer URI
+    # that the Spring Boot backend is configured to trust.
+    # The Keycloak JS redirect_uri is still browser-origin-based (handled by
+    # the Angular app), so post-login redirects return to whichever URL the
+    # user came from.
     location /realms/ {
         limit_req zone=auth burst=30 nodelay;
         proxy_pass http://${KEYCLOAK_UPSTREAM};
-        proxy_set_header Host              $http_host;
+        proxy_set_header Host              dev.raster.in:212;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host  $http_host;
-        proxy_set_header X-Forwarded-Port  ${EXTERNAL_HTTPS_PORT};
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host  dev.raster.in:212;
+        proxy_set_header X-Forwarded-Port  212;
         proxy_buffer_size  128k;
         proxy_buffers      4 256k;
     }
@@ -43,9 +57,9 @@ server {
     location /resources/ {
         limit_req zone=auth burst=30 nodelay;
         proxy_pass http://${KEYCLOAK_UPSTREAM};
-        proxy_set_header Host              $http_host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Port  ${EXTERNAL_HTTPS_PORT};
+        proxy_set_header Host              dev.raster.in:212;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Port  212;
     }
 
     # ── Spring Boot API proxy ─────────────────────────────────────────────────

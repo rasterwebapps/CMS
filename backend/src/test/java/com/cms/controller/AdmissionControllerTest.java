@@ -62,7 +62,7 @@ class AdmissionControllerTest {
 
     private AdmissionResponse createAdmissionResponse(Long id) {
         return new AdmissionResponse(
-            id, 1L, "John Doe", "CS001", "Computer Science", null, 1, "ACTIVE",
+            id, 1L, "John Doe", "ADM-2425-0001", "CS001", "Computer Science", null, 1, "ACTIVE",
             100L, "2024-2025", 2025,
             LocalDate.of(2024, 1, 15),
             "Chennai", LocalDate.of(2024, 1, 15), true, true,
@@ -250,7 +250,7 @@ class AdmissionControllerTest {
         AdmissionDocumentResponse docResponse = new AdmissionDocumentResponse(
             1L, 1L, DocumentType.AADHAR_CARD, "aadhar.pdf", "key123",
             null, true, null, null, DocumentVerificationStatus.UPLOADED,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(), true, null, null, null
         );
         when(admissionDocumentService.findByAdmissionId(1L)).thenReturn(List.of(docResponse));
         mockMvc.perform(get("/admissions/1/documents"))
@@ -264,7 +264,7 @@ class AdmissionControllerTest {
         AdmissionDocumentResponse docResponse = new AdmissionDocumentResponse(
             1L, 1L, DocumentType.AADHAR_CARD, "aadhar.pdf", "key123",
             null, true, "admin", null, DocumentVerificationStatus.VERIFIED,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(), true, null, null, null
         );
         when(admissionDocumentService.updateVerification(1L, DocumentVerificationStatus.VERIFIED, "admin"))
             .thenReturn(docResponse);

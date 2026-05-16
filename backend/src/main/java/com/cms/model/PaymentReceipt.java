@@ -39,6 +39,9 @@ public class PaymentReceipt {
     @Column(name = "payer_identifier", length = 50)
     private String payerIdentifier; // roll number for students, null for enquiries
 
+    @Column(name = "admission_number", length = 20)
+    private String admissionNumber;
+
     @Column(name = "program_name", length = 255)
     private String programName;
 
@@ -89,6 +92,16 @@ public class PaymentReceipt {
         this.collectedBy = collectedBy;
     }
 
+    public PaymentReceipt(String receiptNumber, String payerType, Long payerId,
+                           String payerName, String payerIdentifier, String admissionNumber, String programName,
+                           BigDecimal amountPaid, LocalDate paymentDate, String paymentMode,
+                           String transactionReference, String remarks,
+                           String installmentsCovered, String collectedBy) {
+        this(receiptNumber, payerType, payerId, payerName, payerIdentifier, programName,
+            amountPaid, paymentDate, paymentMode, transactionReference, remarks, installmentsCovered, collectedBy);
+        this.admissionNumber = admissionNumber;
+    }
+
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -107,6 +120,9 @@ public class PaymentReceipt {
 
     public String getPayerIdentifier() { return payerIdentifier; }
     public void setPayerIdentifier(String payerIdentifier) { this.payerIdentifier = payerIdentifier; }
+
+    public String getAdmissionNumber() { return admissionNumber; }
+    public void setAdmissionNumber(String admissionNumber) { this.admissionNumber = admissionNumber; }
 
     public String getProgramName() { return programName; }
     public void setProgramName(String programName) { this.programName = programName; }

@@ -41,6 +41,7 @@ export interface ProgramTransferRecord {
 export interface Student {
   id: number;
   rollNumber: string;
+  admissionNumber?: string;
   universityRegistrationNumber?: string;
   umisNumber?: string;
   firstName: string;

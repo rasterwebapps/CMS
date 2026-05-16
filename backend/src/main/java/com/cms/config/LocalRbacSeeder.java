@@ -33,6 +33,15 @@ public class LocalRbacSeeder {
         "db/migration/V123__create_collegeadmin_role_and_tighten_permissions.sql";
     private static final String IDENTITY_ONLY_FINAL_PASS_SCRIPT =
         "db/migration/V125__rbac_identity_only_final_pass.sql";
+    // Widget config table + seeding — required for the dynamic dashboard renderer
+    private static final String CREATE_ROLE_WIDGET_CONFIGS_SCRIPT =
+        "db/migration/V131__create_role_dashboard_widget_configs.sql";
+    private static final String CREATE_USER_WIDGET_CONFIGS_SCRIPT =
+        "db/migration/V132__create_user_dashboard_widget_configs.sql";
+    private static final String SEED_WIDGET_CONFIGS_SCRIPT =
+        "db/migration/V134__seed_default_dashboard_widget_configs.sql";
+    private static final String FIX_COLLEGEADMIN_WIDGETS_SCRIPT =
+        "db/migration/V143__fix_collegeadmin_dashboard_widget_configs.sql";
 
     @Bean
     CommandLineRunner seedRbac(DataSource dataSource) {
@@ -44,8 +53,11 @@ public class LocalRbacSeeder {
                 return;
             }
 
-            for (String scriptPath : java.util.List.of(SEED_SCRIPT, GAP_FIX_SCRIPT, COLLEGE_ADMIN_SCRIPT,
-                IDENTITY_ONLY_FINAL_PASS_SCRIPT)) {
+            for (String scriptPath : java.util.List.of(
+                SEED_SCRIPT, GAP_FIX_SCRIPT, COLLEGE_ADMIN_SCRIPT,
+                IDENTITY_ONLY_FINAL_PASS_SCRIPT,
+                CREATE_ROLE_WIDGET_CONFIGS_SCRIPT, CREATE_USER_WIDGET_CONFIGS_SCRIPT,
+                SEED_WIDGET_CONFIGS_SCRIPT, FIX_COLLEGEADMIN_WIDGETS_SCRIPT)) {
                 Resource script = new ClassPathResource(scriptPath);
                 log.info("RBAC seed: replaying {} into local database.", scriptPath);
                 try (var conn = dataSource.getConnection()) {

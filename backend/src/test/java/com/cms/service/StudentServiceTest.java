@@ -44,13 +44,30 @@ class StudentServiceTest {
     @Mock
     private com.cms.repository.DepartmentRepository departmentRepository;
 
+    @Mock
+    private com.cms.repository.AdmissionRepository admissionRepository;
+
+    @Mock
+    private com.cms.repository.EnquiryDocumentRepository enquiryDocumentRepository;
+
+    @Mock
+    private com.cms.repository.EnquiryDocumentHistoryRepository documentHistoryRepository;
+
+    @Mock
+    private com.cms.repository.StudentProgramTransferRepository transferRepository;
+
+    @Mock
+    private com.cms.util.CurrentUserResolver currentUserResolver;
+
     private StudentService studentService;
 
     private Program testProgram;
 
     @BeforeEach
     void setUp() {
-        studentService = new StudentService(studentRepository, programRepository, courseRepository, departmentRepository);
+        studentService = new StudentService(studentRepository, programRepository, courseRepository, departmentRepository,
+            admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
+            currentUserResolver);
 
         testProgram = new Program();
         testProgram.setId(1L);

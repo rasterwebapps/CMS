@@ -7,6 +7,7 @@ public record AdmissionResponse(
     Long id,
     Long studentId,
     String studentName,
+    String admissionNumber,
     String rollNumber,
     String programName,
     String courseName,

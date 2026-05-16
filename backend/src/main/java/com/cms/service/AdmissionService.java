@@ -38,19 +38,22 @@ public class AdmissionService {
     private final IntakeRuleRepository intakeRuleRepository;
     private final AcademicYearRepository academicYearRepository;
     private final TermInstanceRepository termInstanceRepository;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public AdmissionService(AdmissionRepository admissionRepository,
                             StudentRepository studentRepository,
                             CohortRepository cohortRepository,
                             IntakeRuleRepository intakeRuleRepository,
                             AcademicYearRepository academicYearRepository,
-                            TermInstanceRepository termInstanceRepository) {
+                            TermInstanceRepository termInstanceRepository,
+                            ApplicationNumberSequenceService numberSequenceService) {
         this.admissionRepository = admissionRepository;
         this.studentRepository = studentRepository;
         this.cohortRepository = cohortRepository;
         this.intakeRuleRepository = intakeRuleRepository;
         this.academicYearRepository = academicYearRepository;
         this.termInstanceRepository = termInstanceRepository;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -165,6 +168,7 @@ public class AdmissionService {
                 .orElse(null);
         }
         student.setExpectedGraduationTermInstance(expectedGraduationTermInstance);
+        ensureAdmissionNumber(student, admission.getJoiningAcademicYear());
         studentRepository.save(student);
 
         Long expectedGraduationTermInstanceId = expectedGraduationTermInstance != null
@@ -173,6 +177,7 @@ public class AdmissionService {
         return new AdmissionConfirmationDto(
             student.getId(),
             student.getFullName(),
+            student.getAdmissionNumber(),
             cohort.getCohortCode(),
             cohort.getDisplayName(),
             rule.getStartingSemesterNumber(),
@@ -192,6 +197,7 @@ public class AdmissionService {
             admission.getId(),
             student.getId(),
             student.getFullName(),
+            student.getAdmissionNumber(),
             student.getRollNumber(),
             student.getProgram() != null ? student.getProgram().getName() : null,
             student.getCourse() != null ? student.getCourse().getName() : null,
@@ -208,5 +214,11 @@ public class AdmissionService {
             admission.getCreatedAt(),
             admission.getUpdatedAt()
         );
+    }
+
+    private void ensureAdmissionNumber(Student student, AcademicYear academicYear) {
+        if (student.getAdmissionNumber() == null || student.getAdmissionNumber().isBlank()) {
+            student.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(academicYear));
+        }
     }
 }

@@ -146,7 +146,7 @@ class ProfileServiceTest {
         when(facultyRepository.findByEmail("faculty@college.edu")).thenReturn(Optional.of(faculty));
 
         SelfUpdateRequest request = new SelfUpdateRequest(
-            "9876543210", "O+", null, "Main Road", "Erode", "Erode", "Tamil Nadu", "638001");
+            "9876543210", "O+", null, null, "Main Road", "Erode", "Erode", "Tamil Nadu", "638001");
 
         profileService.updateSelfInfo(request);
 
@@ -165,7 +165,7 @@ class ProfileServiceTest {
         when(studentRepository.findByEmail("student@college.edu")).thenReturn(Optional.of(student));
 
         SelfUpdateRequest request = new SelfUpdateRequest(
-            "9123456780", "AB+", null, null, "Salem", null, "Tamil Nadu", null);
+            "9123456780", "AB+", null, null, null, "Salem", null, "Tamil Nadu", null);
 
         profileService.updateSelfInfo(request);
 
@@ -180,7 +180,7 @@ class ProfileServiceTest {
         setJwt("devadmin", null);
 
         assertThatCode(() -> profileService.updateSelfInfo(
-            new SelfUpdateRequest("1", "B+", null, null, null, null, null, null)))
+            new SelfUpdateRequest("1", "B+", null, null, null, null, null, null, null)))
             .doesNotThrowAnyException();
 
         verify(facultyRepository, never()).save(any());

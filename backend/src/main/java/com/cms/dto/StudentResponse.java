@@ -9,6 +9,7 @@ import com.cms.model.enums.StudentStatus;
 public record StudentResponse(
     Long id,
     String rollNumber,
+    String admissionNumber,
     String universityRegistrationNumber,
     String umisNumber,
     String firstName,
@@ -75,7 +76,7 @@ public record StudentResponse(
                            String motherEmail, String parentMobile, String postalAddress, String street,
                            String city, String district, String state, String pincode,
                            Instant createdAt, Instant updatedAt) {
-        this(id, rollNumber, null, null, firstName, lastName, fullName, email, phone, programId, programName,
+        this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
             courseId, courseName, specializationDepartmentId, specializationDepartmentName, yearOfStudy,
             admissionDate, labBatch, status, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
