@@ -170,12 +170,16 @@ class RoleManagementControllerTest {
     void shouldUpdateDashboardWidgets() throws Exception {
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
         AppRoleResponse updated = buildRoleResponse(5L, "FACULTY", 5);
-        when(appRoleService.updateDashboardWidgets(anyLong(), anyList(), anyString(), anyInt()))
+        when(appRoleService.updateDashboardWidgetConfigs(anyLong(), anyList(), anyString(), anyInt()))
             .thenReturn(updated);
+
+        List<com.cms.dto.WidgetConfigDto> configs = List.of(
+            new com.cms.dto.WidgetConfigDto("kpi_students", 0, 1, 1, null),
+            new com.cms.dto.WidgetConfigDto("kpi_faculty", 1, 1, 1, null));
 
         mockMvc.perform(put("/role-management/5/dashboard-widgets")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of("kpi_students", "kpi_faculty")))
+                .content(objectMapper.writeValueAsString(configs))
                 .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(5));

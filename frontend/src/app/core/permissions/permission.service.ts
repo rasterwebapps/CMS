@@ -25,6 +25,7 @@ export class PermissionService {
   readonly roleName         = computed(() => this._response()?.roleName ?? '');
   readonly roleLabel        = computed(() => this._response()?.roleDisplayName ?? '');
   readonly level            = computed(() => this._response()?.hierarchyLevel ?? 99);
+  readonly permissions      = computed(() => this._response()?.permissions ?? []);
   /** Ordered widget configs (key + span metadata) for this user's resolved dashboard. */
   readonly dashboardWidgets = computed(() => this._response()?.dashboardWidgets ?? []);
   readonly normalizedRoleName = computed(() =>

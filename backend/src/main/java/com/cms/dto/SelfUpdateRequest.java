@@ -13,6 +13,9 @@ public record SelfUpdateRequest(
     String city,
     String district,
     String state,
-    String pincode
+    String pincode,
+    String emergencyContactName,
+    String emergencyContactRelationship,
+    String emergencyContactPhone
 ) {}
 

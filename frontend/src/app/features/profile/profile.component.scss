@@ -26,7 +26,7 @@
 }
 
 .bento-grid--profile {
-  grid-template-columns: 38fr 35fr 27fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .avatar-zone--clickable {
@@ -82,26 +82,468 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .btn-ghost-photo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 14px;
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       9px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, .14);
-  background: rgba(255, 255, 255, .06);
-  color: rgba(255, 255, 255, .72);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+  border:        1px solid rgba(239,68,68,.35);
+  background:    rgba(239,68,68,.12);
+  color:         rgba(239,68,68,.85);
+  font-size:     12px;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background .18s, border-color .18s, color .18s;
 
   mat-icon { font-size: 16px; width: 16px; height: 16px; }
-  &:hover { border-color: rgba(244, 63, 94, .55); color: #fda4af; }
+
+  &:hover {
+    background:   rgba(239,68,68,.82);
+    border-color: transparent;
+    color:        #fff;
+  }
 }
 
+// Consistent card padding for cards that use card-hdr + info-list pattern
 .security-card,
 .contact-card,
-.quick-links-card {
-  padding: 20px;
+.perms-card,
+.notif-card {
+  padding: 22px 24px;
+}
+
+// ── Preferences card ──────────────────────────────────────────────────────────
+.prefs-card {
+  padding: 22px 0 6px;
+
+  // Align card header icon with the row content (which has 24px left indent)
+  .card-hdr { padding-left: 24px; padding-right: 24px; }
+
+  // Override info-row to look flat (no glass card per row, just divider lines)
+  .info-row {
+    background:   transparent;
+    border:       none;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    border-radius: 0;
+    padding:      12px 24px;
+
+    &:last-child { border-bottom: none; }
+    &:hover      { background: rgba(255,255,255,.025); }
+
+    // Label as primary readable text, not tiny uppercase
+    .info-row__label {
+      font-size:      13px;
+      font-weight:    500;
+      text-transform: none;
+      letter-spacing: 0;
+      color:          rgba(255,255,255,.82);
+    }
+  }
+
+  // Ensure body grows so control sits at far right
+  .info-row__body { flex: 1; }
+}
+
+.prefs-section {
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  padding:        0 24px 22px;
+
+  & + & {
+    padding-top:  22px;
+    border-top:   1px solid rgba(255,255,255,.07);
+  }
+
+  // Single-row variant: label left, control right
+  &--inline {
+    flex-direction: row;
+    align-items:    center;
+    justify-content: space-between;
+    gap:            12px;
+  }
+}
+
+.prefs-label {
+  display:        flex;
+  align-items:    center;
+  gap:            6px;
+  font-size:      10.5px;
+  font-weight:    700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color:          rgba(255,255,255,.4);
+
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+}
+
+// ── Theme picker — pill + dropdown ───────────────────────────────────────────
+.theme-picker-wrap {
+  position: relative;
+  align-self: flex-start;
+}
+
+.theme-pill {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       7px 12px 7px 10px;
+  border-radius: 99px;
+  border:        1px solid rgba(255,255,255,.15);
+  background:    rgba(255,255,255,.07);
+  color:         rgba(255,255,255,.85);
+  font-size:     13px;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background .15s, border-color .15s;
+  white-space:   nowrap;
+
+  &:hover, &.open {
+    background:   rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.28);
+  }
+
+  &__dot {
+    width:         14px;
+    height:        14px;
+    border-radius: 50%;
+    flex-shrink:   0;
+    box-shadow:    0 0 0 2px rgba(255,255,255,.2);
+  }
+
+  &__name { flex: 1; }
+
+  &__chevron {
+    font-size: 16px; width: 16px; height: 16px;
+    color:     rgba(255,255,255,.45);
+    transition: transform .2s;
+  }
+
+  &.open &__chevron { transform: rotate(180deg); }
+}
+
+.theme-dropdown-panel {
+  position:      absolute;
+  top:           calc(100% + 6px);
+  left:          0;
+  z-index:       100;
+  min-width:     200px;
+  max-height:    280px;
+  overflow-y:    auto;
+  background:    rgba(30, 32, 48, .96);
+  backdrop-filter: blur(20px);
+  border:        1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding:       6px;
+  box-shadow:    0 16px 40px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2);
+  animation:     dd-enter .15s cubic-bezier(.22,1,.36,1) both;
+  scrollbar-width: thin;
+}
+
+@keyframes dd-enter {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.theme-option-row {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  width:         100%;
+  padding:       8px 10px;
+  border-radius: 9px;
+  border:        none;
+  background:    transparent;
+  color:         rgba(255,255,255,.75);
+  font-size:     12.5px;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background .12s, color .12s;
+  text-align:    left;
+
+  &:hover {
+    background: rgba(255,255,255,.08);
+    color:      #fff;
+  }
+
+  &.active {
+    background: rgba(255,255,255,.10);
+    color:      #fff;
+    font-weight: 600;
+  }
+
+  &__dot {
+    width:         12px;
+    height:        12px;
+    border-radius: 50%;
+    flex-shrink:   0;
+    box-shadow:    0 0 0 1.5px rgba(255,255,255,.15);
+  }
+
+  &__name { flex: 1; }
+
+  &__check {
+    font-size: 14px; width: 14px; height: 14px;
+    color:     rgba(255,255,255,.6);
+    flex-shrink: 0;
+  }
+}
+
+.prefs-action-btn {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             6px;
+  padding:         9px 16px;
+  border-radius:   9px;
+  background:      rgba(255,255,255,.07);
+  border:          1px solid rgba(255,255,255,.12);
+  color:           rgba(255,255,255,.75);
+  font-size:       13px;
+  font-weight:     500;
+  text-decoration: none;
+  align-self:      flex-start;
+  transition:      background .15s, border-color .15s, color .15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &:hover {
+    background:   rgba(255,255,255,.13);
+    border-color: rgba(255,255,255,.28);
+    color:        #fff;
+  }
+}
+
+// ── Role & Permissions card ───────────────────────────────────────────────────
+// Compact role display — role name + permission count, no expandable list
+.perms-compact {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  padding-bottom: 4px;
+
+  &__role {
+    font-size:   14px;
+    font-weight: 700;
+    color:       rgba(255,255,255,.9);
+    letter-spacing: -.01em;
+  }
+
+  &__stat {
+    font-size: 11.5px;
+    color:     rgba(255,255,255,.4);
+  }
+}
+
+// kept for potential future use — hidden for now
+.perms-toggle-btn {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+  margin:      10px 24px 20px;
+  padding:     0;
+  border:      none;
+  background:  transparent;
+  color:       rgba(255,255,255,.35);
+  font-size:   11px;
+  cursor:      pointer;
+  transition:  color .15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &:hover  { color: rgba(255,255,255,.6); }
+}
+
+// ── Notification preferences card ─────────────────────────────────────────────
+.notif-channel-row {
+  display: flex;
+  gap:     6px;
+}
+
+.notif-channel-btn {
+  flex:          1;
+  padding:       7px 0;
+  border-radius: 8px;
+  border:        1px solid rgba(255,255,255,.12);
+  background:    transparent;
+  color:         rgba(255,255,255,.5);
+  font-size:     12px;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background .15s, border-color .15s, color .15s;
+
+  &:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
+
+  &.active {
+    background:   color-mix(in srgb, var(--pt) 18%, rgba(255,255,255,.04));
+    border-color: color-mix(in srgb, var(--pt) 55%, rgba(255,255,255,.15));
+    color:        #fff;
+    font-weight:  600;
+  }
+}
+
+.notif-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.notif-row {
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  padding:       9px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  cursor:        default;
+
+  &:last-child { border-bottom: none; }
+
+  &__left {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    flex:        1;
+    min-width:   0;
+  }
+
+  &__icon {
+    width:           30px; height: 30px;
+    border-radius:   8px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    background:      rgba(255,255,255,.07);
+    color:           rgba(255,255,255,.45);
+    flex-shrink:     0;
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  }
+
+  &__text  { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  &__label { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.8); }
+  &__desc  { font-size: 10.5px; color: rgba(255,255,255,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+// ── Toggle switches ───────────────────────────────────────────────────────────
+.notif-toggle,
+.pref-toggle {
+  width:         42px;
+  height:        24px;
+  border-radius: 12px;
+  border:        none;
+  cursor:        pointer;
+  flex-shrink:   0;
+  position:      relative;
+  background:    rgba(0,0,0,.18);
+  transition:    background .22s;
+  outline:       none;
+
+  &.on {
+    background: #22C55E;
+  }
+}
+
+.notif-toggle__thumb,
+.pref-toggle__thumb {
+  position:      absolute;
+  top:           3px;
+  left:          3px;
+  width:         18px;
+  height:        18px;
+  border-radius: 50%;
+  background:    #fff;
+  box-shadow:    0 1px 4px rgba(0,0,0,.25);
+  transition:    transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+
+.notif-toggle.on .notif-toggle__thumb,
+.pref-toggle.on .pref-toggle__thumb {
+  transform: translateX(18px);
+}
+
+// Small icon-only link button for info-row controls
+.pref-link-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           30px;
+  height:          30px;
+  border-radius:   8px;
+  background:      rgba(255,255,255,.08);
+  border:          1px solid rgba(255,255,255,.12);
+  color:           rgba(255,255,255,.55);
+  text-decoration: none;
+  flex-shrink:     0;
+  transition:      background .15s, color .15s;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+  &:hover { background: rgba(255,255,255,.15); color: #fff; }
+}
+
+// Right-align controls inside info-row without extra margin
+.pref-control { margin-left: auto; flex-shrink: 0; }
+
+// Light mode overrides for prefs card
+:host-context(html:not(.dark-theme)) {
+  .prefs-section + .prefs-section { border-top-color: rgba(0,0,0,.07); }
+  .prefs-label  { color: var(--cms-text-muted); }
+  .theme-pill {
+    border-color: rgba(0,0,0,.12);
+    background:   rgba(0,0,0,.04);
+    color:        var(--cms-text-primary);
+    &:hover, &.open { background: rgba(0,0,0,.07); border-color: rgba(0,0,0,.2); }
+    &__dot  { box-shadow: 0 0 0 2px rgba(0,0,0,.10); }
+    &__chevron { color: var(--cms-text-muted); }
+  }
+  .theme-dropdown-panel {
+    background:    rgba(255,255,255,.97);
+    border-color:  rgba(0,0,0,.10);
+    box-shadow:    0 12px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.07);
+  }
+  .theme-option-row {
+    color: var(--cms-text-secondary);
+    &:hover  { background: rgba(0,0,0,.04); color: var(--cms-text-primary); }
+    &.active { background: rgba(0,0,0,.06); color: var(--cms-text-primary); }
+    &__dot   { box-shadow: 0 0 0 1.5px rgba(0,0,0,.10); }
+    &__check { color: var(--cms-text-muted); }
+  }
+  .prefs-action-btn {
+    background:   rgba(var(--cms-primary-rgb), .06);
+    border-color: rgba(var(--cms-primary-rgb), .18);
+    color:        var(--cms-text-secondary);
+    &:hover {
+      background:   rgba(var(--cms-primary-rgb), .12);
+      border-color: rgba(var(--cms-primary-rgb), .35);
+      color:        var(--cms-text-primary);
+    }
+  }
+  .perms-compact__role { color: var(--cms-text-primary); }
+  .perms-compact__stat { color: var(--cms-text-muted); }
+  .notif-channel-btn {
+    border-color: rgba(0,0,0,.10);
+    color:        var(--cms-text-secondary);
+    &:hover  { background: rgba(0,0,0,.04); color: var(--cms-text-primary); }
+    &.active { background: color-mix(in srgb, var(--pt) 10%, transparent); border-color: color-mix(in srgb, var(--pt) 45%, transparent); color: var(--cms-text-primary); }
+  }
+  .notif-row {
+    border-bottom-color: rgba(0,0,0,.06);
+    &__icon  { background: rgba(0,0,0,.05); color: var(--cms-text-muted); }
+    &__label { color: var(--cms-text-primary); }
+    &__desc  { color: var(--cms-text-muted); }
+  }
+  .notif-toggle,
+  .pref-toggle  { background: rgba(0,0,0,.14); }
+  .notif-toggle.on,
+  .pref-toggle.on { background: #22C55E; }
+  .pref-link-btn {
+    background:   rgba(0,0,0,.04);
+    border-color: rgba(0,0,0,.10);
+    color:        var(--cms-text-muted);
+    &:hover { background: rgba(0,0,0,.08); color: var(--cms-text-primary); }
+  }
+  .prefs-card .info-row {
+    border-bottom-color: rgba(0,0,0,.07);
+    &:hover { background: rgba(0,0,0,.02); }
+    .info-row__label { color: var(--cms-text-primary); }
+  }
 }
 
 .self-edit-form {
@@ -1676,31 +2118,27 @@
 // NEW FEATURES: Completion meter · Doc ring · Quick tiles
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── Profile completion meter ──────────────────────────────────────────────────
-.completion-meter {
+// ── Profile completion — segmented dots ──────────────────────────────────────
+.completion-dots {
   display:     flex;
   align-items: center;
   gap:         10px;
   margin-top:  12px;
-  flex-wrap:   wrap;
 
-  &__bar {
-    flex:          1;
-    min-width:     120px;
-    height:        5px;
-    border-radius: 99px;
-    background:    rgba(255,255,255,.12);
-    overflow:      hidden;
+  &__segments {
+    display: flex;
+    gap:     4px;
   }
 
-  &__fill {
-    height:        100%;
+  &__seg {
+    width:         16px;
+    height:        4px;
     border-radius: 99px;
-    background:    linear-gradient(90deg, var(--primary-theme, var(--cms-primary)), color-mix(in srgb, var(--primary-theme, var(--cms-primary)) 60%, #22C55E));
-    transition:    width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    background:    rgba(255,255,255,.15);
+    transition:    background .3s;
 
-    &--full {
-      background: linear-gradient(90deg, #22C55E, #16a34a);
+    &.filled {
+      background: var(--pt, var(--cms-primary));
     }
   }
 
@@ -1709,16 +2147,70 @@
     align-items: center;
     gap:         4px;
     font-size:   0.72rem;
-    color:       rgba(255,255,255,.55);
+    color:       rgba(255,255,255,.5);
     white-space: nowrap;
+  }
 
-    mat-icon { font-size: 14px; width: 14px; height: 14px; color: #22C55E; }
+  &__label--done {
+    color: #22C55E;
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
   }
 }
 
-:host-context(html:not(.dark-theme)) .completion-meter {
-  &__bar { background: rgba(0,0,0,.08); }
-  &__label { color: var(--cms-text-muted); }
+:host-context(html:not(.dark-theme)) {
+  .completion-dots__seg         { background: rgba(0,0,0,.08); }
+  .completion-dots__seg.filled  { background: var(--pt, var(--cms-primary)); }
+  .completion-dots__label       { color: var(--cms-text-muted); }
+  .completion-dots__label--done { color: #16a34a; }
+}
+
+// ── Profile completion bar (hero) ─────────────────────────────────────────────
+.completion-bar {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-top:  14px;
+
+  &__segs {
+    display: flex;
+    gap:     4px;
+  }
+
+  &__seg {
+    width:         22px;
+    height:        5px;
+    border-radius: 99px;
+    background:    rgba(255,255,255,.15);
+    transition:    background .4s;
+
+    &.on {
+      background: var(--pt, var(--cms-primary));
+      box-shadow: 0 0 6px color-mix(in srgb, var(--pt, var(--cms-primary)) 60%, transparent);
+    }
+  }
+
+  &__txt {
+    font-size:  12px;
+    font-weight: 500;
+    color:      rgba(255,255,255,.45);
+  }
+
+  &__done {
+    display:     flex;
+    align-items: center;
+    gap:         4px;
+    font-size:   12px;
+    font-weight: 600;
+    color:       #22C55E;
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+  }
+}
+
+:host-context(html:not(.dark-theme)) {
+  .completion-bar__seg         { background: rgba(0,0,0,.10); }
+  .completion-bar__seg.on      { background: var(--pt, var(--cms-primary)); box-shadow: none; }
+  .completion-bar__txt         { color: var(--cms-text-muted); }
+  .completion-bar__done        { color: #16a34a; }
 }
 
 // ── Bio empty state & char counter ────────────────────────────────────────────
@@ -1746,7 +2238,16 @@
   }
 }
 
-.bio-text { color: rgba(255,255,255,.7); line-height: 1.65; font-size: 0.875rem; }
+.bio-text {
+  color:          rgba(255,255,255,.7);
+  line-height:    1.65;
+  font-size:      0.875rem;
+  display:        -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow:       hidden;
+  word-break:     break-word;
+}
 
 :host-context(html:not(.dark-theme)) {
   .bio-empty { color: var(--cms-text-muted); }
@@ -2115,6 +2616,9 @@
 .ep-section { display: flex; flex-direction: column; gap: 10px; }
 
 .ep-section-title {
+  display:        flex;
+  align-items:    center;
+  gap:            6px;
   font-size:      0.6875rem;
   font-weight:    700;
   letter-spacing: 0.07em;
@@ -2122,7 +2626,11 @@
   color:          var(--cms-text-muted);
   padding-bottom: 8px;
   border-bottom:  1px solid var(--cms-line);
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
 }
+
+.ep-required { color: var(--cms-danger, #ef4444); margin-left: 2px; }
 
 // Field
 .ep-field {

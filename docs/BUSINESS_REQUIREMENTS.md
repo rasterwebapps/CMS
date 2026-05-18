@@ -7,6 +7,7 @@
 ## 📋 Table of Contents
 
 - [General Documentation Policy](#-general-documentation-policy)
+- [BR-28: Notification & Alert Preferences](#br-28-notification--alert-preferences)
 - [BR-1: Fee Structure & Academic Year](#br-1-fee-structure--academic-year)
 - [BR-2: Year-wise Fee Boxes per Program Duration](#br-2-year-wise-fee-boxes-per-program-duration)
 - [BR-3: Fee Structure Guideline on Enquiry Screen](#br-3-fee-structure-guideline-on-enquiry-screen)
@@ -1196,6 +1197,7 @@ Every completed admission must receive a permanent, immutable **admission number
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-16 | BR-28 | Added notification & alert preferences: generic vs role-specific categories, per-role defaults, delivery channels (in-app/email/both), backend requirements for `user_notification_preferences` table, sending service triggers, and current localStorage-only state with migration path to backend | — |
 | 2026-05-16 | BR-27 | Added permanent admission number generation on successful admission completion/confirmation, academic-year format `ADM-2526-0001`, immutable student reference, receipt display, searchable admission/student screens, and read-only number sequence registry | — |
 | 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |
 | 2026-05-14 | BR-25 | Added profile self-service rules: authenticated users can update only their own phone, blood group, and address; profile photos are stored on `app_users` for all roles with JPEG/PNG and 2 MB limits; admin-only academic/employment/login fields remain locked | — |
@@ -1207,6 +1209,68 @@ Every completed admission must receive a permanent, immutable **admission number
 | 2026-04-17 | BR-1, BR-2, BR-3, BR-12 | Fee structure and enquiry enhancements: (1) BR-1 updated — one fee structure group per course+academic year enforced; (2) BR-2 updated — year boxes based on program durationYears, all 8 fee types shown; (3) BR-3 updated — enquiry shows total fee only (no split), filtered by student type; (4) BR-12 added — student type (DAY_SCHOLAR/HOSTELER) on enquiry, controls fee inclusion | — |
 | 2026-04-16 | BR-3, BR-4, BR-5, BR-6, BR-7 | Enquiry-to-Fee Workflow enhancements: (1) BR-3 updated for program→course→fee flow with course selection; (2) BR-4 updated — `guidelineValue` replaced with `hasCommission` boolean + `commissionAmount`, `source` enum dropped in favor of `referralType` FK; (3) BR-5 updated to reflect commission-based calculation; (4) BR-6 updated — fee finalization is now enquiry-driven, lists INTERESTED enquiries; (5) BR-7 updated — payment collection lists FEES_FINALIZED enquiries, payments tracked against enquiry | — |
 | 2026-04-15 | BR-1 to BR-11 | Initial business requirements documented for fee structure, enquiry workflow, referral types, payment collection, submit documents, and student explorer | — |
+
+---
+
+## BR-28: Notification & Alert Preferences
+
+> **Status:** UI scaffold complete (localStorage only). Backend service and delivery pipeline pending.
+
+### Summary
+
+Users must be able to control which notifications they receive and how they are delivered. Preferences are stored per-user and respect both generic (all-role) and role-specific categories.
+
+### Notification Categories
+
+#### Generic — shown to all roles
+| Key | Label | Default |
+|-----|-------|---------|
+| `systemAnnouncements` | System Announcements | On |
+| `profileReminders` | Profile & Document Reminders | On |
+
+#### Role-specific
+| Role | Category Key | Label | Default |
+|------|-------------|-------|---------|
+| ADMIN, FRONT_OFFICE | `admissionUpdates` | Admission Updates | On |
+| ADMIN, CASHIER, FRONT_OFFICE | `feeAlerts` | Fee Alerts & Due Dates | On |
+| FACULTY | `examSchedule` | Exam & Timetable Changes | On |
+| FACULTY | `attendanceAlerts` | Attendance Threshold Alerts | On |
+| STUDENT | `feeAlerts` | Fee Due Reminders | On |
+| STUDENT | `examSchedule` | Exam Schedule & Results | On |
+| STUDENT | `attendanceAlerts` | Low Attendance Warnings | On |
+
+### Delivery Channels
+- **In-App** — notification bell in toolbar (already exists as UI chrome, no backend yet)
+- **Email** — sent to the user's registered login email via backend mail service
+- **Both** — in-app and email simultaneously
+
+Default channel for all roles: **In-App only**.
+
+### Storage
+- Preferences stored in `user_notification_preferences` table (to be created via Flyway migration)
+- Key: `(user_id, category_key)` unique constraint
+- Fields: `enabled BOOLEAN`, `channel ENUM('IN_APP','EMAIL','BOTH')`, `updated_at`
+- Fallback: if no DB row exists, use the category default
+
+### Backend Requirements
+1. `GET /api/v1/notifications/preferences` — return user's current preferences
+2. `PUT /api/v1/notifications/preferences` — update one or more preferences
+3. Notification sending service (queued, not synchronous) — triggers when relevant events fire:
+   - Fee finalization → feeAlerts subscribers
+   - Admission status change → admissionUpdates subscribers
+   - Document verification → profileReminders subscribers
+   - System config change → systemAnnouncements all users
+4. Email delivery via JavaMail / SMTP configured in `application.yml`
+
+### Current Implementation State (2026-05-16)
+- UI: Profile page Notifications card with channel toggle + category toggles
+- Storage: `localStorage` only (`cms_notif_prefs`) — **not** persisted to server
+- Categories shown are static and not yet role-filtered
+- No actual notification delivery exists yet
+- The UI must be updated to call backend endpoints once the service is built, replacing the localStorage layer
+
+### Permissions Required
+- `NOTIFICATION_MANAGE` — update own notification preferences (all authenticated users)
 
 ---
 

@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.AppRoleRequest;
 import com.cms.dto.AppRoleResponse;
+import com.cms.dto.WidgetConfigDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
 import com.cms.model.Permission;
@@ -43,11 +44,15 @@ class AppRoleServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private jakarta.persistence.EntityManager entityManager;
+
     private AppRoleService appRoleService;
 
     @BeforeEach
     void setUp() {
         appRoleService = new AppRoleService(appRoleRepository, permissionRepository, userPermissionService, auditLogService);
+        org.springframework.test.util.ReflectionTestUtils.setField(appRoleService, "entityManager", entityManager);
     }
 
     // -------------------------------------------------------------------------
@@ -320,6 +325,48 @@ class AppRoleServiceTest {
 
         assertThatThrownBy(() -> appRoleService.getPermissions(99L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // -------------------------------------------------------------------------
+    // updateDashboardWidgetConfigs
+    // -------------------------------------------------------------------------
+
+    @Test
+    void shouldUpdateDashboardWidgetConfigs() {
+        AppRole role = createRole(1L, "COLLEGE_ADMIN", "College Admin", 4, false);
+        jakarta.persistence.Query mockQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        when(entityManager.createQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(mockQuery);
+        when(mockQuery.setParameter(org.mockito.ArgumentMatchers.anyString(), any())).thenReturn(mockQuery);
+        when(mockQuery.executeUpdate()).thenReturn(1);
+        when(appRoleRepository.findById(1L)).thenReturn(Optional.of(role));
+        when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
+
+        List<WidgetConfigDto> configs = List.of(
+            new WidgetConfigDto("hero", 0, 2, 1, null),
+            new WidgetConfigDto("stat-students", 1, 1, 1, null)
+        );
+
+        AppRoleResponse response = appRoleService.updateDashboardWidgetConfigs(1L, configs, "admin", 0);
+
+        assertThat(response).isNotNull();
+        verify(appRoleRepository).save(any(AppRole.class));
+    }
+
+    @Test
+    void shouldUpdateDashboardWidgets() {
+        AppRole role = createRole(1L, "COLLEGE_ADMIN", "College Admin", 4, false);
+        jakarta.persistence.Query mockQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        when(entityManager.createQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(mockQuery);
+        when(mockQuery.setParameter(org.mockito.ArgumentMatchers.anyString(), any())).thenReturn(mockQuery);
+        when(mockQuery.executeUpdate()).thenReturn(1);
+        when(appRoleRepository.findById(1L)).thenReturn(Optional.of(role));
+        when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
+
+        AppRoleResponse response = appRoleService.updateDashboardWidgets(
+            1L, List.of("hero", "stat-students"), "admin", 0);
+
+        assertThat(response).isNotNull();
+        verify(appRoleRepository).save(any(AppRole.class));
     }
 
     // -------------------------------------------------------------------------

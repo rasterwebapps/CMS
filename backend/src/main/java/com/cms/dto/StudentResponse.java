@@ -62,6 +62,9 @@ public record StudentResponse(
     String pincode,
 
     String bio,
+    String emergencyContactName,
+    String emergencyContactRelationship,
+    String emergencyContactPhone,
 
     Instant createdAt,
     Instant updatedAt
@@ -81,6 +84,6 @@ public record StudentResponse(
             admissionDate, labBatch, status, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, postalAddress, street, city, district, state, pincode,
-            null, createdAt, updatedAt);
+            null, null, null, null, createdAt, updatedAt);
     }
 }

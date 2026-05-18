@@ -89,6 +89,7 @@ class FacultyControllerTest {
             departmentName, designation, specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address, null,
+            null, null, null,
             years, years, years, years, years, years,
             createdAt, updatedAt, null
         );

@@ -108,5 +108,41 @@ class PermSecurityBeanTest {
         SecurityContextHolder.getContext().setAuthentication(auth);
         assertThat(permSecurityBean.has("DEPT_MANAGE")).isFalse();
     }
+
+    @Test
+    void hasAny_returnsTrueWhenUserHoldsOneOfThePermissions() {
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "RS256")
+            .claim("preferred_username", "admin")
+            .build();
+        JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt, Set.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        when(userPermissionService.getPermissions("admin"))
+            .thenReturn(Set.of("STUDENT_VIEW", "DEPT_MANAGE"));
+
+        assertThat(permSecurityBean.hasAny("REPORT_VIEW", "STUDENT_VIEW")).isTrue();
+    }
+
+    @Test
+    void hasAny_returnsFalseWhenUserHoldsNoneOfThePermissions() {
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "RS256")
+            .claim("preferred_username", "user1")
+            .build();
+        JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt, Set.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        when(userPermissionService.getPermissions("user1"))
+            .thenReturn(Set.of("PROFILE_VIEW"));
+
+        assertThat(permSecurityBean.hasAny("REPORT_VIEW", "STUDENT_VIEW")).isFalse();
+    }
+
+    @Test
+    void hasAny_returnsFalseWhenNotAuthenticated() {
+        SecurityContextHolder.clearContext();
+        assertThat(permSecurityBean.hasAny("REPORT_VIEW")).isFalse();
+    }
 }
 

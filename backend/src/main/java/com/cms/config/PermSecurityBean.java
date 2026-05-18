@@ -49,5 +49,24 @@ public class PermSecurityBean {
         }
         return userPermissionService.getPermissions(username).contains(permissionCode);
     }
+
+    /**
+     * Returns {@code true} if the currently authenticated user holds ANY of the given
+     * permission codes.
+     *
+     * <p>Usage example:
+     * <pre>{@code @PreAuthorize("@perm.hasAny('REPORT_VIEW','STUDENT_VIEW')")}</pre>
+     *
+     * @param permissionCodes one or more permission codes to check
+     * @return {@code true} if the user has at least one of the given permissions
+     */
+    public boolean hasAny(String... permissionCodes) {
+        for (String code : permissionCodes) {
+            if (has(code)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 

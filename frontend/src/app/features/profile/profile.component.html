@@ -12,34 +12,6 @@
     <div class="aurora-noise"></div>
   </div>
 
-  <!-- ══ Theme picker FAB ══ -->
-  <div class="theme-dropdown" (click)="$event.stopPropagation()">
-    <button class="theme-trigger"
-            [class.theme-trigger--open]="themeOpen()"
-            [style.--sw]="activeSwatch().hex"
-            (click)="toggleThemeDropdown()"
-            aria-label="Change theme color">
-      <span class="theme-trigger__dot"></span>
-      <span class="theme-trigger__name">{{ activeSwatch().name }}</span>
-      <mat-icon class="theme-trigger__chevron">expand_more</mat-icon>
-    </button>
-    @if (themeOpen()) {
-      <div class="theme-panel" role="listbox">
-        @for (sw of swatches; track sw.id) {
-          <button class="theme-option"
-                  [class.theme-option--active]="sw.id === activeSwatch().id"
-                  [style.--sw]="sw.hex"
-                  (click)="selectTheme(sw)"
-                  role="option" [attr.aria-selected]="sw.id === activeSwatch().id">
-            <span class="theme-option__dot"></span>
-            <span class="theme-option__name">{{ sw.name }}</span>
-            @if (sw.id === activeSwatch().id) { <mat-icon class="theme-option__check">check</mat-icon> }
-          </button>
-        }
-      </div>
-    }
-  </div>
-
   <!-- Hidden file input -->
   <input #photoInput class="photo-file-input" type="file" accept="image/jpeg,image/png"
          (change)="onPhotoSelected($event)" aria-hidden="true" />
@@ -156,22 +128,19 @@
           </div>
         }
 
-        <!-- ── Profile completion meter ── -->
+        <!-- ── Profile completion ── -->
         @if (identity()) {
-          <div class="completion-meter">
-            <div class="completion-meter__bar">
-              <div class="completion-meter__fill"
-                   [style.width.%]="(pc.score / pc.total) * 100"
-                   [class.completion-meter__fill--full]="pc.score === pc.total"></div>
-            </div>
-            <span class="completion-meter__label">
-              @if (pc.score === pc.total) {
-                <mat-icon>check_circle</mat-icon> Profile complete
-              } @else {
-                {{ pc.score }}/{{ pc.total }} complete
-                @if (pc.missing.length > 0) { · Missing: {{ pc.missing.slice(0,2).join(', ') }}{{ pc.missing.length > 2 ? '…' : '' }} }
+          <div class="completion-bar">
+            <div class="completion-bar__segs">
+              @for (_ of profileCompletion().segments; track $index) {
+                <span class="completion-bar__seg" [class.on]="$index < pc.score"></span>
               }
-            </span>
+            </div>
+            @if (pc.score === pc.total) {
+              <span class="completion-bar__done"><mat-icon>check_circle</mat-icon>Profile complete</span>
+            } @else {
+              <span class="completion-bar__txt">{{ pc.score }}/{{ pc.total }} complete</span>
+            }
           </div>
         }
       </div>
@@ -214,26 +183,20 @@
               <p>No bio yet. <button class="bio-empty__link" type="button" (click)="enterEditMode()">Add one →</button></p>
             </div>
           }
-          <div class="tag-cloud">
-            @if (f) {
-              <span class="tag">{{ f.departmentName }}</span>
-              <span class="tag">Nursing</span>
-              <span class="tag">Education</span>
-              <span class="tag">Clinical</span>
-              @if (f.highestQualification) { <span class="tag">{{ qualificationLabel(f.highestQualification) }}</span> }
-            }
-            @if (s) {
-              <span class="tag">{{ s.programName }}</span>
-              <span class="tag">Year {{ s.yearOfStudy }}</span>
-              <span class="tag">Nursing</span>
-              <span class="tag">Healthcare</span>
-            }
-            @if (id.entityType === 'ADMIN') {
-              <span class="tag">Administration</span>
-              <span class="tag">Management</span>
-              <span class="tag">Operations</span>
-            }
-          </div>
+          @if (f || s) {
+            <div class="tag-cloud">
+              @if (f) {
+                <span class="tag">{{ f.departmentName }}</span>
+                @if (f.designation) { <span class="tag">{{ f.designation | titlecase }}</span> }
+                @if (f.highestQualification) { <span class="tag">{{ qualificationLabel(f.highestQualification) }}</span> }
+              }
+              @if (s) {
+                <span class="tag">{{ s.programName }}</span>
+                <span class="tag">Year {{ s.yearOfStudy }}</span>
+                @if (s.labBatch) { <span class="tag">Batch {{ s.labBatch }}</span> }
+              }
+            </div>
+          }
         </div>
 
         <div class="glass-card security-card"
@@ -245,18 +208,32 @@
           <div class="info-list">
             <div class="info-row">
               <div class="info-row__icon"><mat-icon>vpn_key</mat-icon></div>
-              <div class="info-row__body"><span class="info-row__label">SSO Provider</span><span class="info-row__value">Keycloak</span></div>
+              <div class="info-row__body"><span class="info-row__label">Authentication</span><span class="info-row__value">Keycloak SSO</span></div>
             </div>
             <div class="info-row">
-              <div class="info-row__icon"><mat-icon>email</mat-icon></div>
-              <div class="info-row__body"><span class="info-row__label">Login Email</span><span class="info-row__value">{{ id.email || '—' }}</span></div>
-            </div>
-            <div class="info-row">
-              <div class="info-row__icon"><mat-icon>verified_user</mat-icon></div>
-              <div class="info-row__body"><span class="info-row__label">Session</span><span class="info-row__value">Managed by Keycloak SSO</span></div>
+              <div class="info-row__icon"><mat-icon>manage_accounts</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Account Type</span><span class="info-row__value">Institutional Account</span></div>
             </div>
           </div>
         </div>
+
+        <!-- Role & Permissions — faculty/student only; admin sees it in Col B -->
+        @if (id.entityType !== 'ADMIN') {
+          <div class="glass-card perms-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>shield</mat-icon></div>
+              <h3>Role &amp; Access</h3>
+            </div>
+            <div class="perms-compact">
+              <span class="perms-compact__role">{{ roleLabel() }}</span>
+              <span class="perms-compact__stat">
+                {{ permGroups().reduce(countReduce, 0) }} permissions &middot; {{ permGroups().length }} modules
+              </span>
+            </div>
+          </div>
+        }
+
       </div>
 
       <!-- Column B: Personal Info + Contact -->
@@ -267,9 +244,6 @@
             <div class="card-hdr">
               <div class="card-hdr__icon"><mat-icon>person_outline</mat-icon></div>
               <h3>Personal Info</h3>
-              <button class="card-edit-btn" type="button" (click)="enterEditMode()" matTooltip="Edit profile">
-                <mat-icon>edit</mat-icon>
-              </button>
             </div>
             <div class="info-list">
               @let items = f ? facultyInfoItems(f) : studentInfoItems(s!);
@@ -321,30 +295,55 @@
         }
 
         @if (id.entityType === 'ADMIN') {
-          <div class="glass-card info-card"
+          <!-- Role & Access moved here for admin to balance columns -->
+          <div class="glass-card perms-card"
                (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
             <div class="card-hdr">
-              <div class="card-hdr__icon"><mat-icon>admin_panel_settings</mat-icon></div>
-              <h3>Account Details</h3>
+              <div class="card-hdr__icon"><mat-icon>shield</mat-icon></div>
+              <h3>Role &amp; Access</h3>
             </div>
-            <div class="info-list">
-              <div class="info-row">
-                <div class="info-row__icon"><mat-icon>badge</mat-icon></div>
-                <div class="info-row__body"><span class="info-row__label">Role</span><span class="info-row__value">Developer Administrator</span></div>
-              </div>
-              <div class="info-row">
-                <div class="info-row__icon"><mat-icon>email</mat-icon></div>
-                <div class="info-row__body"><span class="info-row__label">Email</span><span class="info-row__value">{{ id.email }}</span></div>
-              </div>
-              <div class="info-row">
-                <div class="info-row__icon"><mat-icon>shield</mat-icon></div>
-                <div class="info-row__body"><span class="info-row__label">Access Level</span><span class="info-row__value">Full System</span></div>
-              </div>
-              <div class="info-row">
-                <div class="info-row__icon"><mat-icon>verified_user</mat-icon></div>
-                <div class="info-row__body"><span class="info-row__label">Institution</span><span class="info-row__value">SKS College Of Nursing</span></div>
-              </div>
+            <div class="perms-compact">
+              <span class="perms-compact__role">{{ roleLabel() }}</span>
+              <span class="perms-compact__stat">
+                {{ permGroups().reduce(countReduce, 0) }} permissions &middot; {{ permGroups().length }} modules
+              </span>
             </div>
+          </div>
+        }
+
+        @if (id.entityType === 'ADMIN') {
+          <!-- Admin contact & emergency — same pattern as faculty/student -->
+          <div class="glass-card contact-card"
+               (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+            <div class="card-hdr">
+              <div class="card-hdr__icon"><mat-icon>contact_phone</mat-icon></div>
+              <h3>Contact &amp; Emergency</h3>
+            </div>
+            @let hasAdminContact = (id.phone || id.bloodGroup);
+            @if (hasAdminContact || id.bio) {
+              <div class="info-list">
+                @if (id.phone) {
+                  <div class="info-row">
+                    <div class="info-row__icon"><mat-icon>phone</mat-icon></div>
+                    <div class="info-row__body"><span class="info-row__label">Phone</span><span class="info-row__value">{{ id.phone }}</span></div>
+                  </div>
+                }
+                @if (id.bloodGroup) {
+                  <div class="info-row">
+                    <div class="info-row__icon"><mat-icon>bloodtype</mat-icon></div>
+                    <div class="info-row__body"><span class="info-row__label">Blood Group</span><span class="info-row__value">{{ id.bloodGroup }}</span></div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-state-prompt">
+                <div class="empty-state-prompt__icon"><mat-icon>person_add</mat-icon></div>
+                <p class="empty-state-prompt__text">Add your contact details and emergency contact</p>
+                <button class="empty-state-prompt__btn" type="button" (click)="enterEditMode()">
+                  <mat-icon>edit</mat-icon> Fill in details
+                </button>
+              </div>
+            }
           </div>
         }
       </div>
@@ -385,26 +384,134 @@
           </div>
         }
 
-        <!-- Quick Links — icon tile grid -->
-        <div class="glass-card quick-links-card"
+        <!-- Preferences — theme colour + change password -->
+        <div class="glass-card prefs-card"
              (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
           <div class="card-hdr">
-            <div class="card-hdr__icon"><mat-icon>apps</mat-icon></div>
-            <h3>Quick Links</h3>
+            <div class="card-hdr__icon"><mat-icon>tune</mat-icon></div>
+            <h3>Preferences</h3>
           </div>
-          <div class="quick-tile-grid">
-            @for (link of quickLinks(); track link.route) {
-              <a class="quick-tile" [routerLink]="link.route">
-                <span class="quick-tile__icon">
-                  <mat-icon>{{ link.icon }}</mat-icon>
-                </span>
-                <span class="quick-tile__label">{{ link.label }}</span>
+
+          <!-- Flat info-row list — no section headings -->
+          <div class="info-list">
+
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>palette</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Theme Colour</span></div>
+              <div class="theme-picker-wrap pref-control" (click)="$event.stopPropagation()">
+                <button class="theme-pill" type="button"
+                        [class.open]="themePickerOpen()"
+                        (click)="toggleThemePicker($event)"
+                        aria-haspopup="listbox">
+                  <span class="theme-pill__dot" [style.background]="activeSwatch().hex"></span>
+                  <span class="theme-pill__name">{{ activeSwatch().name }}</span>
+                  <mat-icon class="theme-pill__chevron">expand_more</mat-icon>
+                </button>
+                @if (themePickerOpen()) {
+                  <div class="theme-dropdown-panel" role="listbox">
+                    @for (sw of swatches; track sw.id) {
+                      <button class="theme-option-row" type="button" role="option"
+                              [class.active]="sw.id === activeSwatch().id"
+                              [attr.aria-selected]="sw.id === activeSwatch().id"
+                              (click)="selectTheme(sw)">
+                        <span class="theme-option-row__dot" [style.background]="sw.hex"></span>
+                        <span class="theme-option-row__name">{{ sw.name }}</span>
+                        @if (sw.id === activeSwatch().id) {
+                          <mat-icon class="theme-option-row__check">check</mat-icon>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>motion_photos_off</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Reduce Animations</span></div>
+              <button class="pref-toggle pref-control" type="button"
+                      [class.on]="reduceMotion()" (click)="toggleReduceMotion()"
+                      aria-label="Reduce animations">
+                <span class="pref-toggle__thumb"></span>
+              </button>
+            </div>
+
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>text_increase</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Large Text</span></div>
+              <button class="pref-toggle pref-control" type="button"
+                      [class.on]="largeText()" (click)="toggleLargeText()"
+                      aria-label="Large text">
+                <span class="pref-toggle__thumb"></span>
+              </button>
+            </div>
+
+            <div class="info-row">
+              <div class="info-row__icon"><mat-icon>lock_reset</mat-icon></div>
+              <div class="info-row__body"><span class="info-row__label">Change Password</span></div>
+              <a class="pref-link-btn pref-control"
+                 [href]="changePasswordUrl()" target="_blank" rel="noopener noreferrer"
+                 matTooltip="Opens in Keycloak">
+                <mat-icon>open_in_new</mat-icon>
               </a>
-            }
+            </div>
+
           </div>
-        </div>
-      </div>
-    </div>
+
+        </div><!-- /.prefs-card -->
+
+        <!-- Notification Preferences -->
+        <div class="glass-card notif-card"
+             (mousemove)="onCardMouseMove($event)" (mouseleave)="onCardMouseLeave($event)">
+          <div class="card-hdr">
+            <div class="card-hdr__icon"><mat-icon>notifications_none</mat-icon></div>
+            <h3>Notifications</h3>
+          </div>
+
+          <!-- Channel -->
+          <div class="prefs-section">
+            <span class="prefs-label"><mat-icon>tune</mat-icon>Delivery Channel</span>
+            <div class="notif-channel-row">
+              @for (ch of [['in-app','In-App'],['email','Email'],['both','Both']]; track ch[0]) {
+                <button class="notif-channel-btn"
+                        [class.active]="notifPrefs().channel === ch[0]"
+                        type="button"
+                        (click)="setNotifChannel($any(ch[0]))">
+                  {{ ch[1] }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="prefs-section">
+            <span class="prefs-label"><mat-icon>category</mat-icon>Alert Categories</span>
+            <div class="notif-list">
+              @for (cat of notifCategories; track cat.key) {
+                <div class="notif-row">
+                  <div class="notif-row__left">
+                    <div class="notif-row__icon"><mat-icon>{{ cat.icon }}</mat-icon></div>
+                    <div class="notif-row__text">
+                      <span class="notif-row__label">{{ cat.label }}</span>
+                      <span class="notif-row__desc">{{ cat.desc }}</span>
+                    </div>
+                  </div>
+                  <button class="notif-toggle"
+                          type="button"
+                          [class.on]="notifPrefs().categories[cat.key]"
+                          (click)="toggleNotifCategory(cat.key)"
+                          [attr.aria-label]="cat.label">
+                    <span class="notif-toggle__thumb"></span>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+        </div><!-- /.notif-card -->
+
+      </div><!-- /.bcol-c -->
+    </div><!-- /.bento-grid -->
 
     <!-- ══ Document Vault ══════════════════════════════════════════════════════ -->
     @if (f || (s && id.admissionId)) {
@@ -508,6 +615,28 @@
             </div>
           </div>
         }
+
+        <!-- Emergency Contact — all roles -->
+        <div class="ep-section">
+          <h3 class="ep-section-title">
+            <mat-icon>emergency</mat-icon> Emergency Contact
+          </h3>
+          <div class="ep-field">
+            <label class="ep-label">Full Name <span class="ep-required">*</span></label>
+            <input class="ep-input" type="text" [(ngModel)]="editForm.emergencyContactName"
+                   placeholder="e.g. Ravi Kumar" />
+          </div>
+          <div class="ep-field">
+            <label class="ep-label">Relationship <span class="ep-required">*</span></label>
+            <input class="ep-input" type="text" [(ngModel)]="editForm.emergencyContactRelationship"
+                   placeholder="e.g. Father, Spouse, Sibling" />
+          </div>
+          <div class="ep-field">
+            <label class="ep-label">Phone Number <span class="ep-required">*</span></label>
+            <input class="ep-input" type="tel" [(ngModel)]="editForm.emergencyContactPhone"
+                   placeholder="+91 98765 43210" />
+          </div>
+        </div>
 
       </div><!-- /.ep-drawer__body -->
 

@@ -198,6 +198,9 @@ public class ProfileService {
         if (request.bio() != null)        { user.setBio(trimToNull(request.bio()));               changed = true; }
         if (request.phone() != null)      { user.setPhone(trimToNull(request.phone()));            changed = true; }
         if (request.bloodGroup() != null) { user.setBloodGroup(trimToNull(request.bloodGroup())); changed = true; }
+        if (request.emergencyContactName() != null)         { user.setEmergencyContactName(trimToNull(request.emergencyContactName()));               changed = true; }
+        if (request.emergencyContactRelationship() != null) { user.setEmergencyContactRelationship(trimToNull(request.emergencyContactRelationship())); changed = true; }
+        if (request.emergencyContactPhone() != null)        { user.setEmergencyContactPhone(trimToNull(request.emergencyContactPhone()));             changed = true; }
         if (changed) appUserRepository.save(user);
     }
 
@@ -205,6 +208,9 @@ public class ProfileService {
         if (request.phone() != null)      faculty.setPhone(trimToNull(request.phone()));
         if (request.bloodGroup() != null) faculty.setBloodGroup(trimToNull(request.bloodGroup()));
         if (request.bio() != null)        faculty.setBio(trimToNull(request.bio()));
+        if (request.emergencyContactName() != null)         faculty.setEmergencyContactName(trimToNull(request.emergencyContactName()));
+        if (request.emergencyContactRelationship() != null) faculty.setEmergencyContactRelationship(trimToNull(request.emergencyContactRelationship()));
+        if (request.emergencyContactPhone() != null)        faculty.setEmergencyContactPhone(trimToNull(request.emergencyContactPhone()));
         faculty.setAddress(mergeAddress(faculty.getAddress(), request));
     }
 
@@ -212,6 +218,9 @@ public class ProfileService {
         if (request.phone() != null)      student.setPhone(trimToNull(request.phone()));
         if (request.bloodGroup() != null) student.setBloodGroup(trimToNull(request.bloodGroup()));
         if (request.bio() != null)        student.setBio(trimToNull(request.bio()));
+        if (request.emergencyContactName() != null)         student.setEmergencyContactName(trimToNull(request.emergencyContactName()));
+        if (request.emergencyContactRelationship() != null) student.setEmergencyContactRelationship(trimToNull(request.emergencyContactRelationship()));
+        if (request.emergencyContactPhone() != null)        student.setEmergencyContactPhone(trimToNull(request.emergencyContactPhone()));
         student.setAddress(mergeAddress(student.getAddress(), request));
     }
 

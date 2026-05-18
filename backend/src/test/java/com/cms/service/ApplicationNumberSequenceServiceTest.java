@@ -15,6 +15,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
+import com.cms.dto.ApplicationNumberSequenceResponse;
 import com.cms.model.AcademicYear;
 import com.cms.model.ApplicationNumberSequence;
 import com.cms.repository.ApplicationNumberSequenceRepository;
@@ -51,6 +54,36 @@ class ApplicationNumberSequenceServiceTest {
         verify(sequenceRepository).save(captor.capture());
         assertThat(captor.getValue().getLastSequence()).isEqualTo(1);
         assertThat(captor.getValue().getScopeKey()).isEqualTo("2526");
+    }
+
+    @Test
+    void findAllReturnsAllSequences() {
+        ApplicationNumberSequence seq = new ApplicationNumberSequence(
+            "RECEIPT_NUMBER", "Receipt Number", "CALENDAR_YEAR", "2026", "RCP", 5, 41,
+            "Global receipt number generated for every payment receipt");
+        when(sequenceRepository.findAll()).thenReturn(List.of(seq));
+
+        List<ApplicationNumberSequenceResponse> result = service.findAll();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).seriesCode()).isEqualTo("RECEIPT_NUMBER");
+        assertThat(result.get(0).lastSequence()).isEqualTo(41);
+        assertThat(result.get(0).prefix()).isEqualTo("RCP");
+        assertThat(result.get(0).scopeKey()).isEqualTo("2026");
+    }
+
+    @Test
+    void findAllReturnsSequenceWithZeroLastSequence() {
+        ApplicationNumberSequence seq = new ApplicationNumberSequence(
+            "ADMISSION_NUMBER", "Admission Number", "ACADEMIC_YEAR", "2526", "ADM", 4, 0,
+            "Admission number sequence");
+        when(sequenceRepository.findAll()).thenReturn(List.of(seq));
+
+        List<ApplicationNumberSequenceResponse> result = service.findAll();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).lastGeneratedNumber()).isEqualTo("—");
+        assertThat(result.get(0).nextPreviewNumber()).isEqualTo("ADM-2526-0001");
     }
 
     @Test

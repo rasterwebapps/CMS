@@ -25,6 +25,9 @@ export interface SelfUpdateRequest {
   district?: string | null;
   state?: string | null;
   pincode?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactRelationship?: string | null;
+  emergencyContactPhone?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

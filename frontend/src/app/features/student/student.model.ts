@@ -50,6 +50,9 @@ export interface Student {
   email: string;
   phone?: string;
   bio?: string;
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
   programId: number;
   programName: string;
   yearOfStudy: number;

@@ -353,6 +353,131 @@ class StudentServiceTest {
         verify(studentRepository).findByProgramIdAndRollNumberIsNull(1L);
     }
 
+    @Test
+    void shouldFindStudentsByLabBatch() {
+        Student student = createStudent(1L, "CS2401", "John", "Doe", "john@college.edu");
+        student.setLabBatch("Batch-A");
+
+        when(studentRepository.findByLabBatch("Batch-A")).thenReturn(List.of(student));
+
+        List<StudentResponse> responses = studentService.findByLabBatch("Batch-A");
+
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void shouldMapStudentWithCourseAndSpecializationToResponse() {
+        // Create a course and specialization dept to exercise non-null branches in toResponse
+        com.cms.model.Course course = new com.cms.model.Course();
+        course.setId(10L);
+        course.setName("B.Tech CS");
+
+        com.cms.model.Department dept = new com.cms.model.Department();
+        dept.setId(5L);
+        dept.setName("CS Department");
+
+        Student student = createStudent(1L, "CS2401", "Ravi", "Kumar", "ravi@college.edu");
+        student.setCourse(course);
+        student.setSpecializationDepartment(dept);
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        StudentResponse response = studentService.findById(1L);
+
+        assertThat(response.courseId()).isEqualTo(10L);
+        assertThat(response.courseName()).isEqualTo("B.Tech CS");
+        assertThat(response.specializationDepartmentId()).isEqualTo(5L);
+        assertThat(response.specializationDepartmentName()).isEqualTo("CS Department");
+    }
+
+    @Test
+    void shouldGetTransferHistory() {
+        when(studentRepository.existsById(1L)).thenReturn(true);
+
+        com.cms.model.StudentProgramTransfer transfer = new com.cms.model.StudentProgramTransfer();
+        transfer.setStudent(createStudent(1L, "CS2401", "John", "Doe", "john@college.edu"));
+        transfer.setOldProgram(testProgram);
+        Program newProgram = new Program();
+        newProgram.setId(2L);
+        newProgram.setName("B.Tech IT");
+        transfer.setNewProgram(newProgram);
+        transfer.setTransferredAt(java.time.Instant.now());
+        transfer.setConsentConfirmed(true);
+
+        when(transferRepository.findByStudentIdOrderByTransferredAtDesc(1L))
+            .thenReturn(List.of(transfer));
+
+        var history = studentService.getTransferHistory(1L);
+
+        assertThat(history).hasSize(1);
+    }
+
+    @Test
+    void shouldThrowWhenGetTransferHistoryForUnknownStudent() {
+        when(studentRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> studentService.getTransferHistory(99L))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldAnalyzeProgramTransfer() {
+        Student student = createStudent(1L, "CS2401", "John", "Doe", "john@college.edu");
+        Program newProgram = new Program();
+        newProgram.setId(2L);
+        newProgram.setName("B.Tech IT");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
+        when(admissionRepository.findByStudentId(1L)).thenReturn(Optional.empty());
+
+        var analysis = studentService.analyzeProgramTransfer(1L, 2L);
+
+        assertThat(analysis.studentId()).isEqualTo(1L);
+        assertThat(analysis.newProgramId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldExecuteProgramTransfer() {
+        Student student = createStudent(1L, "CS2401", "John", "Doe", "john@college.edu");
+        Program newProgram = new Program();
+        newProgram.setId(2L);
+        newProgram.setName("B.Tech IT");
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(2L)).thenReturn(Optional.of(newProgram));
+        when(studentRepository.save(any(Student.class))).thenReturn(student);
+        when(currentUserResolver.resolve()).thenReturn("admin");
+
+        com.cms.model.StudentProgramTransfer savedTransfer = new com.cms.model.StudentProgramTransfer();
+        savedTransfer.setStudent(student);
+        savedTransfer.setOldProgram(testProgram);
+        savedTransfer.setNewProgram(newProgram);
+        savedTransfer.setTransferredAt(java.time.Instant.now());
+        savedTransfer.setConsentConfirmed(true);
+        when(transferRepository.save(any(com.cms.model.StudentProgramTransfer.class)))
+            .thenReturn(savedTransfer);
+
+        com.cms.dto.ProgramTransferRequest request = new com.cms.dto.ProgramTransferRequest(
+            2L, null, true, "Transfer request");
+
+        var record = studentService.executeProgramTransfer(1L, request);
+
+        assertThat(record.newProgramId()).isEqualTo(2L);
+        verify(studentRepository).save(any(Student.class));
+        verify(transferRepository).save(any(com.cms.model.StudentProgramTransfer.class));
+    }
+
+    @Test
+    void shouldRejectProgramTransferWithoutConsent() {
+        com.cms.dto.ProgramTransferRequest request = new com.cms.dto.ProgramTransferRequest(
+            2L, null, false, null);
+
+        assertThatThrownBy(() -> studentService.executeProgramTransfer(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Consent");
+    }
+
     private Student createStudent(Long id, String rollNumber, String firstName, String lastName, String email) {
         Student student = new Student(
             rollNumber, firstName, lastName, email,

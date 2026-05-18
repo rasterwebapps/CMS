@@ -87,6 +87,13 @@ public class AppUser {
     @Column(name = "blood_group", length = 10)
     private String bloodGroup;
 
+    @Column(name = "emergency_contact_name",         length = 100)
+    private String emergencyContactName;
+    @Column(name = "emergency_contact_relationship", length = 50)
+    private String emergencyContactRelationship;
+    @Column(name = "emergency_contact_phone",        length = 20)
+    private String emergencyContactPhone;
+
     public AppUser() {
     }
 
@@ -210,6 +217,13 @@ public class AppUser {
 
     public String getBloodGroup() { return bloodGroup; }
     public void setBloodGroup(String bloodGroup) { this.bloodGroup = bloodGroup; }
+
+    public String getEmergencyContactName()         { return emergencyContactName; }
+    public void setEmergencyContactName(String v)   { this.emergencyContactName = v; }
+    public String getEmergencyContactRelationship() { return emergencyContactRelationship; }
+    public void setEmergencyContactRelationship(String v) { this.emergencyContactRelationship = v; }
+    public String getEmergencyContactPhone()        { return emergencyContactPhone; }
+    public void setEmergencyContactPhone(String v)  { this.emergencyContactPhone = v; }
 
     public List<UserDashboardWidgetConfig> getWidgetConfigs() {
         return widgetConfigs;

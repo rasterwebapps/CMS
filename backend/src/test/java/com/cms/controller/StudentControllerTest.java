@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.BulkRollNumberAssignmentRequest;
+import com.cms.dto.BulkRollNumberItem;
 import com.cms.dto.GenerateRollNumbersRequest;
+import com.cms.dto.ProgramTransferAnalysis;
+import com.cms.dto.ProgramTransferRecord;
+import com.cms.dto.ProgramTransferRequest;
 import com.cms.dto.RollNumberAssignment;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
@@ -256,6 +263,119 @@ class StudentControllerTest {
             .andExpect(jsonPath("$[1].studentId").value(2));
 
         verify(rollNumberGeneratorService).previewRollNumbers(any(GenerateRollNumbersRequest.class));
+    }
+
+    @Test
+    void shouldFindStudentsByStatus() throws Exception {
+        StudentResponse response = createStudentResponse(1L, "CS2024001", "John", "Doe");
+        when(studentService.findByStatus(StudentStatus.ACTIVE)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/students").param("status", "ACTIVE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).findByStatus(StudentStatus.ACTIVE);
+    }
+
+    @Test
+    void shouldFindStudentsByLabBatch() throws Exception {
+        StudentResponse response = createStudentResponse(1L, "CS2024001", "John", "Doe");
+        when(studentService.findByLabBatch("Batch-A")).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/students").param("labBatch", "Batch-A"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).findByLabBatch("Batch-A");
+    }
+
+    @Test
+    void shouldFindStudentsWithoutRollNumber() throws Exception {
+        StudentResponse response = createStudentResponse(1L, null, "John", "Doe");
+        when(studentService.findStudentsWithoutRollNumber(1L, null)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/students/without-roll-number").param("courseId", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).findStudentsWithoutRollNumber(1L, null);
+    }
+
+    @Test
+    void shouldAssignRollNumberToStudent() throws Exception {
+        StudentResponse response = createStudentResponse(1L, "CS2024001", "John", "Doe");
+        when(studentService.assignRollNumber(1L, "CS2024001")).thenReturn(response);
+
+        mockMvc.perform(patch("/students/1/roll-number")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rollNumber\": \"CS2024001\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.rollNumber").value("CS2024001"));
+
+        verify(studentService).assignRollNumber(1L, "CS2024001");
+    }
+
+    @Test
+    void shouldBulkAssignRollNumbers() throws Exception {
+        StudentResponse response = createStudentResponse(1L, "CS2024001", "John", "Doe");
+        when(studentService.bulkAssignRollNumbers(any())).thenReturn(List.of(response));
+
+        BulkRollNumberAssignmentRequest request = new BulkRollNumberAssignmentRequest(
+            List.of(new BulkRollNumberItem(1L, "CS2024001")));
+
+        mockMvc.perform(post("/students/bulk-assign-roll-numbers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).bulkAssignRollNumbers(any());
+    }
+
+    @Test
+    void shouldAnalyzeProgramTransfer() throws Exception {
+        ProgramTransferAnalysis analysis = new ProgramTransferAnalysis(
+            1L, "John Doe", 1L, "B.Tech CS", 2L, "B.Tech IT",
+            List.of(), List.of(), List.of());
+        when(studentService.analyzeProgramTransfer(1L, 2L)).thenReturn(analysis);
+
+        mockMvc.perform(get("/students/1/program-transfer-analysis").param("newProgramId", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.studentId").value(1));
+
+        verify(studentService).analyzeProgramTransfer(1L, 2L);
+    }
+
+    @Test
+    void shouldExecuteProgramTransfer() throws Exception {
+        ProgramTransferRecord record = new ProgramTransferRecord(
+            1L, 1L, "John Doe", 1L, "B.Tech CS", 2L, "B.Tech IT",
+            Instant.now(), "admin", true, "Transfer");
+        when(studentService.executeProgramTransfer(eq(1L), any(ProgramTransferRequest.class))).thenReturn(record);
+
+        ProgramTransferRequest request = new ProgramTransferRequest(2L, null, true, "Transfer");
+
+        mockMvc.perform(post("/students/1/program-transfer")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.newProgramId").value(2));
+
+        verify(studentService).executeProgramTransfer(eq(1L), any(ProgramTransferRequest.class));
+    }
+
+    @Test
+    void shouldGetTransferHistory() throws Exception {
+        ProgramTransferRecord record = new ProgramTransferRecord(
+            1L, 1L, "John Doe", 1L, "B.Tech CS", 2L, "B.Tech IT",
+            Instant.now(), "admin", true, "Transfer");
+        when(studentService.getTransferHistory(1L)).thenReturn(List.of(record));
+
+        mockMvc.perform(get("/students/1/program-transfers"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).getTransferHistory(1L);
     }
 
     private StudentResponse createStudentResponse(Long id, String rollNumber, String firstName, String lastName) {

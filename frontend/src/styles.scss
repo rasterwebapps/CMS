@@ -4316,4 +4316,17 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   box-shadow: none !important;
 }
 
+// ── Accessibility preferences ─────────────────────────────────────────────────
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration:   0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration:  0.01ms !important;
+}
+
+html.large-text {
+  font-size: 17px;  // base is 16px — increases all rem-based sizes proportionally
+}
+
 

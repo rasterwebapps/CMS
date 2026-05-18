@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.AcademicQualificationRequest;
 import com.cms.dto.AcademicQualificationResponse;
+import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
@@ -274,6 +275,22 @@ class AdmissionControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
         verify(admissionDocumentService).updateVerification(1L, DocumentVerificationStatus.VERIFIED, "admin");
+    }
+
+    @Test
+    void shouldConfirmAdmission() throws Exception {
+        AdmissionConfirmationDto confirmationDto = new AdmissionConfirmationDto(
+            1L, "John Doe", "ADM-2425-0001", "CS-2024", "CS 2024 Batch",
+            1, 101L, 108L);
+        when(admissionService.confirm(eq(1L), any(LocalDate.class))).thenReturn(confirmationDto);
+
+        mockMvc.perform(post("/admissions/1/confirm")
+                .param("admissionDate", "2024-06-01"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.studentId").value(1))
+            .andExpect(jsonPath("$.admissionNumber").value("ADM-2425-0001"));
+
+        verify(admissionService).confirm(eq(1L), any(LocalDate.class));
     }
 
     @Test

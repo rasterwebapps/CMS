@@ -37,7 +37,7 @@ public class UserDashboardWidgetConfig {
     private int rowSpan = 1;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "config_json", columnDefinition = "jsonb")
+    @Column(name = "config_json")
     private String configJson;
 
     public UserDashboardWidgetConfig() {}

@@ -35,7 +35,7 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:4300}")
     private List<String> allowedOrigins;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}")
     private String jwkSetUri;
 
     @Value("${keycloak.allowed-issuers:${spring.security.oauth2.resourceserver.jwt.issuer-uri}}")

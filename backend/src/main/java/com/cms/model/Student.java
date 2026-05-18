@@ -61,6 +61,13 @@ public class Student {
     @Column(name = "bio", length = 500)
     private String bio;
 
+    @Column(name = "emergency_contact_name",         length = 100)
+    private String emergencyContactName;
+    @Column(name = "emergency_contact_relationship", length = 50)
+    private String emergencyContactRelationship;
+    @Column(name = "emergency_contact_phone",        length = 20)
+    private String emergencyContactPhone;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
@@ -253,6 +260,13 @@ public class Student {
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
+
+    public String getEmergencyContactName()         { return emergencyContactName; }
+    public void setEmergencyContactName(String v)   { this.emergencyContactName = v; }
+    public String getEmergencyContactRelationship() { return emergencyContactRelationship; }
+    public void setEmergencyContactRelationship(String v) { this.emergencyContactRelationship = v; }
+    public String getEmergencyContactPhone()        { return emergencyContactPhone; }
+    public void setEmergencyContactPhone(String v)  { this.emergencyContactPhone = v; }
 
     public Program getProgram() {
         return program;

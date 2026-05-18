@@ -20,13 +20,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.FacultyDocumentHistoryResponse;
 import com.cms.dto.FacultyDocumentRequest;
 import com.cms.dto.FacultyDocumentResponse;
+import com.cms.dto.FacultyPendingDocumentsSummary;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Department;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
+import com.cms.model.FacultyDocumentHistory;
+import com.cms.model.enums.Designation;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.FacultyDocumentHistoryRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
@@ -284,6 +290,70 @@ class FacultyDocumentServiceTest {
         assertThat(out.hasFile()).isTrue();
 
         verify(documentRepository).save(eq(existing));
+    }
+
+    @Test
+    void shouldGetHistoryForDocument() {
+        when(documentRepository.existsById(77L)).thenReturn(true);
+
+        Faculty faculty = new Faculty();
+        faculty.setId(10L);
+        FacultyDocument doc = new FacultyDocument(faculty, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
+        doc.setId(77L);
+
+        FacultyDocumentHistory history = new FacultyDocumentHistory();
+        history.setFacultyDocument(doc);
+        history.setDocumentType(DocumentType.PAN_CARD);
+        history.setPreviousStatus(DocumentVerificationStatus.NOT_UPLOADED);
+        history.setNewStatus(DocumentVerificationStatus.UPLOADED);
+        history.setFileName("pan.pdf");
+        history.setChangedBy("admin");
+        history.setChangedAt(java.time.Instant.now());
+
+        when(historyRepository.findByFacultyDocumentIdOrderByChangedAtDesc(77L))
+            .thenReturn(List.of(history));
+
+        List<FacultyDocumentHistoryResponse> result = service.getHistory(77L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).documentType()).isEqualTo(DocumentType.PAN_CARD);
+        assertThat(result.get(0).newStatus()).isEqualTo(DocumentVerificationStatus.UPLOADED);
+        assertThat(result.get(0).changedBy()).isEqualTo("admin");
+    }
+
+    @Test
+    void shouldThrowWhenGetHistoryForNonExistentDocument() {
+        when(documentRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.getHistory(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Document not found with id: 999");
+    }
+
+    @Test
+    void shouldFindPendingSummaries() {
+        Department dept = new Department("CS", "CS", "CS Dept", "Head");
+        dept.setId(1L);
+        Faculty faculty = new Faculty("FAC001", "Alice", "Brown", "alice@college.edu",
+            "9876543210", dept, Designation.PROFESSOR, null, null,
+            java.time.LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE);
+        faculty.setId(5L);
+
+        FacultyDocument doc1 = new FacultyDocument(faculty, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
+        doc1.setId(1L);
+        FacultyDocument doc2 = new FacultyDocument(faculty, DocumentType.AADHAR_CARD, DocumentVerificationStatus.UPLOADED);
+        doc2.setId(2L);
+
+        when(documentRepository.findByStatus(DocumentVerificationStatus.UPLOADED))
+            .thenReturn(List.of(doc1, doc2));
+
+        List<FacultyPendingDocumentsSummary> result = service.findPendingSummaries();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).facultyId()).isEqualTo(5L);
+        assertThat(result.get(0).pendingCount()).isEqualTo(2);
+        assertThat(result.get(0).departmentName()).isEqualTo("CS");
+        assertThat(result.get(0).designation()).isEqualTo(Designation.PROFESSOR.name());
     }
 
     @Test

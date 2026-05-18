@@ -24,8 +24,11 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.model.Permission;
+import com.cms.model.RoleDashboardWidgetConfig;
+import com.cms.model.UserDashboardWidgetConfig;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.PermissionRepository;
+import com.cms.repository.UserDashboardWidgetConfigRepository;
 import com.cms.service.UserPermissionService;
 
 @WebMvcTest(controllers = PermissionController.class)
@@ -42,6 +45,9 @@ class PermissionControllerTest {
 
     @MockitoBean
     private UserPermissionService userPermissionService;
+
+    @MockitoBean
+    private UserDashboardWidgetConfigRepository userWidgetConfigRepo;
 
     @MockitoBean(name = "perm")
     private PermSecurityBean perm;
@@ -94,6 +100,44 @@ class PermissionControllerTest {
         mockMvc.perform(get("/permissions/my")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "ghost"))))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnMyPermissionsWithUserWidgetConfigs() throws Exception {
+        AppRole role = new AppRole("ADMIN", "Admin", 3, false, null);
+        role.setId(1L);
+        AppUser user = new AppUser("admin", "admin@test.com", "Admin User", role, true, "system");
+        user.setId(1L);
+
+        UserDashboardWidgetConfig cfg = new UserDashboardWidgetConfig(user, "hero", 0, 2, 1);
+        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(user));
+        when(userPermissionService.getPermissions("admin")).thenReturn(Set.of("USER_VIEW"));
+        when(userWidgetConfigRepo.findByUserIdOrderByWidgetOrderAsc(1L)).thenReturn(List.of(cfg));
+
+        mockMvc.perform(get("/permissions/my")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.dashboardWidgets[0].key").value("hero"));
+    }
+
+    @Test
+    void shouldReturnMyPermissionsWithRoleWidgetConfigs() throws Exception {
+        AppRole role = new AppRole("COLLEGE_ADMIN", "College Admin", 4, false, null);
+        role.setId(2L);
+        RoleDashboardWidgetConfig roleCfg = new RoleDashboardWidgetConfig(role, "stat-students", 0, 1, 1);
+        role.setWidgetConfigs(List.of(roleCfg));
+
+        AppUser user = new AppUser("college_admin", "cadmin@test.com", "College Admin", role, true, "system");
+        user.setId(2L);
+
+        when(appUserRepository.findByKeycloakUsername("college_admin")).thenReturn(Optional.of(user));
+        when(userPermissionService.getPermissions("college_admin")).thenReturn(Set.of());
+        when(userWidgetConfigRepo.findByUserIdOrderByWidgetOrderAsc(2L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/permissions/my")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "college_admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.dashboardWidgets[0].key").value("stat-students"));
     }
 
     @Test

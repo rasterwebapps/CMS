@@ -74,6 +74,9 @@ export interface Faculty {
   email: string;
   phone?: string;
   bio?: string;
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
   departmentId: number;
   departmentName: string;
   designation: Designation;

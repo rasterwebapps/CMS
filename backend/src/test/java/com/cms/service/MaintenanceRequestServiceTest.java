@@ -23,9 +23,12 @@ import com.cms.dto.MaintenanceRequestResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Department;
 import com.cms.model.Equipment;
+import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.MaintenanceRequest;
+import com.cms.model.enums.Designation;
 import com.cms.model.enums.EquipmentCategory;
+import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.EquipmentStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.LabType;
@@ -244,6 +247,102 @@ class MaintenanceRequestServiceTest {
         MaintenanceRequestResponse response = maintenanceRequestService.update(1L, updateRequest);
 
         assertThat(response.status()).isEqualTo(MaintenanceStatus.COMPLETED);
+    }
+
+    @Test
+    void shouldCreateWithRequestedByAndAssignedTo() {
+        Department dept = new Department("CS", "CS", "Dept", "Head");
+        dept.setId(1L);
+        Faculty requestedBy = new Faculty("FAC001", "Alice", "Brown", "alice@college.edu", "9999999990",
+            dept, Designation.PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+        requestedBy.setId(2L);
+        Faculty assignedTo = new Faculty("FAC002", "Bob", "Green", "bob@college.edu", "9999999991",
+            dept, Designation.ASSISTANT_PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+        assignedTo.setId(3L);
+
+        MaintenanceRequestDto request = new MaintenanceRequestDto(
+            1L, "Repair screen", "Screen broken", MaintenanceType.CORRECTIVE,
+            MaintenancePriority.HIGH, MaintenanceStatus.REQUESTED, 2L, LocalDate.now(),
+            null, null, 3L, null, null, null
+        );
+
+        MaintenanceRequest saved = createMaintenanceRequest(1L, testEquipment, "Repair screen",
+            MaintenanceType.CORRECTIVE, MaintenancePriority.HIGH, MaintenanceStatus.REQUESTED);
+        saved.setRequestedBy(requestedBy);
+        saved.setAssignedTo(assignedTo);
+
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(testEquipment));
+        when(facultyRepository.findById(2L)).thenReturn(Optional.of(requestedBy));
+        when(facultyRepository.findById(3L)).thenReturn(Optional.of(assignedTo));
+        when(maintenanceRequestRepository.save(any(MaintenanceRequest.class))).thenReturn(saved);
+
+        MaintenanceRequestResponse response = maintenanceRequestService.create(request);
+
+        assertThat(response.id()).isEqualTo(1L);
+        verify(facultyRepository).findById(2L);
+        verify(facultyRepository).findById(3L);
+    }
+
+    @Test
+    void shouldUpdateWithInProgressStatusSetsEquipmentUnderMaintenance() {
+        MaintenanceRequest existing = createMaintenanceRequest(1L, testEquipment, "Fix screen",
+            MaintenanceType.CORRECTIVE, MaintenancePriority.MEDIUM, MaintenanceStatus.REQUESTED);
+
+        MaintenanceRequestDto updateRequest = new MaintenanceRequestDto(
+            1L, "Fix screen", "In progress now", MaintenanceType.CORRECTIVE,
+            MaintenancePriority.MEDIUM, MaintenanceStatus.IN_PROGRESS, null, LocalDate.now(),
+            null, null, null, null, null, null
+        );
+
+        MaintenanceRequest updated = createMaintenanceRequest(1L, testEquipment, "Fix screen",
+            MaintenanceType.CORRECTIVE, MaintenancePriority.MEDIUM, MaintenanceStatus.IN_PROGRESS);
+
+        when(maintenanceRequestRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(testEquipment));
+        when(maintenanceRequestRepository.save(any(MaintenanceRequest.class))).thenReturn(updated);
+
+        MaintenanceRequestResponse response = maintenanceRequestService.update(1L, updateRequest);
+
+        assertThat(response.status()).isEqualTo(MaintenanceStatus.IN_PROGRESS);
+        verify(equipmentRepository).save(any(Equipment.class));
+    }
+
+    @Test
+    void shouldUpdateWithRequestedByAndAssignedTo() {
+        Department dept = new Department("CS", "CS", "Dept", "Head");
+        dept.setId(1L);
+        Faculty requestedBy = new Faculty("FAC001", "Alice", "Brown", "alice@college.edu", "9999999990",
+            dept, Designation.PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+        requestedBy.setId(2L);
+        Faculty assignedTo = new Faculty("FAC002", "Bob", "Green", "bob@college.edu", "9999999991",
+            dept, Designation.ASSISTANT_PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+        assignedTo.setId(3L);
+
+        MaintenanceRequest existing = createMaintenanceRequest(1L, testEquipment, "Repair",
+            MaintenanceType.CORRECTIVE, MaintenancePriority.LOW, MaintenanceStatus.REQUESTED);
+
+        MaintenanceRequestDto updateRequest = new MaintenanceRequestDto(
+            1L, "Repair", "Details", MaintenanceType.CORRECTIVE,
+            MaintenancePriority.LOW, MaintenanceStatus.REQUESTED, 2L, LocalDate.now(),
+            null, null, 3L, null, null, null
+        );
+
+        MaintenanceRequest updated = createMaintenanceRequest(1L, testEquipment, "Repair",
+            MaintenanceType.CORRECTIVE, MaintenancePriority.LOW, MaintenanceStatus.REQUESTED);
+        updated.setRequestedBy(requestedBy);
+        updated.setAssignedTo(assignedTo);
+
+        when(maintenanceRequestRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(testEquipment));
+        when(facultyRepository.findById(2L)).thenReturn(Optional.of(requestedBy));
+        when(facultyRepository.findById(3L)).thenReturn(Optional.of(assignedTo));
+        when(maintenanceRequestRepository.save(any(MaintenanceRequest.class))).thenReturn(updated);
+
+        MaintenanceRequestResponse response = maintenanceRequestService.update(1L, updateRequest);
+
+        assertThat(response.requestedById()).isEqualTo(2L);
+        verify(facultyRepository).findById(2L);
+        verify(facultyRepository).findById(3L);
     }
 
     @Test

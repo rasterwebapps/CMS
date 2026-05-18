@@ -34,6 +34,7 @@ import com.cms.dto.FacultyDocumentResponse;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.service.FacultyDocumentService;
+import com.cms.service.FacultyDocumentTypeRequirementService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = FacultyDocumentController.class)
@@ -48,6 +49,9 @@ class FacultyDocumentControllerTest {
 
     @MockitoBean
     private FacultyDocumentService documentService;
+
+    @MockitoBean
+    private FacultyDocumentTypeRequirementService documentTypeRequirementService;
 
     @Test
     void shouldListDocumentsForFaculty() throws Exception {

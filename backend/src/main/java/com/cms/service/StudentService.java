@@ -362,6 +362,9 @@ public class StudentService {
             address != null ? address.getState() : null,
             address != null ? address.getPincode() : null,
             student.getBio(),
+            student.getEmergencyContactName(),
+            student.getEmergencyContactRelationship(),
+            student.getEmergencyContactPhone(),
             student.getCreatedAt(),
             student.getUpdatedAt()
         );
