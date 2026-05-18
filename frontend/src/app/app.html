@@ -23,7 +23,15 @@
         <span class="toolbar-brand-name">SKS College Of Nursing</span>
       }
     } @else {
-      <!-- Mobile: logo links to dashboard -->
+      <!-- Mobile: hamburger menu + brand link to dashboard.
+           The hamburger is the only way to open the navigation drawer on phones. -->
+      <button type="button" mat-icon-button class="toolbar-mobile-menu-btn"
+              (click)="toggleMobileDrawer()"
+              [attr.aria-expanded]="mobileDrawerOpen()"
+              aria-label="Open navigation menu"
+              aria-controls="app-sidenav">
+        <mat-icon>{{ mobileDrawerOpen() ? 'close' : 'menu' }}</mat-icon>
+      </button>
       <a [routerLink]="'/dashboard'" class="toolbar-brand">
         @if (!toolbarLogoError()) {
           <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
@@ -135,6 +143,7 @@
     [mode]="isMobile() || hoverExpanded() ? 'over' : 'side'"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
+    id="app-sidenav"
     class="app-sidenav"
     [class.collapsed]="sidenavRail() && !isMobile()"
     [class.hover-expanded]="hoverExpanded() && !isMobile()"

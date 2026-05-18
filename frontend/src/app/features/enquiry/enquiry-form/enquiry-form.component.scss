@@ -108,7 +108,9 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 
-  @media (max-width: 560px) { grid-template-columns: 1fr; }
+  // Collapse to single column on phones (matches the project-wide
+  // 640 px breakpoint defined in styles.scss safety nets).
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
 }
 
 .field-label {

@@ -112,3 +112,12 @@ Each specialist speaks only when their domain is affected by the requirement.
 - Long forms: sticky floating footer with Save/Cancel buttons. Short forms: Save/Cancel at bottom only.
 - Follow existing Angular and Spring Boot patterns unless a deviation is explicitly approved.
 - Always check BUSINESS_REQUIREMENTS.md and milestone trackers for context before implementing.
+
+### Component Touch Rule (mandatory, no exceptions)
+
+Whenever any existing component is modified — even to add a single field or section — the **full component** must be visually verified before marking the task done:
+1. Check both **light mode** and **dark mode**.
+2. Check all **user roles** that see the component (admin, faculty, student) if the component has role-conditional rendering.
+3. Check that **all existing features** of the component still work — do not only check the new addition.
+4. Check for **@extend / SCSS inheritance issues** — `@extend` across Angular component ViewEncapsulation boundaries does not work; always use `%placeholder` within the same file or write explicit CSS.
+5. If any part looks broken or inconsistent, fix it before moving on — do not leave it for the next instruction.

@@ -482,3 +482,34 @@ When generating code for this project, adhere to these quality rules to prevent 
 
 ### Quality Verification
 After generating code, always validate: (1) it compiles, (2) all tests pass, (3) coverage remains ≥ 95%, (4) all imports resolve, (5) it matches skill template patterns. See `docs/TECHNICAL_STANDARDS.md` Section 8 for the full AI output quality checklist.
+
+### Responsive-by-Default (mandatory for all new UI)
+
+**Every screen — list, form, dashboard, dialog — must work from a 320 px basic phone up to a 16″ MacBook with no horizontal page scroll and no clipped controls.**
+
+Standard breakpoints (already used across the app and codified in `styles.scss`):
+
+| Width      | Audience         | Layout expectation                                          |
+|------------|------------------|-------------------------------------------------------------|
+| ≤ 480 px   | Basic phones     | Single column, full-width buttons, hide long labels         |
+| ≤ 640 px   | Modern phones    | Single column for `.field-row`, stacked MLP toolbar         |
+| ≤ 767 px   | Tablet portrait  | `ResponsiveService.isMobile` → drawer in `over` mode        |
+| ≤ 1023 px  | Tablet landscape | Tables horizontally scrollable, two-column layouts collapse |
+| ≥ 1024 px  | Desktop          | Full multi-column layouts                                   |
+
+**Rules:**
+
+1. **Never assume a wide viewport.** Default to a single-column layout and progressively enhance with `min-width` media queries.
+2. **Tables** must live inside a container that allows `overflow-x: auto` on mobile. The global safety net in `styles.scss` covers `.content-card`, `.mlp-table-card`, etc., but new wrappers must also opt in.
+3. **Card actions** that appear on hover must also be visible on touch — wrap with `@media (hover: none)` or rely on the global safety net.
+4. **Tap targets**: minimum 40 × 40 CSS px for any interactive control shown on phones (WCAG 2.5.5).
+5. **Forms**: long forms use the sticky floating footer (`.entry-form-sticky-footer`) so Save/Cancel stay reachable on small screens. Short forms keep buttons at the bottom only.
+6. **Two-column layouts** (e.g., `entry-form-layout`, side-by-side cards) **must** collapse to a single column at `≤ 900 px`.
+7. **Use `ResponsiveService`** (`isMobile()`, `isTablet()`, `isDesktop()` signals) for any conditional rendering rather than custom `window.innerWidth` checks.
+8. **Navigation drawer** on mobile is `over` mode — never `side`. It is opened only via the toolbar hamburger button.
+9. **Cards over tables on phones**: when a list screen offers both a table view and a card view (`<cms-view-toggle>`), default to card view on mobile via `ResponsiveService.isMobile()`.
+10. **Test on a 360 × 740 viewport** (most common Android phone) before declaring a screen complete. Verify (a) no horizontal scroll, (b) all primary actions reachable, (c) text is at least 14 px effective.
+
+Screens that are mobile-compatible vs not: see `docs/MOBILE_COMPATIBILITY_MATRIX.md`.
+
+

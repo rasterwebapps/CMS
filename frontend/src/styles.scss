@@ -4329,4 +4329,198 @@ html.large-text {
   font-size: 17px;  // base is 16px — increases all rem-based sizes proportionally
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 📱  GLOBAL RESPONSIVE / MOBILE SAFETY NETS  (added 2026-05-18)
+//
+// Every screen in OneCMS must look and function correctly on devices ranging
+// from a 320px basic phone to a 16″ MacBook. These rules are a backstop so
+// that screens which forgot to handle mobile still degrade gracefully.
+//
+// Breakpoints used across the app:
+//   ≤ 480px  → small phones      (basic / compact Android, iPhone SE)
+//   ≤ 640px  → phones            (most modern phones in portrait)
+//   ≤ 767px  → tablets-portrait  (matches ResponsiveService.isMobile)
+//   ≤ 1023px → tablets-landscape (matches ResponsiveService.isTablet)
+//   ≥ 1024px → desktops          (matches ResponsiveService.isDesktop)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── 1. Tables: always horizontally scrollable on mobile ──────────────────────
+@media (max-width: 1023px) {
+  .content-card,
+  .mlp-table-card,
+  .dept-table-card,
+  .stu-table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 767px) {
+  table.mat-mdc-table,
+  table.mat-table,
+  table.modern-table {
+    min-width: 640px;
+  }
+
+  table.modern-table {
+    th.mat-header-cell,
+    th.mat-mdc-header-cell,
+    td.mat-cell,
+    td.mat-mdc-cell {
+      padding: 10px 12px;
+    }
+  }
+
+  .mat-mdc-paginator-container {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    row-gap: 4px;
+  }
+}
+
+// ── 2. Card actions: always visible on touch devices ─────────────────────────
+@media (hover: none) {
+  .mlp-card__actions,
+  .dept-card__actions,
+  .card-actions,
+  .row-actions,
+  .hover-actions {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .mlp-card__actions,
+  .dept-card__actions,
+  .card-actions,
+  .hover-actions {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+}
+
+// ── 3. Field rows: always single-column on phones ────────────────────────────
+@media (max-width: 640px) {
+  div.field-row,
+  .field-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+// ── 4. Breadcrumb: prevent overflow on phones ────────────────────────────────
+@media (max-width: 767px) {
+  .breadcrumb-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px;
+
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    .breadcrumb-item {
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+// ── 5. Sticky form footer: full-width buttons on phones ──────────────────────
+@media (max-width: 640px) {
+  .entry-form-sticky-footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+
+    &__hint {
+      flex-basis: 100%;
+      margin-right: 0;
+      margin-bottom: 6px;
+    }
+
+    .btn-cancel,
+    .btn-submit,
+    .btn-primary,
+    .btn-ghost {
+      flex: 1;
+      min-width: 0;
+      justify-content: center;
+    }
+  }
+}
+
+// ── 6. Tap-target minimum on phones (WCAG 2.5.5: ≥ 40 CSS px) ────────────────
+@media (max-width: 767px) {
+  .btn-icon-action,
+  .action-btn,
+  .mlp-act-btn,
+  .dept-act-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+// ── 7. MLP toolbar: stack on phones ──────────────────────────────────────────
+@media (max-width: 640px) {
+  .mlp-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+
+    .search-bar { max-width: none; width: 100%; }
+
+    .mlp-filter-select,
+    .filter-sel,
+    .enq-filter-select {
+      width: 100%;
+    }
+
+    cms-view-toggle,
+    .mlp-seg {
+      margin-left: 0;
+      align-self: flex-end;
+    }
+  }
+}
+
+// ── 8. List page headers: stack title row + primary action on phones ─────────
+@media (max-width: 640px) {
+  .mlp-hdr,
+  .dept-pg-hdr,
+  .stu-hdr {
+    flex-direction: column;
+    align-items: stretch;
+
+    .btn-primary {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .mlp-title,
+  .dept-pg-title,
+  .stu-title,
+  .page-title {
+    font-size: 1.5rem;
+  }
+}
+
+// ── 9. Dialogs: fit the viewport on small phones ─────────────────────────────
+@media (max-width: 480px) {
+  .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+    border-radius: 12px !important;
+  }
+
+  .cdk-overlay-pane.mat-mdc-dialog-panel,
+  .cdk-overlay-pane {
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
+// ── 10. Hide long username on very small phones (avatar still shown) ─────────
+@media (max-width: 480px) {
+  .toolbar-username { display: none; }
+}
+
 

@@ -55,6 +55,16 @@
       display: none;
     }
   }
+
+  // ── Mobile: brand area collapses to its content so the right-side
+  //    actions (search, avatar) have room on small screens. The fixed
+  //    272px width that mirrors the sidenav is desktop-only.
+  &.is-mobile {
+    width: auto;
+    padding: 0 6px;
+    gap: 4px;
+    border-right: none;
+  }
 }
 
 .toolbar-right {
@@ -959,3 +969,34 @@
   display: block;
   min-height: 1px;
 }
+
+// ──────────────────────────────────────────────────
+// Mobile toolbar hamburger button — opens the nav drawer.
+// Visible only on mobile (the desktop logo button handles toggling).
+// ──────────────────────────────────────────────────
+.toolbar-mobile-menu-btn {
+  flex-shrink: 0;
+  width: 40px !important;
+  height: 40px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border-radius: var(--cms-radius-md) !important;
+  color: var(--cms-toolbar-btn-color, var(--cms-text-secondary)) !important;
+  transition: var(--cms-transition) !important;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--cms-toolbar-btn-hover-color, var(--cms-primary)) !important;
+    background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover)) !important;
+  }
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+  }
+}
+

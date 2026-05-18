@@ -699,3 +699,16 @@ $purple: #A78BFA;
   .stats-grid      { grid-template-columns: repeat(2, 1fr); }
   .hero-title      { font-size: 24px; }
 }
+
+// Small-phone polish: stack KPIs to a single column and let the hero strip
+// wrap so each stat keeps a comfortable tap-target.
+@media (max-width: 480px) {
+  .admin-dashboard  { padding: 12px 10px 32px; }
+  .hero             { padding: 20px 18px; }
+  .hero-title       { font-size: 22px; }
+  .hero-stats-strip { flex-wrap: wrap; row-gap: 10px; }
+  .stats-grid       { grid-template-columns: 1fr; }
+  .hero-actions .btn,
+  .hero-actions button { width: 100%; }
+}
+

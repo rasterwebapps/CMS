@@ -431,6 +431,14 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Mobile-only: opens/closes the navigation drawer. The drawer is in
+   * `over` mode on mobile so toggling it doesn't push content.
+   */
+  protected toggleMobileDrawer(): void {
+    this.mobileDrawerOpen.update((v) => !v);
+  }
+
   /** Hover-expand handlers — only active when the rail is unpinned. */
   protected onSidenavMouseEnter(): void {
     if (this.sidenavCollapsed() && !this.isMobile()) {

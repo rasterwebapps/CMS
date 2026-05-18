@@ -2,6 +2,11 @@
 .loading-center { display: flex; justify-content: center; padding: 60px; }
 .full-width { width: 100%; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+// Stack to a single column on phones so labels and inputs remain readable.
+@media (max-width: 640px) {
+  .field-row { grid-template-columns: 1fr; }
+}
 .consent-row { display: flex; gap: 24px; margin: 8px 0 16px; }
 .qualifications-section { margin-top: 24px; border-top: 1px solid var(--cms-border-default); padding-top: 16px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; h3 { margin: 0; } }
