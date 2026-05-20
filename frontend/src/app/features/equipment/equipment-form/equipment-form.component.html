@@ -38,8 +38,8 @@
               <input id="eq-name" class="field-input" formControlName="name"
                 placeholder="e.g., Dell Optiplex Desktop" autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
-                <p class="field-error">Name is required</p>
+              @if (getFieldError('name')) {
+                <p class="field-error">{{ getFieldError('name') }}</p>
               }
             </div>
 
@@ -66,8 +66,8 @@
                     <option [ngValue]="lab.id">{{ lab.name }}</option>
                   }
                 </select>
-                @if (form.get('labId')?.invalid && form.get('labId')?.touched) {
-                  <p class="field-error">Lab is required</p>
+                @if (getFieldError('labId')) {
+                  <p class="field-error">{{ getFieldError('labId') }}</p>
                 }
               </div>
 
@@ -80,8 +80,8 @@
                     <option [value]="cat">{{ cat }}</option>
                   }
                 </select>
-                @if (form.get('category')?.invalid && form.get('category')?.touched) {
-                  <p class="field-error">Category is required</p>
+                @if (getFieldError('category')) {
+                  <p class="field-error">{{ getFieldError('category') }}</p>
                 }
               </div>
             </div>

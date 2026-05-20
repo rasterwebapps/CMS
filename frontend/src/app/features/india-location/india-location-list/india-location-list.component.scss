@@ -1,0 +1,135 @@
+.state-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.state-card {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+
+  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  &--expanded { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  &__name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-primary, #111);
+  }
+
+  &__actions-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  &__chevron {
+    transition: transform 0.2s;
+    color: var(--text-muted, #6b7280);
+  }
+
+  &--expanded &__chevron {
+    transform: rotate(180deg);
+  }
+
+  &__districts {
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--border-subtle, #e5e7eb);
+    background: var(--surface-hover, #f9fafb);
+  }
+}
+
+.no-districts {
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+  a { color: var(--color-primary, #6366f1); text-decoration: underline; }
+}
+
+.district-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  &--table { margin-top: 8px; }
+}
+
+.district-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-default, #f3f4f6);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 20px;
+  padding: 3px 10px 3px 10px;
+  font-size: 12px;
+  color: var(--text-primary, #111);
+
+  &--inactive {
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  &__edit, &__delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+    color: var(--text-muted, #6b7280);
+    line-height: 1;
+
+    &:hover { color: var(--color-danger, #ef4444); }
+  }
+}
+
+.district-chip-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface-default, #f3f4f6);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 12px;
+
+  &--inactive {
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+}
+
+.state-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  font-weight: 500;
+}
+

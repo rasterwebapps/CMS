@@ -1,0 +1,248 @@
+<div class="docv-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <header class="docv-hdr anim-rise">
+    <div class="docv-hdr__left">
+      <h1 class="docv-title">Verify <em>Documents</em></h1>
+      <p class="docv-sub">Review and verify submitted documents for candidates awaiting admission</p>
+    </div>
+
+    @if (!loading()) {
+      <div class="stat-cluster">
+        <div class="stat-chip stat-chip--amber">
+          <span class="stat-chip__num">{{ totalCount() }}</span>
+          <span class="stat-chip__lbl">Awaiting Verification</span>
+        </div>
+      </div>
+    }
+  </header>
+
+  <!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
+  <div class="docv-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-bar__input" type="text" placeholder="Search by name, program, course or phone…"
+             [value]="searchQuery()" (input)="onSearch($event)" aria-label="Search" />
+      @if (searchQuery()) {
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <div class="filter-group">
+      <select class="filter-sel" [value]="filterProgram()"
+              (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
+        <option value="ALL">All Programs</option>
+        @for (p of programs(); track p) {
+          <option [value]="p">{{ p }}</option>
+        }
+      </select>
+
+      <select class="filter-sel" [value]="filterStudentType()"
+              (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
+        <option value="ALL">All Types</option>
+        <option value="DAY_SCHOLAR">Day Scholar</option>
+        <option value="HOSTELER">Hosteler</option>
+      </select>
+
+      @if (hasActiveFilters()) {
+        <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Clear
+        </button>
+      }
+    </div>
+
+    <div class="toolbar-end">
+      @if (!loading()) {
+        <span class="row-count">
+          @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} }
+          @else { {{ totalCount() }} }
+          candidates
+        </span>
+      }
+
+      <div class="col-menu-wrap">
+        <button class="btn-toolbar" (click)="colMenuOpen = !colMenuOpen"
+                [class.btn-toolbar--active]="colMenuOpen" aria-label="Toggle columns">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Columns
+        </button>
+        @if (colMenuOpen) {
+          <div class="col-menu" (click)="$event.stopPropagation()">
+            @for (col of ALL_COLS; track col) {
+              <label class="col-menu__item">
+                <span class="col-menu__check" [class.col-menu__check--on]="isColumnVisible(col)">
+                  @if (isColumnVisible(col)) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  }
+                </span>
+                <input type="checkbox" class="sr-only" [checked]="isColumnVisible(col)" (change)="toggleColumn(col)" />
+                {{ COLUMN_LABELS[col] }}
+              </label>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Content Card ────────────────────────────────────────────────────── -->
+  <div class="content-card docv-table-card">
+
+    @if (loading()) {
+      <div class="docv-skeleton">
+        @for (_ of [1,2,3,4,5,6,7]; track $index) {
+          <div class="docv-skel-row">
+            <div class="skel skel--avatar"></div>
+            <div class="skel-block">
+              <div class="skel skel--name"></div>
+              <div class="skel skel--sub"></div>
+            </div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--pill"></div>
+            <div class="skel skel--text skel--short"></div>
+          </div>
+        }
+      </div>
+
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table docv-table">
+
+          <!-- Student -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="student-cell">
+                <span class="avatar">{{ computeInitials(row.name) }}</span>
+                <div class="student-info">
+                  <span class="cell-name">{{ row.name }}</span>
+                  @if (row.phone) { <span class="cell-sub">{{ row.phone }}</span> }
+                  @if (row.email && !row.phone) { <span class="cell-sub">{{ row.email }}</span> }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Program -->
+          <ng-container matColumnDef="programName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-label">{{ row.programName || '—' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Course -->
+          <ng-container matColumnDef="courseName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-muted">{{ row.courseName || '—' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Student Type -->
+          <ng-container matColumnDef="studentType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Type</th>
+            <td mat-cell *matCellDef="let row" class="col-center">
+              @if (row.studentType) {
+                <span class="type-chip type-chip--{{ row.studentType === 'DAY_SCHOLAR' ? 'day_scholar' : 'hosteler' }}">
+                  {{ row.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
+                </span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Submitted date -->
+          <ng-container matColumnDef="enquiryDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Submitted</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-date">{{ row.enquiryDate | appDate }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Actions -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
+              <div class="row-actions">
+                <button class="action-btn" matTooltip="View enquiry" (click)="viewEnquiry(row)" aria-label="View enquiry">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                @if (canVerifyDocuments()) {
+                  <button class="verify-btn" (click)="verifyDocuments(row)" aria-label="Verify documents">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Verify
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()"
+              class="table-row table-row--clickable"
+              (click)="verifyDocuments(row)"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">
+              @if (totalCount() === 0) {
+                <cms-empty-state
+                  icon="verified"
+                  title="No documents awaiting verification"
+                  subtitle="Enquiries with submitted documents will appear here automatically."
+                />
+              } @else {
+                <cms-empty-state
+                  icon="search_off"
+                  title="No candidates match your search"
+                  subtitle="Try adjusting the search term or filters."
+                  actionLabel="Clear Filters"
+                  (actionClick)="clearFilters()"
+                />
+              }
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      @if (totalCount() > 0) {
+        <div class="table-footer">
+          <span class="row-count">
+            @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
+            @else { {{ totalCount() }} candidates }
+          </span>
+          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+        </div>
+      }
+    }
+  </div>
+
+</div>

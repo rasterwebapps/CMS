@@ -4,10 +4,12 @@
 //           .widget-loading, .sk-line shimmer animation, light-mode override.
 // ─────────────────────────────────────────────────────────────────────────────
 
-:host { display: block; height: 100%; }
+// flex:1 fills the .widget-cell flex container so the widget card stretches to
+// the full grid area height (both single-row and multi-row spans).
+:host { display: flex; flex-direction: column; flex: 1; }
 
 .widget-shell {
-  height: 100%;
+  flex: 1;
   min-height: 160px;
   border-radius: 16px;
   overflow: hidden;
@@ -124,8 +126,11 @@
 
 .widget-body {
   flex: 1;
+  min-height: 0;
   padding: 16px 18px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .widget-action {

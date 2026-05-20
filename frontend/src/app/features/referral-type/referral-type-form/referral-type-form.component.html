@@ -47,8 +47,8 @@
                 <input id="rt-name" class="field-input" formControlName="name"
                   placeholder="e.g., Walk-in" autocomplete="off"
                   [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-                @if (form.get('name')?.invalid && form.get('name')?.touched) {
-                  <p class="field-error">Name is required</p>
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
                 }
               </div>
 
@@ -59,12 +59,8 @@
                   (input)="onCodeInput($event)"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
                 <p class="field-hint">Uppercase letters, digits and underscores only (e.g., WALK_IN)</p>
-                @if (form.get('code')?.invalid && form.get('code')?.touched) {
-                  @if (form.get('code')?.errors?.['required']) {
-                    <p class="field-error">Code is required</p>
-                  } @else if (form.get('code')?.errors?.['pattern']) {
-                    <p class="field-error">Code must start with a letter and contain only A–Z, 0–9, and underscores</p>
-                  }
+                @if (getFieldError('code')) {
+                  <p class="field-error">{{ getFieldError('code') }}</p>
                 }
               </div>
             </div>
@@ -80,8 +76,8 @@
                   formControlName="commissionAmount" min="0.01" step="0.01" placeholder="e.g., 500"
                   [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched" />
                 <p class="field-hint">Must be greater than zero when commission is enabled.</p>
-                @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
-                  <p class="field-error">Commission amount must be greater than ₹0</p>
+                @if (getFieldError('commissionAmount')) {
+                  <p class="field-error">{{ getFieldError('commissionAmount') }}</p>
                 }
               </div>
             }

@@ -16,6 +16,7 @@ import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours'
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-equipment-form',
@@ -69,7 +70,7 @@ export class EquipmentFormComponent implements OnInit {
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(255)]],
+    name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
     model: ['', [Validators.maxLength(255)]],
     serialNumber: ['', [Validators.maxLength(100)]],
     labId: [null, Validators.required],
@@ -126,5 +127,17 @@ export class EquipmentFormComponent implements OnInit {
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/equipment']); },
       error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = {
+      name: 'Equipment Name',
+      model: 'Model',
+      serialNumber: 'Serial Number',
+      labId: 'Lab',
+      category: 'Category',
+      purchaseCost: 'Purchase Cost',
+    };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 }

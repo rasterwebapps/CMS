@@ -52,6 +52,8 @@
   border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 20%, transparent);
 }
 
+.widget-body { justify-content: center; }
+
 .sc-icon-bubble {
   width: 40px; height: 40px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;

@@ -35,8 +35,8 @@
               <input id="ex-name" class="field-input" formControlName="name"
                 placeholder="e.g., Mid-Semester Theory Exam"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
-                <p class="field-error">Name is required</p>
+              @if (getFieldError('name')) {
+                <p class="field-error">{{ getFieldError('name') }}</p>
               }
             </div>
 
@@ -50,8 +50,8 @@
                     <option [ngValue]="c.id">{{ c.name }}</option>
                   }
                 </select>
-                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-                  <p class="field-error">Course is required</p>
+                @if (getFieldError('courseId')) {
+                  <p class="field-error">{{ getFieldError('courseId') }}</p>
                 }
               </div>
 
@@ -64,8 +64,8 @@
                   <option value="PRACTICAL">Practical</option>
                   <option value="VIVA">Viva</option>
                 </select>
-                @if (form.get('examType')?.invalid && form.get('examType')?.touched) {
-                  <p class="field-error">Exam type is required</p>
+                @if (getFieldError('examType')) {
+                  <p class="field-error">{{ getFieldError('examType') }}</p>
                 }
               </div>
             </div>

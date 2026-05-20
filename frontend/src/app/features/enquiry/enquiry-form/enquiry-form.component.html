@@ -77,20 +77,10 @@
             <p class="field-error">Country is required</p>
           }
         </div>
-        <div class="field-group">
-          <label for="enq-state" class="field-label">State <span class="field-required">*</span></label>
-          <input id="enq-state" class="field-input" formControlName="state"
-                 placeholder="e.g., Tamil Nadu" autocomplete="address-level1"
-                 [class.field-input--error]="form.get('state')?.invalid && form.get('state')?.touched" />
-          @if (form.get('state')?.invalid && form.get('state')?.touched) {
-            <p class="field-error">State is required</p>
-          }
-        </div>
-        <div class="field-group">
-          <label for="enq-district" class="field-label">District</label>
-          <input id="enq-district" class="field-input" formControlName="district"
-                 placeholder="e.g., Coimbatore" autocomplete="off" />
-        </div>
+        <cms-state-district-selector
+          [parentForm]="form"
+          [stateRequired]="true"
+        />
       </div>
 
       <div class="form-divider"></div>

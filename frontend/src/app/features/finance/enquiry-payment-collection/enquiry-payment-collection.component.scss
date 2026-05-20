@@ -320,4 +320,29 @@
 .receipt-actions {
   display: flex;
   justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md, 8px);
+  background: var(--cms-bg-card, #fff);
+  color: var(--cms-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.06);
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+  }
 }

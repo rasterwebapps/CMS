@@ -1,0 +1,49 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>monitoring</mat-icon></div>
+    <span class="widget-title">Fee Collection · This Month</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading" style="align-items:center; gap:14px;">
+        <div class="sk-block" style="width:120px; height:120px; border-radius:50%;"></div>
+        <div class="sk-line sk-line--75"></div>
+        <div class="sk-line sk-line--55"></div>
+      </div>
+    } @else if (error() || !data()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No collection data</span></div>
+    } @else {
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="gauge-track" cx="60" cy="60" r="54" />
+          <circle class="gauge-fill"  cx="60" cy="60" r="54"
+                  [attr.stroke-dasharray]="339.29"
+                  [attr.stroke-dashoffset]="dashOffset()" />
+        </svg>
+        <div class="gauge-center">
+          <span class="gauge-pct">{{ data()!.achievedPct }}%</span>
+          <span class="gauge-cap">of target</span>
+        </div>
+      </div>
+
+      <div class="kpi-rows">
+        <div class="kpi-row">
+          <span class="kpi-label"><span class="kpi-dot kpi-dot--ok"></span>Collected</span>
+          <span class="kpi-val">{{ data()!.collected | inr }}</span>
+        </div>
+        <div class="kpi-row">
+          <span class="kpi-label"><span class="kpi-dot kpi-dot--neu"></span>Target</span>
+          <span class="kpi-val muted">{{ data()!.target | inr }}</span>
+        </div>
+        <div class="kpi-row">
+          <span class="kpi-label">vs last month</span>
+          <span class="kpi-val delta" [class]="deltaClass()">
+            <mat-icon>{{ deltaIcon() }}</mat-icon>{{ data()!.deltaPct }}%
+          </span>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+

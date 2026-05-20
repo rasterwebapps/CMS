@@ -38,6 +38,7 @@ public class UnifiedReceiptService {
 
     /**
      * Persist a student payment receipt to the unified table.
+     * @param feeCategory TUITION_ONLY | TUITION_AND_HOSTEL
      */
     @Transactional
     public void saveStudentReceipt(String receiptNumber,
@@ -45,29 +46,34 @@ public class UnifiedReceiptService {
                                     String programName, BigDecimal amountPaid,
                                     LocalDate paymentDate, String paymentMode,
                                     String transactionReference, String remarks,
-                                    String installmentsCovered, String collectedBy) {
+                                    String installmentsCovered, String collectedBy,
+                                    String feeCategory) {
         PaymentReceipt receipt = new PaymentReceipt(
             receiptNumber, "STUDENT", studentId,
             studentName, rollNumber, admissionNumber, programName,
             amountPaid, paymentDate, paymentMode,
             transactionReference, remarks, installmentsCovered, collectedBy);
+        receipt.setFeeCategory(feeCategory);
         receiptRepository.save(receipt);
     }
 
     /**
      * Persist an enquiry payment receipt to the unified table.
+     * @param feeCategory TUITION_ONLY | TUITION_AND_HOSTEL | null for pre-enrollment
      */
     @Transactional
     public void saveEnquiryReceipt(String receiptNumber,
                                     Long enquiryId, String enquiryName, String programName,
                                     BigDecimal amountPaid, LocalDate paymentDate, String paymentMode,
                                     String transactionReference, String remarks,
-                                    String installmentsCovered, String collectedBy) {
+                                    String installmentsCovered, String collectedBy,
+                                    String feeCategory) {
         PaymentReceipt receipt = new PaymentReceipt(
             receiptNumber, "ENQUIRY", enquiryId,
             enquiryName, null, programName,
             amountPaid, paymentDate, paymentMode,
             transactionReference, remarks, installmentsCovered, collectedBy);
+        receipt.setFeeCategory(feeCategory);
         receiptRepository.save(receipt);
     }
 
@@ -101,7 +107,7 @@ public class UnifiedReceiptService {
             r.getPayerIdentifier(), r.getAdmissionNumber(), r.getProgramName(),
             r.getAmountPaid(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getRemarks(),
-            r.getInstallmentsCovered(), r.getCollectedBy(), r.getCreatedAt());
+            r.getInstallmentsCovered(), r.getCollectedBy(), r.getFeeCategory(), r.getCreatedAt());
     }
 }
 

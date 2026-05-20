@@ -48,3 +48,13 @@ cms:
   seed:
     enabled: false
 
+# Keycloak Admin REST API — used to create/delete users programmatically.
+# Override via environment variables; defaults below suit local dev.
+keycloak:
+  admin:
+    base-url: ${KEYCLOAK_BASE_URL:http://localhost:8280}
+    realm: ${KEYCLOAK_REALM:cms}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+

@@ -16,6 +16,7 @@ import { COURSE_FORM_TOUR } from '../../../shared/tour/tours/course.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-course-form',
@@ -69,8 +70,8 @@ export class CourseFormComponent implements OnInit {
   private courseId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    code: ['', [Validators.required, Validators.maxLength(20)]],
+    name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
     specialization: [''],
     programId: [null as number | null, [Validators.required]],
   });
@@ -80,7 +81,7 @@ export class CourseFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
-        this.previewCode.set((v.code ?? '').toUpperCase().trim());
+        this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
         this.previewSpec.set((v.specialization ?? '').trim());
         this.previewProgramId.set(v.programId ?? null);
       });
@@ -143,39 +144,14 @@ export class CourseFormComponent implements OnInit {
     });
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Course Name',
+    code: 'Code',
+    specialization: 'Specialization',
+  };
+
   protected getErrorMessage(fieldName: string): string {
-    const control = this.form.get(fieldName);
-    if (!control || !control.errors) {
-      return '';
-    }
-
-    if (control.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required`;
-    }
-    if (control.errors['maxlength']) {
-      const maxLength = control.errors['maxlength'].requiredLength;
-      return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
-    }
-    if (control.errors['min']) {
-      const min = control.errors['min'].min;
-      return `${this.getFieldLabel(fieldName)} must be at least ${min}`;
-    }
-    if (control.errors['max']) {
-      const max = control.errors['max'].max;
-      return `${this.getFieldLabel(fieldName)} must be at most ${max}`;
-    }
-
-    return '';
-  }
-
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      name: 'Name',
-      code: 'Code',
-      specialization: 'Specialization',
-      programId: 'Program',
-    };
-    return labels[fieldName] || fieldName;
+    return cmsFieldError(this.form.get(fieldName), CourseFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
   }
 
   private loadPrograms(): void {

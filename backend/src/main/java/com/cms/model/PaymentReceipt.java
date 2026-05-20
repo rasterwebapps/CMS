@@ -66,6 +66,10 @@ public class PaymentReceipt {
     @Column(name = "collected_by", length = 100)
     private String collectedBy;
 
+    /** TUITION_ONLY | TUITION_AND_HOSTEL — null for pre-enrollment payments */
+    @Column(name = "fee_category", length = 30)
+    private String feeCategory;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -147,6 +151,9 @@ public class PaymentReceipt {
 
     public String getCollectedBy() { return collectedBy; }
     public void setCollectedBy(String collectedBy) { this.collectedBy = collectedBy; }
+
+    public String getFeeCategory() { return feeCategory; }
+    public void setFeeCategory(String feeCategory) { this.feeCategory = feeCategory; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

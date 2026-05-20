@@ -6,6 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ScholarshipTypeRequest } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-scholarship-type-form',
@@ -29,8 +30,8 @@ export class ScholarshipTypeFormComponent implements OnInit {
   protected readonly discountTypes = ['PERCENTAGE', 'FIXED_AMOUNT', 'FULL_WAIVER'];
 
   protected readonly form = this.fb.group({
-    code: ['', [Validators.required, Validators.maxLength(20)]],
-    name: ['', [Validators.required, Validators.maxLength(100)]],
+    code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
+    name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
     description: [''],
     govtScheme: [false],
     schemeCode: [''],
@@ -85,6 +86,17 @@ export class ScholarshipTypeFormComponent implements OnInit {
       next: s => { this.form.patchValue(s); this.loading.set(false); },
       error: () => { this.toast.error('Failed to load scholarship'); void this.router.navigate(['/scholarships']); },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = {
+      code: 'Code',
+      name: 'Name',
+      schemeCode: 'Scheme Code',
+      discountValue: 'Discount Value',
+      maxAmountPerYear: 'Max Amount Per Year',
+    };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 }
 

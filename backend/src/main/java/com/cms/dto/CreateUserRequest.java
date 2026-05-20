@@ -11,12 +11,19 @@ public record CreateUserRequest(
     @NotBlank(message = "Full name is required")
     String fullName,
 
-    @NotBlank(message = "Keycloak username is required")
+    @NotBlank(message = "Username is required")
     String keycloakUsername,
 
     @NotBlank(message = "Password is required")
+    @jakarta.validation.constraints.Size(min = 8, message = "Password must be at least 8 characters")
     String password,
 
     @NotBlank(message = "Role name is required")
-    String roleName
+    String roleName,
+
+    /** Link to a specific student record. Set when creating a student login account. */
+    Long studentId,
+
+    /** Link to a specific faculty record. Set when creating a faculty login account. */
+    Long facultyId
 ) {}

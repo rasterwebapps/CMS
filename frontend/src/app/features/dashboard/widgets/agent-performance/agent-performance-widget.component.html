@@ -1,0 +1,56 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>emoji_events</mat-icon></div>
+    <span class="widget-title">Agent Performance</span>
+    <a routerLink="/agents" class="widget-action">View all →</a>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+            <div class="sk-block" style="width:28px; height:28px; border-radius:50%;"></div>
+            <div style="flex:1;"><div class="sk-line sk-line--75"></div></div>
+            <div class="sk-line sk-line--40" style="width:36px;"></div>
+          </div>
+        }
+      </div>
+    } @else if (error() || rows().length === 0) {
+      <div class="widget-error"><mat-icon>support_agent</mat-icon><span>No agent activity yet</span></div>
+    } @else {
+      <table class="lb">
+        <thead>
+          <tr>
+            <th class="lb-rank">#</th>
+            <th>Agent</th>
+            <th class="num">Leads</th>
+            <th class="num">Conv</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.agentId; let i = $index) {
+            <tr>
+              <td class="lb-rank">
+                <span class="rank-medal" [class]="rankClass(i)">{{ i + 1 }}</span>
+              </td>
+              <td class="lb-agent">
+                <span class="avatar">{{ initials(row.agentName) }}</span>
+                <span class="agent-name" [title]="row.agentName">{{ row.agentName }}</span>
+              </td>
+              <td class="num">{{ row.leads }}</td>
+              <td class="num">{{ row.conversions }}</td>
+              <td class="num conv-pct"
+                  [class.hi]="row.conversionPct >= 50"
+                  [class.lo]="row.conversionPct < 20 && row.leads > 0">
+                {{ row.conversionPct }}%
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
+

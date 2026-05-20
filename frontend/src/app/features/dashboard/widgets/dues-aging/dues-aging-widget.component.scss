@@ -1,0 +1,87 @@
+@use '../widget-shell' as *;
+
+:host { --ca: #EF4444; }
+
+$amber: #F59E0B;
+$red:   #EF4444;
+$green: #22C55E;
+
+.total-pill {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  color: var(--ca);
+  background: color-mix(in srgb, var(--ca) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ca) 22%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-row { margin-bottom: 11px; &:last-child { margin-bottom: 0; } }
+
+.ag-meta {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline; gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ag-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 500;
+  color: rgba(255,255,255,.6);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.ag-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  &[data-sev='amber'] { background: $amber; }
+  &[data-sev='red']   { background: $red; }
+}
+
+.ag-count {
+  font-size: 10.5px; color: rgba(255,255,255,.35);
+  font-variant-numeric: tabular-nums;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+}
+
+.ag-amt {
+  font-size: 12px; font-weight: 700;
+  color: rgba(255,255,255,.85);
+  font-variant-numeric: tabular-nums;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
+}
+
+.ag-track {
+  height: 8px; border-radius: 6px; overflow: hidden;
+  background: rgba(255,255,255,.05);
+  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.04); }
+}
+
+.ag-fill {
+  height: 100%; border-radius: 6px;
+  width: var(--w, 0%);
+  animation: ag-grow .6s cubic-bezier(.4,0,.2,1) both;
+  animation-delay: calc(.08s + var(--i, 0) * .08s);
+
+  &[data-sev='amber'] {
+    background: linear-gradient(90deg, color-mix(in srgb, $amber 55%, transparent), $amber);
+    box-shadow: 0 0 8px color-mix(in srgb, $amber 30%, transparent);
+  }
+  &[data-sev='red'] {
+    background: linear-gradient(90deg, color-mix(in srgb, $red 55%, transparent), $red);
+    box-shadow: 0 0 8px color-mix(in srgb, $red 30%, transparent);
+  }
+}
+
+.all-clear {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 18px 0;
+  color: $green;
+  font-size: 12.5px; font-weight: 600;
+  mat-icon { font-size: 28px; width: 28px; height: 28px; }
+}
+
+@keyframes ag-grow {
+  from { width: 0 !important; }
+  to   { width: var(--w, 0%); }
+}
+

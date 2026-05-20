@@ -20,6 +20,7 @@ public record UnifiedReceiptResponse(
     String remarks,
     String installmentsCovered,
     String collectedBy,
+    /** TUITION_ONLY | TUITION_AND_HOSTEL — null for pre-enrollment receipts */
+    String feeCategory,
     Instant createdAt
 ) {}
-

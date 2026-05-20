@@ -8,11 +8,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DepartmentService } from '../department.service';
 import { DepartmentRequest } from '../department.model';
+import { FacultyService } from '../../faculty/faculty.service';
+import { Faculty } from '../../faculty/faculty.model';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/department.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-department-form',
@@ -34,6 +37,7 @@ export class DepartmentFormComponent implements OnInit {
   private readonly route             = inject(ActivatedRoute);
   private readonly router            = inject(Router);
   private readonly departmentService = inject(DepartmentService);
+  private readonly facultyService    = inject(FacultyService);
   private readonly snackBar          = inject(MatSnackBar);
   private readonly destroyRef        = inject(DestroyRef);
   private readonly tourService       = inject(TourService);
@@ -43,6 +47,8 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly succeeded = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Department');
+  protected readonly faculties        = signal<Faculty[]>([]);
+  protected readonly facultiesLoading = signal(false);
 
   protected readonly previewCode = signal('');
   protected readonly previewName = signal('');
@@ -50,16 +56,19 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly previewDesc = signal('');
   protected readonly codeCharCount = signal(0);
 
+  /** HOD name received from server when loading in edit mode (used for fallback name-based pre-selection). */
+  private hodNameFromServer: string | null = null;
+
   protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
 
   private static readonly SUCCESS_STATE_DURATION_MS = 600;
   private departmentId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    code: ['', [Validators.required, Validators.maxLength(20)]],
+    name: ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
     description: ['', [Validators.maxLength(500)]],
-    hodName: ['', [Validators.maxLength(100)]],
+    hodFacultyId: [null as number | null],
   });
 
   constructor() {
@@ -72,9 +81,9 @@ export class DepartmentFormComponent implements OnInit {
     this.form.get('description')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v: string | null) => this.previewDesc.set(v ?? ''));
-    this.form.get('hodName')!.valueChanges
+    this.form.get('hodFacultyId')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v: string | null) => this.previewHod.set(v ?? ''));
+      .subscribe((id: number | null) => this.updateHodPreview(id));
   }
 
   ngOnInit(): void {
@@ -94,18 +103,47 @@ export class DepartmentFormComponent implements OnInit {
         this.previewCode.set(code);
         this.codeCharCount.set(code.length);
         this.previewName.set((v.name ?? '').trim());
-        this.previewHod.set((v.hodName ?? '').trim());
         this.previewDesc.set((v.description ?? '').trim());
       });
+
+    this.loadFaculties();
+  }
+
+  private loadFaculties(): void {
+    this.facultiesLoading.set(true);
+    this.facultyService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (list) => {
+        this.faculties.set(list);
+        this.facultiesLoading.set(false);
+        // If no hodFacultyId is selected yet but we have the server's hodName, try to match by name
+        const currentId = this.form.get('hodFacultyId')?.value;
+        if (!currentId && this.hodNameFromServer) {
+          const match = list.find(f => f.fullName === this.hodNameFromServer);
+          if (match) {
+            this.form.get('hodFacultyId')!.setValue(match.id, { emitEvent: true });
+          }
+        }
+        // Re-evaluate preview after faculties load (covers edit-mode pre-selection)
+        this.updateHodPreview(this.form.get('hodFacultyId')?.value);
+      },
+      error: () => this.facultiesLoading.set(false),
+    });
+  }
+
+  private updateHodPreview(id: number | null | undefined): void {
+    if (!id) { this.previewHod.set(''); return; }
+    const faculty = this.faculties().find(f => f.id === id);
+    this.previewHod.set(faculty?.fullName ?? '');
   }
 
   protected onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const start = input.selectionStart ?? 0;
     const end = input.selectionEnd ?? 0;
-    const upper = input.value.toUpperCase();
-    if (upper !== input.value) {
-      this.form.get('code')?.setValue(upper, { emitEvent: true });
+    // Strip all spaces (BR-29 CODE rule) then uppercase
+    const cleaned = stripSpaces(input.value).toUpperCase();
+    if (cleaned !== input.value) {
+      this.form.get('code')?.setValue(cleaned, { emitEvent: true });
       setTimeout(() => input.setSelectionRange(start, end), 0);
     }
   }
@@ -120,7 +158,7 @@ export class DepartmentFormComponent implements OnInit {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
       description: this.form.value.description?.trim() || undefined,
-      hodName: this.form.value.hodName?.trim() || undefined,
+      hodFacultyId: this.form.value.hodFacultyId ?? undefined,
     };
 
     this.saving.set(true);
@@ -150,31 +188,12 @@ export class DepartmentFormComponent implements OnInit {
     });
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Name', code: 'Code', description: 'Description', hodFacultyId: 'Head of Department',
+  };
+
   protected getErrorMessage(fieldName: string): string {
-    const control = this.form.get(fieldName);
-    if (!control || !control.errors) {
-      return '';
-    }
-
-    if (control.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required`;
-    }
-    if (control.errors['maxlength']) {
-      const maxLength = control.errors['maxlength'].requiredLength;
-      return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
-    }
-
-    return '';
-  }
-
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      name: 'Name',
-      code: 'Code',
-      description: 'Description',
-      hodName: 'Head of Department',
-    };
-    return labels[fieldName] || fieldName;
+    return cmsFieldError(this.form.get(fieldName), DepartmentFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
   }
 
   private loadDepartment(): void {
@@ -183,12 +202,26 @@ export class DepartmentFormComponent implements OnInit {
     this.loading.set(true);
     this.departmentService.getById(this.departmentId).subscribe({
       next: (department) => {
-        this.form.patchValue({
-          name: department.name,
-          code: department.code,
-          description: department.description || '',
-          hodName: department.hodName || '',
-        });
+        // Store hodName for fallback name-based pre-selection (hodFacultyId may be null)
+        this.hodNameFromServer = department.hodName ?? null;
+        const hodId = department.hodFacultyId ?? null;
+        // If faculties are already loaded, try name-based fallback immediately
+        if (!hodId && department.hodName) {
+          const match = this.faculties().find(f => f.fullName === department.hodName);
+          this.form.patchValue({
+            name:         department.name,
+            code:         department.code,
+            description:  department.description || '',
+            hodFacultyId: match ? match.id : null,
+          });
+        } else {
+          this.form.patchValue({
+            name:         department.name,
+            code:         department.code,
+            description:  department.description || '',
+            hodFacultyId: hodId,
+          });
+        }
         this.loading.set(false);
       },
       error: () => {

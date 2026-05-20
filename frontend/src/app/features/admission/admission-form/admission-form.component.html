@@ -333,16 +333,11 @@
                 <label for="conv-city" class="field-label">City</label>
                 <input id="conv-city" class="field-input" formControlName="city" />
               </div>
-              <div class="field-group">
-                <label for="conv-district" class="field-label">District</label>
-                <input id="conv-district" class="field-input" formControlName="district" />
-              </div>
             </div>
             <div class="form-row">
-              <div class="field-group">
-                <label for="conv-state" class="field-label">State</label>
-                <input id="conv-state" class="field-input" formControlName="state" />
-              </div>
+              <cms-state-district-selector [parentForm]="addressForm" />
+            </div>
+            <div class="form-row">
               <div class="field-group">
                 <label for="conv-pincode" class="field-label">Pincode</label>
                 <input id="conv-pincode" class="field-input" formControlName="pincode" />

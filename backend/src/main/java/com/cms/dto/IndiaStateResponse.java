@@ -1,0 +1,13 @@
+package com.cms.dto;
+
+import java.time.Instant;
+
+public record IndiaStateResponse(
+    Long id,
+    String name,
+    String code,
+    Boolean isActive,
+    Instant createdAt,
+    Instant updatedAt
+) {}
+

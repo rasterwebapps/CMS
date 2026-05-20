@@ -1,0 +1,173 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>{{ icon() }}</mat-icon></div>
+    <span class="widget-title">{{ title() }}</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4,5]; track n) {
+          <div class="sk-line" [style.width.%]="92 - n * 9"></div>
+          <div class="sk-block" style="height: 8px; border-radius: 6px;"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No {{ title() }} data</span></div>
+    } @else {
+      @switch (widgetKey) {
+        @case ('geographic-admissions') {
+          @if (geoRows().length === 0) {
+            <div class="widget-error"><mat-icon>map</mat-icon><span>No geography data</span></div>
+          } @else {
+            <div class="geo-shell">
+              <svg class="india-map" viewBox="0 0 500 560" role="img" aria-label="India admissions heatmap">
+                <defs>
+                  <filter id="stateGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+
+                @for (state of geoStatePaths(); track state.code) {
+                  <g class="state-group" [class.state-group--active]="state.count > 0">
+                    <title>{{ state.name }}: {{ state.count }} admission{{ state.count !== 1 ? 's' : '' }}</title>
+                    <path class="state-path"
+                          [attr.d]="state.d"
+                          [style.--fill-opacity]="stateFillOpacity(state.pct)" />
+                    @if (state.showLabel) {
+                      <text class="state-label"
+                            [attr.x]="state.cx"
+                            [attr.y]="state.cy">{{ state.code }}</text>
+                    }
+                  </g>
+                }
+              </svg>
+
+              <div class="geo-top-list" aria-label="Top admission districts">
+                <span class="geo-top-title">Top Districts</span>
+                @for (row of topGeoRows(); track row.label) {
+                  <div class="geo-top-row">
+                    <span class="geo-top-name" [title]="row.label">{{ row.label }}</span>
+                    <strong>{{ row.count }}</strong>
+                  </div>
+                }
+                <div class="geo-legend">
+                  <span class="geo-legend-low"></span>
+                  <span class="geo-legend-label">Low</span>
+                  <span class="geo-legend-high"></span>
+                  <span class="geo-legend-label">High</span>
+                </div>
+              </div>
+            </div>
+          }
+        }
+
+        @case ('yoy-admissions') {
+          <div class="yoy-chart">
+            @for (row of yoyRows(); track row.month) {
+              <div class="yoy-group">
+                <div class="yoy-bars">
+                  <span class="yoy-bar current" [style.height.%]="barHeight(row.thisYear)" [title]="'This year: ' + row.thisYear"></span>
+                  <span class="yoy-bar last" [style.height.%]="barHeight(row.lastYear)" [title]="'Last year: ' + row.lastYear"></span>
+                  <span class="yoy-bar old" [style.height.%]="barHeight(row.twoYearsAgo)" [title]="'Two years ago: ' + row.twoYearsAgo"></span>
+                </div>
+                <span class="yoy-label">{{ row.month }}</span>
+              </div>
+            }
+          </div>
+          <div class="legend-mini"><span class="dot current"></span>This <span class="dot last"></span>Last <span class="dot old"></span>2Y</div>
+        }
+
+        @case ('refund-cancellation-rate') {
+          @if (refundData(); as d) {
+            <div class="rate-grid">
+              <div class="rate-card red"><span>{{ d.refundRatePct }}%</span><small>Refund rate</small></div>
+              <div class="rate-card amber"><span>{{ d.cancellationRatePct }}%</span><small>Withdrawal rate</small></div>
+            </div>
+            <div class="sparkline">
+              @for (p of d.trend; track p.month) {
+                <div class="spark-col"><span class="spark-r" [style.height.%]="Math.max(4, p.refundPct)"></span><span class="spark-c" [style.height.%]="Math.max(4, p.cancellationPct)"></span></div>
+              }
+            </div>
+            <div class="metric-line"><span>{{ d.refundedPayments }} refunded</span><span>{{ d.withdrawnStudents }} withdrawn</span></div>
+          }
+        }
+
+        @case ('payment-mode-breakdown') {
+          @if (paymentSlices().length === 0) {
+            <div class="widget-error"><mat-icon>payments</mat-icon><span>No payment data</span></div>
+          } @else {
+            <div class="donut-layout">
+              <div class="donut" [style.background]="paymentDonut()"><div class="donut-hole"><strong>{{ paymentTotal() | inr }}</strong><small>Total</small></div></div>
+              <div class="donut-legend">
+                @for (slice of paymentSlices(); track slice.mode; let i = $index) {
+                  <div class="legend-row"><span class="legend-dot" [style.background]="colour(i)"></span><span>{{ slice.mode }}</span><strong>{{ slice.sharePct }}%</strong></div>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @case ('student-faculty-ratio') {
+          @for (row of ratioRows(); track row.departmentCode) {
+            <div class="ratio-row">
+              <div class="ratio-top"><span>{{ row.departmentCode }} · {{ row.departmentName }}</span><strong [attr.data-sev]="row.severity">{{ row.ratio }}:1</strong></div>
+              <div class="ratio-sub"><span>{{ row.students }} students</span><span>{{ row.faculty }} faculty</span></div>
+              <div class="threshold"><span class="threshold-line"></span><span class="ratio-fill" [attr.data-sev]="row.severity" [style.width.%]="Math.min(100, row.ratio * 2.5)"></span></div>
+            </div>
+          }
+        }
+
+        @case ('lab-utilization-heatmap') {
+          @if (labData(); as d) {
+            @if (d.slots.length === 0) {
+              <div class="widget-error"><mat-icon>science</mat-icon><span>No active lab schedules</span></div>
+            } @else {
+              <div class="lab-total">{{ d.totalScheduledSessions }} scheduled sessions</div>
+              <div class="lab-grid" [style.grid-template-columns]="'42px repeat(' + d.slots.length + ', 1fr)'">
+                <span></span>
+                @for (slot of d.slots; track slot) { <span class="lab-head" [title]="slot">{{ slot }}</span> }
+                @for (day of d.days; track day) {
+                  <span class="lab-day">{{ day }}</span>
+                  @for (slot of d.slots; track slot) {
+                    @let cell = heatCell(day, slot);
+                    <span class="lab-cell" [style.--i]="(cell?.intensityPct ?? 0) + '%'" [title]="day + ' ' + slot + ': ' + (cell?.bookings ?? 0)">{{ cell?.bookings ?? 0 }}</span>
+                  }
+                }
+              </div>
+            }
+          }
+        }
+
+        @case ('cohort-retention') {
+          <div class="cohort-table">
+            @for (row of cohortRows(); track row.cohortCode) {
+              <div class="cohort-row">
+                <div class="cohort-name"><strong>{{ row.cohortCode }}</strong><span>{{ row.baseline }} baseline</span></div>
+                <div class="term-pills">
+                  @for (term of row.terms; track term.termNumber) {
+                    <span class="term-pill" [class.low]="term.retentionPct < 70"><small>T{{ term.termNumber }}</small>{{ term.retentionPct }}%</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('top-line-kpis') {
+          <div class="kpi-strip">
+            @for (kpi of kpis(); track kpi.key) {
+              <div class="mini-kpi" [attr.data-sev]="kpi.severity">
+                <span class="mini-val">{{ kpi.value }}</span>
+                <span class="mini-label">{{ kpi.label }}</span>
+                <small>{{ kpi.helper }}</small>
+              </div>
+            }
+          </div>
+        }
+      }
+    }
+  </div>
+</div>
+

@@ -25,4 +25,10 @@ cors:
 
 keycloak:
   allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms}
+  admin:
+    base-url: ${KEYCLOAK_BASE_URL:http://keycloak:8280}
+    realm: ${KEYCLOAK_REALM:cms}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
 

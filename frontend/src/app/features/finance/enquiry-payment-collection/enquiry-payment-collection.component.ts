@@ -18,6 +18,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
+import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-enquiry-payment-collection',
@@ -175,6 +176,21 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
         this.toast.error('Failed to collect payment');
         this.saving.set(false);
       },
+    });
+  }
+
+  protected printReceipt(): void {
+    const r = this.lastPaymentResponse();
+    if (!r) return;
+    printFeeReceipt({
+      receiptNumber: r.receiptNumber,
+      payerName:     r.enquiryName,
+      amountPaid:    r.amountPaid,
+      paymentDate:   r.paymentDate,
+      paymentMode:   r.paymentMode,
+      transactionReference: r.transactionReference,
+      feeCategory:   r.feeCategory,
+      installmentBreakdown: [{ installmentLabel: 'Pre-enrollment Fee', amountApplied: r.amountPaid }],
     });
   }
 

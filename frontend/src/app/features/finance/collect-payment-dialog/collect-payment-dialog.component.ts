@@ -99,6 +99,7 @@ export class CollectPaymentDialogComponent {
       paymentDate: r.paymentDate,
       paymentMode: r.paymentMode,
       transactionReference: r.transactionReference,
+      feeCategory: r.feeCategory,
       installmentBreakdown: r.installmentBreakdown.map(s => ({
         installmentLabel: s.installmentLabel,
         amountApplied: s.amountApplied,

@@ -14,6 +14,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-lab-form',
@@ -79,7 +80,7 @@ export class LabFormComponent implements OnInit {
   private labId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
+    name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
     labType: ['', [Validators.required]],
     departmentId: ['', [Validators.required]],
     building: ['', [Validators.maxLength(100)]],
@@ -150,40 +151,18 @@ export class LabFormComponent implements OnInit {
     });
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Lab Name',
+    building: 'Building',
+    roomNumber: 'Room Number',
+    capacity: 'Capacity',
+    labType: 'Lab Type',
+    departmentId: 'Department',
+    status: 'Status',
+  };
+
   protected getErrorMessage(fieldName: string): string {
-    const control = this.form.get(fieldName);
-    if (!control || !control.errors) {
-      return '';
-    }
-
-    if (control.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required`;
-    }
-    if (control.errors['maxlength']) {
-      const maxLength = control.errors['maxlength'].requiredLength;
-      return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
-    }
-    if (control.errors['min']) {
-      return `${this.getFieldLabel(fieldName)} must be at least ${control.errors['min'].min}`;
-    }
-    if (control.errors['max']) {
-      return `${this.getFieldLabel(fieldName)} must be at most ${control.errors['max'].max}`;
-    }
-
-    return '';
-  }
-
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      name: 'Name',
-      labType: 'Lab Type',
-      departmentId: 'Department',
-      building: 'Building',
-      roomNumber: 'Room Number',
-      capacity: 'Capacity',
-      status: 'Status',
-    };
-    return labels[fieldName] || fieldName;
+    return cmsFieldError(this.form.get(fieldName), LabFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
   }
 
   private loadDepartments(): void {

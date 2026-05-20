@@ -155,7 +155,7 @@ public class SubjectService {
         if (dept != null) {
             departmentResponse = new DepartmentResponse(
                 dept.getId(), dept.getName(), dept.getCode(),
-                dept.getDescription(), dept.getHodName(),
+                dept.getDescription(), dept.getHodFacultyId(), dept.getHodName(),
                 dept.getCreatedAt(), dept.getUpdatedAt()
             );
         }

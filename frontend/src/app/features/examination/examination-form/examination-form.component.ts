@@ -14,6 +14,7 @@ import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-ca
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-examination-form',
@@ -62,7 +63,7 @@ export class ExaminationFormComponent implements OnInit {
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(255)]],
+    name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
     courseId: [null, Validators.required],
     examType: ['', Validators.required],
     date: [''],
@@ -118,5 +119,16 @@ export class ExaminationFormComponent implements OnInit {
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/examinations']); },
       error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = {
+      name: 'Examination Name',
+      courseId: 'Course',
+      examType: 'Exam Type',
+      duration: 'Duration',
+      maxMarks: 'Max Marks',
+    };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 }

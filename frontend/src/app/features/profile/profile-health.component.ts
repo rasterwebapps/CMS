@@ -120,7 +120,7 @@ export class ProfileHealthComponent implements OnInit, OnDestroy {
     return [
       { icon: 'school',          label: 'Programs',          route: '/programs',          color: '#FF6B6B' },
       { icon: 'groups',          label: 'Faculty',           route: '/faculty',           color: '#4ECDC4' },
-      { icon: 'person',          label: 'Students',          route: '/students',          color: '#22C55E' },
+      { icon: 'person',          label: 'Student Explorer',  route: '/students',          color: '#22C55E' },
       { icon: 'bar_chart',       label: 'Reports',           route: '/reports',           color: '#A78BFA' },
       { icon: 'manage_accounts', label: 'User Management',   route: '/user-management',   color: '#F59E0B' },
     ];

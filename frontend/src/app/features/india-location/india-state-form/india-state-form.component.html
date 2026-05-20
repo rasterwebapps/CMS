@@ -1,0 +1,55 @@
+<div class="form-page">
+  <div class="form-page__header">
+    <a routerLink="/india-locations" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Back to India Locations
+    </a>
+    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="form-page__loading">Loading…</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card" novalidate>
+
+      <div class="form-section">
+        <h2 class="form-section__title">State / UT Details</h2>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label" for="state-name">Name <span class="required">*</span></label>
+            <input id="state-name" class="form-input" formControlName="name" placeholder="e.g. Tamil Nadu" />
+            @if (getFieldError('name')) {
+              <span class="form-error">{{ getFieldError('name') }}</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="state-code">Code <span class="required">*</span></label>
+            <input id="state-code" class="form-input font-mono" formControlName="code" placeholder="e.g. TN" maxlength="10" />
+            <span class="form-hint">2-letter ISO state code (e.g. TN, MH, DL)</span>
+            @if (getFieldError('code')) {
+              <span class="form-error">{{ getFieldError('code') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-field">
+          <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
+          <p class="form-hint">Inactive states are hidden from new forms but retained for existing records.</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a routerLink="/india-locations" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary" [disabled]="saving()">
+          @if (saving()) { Saving… } @else { {{ isEditMode() ? 'Update State' : 'Create State' }} }
+        </button>
+      </div>
+    </form>
+  }
+</div>
+

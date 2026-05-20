@@ -415,14 +415,7 @@
             </div>
 
             <div class="field-row">
-              <div class="field-group">
-                <label for="conv-district" class="field-label">District</label>
-                <input id="conv-district" class="field-input" formControlName="district" />
-              </div>
-              <div class="field-group">
-                <label for="conv-state" class="field-label">State</label>
-                <input id="conv-state" class="field-input" formControlName="state" />
-              </div>
+              <cms-state-district-selector [parentForm]="addressForm" />
             </div>
 
             <div class="field-row">

@@ -165,6 +165,7 @@ public class LabService {
             department.getName(),
             department.getCode(),
             department.getDescription(),
+            department.getHodFacultyId(),
             department.getHodName(),
             department.getCreatedAt(),
             department.getUpdatedAt()

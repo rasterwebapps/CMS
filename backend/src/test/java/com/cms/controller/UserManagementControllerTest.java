@@ -102,8 +102,7 @@ class UserManagementControllerTest {
     void shouldCreateUser() throws Exception {
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
 
-        CreateUserRequest request = new CreateUserRequest(
-            "new@test.com", "New Faculty", "newfaculty", "password", "FACULTY");
+        CreateUserRequest request = new CreateUserRequest("new@test.com", "New Faculty", "newfaculty", "FACULTY");
 
         AppUserResponse created = buildUserResponse(10L, "newfaculty", "FACULTY");
         when(appUserService.create(any(CreateUserRequest.class), eq("admin"), eq(3))).thenReturn(created);

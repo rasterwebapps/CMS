@@ -109,6 +109,8 @@ public class PaymentCollectionService {
             .map(SemesterPaymentDetail::installmentLabel)
             .collect(Collectors.joining(", "));
 
+        String feeCategory = allocation.isHasHostelFee() ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+
         // Persist to the unified receipts table
         unifiedReceiptService.saveStudentReceipt(
             receiptNumber,
@@ -117,7 +119,7 @@ public class PaymentCollectionService {
             amountActuallyPaid,
             request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
-            installmentsCovered, null);
+            installmentsCovered, null, feeCategory);
 
         return new CollectPaymentResponse(
             receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
@@ -125,6 +127,7 @@ public class PaymentCollectionService {
             request.transactionReference(), request.remarks(),
             String.join("; ", allocationDetails),
             installmentBreakdown,
+            feeCategory,
             java.time.Instant.now()
         );
     }

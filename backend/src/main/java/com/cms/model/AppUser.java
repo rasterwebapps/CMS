@@ -19,6 +19,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
@@ -46,6 +47,16 @@ public class AppUser {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_role_id")
     private AppRole appRole;
+
+    /** Direct link to the student this account belongs to. Null for non-student roles. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id")
+    private com.cms.model.Student linkedStudent;
+
+    /** Direct link to the faculty member this account belongs to. Null for non-faculty roles. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faculty_id")
+    private com.cms.model.Faculty linkedFaculty;
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
@@ -224,6 +235,12 @@ public class AppUser {
     public void setEmergencyContactRelationship(String v) { this.emergencyContactRelationship = v; }
     public String getEmergencyContactPhone()        { return emergencyContactPhone; }
     public void setEmergencyContactPhone(String v)  { this.emergencyContactPhone = v; }
+
+    public com.cms.model.Student getLinkedStudent()                     { return linkedStudent; }
+    public void setLinkedStudent(com.cms.model.Student s)               { this.linkedStudent = s; }
+
+    public com.cms.model.Faculty getLinkedFaculty()                     { return linkedFaculty; }
+    public void setLinkedFaculty(com.cms.model.Faculty f)               { this.linkedFaculty = f; }
 
     public List<UserDashboardWidgetConfig> getWidgetConfigs() {
         return widgetConfigs;

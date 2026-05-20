@@ -1,0 +1,70 @@
+@use '../widget-shell' as *;
+
+:host { --ca: #A78BFA; }
+
+.overall-conv {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  color: var(--ca);
+  background: color-mix(in srgb, var(--ca) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ca) 22%, transparent);
+  font-variant-numeric: tabular-nums;
+  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+}
+
+.fn-row { margin-bottom: 11px; &:last-child { margin-bottom: 0; } }
+
+.fn-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.fn-label {
+  font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,.6);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.fn-count {
+  font-size: 12px; font-weight: 700; color: rgba(255,255,255,.85);
+  font-variant-numeric: tabular-nums;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
+}
+
+.fn-bar-track {
+  position: relative;
+  height: 22px;
+  background: rgba(255,255,255,.05);
+  border-radius: 6px;
+  overflow: hidden;
+  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.04); }
+}
+
+.fn-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--w, 0%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ca) 50%, transparent),
+    var(--ca)
+  );
+  border-radius: 6px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ca) 30%, transparent);
+  animation: fn-grow .6s cubic-bezier(.4,0,.2,1) both;
+  animation-delay: calc(.08s + var(--i, 0) * .08s);
+}
+
+.fn-conv {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 10.5px; font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); text-shadow: none; }
+}
+
+@keyframes fn-grow {
+  from { width: 0 !important; }
+  to   { width: var(--w, 0%); }
+}
+

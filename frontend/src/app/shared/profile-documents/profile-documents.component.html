@@ -66,33 +66,51 @@
                   </button>
                 }
 
-                @if (canManage && slot.status !== 'VERIFIED') {
-                  <button
-                    mat-icon-button
-                    [matTooltip]="slot.status === 'REJECTED' ? 'Re-upload document' : 'Upload document'"
-                    (click)="triggerUpload(slot)"
-                  >
-                    <mat-icon>upload_file</mat-icon>
-                  </button>
-                }
+                @if (slot.status === 'VERIFIED' && selfService) {
+                  <!-- Verified — locked: no upload or delete allowed -->
+                  <span class="lock-badge" matTooltip="Verified by admin — no further changes allowed">
+                    <mat-icon>lock</mat-icon>
+                  </span>
+                } @else {
+                  @if (canManage && slot.status !== 'VERIFIED') {
+                    <button
+                      mat-icon-button
+                      [matTooltip]="slot.status === 'REJECTED' ? 'Re-upload document' : slot.hasFile ? 'Replace document' : 'Upload document'"
+                      (click)="triggerUpload(slot)"
+                    >
+                      <mat-icon>{{ slot.hasFile ? 'swap_horiz' : 'upload_file' }}</mat-icon>
+                    </button>
+                  }
 
-                @if (canVerify && slot.hasFile && slot.status === 'UPLOADED') {
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    matTooltip="Verify document"
-                    (click)="verify(slot)"
-                  >
-                    <mat-icon>check_circle_outline</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    color="warn"
-                    matTooltip="Reject document"
-                    (click)="startReject(slot)"
-                  >
-                    <mat-icon>cancel</mat-icon>
-                  </button>
+                  @if (selfService && slot.hasFile && slot.status !== 'VERIFIED') {
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      matTooltip="Remove document"
+                      (click)="deleteSlot(slot)"
+                    >
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  }
+
+                  @if (canVerify && slot.hasFile && slot.status === 'UPLOADED') {
+                    <button
+                      mat-icon-button
+                      color="primary"
+                      matTooltip="Verify document"
+                      (click)="verify(slot)"
+                    >
+                      <mat-icon>check_circle_outline</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      matTooltip="Reject document"
+                      (click)="startReject(slot)"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  }
                 }
               </div>
             }

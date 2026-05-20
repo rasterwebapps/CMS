@@ -15,6 +15,7 @@ import { REFERRAL_TYPE_FORM_TOUR } from '../../../shared/tour/tours/referral-typ
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-referral-type-form',
@@ -65,8 +66,8 @@ export class ReferralTypeFormComponent implements OnInit {
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(255)]],
-    code: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[A-Z][A-Z0-9_]*$/)]],
+    name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^[A-Z][A-Z0-9_]*$/), noInternalSpaces()]],
     hasCommission: [false],
     commissionAmount: [0, [Validators.min(0)]],
     description: [''],
@@ -79,7 +80,7 @@ export class ReferralTypeFormComponent implements OnInit {
       .subscribe(() => {
         const v = this.form.getRawValue();
         this.previewName.set((v.name ?? '').trim());
-        this.previewCode.set((v.code ?? '').toUpperCase().trim());
+        this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
         this.previewDesc.set((v.description ?? '').trim());
         this.previewHasComm.set(!!v.hasCommission);
         this.previewComm.set(Number(v.commissionAmount) || 0);
@@ -178,5 +179,15 @@ export class ReferralTypeFormComponent implements OnInit {
         this.saving.set(false);
       },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = {
+      name: 'Name',
+      code: 'Code',
+      description: 'Description',
+      commissionAmount: 'Commission Amount',
+    };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 }

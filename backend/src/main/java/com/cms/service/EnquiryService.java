@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.AddressRequest;
-import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
@@ -82,7 +81,6 @@ public class EnquiryService {
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
-    private final EnquiryDocumentService enquiryDocumentService;
     private final ApplicationNumberSequenceService numberSequenceService;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
@@ -98,8 +96,7 @@ public class EnquiryService {
                            EnquiryDocumentRepository enquiryDocumentRepository,
                            AcademicYearRepository academicYearRepository,
                            FeeStructureService feeStructureService,
-                            EnquiryDocumentService enquiryDocumentService,
-                            ApplicationNumberSequenceService numberSequenceService) {
+                           ApplicationNumberSequenceService numberSequenceService) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -113,7 +110,6 @@ public class EnquiryService {
         this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
-        this.enquiryDocumentService = enquiryDocumentService;
         this.numberSequenceService = numberSequenceService;
     }
 
@@ -328,9 +324,9 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_VERIFIED) {
             throw new IllegalStateException(
-                "Enquiry must be in DOCUMENTS_SUBMITTED status to convert. Current status: " + enquiry.getStatus()
+                "Enquiry must be in DOCUMENTS_VERIFIED status to convert. Current status: " + enquiry.getStatus()
             );
         }
 
@@ -410,8 +406,14 @@ public class EnquiryService {
         ).stream().map(this::toResponse).toList();
     }
 
-    public List<EnquiryResponse> findAdmissionPending() {
+    public List<EnquiryResponse> findDocumentVerificationPending() {
         return enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_SUBMITTED).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<EnquiryResponse> findAdmissionPending() {
+        return enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_VERIFIED).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -421,19 +423,9 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_VERIFIED) {
             throw new IllegalStateException(
-                "Enquiry must be in DOCUMENTS_SUBMITTED status to convert. Current: " + enquiry.getStatus()
-            );
-        }
-
-        // Mandatory: all required documents must be VERIFIED before admission can be completed.
-        DocumentVerificationStatusResponse verificationStatus =
-            enquiryDocumentService.allMandatoryDocumentsVerified(enquiryId);
-        if (!verificationStatus.allVerified()) {
-            throw new IllegalStateException(
-                "All mandatory documents must be verified before completing admission. " +
-                "Unverified: " + String.join(", ", verificationStatus.unverifiedDocumentTypes())
+                "Enquiry must be in DOCUMENTS_VERIFIED status to convert. Current: " + enquiry.getStatus()
             );
         }
 

@@ -11,6 +11,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findByKeycloakUsername(String username);
 
+    Optional<AppUser> findByEmail(String email);
+
     List<AppUser> findByAppRoleHierarchyLevelGreaterThan(int level);
 
     boolean existsByKeycloakUsername(String username);

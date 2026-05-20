@@ -8,7 +8,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
-import { GroupedFeeStructure } from '../finance.model';
+import { FeeStructure, GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { environment } from '../../../../environments';
@@ -55,7 +55,7 @@ export class FeeStructureListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeCount', 'totalAmount', 'actions'];
+  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeCount', 'dayScholarTotal', 'hostelerTotal', 'actions'];
   protected readonly dataSource = new MatTableDataSource<GroupedFeeStructure>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -94,6 +94,41 @@ export class FeeStructureListComponent implements OnInit {
   protected readonly totalAmount = computed(() =>
     this.allFeeStructures().reduce((sum, fs) => sum + fs.totalAmount, 0)
   );
+
+  // ── Fee-split helpers ──────────────────────────────────────────────────────
+
+  /** Returns the effective amount for a single fee item (year-based or flat). */
+  private itemAmount(item: FeeStructure): number {
+    if (item.yearAmounts && item.yearAmounts.length > 0) {
+      return item.yearAmounts.reduce((s, ya) => s + ya.amount, 0);
+    }
+    return item.amount;
+  }
+
+  /**
+   * Day Scholar total = all generic fee types + TRANSPORT_FEE (no HOSTEL_FEE).
+   * Only active items are counted.
+   */
+  protected getDayScholarTotal(fs: GroupedFeeStructure): number {
+    return fs.items
+      .filter(i => i.isActive && i.feeType !== 'HOSTEL_FEE')
+      .reduce((s, i) => s + this.itemAmount(i), 0);
+  }
+
+  /**
+   * Hosteler total = all generic fee types + HOSTEL_FEE (no TRANSPORT_FEE).
+   * Only active items are counted.
+   */
+  protected getHostelerTotal(fs: GroupedFeeStructure): number {
+    return fs.items
+      .filter(i => i.isActive && i.feeType !== 'TRANSPORT_FEE')
+      .reduce((s, i) => s + this.itemAmount(i), 0);
+  }
+
+  /** True if the fee structure has at least one HOSTEL_FEE or TRANSPORT_FEE active item. */
+  protected hasAccommodationFees(fs: GroupedFeeStructure): boolean {
+    return fs.items.some(i => i.isActive && (i.feeType === 'HOSTEL_FEE' || i.feeType === 'TRANSPORT_FEE'));
+  }
 
   constructor() {
     effect(() => {

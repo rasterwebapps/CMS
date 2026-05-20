@@ -23,6 +23,7 @@ import com.cms.dto.DepartmentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Department;
 import com.cms.repository.DepartmentRepository;
+import com.cms.repository.FacultyRepository;
 
 @ExtendWith(MockitoExtension.class)
 class DepartmentServiceTest {
@@ -30,11 +31,14 @@ class DepartmentServiceTest {
     @Mock
     private DepartmentRepository departmentRepository;
 
+    @Mock
+    private FacultyRepository facultyRepository;
+
     private DepartmentService departmentService;
 
     @BeforeEach
     void setUp() {
-        departmentService = new DepartmentService(departmentRepository);
+        departmentService = new DepartmentService(departmentRepository, facultyRepository);
     }
 
     @Test
@@ -43,11 +47,11 @@ class DepartmentServiceTest {
             "Computer Science",
             "CS",
             "Department of Computer Science",
-            "Dr. John Doe"
+            null
         );
 
         Department savedDepartment = createDepartment(1L, "Computer Science", "CS",
-            "Department of Computer Science", "Dr. John Doe");
+            "Department of Computer Science", null);
 
         when(departmentRepository.save(any(Department.class))).thenReturn(savedDepartment);
 
@@ -57,7 +61,8 @@ class DepartmentServiceTest {
         assertThat(response.name()).isEqualTo("Computer Science");
         assertThat(response.code()).isEqualTo("CS");
         assertThat(response.description()).isEqualTo("Department of Computer Science");
-        assertThat(response.hodName()).isEqualTo("Dr. John Doe");
+        assertThat(response.hodFacultyId()).isNull();
+        assertThat(response.hodName()).isNull();
 
         ArgumentCaptor<Department> captor = ArgumentCaptor.forClass(Department.class);
         verify(departmentRepository).save(captor.capture());
@@ -68,8 +73,8 @@ class DepartmentServiceTest {
 
     @Test
     void shouldFindAllDepartments() {
-        Department dept1 = createDepartment(1L, "Computer Science", "CS", "CS Dept", "Dr. A");
-        Department dept2 = createDepartment(2L, "Mathematics", "MATH", "Math Dept", "Dr. B");
+        Department dept1 = createDepartment(1L, "Computer Science", "CS", "CS Dept", null);
+        Department dept2 = createDepartment(2L, "Mathematics", "MATH", "Math Dept", null);
 
         when(departmentRepository.findAll()).thenReturn(List.of(dept1, dept2));
 
@@ -94,7 +99,7 @@ class DepartmentServiceTest {
     @Test
     void shouldFindDepartmentById() {
         Department department = createDepartment(1L, "Computer Science", "CS",
-            "Department of Computer Science", "Dr. John Doe");
+            "Department of Computer Science", null);
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
 
@@ -120,17 +125,17 @@ class DepartmentServiceTest {
     @Test
     void shouldUpdateDepartment() {
         Department existingDepartment = createDepartment(1L, "Computer Science", "CS",
-            "Old Description", "Dr. Old");
+            "Old Description", null);
 
         DepartmentRequest updateRequest = new DepartmentRequest(
             "Computer Science Updated",
             "CSU",
             "New Description",
-            "Dr. New"
+            null
         );
 
         Department updatedDepartment = createDepartment(1L, "Computer Science Updated", "CSU",
-            "New Description", "Dr. New");
+            "New Description", null);
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existingDepartment));
         when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
@@ -143,7 +148,7 @@ class DepartmentServiceTest {
         assertThat(response.name()).isEqualTo("Computer Science Updated");
         assertThat(response.code()).isEqualTo("CSU");
         assertThat(response.description()).isEqualTo("New Description");
-        assertThat(response.hodName()).isEqualTo("Dr. New");
+        assertThat(response.hodFacultyId()).isNull();
 
         verify(departmentRepository).findById(1L);
         verify(departmentRepository).save(any(Department.class));
@@ -151,8 +156,8 @@ class DepartmentServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingDepartmentWithDuplicateName() {
-        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", "HOD");
-        DepartmentRequest request = new DepartmentRequest("Mathematics", "CS", "Desc", "HOD");
+        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", null);
+        DepartmentRequest request = new DepartmentRequest("Mathematics", "CS", "Desc", null);
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Mathematics", 1L)).thenReturn(true);
@@ -167,8 +172,8 @@ class DepartmentServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingDepartmentWithDuplicateCode() {
-        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", "HOD");
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "MATH", "Desc", "HOD");
+        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", null);
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "MATH", "Desc", null);
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science", 1L)).thenReturn(false);
@@ -184,7 +189,7 @@ class DepartmentServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentDepartment() {
-        DepartmentRequest request = new DepartmentRequest("Name", "CODE", "Desc", "HOD");
+        DepartmentRequest request = new DepartmentRequest("Name", "CODE", "Desc", null);
 
         when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -220,7 +225,7 @@ class DepartmentServiceTest {
 
     private Department createDepartment(Long id, String name, String code,
                                         String description, String hodName) {
-        Department department = new Department(name, code, description, hodName);
+        Department department = new Department(name, code, description, null, hodName);
         department.setId(id);
         Instant now = Instant.now();
         department.setCreatedAt(now);

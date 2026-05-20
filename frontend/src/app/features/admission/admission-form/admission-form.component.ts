@@ -29,6 +29,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
 
 type Mode = 'from-enquiry' | 'manual';
 
@@ -46,7 +47,8 @@ type Mode = 'from-enquiry' | 'manual';
     MatSortModule,
     MatProgressSpinnerModule,
     PageHeaderComponent,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    CmsStateDistrictSelectorComponent],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
 })
@@ -141,6 +143,11 @@ export class AdmissionFormComponent implements OnInit {
 
   get qualifications(): FormArray {
     return this.form.get('qualifications') as FormArray;
+  }
+
+  /** Expose the nested address FormGroup for cms-state-district-selector */
+  get addressForm(): FormGroup {
+    return this.form.get('address') as FormGroup;
   }
 
   ngOnInit(): void {

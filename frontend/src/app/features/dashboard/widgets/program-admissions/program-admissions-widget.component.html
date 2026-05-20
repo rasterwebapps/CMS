@@ -1,0 +1,42 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>school</mat-icon></div>
+    <span class="widget-title">Admissions by Program</span>
+    @if (!loading() && !error() && total() > 0) {
+      <span class="total-pill">{{ total() }} students</span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4,5]; track n) {
+          <div style="margin-bottom: 9px;">
+            <div class="sk-line" [style.width.%]="40 + n*8" style="margin-bottom: 4px;"></div>
+            <div class="sk-block" style="height: 7px; border-radius: 6px;"></div>
+          </div>
+        }
+      </div>
+    } @else if (error() || rows().length === 0) {
+      <div class="widget-error"><mat-icon>school</mat-icon><span>No program data</span></div>
+    } @else {
+      @for (row of rows(); track row.programCode; let i = $index) {
+        <div class="pg-row">
+          <div class="pg-meta">
+            <span class="pg-name" [title]="row.programName">
+              <span class="pg-code">{{ row.programCode }}</span>
+              {{ row.programName }}
+            </span>
+            <span class="pg-count">{{ row.admittedCount }}</span>
+          </div>
+          <div class="pg-track">
+            <div class="pg-fill"
+                 [style.--w]="row.pct + '%'"
+                 [style.--i]="i"></div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
+

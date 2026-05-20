@@ -20,6 +20,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -31,6 +32,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     MatTooltipModule,
     InrPipe,
     CmsTourButtonComponent,
+    CmsStateDistrictSelectorComponent,
   ],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
@@ -108,6 +110,11 @@ export class EnquiryConvertComponent implements OnInit {
     parentConsentGiven:    [false],
     applicantConsentGiven: [false],
   });
+
+  /** Expose the nested address FormGroup for cms-state-district-selector */
+  get addressForm(): FormGroup {
+    return this.form.get('address') as FormGroup;
+  }
 
   ngOnInit(): void {
     this.tourService.register('enquiry-convert', ENQUIRY_CONVERT_TOUR);

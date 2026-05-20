@@ -1,0 +1,248 @@
+<div class="docvd-page">
+
+  @if (loading()) {
+    <div class="docvd-skeleton">
+      <div class="skel-hero">
+        <div class="skel skel--avatar"></div>
+        <div class="skel-hero__body">
+          <div class="skel skel--title"></div>
+          <div class="skel skel--subtitle"></div>
+        </div>
+      </div>
+      @for (_ of [1,2,3,4,5]; track $index) {
+        <div class="skel-doc-row">
+          <div class="skel skel--icon"></div>
+          <div class="skel-block">
+            <div class="skel skel--name"></div>
+            <div class="skel skel--sub"></div>
+          </div>
+          <div class="skel skel--pill"></div>
+          <div class="skel skel--btn"></div>
+        </div>
+      }
+    </div>
+
+  } @else if (enquiry()) {
+
+    <!-- ── Hero Banner ─────────────────────────────────────────────────── -->
+    <section class="docvd-hero anim-rise">
+
+      <button class="back-btn" type="button" (click)="backToList()" aria-label="Back to list">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </button>
+
+      <div class="hero-person">
+        <div class="hero-avatar">{{ initials(enquiry()!.name) }}</div>
+        <div class="hero-info">
+          <h1 class="hero-title">{{ enquiry()!.name }}</h1>
+          <div class="hero-chips">
+            <cms-status-badge [status]="enquiry()!.status" />
+            @if (enquiry()!.programName) {
+              <span class="info-chip">{{ enquiry()!.programName }}</span>
+            }
+            @if (enquiry()!.courseName) {
+              <span class="info-chip info-chip--muted">{{ enquiry()!.courseName }}</span>
+            }
+            @if (enquiry()!.phone) {
+              <span class="info-chip info-chip--muted">{{ enquiry()!.phone }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="hero-progress">
+        <div class="hero-progress__counts">
+          <span class="hero-progress__num" [class.hero-progress__num--done]="allVerified()">
+            {{ verifiedCount() }}<span class="hero-progress__of">/{{ mandatoryTotal() }}</span>
+          </span>
+          <span class="hero-progress__lbl">verified</span>
+        </div>
+        <div class="progress-track" role="progressbar"
+             [attr.aria-valuenow]="verifiedPct()" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" [style.width.%]="verifiedPct()"
+               [class.progress-fill--done]="allVerified()"></div>
+        </div>
+        @if (allVerified()) {
+          <span class="progress-done-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            All documents verified — redirecting…
+          </span>
+        }
+      </div>
+    </section>
+
+    <!-- ── All Verified Banner ──────────────────────────────────────────── -->
+    @if (allVerified()) {
+      <div class="verified-banner anim-rise">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <div>
+          <strong>All documents verified!</strong>
+          <span>This enquiry has been moved to Documents Verified status and will now appear in the Complete Admission screen.</span>
+        </div>
+        <button class="btn-back-list" (click)="backToList()">Back to List</button>
+      </div>
+    }
+
+    <!-- ── Document Checklist ───────────────────────────────────────────── -->
+    <div class="doc-section anim-rise anim-rise--d1">
+      <h2 class="section-heading">Required Documents</h2>
+
+      @if (mandatoryRows().length === 0) {
+        <p class="no-docs-note">No required documents configured for this program.</p>
+      }
+
+      <div class="doc-list">
+        @for (row of mandatoryRows(); track row.documentType) {
+          <div class="doc-row" [class.doc-row--verified]="row.status === 'VERIFIED'"
+               [class.doc-row--rejected]="row.status === 'REJECTED'"
+               [class.doc-row--saving]="row.saving">
+
+            <!-- Icon -->
+            <span class="doc-icon material-symbols-outlined">{{ getDocumentIcon(row.documentType) }}</span>
+
+            <!-- Info -->
+            <div class="doc-info">
+              <span class="doc-label">{{ formatDocType(row.documentType) }}</span>
+              @if (row.document?.fileName) {
+                <span class="doc-meta">{{ row.document!.fileName }}
+                  @if (row.document?.fileSize) { · {{ formatFileSize(row.document!.fileSize) }} }
+                </span>
+              } @else {
+                <span class="doc-meta doc-meta--warn">No file uploaded</span>
+              }
+              @if (row.status === 'REJECTED' && row.document?.remarks) {
+                <span class="doc-rejection-comment">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {{ row.document!.remarks }}
+                </span>
+              }
+            </div>
+
+            <!-- Status badge -->
+            <div class="doc-status">
+              <span class="status-pill status-pill--{{ row.status | lowercase }}">
+                @switch (row.status) {
+                  @case ('VERIFIED') { Verified }
+                  @case ('REJECTED') { Rejected }
+                  @case ('UPLOADED') { Uploaded }
+                  @default { Not Uploaded }
+                }
+              </span>
+            </div>
+
+            <!-- Actions -->
+            <div class="doc-actions" (click)="$event.stopPropagation()">
+              @if (row.saving) {
+                <span class="doc-spinner"></span>
+              } @else {
+                @if (row.document?.hasFile) {
+                  <button class="btn-view" type="button" (click)="viewFile(row)" title="View document">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    View
+                  </button>
+                }
+
+                @if (canVerify() && row.status !== 'VERIFIED' && row.document?.hasFile) {
+                  <button class="btn-verify" type="button" (click)="verify(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Verify
+                  </button>
+                }
+
+                @if (canVerify() && row.status !== 'REJECTED' && row.document?.hasFile && row.status !== 'VERIFIED') {
+                  <button class="btn-reject" type="button" (click)="startReject(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Reject
+                  </button>
+                }
+              }
+            </div>
+
+          </div>
+
+          <!-- Inline rejection comment input -->
+          @if (rejectingDocumentType() === row.documentType) {
+            <div class="reject-panel">
+              <span class="reject-panel__label">Rejection reason for <strong>{{ formatDocType(row.documentType) }}</strong></span>
+              <textarea class="reject-panel__input" rows="2" placeholder="Explain why this document is being rejected…"
+                        [value]="rejectComment()"
+                        (input)="rejectComment.set($any($event.target).value)"
+                        autofocus></textarea>
+              <div class="reject-panel__actions">
+                <button class="btn-cancel-reject" type="button" (click)="cancelReject()">Cancel</button>
+                <button class="btn-confirm-reject" type="button" (click)="confirmReject(row)">Confirm Rejection</button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- ── Optional / Orphan Docs ──────────────────────────────────────── -->
+    @if (optionalRows().length > 0) {
+      <div class="doc-section anim-rise anim-rise--d2">
+        <h2 class="section-heading section-heading--optional">Additional Documents</h2>
+        <div class="doc-list">
+          @for (row of optionalRows(); track row.documentType) {
+            <div class="doc-row doc-row--optional"
+                 [class.doc-row--verified]="row.status === 'VERIFIED'"
+                 [class.doc-row--rejected]="row.status === 'REJECTED'">
+              <span class="doc-icon material-symbols-outlined">{{ getDocumentIcon(row.documentType) }}</span>
+              <div class="doc-info">
+                <span class="doc-label">{{ formatDocType(row.documentType) }}</span>
+                @if (row.document?.fileName) {
+                  <span class="doc-meta">{{ row.document!.fileName }}</span>
+                }
+              </div>
+              <div class="doc-status">
+                <span class="status-pill status-pill--{{ row.status | lowercase }}">
+                  @switch (row.status) {
+                    @case ('VERIFIED') { Verified }
+                    @case ('REJECTED') { Rejected }
+                    @case ('UPLOADED') { Uploaded }
+                    @default { Not Uploaded }
+                  }
+                </span>
+              </div>
+              <div class="doc-actions" (click)="$event.stopPropagation()">
+                @if (row.document?.hasFile) {
+                  <button class="btn-view" type="button" (click)="viewFile(row)" title="View document">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    View
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  }
+</div>

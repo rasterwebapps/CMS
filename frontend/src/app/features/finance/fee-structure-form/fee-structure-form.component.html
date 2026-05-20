@@ -125,7 +125,7 @@
 
               <!-- Data Rows -->
               @for (item of feeItems.controls; track $index; let i = $index) {
-                @if (genericFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
+                @if (courseFeeTypes.includes(getItemGroup(i).get('feeType')?.value)) {
 
                   <div class="fee-grid__row" [formGroup]="getItemGroup(i)">
                     <!-- Fee Type Cell -->
@@ -182,16 +182,16 @@
                 }
               }
 
-              <!-- Course Fees Total Row -->
-              <div class="fee-grid__row fee-grid__row--total">
+              <!-- ── Day Scholar Total row ── -->
+              <div class="fee-grid__row fee-grid__row--total fee-grid__row--scholar-total">
                 <div class="g-cell g-cell--type g-cell--total-label">
-                  <mat-icon>summarize</mat-icon>
-                  <span>Total Course Fees</span>
+                  <mat-icon class="g-type-icon">directions_bus</mat-icon>
+                  <span>Day Scholar Total</span>
                 </div>
                 @for (yt of yearTotals(); track $index) {
-                  <div class="g-cell g-cell--year g-cell--total-value">{{ yt | inr }}</div>
+                  <div class="g-cell g-cell--year g-cell--total-value">{{ yt | inr:false:false }}</div>
                 }
-                <div class="g-cell g-cell--total g-cell--grand-total">{{ grandTotal() | inr }}</div>
+                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total--scholar">{{ grandTotal() | inr:false:false }}</div>
               </div>
 
             </div>
@@ -274,16 +274,16 @@
                 }
               }
 
-              <!-- Additional Fees Total Row -->
-              <div class="fee-grid__row fee-grid__row--total fee-grid__row--total-additional">
-                <div class="g-cell g-cell--type g-cell--total-label g-cell--total-label-additional">
-                  <mat-icon>summarize</mat-icon>
-                  <span>Total Additional Fees</span>
+              <!-- ── Hosteler Total row ── -->
+              <div class="fee-grid__row fee-grid__row--total fee-grid__row--hosteler-total">
+                <div class="g-cell g-cell--type g-cell--total-label g-cell--total-label--primary">
+                  <mat-icon class="g-type-icon">hotel</mat-icon>
+                  <span>Hosteler Total</span>
                 </div>
-                @for (yt of additionalYearTotals(); track $index) {
-                  <div class="g-cell g-cell--year g-cell--total-value g-cell--total-value-additional">{{ yt | inr }}</div>
+                @for (yt of hostelerYearTotals(); track $index) {
+                  <div class="g-cell g-cell--year g-cell--total-value g-cell--total-value--primary">{{ yt | inr:false:false }}</div>
                 }
-                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total-additional">{{ additionalTotal() | inr }}</div>
+                <div class="g-cell g-cell--total g-cell--grand-total g-cell--grand-total--primary">{{ hostelerTotal() | inr:false:false }}</div>
               </div>
 
             </div>

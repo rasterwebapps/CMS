@@ -1,0 +1,112 @@
+@use '../widget-shell' as *;
+
+:host { --ca: #22C55E; }
+
+$green: #22C55E;
+$red:   #EF4444;
+
+.widget-body {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 18px;
+}
+
+.gauge-wrap {
+  position: relative;
+  width: 120px; height: 120px;
+  flex-shrink: 0;
+}
+
+.gauge { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.gauge-track {
+  fill: none;
+  stroke: rgba(255,255,255,.07);
+  stroke-width: 10;
+  :host-context(html:not(.dark-theme)) & { stroke: rgba(0,0,0,.07); }
+}
+
+.gauge-fill {
+  fill: none;
+  stroke: var(--ca);
+  stroke-width: 10;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ca) 40%, transparent));
+  transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1);
+}
+
+.gauge-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1px;
+}
+
+.gauge-pct {
+  font-size: 24px; font-weight: 700; line-height: 1;
+  color: var(--ca);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+
+.gauge-cap {
+  font-size: 9.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: rgba(255,255,255,.4);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+}
+
+.kpi-rows {
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kpi-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.kpi-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: rgba(255,255,255,.55);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.kpi-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  &--ok  { background: var(--ca); }
+  &--neu { background: rgba(255,255,255,.3); }
+}
+
+.kpi-val {
+  font-weight: 700;
+  color: rgba(255,255,255,.85);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
+  &.muted {
+    color: rgba(255,255,255,.45); font-weight: 600;
+    :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+  }
+}
+
+.kpi-val.delta {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 11.5px;
+  padding: 2px 7px; border-radius: 20px;
+  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+
+  &.pos { color: $green; background: color-mix(in srgb, $green 14%, transparent); }
+  &.neg { color: $red;   background: color-mix(in srgb, $red   14%, transparent); }
+  &.neu { color: rgba(255,255,255,.5); background: rgba(255,255,255,.06);
+          :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); background: rgba(0,0,0,.04); } }
+}
+
+// stack vertically on very narrow widgets
+@media (max-width: 380px) {
+  .widget-body { flex-direction: column !important; }
+}
+

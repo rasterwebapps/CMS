@@ -21,6 +21,7 @@ import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
@@ -100,6 +101,9 @@ public class EnquiryPaymentService {
             enquiry, oldStatus, newStatus, collectedBy, "Payment collected"
         ));
 
+        String feeCategory = enquiry.getStudentType() == StudentType.HOSTELER
+            ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+
         // Persist to the unified receipts table
         unifiedReceiptService.saveEnquiryReceipt(
             receiptNumber,
@@ -107,7 +111,7 @@ public class EnquiryPaymentService {
             enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
             request.amountPaid(), request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
-            "Pre-enrollment Fee", collectedBy);
+            "Pre-enrollment Fee", collectedBy, feeCategory);
 
         return toResponse(saved, newStatus);
     }
@@ -261,6 +265,8 @@ public class EnquiryPaymentService {
     }
 
     private EnquiryPaymentResponse toResponse(EnquiryPayment payment, EnquiryStatus newStatus) {
+        String feeCategory = payment.getEnquiry().getStudentType() == StudentType.HOSTELER
+            ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
         return new EnquiryPaymentResponse(
             payment.getId(),
             payment.getEnquiry().getId(),
@@ -272,6 +278,7 @@ public class EnquiryPaymentService {
             payment.getRemarks(),
             payment.getReceiptNumber(),
             payment.getCollectedBy(),
+            feeCategory,
             newStatus != null ? newStatus.name() : null,
             payment.getCreatedAt()
         );

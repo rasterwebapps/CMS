@@ -25,5 +25,68 @@
     font-weight: 700;
     color: var(--primary, #6366f1);
     margin-top: auto;
+    font-variant-numeric: tabular-nums;
   }
+
+  // ── Day Scholar / Hosteler split display ──────────────────────────────────
+  &__fee-split {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  &__fee-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--surface-alt, rgba(99, 102, 241, 0.05));
+    border: 1px solid var(--border-subtle, rgba(99, 102, 241, 0.1));
+
+    &:first-child {
+      // Day Scholar — transport tint
+      background: var(--surface-alt, rgba(16, 185, 129, 0.05));
+      border-color: rgba(16, 185, 129, 0.15);
+
+      .fs-card__fee-label { color: var(--success, #10b981); }
+      .fs-card__fee-amount { color: var(--success, #10b981); }
+    }
+
+    &:last-child {
+      // Hosteler — indigo tint
+      background: var(--surface-alt, rgba(99, 102, 241, 0.05));
+      border-color: rgba(99, 102, 241, 0.15);
+
+      .fs-card__fee-label { color: var(--primary, #6366f1); }
+      .fs-card__fee-amount { color: var(--primary, #6366f1); }
+    }
+  }
+
+  &__fee-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+
+    svg { flex-shrink: 0; }
+  }
+
+  &__fee-amount {
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+// Column header with icon (table view)
+.col-header-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

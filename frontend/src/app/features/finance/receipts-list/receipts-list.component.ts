@@ -111,6 +111,7 @@ export class ReceiptsListComponent implements OnInit {
       paymentDate:      r.paymentDate,
       paymentMode:      r.paymentMode,
       transactionReference: r.transactionReference,
+      feeCategory:      r.feeCategory,
       installmentBreakdown: r.installmentsCovered
         ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
         : [],

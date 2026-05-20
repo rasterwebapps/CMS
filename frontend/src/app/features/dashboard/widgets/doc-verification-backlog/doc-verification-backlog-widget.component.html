@@ -1,0 +1,49 @@
+<div class="widget-shell" [attr.data-severity]="severity()">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>verified</mat-icon></div>
+    <span class="widget-title">Document Verification</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        <div class="sk-block" style="height: 50px; width: 90px; border-radius: 10px; margin-bottom: 10px;"></div>
+        <div class="sk-line sk-line--75"></div>
+        <div class="sk-line sk-line--55"></div>
+      </div>
+    } @else if (error() || !data()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No verification data</span></div>
+    } @else {
+      <div class="big-row">
+        <div class="big-num" [attr.data-severity]="severity()">{{ data()!.pendingCount }}</div>
+        <div class="big-meta">
+          <span class="big-label">Awaiting verification</span>
+          @if (data()!.oldestAgeDays > 0) {
+            <span class="big-age">
+              <mat-icon>schedule</mat-icon>
+              oldest {{ data()!.oldestAgeDays }} day{{ data()!.oldestAgeDays === 1 ? '' : 's' }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="mini-stats">
+        <div class="ms-cell">
+          <span class="ms-val ok">{{ data()!.last24HoursVerified }}</span>
+          <span class="ms-cap">verified · 24h</span>
+        </div>
+        <div class="ms-divider"></div>
+        <div class="ms-cell">
+          <span class="ms-val rej">{{ data()!.rejectedCount }}</span>
+          <span class="ms-cap">total rejected</span>
+        </div>
+      </div>
+
+      <a class="cta-btn" [routerLink]="data()!.cta">
+        <mat-icon>fact_check</mat-icon>
+        Open verification queue
+      </a>
+    }
+  </div>
+</div>
+

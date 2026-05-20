@@ -46,21 +46,12 @@ class DepartmentControllerTest {
     @Test
     void shouldCreateDepartment() throws Exception {
         DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "CS",
-            "Department of Computer Science",
-            "Dr. John Doe"
+            "Computer Science", "CS", "Department of Computer Science", null
         );
 
         Instant now = Instant.now();
         DepartmentResponse response = new DepartmentResponse(
-            1L,
-            "Computer Science",
-            "CS",
-            "Department of Computer Science",
-            "Dr. John Doe",
-            now,
-            now
+            1L, "Computer Science", "CS", "Department of Computer Science", null, null, now, now
         );
 
         when(departmentService.create(any(DepartmentRequest.class))).thenReturn(response);
@@ -72,20 +63,14 @@ class DepartmentControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Computer Science"))
             .andExpect(jsonPath("$.code").value("CS"))
-            .andExpect(jsonPath("$.description").value("Department of Computer Science"))
-            .andExpect(jsonPath("$.hodName").value("Dr. John Doe"));
+            .andExpect(jsonPath("$.description").value("Department of Computer Science"));
 
         verify(departmentService).create(any(DepartmentRequest.class));
     }
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
-            "",
-            "CS",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("", "CS", "Description", null);
 
         mockMvc.perform(post("/departments")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -95,12 +80,7 @@ class DepartmentControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "", "Description", null);
 
         mockMvc.perform(post("/departments")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -113,8 +93,7 @@ class DepartmentControllerTest {
         String jsonRequest = """
             {
                 "code": "CS",
-                "description": "Description",
-                "hodName": "Dr. John Doe"
+                "description": "Description"
             }
             """;
 
@@ -128,10 +107,10 @@ class DepartmentControllerTest {
     void shouldFindAllDepartments() throws Exception {
         Instant now = Instant.now();
         DepartmentResponse dept1 = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Dept", "Dr. A", now, now
+            1L, "Computer Science", "CS", "CS Dept", null, null, now, now
         );
         DepartmentResponse dept2 = new DepartmentResponse(
-            2L, "Mathematics", "MATH", "Math Dept", "Dr. B", now, now
+            2L, "Mathematics", "MATH", "Math Dept", null, null, now, now
         );
 
         when(departmentService.findAll()).thenReturn(List.of(dept1, dept2));
@@ -162,13 +141,7 @@ class DepartmentControllerTest {
     void shouldFindDepartmentById() throws Exception {
         Instant now = Instant.now();
         DepartmentResponse response = new DepartmentResponse(
-            1L,
-            "Computer Science",
-            "CS",
-            "Department of Computer Science",
-            "Dr. John Doe",
-            now,
-            now
+            1L, "Computer Science", "CS", "Department of Computer Science", null, null, now, now
         );
 
         when(departmentService.findById(1L)).thenReturn(response);
@@ -196,21 +169,12 @@ class DepartmentControllerTest {
     @Test
     void shouldUpdateDepartment() throws Exception {
         DepartmentRequest request = new DepartmentRequest(
-            "Computer Science Updated",
-            "CSU",
-            "Updated Description",
-            "Dr. New HOD"
+            "Computer Science Updated", "CSU", "Updated Description", null
         );
 
         Instant now = Instant.now();
         DepartmentResponse response = new DepartmentResponse(
-            1L,
-            "Computer Science Updated",
-            "CSU",
-            "Updated Description",
-            "Dr. New HOD",
-            now,
-            now
+            1L, "Computer Science Updated", "CSU", "Updated Description", null, null, now, now
         );
 
         when(departmentService.update(eq(1L), any(DepartmentRequest.class))).thenReturn(response);
@@ -228,12 +192,7 @@ class DepartmentControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentDepartment() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
-            "Name",
-            "CODE",
-            "Description",
-            "HOD"
-        );
+        DepartmentRequest request = new DepartmentRequest("Name", "CODE", "Description", null);
 
         when(departmentService.update(eq(999L), any(DepartmentRequest.class)))
             .thenThrow(new ResourceNotFoundException("Department not found with id: 999"));
@@ -248,12 +207,7 @@ class DepartmentControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
-            "",
-            "",
-            "Description",
-            "HOD"
-        );
+        DepartmentRequest request = new DepartmentRequest("", "", "Description", null);
 
         mockMvc.perform(put("/departments/1")
                 .contentType(MediaType.APPLICATION_JSON)

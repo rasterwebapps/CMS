@@ -136,6 +136,7 @@ export interface EnquiryPaymentResponse {
   remarks: string | null;
   receiptNumber: string;
   collectedBy: string | null;
+  feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   newStatus: string;
   createdAt: string;
 }

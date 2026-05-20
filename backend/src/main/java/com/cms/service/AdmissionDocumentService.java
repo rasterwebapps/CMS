@@ -142,6 +142,16 @@ public class AdmissionDocumentService {
         return toResponse(updated, admissionId);
     }
 
+    @Transactional
+    public void deleteDocument(Long documentId) {
+        EnquiryDocument document = documentRepository.findById(documentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        if (document.getStatus() == DocumentVerificationStatus.VERIFIED) {
+            throw new IllegalStateException("Verified documents cannot be deleted");
+        }
+        documentRepository.deleteById(documentId);
+    }
+
     public Map<DocumentType, DocumentVerificationStatus> getChecklist(Long admissionId) {
         Admission admission = admissionRepository.findById(admissionId)
             .orElseThrow(() -> new ResourceNotFoundException("Admission not found with id: " + admissionId));

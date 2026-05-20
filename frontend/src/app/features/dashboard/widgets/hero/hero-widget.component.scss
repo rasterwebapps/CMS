@@ -5,6 +5,8 @@ $green: #22C55E;
 :host { display: block; }
 
 .hero-shell {
+  height: 100%;
+  box-sizing: border-box;
   position: relative;
   z-index: 1;
   border-radius: 20px;

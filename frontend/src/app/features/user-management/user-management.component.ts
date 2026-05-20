@@ -80,8 +80,13 @@ export class UserManagementComponent implements OnInit {
   }
 
   protected submitCreate(): void {
-    if (!this.createForm.email || !this.createForm.fullName || !this.createForm.keycloakUsername || !this.createForm.roleName) {
+    const f = this.createForm;
+    if (!f.email || !f.fullName || !f.keycloakUsername || !f.password || !f.roleName) {
       this.toast.error('Please fill all required fields');
+      return;
+    }
+    if (f.password.length < 8) {
+      this.toast.error('Password must be at least 8 characters');
       return;
     }
     this.saving.set(true);

@@ -317,15 +317,7 @@
             </div>
 
             <div class="field-row">
-              <div class="field-group">
-                <label for="stu-district" class="field-label">District</label>
-                <input id="stu-district" class="field-input" formControlName="district" autocomplete="off" />
-              </div>
-
-              <div class="field-group">
-                <label for="stu-state" class="field-label">State</label>
-                <input id="stu-state" class="field-input" formControlName="state" autocomplete="off" />
-              </div>
+              <cms-state-district-selector [parentForm]="form" />
             </div>
 
             <div class="field-group" style="margin-bottom: 0;">

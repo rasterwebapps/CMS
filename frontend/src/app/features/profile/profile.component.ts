@@ -11,6 +11,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { environment } from '../../../environments';
 import { PermissionService } from '../../core/permissions/permission.service';
+import { BloodGroupService } from '../blood-group/blood-group.service';
+import { BloodGroup } from '../blood-group/blood-group.model';
 import { ProfileService, ProfileIdentity, SelfUpdateRequest } from './profile.service';
 import { FacultyService } from '../faculty/faculty.service';
 import { StudentService } from '../student/student.service';
@@ -53,10 +55,10 @@ const DEFAULT_NOTIF_PREFS: NotifPrefs = {
 const MODULE_LABELS: Record<string, { label: string; icon: string }> = {
   USER:       { label: 'User Management',    icon: 'manage_accounts' },
   ROLE:       { label: 'Roles & Access',     icon: 'shield' },
-  STUDENT:    { label: 'Students',           icon: 'school' },
+  STUDENT:    { label: 'Student Explorer',    icon: 'school' },
   FACULTY:    { label: 'Faculty',            icon: 'groups' },
   FEE:        { label: 'Finance & Fees',     icon: 'payments' },
-  ADMISSION:  { label: 'Admissions',         icon: 'how_to_reg' },
+  ADMISSION:  { label: 'Admission Explorer',  icon: 'how_to_reg' },
   ENQUIRY:    { label: 'Enquiries',          icon: 'contact_mail' },
   LAB:        { label: 'Labs & Equipment',   icon: 'science' },
   EXAM:       { label: 'Examinations',       icon: 'quiz' },
@@ -103,14 +105,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   @ViewChild('photoInput') private photoInput?: ElementRef<HTMLInputElement>;
 
-  private readonly profileService = inject(ProfileService);
-  private readonly facultyService = inject(FacultyService);
-  private readonly studentService = inject(StudentService);
-  private readonly themeService   = inject(ThemeService);
-  private readonly permService    = inject(PermissionService);
-  private readonly toast          = inject(ToastService);
-  private readonly docSlots       = inject(DocumentSlotsService);
-  private readonly dialog         = inject(MatDialog);
+  private readonly profileService    = inject(ProfileService);
+  private readonly facultyService    = inject(FacultyService);
+  private readonly studentService    = inject(StudentService);
+  private readonly themeService      = inject(ThemeService);
+  private readonly permService       = inject(PermissionService);
+  private readonly bloodGroupService = inject(BloodGroupService);
+  private readonly toast             = inject(ToastService);
+  private readonly docSlots          = inject(DocumentSlotsService);
+  private readonly dialog            = inject(MatDialog);
+
+  protected readonly bloodGroups = signal<BloodGroup[]>([]);
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   protected readonly swatches         = COLOR_SWATCHES;
@@ -342,6 +347,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Reapply saved accessibility prefs on page load
     document.documentElement.classList.toggle('reduce-motion', this.reduceMotion());
     document.documentElement.classList.toggle('large-text',    this.largeText());
+    // Load blood group master
+    this.bloodGroupService.getActiveBloodGroups().subscribe({
+      next: groups => this.bloodGroups.set(groups),
+    });
     this.loading.set(true);
     this.identity.set(null); this.faculty.set(null); this.student.set(null);
 

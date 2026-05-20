@@ -7,6 +7,7 @@ public record DepartmentResponse(
     String name,
     String code,
     String description,
+    Long hodFacultyId,
     String hodName,
     Instant createdAt,
     Instant updatedAt

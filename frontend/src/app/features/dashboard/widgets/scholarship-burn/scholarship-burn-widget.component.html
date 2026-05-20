@@ -1,0 +1,64 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>volunteer_activism</mat-icon></div>
+    <span class="widget-title">Scholarship &amp; Concession Burn</span>
+    @if (!loading() && !error() && data()) {
+      <span class="burn-pill">−{{ data()!.discountPct }}%</span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        <div class="sk-line sk-line--75"></div>
+        <div class="sk-block" style="height:30px; border-radius:8px; margin: 10px 0;"></div>
+        <div class="sk-line sk-line--55"></div>
+        <div class="sk-line sk-line--40"></div>
+      </div>
+    } @else if (error() || !data()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No fee allocation data</span></div>
+    } @else {
+      <div class="burn-summary">
+        <div class="bs-block">
+          <span class="bs-label">Gross</span>
+          <span class="bs-val">{{ data()!.grossFee | inr }}</span>
+        </div>
+        <mat-icon class="bs-arrow">arrow_forward</mat-icon>
+        <div class="bs-block">
+          <span class="bs-label">Net Collectable</span>
+          <span class="bs-val bs-val--ok">{{ data()!.netCollectable | inr }}</span>
+        </div>
+      </div>
+
+      @if (segments(); as seg) {
+        <div class="stack-bar">
+          <div class="stack-seg stack-seg--net"
+               [style.width.%]="seg.netPct"
+               [title]="'Net ' + seg.netPct + '%'"></div>
+          <div class="stack-seg stack-seg--dis"
+               [style.width.%]="seg.discountPct"
+               [title]="'Discount ' + seg.discountPct + '%'"></div>
+          <div class="stack-seg stack-seg--sch"
+               [style.width.%]="seg.scholarshipPct"
+               [title]="'Scholarship ' + seg.scholarshipPct + '%'"></div>
+        </div>
+      }
+
+      <div class="burn-rows">
+        <div class="br-row">
+          <span class="br-label"><span class="br-dot br-dot--dis"></span>Discount</span>
+          <span class="br-val">{{ data()!.totalDiscount | inr }}</span>
+        </div>
+        <div class="br-row">
+          <span class="br-label"><span class="br-dot br-dot--sch"></span>Scholarship</span>
+          <span class="br-val">{{ data()!.totalScholarship | inr }}</span>
+        </div>
+        <div class="br-row">
+          <span class="br-label muted">Students impacted</span>
+          <span class="br-val muted">{{ data()!.studentsImpacted }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+

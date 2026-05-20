@@ -714,6 +714,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'enquiries/document-verification',
+    canActivate: withPermission('DOCUMENT_VERIFICATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/enquiry/document-verification/document-verification-list.component').then(
+        (m) => m.DocumentVerificationListComponent
+      ),
+  },
+  {
+    path: 'enquiries/document-verification/:id',
+    canActivate: withPermission('DOCUMENT_VERIFICATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/enquiry/document-verification/document-verification-detail.component').then(
+        (m) => m.DocumentVerificationDetailComponent
+      ),
+  },
+  {
     path: 'enquiries/admission-completion',
     canActivate: withPermission('ADMISSION_CREATE', 'ADMISSION_EDIT'),
     loadComponent: () =>
@@ -889,6 +905,47 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/blood-group/blood-group-form/blood-group-form.component').then(
         (m) => m.BloodGroupFormComponent
+      ),
+  },
+  // ── India Locations (States & Districts) ─────────────────────────────────
+  {
+    path: 'india-locations',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/india-location-list/india-location-list.component').then(
+        (m) => m.IndiaLocationListComponent
+      ),
+  },
+  {
+    path: 'india-locations/states/new',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/india-state-form/india-state-form.component').then(
+        (m) => m.IndiaStateFormComponent
+      ),
+  },
+  {
+    path: 'india-locations/states/:id/edit',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/india-state-form/india-state-form.component').then(
+        (m) => m.IndiaStateFormComponent
+      ),
+  },
+  {
+    path: 'india-locations/states/:stateId/districts/new',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/india-district-form/india-district-form.component').then(
+        (m) => m.IndiaDistrictFormComponent
+      ),
+  },
+  {
+    path: 'india-locations/districts/:id/edit',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/india-district-form/india-district-form.component').then(
+        (m) => m.IndiaDistrictFormComponent
       ),
   },
   // ── Administration: User & Role Management ───────────────────────────────

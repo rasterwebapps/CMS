@@ -1,6 +1,8 @@
-:host { display: block; }
+:host { display: flex; flex-direction: column; flex: 1; }
 
 .connections-card { padding: 20px; }
+
+.widget-card__body { flex: 1; overflow-y: auto; }
 
 .cn-badge {
   margin-left: auto;

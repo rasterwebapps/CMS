@@ -68,6 +68,9 @@ public class StudentFeeAllocation {
     @Column(nullable = false)
     private FeeAllocationStatus status;
 
+    @Column(name = "has_hostel_fee", nullable = false)
+    private boolean hasHostelFee = false;
+
     @Column(name = "finalized_at")
     private Instant finalizedAt;
 
@@ -194,6 +197,9 @@ public class StudentFeeAllocation {
     public void setStatus(FeeAllocationStatus status) {
         this.status = status;
     }
+
+    public boolean isHasHostelFee() { return hasHostelFee; }
+    public void setHasHostelFee(boolean hasHostelFee) { this.hasHostelFee = hasHostelFee; }
 
     public Instant getFinalizedAt() {
         return finalizedAt;

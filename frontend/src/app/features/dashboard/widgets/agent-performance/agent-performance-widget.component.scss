@@ -1,0 +1,71 @@
+@use '../widget-shell' as *;
+
+:host { --ca: #F59E0B; }
+
+$gold:   #F59E0B;
+$silver: #94A3B8;
+$bronze: #B45309;
+$green:  #22C55E;
+$red:    #EF4444;
+
+.lb {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+
+  th, td { padding: 7px 6px; text-align: left; }
+  th {
+    font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: rgba(255,255,255,.35);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); border-bottom-color: rgba(0,0,0,.07); }
+  }
+  td {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: rgba(255,255,255,.75);
+    :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); border-bottom-color: rgba(0,0,0,.04); }
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .lb-rank { width: 26px; }
+}
+
+.rank-medal {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  font-size: 10px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  &.gold   { background: linear-gradient(135deg, color-mix(in srgb, $gold 80%, white), $gold); box-shadow: 0 0 8px rgba($gold, .35); }
+  &.silver { background: linear-gradient(135deg, color-mix(in srgb, $silver 80%, white), $silver); }
+  &.bronze { background: linear-gradient(135deg, color-mix(in srgb, $bronze 78%, white), $bronze); }
+  &.plain  { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5);
+             :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.06); color: var(--cms-text-muted); } }
+}
+
+.lb-agent {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: color-mix(in srgb, var(--ca) 18%, transparent);
+  color: var(--ca);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .03em;
+}
+
+.agent-name {
+  font-weight: 500;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.conv-pct {
+  &.hi { color: $green; }
+  &.lo { color: $red; }
+}
+

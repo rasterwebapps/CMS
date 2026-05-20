@@ -33,6 +33,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_FORM_TOUR } from '../../../shared/tour/tours/faculty.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
 
 @Component({
   selector: 'app-faculty-form',
@@ -46,6 +47,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     CmsTourButtonComponent,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsStateDistrictSelectorComponent,
   ],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',

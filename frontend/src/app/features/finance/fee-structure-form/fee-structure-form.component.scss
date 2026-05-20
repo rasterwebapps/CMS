@@ -500,6 +500,62 @@
   .fee-grid__note-row--additional &:focus { border-bottom-color: var(--cms-primary); }
 }
 
+// ── Inline Total Rows (Day Scholar Total, Hosteler Total) ────────────────
+.fee-grid__row--scholar-total {
+  border-top: 2px solid rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 6px;
+  min-height: 38px;
+  margin-top: 2px;
+}
+
+.fee-grid__row--hosteler-total {
+  border-top: 2px solid var(--cms-primary-alpha-25);
+  background: var(--cms-primary-alpha-8);
+  border-radius: 6px;
+  min-height: 38px;
+  margin-top: 2px;
+}
+
+.g-cell--total-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &--primary {
+    color: var(--cms-primary) !important;
+  }
+}
+
+.g-cell--total-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+  justify-content: flex-end;
+
+  &--primary {
+    color: var(--cms-primary);
+    font-weight: 700;
+  }
+}
+
+.g-cell--grand-total {
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+
+  &--scholar { color: #059669; }
+  &--primary { color: var(--cms-primary); font-size: 1rem; }
+}
+
+.g-type-icon--scholar  { color: #10b981 !important; }
+
 // ── Form Actions ──────────────────────────────────────────────────────────
 .form-actions {
   display: flex;

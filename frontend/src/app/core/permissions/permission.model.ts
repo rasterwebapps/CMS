@@ -38,6 +38,8 @@ export interface CreateUserRequest {
   fullName: string;
   password: string;
   roleName: string;
+  studentId?: number | null;
+  facultyId?: number | null;
 }
 
 export interface UpdateUserRequest {

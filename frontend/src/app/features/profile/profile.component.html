@@ -526,12 +526,14 @@
         <div class="glass-card docs-full-card">
           @if (f) {
             <cms-profile-documents entityType="FACULTY" [entityId]="f.id"
-              [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
+              [canManage]="true" [canVerify]="false" [selfService]="true"
+              (slotsChange)="onSlotsChange($event)" />
           }
           @if (s && id.admissionId) {
             <cms-profile-documents entityType="STUDENT" [entityId]="id.admissionId!"
               [programId]="id.programId ?? undefined"
-              [canManage]="true" [canVerify]="false" (slotsChange)="onSlotsChange($event)" />
+              [canManage]="true" [canVerify]="false" [selfService]="true"
+              (slotsChange)="onSlotsChange($event)" />
           }
         </div>
       </section>
@@ -552,7 +554,7 @@
         <div class="ep-drawer__hdr-icon"><mat-icon>manage_accounts</mat-icon></div>
         <div>
           <h2 class="ep-drawer__title">Edit Profile</h2>
-          <p class="ep-drawer__sub">Changes are visible only to you and administrators</p>
+          <p class="ep-drawer__sub">Updates are saved to your profile</p>
         </div>
         <button class="ep-drawer__close" type="button" (click)="cancelEdit()" aria-label="Close">
           <mat-icon>close</mat-icon>
@@ -581,7 +583,12 @@
           </div>
           <div class="ep-field">
             <label class="ep-label">Blood Group</label>
-            <input class="ep-input" type="text" [(ngModel)]="editForm.bloodGroup" placeholder="e.g. O+" />
+            <select class="ep-input" [(ngModel)]="editForm.bloodGroup">
+              <option value="">Select blood group</option>
+              @for (bg of bloodGroups(); track bg.id) {
+                <option [value]="bg.name">{{ bg.name }}</option>
+              }
+            </select>
           </div>
         </div>
 

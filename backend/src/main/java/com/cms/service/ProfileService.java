@@ -51,41 +51,44 @@ public class ProfileService {
         String fullName = jwt.getClaimAsString("name");
         String display  = fullName != null && !fullName.isBlank() ? fullName : username;
 
-        if (email != null && !email.isBlank()) {
-            var faculty = facultyRepository.findByEmail(email);
-            if (faculty.isPresent()) {
-                Faculty f = faculty.get();
-                return new ProfileIdentity(
-                    "FACULTY", f.getId(), null, null,
-                    f.getFullName(), email,
-                    f.getBio(), f.getPhone(), f.getBloodGroup()
-                );
-            }
+        // Primary resolution: look up the app_users record by Keycloak username,
+        // then follow the direct FK to the linked student or faculty record.
+        // This is reliable regardless of email changes or shared emails.
+        if (username != null && !username.isBlank()) {
+            var appUserOpt = appUserRepository.findByKeycloakUsername(username);
+            if (appUserOpt.isPresent()) {
+                AppUser appUser = appUserOpt.get();
 
-            var student = studentRepository.findByEmail(email);
-            if (student.isPresent()) {
-                Student st = student.get();
-                Long admissionId = admissionRepository
-                    .findByStudentId(st.getId()).map(a -> a.getId()).orElse(null);
-                Long programId = st.getProgram() != null ? st.getProgram().getId() : null;
-                return new ProfileIdentity(
-                    "STUDENT", st.getId(), admissionId, programId,
-                    st.getFullName(), email,
-                    st.getBio(), st.getPhone(), st.getBloodGroup()
-                );
+                if (appUser.getLinkedFaculty() != null) {
+                    Faculty f = appUser.getLinkedFaculty();
+                    return new ProfileIdentity(
+                        "FACULTY", f.getId(), null, null,
+                        f.getFullName(), email,
+                        f.getBio(), f.getPhone(), f.getBloodGroup()
+                    );
+                }
+
+                if (appUser.getLinkedStudent() != null) {
+                    Student st = appUser.getLinkedStudent();
+                    Long admissionId = admissionRepository
+                        .findByStudentId(st.getId()).map(a -> a.getId()).orElse(null);
+                    Long programId = st.getProgram() != null ? st.getProgram().getId() : null;
+                    return new ProfileIdentity(
+                        "STUDENT", st.getId(), admissionId, programId,
+                        st.getFullName(), email,
+                        st.getBio(), st.getPhone(), st.getBloodGroup()
+                    );
+                }
+
+                // App user exists but has no linked student/faculty → treat as ADMIN
+                AppUser adminUser = appUser;
+                return new ProfileIdentity("ADMIN", null, null, null, display, email,
+                                          adminUser.getBio(), adminUser.getPhone(), adminUser.getBloodGroup());
             }
         }
 
-        // Admin — personal info stored on app_users
-        String adminBio = null; String adminPhone = null; String adminBlood = null;
-        try {
-            AppUser adminUser = resolveAppUser();
-            adminBio   = adminUser.getBio();
-            adminPhone = adminUser.getPhone();
-            adminBlood = adminUser.getBloodGroup();
-        } catch (Exception ignored) {}
-        return new ProfileIdentity("ADMIN", null, null, null, display, email,
-                                  adminBio, adminPhone, adminBlood);
+        // Fallback: username not in app_users → unknown / unconfigured account
+        return new ProfileIdentity("ADMIN", null, null, null, display, email, null, null, null);
     }
 
     public ResponseEntity<byte[]> getPhoto() {
@@ -170,30 +173,25 @@ public class ProfileService {
 
     @Transactional
     public void updateSelfInfo(SelfUpdateRequest request) {
-        Jwt jwt = resolveJwt();
-        String email = jwt.getClaimAsString("email");
-        if (email == null || email.isBlank()) {
-            return;
-        }
+        // Resolve via the FK link, same as resolveCurrentUser()
+        AppUser appUser = resolveAppUser();
 
-        var faculty = facultyRepository.findByEmail(email);
-        if (faculty.isPresent()) {
-            Faculty current = faculty.get();
+        if (appUser.getLinkedFaculty() != null) {
+            Faculty current = appUser.getLinkedFaculty();
             applySelfFields(current, request);
             facultyRepository.save(current);
             return;
         }
 
-        var student = studentRepository.findByEmail(email);
-        if (student.isPresent()) {
-            Student current = student.get();
+        if (appUser.getLinkedStudent() != null) {
+            Student current = appUser.getLinkedStudent();
             applySelfFields(current, request);
             studentRepository.save(current);
             return;
         }
 
         // Admin user — bio, phone, bloodGroup are self-editable
-        AppUser user = resolveAppUser();
+        AppUser user = appUser;
         boolean changed = false;
         if (request.bio() != null)        { user.setBio(trimToNull(request.bio()));               changed = true; }
         if (request.phone() != null)      { user.setPhone(trimToNull(request.phone()));            changed = true; }

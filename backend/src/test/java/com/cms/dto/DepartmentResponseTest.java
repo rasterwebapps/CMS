@@ -16,6 +16,7 @@ class DepartmentResponseTest {
             "Computer Science",
             "CS",
             "Department of Computer Science",
+            10L,
             "Dr. John Doe",
             now,
             now
@@ -25,6 +26,7 @@ class DepartmentResponseTest {
         assertThat(response.name()).isEqualTo("Computer Science");
         assertThat(response.code()).isEqualTo("CS");
         assertThat(response.description()).isEqualTo("Department of Computer Science");
+        assertThat(response.hodFacultyId()).isEqualTo(10L);
         assertThat(response.hodName()).isEqualTo("Dr. John Doe");
         assertThat(response.createdAt()).isEqualTo(now);
         assertThat(response.updatedAt()).isEqualTo(now);
@@ -33,19 +35,14 @@ class DepartmentResponseTest {
     @Test
     void shouldCreateDepartmentResponseWithNullValues() {
         DepartmentResponse response = new DepartmentResponse(
-            1L,
-            "Mathematics",
-            "MATH",
-            null,
-            null,
-            null,
-            null
+            1L, "Mathematics", "MATH", null, null, null, null, null
         );
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Mathematics");
         assertThat(response.code()).isEqualTo("MATH");
         assertThat(response.description()).isNull();
+        assertThat(response.hodFacultyId()).isNull();
         assertThat(response.hodName()).isNull();
         assertThat(response.createdAt()).isNull();
         assertThat(response.updatedAt()).isNull();
@@ -55,10 +52,10 @@ class DepartmentResponseTest {
     void shouldBeEqualWhenSameValues() {
         Instant now = Instant.now();
         DepartmentResponse response1 = new DepartmentResponse(
-            1L, "CS", "CS", "Desc", "Dr. Doe", now, now
+            1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
         DepartmentResponse response2 = new DepartmentResponse(
-            1L, "CS", "CS", "Desc", "Dr. Doe", now, now
+            1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
 
         assertThat(response1).isEqualTo(response2);
@@ -69,10 +66,10 @@ class DepartmentResponseTest {
     void shouldNotBeEqualWhenDifferentValues() {
         Instant now = Instant.now();
         DepartmentResponse response1 = new DepartmentResponse(
-            1L, "CS", "CS", "Desc", "Dr. Doe", now, now
+            1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
         DepartmentResponse response2 = new DepartmentResponse(
-            2L, "Math", "MATH", "Desc", "Dr. Smith", now, now
+            2L, "Math", "MATH", "Desc", null, "Dr. Smith", now, now
         );
 
         assertThat(response1).isNotEqualTo(response2);
@@ -82,7 +79,7 @@ class DepartmentResponseTest {
     void shouldHaveToStringMethod() {
         Instant now = Instant.now();
         DepartmentResponse response = new DepartmentResponse(
-            1L, "CS", "CS", "Desc", "Dr. Doe", now, now
+            1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
 
         String toString = response.toString();

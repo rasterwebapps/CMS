@@ -9,16 +9,21 @@ import com.cms.dto.DepartmentRequest;
 import com.cms.dto.DepartmentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Department;
+import com.cms.model.Faculty;
 import com.cms.repository.DepartmentRepository;
+import com.cms.repository.FacultyRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
+    private final FacultyRepository facultyRepository;
 
-    public DepartmentService(DepartmentRepository departmentRepository) {
+    public DepartmentService(DepartmentRepository departmentRepository,
+                              FacultyRepository facultyRepository) {
         this.departmentRepository = departmentRepository;
+        this.facultyRepository = facultyRepository;
     }
 
     @Transactional
@@ -35,12 +40,8 @@ public class DepartmentService {
                 "A department with the code '" + code + "' already exists");
         }
 
-        Department department = new Department(
-            name,
-            code,
-            trim(request.description()),
-            trim(request.hodName())
-        );
+        Department department = new Department(name, code, trim(request.description()), null, null);
+        applyHod(department, request.hodFacultyId());
         Department saved = departmentRepository.save(department);
         return toResponse(saved);
     }
@@ -76,7 +77,7 @@ public class DepartmentService {
         department.setName(name);
         department.setCode(code);
         department.setDescription(trim(request.description()));
-        department.setHodName(trim(request.hodName()));
+        applyHod(department, request.hodFacultyId());
 
         Department updated = departmentRepository.save(department);
         return toResponse(updated);
@@ -90,12 +91,26 @@ public class DepartmentService {
         departmentRepository.deleteById(id);
     }
 
+    private void applyHod(Department department, Long hodFacultyId) {
+        if (hodFacultyId == null) {
+            department.setHodFacultyId(null);
+            department.setHodName(null);
+        } else {
+            Faculty faculty = facultyRepository.findById(hodFacultyId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Faculty not found with id: " + hodFacultyId));
+            department.setHodFacultyId(hodFacultyId);
+            department.setHodName(faculty.getFullName());
+        }
+    }
+
     private DepartmentResponse toResponse(Department department) {
         return new DepartmentResponse(
             department.getId(),
             department.getName(),
             department.getCode(),
             department.getDescription(),
+            department.getHodFacultyId(),
             department.getHodName(),
             department.getCreatedAt(),
             department.getUpdatedAt()

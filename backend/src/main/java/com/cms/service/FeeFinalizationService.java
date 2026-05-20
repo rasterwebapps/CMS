@@ -23,6 +23,7 @@ import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentScholarship;
 import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
@@ -134,6 +135,12 @@ public class FeeFinalizationService {
         }
         allocation.setFinalizedAt(Instant.now());
         allocation.setFinalizedBy(adminUsername);
+
+        // Detect hostel from the linked enquiry if available
+        boolean hasHostelFee = enquiryRepository.findByConvertedStudentId(request.studentId())
+            .map(e -> e.getStudentType() == StudentType.HOSTELER)
+            .orElse(false);
+        allocation.setHasHostelFee(hasHostelFee);
 
         StudentFeeAllocation saved = allocationRepository.save(allocation);
 

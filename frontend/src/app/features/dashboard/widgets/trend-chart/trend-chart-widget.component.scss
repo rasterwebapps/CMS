@@ -1,7 +1,9 @@
 @use '../widget-shell' as *;
 
 .chart-area {
-  display: flex; align-items: flex-end; gap: 6px; height: 110px;
+  display: flex; align-items: flex-end; gap: 6px;
+  flex: 1;
+  min-height: 80px;
   &--loading { gap: 6px; }
 }
 

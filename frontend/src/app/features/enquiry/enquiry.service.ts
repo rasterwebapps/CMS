@@ -191,4 +191,22 @@ export class EnquiryService {
       `${this.baseUrl}/${enquiryId}/documents/verification-status`,
     );
   }
+
+  getDocumentVerificationPending(): Observable<Enquiry[]> {
+    return this.http.get<Enquiry[]>(`${this.baseUrl}/document-verification-pending`);
+  }
+
+  verifyDocument(enquiryId: number, documentId: number): Observable<EnquiryDocument> {
+    return this.http.put<EnquiryDocument>(
+      `${this.baseUrl}/${enquiryId}/documents/${documentId}/verify`,
+      {},
+    );
+  }
+
+  rejectDocument(enquiryId: number, documentId: number, rejectionComment: string): Observable<EnquiryDocument> {
+    return this.http.put<EnquiryDocument>(
+      `${this.baseUrl}/${enquiryId}/documents/${documentId}/reject`,
+      { rejectionComment },
+    );
+  }
 }

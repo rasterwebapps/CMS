@@ -19,5 +19,7 @@ public record CollectPaymentResponse(
     String remarks,
     String allocationSummary,
     List<SemesterPaymentDetail> installmentBreakdown,
+    /** TUITION_ONLY | TUITION_AND_HOSTEL */
+    String feeCategory,
     Instant createdAt
 ) {}

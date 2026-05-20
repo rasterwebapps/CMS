@@ -20,6 +20,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
 
 interface ProgramInfo {
   id: number;
@@ -58,7 +59,8 @@ interface FeeStructureInfo {
     InrPipe,
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    CmsStateDistrictSelectorComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })

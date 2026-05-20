@@ -1,0 +1,129 @@
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { ReactiveFormsModule, FormGroup } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { IndiaLocationService } from '../../features/india-location/india-location.service';
+import { IndiaState, IndiaDistrict } from '../../features/india-location/india-location.model';
+
+/**
+ * Reusable cascading State → District selector.
+ * Usage:
+ *   <cms-state-district-selector
+ *     [parentForm]="form"
+ *     stateControlName="state"
+ *     districtControlName="district"
+ *   />
+ *
+ * The component reads/writes the values of the named FormControls in [parentForm].
+ * When State changes the District control is cleared and Districts are reloaded.
+ */
+@Component({
+  selector: 'cms-state-district-selector',
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  templateUrl: './state-district-selector.component.html',
+  styleUrl: './state-district-selector.component.scss',
+})
+export class CmsStateDistrictSelectorComponent implements OnInit {
+  private readonly locationService = inject(IndiaLocationService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly parentForm = input.required<FormGroup>();
+  readonly stateControlName = input<string>('state');
+  readonly districtControlName = input<string>('district');
+  readonly stateRequired = input<boolean>(false);
+  readonly districtRequired = input<boolean>(false);
+
+  protected readonly states = signal<IndiaState[]>([]);
+  protected readonly districts = signal<IndiaDistrict[]>([]);
+  protected readonly loadingStates = signal(false);
+  protected readonly loadingDistricts = signal(false);
+
+  protected readonly stateCtrl = computed(() =>
+    this.parentForm().get(this.stateControlName()),
+  );
+  protected readonly districtCtrl = computed(() =>
+    this.parentForm().get(this.districtControlName()),
+  );
+
+  ngOnInit(): void {
+    this.loadStates();
+
+    // React to state control value changes
+    const stateControl = this.parentForm().get(this.stateControlName());
+    if (stateControl) {
+      // If already has a value, load districts immediately
+      if (stateControl.value) {
+        this.loadDistrictsForStateName(stateControl.value as string);
+      }
+
+      stateControl.valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((stateName: string | null) => {
+          // Clear district when state changes
+          const districtControl = this.parentForm().get(this.districtControlName());
+          if (districtControl) districtControl.setValue('');
+          this.districts.set([]);
+
+          if (stateName) {
+            this.loadDistrictsForStateName(stateName);
+          }
+        });
+    }
+  }
+
+  private loadStates(): void {
+    this.loadingStates.set(true);
+    this.locationService
+      .getStates(true)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => {
+          this.loadingStates.set(false);
+          return EMPTY;
+        }),
+      )
+      .subscribe((states) => {
+        this.states.set(states);
+        this.loadingStates.set(false);
+      });
+  }
+
+  private loadDistrictsForStateName(stateName: string): void {
+    const state = this.states().find(
+      (s) => s.name.toLowerCase() === stateName.toLowerCase(),
+    );
+    if (state) {
+      this.loadDistrictsForState(state.id);
+    }
+  }
+
+  private loadDistrictsForState(stateId: number): void {
+    this.loadingDistricts.set(true);
+    this.locationService
+      .getDistricts(stateId, true)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => {
+          this.loadingDistricts.set(false);
+          return EMPTY;
+        }),
+      )
+      .subscribe((districts) => {
+        this.districts.set(districts);
+        this.loadingDistricts.set(false);
+      });
+  }
+}
+

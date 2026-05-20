@@ -35,6 +35,7 @@
 - [BR-25: Profile Self-Service Editing and User Profile Photo](#br-25-profile-self-service-editing-and-user-profile-photo)
 - [BR-26: Faculty Document Review Summary and Verification Locks](#br-26-faculty-document-review-summary-and-verification-locks)
 - [BR-27: Permanent Admission Number Generation](#br-27-permanent-admission-number-generation)
+- [BR-29: UI Validation & Form Behaviour Standards](#br-29-ui-validation--form-behaviour-standards)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1193,10 +1194,153 @@ Every completed admission must receive a permanent, immutable **admission number
 - `NUMBER_SEQUENCE_VIEW` — can view the generated number sequence registry.
 
 
+---
+
+## BR-29: UI Validation & Form Behaviour Standards
+
+> **Scope:** Applies to every master-data form, entity form, and input component in the system. These are non-negotiable base rules — every screen that collects user input MUST comply. Implemented via `shared/validators/cms-validators.ts`.
+
+---
+
+### 29.1 Boundary Value (min / max length)
+
+| Rule | Detail |
+|------|--------|
+| Min & max character limits must be enforced on every text field | Backend constraints define the values; the frontend must mirror them |
+| **Leading / trailing spaces are not counted** toward the character minimum | `"  A  "` counts as 1 character (trimmed before length check) |
+| No more than **one consecutive space** is allowed anywhere in a text field | `"John  Doe"` (two spaces) → rejected |
+
+**Validator:** `noConsecutiveSpaces()` + `trimmedMinLength(n)` from `cms-validators.ts`.
+
+---
+
+### 29.2 Code Fields
+
+| Rule | Detail |
+|------|--------|
+| Spaces are **not allowed anywhere** inside a code value | Neither leading, trailing, nor mid-word |
+| Copy-paste with embedded spaces must be rejected immediately (on input) | Strip via `stripSpaces()` utility in `(input)` handler |
+| Codes are alphanumeric; special chars allowed: underscore `_`, hyphen `-` | Apply via `pattern` or `noInternalSpaces()` validator |
+| **Unique validation is case-insensitive** | `ABC`, `abc`, `Abc` → all treated as the same code on the backend |
+| **Save as-is** — the casing the user enters is preserved in the database | `"BSc"` saves as `"BSc"`, not normalised |
+
+**Validator:** `noInternalSpaces()` from `cms-validators.ts`.
+
+---
+
+### 29.3 Unique Validation (Name & Code)
+
+| Rule | Detail |
+|------|--------|
+| Unique check is **case-insensitive** | `"Nursing"`, `"NURSING"`, `"nursing"` → same entity |
+| Value is **saved exactly as entered** (case preserved) | Don't normalise to uppercase/lowercase before persisting |
+| Duplicate check must cover both active and inactive records | A soft-deleted record still blocks re-creation under the same name/code |
+
+Backend returns HTTP 409 with a descriptive message. Frontend must surface that message verbatim in the form error area.
+
+---
+
+### 29.4 Dropdown
+
+| Rule | Detail |
+|------|--------|
+| Add a placeholder/header option when the list is optional | e.g., `"— Select Department —"` as first option |
+| Hovered item must have a visually distinct background | Different from the selected-item highlight |
+| Selected item must show a check or distinct highlight | Never same style as unselected hover |
+
+---
+
+### 29.5 Autocomplete
+
+| Rule | Detail |
+|------|--------|
+| On form submit, free text that does not match a valid option must be rejected | Validate the bound object, not the display string |
+| Hover style ≠ selected style | Same contrast rule as dropdown |
+| Suggestion list: show **most recently changed items first**, else alphabetical | Backend must sort by `updatedAt DESC` then `name ASC` |
+| If searchable by code, suggestion list shows `CODE \| Name` format | e.g., `BSC-NURS \| B.Sc Nursing` |
+| Autocomplete must NOT open on double-space | Treat double-space as invalid input per 29.1 |
+
+---
+
+### 29.6 Date Picker
+
+| Rule | Detail |
+|------|--------|
+| Restrict future or past dates per the business context of each field | Academic year start/end: no future; Birth date: no future; Expiry: only future |
+| **FROM / TO range fields:** TO date must be ≥ FROM date | Disable dates in TO picker that are before the selected FROM date |
+
+---
+
+### 29.7 Form Submit & Multi-Click Prevention
+
+| Rule | Detail |
+|------|--------|
+| Submit button shows a spinner while the API call is in progress | Use `MatProgressSpinner` (diameter 18) inside the button |
+| Submit button is **disabled** while saving | `[disabled]="saving()"` |
+| Only one API call is made per user action | The button state must gate all subsequent clicks |
+| On submit, mark all fields touched to reveal inline errors | Call `form.markAllAsTouched()` before returning on invalid |
+
+**Pattern:** `saving` signal set to `true` before API call, reset on `next` and `error`.
+
+---
+
+### 29.8 Update Form
+
+| Rule | Detail |
+|------|--------|
+| Update button label must be **"Update"** in edit mode, **"Save"** in create mode | `isEditMode() ? 'Update' : 'Save'` |
+| Inactive records **can be updated** (status field can be toggled on the form) | Don't disable edit access based on active/inactive status |
+
+---
+
+### 29.9 Inactive & Delete Protection
+
+| Rule | Detail |
+|------|--------|
+| An entity linked to any other active record **cannot be made inactive** | Backend returns 409; frontend must show the error message |
+| An entity linked to any other record (active or historic) **cannot be deleted** | Backend returns 409; frontend must show a clear error: "Cannot delete — this record is in use" |
+| Before any delete, a **confirmation dialog** must appear | Dialog must state the entity name and warn about permanence |
+
+---
+
+### 29.10 Table, Sorting & Pagination
+
+| Rule | Detail |
+|------|--------|
+| Default list order: **name ascending** for master data; **date descending** for transactions | Applies to initial page load and after any CRUD operation |
+| Clicking a sort column in create/edit mode must not reset the display order field | Sorting UI only affects the list view, not form values |
+| Pagination page-change must show a **spinner** in the table area until data loads | Replace table rows with a centered spinner |
+
+---
+
+### 29.11 Search
+
+| Rule | Detail |
+|------|--------|
+| Search must cover both **active and inactive** records | Unless explicitly specified that only active items are searchable |
+| Search is based on **name AND code** (where code exists) | Both fields must be matched |
+| If code is mandatory for an entity, search must accept code as a standalone term | A code-only search returns the matching record |
+
+---
+
+### Implementation Reference
+
+| Validator / Utility | File | Use on |
+|---|---|---|
+| `noConsecutiveSpaces()` | `shared/validators/cms-validators.ts` | All name / text fields |
+| `noInternalSpaces()` | `shared/validators/cms-validators.ts` | All code fields |
+| `trimmedMinLength(n)` | `shared/validators/cms-validators.ts` | All name fields with min length |
+| `cmsFieldError(control, label)` | `shared/validators/cms-validators.ts` | All `getErrorMessage()` methods |
+| `stripSpaces(value)` | `shared/validators/cms-validators.ts` | Code `(input)` event handler |
+| `collapseSpaces(value)` | `shared/validators/cms-validators.ts` | Name `(blur)` event handler |
+
+---
+
 ## 📝 Change Log
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-18 | BR-29 | Added UI Validation & Form Behaviour Standards: boundary value / empty-space rules, code-field no-space rule, case-insensitive unique validation, dropdown/autocomplete UX, date-picker range rules, submit multi-click prevention, update button label, inactive/delete protection, table ordering, pagination spinner, and search scope. Implemented `cms-validators.ts` with `noConsecutiveSpaces`, `noInternalSpaces`, `trimmedMinLength`, `cmsFieldError`, `stripSpaces`, `collapseSpaces`. Applied across all master-data form components. | — |
 | 2026-05-16 | BR-28 | Added notification & alert preferences: generic vs role-specific categories, per-role defaults, delivery channels (in-app/email/both), backend requirements for `user_notification_preferences` table, sending service triggers, and current localStorage-only state with migration path to backend | — |
 | 2026-05-16 | BR-27 | Added permanent admission number generation on successful admission completion/confirmation, academic-year format `ADM-2526-0001`, immutable student reference, receipt display, searchable admission/student screens, and read-only number sequence registry | — |
 | 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |

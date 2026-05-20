@@ -107,14 +107,24 @@
                 <span class="hod-ava-preview" aria-hidden="true">
                   {{ previewHod() ? hodInitials() : '—' }}
                 </span>
-                <input
+                <select
                   id="dept-hod"
                   class="field-input hod-field-input"
-                  formControlName="hodName"
-                  placeholder="e.g., Dr. Priya Sharma"
-                  autocomplete="off"
-                />
+                  formControlName="hodFacultyId"
+                >
+                  <option [ngValue]="null">— None —</option>
+                  @if (facultiesLoading()) {
+                    <option disabled>Loading faculty…</option>
+                  } @else {
+                    @for (faculty of faculties(); track faculty.id) {
+                      <option [ngValue]="faculty.id">
+                        {{ faculty.fullName }}{{ faculty.designation ? ' (' + faculty.designation + ')' : '' }}
+                      </option>
+                    }
+                  }
+                </select>
               </div>
+              <p class="field-hint">Select a faculty member as the Head of Department.</p>
             </div>
 
             <!-- Form Actions -->
@@ -179,7 +189,7 @@
             </div>
             <div>
               <div class="dept-tip-t">Head of Department</div>
-              <div class="dept-tip-s">Assign a faculty member as HOD. Include their title (Dr./Prof.) for professional display.</div>
+              <div class="dept-tip-s">Assign a faculty member as HOD by selecting from the dropdown list.</div>
             </div>
           </div>
 

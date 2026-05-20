@@ -69,19 +69,19 @@ public class LocalDataSeeder {
             // 1. DEPARTMENTS
             // ═══════════════════════════════════════════════════════════════
             Department deptMSN = departmentRepo.save(new Department("Medical-Surgical Nursing", "MSN",
-                "Department of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.", "Dr. S. Tamilarasi"));
+                "Department of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.", null, "Dr. S. Tamilarasi"));
             Department deptCHN = departmentRepo.save(new Department("Community Health Nursing", "CHN",
-                "Department of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.", "Dr. K. Vasanthi"));
+                "Department of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.", null, "Dr. K. Vasanthi"));
             Department deptCHD = departmentRepo.save(new Department("Child Health (Paediatric) Nursing", "CHD",
-                "Department of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.", "Dr. R. Meenakshi"));
+                "Department of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.", null, "Dr. R. Meenakshi"));
             Department deptOBG = departmentRepo.save(new Department("Obstetrics & Gynaecological Nursing", "OBG",
-                "Department of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.", "Dr. P. Selvarani"));
+                "Department of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.", null, "Dr. P. Selvarani"));
             Department deptMHN = departmentRepo.save(new Department("Mental Health (Psychiatric) Nursing", "MHN",
-                "Department of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.", "Dr. M. Kavitha"));
+                "Department of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.", null, "Dr. M. Kavitha"));
             Department deptNFD = departmentRepo.save(new Department("Nursing Foundation", "NFD",
-                "Department of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.", "Mrs. L. Jayalakshmi"));
+                "Department of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.", null, "Mrs. L. Jayalakshmi"));
             Department deptNEA = departmentRepo.save(new Department("Nursing Education & Administration", "NEA",
-                "Department of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.", "Dr. A. Padmavathi"));
+                "Department of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.", null, "Dr. A. Padmavathi"));
             log.info("✓ Created 7 departments");
 
             // ═══════════════════════════════════════════════════════════════

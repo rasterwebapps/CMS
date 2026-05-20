@@ -3,6 +3,7 @@ import { InrPipe } from '../pipes/inr.pipe';
 import { AppDatePipe } from '../pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../pipes/payment-mode-label.pipe';
 import { ReceiptDisplayData } from '../../features/finance/finance.model';
+import { downloadFeeReceipt, printFeeReceipt, ReceiptPrintData } from '../utils/print-receipt.utils';
 
 const ONES: string[] = [
   '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -51,21 +52,16 @@ export class FeeReceiptDialogComponent {
   }
 
   protected print(): void {
-    window.print();
+    const r = this.receipt();
+    if (!r) return;
+    printFeeReceipt(this.toReceiptPrintData(r));
     this.printed.emit();
   }
 
   protected download(): void {
     const r = this.receipt();
     if (!r) return;
-    const content = this.buildReceiptText(r);
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `Receipt-${r.receiptNumber}.txt`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadFeeReceipt(this.toReceiptPrintData(r));
   }
 
   protected async share(): Promise<void> {
@@ -114,6 +110,25 @@ export class FeeReceiptDialogComponent {
 
   // ─── Internal helpers ────────────────────────────────────────────────────
 
+  private toReceiptPrintData(r: ReceiptDisplayData): ReceiptPrintData {
+    return {
+      receiptNumber:       r.receiptNumber,
+      payerName:           r.payerName,
+      payerIdentifier:     r.payerIdentifier,
+      programName:         r.programName,
+      amountPaid:          r.amountPaid,
+      paymentDate:         r.paymentDate,
+      paymentMode:         r.paymentMode,
+      transactionReference: r.transactionReference,
+      feeCategory:         r.feeCategory,
+      installmentBreakdown: r.installmentBreakdown.length
+        ? r.installmentBreakdown.map(i => ({ installmentLabel: i.label, amountApplied: i.amount }))
+        : r.installmentsCovered
+          ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
+          : [],
+    };
+  }
+
   private twoDigits(n: number): string {
     if (n < 20) return ONES[n];
     const ten = TENS[Math.floor(n / 10)];
@@ -128,31 +143,4 @@ export class FeeReceiptDialogComponent {
     const rest    = n % 100 ? ' ' + this.twoDigits(n % 100) : '';
     return hundred + rest;
   }
-
-  private buildReceiptText(r: ReceiptDisplayData): string {
-    const sep = '─'.repeat(44);
-    const lines = [
-      'SKS College Of Nursing',
-      'No.31, Neikkarapatti, Salem – 636 010',
-      sep,
-      `Receipt No : ${r.receiptNumber}`,
-      `Date       : ${r.paymentDate}`,
-      sep,
-      `Name       : ${r.payerName}`,
-      r.payerIdentifier ? `Roll No    : ${r.payerIdentifier}` : '',
-      r.programName     ? `Program    : ${r.programName}`     : '',
-      `Amount     : ₹${r.amountPaid.toLocaleString('en-IN')}`,
-      `Mode       : ${r.paymentMode}`,
-      r.transactionReference ? `Txn Ref    : ${r.transactionReference}` : '',
-      r.installmentsCovered  ? `Towards    : ${r.installmentsCovered}`  : '',
-      r.remarks              ? `Remarks    : ${r.remarks}`              : '',
-      sep,
-      this.buildAmountWords(r.amountPaid),
-      sep,
-      'This is a computer-generated receipt.',
-    ].filter(Boolean);
-
-    return lines.join('\n');
-  }
 }
-

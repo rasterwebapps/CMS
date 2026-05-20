@@ -28,7 +28,7 @@ class DepartmentRequestTest {
             "Computer Science",
             "CS",
             "Department of Computer Science",
-            "Dr. John Doe"
+            null
         );
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
@@ -37,17 +37,27 @@ class DepartmentRequestTest {
         assertThat(request.name()).isEqualTo("Computer Science");
         assertThat(request.code()).isEqualTo("CS");
         assertThat(request.description()).isEqualTo("Department of Computer Science");
-        assertThat(request.hodName()).isEqualTo("Dr. John Doe");
+        assertThat(request.hodFacultyId()).isNull();
+    }
+
+    @Test
+    void shouldCreateValidDepartmentRequestWithHodFacultyId() {
+        DepartmentRequest request = new DepartmentRequest(
+            "Computer Science",
+            "CS",
+            "Department of Computer Science",
+            42L
+        );
+
+        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+
+        assertThat(violations).isEmpty();
+        assertThat(request.hodFacultyId()).isEqualTo(42L);
     }
 
     @Test
     void shouldFailValidationWhenNameIsBlank() {
-        DepartmentRequest request = new DepartmentRequest(
-            "",
-            "CS",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("", "CS", "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -57,12 +67,7 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenNameIsNull() {
-        DepartmentRequest request = new DepartmentRequest(
-            null,
-            "CS",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest(null, "CS", "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -72,12 +77,7 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsBlank() {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "", "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -87,12 +87,7 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsNull() {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            null,
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("Computer Science", null, "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -103,12 +98,7 @@ class DepartmentRequestTest {
     @Test
     void shouldFailValidationWhenNameExceeds255Characters() {
         String longName = "a".repeat(256);
-        DepartmentRequest request = new DepartmentRequest(
-            longName,
-            "CS",
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest(longName, "CS", "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -120,12 +110,7 @@ class DepartmentRequestTest {
     @Test
     void shouldFailValidationWhenCodeExceeds50Characters() {
         String longCode = "a".repeat(51);
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            longCode,
-            "Description",
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("Computer Science", longCode, "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -138,10 +123,7 @@ class DepartmentRequestTest {
     void shouldFailValidationWhenDescriptionExceeds1000Characters() {
         String longDescription = "a".repeat(1001);
         DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "CS",
-            longDescription,
-            "Dr. John Doe"
+            "Computer Science", "CS", longDescription, null
         );
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
@@ -152,30 +134,8 @@ class DepartmentRequestTest {
     }
 
     @Test
-    void shouldFailValidationWhenHodNameExceeds255Characters() {
-        String longHodName = "a".repeat(256);
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "CS",
-            "Description",
-            longHodName
-        );
-
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
-
-        assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-            .isEqualTo("HOD name must not exceed 255 characters");
-    }
-
-    @Test
     void shouldAllowNullDescription() {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "CS",
-            null,
-            "Dr. John Doe"
-        );
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "CS", null, null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 
@@ -183,13 +143,8 @@ class DepartmentRequestTest {
     }
 
     @Test
-    void shouldAllowNullHodName() {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science",
-            "CS",
-            "Description",
-            null
-        );
+    void shouldAllowNullHodFacultyId() {
+        DepartmentRequest request = new DepartmentRequest("Computer Science", "CS", "Description", null);
 
         Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
 

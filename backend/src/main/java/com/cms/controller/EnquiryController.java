@@ -62,6 +62,12 @@ public class EnquiryController {
         return ResponseEntity.ok(enquiryService.findDocumentPending());
     }
 
+    @GetMapping("/document-verification-pending")
+    @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
+    public ResponseEntity<List<EnquiryResponse>> findDocumentVerificationPending() {
+        return ResponseEntity.ok(enquiryService.findDocumentVerificationPending());
+    }
+
     @GetMapping("/admission-pending")
     @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
     public ResponseEntity<List<EnquiryResponse>> findAdmissionPending() {

@@ -137,8 +137,10 @@ public class FacultyDocumentService {
 
     @Transactional
     public void deleteDocument(Long id) {
-        if (!documentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Document not found with id: " + id);
+        FacultyDocument document = documentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
+        if (document.getStatus() == DocumentVerificationStatus.VERIFIED) {
+            throw new IllegalStateException("Verified documents cannot be deleted");
         }
         documentRepository.deleteById(id);
     }

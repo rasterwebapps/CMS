@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.DocumentFileDownload;
+import com.cms.dto.DocumentRejectRequest;
 import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryDocumentHistoryResponse;
 import com.cms.dto.EnquiryDocumentRequest;
@@ -100,6 +101,25 @@ public class EnquiryDocumentController {
             @RequestPart("file") MultipartFile file) {
         EnquiryDocumentResponse response = documentService.uploadFile(enquiryId, documentType, remarks, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}/verify")
+    @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
+    public ResponseEntity<EnquiryDocumentResponse> verifyDocument(
+            @PathVariable Long enquiryId,
+            @PathVariable Long id) {
+        EnquiryDocumentResponse response = documentService.verifyDocument(enquiryId, id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
+    public ResponseEntity<EnquiryDocumentResponse> rejectDocument(
+            @PathVariable Long enquiryId,
+            @PathVariable Long id,
+            @Valid @RequestBody DocumentRejectRequest request) {
+        EnquiryDocumentResponse response = documentService.rejectDocument(enquiryId, id, request.rejectionComment());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/history")

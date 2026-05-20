@@ -169,6 +169,7 @@ export interface CollectPaymentResponse {
   remarks: string;
   allocationSummary: string;
   installmentBreakdown: InstallmentPaymentDetail[];
+  feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   createdAt: string;
 }
 
@@ -283,6 +284,7 @@ export interface ReceiptDisplayData {
   /** Human-readable installment(s) covered, e.g. "Year 1 – Semester 1" */
   installmentsCovered: string;
   installmentBreakdown: Array<{ label: string; amount: number }>;
+  feeCategory?: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
 }
 
 /**
@@ -306,5 +308,6 @@ export interface UnifiedReceiptSummary {
   remarks: string | null;
   installmentsCovered: string | null;
   collectedBy: string | null;
+  feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   createdAt: string;
 }

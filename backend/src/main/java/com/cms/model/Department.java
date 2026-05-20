@@ -32,6 +32,9 @@ public class Department {
     @Column(length = 1000)
     private String description;
 
+    @Column(name = "hod_faculty_id")
+    private Long hodFacultyId;
+
     @Column(name = "hod_name")
     private String hodName;
 
@@ -46,10 +49,11 @@ public class Department {
     public Department() {
     }
 
-    public Department(String name, String code, String description, String hodName) {
+    public Department(String name, String code, String description, Long hodFacultyId, String hodName) {
         this.name = name;
         this.code = code;
         this.description = description;
+        this.hodFacultyId = hodFacultyId;
         this.hodName = hodName;
     }
 
@@ -83,6 +87,14 @@ public class Department {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getHodFacultyId() {
+        return hodFacultyId;
+    }
+
+    public void setHodFacultyId(Long hodFacultyId) {
+        this.hodFacultyId = hodFacultyId;
     }
 
     public String getHodName() {

@@ -7,6 +7,7 @@ import { CommunityService } from '../community.service';
 import { CommunityRequest } from '../community.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-community-form',
@@ -31,20 +32,20 @@ export class CommunityFormComponent implements OnInit {
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    code: ['', [Validators.required, Validators.maxLength(50)]],
+    name: ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     description: ['', Validators.maxLength(255)],
     isActive: [true],
   });
 
   constructor() {
-    // auto-uppercase the code field
+    // auto-uppercase and strip spaces from code field (BR-29 CODE rule)
     this.form.get('code')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v: string) => {
-        const upper = (v ?? '').toUpperCase().replace(/\s+/g, '_');
-        if (upper !== v) {
-          this.form.get('code')!.setValue(upper, { emitEvent: false });
+        const cleaned = stripSpaces(v ?? '').toUpperCase();
+        if (cleaned !== v) {
+          this.form.get('code')!.setValue(cleaned, { emitEvent: false });
         }
       });
   }
@@ -96,6 +97,11 @@ export class CommunityFormComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = { name: 'Name', code: 'Code', description: 'Description' };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 
   private buildRequest(): CommunityRequest {

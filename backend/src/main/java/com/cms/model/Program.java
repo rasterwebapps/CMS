@@ -45,6 +45,9 @@ public class Program {
     @Column(name = "duration_years", nullable = false)
     private Integer durationYears;
 
+    @Column(name = "seat_capacity")
+    private Integer seatCapacity;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProgramStatus status = ProgramStatus.ACTIVE;
@@ -104,6 +107,8 @@ public class Program {
     public void setCode(String code) { this.code = code; }
     public Integer getDurationYears() { return durationYears; }
     public void setDurationYears(Integer durationYears) { this.durationYears = durationYears; }
+    public Integer getSeatCapacity() { return seatCapacity; }
+    public void setSeatCapacity(Integer seatCapacity) { this.seatCapacity = seatCapacity; }
     public ProgramStatus getStatus() { return status; }
     public void setStatus(ProgramStatus status) { this.status = status; }
 

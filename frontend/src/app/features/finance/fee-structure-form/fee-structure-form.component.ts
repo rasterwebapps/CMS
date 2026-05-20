@@ -104,20 +104,30 @@ export class FeeStructureFormComponent implements OnInit {
       (this.selectedProgramDuration() > 0 && this.courses().length === 0),
   );
 
-  /** All fee types in display order (generic first, then additional). */
+  /** All fee types in display order (generic first, transport, then hostel-only additional). */
   protected readonly feeTypes = [
     'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
     'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
-    'MISCELLANEOUS', 'LATE_FEE', 'HOSTEL_FEE', 'TRANSPORT_FEE'];
+    'MISCELLANEOUS', 'LATE_FEE', 'TRANSPORT_FEE', 'HOSTEL_FEE'];
 
-  /** Generic fee types — included in the course total. */
+  /** Generic fee types — used for submit validation (must have at least one > 0). */
   protected readonly genericFeeTypes = [
     'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
     'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
     'MISCELLANEOUS', 'LATE_FEE'];
 
-  /** Additional fee types — NOT included in the generic course total. */
-  protected readonly additionalFeeTypes = ['HOSTEL_FEE', 'TRANSPORT_FEE'];
+  /**
+   * Course fee types shown in the Course Fees section.
+   * Includes generic fees + TRANSPORT_FEE.
+   * This total equals the Day Scholar total.
+   */
+  protected readonly courseFeeTypes = [
+    'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
+    'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
+    'MISCELLANEOUS', 'LATE_FEE', 'TRANSPORT_FEE'];
+
+  /** Additional fee types — HOSTEL_FEE only. Shown separately beneath course fees. */
+  protected readonly additionalFeeTypes = ['HOSTEL_FEE'];
 
   protected readonly feeTypeMeta: Record<string, { label: string; icon: string }> = {
     TUITION:                    { label: 'Tuition Fee',              icon: 'school' },
@@ -149,14 +159,14 @@ export class FeeStructureFormComponent implements OnInit {
 
   private readonly _grandTotalVersion = signal(0);
 
-  /** Course total — includes only Generic fee types (excludes HOSTEL_FEE and TRANSPORT_FEE). */
+  /** Day Scholar total — includes Course Fees (generic + TRANSPORT_FEE). Excludes HOSTEL_FEE. */
   protected readonly grandTotal = computed(() => {
     this._grandTotalVersion();
     let total = 0;
     for (let i = 0; i < this.feeItems.length; i++) {
       const itemGroup = this.feeItems.at(i) as FormGroup;
       const feeType: string = itemGroup.get('feeType')?.value;
-      if (!this.genericFeeTypes.includes(feeType)) continue;
+      if (!this.courseFeeTypes.includes(feeType)) continue;
       const itemYearAmounts = itemGroup.get('yearAmounts') as FormArray;
       if (itemYearAmounts && itemYearAmounts.length > 0) {
         for (let j = 0; j < itemYearAmounts.length; j++) {
@@ -169,7 +179,7 @@ export class FeeStructureFormComponent implements OnInit {
     return total;
   });
 
-  /** Additional fees total (HOSTEL_FEE + TRANSPORT_FEE). */
+  /** Hostel fee total (HOSTEL_FEE only). */
   protected readonly additionalTotal = computed(() => {
     this._grandTotalVersion();
     let total = 0;
@@ -188,6 +198,14 @@ export class FeeStructureFormComponent implements OnInit {
     }
     return total;
   });
+
+  /** Hosteler total = Day Scholar total + Hostel Fee. */
+  protected readonly hostelerTotal = computed(() => this.grandTotal() + this.additionalTotal());
+
+  /** Per-year hosteler totals = yearTotals + additionalYearTotals for each year column. */
+  protected readonly hostelerYearTotals = computed(() =>
+    this.yearTotals().map((yt, i) => yt + (this.additionalYearTotals()[i] ?? 0))
+  );
 
   protected getItemGroup(i: number): FormGroup {
     return this.feeItems.at(i) as FormGroup;
@@ -213,14 +231,14 @@ export class FeeStructureFormComponent implements OnInit {
     return `minmax(180px, 220px) repeat(${cols}, minmax(96px, 1fr)) 110px`;
   });
 
-  /** Per-year column totals for generic (course) fee types. */
+  /** Per-year column totals for course fee types (generic + transport = Day Scholar). */
   protected readonly yearTotals = computed(() => {
     this._grandTotalVersion();
     const cols = Math.max(this.selectedProgramDuration(), 1);
     const totals = new Array<number>(cols).fill(0);
     for (let i = 0; i < this.feeItems.length; i++) {
       const ig = this.feeItems.at(i) as FormGroup;
-      if (!this.genericFeeTypes.includes(ig.get('feeType')?.value as string)) continue;
+      if (!this.courseFeeTypes.includes(ig.get('feeType')?.value as string)) continue;
       const ya = ig.get('yearAmounts') as FormArray;
       if (ya && ya.length > 0) {
         for (let j = 0; j < Math.min(ya.length, cols); j++) {

@@ -5,14 +5,12 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
 
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { EnquiryService } from '../enquiry.service';
-import { Enquiry, DocumentVerificationStatus } from '../enquiry.model';
+import { Enquiry } from '../enquiry.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -49,9 +47,6 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
   private readonly _allData     = signal<Enquiry[]>([]);
-
-  /** Map from enquiry id → verification status, loaded after the list */
-  private readonly _verificationMap = signal<Map<number, DocumentVerificationStatus>>(new Map());
 
   // ── Filters ────────────────────────────────────────────────────────────────
   protected readonly filterProgram     = signal<string>('ALL');
@@ -161,81 +156,14 @@ export class AdmissionCompletionListComponent implements OnInit {
         this._allData.set(enquiries);
         this.dataSource.data = enquiries;
         this.loading.set(false);
-        this._loadVerificationStatuses(enquiries);
       },
-      error: ()        => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
     });
   }
 
-  /** Batch-load verification status for all enquiries so we can conditionally show Verify button. */
-  private _loadVerificationStatuses(enquiries: Enquiry[]): void {
-    if (enquiries.length === 0) return;
-    const calls = enquiries.map(e =>
-      this.enquiryService.getDocumentVerificationStatus(e.id).pipe(
-        map(status => ({ id: e.id, status })),
-        catchError(() => of(null)),
-      )
-    );
-    forkJoin(calls).subscribe(results => {
-      const map = new Map<number, DocumentVerificationStatus>();
-      for (const r of results) {
-        if (r) map.set(r.id, r.status);
-      }
-      this._verificationMap.set(map);
-    });
-  }
+  protected viewEnquiry(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id]); }
 
-  /** Returns true when all mandatory docs are verified for this enquiry. */
-  protected isAllVerified(enquiryId: number): boolean {
-    return this._verificationMap().get(enquiryId)?.allVerified ?? false;
-  }
-
-  protected viewEnquiry(item: Enquiry): void      { void this.router.navigate(['/enquiries', item.id]); }
-
-  /**
-   * Opens the document collection screen in verify mode for this enquiry.
-   * The ?mode=verify query param tells the component to allow DOCUMENTS_SUBMITTED
-   * status and show verification controls.
-   */
-  protected verifyDocuments(item: Enquiry): void {
-    void this.router.navigate(['/enquiries/document-submission', item.id], {
-      queryParams: { mode: 'verify' },
-    });
-  }
-
-  protected goToUploadDocuments(item: Enquiry): void {
-    void this.router.navigate(['/enquiries/document-submission', item.id]);
-  }
-
-  /**
-   * Checks document verification status before navigating to the convert screen.
-   * – Not uploaded → warn to upload first → redirect to document-submission
-   * – Uploaded but unverified → warn to verify → redirect to verify mode
-   * – All verified → proceed to convert
-   */
   protected completeAdmission(item: Enquiry): void {
-    this.enquiryService.getDocumentVerificationStatus(item.id).subscribe({
-      next: (status) => {
-        if (!status.allUploaded) {
-          const missing = status.notUploadedDocumentTypes.length;
-          this.toast.warning(
-            `${missing} required document${missing > 1 ? 's have' : ' has'} not been uploaded yet. Please upload all documents first.`
-          );
-          this.goToUploadDocuments(item);
-        } else if (!status.allVerified) {
-          const unverified = status.unverifiedDocumentTypes.length;
-          this.toast.warning(
-            `${unverified} document${unverified > 1 ? 's' : ''} still need${unverified === 1 ? 's' : ''} verification. Please verify all documents first.`
-          );
-          this.verifyDocuments(item);
-        } else {
-          void this.router.navigate(['/enquiries', item.id, 'convert']);
-        }
-      },
-      error: () => {
-        // On error, let the convert screen handle the validation
-        void this.router.navigate(['/enquiries', item.id, 'convert']);
-      },
-    });
+    void this.router.navigate(['/enquiries', item.id, 'convert']);
   }
 }

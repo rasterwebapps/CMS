@@ -19,18 +19,6 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_COLLECTION_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
-/**
- * Default mandatory document types used when a program has no explicit
- * required document type mapping configured. Mirrors backend
- * {@code EnquiryDocumentService.DEFAULT_MANDATORY_DOCUMENTS}.
- */
-const DEFAULT_MANDATORY_DOCUMENT_TYPES: ReadonlySet<string> = new Set([
-  'TENTH_MARKSHEET',
-  'TWELFTH_MARKSHEET',
-  'TRANSFER_CERTIFICATE',
-  'AADHAR_CARD',
-  'PASSPORT_PHOTO',
-]);
 
 interface ChecklistRow {
   documentType: string;
@@ -88,8 +76,8 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly documentCatalogue = signal<DocumentTypeInfo[]>([]);
   private readonly labelMap = signal<Map<string, string>>(new Map());
 
-  /** Mandatory document types resolved from the program (fallback to defaults). */
-  private readonly mandatoryTypes = signal<ReadonlySet<string>>(DEFAULT_MANDATORY_DOCUMENT_TYPES);
+  /** Mandatory document types resolved from the program configuration. */
+  private readonly mandatoryTypes = signal<ReadonlySet<string>>(new Set());
 
   /** Number of mandatory documents successfully uploaded or verified. */
   protected readonly mandatorySatisfiedCount = computed(
@@ -106,14 +94,13 @@ export class DocumentCollectionComponent implements OnInit {
 
   /** True when all mandatory documents are VERIFIED — enables "Back to Admission" in verify mode. */
   protected readonly allMandatoryVerified = computed(
-    () => this.mandatoryTotal() > 0 && this.mandatoryVerifiedCount() === this.mandatoryTotal(),
+    () => this.mandatoryVerifiedCount() === this.mandatoryTotal(),
   );
 
   protected readonly mandatoryTotal = computed(() => this.mandatoryTypes().size);
 
   protected readonly canSubmit = computed(
-    () => this.mandatoryTotal() > 0
-      && this.mandatorySatisfiedCount() === this.mandatoryTotal()
+    () => this.mandatorySatisfiedCount() === this.mandatoryTotal()
       && !this.submitting(),
   );
 
@@ -220,9 +207,11 @@ export class DocumentCollectionComponent implements OnInit {
       next: ({ catalogue, programTypes, documents }) => {
         this.documentCatalogue.set(catalogue);
         this.labelMap.set(new Map(catalogue.map((t) => [t.code, t.label])));
-        this.mandatoryTypes.set(
-          programTypes.length > 0 ? new Set(programTypes) : DEFAULT_MANDATORY_DOCUMENT_TYPES,
+        const catalogueOrder = new Map(catalogue.map((t, i) => [t.code, i]));
+        const sorted = [...programTypes].sort(
+          (a, b) => (catalogueOrder.get(a) ?? 999) - (catalogueOrder.get(b) ?? 999),
         );
+        this.mandatoryTypes.set(new Set(sorted));
         this.rows.set(this.buildChecklist(documents));
         this.loading.set(false);
       },

@@ -14,6 +14,7 @@ import { PROGRAM_FORM_TOUR } from '../../../shared/tour/tours/program.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-program-form',
@@ -89,8 +90,8 @@ export class ProgramFormComponent implements OnInit {
   private programId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    code: ['', [Validators.required, Validators.maxLength(20)]],
+    name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
     durationYears: [null as number | null, [Validators.required, Validators.min(1), Validators.max(10)]],
     status: ['ACTIVE' as ProgramStatus, Validators.required],
     assessmentPattern: ['TERM_BASED' as AssessmentPattern, Validators.required],
@@ -101,7 +102,7 @@ export class ProgramFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
-        this.previewCode.set((v.code ?? '').toUpperCase().trim());
+        this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
         this.previewDuration.set(Number(v.durationYears) || 0);
         this.previewStatus.set((v.status ?? 'ACTIVE') as ProgramStatus);
         this.previewAssessmentPattern.set((v.assessmentPattern ?? 'TERM_BASED') as AssessmentPattern);
@@ -199,40 +200,14 @@ export class ProgramFormComponent implements OnInit {
     });
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Program Name',
+    code: 'Code',
+    durationYears: 'Duration',
+  };
+
   protected getErrorMessage(fieldName: string): string {
-    const control = this.form.get(fieldName);
-    if (!control || !control.errors) {
-      return '';
-    }
-
-    if (control.errors['required']) {
-      return `${this.getFieldLabel(fieldName)} is required`;
-    }
-    if (control.errors['maxlength']) {
-      const maxLength = control.errors['maxlength'].requiredLength;
-      return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
-    }
-    if (control.errors['min']) {
-      const min = control.errors['min'].min;
-      return `${this.getFieldLabel(fieldName)} must be at least ${min}`;
-    }
-    if (control.errors['max']) {
-      const max = control.errors['max'].max;
-      return `${this.getFieldLabel(fieldName)} must be at most ${max}`;
-    }
-
-    return '';
-  }
-
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      name: 'Name',
-      code: 'Code',
-      durationYears: 'Duration',
-      status: 'Status',
-      assessmentPattern: 'Assessment Pattern',
-    };
-    return labels[fieldName] || fieldName;
+    return cmsFieldError(this.form.get(fieldName), ProgramFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
   }
 
   private loadProgram(): void {
@@ -248,6 +223,7 @@ export class ProgramFormComponent implements OnInit {
           status: program.status,
           assessmentPattern: program.assessmentPattern ?? 'TERM_BASED',
         });
+        this.selectedDocumentTypes.set(new Set(program.requiredDocumentTypes ?? []));
         this.loading.set(false);
       },
       error: () => {
@@ -286,21 +262,7 @@ export class ProgramFormComponent implements OnInit {
       this.programService.getAllDocumentTypes().subscribe({
         next: (catalogue) => {
           this.allDocumentTypes.set(catalogue);
-
-          // Only load existing selections if editing
-          if (this.isEditMode() && this.programId) {
-            this.programService.getRequiredDocumentTypes(this.programId).subscribe({
-              next: (types) => {
-                this.selectedDocumentTypes.set(new Set(types));
-                this.loadingDocuments.set(false);
-              },
-              error: () => {
-                this.loadingDocuments.set(false);
-              },
-            });
-          } else {
-            this.loadingDocuments.set(false);
-          }
+          this.loadingDocuments.set(false);
         },
         error: () => {
           this.loadingDocuments.set(false);

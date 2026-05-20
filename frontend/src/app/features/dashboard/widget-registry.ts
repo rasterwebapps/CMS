@@ -14,6 +14,16 @@ import { CompletionRingWidgetComponent }   from './widgets/completion-ring-widge
 import { RecentActivityComponent }         from './widgets/recent-activity/recent-activity.component';
 import { ConnectionsCardComponent }        from './widgets/connections-card/connections-card.component';
 import { StudentQuickLinksWidgetComponent} from './widgets/student-quicklinks/student-quicklinks-widget.component';
+import { AdmissionFunnelWidgetComponent }      from './widgets/admission-funnel/admission-funnel-widget.component';
+import { FeeCollectionTargetWidgetComponent }  from './widgets/fee-collection-target/fee-collection-target-widget.component';
+import { DuesAgingWidgetComponent }            from './widgets/dues-aging/dues-aging-widget.component';
+import { ProgramAdmissionsWidgetComponent }    from './widgets/program-admissions/program-admissions-widget.component';
+import { AgentPerformanceWidgetComponent }     from './widgets/agent-performance/agent-performance-widget.component';
+import { ProgramRevenueMixWidgetComponent }    from './widgets/program-revenue-mix/program-revenue-mix-widget.component';
+import { ScholarshipBurnWidgetComponent }      from './widgets/scholarship-burn/scholarship-burn-widget.component';
+import { DocVerificationBacklogWidgetComponent } from './widgets/doc-verification-backlog/doc-verification-backlog-widget.component';
+import { Tier3StrategicWidgetComponent }       from './widgets/tier3-strategic/tier3-strategic-widget.component';
+import { Tier4AlertWidgetComponent }           from './widgets/tier4-alert/tier4-alert-widget.component';
 
 const PH = WidgetPlaceholderComponent;
 
@@ -45,7 +55,27 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { key: 'stat-equipment',     label: 'Equipment',          description: 'Total equipment items',                                icon: 'devices',          category: 'stats',       component: StatCardWidgetComponent,         defaultColSpan: 1, defaultRowSpan: 1 },
   // ── Charts ────────────────────────────────────────────────────────────────
   { key: 'chart-trend',        label: 'Admission Trend',    description: '6-month enrolment bar chart',                          icon: 'trending_up',      category: 'charts',      component: TrendChartWidgetComponent,       defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'admission-funnel',   label: 'Admission Funnel',   description: 'Enquiry → admission pipeline with stage conversion %',  icon: 'filter_alt',       category: 'charts',      component: AdmissionFunnelWidgetComponent,     defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'fee-collection-target', label: 'Fee Collection vs Target', description: 'Current-month collection gauge with month-over-month delta', icon: 'monitoring',  category: 'charts',      component: FeeCollectionTargetWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'dues-aging',         label: 'Outstanding Dues Aging', description: 'Overdue fees grouped by days outstanding (0–30, 31–60, 61–90, 90+)', icon: 'schedule',  category: 'charts',      component: DuesAgingWidgetComponent,           defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'program-admissions', label: 'Admissions by Program', description: 'Enrolled student count per active program',         icon: 'school',           category: 'charts',      component: ProgramAdmissionsWidgetComponent,   defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'program-revenue-mix', label: 'Program Revenue Mix', description: 'Donut chart of net fee revenue by program',           icon: 'pie_chart',        category: 'charts',      component: ProgramRevenueMixWidgetComponent,    defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'scholarship-burn',   label: 'Scholarship & Concession Burn', description: 'Gross fee → discount + scholarship → net collectable', icon: 'volunteer_activism', category: 'charts', component: ScholarshipBurnWidgetComponent,      defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'geographic-admissions', label: 'Geographic Admissions Heatmap', description: 'District/state-wise admissions density for recruitment planning', icon: 'map', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'yoy-admissions',     label: 'YoY Admission Comparison', description: 'Current year vs previous two years by admission month', icon: 'bar_chart', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'refund-cancellation-rate', label: 'Refund & Cancellation Rate', description: 'Refund and withdrawal KPI with 12-month trend', icon: 'sync_problem', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'payment-mode-breakdown', label: 'Fee Payment Mode Breakdown', description: 'UPI, cash, cheque, card and bank-transfer collection mix', icon: 'donut_large', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'student-faculty-ratio', label: 'Student : Faculty Ratio', description: 'Department-wise compliance ratio with threshold marker', icon: 'groups_2', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'lab-utilization-heatmap', label: 'Lab Utilization Heatmap', description: 'Day × slot lab-schedule density heatmap', icon: 'science', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'cohort-retention',   label: 'Cohort Retention', description: 'Semester-on-semester retained/enrolled students by cohort', icon: 'timeline', category: 'charts', component: Tier3StrategicWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'top-line-kpis',      label: 'Top-line KPI Strip', description: 'Compact daily admin pulse: collection, admissions, verifications, fees and conversion', icon: 'dashboard', category: 'stats', component: Tier3StrategicWidgetComponent, defaultColSpan: 4, defaultRowSpan: 1 },
   // ── Lists ─────────────────────────────────────────────────────────────────
+  { key: 'agent-performance',  label: 'Agent Performance',  description: 'Top referral agents ranked by conversions',             icon: 'emoji_events',     category: 'lists',       component: AgentPerformanceWidgetComponent,    defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'doc-verification-backlog', label: 'Document Verification Backlog', description: 'Pending document verifications with oldest age + 24h throughput', icon: 'verified', category: 'operational', component: DocVerificationBacklogWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'anomaly-banner',    label: 'Collection Anomaly Banner', description: 'Passive alert when collections change sharply vs same day last week', icon: 'crisis_alert', category: 'operational', component: Tier4AlertWidgetComponent, defaultColSpan: 4, defaultRowSpan: 1 },
+  { key: 'capacity-alert',    label: 'Capacity Alert', description: 'Program seat-capacity pressure alerts for high-filled programs', icon: 'event_seat', category: 'operational', component: Tier4AlertWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'compliance-alerts', label: 'Compliance Alerts', description: 'UGC/NAAC/AICTE documents expiring within 90 days', icon: 'gpp_maybe', category: 'operational', component: Tier4AlertWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
+  { key: 'audit-mini-feed',   label: 'Audit Log Mini-feed', description: 'Last five high-privilege role, user, permission and fee changes', icon: 'manage_history', category: 'operational', component: Tier4AlertWidgetComponent, defaultColSpan: 4, defaultRowSpan: 1 },
   { key: 'pending-approvals',  label: 'Pending Approvals',  description: 'Outstanding items requiring attention',                 icon: 'pending_actions',  category: 'lists',       component: PendingApprovalsWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
   { key: 'equipment-status',   label: 'Equipment Status',   description: 'Equipment status breakdown with progress bars',        icon: 'inventory_2',      category: 'lists',       component: EquipmentStatusWidgetComponent,  defaultColSpan: 2, defaultRowSpan: 1 },
   { key: 'fee-overview',       label: 'Fee Overview',       description: 'Fee collection and outstanding summary',               icon: 'account_balance',  category: 'lists',       component: FeeOverviewWidgetComponent,      defaultColSpan: 2, defaultRowSpan: 1 },

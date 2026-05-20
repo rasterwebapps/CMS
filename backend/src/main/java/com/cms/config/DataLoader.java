@@ -606,11 +606,11 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private List<Department> seedDepartments() {
-        Department gn  = departmentRepository.save(new Department("General Nursing",            "GN",  "Core clinical nursing education and practice", "Dr. Priya Sharma"));
-        Department mo  = departmentRepository.save(new Department("Midwifery & Obstetrics",     "MO",  "Maternal and newborn care education",           "Dr. Lakshmi Devi"));
-        Department chn = departmentRepository.save(new Department("Community Health Nursing",   "CHN", "Public health and community nursing",           "Dr. Anitha Rao"));
-        Department msn = departmentRepository.save(new Department("Medical-Surgical Nursing",   "MSN", "Clinical nursing in medical and surgical wards", "Dr. Rajesh Kumar"));
-        Department pn  = departmentRepository.save(new Department("Pediatric Nursing",          "PN",  "Child health nursing and neonatal care",         "Dr. Meena Pillai"));
+        Department gn  = departmentRepository.save(new Department("General Nursing",            "GN",  "Core clinical nursing education and practice", null, "Dr. Priya Sharma"));
+        Department mo  = departmentRepository.save(new Department("Midwifery & Obstetrics",     "MO",  "Maternal and newborn care education",           null, "Dr. Lakshmi Devi"));
+        Department chn = departmentRepository.save(new Department("Community Health Nursing",   "CHN", "Public health and community nursing",           null, "Dr. Anitha Rao"));
+        Department msn = departmentRepository.save(new Department("Medical-Surgical Nursing",   "MSN", "Clinical nursing in medical and surgical wards", null, "Dr. Rajesh Kumar"));
+        Department pn  = departmentRepository.save(new Department("Pediatric Nursing",          "PN",  "Child health nursing and neonatal care",         null, "Dr. Meena Pillai"));
         return List.of(gn, mo, chn, msn, pn);
     }
 

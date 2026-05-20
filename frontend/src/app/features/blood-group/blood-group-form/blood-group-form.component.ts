@@ -7,6 +7,7 @@ import { BloodGroupService } from '../blood-group.service';
 import { BloodGroupRequest } from '../blood-group.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-blood-group-form',
@@ -31,19 +32,19 @@ export class BloodGroupFormComponent implements OnInit {
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    code: ['', [Validators.required, Validators.maxLength(20)]],
+    name: ['', [Validators.required, trimmedMinLength(1), Validators.maxLength(100), noConsecutiveSpaces()]],
+    code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
     isActive: [true],
   });
 
   constructor() {
-    // auto-uppercase the code field
+    // auto-uppercase and strip spaces from code field (BR-29 CODE rule)
     this.form.get('code')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v: string) => {
-        const upper = (v ?? '').toUpperCase();
-        if (upper !== v) {
-          this.form.get('code')!.setValue(upper, { emitEvent: false });
+        const cleaned = stripSpaces(v ?? '').toUpperCase();
+        if (cleaned !== v) {
+          this.form.get('code')!.setValue(cleaned, { emitEvent: false });
         }
       });
   }
@@ -90,6 +91,11 @@ export class BloodGroupFormComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected getFieldError(field: string): string {
+    const labels: Record<string, string> = { name: 'Name', code: 'Code' };
+    return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 
   private buildRequest(): BloodGroupRequest {

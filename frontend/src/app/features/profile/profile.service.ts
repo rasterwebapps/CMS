@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 
@@ -117,5 +117,27 @@ export class ProfileService {
 
   deleteCover(): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/me/cover`);
+  }
+
+  // ── Self-service documents (BR-30) ──────────────────────────────────────────
+  // Used by ProfileDocumentsComponent when selfService=true.
+  // No admin permission required — the backend authenticates via JWT identity.
+
+  uploadMyDocument(documentType: string, file: File): Observable<unknown> {
+    const fd = new FormData();
+    fd.append('documentType', documentType);
+    fd.append('file', file);
+    return this.http.post<unknown>(`${this.baseUrl}/me/documents/upload`, fd);
+  }
+
+  deleteMyDocument(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/me/documents/${id}`);
+  }
+
+  downloadMyDocumentBlob(id: number): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/me/documents/${id}/download`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 }

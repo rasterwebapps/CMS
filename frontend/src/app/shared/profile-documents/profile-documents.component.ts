@@ -21,6 +21,7 @@ import { FacultyService } from '../../features/faculty/faculty.service';
 import { FACULTY_DOCUMENT_SLOTS } from '../../features/faculty/faculty.model';
 import { AdmissionService } from '../../features/admission/admission.service';
 import { ProgramService } from '../../features/program/program.service';
+import { ProfileService } from '../../features/profile/profile.service';
 import { DocumentTypeInfo } from '../../features/program/program.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { CmsStatusBadgeComponent } from '../status-badge/status-badge.component';
@@ -62,14 +63,23 @@ export class ProfileDocumentsComponent implements OnChanges {
   @Input() programId?: number;
   @Input() canManage = false;
   @Input() canVerify = false;
+  /**
+   * When true the component is in self-service mode (BR-30):
+   * • Upload/replace uses /profile/me/documents/upload
+   * • Delete uses /profile/me/documents/{id}
+   * • Delete button shown for all non-VERIFIED slots
+   * • VERIFIED slots show a lock badge and no action buttons
+   */
+  @Input() selfService = false;
 
   /** Emits the current slot array whenever it changes — used by parent for stats. */
   @Output() readonly slotsChange = new EventEmitter<{ status: string }[]>();
 
-  private readonly facultyService = inject(FacultyService);
+  private readonly facultyService   = inject(FacultyService);
   private readonly admissionService = inject(AdmissionService);
-  private readonly programService = inject(ProgramService);
-  private readonly toast = inject(ToastService);
+  private readonly programService   = inject(ProgramService);
+  private readonly profileService   = inject(ProfileService);
+  private readonly toast            = inject(ToastService);
 
   protected readonly loading = signal(false);
   protected readonly slots = signal<DocumentSlot[]>([]);
@@ -225,6 +235,32 @@ export class ProfileDocumentsComponent implements OnChanges {
     });
   }
 
+  /** Whether the slot can be mutated by the current user. */
+  protected canMutate(slot: DocumentSlot): boolean {
+    return slot.status !== 'VERIFIED' && !slot.saving;
+  }
+
+  /** Delete a document in self-service mode (before VERIFIED). */
+  protected deleteSlot(slot: DocumentSlot): void {
+    if (!this.selfService || !slot.documentId || !this.canMutate(slot)) return;
+    if (!confirm(`Remove "${slot.label}"? You can re-upload it later.`)) return;
+    this.updateSlot(slot.documentType, { saving: true });
+    this.profileService.deleteMyDocument(slot.documentId).subscribe({
+      next: () => {
+        this.updateSlot(slot.documentType, {
+          status: 'NOT_UPLOADED', documentId: undefined, hasFile: false,
+          verifiedBy: undefined, verifiedAt: undefined, saving: false,
+        });
+        this.toast.success(`${slot.label} removed`);
+      },
+      error: (err) => {
+        const msg = err?.error?.message ?? `Failed to remove ${slot.label}`;
+        this.toast.error(msg);
+        this.updateSlot(slot.documentType, { saving: false });
+      },
+    });
+  }
+
   protected triggerUpload(slot: DocumentSlot): void {
     if (!this.canManage || slot.status === 'VERIFIED' || slot.saving) return;
     let input = this.fileInputs.get(slot.documentType);
@@ -250,37 +286,39 @@ export class ProfileDocumentsComponent implements OnChanges {
     }
     this.updateSlot(slot.documentType, { saving: true });
 
-    const onError = (): void => {
+    const onError = (err: { error?: { message?: string } }): void => {
+      const msg = err?.error?.message ?? `Failed to upload ${slot.label}`;
       this.updateSlot(slot.documentType, { saving: false });
-      this.toast.error(`Failed to upload ${slot.label}`);
+      this.toast.error(msg);
     };
+
+    const onSuccess = (id: number, status: string): void => {
+      this.updateSlot(slot.documentType, {
+        status, documentId: id, hasFile: true, remarks: undefined, saving: false,
+      });
+      this.toast.success(`${slot.label} uploaded`);
+    };
+
+    // Self-service mode: use /profile/me/documents/upload (no admin permission needed)
+    if (this.selfService) {
+      this.profileService.uploadMyDocument(slot.documentType, file).subscribe({
+        next: (saved: unknown) => {
+          const s = saved as { id: number; status?: string; verificationStatus?: string };
+          onSuccess(s.id, s.status ?? s.verificationStatus ?? 'UPLOADED');
+        },
+        error: onError,
+      });
+      return;
+    }
 
     if (this.entityType === 'FACULTY') {
       this.facultyService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
-        next: (saved) => {
-          this.updateSlot(slot.documentType, {
-            status: saved.status,
-            documentId: saved.id,
-            hasFile: true,
-            remarks: undefined,
-            saving: false,
-          });
-          this.toast.success(`${slot.label} uploaded`);
-        },
+        next: (saved) => onSuccess(saved.id, saved.status),
         error: onError,
       });
     } else {
       this.admissionService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
-        next: (saved) => {
-          this.updateSlot(slot.documentType, {
-            status: saved.verificationStatus,
-            documentId: saved.id,
-            hasFile: true,
-            remarks: undefined,
-            saving: false,
-          });
-          this.toast.success(`${slot.label} uploaded`);
-        },
+        next: (saved) => onSuccess(saved.id, saved.verificationStatus),
         error: onError,
       });
     }
@@ -288,9 +326,12 @@ export class ProfileDocumentsComponent implements OnChanges {
 
   protected download(slot: DocumentSlot): void {
     if (!slot.documentId) return;
-    const dl$ = this.entityType === 'FACULTY'
-      ? this.facultyService.downloadDocumentBlob(this.entityId, slot.documentId)
-      : this.admissionService.downloadDocumentBlob(slot.documentId);
+    // Self-service: download via /profile/me/documents/{id}/download
+    const dl$ = this.selfService
+      ? this.profileService.downloadMyDocumentBlob(slot.documentId)
+      : this.entityType === 'FACULTY'
+        ? this.facultyService.downloadDocumentBlob(this.entityId, slot.documentId)
+        : this.admissionService.downloadDocumentBlob(slot.documentId);
 
     dl$.subscribe({
       next: (response) => {

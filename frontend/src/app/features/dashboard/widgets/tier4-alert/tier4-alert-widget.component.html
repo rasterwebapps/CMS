@@ -1,0 +1,84 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>{{ icon() }}</mat-icon></div>
+    <span class="widget-title">{{ title() }}</span>
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div class="sk-line" [style.width.%]="90 - n * 11"></div>
+          <div class="sk-block" style="height: 8px; border-radius: 6px;"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No {{ title() }} data</span></div>
+    } @else {
+      @switch (widgetKey) {
+        @case ('anomaly-banner') {
+          @if (anomaly(); as a) {
+            <div class="anomaly" [attr.data-sev]="a.severity">
+              <div class="anomaly-icon"><mat-icon>{{ a.direction === 'down' ? 'trending_down' : a.direction === 'up' ? 'trending_up' : 'trending_flat' }}</mat-icon></div>
+              <div class="anomaly-copy">
+                <strong>{{ a.message }}</strong>
+                <span>Today {{ a.todayCollection | inr }} · Last week {{ a.sameDayLastWeekCollection | inr }}</span>
+              </div>
+              <span class="delta" [attr.data-sev]="a.severity">{{ a.deltaPct }}%</span>
+            </div>
+          }
+        }
+
+        @case ('capacity-alert') {
+          @if (capacityRows().length === 0) {
+            <div class="all-clear"><mat-icon>event_seat</mat-icon><span>No high-capacity pressure or seat capacity not configured.</span></div>
+          } @else {
+            @for (row of capacityRows(); track row.programCode) {
+              <div class="cap-row">
+                <div class="cap-top">
+                  <span><strong>{{ row.programCode }}</strong> · {{ row.programName }}</span>
+                  <b [attr.data-sev]="row.severity">{{ row.occupancyPct }}%</b>
+                </div>
+                <div class="cap-sub"><span>{{ row.filled }}/{{ row.capacity }} filled</span><span>{{ row.seatsLeft }} seats left</span></div>
+                <div class="cap-track"><span class="cap-fill" [attr.data-sev]="row.severity" [style.width.%]="row.occupancyPct"></span></div>
+              </div>
+            }
+          }
+        }
+
+        @case ('compliance-alerts') {
+          @if (complianceRows().length === 0) {
+            <div class="all-clear"><mat-icon>verified_user</mat-icon><span>No compliance documents expiring in 90 days.</span></div>
+          } @else {
+            @for (row of complianceRows(); track row.authority + row.documentName) {
+              <div class="comp-row" [attr.data-sev]="row.severity">
+                <div class="comp-badge">{{ row.authority }}</div>
+                <div class="comp-copy">
+                  <strong>{{ row.documentName }}</strong>
+                  <span>Expires {{ row.expiresOn | appDate }} · {{ row.daysLeft < 0 ? 'Expired' : row.daysLeft + ' days left' }}</span>
+                </div>
+              </div>
+            }
+          }
+        }
+
+        @case ('audit-mini-feed') {
+          @if (auditItems().length === 0) {
+            <div class="all-clear"><mat-icon>history</mat-icon><span>No high-privilege audit activity yet.</span></div>
+          } @else {
+            @for (item of auditItems(); track item.occurredAt + item.action) {
+              <div class="audit-row">
+                <span class="audit-dot" [attr.data-sev]="item.severity"></span>
+                <div class="audit-copy">
+                  <strong>{{ item.action }}</strong>
+                  <span>{{ item.actor }} · {{ item.entityType ?? 'System' }} {{ item.entityId ?? '' }} · {{ item.occurredAt | appDate:'dateTime' }}</span>
+                </div>
+              </div>
+            }
+          }
+        }
+      }
+    }
+  </div>
+</div>
+

@@ -1,0 +1,249 @@
+<div class="mlp-page">
+
+  <!-- Header -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">India <em>Locations</em></h1>
+      <p class="mlp-sub">Manage states, union territories and their districts</p>
+      @if (!loading()) {
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
+            {{ totalCount() }} States / UTs
+          </span>
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
+            {{ activeCount() }} Active
+          </span>
+        </div>
+      }
+    </div>
+    @if (canManage()) {
+      <a class="btn-primary" routerLink="/india-locations/states/new">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add State / UT
+      </a>
+    }
+  </div>
+
+  <!-- Toolbar -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
+             placeholder="Search states…" type="text" aria-label="Search states"/>
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+    <cms-view-toggle [mode]="viewMode()" storageKey="india-location-list-view-mode" (modeChange)="setViewMode($event)" />
+  </div>
+
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  } @else {
+
+    <!-- Card view: accordion-style state + districts -->
+    @if (viewMode() === 'card') {
+      @if (filteredStates().length === 0) {
+        <cms-empty-state
+          icon="map"
+          [title]="searchValue() ? 'No states found' : 'No states yet'"
+          [subtitle]="searchValue() ? 'No states match your search.' : 'Add your first state to get started.'"
+          [actionLabel]="searchValue() ? 'Clear Search' : (canManage() ? 'Add State' : '')"
+          (actionClick)="handleEmptyAction()"
+        />
+      } @else {
+        <div class="state-accordion-list">
+          @for (state of filteredStates(); track state.id) {
+            <div class="state-card" [class.state-card--expanded]="expandedStateId() === state.id">
+              <div class="state-card__header" (click)="toggleExpand(state.id)">
+                <div class="state-card__info">
+                  <span class="code-chip">{{ state.code }}</span>
+                  <span class="state-card__name">{{ state.name }}</span>
+                  <span class="status-chip"
+                        [class.status-chip--active]="state.isActive"
+                        [class.status-chip--inactive]="!state.isActive">
+                    {{ state.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+                <div class="state-card__actions-row">
+                  @if (canManage()) {
+                    <button class="btn-icon" (click)="editState(state); $event.stopPropagation()" matTooltip="Edit State">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    <a class="btn-icon" [routerLink]="['/india-locations/states', state.id, 'districts', 'new']"
+                       (click)="$event.stopPropagation()" matTooltip="Add District">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                           fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </a>
+                    <button class="btn-icon btn-icon--danger" (click)="deleteState(state); $event.stopPropagation()" matTooltip="Delete State">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                        <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                    </button>
+                  }
+                  <svg class="state-card__chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+              </div>
+              @if (expandedStateId() === state.id) {
+                <div class="state-card__districts">
+                  @if (getDistricts(state.id).length === 0) {
+                    <p class="no-districts">No districts found. <a [routerLink]="['/india-locations/states', state.id, 'districts', 'new']">Add one</a></p>
+                  } @else {
+                    <div class="district-chips">
+                      @for (district of getDistricts(state.id); track district.id) {
+                        <div class="district-chip" [class.district-chip--inactive]="!district.isActive">
+                          <span>{{ district.name }}</span>
+                          @if (canManage()) {
+                            <button class="district-chip__edit" (click)="editDistrict(district)" matTooltip="Edit">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                                   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                            <button class="district-chip__delete" (click)="deleteDistrict(district)" matTooltip="Delete">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                                   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                              </svg>
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    } @else {
+      <!-- Table view -->
+      <div class="content-card mlp-table-card">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>State / UT</th>
+            <td mat-cell *matCellDef="let row">
+              <button class="state-expand-btn" (click)="toggleExpand(row.id)">
+                {{ row.name }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"
+                     [style.transform]="expandedStateId() === row.id ? 'rotate(180deg)' : 'none'"
+                     style="transition: transform 0.2s; vertical-align: middle; margin-left: 4px;">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              @if (expandedStateId() === row.id) {
+                <div class="district-chips district-chips--table">
+                  @for (d of getDistricts(row.id); track d.id) {
+                    <span class="district-chip-inline" [class.district-chip-inline--inactive]="!d.isActive">
+                      {{ d.name }}
+                      @if (canManage()) {
+                        <button class="district-chip__edit" (click)="editDistrict(d)" matTooltip="Edit district {{ d.name }}">✎</button>
+                        <button class="district-chip__delete" (click)="deleteDistrict(d)" matTooltip="Delete district {{ d.name }}">×</button>
+                      }
+                    </span>
+                  }
+                </div>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+            <td mat-cell *matCellDef="let row"><span class="code-chip">{{ row.code }}</span></td>
+          </ng-container>
+
+          <ng-container matColumnDef="districtCount">
+            <th mat-header-cell *matHeaderCellDef class="cell-align-right">Districts</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right cell-number">
+              {{ getDistricts(row.id).length || '—' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="isActive">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-center">
+              <span class="status-chip"
+                    [class.status-chip--active]="row.isActive"
+                    [class.status-chip--inactive]="!row.isActive">
+                {{ row.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+          </ng-container>
+
+          @if (canManage()) {
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let row" class="cell-actions">
+                <button class="btn-icon" (click)="editState(row)" matTooltip="Edit state">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <a class="btn-icon" [routerLink]="['/india-locations/states', row.id, 'districts', 'new']" matTooltip="Add district">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </a>
+                <button class="btn-icon btn-icon--danger" (click)="deleteState(row)" matTooltip="Delete state">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </button>
+              </td>
+            </ng-container>
+          }
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0">
+              <cms-empty-state icon="map" title="No states found"
+                               subtitle="Try a different search term or add a new state." />
+            </td>
+          </tr>
+        </table>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
+      </div>
+    }
+  }
+
+</div>
+

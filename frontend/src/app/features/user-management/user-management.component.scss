@@ -614,3 +614,24 @@
     font-size: 0.8125rem;
   }
 }
+
+// Keycloak prerequisite notice shown at the top of the create form
+.kc-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(var(--cms-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  color: var(--cms-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--cms-primary);
+  }
+}

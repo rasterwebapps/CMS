@@ -15,6 +15,8 @@ import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.repository.AppRoleRepository;
 import com.cms.repository.AppUserRepository;
+import com.cms.repository.FacultyRepository;
+import com.cms.repository.StudentRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -22,17 +24,26 @@ public class AppUserService {
 
     private final AppUserRepository appUserRepository;
     private final AppRoleRepository appRoleRepository;
+    private final StudentRepository studentRepository;
+    private final FacultyRepository facultyRepository;
     private final UserPermissionService userPermissionService;
     private final AuditLogService auditLogService;
+    private final KeycloakAdminService keycloakAdminService;
 
     public AppUserService(AppUserRepository appUserRepository,
                           AppRoleRepository appRoleRepository,
+                          StudentRepository studentRepository,
+                          FacultyRepository facultyRepository,
                           UserPermissionService userPermissionService,
-                          AuditLogService auditLogService) {
-        this.appUserRepository = appUserRepository;
-        this.appRoleRepository = appRoleRepository;
+                          AuditLogService auditLogService,
+                          KeycloakAdminService keycloakAdminService) {
+        this.appUserRepository     = appUserRepository;
+        this.appRoleRepository     = appRoleRepository;
+        this.studentRepository     = studentRepository;
+        this.facultyRepository     = facultyRepository;
         this.userPermissionService = userPermissionService;
-        this.auditLogService = auditLogService;
+        this.auditLogService       = auditLogService;
+        this.keycloakAdminService  = keycloakAdminService;
     }
 
     public AppUserResponse findByUsername(String username) {
@@ -63,19 +74,42 @@ public class AppUserService {
                 "Email '" + request.email() + "' is already registered");
         }
 
-        AppUser user = new AppUser(
-            request.keycloakUsername(),
-            request.email(),
-            request.fullName(),
-            targetRole,
-            true,
-            createdBy
-        );
-        AppUser saved = appUserRepository.save(user);
-        auditLogService.record(createdBy, "USER_CREATED", "AppUser",
-            String.valueOf(saved.getId()),
-            "Created user '" + saved.getKeycloakUsername() + "' with role '" + targetRole.getName() + "'");
-        return toResponse(saved);
+        // 1. Create the user in Keycloak (sets a temporary password — user must change on first login).
+        //    This runs BEFORE the DB save so that a Keycloak failure aborts the whole operation cleanly.
+        String keycloakUserId = keycloakAdminService.createUser(
+            request.keycloakUsername(), request.email(), request.fullName(), request.password());
+
+        // 2. Persist the CMS record. If this fails, roll back the Keycloak user so the two stores stay in sync.
+        try {
+            AppUser user = new AppUser(
+                request.keycloakUsername(),
+                request.email(),
+                request.fullName(),
+                targetRole,
+                true,
+                createdBy
+            );
+            user.setKeycloakUserId(keycloakUserId);
+
+            // Link to the specific student or faculty record (eliminates email-based identity guessing)
+            if (request.studentId() != null) {
+                studentRepository.findById(request.studentId()).ifPresent(user::setLinkedStudent);
+            }
+            if (request.facultyId() != null) {
+                facultyRepository.findById(request.facultyId()).ifPresent(user::setLinkedFaculty);
+            }
+
+            AppUser saved = appUserRepository.save(user);
+            auditLogService.record(createdBy, "USER_CREATED", "AppUser",
+                String.valueOf(saved.getId()),
+                "Created user '" + saved.getKeycloakUsername() + "' with role '" + targetRole.getName() + "'");
+            return toResponse(saved);
+
+        } catch (Exception ex) {
+            // Best-effort rollback: delete the Keycloak user so we don't have an orphan account.
+            keycloakAdminService.deleteUser(keycloakUserId);
+            throw ex;
+        }
     }
 
     @Transactional

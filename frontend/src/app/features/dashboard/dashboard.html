@@ -1,21 +1,49 @@
-@if (useDynamicRenderer()) {
+<div class="dynamic-dashboard">
+  <div class="dash-aurora" aria-hidden="true"></div>
 
-  <!-- ══ Phase 3+: NgComponentOutlet grid renderer ══════════════════════════
-       Active when the user (or their role) has an explicit widget config saved.
-       Each cell spans the configured number of grid columns / rows.
-       Phase 4 replaces WidgetPlaceholderComponent entries one by one with real
-       self-contained widget components. Phase 8 removes the legacy block below.
-  ═══════════════════════════════════════════════════════════════════════════ -->
-  <div class="dynamic-dashboard">
-    <div class="dash-aurora" aria-hidden="true"></div>
+  @if (canCustomize()) {
+    <a class="customize-fab" routerLink="/dashboard/configure" aria-label="Customize dashboard">
+      <mat-icon>tune</mat-icon>
+      <span class="customize-fab-label">Customize</span>
+    </a>
+  }
 
-    @if (canCustomize()) {
-      <a class="customize-fab" routerLink="/dashboard/configure" aria-label="Customize dashboard">
-        <mat-icon>tune</mat-icon>
-        <span class="customize-fab-label">Customize</span>
-      </a>
-    }
+  @if (permissionService.loaded() && widgetConfigs().length === 0) {
 
+    <!-- ── No role assigned ──────────────────────────────────────────────── -->
+    <div class="no-access-shell">
+      <div class="no-access-card">
+        <div class="no-access-icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="no-access-icon">
+            <path fill-rule="evenodd"
+              d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+              clip-rule="evenodd" />
+          </svg>
+        </div>
+        <h1 class="no-access-title">Account Not Configured</h1>
+        <p class="no-access-body">
+          You are signed in, but your account has not been assigned a role
+          in the College Management System yet.
+        </p>
+        <p class="no-access-body">
+          Please contact your <strong>System Administrator</strong> to have
+          a role assigned to your account.
+        </p>
+        <div class="no-access-actions">
+          <button type="button" class="no-access-logout-btn" (click)="logout()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px">
+              <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd" />
+              <path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.04a.75.75 0 1 0-1.06-1.06l-2.25 2.25a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 1 0 1.06-1.06l-1.048-1.04h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd" />
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
+  } @else {
+
+    <!-- ── Widget grid ────────────────────────────────────────────────────── -->
     <div class="widget-grid">
       @for (item of widgetItems(); track item.key) {
         <div class="widget-cell"
@@ -28,56 +56,6 @@
         </div>
       }
     </div>
-  </div>
 
-} @else {
-
-  <!-- ══ Legacy: role-specific sub-dashboards (until Phase 8) ═════════════
-       Shown when no widget config is saved — falls through to the hardcoded
-       role layouts from before Phase 3.
-  ═══════════════════════════════════════════════════════════════════════════ -->
-  <div class="dashboard-shell">
-    @if (activeDashboard() === 'admin') {
-      <app-admin-dashboard [visibleWidgets]="visibleWidgets()" />
-    } @else if (activeDashboard() === 'front-office') {
-      <app-front-office-dashboard [visibleWidgets]="visibleWidgets()" />
-    } @else if (activeDashboard() === 'cashier') {
-      <app-cashier-dashboard [visibleWidgets]="visibleWidgets()" />
-    } @else if (activeDashboard() === 'faculty') {
-      <app-faculty-dashboard [visibleWidgets]="visibleWidgets()" />
-    } @else if (activeDashboard() === 'student') {
-      <app-student-dashboard [visibleWidgets]="visibleWidgets()" />
-    } @else {
-      <div class="no-access-shell">
-        <div class="no-access-card">
-          <div class="no-access-icon-wrap">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="no-access-icon">
-              <path fill-rule="evenodd"
-                d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-                clip-rule="evenodd" />
-            </svg>
-          </div>
-          <h1 class="no-access-title">Account Not Configured</h1>
-          <p class="no-access-body">
-            You are signed in, but your account has not been assigned a role
-            in the College Management System yet.
-          </p>
-          <p class="no-access-body">
-            Please contact your <strong>System Administrator</strong> to have
-            a role assigned to your account.
-          </p>
-          <div class="no-access-actions">
-            <button type="button" class="no-access-logout-btn" (click)="logout()">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px">
-                <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd" />
-                <path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.04a.75.75 0 1 0-1.06-1.06l-2.25 2.25a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 1 0 1.06-1.06l-1.048-1.04h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd" />
-              </svg>
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-  </div>
-
-}
+  }
+</div>

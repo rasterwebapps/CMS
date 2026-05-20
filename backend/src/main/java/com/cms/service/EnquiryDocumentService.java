@@ -3,6 +3,7 @@ package com.cms.service;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,37 +22,35 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
 import com.cms.model.EnquiryDocumentHistory;
+import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryDocumentHistoryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.util.CurrentUserResolver;
 
 @Service
 @Transactional(readOnly = true)
 public class EnquiryDocumentService {
 
-    private static final Set<DocumentType> MANDATORY_DOCUMENTS = Set.of(
-        DocumentType.TENTH_MARKSHEET,
-        DocumentType.TWELFTH_MARKSHEET,
-        DocumentType.TRANSFER_CERTIFICATE,
-        DocumentType.AADHAR_CARD,
-        DocumentType.PASSPORT_PHOTO
-    );
-
     private final EnquiryDocumentRepository documentRepository;
     private final EnquiryDocumentHistoryRepository historyRepository;
     private final EnquiryRepository enquiryRepository;
+    private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final CurrentUserResolver currentUserResolver;
 
     public EnquiryDocumentService(EnquiryDocumentRepository documentRepository,
                                    EnquiryDocumentHistoryRepository historyRepository,
                                    EnquiryRepository enquiryRepository,
+                                   EnquiryStatusHistoryRepository statusHistoryRepository,
                                    CurrentUserResolver currentUserResolver) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.enquiryRepository = enquiryRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -81,9 +80,8 @@ public class EnquiryDocumentService {
     }
 
     public MissingDocumentsResponse allMandatoryDocumentsSubmitted(Long enquiryId) {
-        if (!enquiryRepository.existsById(enquiryId)) {
-            throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
-        }
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
         List<EnquiryDocument> documents = documentRepository.findByEnquiryId(enquiryId);
 
@@ -93,8 +91,10 @@ public class EnquiryDocumentService {
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
+        Set<DocumentType> required = resolveRequiredTypes(enquiry);
+
         List<String> missing = new ArrayList<>();
-        for (DocumentType mandatory : MANDATORY_DOCUMENTS) {
+        for (DocumentType mandatory : required) {
             if (!submittedTypes.contains(mandatory)) {
                 missing.add(mandatory.name());
             }
@@ -109,9 +109,8 @@ public class EnquiryDocumentService {
      * before completing admission.
      */
     public DocumentVerificationStatusResponse allMandatoryDocumentsVerified(Long enquiryId) {
-        if (!enquiryRepository.existsById(enquiryId)) {
-            throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
-        }
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
         List<EnquiryDocument> documents = documentRepository.findByEnquiryId(enquiryId);
 
@@ -126,9 +125,11 @@ public class EnquiryDocumentService {
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
+        Set<DocumentType> required = resolveRequiredTypes(enquiry);
+
         List<String> unverified = new ArrayList<>();
         List<String> notUploaded = new ArrayList<>();
-        for (DocumentType mandatory : MANDATORY_DOCUMENTS) {
+        for (DocumentType mandatory : required) {
             if (!verifiedTypes.contains(mandatory)) {
                 unverified.add(mandatory.name());
                 if (!uploadedOrVerifiedTypes.contains(mandatory)) {
@@ -253,6 +254,101 @@ public class EnquiryDocumentService {
             ? document.getContentType()
             : "application/octet-stream";
         return new DocumentFileDownload(fileName, contentType, data);
+    }
+
+    /**
+     * Marks a document as VERIFIED and, if all program-required documents are now
+     * verified, automatically transitions the enquiry to DOCUMENTS_VERIFIED.
+     */
+    @Transactional
+    public EnquiryDocumentResponse verifyDocument(Long enquiryId, Long documentId) {
+        EnquiryDocument document = documentRepository.findById(documentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+
+        if (!document.getEnquiry().getId().equals(enquiryId)) {
+            throw new ResourceNotFoundException("Document " + documentId + " does not belong to enquiry " + enquiryId);
+        }
+
+        DocumentVerificationStatus previousStatus = document.getStatus();
+        String verifier = currentUserResolver.resolve();
+
+        document.setStatus(DocumentVerificationStatus.VERIFIED);
+        document.setVerifiedBy(verifier);
+        document.setVerifiedAt(Instant.now());
+        document.setRemarks(null);
+
+        EnquiryDocument saved = documentRepository.save(document);
+        recordHistory(saved, previousStatus, DocumentVerificationStatus.VERIFIED);
+
+        autoTransitionIfAllVerified(saved.getEnquiry(), verifier);
+
+        return toResponse(saved);
+    }
+
+    /**
+     * Marks a document as REJECTED with a mandatory rejection comment.
+     */
+    @Transactional
+    public EnquiryDocumentResponse rejectDocument(Long enquiryId, Long documentId, String rejectionComment) {
+        if (rejectionComment == null || rejectionComment.isBlank()) {
+            throw new IllegalArgumentException("Rejection comment is required");
+        }
+
+        EnquiryDocument document = documentRepository.findById(documentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+
+        if (!document.getEnquiry().getId().equals(enquiryId)) {
+            throw new ResourceNotFoundException("Document " + documentId + " does not belong to enquiry " + enquiryId);
+        }
+
+        DocumentVerificationStatus previousStatus = document.getStatus();
+
+        document.setStatus(DocumentVerificationStatus.REJECTED);
+        document.setRemarks(rejectionComment.trim());
+        document.setVerifiedBy(currentUserResolver.resolve());
+        document.setVerifiedAt(Instant.now());
+
+        EnquiryDocument saved = documentRepository.save(document);
+        recordHistory(saved, previousStatus, DocumentVerificationStatus.REJECTED);
+
+        return toResponse(saved);
+    }
+
+    /**
+     * Checks whether all program-required documents for the enquiry are VERIFIED.
+     * If so, transitions the enquiry status from DOCUMENTS_SUBMITTED to DOCUMENTS_VERIFIED.
+     */
+    private void autoTransitionIfAllVerified(Enquiry enquiry, String changedBy) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
+            return;
+        }
+
+        Set<DocumentType> requiredTypes = resolveRequiredTypes(enquiry);
+        List<EnquiryDocument> docs = documentRepository.findByEnquiryId(enquiry.getId());
+
+        Set<DocumentType> verifiedTypes = docs.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.VERIFIED)
+            .map(EnquiryDocument::getDocumentType)
+            .collect(Collectors.toSet());
+
+        if (verifiedTypes.containsAll(requiredTypes)) {
+            EnquiryStatus oldStatus = enquiry.getStatus();
+            enquiry.setStatus(EnquiryStatus.DOCUMENTS_VERIFIED);
+            enquiryRepository.save(enquiry);
+            statusHistoryRepository.save(
+                new EnquiryStatusHistory(enquiry, oldStatus, EnquiryStatus.DOCUMENTS_VERIFIED, changedBy, null)
+            );
+        }
+    }
+
+    private Set<DocumentType> resolveRequiredTypes(Enquiry enquiry) {
+        if (enquiry.getProgram() != null) {
+            Set<DocumentType> programTypes = enquiry.getProgram().getRequiredDocumentTypes();
+            if (programTypes != null) {
+                return new HashSet<>(programTypes);
+            }
+        }
+        return new HashSet<>();
     }
 
     private void recordHistory(EnquiryDocument doc, DocumentVerificationStatus previous,

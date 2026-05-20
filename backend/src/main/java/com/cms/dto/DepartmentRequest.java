@@ -15,6 +15,5 @@ public record DepartmentRequest(
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     String description,
 
-    @Size(max = 255, message = "HOD name must not exceed 255 characters")
-    String hodName
+    Long hodFacultyId
 ) {}

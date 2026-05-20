@@ -192,3 +192,22 @@
     gap: 8px;
   }
 }
+
+
+// ── Self-service lock badge (VERIFIED state) ───────────────────────────────
+.lock-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--mat-sys-primary, #1a237e);
+  opacity: 0.55;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

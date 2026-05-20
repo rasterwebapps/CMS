@@ -19,6 +19,7 @@ import { STUDENT_FORM_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
+import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface Program {
@@ -38,6 +39,7 @@ interface Program {
     CmsTourButtonComponent,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsStateDistrictSelectorComponent,
   ],
   templateUrl: './student-form.component.html',
   styleUrl: './student-form.component.scss',
