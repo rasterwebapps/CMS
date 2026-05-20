@@ -182,6 +182,8 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
   protected printReceipt(): void {
     const r = this.lastPaymentResponse();
     if (!r) return;
+    const towardsLabel = r.feeCategory === 'TUITION_AND_HOSTEL'
+      ? 'Tuition Fees And Hostel Fees' : 'Tuition Fees';
     printFeeReceipt({
       receiptNumber: r.receiptNumber,
       payerName:     r.enquiryName,
@@ -190,7 +192,7 @@ export class EnquiryPaymentCollectionComponent implements OnInit {
       paymentMode:   r.paymentMode,
       transactionReference: r.transactionReference,
       feeCategory:   r.feeCategory,
-      installmentBreakdown: [{ installmentLabel: 'Pre-enrollment Fee', amountApplied: r.amountPaid }],
+      installmentBreakdown: [{ installmentLabel: towardsLabel, amountApplied: r.amountPaid }],
     });
   }
 

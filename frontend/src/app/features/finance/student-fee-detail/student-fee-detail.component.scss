@@ -2,9 +2,38 @@ $green:  #22C55E;
 $red:    #EF4444;
 $amber:  #F59E0B;
 
-.list-page { display: flex; flex-direction: column; gap: 16px; }
+.sfd-page { display: flex; flex-direction: column; gap: 16px; }
 
-.loading-center { display: flex; justify-content: center; padding: 60px; }
+// ── Back nav header ────────────────────────────────────────────────────────────
+.sfd-hdr {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sfd-hdr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sfd-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--cms-text-primary);
+
+  em { font-style: normal; color: var(--cms-primary); }
+}
+
+.sfd-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.sfd-skeleton { display: flex; flex-direction: column; gap: 12px; }
 
 // ── No-allocation banner ─────────────────────────────────────────────────────
 .no-alloc-banner {
@@ -19,7 +48,7 @@ $amber:  #F59E0B;
   color: var(--cms-text-secondary);
   line-height: 1.5;
 
-  &__icon { color: #3b82f6; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+  &__icon { color: #3b82f6; flex-shrink: 0; margin-top: 1px; }
 
   strong { color: var(--cms-text-primary); display: block; margin-bottom: 3px; font-size: 13.5px; }
   p { margin: 0; }
@@ -44,7 +73,7 @@ $amber:  #F59E0B;
     font-weight: 700;
     color: var(--cms-text-primary);
 
-    mat-icon { font-size: 17px; width: 17px; height: 17px; color: var(--cms-primary); }
+    .card-hdr__icon { color: var(--cms-primary); flex-shrink: 0; }
   }
 }
 
@@ -193,7 +222,7 @@ $amber:  #F59E0B;
   font-size: 12.5px;
   color: var(--cms-text-secondary);
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--cms-primary); }
+  &__icon { color: var(--cms-primary); flex-shrink: 0; }
 }
 
 // ── Student summary strip ─────────────────────────────────────────────────────
@@ -312,7 +341,8 @@ $amber:  #F59E0B;
   gap: 3px;
   font-size: 10.5px; font-weight: 700;
   color: var(--cms-primary);
-  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+
+  &__icon { flex-shrink: 0; }
 }
 
 .overdue-tag {
@@ -354,7 +384,7 @@ $amber:  #F59E0B;
   color: var(--cms-text-secondary);
   line-height: 1.4;
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--cms-primary); flex-shrink: 0; margin-top: 1px; }
+  svg { color: var(--cms-primary); }
 }
 
 // ── Receipt history ───────────────────────────────────────────────────────────
@@ -414,7 +444,6 @@ $amber:  #F59E0B;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 40px 20px; color: var(--cms-text-muted);
 
-  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.4; }
   p { margin: 0; font-size: 13px; }
 }
 
@@ -437,8 +466,6 @@ $amber:  #F59E0B;
   box-shadow: 0 4px 20px rgba(var(--cms-primary-rgb), 0.35);
   transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
-
   &:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(var(--cms-primary-rgb), 0.45);
@@ -457,6 +484,29 @@ $amber:  #F59E0B;
   transition: background 0.18s, color 0.18s;
 
   &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
+}
+
+// ── CSS spinners (no mat-spinner dependency) ──────────────────────────────────
+.card-spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid var(--cms-line);
+  border-top-color: var(--cms-primary);
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 .btn-spinner { display: inline-block; }

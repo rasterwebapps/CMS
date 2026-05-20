@@ -52,11 +52,15 @@ export class DocumentSubmissionListComponent implements OnInit {
 
   // ── Filters ───────────────────────────────────────────────────────────────
   protected readonly filterProgram     = signal<string>('ALL');
+  protected readonly filterCourse      = signal<string>('ALL');
   protected readonly filterStatus      = signal<string>('ALL');
   protected readonly filterStudentType = signal<string>('ALL');
 
   protected readonly programs = computed(() =>
     [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly courses = computed(() =>
+    [...new Set(this._allData().map(r => r.courseName).filter(Boolean))].sort() as string[]
   );
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -83,27 +87,26 @@ export class DocumentSubmissionListComponent implements OnInit {
     this.tourService.register('document-submission-list', DOCUMENT_SUBMISSION_LIST_TOUR);
     this.dataSource.filterPredicate = (row: Enquiry, _filter: string) => {
       const program     = this.filterProgram();
+      const course      = this.filterCourse();
       const status      = this.filterStatus();
       const studentType = this.filterStudentType();
       const q           = this.searchQuery().toLowerCase().trim();
 
       if (program     !== 'ALL' && (row.programName ?? '') !== program) return false;
+      if (course      !== 'ALL' && (row.courseName  ?? '') !== course)  return false;
       if (status      !== 'ALL' && (row.status      ?? '') !== status)  return false;
       if (studentType !== 'ALL' && (row.studentType ?? '') !== studentType) return false;
       if (!q) return true;
       return row.name.toLowerCase().includes(q) ||
-        (row.programName ?? '').toLowerCase().includes(q) ||
-        (row.courseName  ?? '').toLowerCase().includes(q) ||
-        (row.phone       ?? '').includes(q) ||
-        (row.email       ?? '').toLowerCase().includes(q);
+        (row.phone ?? '').includes(q) ||
+        (row.email ?? '').toLowerCase().includes(q);
     };
     this.load();
   }
 
   private triggerFilter(): void {
-    // Changing the filter string forces MatTableDataSource to re-evaluate filterPredicate
     this.dataSource.filter = this.searchQuery() + '|' +
-      this.filterProgram() + '|' + this.filterStatus() + '|' + this.filterStudentType();
+      this.filterProgram() + '|' + this.filterCourse() + '|' + this.filterStatus() + '|' + this.filterStudentType();
     this.dataSource.paginator?.firstPage();
   }
 
@@ -117,12 +120,14 @@ export class DocumentSubmissionListComponent implements OnInit {
     this.triggerFilter();
   }
 
-  protected onProgramChange(val: string): void    { this.filterProgram.set(val);     this.triggerFilter(); }
-  protected onStatusChange(val: string): void     { this.filterStatus.set(val);      this.triggerFilter(); }
-  protected onStudentTypeChange(val: string): void { this.filterStudentType.set(val); this.triggerFilter(); }
+  protected onProgramChange(val: string): void     { this.filterProgram.set(val);     this.triggerFilter(); }
+  protected onCourseChange(val: string): void       { this.filterCourse.set(val);      this.triggerFilter(); }
+  protected onStatusChange(val: string): void       { this.filterStatus.set(val);      this.triggerFilter(); }
+  protected onStudentTypeChange(val: string): void  { this.filterStudentType.set(val); this.triggerFilter(); }
 
   protected clearFilters(): void {
     this.filterProgram.set('ALL');
+    this.filterCourse.set('ALL');
     this.filterStatus.set('ALL');
     this.filterStudentType.set('ALL');
     this.searchQuery.set('');
@@ -131,6 +136,7 @@ export class DocumentSubmissionListComponent implements OnInit {
 
   protected hasActiveFilters(): boolean {
     return this.filterProgram() !== 'ALL' ||
+           this.filterCourse()  !== 'ALL' ||
            this.filterStatus()  !== 'ALL' ||
            this.filterStudentType() !== 'ALL' ||
            this.searchQuery() !== '';

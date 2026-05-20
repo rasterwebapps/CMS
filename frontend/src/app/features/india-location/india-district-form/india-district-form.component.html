@@ -1,59 +1,97 @@
-<div class="form-page">
-  <div class="form-page__header">
-    <a routerLink="/india-locations" class="back-link">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-      Back to India Locations
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/india-locations" aria-label="Back to location master">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>District</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the district details below.' : 'Create a district under the selected state or union territory.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="form-page__loading">Loading…</div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card" novalidate>
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">District Information</div>
+            <div class="entry-form-card__hdr-sub">Parent state, district name and availability</div>
+          </div>
+        </div>
 
-      <div class="form-section">
-        <h2 class="form-section__title">District Details</h2>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="dist-state">State / UT <span class="required-star">*</span></label>
+                <select id="dist-state" class="field-select" formControlName="stateId" [class.field-select--error]="form.get('stateId')?.invalid && form.get('stateId')?.touched">
+                  <option [ngValue]="null">Select state / UT</option>
+                  @for (state of states(); track state.id) {
+                    <option [ngValue]="state.id">{{ state.name }}</option>
+                  }
+                </select>
+                @if (getFieldError('stateId')) {
+                  <p class="field-error">{{ getFieldError('stateId') }}</p>
+                }
+              </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label class="form-label" for="dist-state">State / UT <span class="required">*</span></label>
-            <select id="dist-state" class="form-select" formControlName="stateId">
-              <option [value]="null">— Select State —</option>
-              @for (state of states(); track state.id) {
-                <option [value]="state.id">{{ state.name }} ({{ state.code }})</option>
+              <div class="field-group">
+                <label class="field-label" for="dist-name">District Name <span class="required-star">*</span></label>
+                <input id="dist-name" class="field-input" formControlName="name" placeholder="e.g. Chennai" autocomplete="off" [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">Inactive districts are hidden from new forms but retained for existing records.</p>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/india-locations">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update District' : 'Create District' }}
               }
-            </select>
-            @if (getFieldError('stateId')) {
-              <span class="form-error">{{ getFieldError('stateId') }}</span>
-            }
+            </button>
           </div>
-
-          <div class="form-field">
-            <label class="form-label" for="dist-name">District Name <span class="required">*</span></label>
-            <input id="dist-name" class="form-input" formControlName="name" placeholder="e.g. Chennai" />
-            @if (getFieldError('name')) {
-              <span class="form-error">{{ getFieldError('name') }}</span>
-            }
-          </div>
-        </div>
-
-        <div class="form-field">
-          <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
-          <p class="form-hint">Inactive districts are hidden from new forms but retained for existing records.</p>
-        </div>
+        </form>
       </div>
 
-      <div class="form-actions">
-        <a routerLink="/india-locations" class="btn-secondary">Cancel</a>
-        <button type="submit" class="btn-primary" [disabled]="saving()">
-          @if (saving()) { Saving… } @else { {{ isEditMode() ? 'Update District' : 'Create District' }} }
-        </button>
-      </div>
-    </form>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'District name will appear here' }}
+          </div>
+          @if (previewStateName()) {
+            <div class="prev-sub">{{ previewStateName() }}</div>
+          }
+          <div class="prev-meta-row">
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
   }
 </div>
 

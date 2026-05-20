@@ -45,7 +45,7 @@ public record EnquiryRequest(
 
     StudentType studentType,
 
-    String country,
+    Long countryId,
 
     String state,
 

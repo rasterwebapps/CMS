@@ -1,5 +1,3 @@
-.page-wrap { padding: 24px 32px; }
-
 .loading-box {
   display: flex;
   justify-content: center;
@@ -7,42 +5,28 @@
 }
 
 // ── Table ────────────────────────────────────────────────────────────────────
-.table-wrapper    { overflow-x: auto; }
-.modern-table     { width: 100%; }
+.table-wrapper    { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.fee-collection-table { min-width: 980px; }
 .actions-header   { width: 110px; }
-.row-actions      { display: flex; justify-content: flex-end; }
-.table-row:hover  { background: var(--cms-bg-muted); }
+.row-actions      { justify-content: center; opacity: 1; }
 .pagination-wrapper { border-top: 1px solid var(--cms-line); }
 
 .cell-name    { display: block; font-weight: 700; color: var(--cms-text-primary); }
 .cell-sub     { display: block; font-size: 11.5px; color: var(--cms-text-muted); }
 .cell-muted   { color: var(--cms-text-muted); font-size: 13px; }
-.cell-mono    { font-family: var(--cms-font-mono); font-size: 13px; }
+.cell-mono    { font-family: var(--cms-font-mono), monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
 .cell-paid    { color: #10B981; }
 .cell-outstanding { color: #EF4444; font-weight: 600; }
 .cell-overdue { color: #EF4444; font-weight: 700; }
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border: 1.5px solid var(--cms-line-strong);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--cms-text-secondary);
+.collect-action-btn {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 9px;
   font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--cms-font-ui);
-  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
 
-  &--primary {
-    border-color: rgba(var(--cms-primary-rgb), 0.3);
-    color: var(--cms-primary);
-    background: rgba(var(--cms-primary-rgb), 0.05);
-    &:hover { background: rgba(var(--cms-primary-rgb), 0.12); }
-  }
+  &:hover { transform: translateY(-1px); }
 }
 
 // ── Type badges ───────────────────────────────────────────────────────────────
@@ -118,14 +102,45 @@
 
 .r-label  { color: var(--cms-text-muted); }
 .r-value  { font-weight: 600; }
-.r-amount { font-family: var(--cms-font-mono); color: var(--cms-primary); font-size: 15px; }
+.r-amount { font-family: var(--cms-font-mono), monospace; color: var(--cms-primary); font-size: 15px; font-variant-numeric: tabular-nums; }
 
 .receipt-actions { width: 100%; margin-top: 8px; }
 
 // ── Payment layout ────────────────────────────────────────────────────────────
+.payment-topbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.payment-topbar__text {
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    font-family: var(--cms-font-display), serif;
+    font-size: 1.65rem;
+    font-weight: 400;
+    color: var(--cms-text-primary);
+    line-height: 1.1;
+
+    em {
+      color: var(--cms-primary);
+      font-style: italic;
+    }
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 0.8125rem;
+    color: var(--cms-text-muted);
+  }
+}
+
 .payment-layout {
   display: grid;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
   gap: 20px;
   align-items: start;
 }
@@ -134,6 +149,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 .panel-header {
@@ -155,7 +171,8 @@
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-line);
   border-radius: 14px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sem-head {
@@ -170,6 +187,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cms-text-muted);
+  min-width: 760px;
 }
 
 .sem-row {
@@ -180,6 +198,7 @@
   border-bottom: 1px solid var(--cms-line);
   font-size: 13px;
   transition: background 0.12s;
+  min-width: 760px;
 
   &:last-child  { border-bottom: none; }
   &:hover       { background: rgba(var(--cms-primary-rgb), 0.03); }
@@ -195,6 +214,7 @@
   background: var(--cms-bg-subtle);
   border-top: 2px solid var(--cms-line-strong);
   font-size: 13px;
+  min-width: 760px;
 }
 
 .sem-seq {
@@ -237,7 +257,7 @@
 .total-outstanding { color: #EF4444; }
 .align-right       { text-align: right; }
 .align-center      { text-align: center; }
-.mono              { font-family: var(--cms-font-mono); }
+.mono              { font-family: var(--cms-font-mono), monospace; font-variant-numeric: tabular-nums; }
 
 // ── Form column ───────────────────────────────────────────────────────────────
 .form-col {
@@ -248,6 +268,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 .form-title {
@@ -265,8 +286,9 @@
   border: 1.5px solid var(--cms-line-strong);
   border-radius: 9px;
   padding: 9px 14px;
-  font-family: var(--cms-font-ui);
+  font-family: var(--cms-font-ui), sans-serif;
   font-size: 13px;
+  min-height: 40px;
   color: var(--cms-text-primary);
   background: var(--cms-bg-card);
   outline: none;
@@ -288,12 +310,9 @@
 }
 
 .form-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--cms-line);
-  margin-top: 4px;
+  margin-top: 16px;
+
+  .entry-form-sticky-footer__hint { margin-right: auto; }
 }
 
 .btn-cancel {
@@ -305,7 +324,7 @@
   border-radius: 10px;
   background: transparent;
   color: var(--cms-text-secondary);
-  font-family: var(--cms-font-ui);
+  font-family: var(--cms-font-ui), sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -322,7 +341,7 @@
   border-radius: 10px;
   background: var(--cms-primary);
   color: #fff;
-  font-family: var(--cms-font-ui);
+  font-family: var(--cms-font-ui), sans-serif;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -337,9 +356,16 @@
   .payment-layout { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 700px) {
-  .sem-head, .sem-row, .sem-footer {
-    grid-template-columns: 28px 1fr 90px 80px;
-    .sem-due, .sem-paid, .total-paid { display: none; }
+@media (max-width: 640px) {
+  .payment-topbar__text h2 { font-size: 1.45rem; }
+
+  .form-row { grid-template-columns: 1fr; }
+
+  .form-footer {
+    .btn-cancel,
+    .btn-submit {
+      flex: 1;
+      justify-content: center;
+    }
   }
 }

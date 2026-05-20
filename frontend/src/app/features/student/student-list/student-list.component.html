@@ -39,7 +39,7 @@
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
-             placeholder="Search by name, admission no., roll no., program…" type="text" aria-label="Search students" />
+             placeholder="Search by name, admission no. or roll no." type="text" aria-label="Search students" />
       @if (searchValue()) {
         <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"

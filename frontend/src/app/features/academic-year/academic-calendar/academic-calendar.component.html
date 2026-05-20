@@ -1,5 +1,5 @@
 <div class="list-page" #calendarPrintArea>
-  <app-page-header title="Academic Calendar" subtitle="Semester timeline, events and holidays">
+  <app-page-header title="Academic Calendar" subtitle="Term timeline, events and holidays">
     <div actions class="header-actions">
       <!-- Year Selector -->
       @if (allAcademicYears().length > 1) {
@@ -26,9 +26,6 @@
       @if (canManage()) {
         <a class="btn-secondary" routerLink="/academic-years">
           <mat-icon>calendar_month</mat-icon> Years
-        </a>
-        <a class="btn-secondary" routerLink="/semesters">
-          <mat-icon>date_range</mat-icon> Semesters
         </a>
       }
     </div>
@@ -58,12 +55,12 @@
           <span class="stat-label">Total Weeks</span>
         </div>
         <div class="stat-card c-green">
-          <span class="stat-value font-mono">{{ s.semesterCount }}</span>
-          <span class="stat-label">Semesters</span>
+          <span class="stat-value font-mono">{{ s.termCount }}</span>
+          <span class="stat-label">Terms</span>
         </div>
         <div class="stat-card c-amber">
           <span class="stat-value font-mono">{{ s.daysRemaining !== null ? s.daysRemaining : '—' }}</span>
-          <span class="stat-label">Days Left in Semester</span>
+          <span class="stat-label">Days Left in Term</span>
         </div>
         <div class="stat-card c-purple">
           <span class="stat-value font-mono">{{ s.eventCount }}</span>
@@ -113,7 +110,7 @@
 
     <!-- ── View Toggle ── -->
     <div class="view-bar">
-      <h3 class="section-title">Semesters</h3>
+      <h3 class="section-title">Terms</h3>
       <div class="view-toggle" role="group" aria-label="Toggle calendar view">
         <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">
           <mat-icon>view_timeline</mat-icon> Timeline
@@ -126,82 +123,79 @@
 
     <!-- ─────────── TIMELINE VIEW ─────────── -->
     @if (viewMode() === 'timeline') {
-      @if (semesters().length === 0) {
+      @if (termInstances().length === 0) {
         <div class="content-card">
           <div class="empty-state__content">
             <mat-icon class="empty-state__icon-mat">event_note</mat-icon>
-            <p class="empty-state__text">No semesters found for this academic year.</p>
-            @if (canManage()) {
-              <a class="btn-primary" routerLink="/semesters/new">Add Semester</a>
-            }
+            <p class="empty-state__text">No terms found for this academic year.</p>
           </div>
         </div>
       } @else {
         <div class="semester-timeline">
-          @for (semester of semesters(); track semester.id; let i = $index) {
-            <div class="timeline-item" [class.is-current]="semester.status === 'ONGOING'">
+          @for (term of termInstances(); track term.id; let i = $index) {
+            <div class="timeline-item" [class.is-current]="getTermStatus(term) === 'ONGOING'">
               <!-- Marker -->
               <div class="timeline-marker">
-                <div class="marker-dot" [class]="semester.status.toLowerCase()">
-                  @switch (semester.status) {
+                <div class="marker-dot" [class]="getTermStatus(term).toLowerCase()">
+                  @switch (getTermStatus(term)) {
                     @case ('COMPLETED') { <mat-icon>check</mat-icon> }
                     @case ('ONGOING')   { <mat-icon>play_arrow</mat-icon> }
                     @default            { <mat-icon>schedule</mat-icon> }
                   }
                 </div>
-                @if (i < semesters().length - 1) {
+                @if (i < termInstances().length - 1) {
                   <div class="marker-line"></div>
                 }
               </div>
 
-              <!-- Semester Card -->
-              <div class="content-card semester-card" [class.is-current]="semester.status === 'ONGOING'">
+              <!-- Term Card -->
+              <div class="content-card semester-card" [class.is-current]="getTermStatus(term) === 'ONGOING'">
                 <div class="semester-card-header">
-                  <h4 class="semester-name">{{ semester.name }}</h4>
-                  <span class="semester-number">Semester {{ semester.semesterNumber }}</span>
+                  <h4 class="semester-name">{{ getTermLabel(term) }}</h4>
+                  <span class="semester-number">{{ term.academicYearName }}</span>
                 </div>
 
                 <!-- Dates -->
                 <div class="semester-dates">
                   <div class="date-item">
                     <mat-icon>event</mat-icon>
-                    <span><strong>Start:</strong> {{ semester.startDate | appDate }}</span>
+                    <span><strong>Start:</strong> {{ term.startDate | appDate }}</span>
                   </div>
                   <div class="date-item">
                     <mat-icon>event</mat-icon>
-                    <span><strong>End:</strong> {{ semester.endDate | appDate }}</span>
+                    <span><strong>End:</strong> {{ term.endDate | appDate }}</span>
                   </div>
                 </div>
 
                 <!-- Progress Bar -->
                 <div class="progress-wrap">
                   <div class="progress-bar-track">
-                    <div class="progress-bar-fill" [class.is-current]="semester.status === 'ONGOING'" [style.width.%]="getSemesterProgress(semester)"></div>
+                    <div class="progress-bar-fill" [class.is-current]="getTermStatus(term) === 'ONGOING'" [style.width.%]="getTermProgress(term)"></div>
                   </div>
                   <span class="progress-label">
-                    @if (semester.status === 'UPCOMING') {
-                      Starts {{ semester.startDate | appDate }}
+                    @if (getTermStatus(term) === 'UPCOMING') {
+                      Starts {{ term.startDate | appDate }}
                     } @else {
-                      {{ getSemesterDays(semester).elapsed }} / {{ getSemesterDays(semester).total }} days
-                      ({{ getSemesterProgress(semester) }}%)
+                      {{ getTermDays(term).elapsed }} / {{ getTermDays(term).total }} days
+                      ({{ getTermProgress(term) }}%)
                     }
                   </span>
                 </div>
 
                 <!-- Status badge -->
                 <div class="semester-status">
-                  @switch (semester.status) {
+                  @switch (getTermStatus(term)) {
                     @case ('COMPLETED') { <span class="cms-badge cms-badge--gray">Completed</span> }
                     @case ('ONGOING')   { <span class="cms-badge cms-badge--blue">In Progress</span> }
                     @case ('UPCOMING')  { <span class="cms-badge cms-badge--amber">Upcoming</span> }
                   }
                 </div>
 
-                <!-- Events for this semester -->
-                @if (getEventsForSemester(semester).length > 0) {
+                <!-- Events overlapping this term -->
+                @if (getEventsForTerm(term).length > 0) {
                   <div class="semester-events">
                     <h5 class="events-subtitle">Events</h5>
-                    @for (evt of getEventsForSemester(semester); track evt.id) {
+                    @for (evt of getEventsForTerm(term); track evt.id) {
                       <div class="event-row">
                         <mat-icon class="ev-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
                         <span class="ev-title">{{ evt.title }}</span>
@@ -224,11 +218,11 @@
           }
         </div>
 
-        <!-- Unassigned events -->
-        @if (getUnassignedEvents().length > 0) {
+        <!-- Year-level events -->
+        @if (getYearLevelEvents().length > 0) {
           <div class="content-card unassigned-events-card">
-            <h4 class="events-subtitle">Year-Level Events (not tied to a semester)</h4>
-            @for (evt of getUnassignedEvents(); track evt.id) {
+            <h4 class="events-subtitle">Year-Level Events</h4>
+            @for (evt of getYearLevelEvents(); track evt.id) {
               <div class="event-row">
                 <mat-icon class="ev-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
                 <span class="ev-title">{{ evt.title }}</span>
@@ -265,10 +259,10 @@
                 <div class="day-cell"
                   [class.other-month]="!cell.isCurrentMonth"
                   [class.today]="cell.isToday"
-                  [class.sem-upcoming]="cell.semesterStatus === 'UPCOMING' && cell.isCurrentMonth"
-                  [class.sem-ongoing]="cell.semesterStatus === 'ONGOING' && cell.isCurrentMonth"
-                  [class.sem-completed]="cell.semesterStatus === 'COMPLETED' && cell.isCurrentMonth"
-                  [title]="cell.semesterName ?? ''">
+                  [class.sem-upcoming]="cell.termStatus === 'UPCOMING' && cell.isCurrentMonth"
+                  [class.sem-ongoing]="cell.termStatus === 'ONGOING' && cell.isCurrentMonth"
+                  [class.sem-completed]="cell.termStatus === 'COMPLETED' && cell.isCurrentMonth"
+                  [title]="cell.termName ?? ''">
                   <span class="day-num">{{ cell.isCurrentMonth ? cell.dayNum : '' }}</span>
                   @if (cell.events.length > 0 && cell.isCurrentMonth) {
                     <div class="event-dots">
@@ -342,28 +336,15 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label class="form-field-label">Event Type <span class="required-star">*</span></label>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-select formControlName="eventType">
-                @for (type of eventTypes; track type) {
-                  <mat-option [value]="type">{{ eventTypeLabels[type] }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="form-field">
-            <label class="form-field-label">Semester (optional)</label>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-select formControlName="semesterId">
-                <mat-option [value]="null">— None —</mat-option>
-                @for (sem of semesters(); track sem.id) {
-                  <mat-option [value]="sem.id">{{ sem.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
+        <div class="form-field">
+          <label class="form-field-label">Event Type <span class="required-star">*</span></label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-select formControlName="eventType">
+              @for (type of eventTypes; track type) {
+                <mat-option [value]="type">{{ eventTypeLabels[type] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
 
         <div class="form-field">

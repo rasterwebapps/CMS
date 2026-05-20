@@ -60,7 +60,7 @@ export class SyllabusFormComponent implements OnInit {
   protected readonly previewActive     = signal(true);
   protected readonly previewCourseName = computed(() => {
     const c = this.courses().find(x => x.id === this.previewCourseId());
-    return c ? `${c.name} (${c.code})` : '';
+    return c ? c.name : '';
   });
   protected readonly totalHours = computed(() => (this.previewTheory() ?? 0) + (this.previewLab() ?? 0) + (this.previewTutorial() ?? 0));
 

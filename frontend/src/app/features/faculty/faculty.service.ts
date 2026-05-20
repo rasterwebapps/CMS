@@ -7,7 +7,6 @@ import {
   FacultyDocument,
   FacultyDocumentTypeRequirement,
   FacultyDocumentTypeRequirementRequest,
-  FacultyPendingDocumentsSummary,
   FacultyRequest,
   FacultyStatus,
 } from './faculty.model';
@@ -48,10 +47,6 @@ export class FacultyService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
-  }
-
-  getPendingDocumentsSummary(): Observable<FacultyPendingDocumentsSummary[]> {
-    return this.http.get<FacultyPendingDocumentsSummary[]>(`${this.baseUrl}/pending-documents`);
   }
 
   // ── Faculty Document Type Requirements (config) ───────────────

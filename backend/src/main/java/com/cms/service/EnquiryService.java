@@ -49,6 +49,7 @@ import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -81,7 +82,9 @@ public class EnquiryService {
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
+    private final EnquiryDocumentService enquiryDocumentService;
     private final ApplicationNumberSequenceService numberSequenceService;
+    private final LocationCountryRepository countryRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -96,7 +99,9 @@ public class EnquiryService {
                            EnquiryDocumentRepository enquiryDocumentRepository,
                            AcademicYearRepository academicYearRepository,
                            FeeStructureService feeStructureService,
-                           ApplicationNumberSequenceService numberSequenceService) {
+                           EnquiryDocumentService enquiryDocumentService,
+                           ApplicationNumberSequenceService numberSequenceService,
+                           LocationCountryRepository countryRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -110,7 +115,9 @@ public class EnquiryService {
         this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
+        this.enquiryDocumentService = enquiryDocumentService;
         this.numberSequenceService = numberSequenceService;
+        this.countryRepository = countryRepository;
     }
 
     @Transactional
@@ -148,7 +155,9 @@ public class EnquiryService {
         enquiry.setStudentType(request.studentType());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
-        enquiry.setCountry(request.country());
+        enquiry.setCountry(request.countryId() != null
+            ? countryRepository.findById(request.countryId()).orElse(null)
+            : null);
         enquiry.setState(request.state());
         enquiry.setDistrict(request.district());
         enquiry.setReferredStudentId(request.referredStudentId());
@@ -231,7 +240,9 @@ public class EnquiryService {
         enquiry.setStudentType(request.studentType());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
-        enquiry.setCountry(request.country());
+        enquiry.setCountry(request.countryId() != null
+            ? countryRepository.findById(request.countryId()).orElse(null)
+            : null);
         enquiry.setState(request.state());
         enquiry.setDistrict(request.district());
         enquiry.setReferredStudentId(request.referredStudentId());
@@ -478,6 +489,7 @@ public class EnquiryService {
         if (request.address() != null) {
             AddressRequest addr = request.address();
             student.setAddress(new com.cms.model.Address(
+                addr.countryId(),
                 addr.postalAddress(),
                 addr.street(),
                 addr.city(),
@@ -500,7 +512,7 @@ public class EnquiryService {
         admission.setDeclarationDate(request.declarationDate());
         Admission savedAdmission = admissionRepository.save(admission);
         linkEnquiryDocumentsToAdmission(enquiryId, savedAdmission);
-        savedStudent.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(joiningYear));
+        savedStudent.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(joiningYear, savedStudent.getCourse()));
         studentRepository.save(savedStudent);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
@@ -704,7 +716,8 @@ public class EnquiryService {
             e.getFinalizedBy(),
             e.getFinalizedAt(),
             e.getConvertedStudentId(),
-            e.getCountry(),
+            e.getCountry() != null ? e.getCountry().getId() : null,
+            e.getCountry() != null ? e.getCountry().getName() : null,
             e.getState(),
             e.getDistrict(),
             e.getReferredStudentId(),

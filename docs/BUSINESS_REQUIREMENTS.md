@@ -1143,7 +1143,7 @@ The `/api/v1/profile/me/self-info` endpoint resolves the caller exclusively from
 
 ## BR-26: Faculty Document Review Summary and Verification Locks
 
-Faculty document verification must be visible from faculty discovery screens and must protect reviewed evidence from accidental overwrite.
+Faculty document review must be visible from faculty discovery screens and faculty detail documents, while protecting reviewed evidence from accidental overwrite. The standalone Faculty Document Verification queue screen is retired; reviewers work from the selected faculty member's Documents tab.
 
 ### Faculty list review status
 

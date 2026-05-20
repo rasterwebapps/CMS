@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.Cohort;
@@ -99,6 +100,10 @@ public class Student {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admission_category", length = 20)
+    private AdmissionCategory admissionCategory;
 
     @Column(name = "aadhar_number")
     private String aadharNumber;
@@ -346,6 +351,14 @@ public class Student {
 
     public void setGender(Gender gender) {
         this.gender = gender;
+    }
+
+    public AdmissionCategory getAdmissionCategory() {
+        return admissionCategory;
+    }
+
+    public void setAdmissionCategory(AdmissionCategory admissionCategory) {
+        this.admissionCategory = admissionCategory;
     }
 
     public String getAadharNumber() {

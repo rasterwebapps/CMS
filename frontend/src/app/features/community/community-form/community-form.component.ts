@@ -2,17 +2,33 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CommunityService } from '../community.service';
 import { CommunityRequest } from '../community.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
+import {
+  noConsecutiveSpaces,
+  noInternalSpaces,
+  trimmedMinLength,
+  cmsFieldError,
+  stripSpaces,
+} from '../../../shared/validators/cms-validators';
 
 @Component({
   selector: 'app-community-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatSlideToggleModule],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    MatProgressSpinnerModule,
+    MatSlideToggleModule,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
+  ],
   templateUrl: './community-form.component.html',
   styleUrl: './community-form.component.scss',
 })
@@ -27,27 +43,54 @@ export class CommunityFormComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
-  protected readonly pageTitle = signal('Add Community');
+
+  protected readonly previewName = signal('');
+  protected readonly previewCode = signal('');
+  protected readonly previewDesc = signal('');
+  protected readonly previewActive = signal(true);
+
+  protected readonly TIPS: CmsTip[] = [
+    {
+      icon: 'groups',
+      title: 'Community Name',
+      subtitle: 'Use the official readable category name used in student records.',
+    },
+    {
+      icon: 'tag',
+      title: 'Short Code',
+      subtitle: 'Codes are auto-uppercase and should match admission/reporting conventions.',
+    },
+    {
+      icon: 'visibility',
+      title: 'Active Status',
+      subtitle: 'Inactive communities stay in history but are hidden from new student forms.',
+    },
+  ];
 
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
+    name: [
+      '',
+      [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()],
+    ],
     code: ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     description: ['', Validators.maxLength(255)],
     isActive: [true],
   });
 
   constructor() {
-    // auto-uppercase and strip spaces from code field (BR-29 CODE rule)
-    this.form.get('code')!.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v: string) => {
-        const cleaned = stripSpaces(v ?? '').toUpperCase();
-        if (cleaned !== v) {
-          this.form.get('code')!.setValue(cleaned, { emitEvent: false });
-        }
-      });
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((v) => {
+      const cleaned = stripSpaces(v.code ?? '').toUpperCase();
+      if (cleaned !== (v.code ?? '')) {
+        this.form.get('code')!.setValue(cleaned, { emitEvent: false });
+      }
+
+      this.previewName.set((v.name ?? '').trim());
+      this.previewCode.set(cleaned);
+      this.previewDesc.set((v.description ?? '').trim());
+      this.previewActive.set(!!v.isActive);
+    });
   }
 
   ngOnInit(): void {
@@ -55,13 +98,15 @@ export class CommunityFormComponent implements OnInit {
     if (id && id !== 'new') {
       this.itemId = Number(id);
       this.isEditMode.set(true);
-      this.pageTitle.set('Edit Community');
       this.loadItem(this.itemId);
     }
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.form.invalid) {
+      scrollToFirstInvalid(this.form);
+      return;
+    }
     this.saving.set(true);
     const request = this.buildRequest();
     const op = this.isEditMode()
@@ -73,7 +118,9 @@ export class CommunityFormComponent implements OnInit {
         void this.router.navigate(['/communities']);
       },
       error: (err) => {
-        const msg = err?.error?.message ?? (this.isEditMode() ? 'Failed to update community' : 'Failed to create community');
+        const msg =
+          err?.error?.message ??
+          (this.isEditMode() ? 'Failed to update community' : 'Failed to create community');
         this.toast.error(msg);
         this.saving.set(false);
       },
@@ -100,18 +147,22 @@ export class CommunityFormComponent implements OnInit {
   }
 
   protected getFieldError(field: string): string {
-    const labels: Record<string, string> = { name: 'Name', code: 'Code', description: 'Description' };
+    const labels: Record<string, string> = {
+      name: 'Name',
+      code: 'Code',
+      description: 'Description',
+    };
     return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
 
   private buildRequest(): CommunityRequest {
     const v = this.form.value as CommunityRequest & { isActive: boolean };
+    const description = v.description?.trim();
     return {
-      name: v.name,
-      code: v.code,
-      description: v.description || undefined,
+      name: v.name.trim(),
+      code: v.code.trim(),
+      description: description || undefined,
       isActive: v.isActive,
     };
   }
 }
-

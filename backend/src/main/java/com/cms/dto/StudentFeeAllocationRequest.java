@@ -1,7 +1,6 @@
 package com.cms.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.constraints.NotEmpty;
@@ -33,9 +32,6 @@ public record StudentFeeAllocationRequest(
 
         @NotNull(message = "Amount is required")
         @PositiveOrZero(message = "Amount must be zero or positive")
-        BigDecimal amount,
-
-        @NotNull(message = "Due date is required")
-        LocalDate dueDate
+        BigDecimal amount
     ) {}
 }

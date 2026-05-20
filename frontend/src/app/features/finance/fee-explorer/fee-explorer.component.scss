@@ -1,9 +1,18 @@
-.list-container { padding: 24px 32px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.table-controls { margin-bottom: 16px; }
-.search-field { width: 100%; max-width: 400px; }
-.loading-container { display: flex; justify-content: center; align-items: center; padding: 64px; }
-.table-container { overflow-x: auto; }
-.data-table { width: 100%; }
-.no-data-cell { text-align: center; padding: 64px 16px; color: var(--cms-text-muted); font-size: 0.875rem; }
+// fee-explorer — component-specific overrides only.
+// Layout uses global MLP/toolbar/table classes from styles.scss.
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.sfx-skeleton { padding: 0 0 8px; }
+
+.sfx-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--cms-line);
+}
+
+// ── Amount colour helpers ─────────────────────────────────────────────────────
+.cell-mono--green { color: #16a34a; }
+.cell-mono--red   { color: #dc2626; }
+.cell-mono--amber { color: #d97706; }

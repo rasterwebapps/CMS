@@ -38,16 +38,19 @@ import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermFeePayment;
+import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.PaymentStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.AuditLogRepository;
 import com.cms.repository.ComplianceDocumentRepository;
@@ -99,6 +102,7 @@ public class WidgetDataController {
     private final PaymentReceiptRepository          paymentReceiptRepository;
     private final ComplianceDocumentRepository      complianceDocumentRepository;
     private final AuditLogRepository                auditLogRepository;
+    private final CohortRepository                  cohortRepository;
 
     public WidgetDataController(DashboardService dashboardService,
                                 AppUserRepository appUserRepository,
@@ -118,7 +122,8 @@ public class WidgetDataController {
                                 StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                 PaymentReceiptRepository paymentReceiptRepository,
                                 ComplianceDocumentRepository complianceDocumentRepository,
-                                AuditLogRepository auditLogRepository) {
+                                AuditLogRepository auditLogRepository,
+                                CohortRepository cohortRepository) {
         this.dashboardService    = dashboardService;
         this.appUserRepository   = appUserRepository;
         this.admissionRepository = admissionRepository;
@@ -138,6 +143,7 @@ public class WidgetDataController {
         this.paymentReceiptRepository         = paymentReceiptRepository;
         this.complianceDocumentRepository     = complianceDocumentRepository;
         this.auditLogRepository               = auditLogRepository;
+        this.cohortRepository                 = cohortRepository;
     }
 
     // ─── Response records ────────────────────────────────────────────────────
@@ -416,8 +422,18 @@ public class WidgetDataController {
                 String.valueOf(s.totalDepartments()), "Active", null);
             case "programs"     -> new StatCardData(key,
                 String.valueOf(s.totalPrograms()), "Running", null);
-            case "equipment"    -> new StatCardData(key,
+            case "equipment"         -> new StatCardData(key,
                 String.valueOf(s.totalEquipment()), "Total", null);
+            case "male-students"     -> new StatCardData(key,
+                String.valueOf(studentRepository.countByGender(Gender.MALE)), "Male", null);
+            case "female-students"   -> new StatCardData(key,
+                String.valueOf(studentRepository.countByGender(Gender.FEMALE)), "Female", null);
+            case "management-quota"  -> new StatCardData(key,
+                String.valueOf(studentRepository.countByAdmissionCategory(AdmissionCategory.MANAGEMENT)), "Admitted", null);
+            case "counselling-quota" -> new StatCardData(key,
+                String.valueOf(studentRepository.countByAdmissionCategory(AdmissionCategory.COUNSELLING)), "Admitted", null);
+            case "govt-lapsed-seats" -> new StatCardData(key,
+                String.valueOf(computeGovtLapsedSeats()), "Seats lapsed", null);
             default -> throw new ResourceNotFoundException("Unknown stat key: " + key);
         };
 
@@ -1300,6 +1316,16 @@ public class WidgetDataController {
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private long computeGovtLapsedSeats() {
+        long counsellingSeatsTotal = cohortRepository.findAll().stream()
+            .filter(c -> c.getCounsellingSeats() != null && c.getCounsellingSeats() > 0)
+            .mapToLong(com.cms.model.Cohort::getCounsellingSeats)
+            .sum();
+        long counsellingAdmitted = studentRepository.countByAdmissionCategory(AdmissionCategory.COUNSELLING);
+        long lapsed = counsellingSeatsTotal - counsellingAdmitted;
+        return lapsed > 0 ? lapsed : 0;
+    }
 
     private static BigDecimal orZero(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 

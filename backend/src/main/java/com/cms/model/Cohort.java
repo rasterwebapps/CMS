@@ -50,6 +50,12 @@ public class Cohort {
     @Column(name = "display_name", nullable = false, length = 200)
     private String displayName;
 
+    @Column(name = "management_seats")
+    private Integer managementSeats;
+
+    @Column(name = "counselling_seats")
+    private Integer counsellingSeats;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CohortStatus status = CohortStatus.ACTIVE;
@@ -111,6 +117,11 @@ public class Cohort {
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
+
+    public Integer getManagementSeats() { return managementSeats; }
+    public void setManagementSeats(Integer managementSeats) { this.managementSeats = managementSeats; }
+    public Integer getCounsellingSeats() { return counsellingSeats; }
+    public void setCounsellingSeats(Integer counsellingSeats) { this.counsellingSeats = counsellingSeats; }
 
     public CohortStatus getStatus() {
         return status;

@@ -8,6 +8,8 @@ public record IndiaStateResponse(
     String code,
     Boolean isActive,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    Long countryId,
+    String countryName,
+    String countryIsoCode
 ) {}
-

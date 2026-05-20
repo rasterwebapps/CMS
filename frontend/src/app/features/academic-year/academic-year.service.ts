@@ -8,6 +8,8 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  CohortSeatsRequest,
+  CohortSummary,
   CourseOffering,
   CourseOfferingUpdateRequest,
   CourseRegistration,
@@ -17,8 +19,6 @@ import {
   GenerateDemandsResponse,
   GenerateEnrollmentsResponse,
   DemandStatus,
-  Semester,
-  SemesterRequest,
   StudentTermEnrollment,
   TermFeePayment,
   TermFeePaymentRequest,
@@ -34,7 +34,6 @@ import {
 export class AcademicYearService {
   private readonly http = inject(HttpClient);
   private readonly academicYearUrl = `${environment.apiUrl}/academic-years`;
-  private readonly semesterUrl = `${environment.apiUrl}/semesters`;
   private readonly calendarEventUrl = `${environment.apiUrl}/calendar-events`;
 
   // Academic Year methods
@@ -62,29 +61,24 @@ export class AcademicYearService {
     return this.http.delete<void>(`${this.academicYearUrl}/${id}`);
   }
 
-  // Semester methods
-  getAllSemesters(): Observable<Semester[]> {
-    return this.http.get<Semester[]>(this.semesterUrl);
+  getCohortsByAcademicYear(academicYearId: number): Observable<CohortSummary[]> {
+    return this.http.get<CohortSummary[]>(`${environment.apiUrl}/cohorts`, {
+      params: { academicYearId: academicYearId.toString() },
+    });
   }
 
-  getSemesterById(id: number): Observable<Semester> {
-    return this.http.get<Semester>(`${this.semesterUrl}/${id}`);
+  initializeCohorts(academicYearId: number): Observable<CohortSummary[]> {
+    return this.http.post<CohortSummary[]>(`${environment.apiUrl}/cohorts/initialize`, null, {
+      params: { academicYearId: academicYearId.toString() },
+    });
   }
 
-  getSemestersByAcademicYear(academicYearId: number): Observable<Semester[]> {
-    return this.http.get<Semester[]>(`${this.semesterUrl}/academic-year/${academicYearId}`);
+  updateCohortSeats(cohortId: number, request: CohortSeatsRequest): Observable<CohortSummary> {
+    return this.http.patch<CohortSummary>(`${environment.apiUrl}/cohorts/${cohortId}/seats`, request);
   }
 
-  createSemester(request: SemesterRequest): Observable<Semester> {
-    return this.http.post<Semester>(this.semesterUrl, request);
-  }
-
-  updateSemester(id: number, request: SemesterRequest): Observable<Semester> {
-    return this.http.put<Semester>(`${this.semesterUrl}/${id}`, request);
-  }
-
-  deleteSemester(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.semesterUrl}/${id}`);
+  deleteCohort(cohortId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/cohorts/${cohortId}`);
   }
 
   // Calendar Event methods

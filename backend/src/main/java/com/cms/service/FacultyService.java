@@ -181,6 +181,7 @@ public class FacultyService {
             faculty.setAddress(null);
         } else {
             faculty.setAddress(new Address(
+                a.countryId(),
                 trim(a.postalAddress()),
                 trim(a.street()),
                 trim(a.city()),
@@ -215,6 +216,7 @@ public class FacultyService {
     private FacultyResponse toResponse(Faculty faculty) {
         Address addr = faculty.getAddress();
         AddressRequest addressDto = addr == null ? null : new AddressRequest(
+            addr.getCountryId(),
             addr.getPostalAddress(),
             addr.getStreet(),
             addr.getCity(),

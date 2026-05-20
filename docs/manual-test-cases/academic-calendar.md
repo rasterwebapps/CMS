@@ -1,7 +1,7 @@
 # Academic Calendar — Manual Test Cases
 
-Covers all improvements added in the Academic Calendar overhaul: year selector, semester
-progress bar, role-based button visibility, stats strip, semester overlap validation,
+Covers all improvements added in the Academic Calendar overhaul: year selector, term
+progress bar, role-based button visibility, stats strip,
 calendar event / holiday management (full-stack), visual month-grid view, print/export,
 and upcoming event alerts.
 
@@ -19,7 +19,7 @@ and upcoming event alerts.
 3. Change the dropdown to a different academic year.
 
 **Expected Result:**
-- The semester timeline and events reload for the selected year without a full page refresh.
+- The term timeline and events reload for the selected year without a full page refresh.
 - Stats strip updates to reflect the new year.
 
 **Status:** NOT TESTED
@@ -37,20 +37,20 @@ and upcoming event alerts.
 
 **Expected Result:**
 - The year dropdown shows the current year pre-selected.
-- Timeline shows that year's semesters.
+- Timeline shows that year's term instances.
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-CAL-003: Semester Progress Bar — In-Progress Semester
+## TC-CAL-003: Term Progress Bar — In-Progress Term
 
 **Preconditions:**
-- A semester exists whose `startDate` ≤ today ≤ `endDate`.
+- A term instance exists whose `startDate` ≤ today ≤ `endDate`.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
-2. Locate the "In Progress" semester card in the timeline.
+2. Locate the "In Progress" term card in the timeline.
 
 **Expected Result:**
 - A horizontal progress bar is visible inside the card.
@@ -61,26 +61,26 @@ and upcoming event alerts.
 
 ---
 
-## TC-CAL-004: Semester Progress Bar — Completed Semester
+## TC-CAL-004: Term Progress Bar — Completed Term
 
 **Preconditions:**
-- A semester whose `endDate` is in the past exists.
+- A term instance whose `endDate` is in the past exists.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
 
 **Expected Result:**
-- The progress bar for the completed semester shows 100% filled (gray/muted color).
+- The progress bar for the completed term shows 100% filled (gray/muted color).
 - Label shows "X / X days (100%)".
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-CAL-005: Semester Progress Bar — Upcoming Semester
+## TC-CAL-005: Term Progress Bar — Upcoming Term
 
 **Preconditions:**
-- A semester whose `startDate` is in the future exists.
+- A term instance whose `startDate` is in the future exists.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
@@ -102,7 +102,7 @@ and upcoming event alerts.
 1. Navigate to `/academic-calendar`.
 
 **Expected Result:**
-- Buttons "Years", "Semesters", and "Add Event" are visible in the page header.
+- Buttons "Years" and "Add Event" are visible in the page header.
 - Export and Print buttons are also visible.
 
 **Status:** NOT TESTED
@@ -118,7 +118,7 @@ and upcoming event alerts.
 1. Navigate to `/academic-calendar`.
 
 **Expected Result:**
-- "Years", "Semesters", and "Add Event" buttons are NOT visible.
+- "Years" and "Add Event" buttons are NOT visible.
 - Read-only timeline/grid and events are visible.
 - Export and Print buttons remain visible.
 
@@ -129,15 +129,15 @@ and upcoming event alerts.
 ## TC-CAL-008: Stats Strip — Values
 
 **Preconditions:**
-- An academic year with at least one semester and at least one event exists.
+- An academic year with at least one term instance and at least one event exists.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
 
 **Expected Result:**
-- Four stat cards are visible: Total Weeks, Semesters, Days Left in Semester, Events / Holidays.
+- Four stat cards are visible: Total Weeks, Terms, Days Left in Term, Events / Holidays.
 - Values are computed correctly from date math.
-- "Days Left" shows `—` if no semester is currently in progress.
+- "Days Left" shows `—` if no term is currently in progress.
 
 **Status:** NOT TESTED
 
@@ -147,19 +147,18 @@ and upcoming event alerts.
 
 **Preconditions:**
 - User has `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
-- At least one academic year and one semester exist.
+- At least one academic year exists.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
 2. Click **Add Event**.
 3. Fill in Title: "Diwali Holiday", Start Date: (a date), End Date: (same date), Type: Holiday.
-4. Optionally select a semester.
-5. Click **Create**.
+4. Click **Create**.
 
 **Expected Result:**
 - Dialog closes.
 - Toast "Event created" appears.
-- Event appears in the events list under the selected semester (or "Year-Level Events" if no semester selected).
+- Event appears in the year-level events list and on matching calendar dates.
 - Event badge color matches Holiday type (amber).
 
 **Status:** NOT TESTED
@@ -249,34 +248,22 @@ and upcoming event alerts.
 
 ---
 
-## TC-CAL-015: Calendar Events — Filter by Semester (API)
-
-**Steps:**
-1. Send `GET /api/v1/calendar-events/semester/{semesterId}`.
-
-**Expected Result:**
-- Only events linked to the given semester are returned.
-
-**Status:** NOT TESTED
-
----
-
 ## TC-CAL-016: Visual Month Grid View — Toggle
 
 **Preconditions:**
-- Academic year with semesters exists.
+- Academic year with term instances exists.
 
 **Steps:**
 1. Navigate to `/academic-calendar`.
 2. Click the **Month Grid** toggle button.
 
 **Expected Result:**
-- The view switches from the semester timeline to a month-by-month calendar grid.
+- The view switches from the term timeline to a month-by-month calendar grid.
 - Months covered by the academic year are displayed.
-- Days belonging to ONGOING semesters are highlighted in a primary color background.
-- Days belonging to UPCOMING semesters use amber background.
-- Days belonging to COMPLETED semesters use a muted/teal background.
-- Days not in any semester have no background.
+- Days belonging to ONGOING terms are highlighted in a primary color background.
+- Days belonging to UPCOMING terms use amber background.
+- Days belonging to COMPLETED terms use a muted/teal background.
+- Days not in any term have no background.
 
 **Status:** NOT TESTED
 
@@ -306,7 +293,7 @@ and upcoming event alerts.
 2. Click **Timeline** toggle.
 
 **Expected Result:**
-- View reverts to the semester timeline.
+- View reverts to the term timeline.
 
 **Status:** NOT TESTED
 
@@ -339,7 +326,7 @@ and upcoming event alerts.
 2. Click the **Download** (export) icon button.
 
 **Expected Result:**
-- A CSV file is downloaded with columns: Title, Type, Start Date, End Date, Description, Semester.
+- A CSV file is downloaded with columns: Title, Type, Start Date, End Date, Description, Academic Year.
 - Filename contains the academic year name.
 
 **Status:** NOT TESTED
@@ -356,49 +343,6 @@ and upcoming event alerts.
 - Browser print dialog opens.
 - The print preview shows the academic calendar content.
 
-**Status:** NOT TESTED
-
----
-
-## TC-CAL-022: Semester Overlap Validation (Backend)
-
-**Preconditions:**
-- An academic year "2024-2025" exists (start: 2024-08-01, end: 2025-05-31).
-- Semester "Fall 2024" exists (start: 2024-08-01, end: 2024-12-15) in that year.
-
-**Steps:**
-1. Send `POST /api/v1/semesters` with:
-   ```json
-   {
-     "name": "Overlap Semester",
-     "academicYearId": 1,
-     "startDate": "2024-10-01",
-     "endDate": "2025-01-31",
-     "semesterNumber": 2
-   }
-   ```
-
-**Expected Result:**
-- Response status `400 Bad Request`.
-- Error message: "The semester dates overlap with an existing semester in this academic year".
-
-**Status:** NOT TESTED
-
----
-
-## TC-CAL-023: Semester Status — Backend Field Exposed
-
-**Steps:**
-1. Send `GET /api/v1/semesters/{id}` for a semester whose `endDate` is in the past.
-
-**Expected Result:**
-- Response JSON contains `"status": "COMPLETED"`.
-
-**Steps:**
-1. Send `GET /api/v1/semesters/{id}` for a semester whose `startDate` is in the future.
-
-**Expected Result:**
-- Response JSON contains `"status": "UPCOMING"`.
 
 **Status:** NOT TESTED
 

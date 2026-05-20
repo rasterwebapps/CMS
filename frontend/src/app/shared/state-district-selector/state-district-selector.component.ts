@@ -63,11 +63,6 @@ export class CmsStateDistrictSelectorComponent implements OnInit {
     // React to state control value changes
     const stateControl = this.parentForm().get(this.stateControlName());
     if (stateControl) {
-      // If already has a value, load districts immediately
-      if (stateControl.value) {
-        this.loadDistrictsForStateName(stateControl.value as string);
-      }
-
       stateControl.valueChanges
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((stateName: string | null) => {
@@ -97,6 +92,11 @@ export class CmsStateDistrictSelectorComponent implements OnInit {
       .subscribe((states) => {
         this.states.set(states);
         this.loadingStates.set(false);
+        // Load districts for any pre-set state value (must happen after states list is available)
+        const stateControl = this.parentForm().get(this.stateControlName());
+        if (stateControl?.value) {
+          this.loadDistrictsForStateName(stateControl.value as string);
+        }
       });
   }
 

@@ -33,7 +33,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_FORM_TOUR } from '../../../shared/tour/tours/faculty.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
+import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
 @Component({
   selector: 'app-faculty-form',
@@ -47,7 +47,7 @@ import { CmsStateDistrictSelectorComponent } from '../../../shared/state-distric
     CmsTourButtonComponent,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
-    CmsStateDistrictSelectorComponent,
+    CmsCountryStateDistrictSelectorComponent,
   ],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',
@@ -156,6 +156,7 @@ export class FacultyFormComponent implements OnInit {
     bankAccountType: [null as string | null],
 
     // Address
+    country: [null as number | null],
     postalAddress: [''],
     street: [''],
     city: [''],
@@ -239,6 +240,7 @@ export class FacultyFormComponent implements OnInit {
       bankBranch: v.bankBranch?.trim() || undefined,
       bankAccountType: v.bankAccountType || undefined,
       address: {
+        countryId: v.country || undefined,
         postalAddress: v.postalAddress?.trim() || undefined,
         street: v.street?.trim() || undefined,
         city: v.city?.trim() || undefined,
@@ -468,6 +470,7 @@ export class FacultyFormComponent implements OnInit {
           postalAddress: faculty.address?.postalAddress || '',
           street: faculty.address?.street || '',
           city: faculty.address?.city || '',
+          country: faculty.address?.countryId ?? null,
           district: faculty.address?.district || '',
           state: faculty.address?.state || '',
           pincode: faculty.address?.pincode || '',

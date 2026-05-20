@@ -1,17 +1,30 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { IndiaLocationService } from '../india-location.service';
 import { IndiaState, IndiaDistrictRequest } from '../india-location.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../shared/validators/cms-validators';
+
+const DISTRICT_FORM_IMPORTS = [
+  RouterLink,
+  ReactiveFormsModule,
+  MatProgressSpinnerModule,
+  MatSlideToggleModule,
+  CmsPreviewCardComponent,
+  CmsTipsCardComponent,
+];
 
 @Component({
   selector: 'app-india-district-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatSlideToggleModule],
+  imports: DISTRICT_FORM_IMPORTS,
   templateUrl: './india-district-form.component.html',
   styleUrl: './india-district-form.component.scss',
 })
@@ -21,12 +34,34 @@ export class IndiaDistrictFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly service = inject(IndiaLocationService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add District');
   protected readonly states = signal<IndiaState[]>([]);
+  protected readonly previewName = signal('');
+  protected readonly previewStateName = signal('');
+  protected readonly previewActive = signal(true);
+
+  protected readonly TIPS: CmsTip[] = [
+    {
+      icon: 'map',
+      title: 'Parent state',
+      subtitle: 'Select the state or union territory this district belongs to before saving.',
+    },
+    {
+      icon: 'location_city',
+      title: 'District name',
+      subtitle: 'Use the official district name exactly as users should see it in location dropdowns.',
+    },
+    {
+      icon: 'visibility',
+      title: 'Active status',
+      subtitle: 'Inactive districts remain available for old records but are hidden from new selections.',
+    },
+  ];
 
   private itemId: number | null = null;
   private preselectedStateId: number | null = null;
@@ -40,10 +75,21 @@ export class IndiaDistrictFormComponent implements OnInit {
     isActive: [true],
   });
 
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((v) => {
+      this.previewName.set((v.name ?? '').trim());
+      this.previewActive.set(!!v.isActive);
+      this.refreshPreviewStateName();
+    });
+  }
+
   ngOnInit(): void {
     // Load all states for the dropdown
     this.service.getStates(false).subscribe({
-      next: (s) => this.states.set(s),
+      next: (s) => {
+        this.states.set(s);
+        this.refreshPreviewStateName();
+      },
       error: () => this.toast.error('Failed to load states'),
     });
 
@@ -107,6 +153,11 @@ export class IndiaDistrictFormComponent implements OnInit {
   protected getFieldError(field: string): string {
     const labels: Record<string, string> = { name: 'Name', stateId: 'State' };
     return cmsFieldError(this.form.get(field), labels[field] ?? field);
+  }
+
+  private refreshPreviewStateName(): void {
+    const stateId = Number(this.form.value.stateId);
+    this.previewStateName.set(this.states().find((state) => state.id === stateId)?.name ?? '');
   }
 }
 

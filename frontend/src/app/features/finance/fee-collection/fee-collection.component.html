@@ -11,7 +11,7 @@
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   @if (!selectedEntry()) {
-    <div class="mlp-hdr">
+    <div class="mlp-hdr anim-rise">
       <div class="mlp-hdr-left">
         <h1 class="mlp-title">Fee <em>Collection</em></h1>
         <p class="mlp-sub">All outstanding fees — enquiries and students — in one place.</p>
@@ -29,14 +29,14 @@
     </div>
 
     <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
-    <div class="mlp-toolbar">
+    <div class="mlp-toolbar anim-rise anim-rise--d1">
       <div class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input
           class="search-bar__input"
           [value]="searchTerm()"
           (input)="onSearch($event)"
-          placeholder="Search by name or program…"
+          placeholder="Search by name"
           type="text"
           aria-label="Search fee entries"
         />
@@ -100,7 +100,7 @@
     } @else {
       <div class="content-card mlp-table-card">
         <div class="table-wrapper">
-          <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-collection-table">
 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -113,8 +113,8 @@
             </ng-container>
 
             <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
-              <td mat-cell *matCellDef="let row">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Type</th>
+              <td mat-cell *matCellDef="let row" class="cell-align-center">
                 <span class="type-badge" [class.type-badge--student]="row.type === 'STUDENT'">
                   {{ row.type === 'STUDENT' ? 'Student' : 'Pre-enroll' }}
                 </span>
@@ -127,29 +127,29 @@
             </ng-container>
 
             <ng-container matColumnDef="totalFee">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Fee</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Fee (₹)</th>
               <td mat-cell *matCellDef="let row" class="cell-align-right">
-                <span class="cell-mono">{{ row.totalFee | inr }}</span>
+                <span class="cell-currency">{{ row.totalFee | inr:false:false }}</span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="totalPaid">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Paid</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Paid (₹)</th>
               <td mat-cell *matCellDef="let row" class="cell-align-right">
-                <span class="cell-mono cell-paid">{{ row.totalPaid | inr }}</span>
+                <span class="cell-currency cell-paid">{{ row.totalPaid | inr:false:false }}</span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="totalOutstanding">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Outstanding</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Outstanding (₹)</th>
               <td mat-cell *matCellDef="let row" class="cell-align-right">
-                <span class="cell-mono cell-outstanding">{{ row.totalOutstanding | inr }}</span>
+                <span class="cell-currency cell-outstanding">{{ row.totalOutstanding | inr:false:false }}</span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="nextDueDate">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Next Due</th>
-              <td mat-cell *matCellDef="let row">
+              <td mat-cell *matCellDef="let row" class="cell-date">
                 @if (row.nextDueDate) {
                   <span [class.cell-overdue]="isOverdue(row.nextDueDate)">
                     {{ row.nextDueDate | appDate:'short' }}
@@ -160,9 +160,9 @@
 
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-              <td mat-cell *matCellDef="let row">
+              <td mat-cell *matCellDef="let row" class="cell-align-center">
                 <div class="row-actions">
-                  <button class="action-btn action-btn--primary" (click)="selectEntry(row)" aria-label="Collect payment">
+                  <button class="btn-primary collect-action-btn" (click)="selectEntry(row)" aria-label="Collect payment">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     Collect
                   </button>
@@ -192,7 +192,20 @@
 
   } @else {
     <!-- Payment Panel -->
-    <div class="payment-layout">
+    <div class="payment-topbar anim-rise">
+      <button type="button" class="entry-form-back-btn" (click)="backToList()" aria-label="Back to fee collection list">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <div class="payment-topbar__text">
+        <h2>Collect <em>Payment</em></h2>
+        <p>Review installment status and record the payment details.</p>
+      </div>
+    </div>
+
+    <div class="payment-layout anim-rise anim-rise--d1">
       <!-- Left: Fee Status -->
       <div class="summary-col">
         <div class="panel-header">
@@ -334,7 +347,8 @@
             <textarea class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
           </div>
 
-          <div class="form-footer">
+          <div class="form-footer entry-form-sticky-footer">
+            <span class="entry-form-sticky-footer__hint">Required fields are marked with *</span>
             <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
             <button type="submit" class="btn-submit"
                     [disabled]="saving() || (isCashMode() && !denominationValid())">

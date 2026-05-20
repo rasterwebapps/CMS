@@ -30,7 +30,8 @@ export interface Enquiry {
   finalizedBy: string | null;
   finalizedAt: string | null;
   convertedStudentId: number | null;
-  country?: string | null;
+  countryId?: number | null;
+  countryName?: string | null;
   state?: string | null;
   district?: string | null;
   referredStudentId?: number | null;
@@ -60,7 +61,7 @@ export interface EnquiryRequest {
   finalCalculatedFee?: number;
   yearWiseFees?: string;
   studentType?: 'DAY_SCHOLAR' | 'HOSTELER';
-  country?: string;
+  countryId?: number;
   state?: string;
   district?: string;
   referredStudentId?: number;
@@ -199,6 +200,7 @@ export interface EnquiryConversionRequest {
 
   // Student address
   address?: {
+    countryId?: number | null;
     postalAddress?: string | null;
     street?: string | null;
     city?: string | null;

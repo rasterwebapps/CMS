@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.CountryRequest;
+import com.cms.dto.CountryResponse;
 import com.cms.dto.IndiaDistrictRequest;
 import com.cms.dto.IndiaDistrictResponse;
 import com.cms.dto.IndiaStateRequest;
@@ -12,8 +14,10 @@ import com.cms.dto.IndiaStateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.IndiaDistrict;
 import com.cms.model.IndiaState;
+import com.cms.model.LocationCountry;
 import com.cms.repository.IndiaDistrictRepository;
 import com.cms.repository.IndiaStateRepository;
+import com.cms.repository.LocationCountryRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -21,11 +25,72 @@ public class IndiaLocationService {
 
     private final IndiaStateRepository stateRepository;
     private final IndiaDistrictRepository districtRepository;
+    private final LocationCountryRepository countryRepository;
 
     public IndiaLocationService(IndiaStateRepository stateRepository,
-                                IndiaDistrictRepository districtRepository) {
+                                IndiaDistrictRepository districtRepository,
+                                LocationCountryRepository countryRepository) {
         this.stateRepository = stateRepository;
         this.districtRepository = districtRepository;
+        this.countryRepository = countryRepository;
+    }
+
+    // ─── Countries ────────────────────────────────────────────────────────────
+
+    public List<CountryResponse> findAllCountries() {
+        return countryRepository.findAllByOrderByNameAsc().stream()
+            .map(this::toCountryResponse)
+            .toList();
+    }
+
+    public List<CountryResponse> findActiveCountries() {
+        return countryRepository.findByIsActiveTrueOrderByNameAsc().stream()
+            .map(this::toCountryResponse)
+            .toList();
+    }
+
+    public CountryResponse findCountryById(Long id) {
+        return toCountryResponse(fetchCountry(id));
+    }
+
+    @Transactional
+    public CountryResponse createCountry(CountryRequest request) {
+        String name = requireTrimmed(request.name(), "Country name is required");
+        String isoCode = requireTrimmed(request.isoCode(), "ISO code is required").toUpperCase();
+        if (countryRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Country '" + name + "' already exists");
+        }
+        if (countryRepository.existsByIsoCodeIgnoreCase(isoCode)) {
+            throw new IllegalArgumentException("ISO code '" + isoCode + "' already exists");
+        }
+        LocationCountry country = new LocationCountry(name, isoCode);
+        if (request.isActive() != null) country.setIsActive(request.isActive());
+        return toCountryResponse(countryRepository.save(country));
+    }
+
+    @Transactional
+    public CountryResponse updateCountry(Long id, CountryRequest request) {
+        LocationCountry country = fetchCountry(id);
+        String name = requireTrimmed(request.name(), "Country name is required");
+        String isoCode = requireTrimmed(request.isoCode(), "ISO code is required").toUpperCase();
+        if (countryRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
+            throw new IllegalArgumentException("Country '" + name + "' already exists");
+        }
+        if (countryRepository.existsByIsoCodeIgnoreCaseAndIdNot(isoCode, id)) {
+            throw new IllegalArgumentException("ISO code '" + isoCode + "' already exists");
+        }
+        country.setName(name);
+        country.setIsoCode(isoCode);
+        if (request.isActive() != null) country.setIsActive(request.isActive());
+        return toCountryResponse(countryRepository.save(country));
+    }
+
+    @Transactional
+    public void deleteCountry(Long id) {
+        if (!countryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Country not found with id: " + id);
+        }
+        countryRepository.deleteById(id);
     }
 
     // ─── States ──────────────────────────────────────────────────────────────
@@ -42,21 +107,40 @@ public class IndiaLocationService {
             .toList();
     }
 
+    public List<IndiaStateResponse> findStatesByCountry(Long countryId) {
+        if (!countryRepository.existsById(countryId)) {
+            throw new ResourceNotFoundException("Country not found with id: " + countryId);
+        }
+        return stateRepository.findByCountryIdOrderByNameAsc(countryId).stream()
+            .map(this::toStateResponse)
+            .toList();
+    }
+
+    public List<IndiaStateResponse> findActiveStatesByCountry(Long countryId) {
+        if (!countryRepository.existsById(countryId)) {
+            throw new ResourceNotFoundException("Country not found with id: " + countryId);
+        }
+        return stateRepository.findByCountryIdAndIsActiveTrueOrderByNameAsc(countryId).stream()
+            .map(this::toStateResponse)
+            .toList();
+    }
+
     public IndiaStateResponse findStateById(Long id) {
         return toStateResponse(fetchState(id));
     }
 
     @Transactional
     public IndiaStateResponse createState(IndiaStateRequest request) {
+        LocationCountry country = resolveCountry(request.countryId());
         String name = requireTrimmed(request.name(), "State name is required");
         String code = requireTrimmed(request.code(), "State code is required").toUpperCase();
-        if (stateRepository.existsByNameIgnoreCase(name)) {
-            throw new IllegalArgumentException("State '" + name + "' already exists");
+        if (stateRepository.existsByNameIgnoreCaseAndCountryId(name, country.getId())) {
+            throw new IllegalArgumentException("State '" + name + "' already exists in " + country.getName());
         }
-        if (stateRepository.existsByCodeIgnoreCase(code)) {
-            throw new IllegalArgumentException("State code '" + code + "' already exists");
+        if (stateRepository.existsByCodeIgnoreCaseAndCountryId(code, country.getId())) {
+            throw new IllegalArgumentException("State code '" + code + "' already exists in " + country.getName());
         }
-        IndiaState state = new IndiaState(name, code);
+        IndiaState state = new IndiaState(name, code, country);
         if (request.isActive() != null) state.setIsActive(request.isActive());
         return toStateResponse(stateRepository.save(state));
     }
@@ -64,16 +148,18 @@ public class IndiaLocationService {
     @Transactional
     public IndiaStateResponse updateState(Long id, IndiaStateRequest request) {
         IndiaState state = fetchState(id);
+        LocationCountry country = resolveCountry(request.countryId());
         String name = requireTrimmed(request.name(), "State name is required");
         String code = requireTrimmed(request.code(), "State code is required").toUpperCase();
-        if (stateRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new IllegalArgumentException("State '" + name + "' already exists");
+        if (stateRepository.existsByNameIgnoreCaseAndCountryIdAndIdNot(name, country.getId(), id)) {
+            throw new IllegalArgumentException("State '" + name + "' already exists in " + country.getName());
         }
-        if (stateRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
-            throw new IllegalArgumentException("State code '" + code + "' already exists");
+        if (stateRepository.existsByCodeIgnoreCaseAndCountryIdAndIdNot(code, country.getId(), id)) {
+            throw new IllegalArgumentException("State code '" + code + "' already exists in " + country.getName());
         }
         state.setName(name);
         state.setCode(code);
+        state.setCountry(country);
         if (request.isActive() != null) state.setIsActive(request.isActive());
         return toStateResponse(stateRepository.save(state));
     }
@@ -150,6 +236,24 @@ public class IndiaLocationService {
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    /**
+     * Resolves the country: uses the provided countryId if not null, otherwise
+     * falls back to India (iso_code = 'IN').
+     */
+    private LocationCountry resolveCountry(Long countryId) {
+        if (countryId != null) {
+            return countryRepository.findById(countryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Country not found with id: " + countryId));
+        }
+        return countryRepository.findByIsoCode("IN")
+            .orElseThrow(() -> new ResourceNotFoundException("India country record (iso_code=IN) not found"));
+    }
+
+    private LocationCountry fetchCountry(Long id) {
+        return countryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Country not found with id: " + id));
+    }
+
     private IndiaState fetchState(Long id) {
         return stateRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("State not found with id: " + id));
@@ -160,9 +264,18 @@ public class IndiaLocationService {
             .orElseThrow(() -> new ResourceNotFoundException("District not found with id: " + id));
     }
 
+    private CountryResponse toCountryResponse(LocationCountry c) {
+        return new CountryResponse(c.getId(), c.getName(), c.getIsoCode(),
+            c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt());
+    }
+
     private IndiaStateResponse toStateResponse(IndiaState s) {
+        LocationCountry c = s.getCountry();
         return new IndiaStateResponse(s.getId(), s.getName(), s.getCode(),
-            s.getIsActive(), s.getCreatedAt(), s.getUpdatedAt());
+            s.getIsActive(), s.getCreatedAt(), s.getUpdatedAt(),
+            c != null ? c.getId() : null,
+            c != null ? c.getName() : null,
+            c != null ? c.getIsoCode() : null);
     }
 
     private IndiaDistrictResponse toDistrictResponse(IndiaDistrict d) {

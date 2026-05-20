@@ -1,0 +1,91 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/india-locations" aria-label="Back to location master">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Country</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the country details below.' : 'Create a country record for location master data.' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Country Information</div>
+            <div class="entry-form-card__hdr-sub">Official name, ISO code and availability</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="country-name">Name <span class="required-star">*</span></label>
+                <input id="country-name" class="field-input" formControlName="name" placeholder="e.g. India" autocomplete="off" [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="country-iso">ISO Code <span class="required-star">*</span></label>
+                <input id="country-iso" class="field-input font-mono" formControlName="isoCode" placeholder="e.g. IN" maxlength="3" autocomplete="off" [class.field-input--error]="form.get('isoCode')?.invalid && form.get('isoCode')?.touched" />
+                <p class="field-hint">2–3 letter ISO 3166-1 alpha code (e.g. IN, US, GB, AE)</p>
+                @if (getFieldError('isoCode')) {
+                  <p class="field-error">{{ getFieldError('isoCode') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">Inactive countries are hidden from new forms but retained for existing records.</p>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/india-locations">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Country' : 'Create Country' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Country name will appear here' }}
+          </div>
+          <div class="prev-meta-row">
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
+  }
+</div>
+

@@ -54,6 +54,7 @@ public record StudentResponse(
     String motherEducation,
 
     // Address
+    Long countryId,
     String postalAddress,
     String street,
     String city,
@@ -76,14 +77,14 @@ public record StudentResponse(
                            LocalDate dateOfBirth, Gender gender, String nationality, String religion,
                            String communityCategory, String caste, String bloodGroup, String fatherName,
                            String fatherPhone, String fatherEmail, String motherName, String motherPhone,
-                           String motherEmail, String parentMobile, String postalAddress, String street,
-                           String city, String district, String state, String pincode,
+                           String motherEmail, String parentMobile, Long countryId, String postalAddress,
+                           String street, String city, String district, String state, String pincode,
                            Instant createdAt, Instant updatedAt) {
         this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
             courseId, courseName, specializationDepartmentId, specializationDepartmentName, yearOfStudy,
             admissionDate, labBatch, status, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
-            parentMobile, false, null, null, postalAddress, street, city, district, state, pincode,
+            parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
             null, null, null, null, createdAt, updatedAt);
     }
 }

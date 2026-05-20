@@ -18,7 +18,7 @@
    - Programs → verify 3 programs (B.Sc Nursing, M.Sc Nursing, GNM)
    - Courses → verify 3 courses
    - Academic Years → verify 3 years (2023-24, 2024-25 current, 2025-26)
-   - Semesters → verify 4 semesters under academic years
+   - Term instances → verify terms under academic years
    - Faculty → verify 8 faculty members
    - Students → verify 10 students with detailed profiles
    - Labs → verify 4 labs with assignments
@@ -56,7 +56,7 @@
    - `GET /api/v1/programs` → 3 records
    - `GET /api/v1/courses` → 3 records
    - `GET /api/v1/academic-years` → 3 records
-   - `GET /api/v1/semesters` → 4 records
+   - `GET /api/v1/term-instances?academicYearId={id}` → term records for the selected academic year
    - `GET /api/v1/faculty` → 8 records
    - `GET /api/v1/students` → 10 records
    - `GET /api/v1/labs` → 4 records

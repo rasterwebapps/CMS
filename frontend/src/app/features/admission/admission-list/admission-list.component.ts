@@ -182,9 +182,7 @@ export class AdmissionListComponent implements OnInit {
       return (
         row.studentName.toLowerCase().includes(term) ||
         (row.admissionNumber ?? '').toLowerCase().includes(term) ||
-        (row.rollNumber  ?? '').toLowerCase().includes(term) ||
-        (row.programName ?? '').toLowerCase().includes(term) ||
-        (row.courseName  ?? '').toLowerCase().includes(term)
+        (row.rollNumber ?? '').toLowerCase().includes(term)
       );
     };
     this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' ? (term || program || status || '_') : '';

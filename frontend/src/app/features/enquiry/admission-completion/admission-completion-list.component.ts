@@ -50,10 +50,14 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   // ── Filters ────────────────────────────────────────────────────────────────
   protected readonly filterProgram     = signal<string>('ALL');
+  protected readonly filterCourse      = signal<string>('ALL');
   protected readonly filterStudentType = signal<string>('ALL');
 
   protected readonly programs = computed(() =>
     [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly courses = computed(() =>
+    [...new Set(this._allData().map(r => r.courseName).filter(Boolean))].sort() as string[]
   );
 
   // ── Stats ──────────────────────────────────────────────────────────────────
@@ -78,24 +82,24 @@ export class AdmissionCompletionListComponent implements OnInit {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
     this.dataSource.filterPredicate = (row: Enquiry, _filter: string) => {
       const program     = this.filterProgram();
+      const course      = this.filterCourse();
       const studentType = this.filterStudentType();
       const q           = this.searchQuery().toLowerCase().trim();
 
       if (program     !== 'ALL' && (row.programName ?? '') !== program) return false;
+      if (course      !== 'ALL' && (row.courseName  ?? '') !== course)  return false;
       if (studentType !== 'ALL' && (row.studentType ?? '') !== studentType) return false;
       if (!q) return true;
       return row.name.toLowerCase().includes(q) ||
-        (row.programName ?? '').toLowerCase().includes(q) ||
-        (row.courseName  ?? '').toLowerCase().includes(q) ||
-        (row.phone       ?? '').includes(q) ||
-        (row.email       ?? '').toLowerCase().includes(q);
+        (row.phone ?? '').includes(q) ||
+        (row.email ?? '').toLowerCase().includes(q);
     };
     this.load();
   }
 
   private triggerFilter(): void {
     this.dataSource.filter = this.searchQuery() + '|' +
-      this.filterProgram() + '|' + this.filterStudentType();
+      this.filterProgram() + '|' + this.filterCourse() + '|' + this.filterStudentType();
     this.dataSource.paginator?.firstPage();
   }
 
@@ -110,10 +114,12 @@ export class AdmissionCompletionListComponent implements OnInit {
   }
 
   protected onProgramChange(val: string): void     { this.filterProgram.set(val);     this.triggerFilter(); }
+  protected onCourseChange(val: string): void       { this.filterCourse.set(val);      this.triggerFilter(); }
   protected onStudentTypeChange(val: string): void  { this.filterStudentType.set(val); this.triggerFilter(); }
 
   protected clearFilters(): void {
     this.filterProgram.set('ALL');
+    this.filterCourse.set('ALL');
     this.filterStudentType.set('ALL');
     this.searchQuery.set('');
     this.triggerFilter();
@@ -121,6 +127,7 @@ export class AdmissionCompletionListComponent implements OnInit {
 
   protected hasActiveFilters(): boolean {
     return this.filterProgram() !== 'ALL' ||
+           this.filterCourse() !== 'ALL' ||
            this.filterStudentType() !== 'ALL' ||
            this.searchQuery() !== '';
   }

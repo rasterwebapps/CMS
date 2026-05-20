@@ -54,7 +54,7 @@
                   [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
                   <option [ngValue]="null" disabled>Select a course</option>
                   @for (course of courses(); track course.id) {
-                    <option [ngValue]="course.id">{{ course.name }} ({{ course.code }})</option>
+                    <option [ngValue]="course.id">{{ course.name }}</option>
                   }
                 </select>
                 @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {

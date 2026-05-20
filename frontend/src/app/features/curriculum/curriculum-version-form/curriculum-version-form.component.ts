@@ -57,7 +57,7 @@ export class CurriculumVersionFormComponent implements OnInit {
   protected readonly previewActive    = signal(true);
   protected readonly previewProgramName = computed(() => {
     const p = this.programs().find(x => x.id === this.previewProgramId());
-    return p ? `${p.name} (${p.code})` : '';
+    return p ? p.name : '';
   });
   protected readonly previewAyName = computed(() => this.academicYears().find(a => a.id === this.previewAyId())?.name ?? '');
 

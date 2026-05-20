@@ -208,7 +208,7 @@
 - A faculty document exists with an uploaded file and status `VERIFIED`
 
 **Steps:**
-1. Open the faculty document verification screen
+1. Open the faculty detail page and select the **Documents** tab
 2. Attempt to upload a replacement file for the verified document
 
 **Expected Result:**
@@ -247,9 +247,9 @@
 - A faculty document exists with status `REJECTED` or `UPLOADED` and has reviewer metadata from a previous review
 
 **Steps:**
-1. Open the faculty document verification screen
+1. Open the faculty detail page and select the **Documents** tab
 2. Upload a replacement file for the non-verified document
-3. Refresh the faculty document verification screen
+3. Refresh the faculty detail **Documents** tab
 4. Return to the Faculty list and observe the document-review badge/filter result
 
 **Expected Result:**

@@ -1,0 +1,102 @@
+<div class="state-district-row" [formGroup]="parentForm()">
+
+  <!-- Country -->
+  <div class="field-group">
+    <label class="field-label" [for]="countryControlName() + '-select'">
+      Country
+      @if (countryRequired()) { <span class="field-required">*</span> }
+    </label>
+    <div class="field-select-wrapper">
+      @if (loadingCountries()) {
+        <select class="field-select" disabled>
+          <option>Loading countries…</option>
+        </select>
+      } @else {
+        <select
+          class="field-select"
+          [id]="countryControlName() + '-select'"
+          [formControlName]="countryControlName()"
+          [class.field-select--error]="countryCtrl()?.invalid && countryCtrl()?.touched"
+        >
+          <option [ngValue]="null">— Select Country —</option>
+          @for (c of countries(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      }
+    </div>
+    @if (countryCtrl()?.invalid && countryCtrl()?.touched) {
+      <span class="field-error">Country is required</span>
+    }
+  </div>
+
+  <!-- State -->
+  <div class="field-group">
+    <label class="field-label" [for]="stateControlName() + '-select'">
+      State
+      @if (stateRequired()) { <span class="field-required">*</span> }
+    </label>
+    <div class="field-select-wrapper">
+      @if (loadingStates()) {
+        <select class="field-select" disabled>
+          <option>Loading states…</option>
+        </select>
+      } @else {
+        <select
+          class="field-select"
+          [id]="stateControlName() + '-select'"
+          [formControlName]="stateControlName()"
+          [class.field-select--error]="stateCtrl()?.invalid && stateCtrl()?.touched"
+          [attr.disabled]="states().length === 0 && !countryCtrl()?.value ? true : null"
+        >
+          <option value="">
+            @if (!countryCtrl()?.value) { — Select Country first — }
+            @else { — Select State — }
+          </option>
+          @for (state of states(); track state.id) {
+            <option [value]="state.name">{{ state.name }}</option>
+          }
+        </select>
+      }
+    </div>
+    @if (stateCtrl()?.invalid && stateCtrl()?.touched) {
+      <span class="field-error">State is required</span>
+    }
+  </div>
+
+  <!-- District -->
+  <div class="field-group">
+    <label class="field-label" [for]="districtControlName() + '-select'">
+      District
+      @if (districtRequired()) { <span class="field-required">*</span> }
+    </label>
+    <div class="field-select-wrapper">
+      @if (loadingDistricts()) {
+        <select class="field-select" disabled>
+          <option>Loading districts…</option>
+        </select>
+      } @else {
+        <select
+          class="field-select"
+          [id]="districtControlName() + '-select'"
+          [formControlName]="districtControlName()"
+          [class.field-select--error]="districtCtrl()?.invalid && districtCtrl()?.touched"
+          [attr.disabled]="districts().length === 0 && !stateCtrl()?.value ? true : null"
+        >
+          <option value="">
+            @if (!stateCtrl()?.value) { — Select State first — }
+            @else { — Select District — }
+          </option>
+          @for (district of districts(); track district.id) {
+            <option [value]="district.name">{{ district.name }}</option>
+          }
+        </select>
+      }
+    </div>
+    @if (districtCtrl()?.invalid && districtCtrl()?.touched) {
+      <span class="field-error">District is required</span>
+    }
+  </div>
+
+</div>
+

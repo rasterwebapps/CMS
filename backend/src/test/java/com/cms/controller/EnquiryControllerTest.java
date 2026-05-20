@@ -466,7 +466,7 @@ class EnquiryControllerTest {
             status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
-            convertedStudentId, null, null, null, null, null, null, null, null, now, now, null
+            convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null
         );
     }
 
@@ -477,11 +477,11 @@ class EnquiryControllerTest {
             BigDecimal feeGuidelineTotal, BigDecimal referralAdditionalAmount,
             BigDecimal finalCalculatedFee, String yearWiseFees,
             com.cms.model.enums.StudentType studentType,
-            String country, String state, String district) {
+            Long countryId, String state, String district) {
         return new EnquiryRequest(
             name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
-            finalCalculatedFee, yearWiseFees, studentType, country, state, district,
+            finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
             null, null, null
         );
     }

@@ -115,7 +115,8 @@ public class PaymentCollectionService {
         unifiedReceiptService.saveStudentReceipt(
             receiptNumber,
             student.getId(), student.getFullName(), student.getRollNumber(), student.getAdmissionNumber(),
-            null, // programName – not directly on student; left null here
+            student.getCourse() != null ? student.getCourse().getName()
+                : student.getProgram() != null ? student.getProgram().getName() : null,
             amountActuallyPaid,
             request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),

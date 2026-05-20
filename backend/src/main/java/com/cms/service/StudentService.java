@@ -306,6 +306,7 @@ public class StudentService {
 
     private Address toAddress(AddressRequest request) {
         return new Address(
+            request.countryId(),
             request.postalAddress(),
             request.street(),
             request.city(),
@@ -355,6 +356,7 @@ public class StudentService {
             student.isFirstGraduate(),
             student.getFatherEducation(),
             student.getMotherEducation(),
+            address != null ? address.getCountryId() : null,
             address != null ? address.getPostalAddress() : null,
             address != null ? address.getStreet() : null,
             address != null ? address.getCity() : null,

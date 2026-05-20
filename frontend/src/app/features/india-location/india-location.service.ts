@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  Country,
+  CountryRequest,
   IndiaState,
   IndiaDistrict,
   IndiaStateRequest,
@@ -13,6 +15,35 @@ import {
 export class IndiaLocationService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/india`;
+
+  // ─── Countries ───────────────────────────────────────────────────────────
+
+  getCountries(activeOnly = false): Observable<Country[]> {
+    return this.http.get<Country[]>(`${this.baseUrl}/countries?activeOnly=${activeOnly}`);
+  }
+
+  getCountryById(id: number): Observable<Country> {
+    return this.http.get<Country>(`${this.baseUrl}/countries/${id}`);
+  }
+
+  createCountry(request: CountryRequest): Observable<Country> {
+    return this.http.post<Country>(`${this.baseUrl}/countries`, request);
+  }
+
+  updateCountry(id: number, request: CountryRequest): Observable<Country> {
+    return this.http.put<Country>(`${this.baseUrl}/countries/${id}`, request);
+  }
+
+  deleteCountry(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/countries/${id}`);
+  }
+
+  /** Get states belonging to a specific country (cascade on country select). */
+  getStatesByCountry(countryId: number, activeOnly = true): Observable<IndiaState[]> {
+    return this.http.get<IndiaState[]>(
+      `${this.baseUrl}/countries/${countryId}/states?activeOnly=${activeOnly}`,
+    );
+  }
 
   // ─── States ──────────────────────────────────────────────────────────────
 

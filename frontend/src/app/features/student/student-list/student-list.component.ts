@@ -141,9 +141,8 @@ export class StudentListComponent implements OnInit {
         s.fullName.toLowerCase().includes(term) ||
         (s.admissionNumber ?? '').toLowerCase().includes(term) ||
         (s.rollNumber ?? '').toLowerCase().includes(term) ||
-        (s.phone      ?? '').includes(term) ||
-        (s.email      ?? '').toLowerCase().includes(term) ||
-        s.programName.toLowerCase().includes(term)
+        (s.phone ?? '').includes(term) ||
+        (s.email ?? '').toLowerCase().includes(term)
       );
     };
     this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL'

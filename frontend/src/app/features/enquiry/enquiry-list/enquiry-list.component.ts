@@ -175,9 +175,7 @@ export class EnquiryListComponent implements OnInit {
 
       const matchSearch = !search ||
         row.name.toLowerCase().includes(search) ||
-        (row.phone ?? '').includes(search) ||
-        (row.courseName ?? '').toLowerCase().includes(search) ||
-        (row.agentName ?? '').toLowerCase().includes(search);
+        (row.phone ?? '').includes(search);
 
       const matchStatus  = statuses.size === 0 || statuses.has(row.status);
       const matchProgram = !progId   || row.programId === progId;

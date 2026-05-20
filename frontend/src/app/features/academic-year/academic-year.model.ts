@@ -8,33 +8,27 @@ export interface AcademicYear {
   updatedAt: string;
 }
 
+export interface CohortSummary {
+  id: number;
+  cohortCode: string;
+  displayName: string;
+  programName: string;
+  programCode: string;
+  managementSeats: number | null;
+  counsellingSeats: number | null;
+  hasStudents: boolean;
+}
+
+export interface CohortSeatsRequest {
+  managementSeats: number | null;
+  counsellingSeats: number | null;
+}
+
 export interface AcademicYearRequest {
   name: string;
   startDate: string;
   endDate: string;
   isCurrent: boolean;
-}
-
-export type SemesterStatus = 'UPCOMING' | 'ONGOING' | 'COMPLETED';
-
-export interface Semester {
-  id: number;
-  name: string;
-  semesterNumber: number;
-  startDate: string;
-  endDate: string;
-  status: SemesterStatus;
-  academicYear: AcademicYear;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SemesterRequest {
-  name: string;
-  semesterNumber: number;
-  startDate: string;
-  endDate: string;
-  academicYearId: number;
 }
 
 export type CalendarEventType = 'HOLIDAY' | 'EXAM' | 'CULTURAL' | 'SPORTS' | 'WORKSHOP' | 'OTHER';
@@ -47,7 +41,6 @@ export interface CalendarEvent {
   endDate: string;
   eventType: CalendarEventType;
   academicYear: AcademicYear;
-  semester?: Semester;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,7 +52,6 @@ export interface CalendarEventRequest {
   endDate: string;
   eventType: CalendarEventType;
   academicYearId: number;
-  semesterId?: number;
 }
 
 export type TermType = 'ODD' | 'EVEN';

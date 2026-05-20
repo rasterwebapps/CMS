@@ -1,6 +1,8 @@
 import { numberToWords } from './number-to-words.utils';
 import { formatCurrency } from '@angular/common';
 
+const SKS_LOGO_DATA_URL = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPCEtLSBPdXRlciBjaXJjbGUgYmFja2dyb3VuZCAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk2IiBmaWxsPSIjMWEyYTVlIiBzdHJva2U9IiM0YTZmYTUiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIElubmVyIGRpdmlkaW5nIGNyb3NzIGxpbmVzIC0tPgogIDxsaW5lIHgxPSIxMDAiIHkxPSIzMCIgeDI9IjEwMCIgeTI9IjE3MCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNyIvPgogIDxsaW5lIHgxPSIzMCIgeTE9IjEwMCIgeDI9IjE3MCIgeTI9IjEwMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNyIvPgoKICA8IS0tIENlbnRlciBzbWFsbCBjaXJjbGUgd2l0aCBFU1RELiAxOTkzIC0tPgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iMjIiIGZpbGw9IiMxYTJhNWUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTAwIiB5PSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+RVNURC48L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIxMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI3IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPjE5OTM8L3RleHQ+CgogIDwhLS0gVG9wLWxlZnQgcXVhZHJhbnQ6IEhlYXJ0IC0tPgogIDxwYXRoIGQ9Ik0gNzIgNzIgQyA2NiA2NCA1NSA2NCA1NSA3NCBDIDU1IDgwIDYyIDg3IDcyIDk0IEMgODIgODcgODkgODAgODkgNzQgQyA4OSA2NCA3OCA2NCA3MiA3MiBaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CgogIDwhLS0gVG9wLXJpZ2h0IHF1YWRyYW50OiBDYWR1Y2V1cy9tZWRpY2FsIHN0YWZmIChzaW1wbGlmaWVkKSAtLT4KICA8bGluZSB4MT0iMTI4IiB5MT0iNTUiIHgyPSIxMjgiIHkyPSI5MiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8cGF0aCBkPSJNIDExOCA2NSBDIDExOCA1OCAxMzggNTggMTM4IDY1IEMgMTM4IDcyIDExOCA3MiAxMTggNzkgQyAxMTggODYgMTM4IDg2IDEzOCA3OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8Y2lyY2xlIGN4PSIxMjgiIGN5PSI1MyIgcj0iNCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgoKICA8IS0tIEJvdHRvbS1sZWZ0IHF1YWRyYW50OiBGbGFtZSAtLT4KICA8cGF0aCBkPSJNIDcyIDE0OCBDIDYwIDEzOCA1OCAxMjUgNjUgMTE4IEMgNjMgMTI4IDcwIDEzMiA3MiAxMjUgQyA3NCAxMzIgODEgMTI4IDc5IDExOCBDIDg2IDEyNSA4NCAxMzggNzIgMTQ4IFoiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz4KCiAgPCEtLSBCb3R0b20tcmlnaHQgcXVhZHJhbnQ6IEdyYWR1YXRpb24gY2FwIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTI4LDExOCAxMDgsMTI4IDEyOCwxMzggMTQ4LDEyOCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgogIDxyZWN0IHg9IjEyMCIgeT0iMTI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CiAgPGxpbmUgeDE9IjE0OCIgeTE9IjEyOCIgeDI9IjE0OCIgeTI9IjEzOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMTQ4IiBjeT0iMTQwIiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CgogIDwhLS0gQ2lyY3VsYXIgdGV4dDogU0tTIENPTExFR0UgT0YgTlVSU0lORyAodG9wIGFyYykgLS0+CiAgPHBhdGggaWQ9InRvcEFyYyIgZD0iTSAxOCwxMDAgQSA4Miw4MiAwIDAsMSAxODIsMTAwIiBmaWxsPSJub25lIi8+CiAgPHRleHQgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIGxldHRlci1zcGFjaW5nPSIyIj4KICAgIDx0ZXh0UGF0aCBocmVmPSIjdG9wQXJjIiBzdGFydE9mZnNldD0iNSUiPlNLUyBDT0xMRUdFIE9GIE5VUlNJTkc8L3RleHRQYXRoPgogIDwvdGV4dD4KCiAgPCEtLSBDaXJjdWxhciB0ZXh0OiBWUyBFRFVDQVRJT05BTCBUUlVTVCwgU0FMRU0gKGJvdHRvbSBhcmMpIC0tPgogIDxwYXRoIGlkPSJib3R0b21BcmMiIGQ9Ik0gMTgsMTAwIEEgODIsODIgMCAwLDAgMTgyLDEwMCIgZmlsbD0ibm9uZSIvPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgbGV0dGVyLXNwYWNpbmc9IjEiPgogICAgPHRleHRQYXRoIGhyZWY9IiNib3R0b21BcmMiIHN0YXJ0T2Zmc2V0PSI1JSI+VlMgRURVQ0FUSU9OQUwgVFJVU1QsIFNBTEVNPC90ZXh0UGF0aD4KICA8L3RleHQ+CgogIDwhLS0gWWVsbG93IHN0YXJzIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMjIsMTAwIDI1LDkyIDI4LDEwMCAyMCw5NSAzMCw5NSIgZmlsbD0iI0ZGRDcwMCIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTc4LDEwMCAxODEsOTIgMTg0LDEwMCAxNzYsOTUgMTg2LDk1IiBmaWxsPSIjRkZENzAwIi8+Cjwvc3ZnPgo=';
+
 export interface ReceiptPrintData {
   receiptNumber: string;
   /** Primary payer name (student or enquiry person). */
@@ -73,8 +75,12 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
 <meta charset="UTF-8"/>
 <title>Receipt - ${data.receiptNumber}</title>
 <style>
-  @page { size: A5 landscape; margin: 7mm 10mm; }
+  @page { size: 210mm 148mm; margin: 7mm 10mm; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 210mm;
+    height: 148mm;
+  }
   body {
     font-family: 'Times New Roman', Times, serif;
     font-size: 12.5px;
@@ -82,6 +88,10 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     color: #000;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  @media screen {
+    html { background: #888; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+    body { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   }
 
   /* ── Outer card ── */
@@ -176,15 +186,11 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   /* ── Footer ── */
   .spacer { flex: 1; }
   .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 7px; }
-  .footer {
-    display: flex; justify-content: flex-end; align-items: flex-end;
-    gap: 36px;
-  }
-  .footer-for { text-align: right; }
-  .footer-for .for-word { font-size: 10px; margin-bottom: 1px; }
-  .footer-for .for-college { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
-  .sig-area { text-align: center; }
-  .sig-space { height: 26px; }
+  .footer { display: flex; justify-content: flex-end; }
+  .sig-block { text-align: center; min-width: 160px; }
+  .for-word { font-size: 10px; margin-bottom: 2px; }
+  .for-college { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
+  .sig-space { height: 28px; }
   .sig-line-rule { border-top: 1px solid #000; }
   .sig-text { font-size: 10px; padding-top: 3px; }
 </style>
@@ -194,7 +200,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
 
   <!-- Header -->
   <div class="header">
-    <img class="logo" src="/assets/images/sks-logo-icon.png" alt="SKS Logo" />
+    <img class="logo" src="${SKS_LOGO_DATA_URL}" alt="SKS Logo" />
     <div class="header-center">
       <div class="college-name">SKS College Of Nursing</div>
       <div class="college-sub">
@@ -243,11 +249,9 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   <!-- Footer -->
   <div class="footer-divider"></div>
   <div class="footer">
-    <div class="footer-for">
+    <div class="sig-block">
       <div class="for-word">For</div>
       <div class="for-college">SKS COLLEGE OF NURSING</div>
-    </div>
-    <div class="sig-area">
       <div class="sig-space"></div>
       <div class="sig-line-rule"></div>
       <div class="sig-text">Authorised Signature</div>
@@ -262,7 +266,7 @@ ${autoPrint ? '<script>window.onload = function() { window.print(); };<\/script>
 
 export function printFeeReceipt(data: ReceiptPrintData): void {
   const html = buildReceiptHtml(data, true);
-  const win = window.open('', '_blank', 'width=900,height=650');
+  const win = window.open('', '_blank', 'width=830,height=620');
   if (win) {
     win.document.write(html);
     win.document.close();

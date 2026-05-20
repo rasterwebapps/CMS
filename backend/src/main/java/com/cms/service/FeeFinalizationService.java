@@ -16,20 +16,25 @@ import com.cms.dto.StudentFeeAllocationRequest;
 import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.AcademicYear;
 import com.cms.model.Enquiry;
 import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentScholarship;
+import com.cms.model.TermBillingSchedule;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.model.enums.TermType;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.TermBillingScheduleRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +50,8 @@ public class FeeFinalizationService {
     private final StudentRepository studentRepository;
     private final EnquiryRepository enquiryRepository;
     private final StudentScholarshipService studentScholarshipService;
+    private final TermBillingScheduleRepository billingScheduleRepository;
+    private final AcademicYearRepository academicYearRepository;
     private final ObjectMapper objectMapper;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
@@ -53,7 +60,9 @@ public class FeeFinalizationService {
                                    PenaltyRepository penaltyRepository,
                                    StudentRepository studentRepository,
                                    EnquiryRepository enquiryRepository,
-                                    StudentScholarshipService studentScholarshipService,
+                                   StudentScholarshipService studentScholarshipService,
+                                   TermBillingScheduleRepository billingScheduleRepository,
+                                   AcademicYearRepository academicYearRepository,
                                    ObjectMapper objectMapper) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -62,6 +71,8 @@ public class FeeFinalizationService {
         this.studentRepository = studentRepository;
         this.enquiryRepository = enquiryRepository;
         this.studentScholarshipService = studentScholarshipService;
+        this.billingScheduleRepository = billingScheduleRepository;
+        this.academicYearRepository = academicYearRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -144,10 +155,35 @@ public class FeeFinalizationService {
 
         StudentFeeAllocation saved = allocationRepository.save(allocation);
 
+        int joiningStartYear = student.getCohort() != null
+            ? student.getCohort().getAdmissionAcademicYear().getStartYear()
+            : LocalDate.now().getYear();
+
         List<SemesterFee> semesterFees = new ArrayList<>();
         for (StudentFeeAllocationRequest.YearFee yearFee : request.yearFees()) {
             BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
             BigDecimal sem2Amount = yearFee.amount().subtract(sem1Amount);
+
+            int targetStartYear = joiningStartYear + (yearFee.yearNumber() - 1);
+            AcademicYear yearN = academicYearRepository
+                .findByNameStartingWith(String.valueOf(targetStartYear))
+                .orElseThrow(() -> new IllegalStateException(
+                    "Academic year not found for start year " + targetStartYear +
+                    ". Please create the academic year before finalizing fees."));
+
+            LocalDate oddDueDate = billingScheduleRepository
+                .findByAcademicYearIdAndTermType(yearN.getId(), TermType.ODD)
+                .map(TermBillingSchedule::getDueDate)
+                .orElseThrow(() -> new IllegalStateException(
+                    "No ODD term billing schedule configured for " + yearN.getName() +
+                    ". Please configure it on the Academic Year page before finalizing fees."));
+
+            LocalDate evenDueDate = billingScheduleRepository
+                .findByAcademicYearIdAndTermType(yearN.getId(), TermType.EVEN)
+                .map(TermBillingSchedule::getDueDate)
+                .orElseThrow(() -> new IllegalStateException(
+                    "No EVEN term billing schedule configured for " + yearN.getName() +
+                    ". Please configure it on the Academic Year page before finalizing fees."));
 
             int globalSem1 = (yearFee.yearNumber() - 1) * 2 + 1;
             int globalSem2 = globalSem1 + 1;
@@ -155,14 +191,14 @@ public class FeeFinalizationService {
             SemesterFee sf1 = new SemesterFee(
                 saved, yearFee.yearNumber(),
                 "Year " + yearFee.yearNumber() + " - " + installmentOrdinalLabel(globalSem1),
-                sem1Amount, yearFee.dueDate(), 1
+                sem1Amount, oddDueDate, 1
             );
             semesterFees.add(semesterFeeRepository.save(sf1));
 
             SemesterFee sf2 = new SemesterFee(
                 saved, yearFee.yearNumber(),
                 "Year " + yearFee.yearNumber() + " - " + installmentOrdinalLabel(globalSem2),
-                sem2Amount, yearFee.dueDate().plusMonths(6), 2
+                sem2Amount, evenDueDate, 2
             );
             semesterFees.add(semesterFeeRepository.save(sf2));
         }

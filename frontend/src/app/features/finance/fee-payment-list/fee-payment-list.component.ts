@@ -4,16 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
 import { FeePayment } from '../finance.model';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -21,11 +18,11 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-fee-payment-list',
   standalone: true,
   imports: [
-    InrPipe,
-    PageHeaderComponent,
-    CmsStatusBadgeComponent, RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
+    InrPipe, RouterLink, FormsModule,
+    CmsEmptyStateComponent, CmsStatusBadgeComponent,
+    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatDialogModule, MatTooltipModule,
+  ],
   templateUrl: './fee-payment-list.component.html',
   styleUrl: './fee-payment-list.component.scss',
 })
@@ -59,6 +56,7 @@ export class FeePaymentListComponent implements OnInit {
   protected readonly dataSource = new MatTableDataSource<FeePayment>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  protected colMenuOpen = false;
 
   ngOnInit(): void { this.load(); }
 

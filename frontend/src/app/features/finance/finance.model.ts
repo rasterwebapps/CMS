@@ -220,7 +220,6 @@ export interface EnquiryYearFee {
 export interface CreateAllocationYearFee {
   yearNumber: number;
   amount: number;
-  dueDate: string;
 }
 
 export interface CreateAllocationRequest {

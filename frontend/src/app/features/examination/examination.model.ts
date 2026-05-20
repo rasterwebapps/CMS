@@ -7,8 +7,6 @@ export interface Examination {
   date?: string;
   duration?: number;
   maxMarks?: number;
-  semesterId?: number;
-  semesterName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,7 +18,6 @@ export interface ExaminationRequest {
   date?: string;
   duration?: number;
   maxMarks?: number;
-  semesterId?: number;
 }
 
 export interface ExamResult {

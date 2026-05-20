@@ -67,21 +67,11 @@
       </div>
 
       <!-- Country + State + District -->
-      <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
-        <div class="field-group">
-          <label for="enq-country" class="field-label">Country <span class="field-required">*</span></label>
-          <input id="enq-country" class="field-input" formControlName="country"
-                 placeholder="e.g., India" autocomplete="country-name"
-                 [class.field-input--error]="form.get('country')?.invalid && form.get('country')?.touched" />
-          @if (form.get('country')?.invalid && form.get('country')?.touched) {
-            <p class="field-error">Country is required</p>
-          }
-        </div>
-        <cms-state-district-selector
-          [parentForm]="form"
-          [stateRequired]="true"
-        />
-      </div>
+      <cms-country-state-district-selector
+        [parentForm]="form"
+        [countryRequired]="true"
+        [stateRequired]="true"
+      />
 
       <div class="form-divider"></div>
 
@@ -94,7 +84,7 @@
                   [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
             <option [ngValue]="null" disabled>— Select program —</option>
             @for (p of programs(); track p.id) {
-              <option [ngValue]="p.id">{{ p.name }} ({{ p.code }})</option>
+              <option [ngValue]="p.id">{{ p.name }}</option>
             }
           </select>
           @if (form.get('programId')?.invalid && form.get('programId')?.touched) {

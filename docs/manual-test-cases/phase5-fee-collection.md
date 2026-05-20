@@ -347,3 +347,45 @@
 - All four report types work correctly with proper data and export functionality
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FEE5-019: Frontend — Fee Collection list UI alignment and formatting
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN, ROLE_COLLEGE_ADMIN, or ROLE_CASHIER
+- At least one enquiry or student has outstanding fees
+
+**Steps:**
+1. Navigate to `/fee-collection`.
+2. Verify the page uses the MLP header and toolbar layout.
+3. Verify the table columns display Name, Type, Program, Total Fee (₹), Paid (₹), Outstanding (₹), Next Due, and actions.
+4. Verify fee amount columns are right-aligned and show numbers without repeating the rupee symbol inside each cell.
+5. Verify Type and action columns are centered.
+6. Use the search box and both filters, then click Clear.
+
+**Expected Result:**
+- Table alignment remains stable, monetary values use Indian grouping with tabular figures, filters work, and the Clear button restores the unfiltered list.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE5-020: Frontend — Fee Collection payment panel responsive UI
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN, ROLE_COLLEGE_ADMIN, or ROLE_CASHIER
+- At least one fee collection row is available
+
+**Steps:**
+1. Navigate to `/fee-collection` and click Collect for a row.
+2. Verify a top back button and Collect Payment heading are visible.
+3. Verify the installment table displays Fee (₹), Paid (₹), Outstanding (₹), and Status with aligned numeric values.
+4. Resize the viewport to 360 × 740.
+5. Verify the payment form stacks into one column, the installment table scrolls horizontally within its card, and there is no horizontal page scroll.
+6. Select UPI, Bank Transfer, Cheque, or DD as Payment Mode and leave Transaction Reference blank, then submit.
+
+**Expected Result:**
+- Payment panel remains usable on mobile, Save/Cancel actions stay reachable, and transaction reference validation is shown for non-cash payment modes.
+
+**Status:** NOT TESTED

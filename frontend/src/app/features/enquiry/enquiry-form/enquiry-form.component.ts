@@ -20,7 +20,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
+import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
 interface ProgramInfo {
   id: number;
@@ -60,7 +60,7 @@ interface FeeStructureInfo {
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
-    CmsStateDistrictSelectorComponent],
+    CmsCountryStateDistrictSelectorComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })
@@ -123,8 +123,8 @@ export class EnquiryFormComponent implements OnInit {
     agentId:        [null as number | null],
     remarks:        [''],
     studentType:    ['DAY_SCHOLAR' as 'DAY_SCHOLAR' | 'HOSTELER', Validators.required],
-    country:        ['India', Validators.required],
-    state:          ['Tamil Nadu', Validators.required],
+    country:        [null as number | null, Validators.required],
+    state:          ['', Validators.required],
     district:       [''],
     referredStudentId: [null as number | null],
     referredFacultyId: [null as number | null],
@@ -205,8 +205,8 @@ export class EnquiryFormComponent implements OnInit {
             agentId: item.agentId,
             remarks: item.remarks,
             studentType: item.studentType ?? 'DAY_SCHOLAR',
-            country: item.country ?? 'India',
-            state: item.state ?? 'Tamil Nadu',
+            country: item.countryId ?? null,
+            state: item.state ?? '',
             district: item.district ?? '',
             referredStudentId: item.referredStudentId ?? null,
             referredFacultyId: item.referredFacultyId ?? null,
@@ -521,7 +521,7 @@ export class EnquiryFormComponent implements OnInit {
       finalCalculatedFee: this.finalCalculatedFee() || undefined,
       studentType: v.studentType || undefined,
       yearWiseFees: this.yearWiseFees() || undefined,
-      country: v.country?.trim() || undefined,
+      countryId: v.country || undefined,
       state: v.state?.trim() || undefined,
       district: v.district?.trim() || undefined,
       referredStudentId: v.referredStudentId ?? undefined,

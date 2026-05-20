@@ -41,7 +41,6 @@ export class ExaminationFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Examination');
   protected readonly courses = signal<{ id: number; name: string }[]>([]);
-  protected readonly semesters = signal<{ id: number; name: string }[]>([]);
 
   // Preview signals
   protected readonly previewName     = signal('');
@@ -50,9 +49,7 @@ export class ExaminationFormComponent implements OnInit {
   protected readonly previewDate     = signal<string | null>(null);
   protected readonly previewDuration = signal<number | null>(null);
   protected readonly previewMaxMarks = signal<number | null>(null);
-  protected readonly previewSemId    = signal<number | null>(null);
   protected readonly previewCourseName = computed(() => this.courses().find(c => c.id === this.previewCourseId())?.name ?? '');
-  protected readonly previewSemName    = computed(() => this.semesters().find(s => s.id === this.previewSemId())?.name ?? '');
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'edit_note',  title: 'Naming',   subtitle: 'Use descriptive names (e.g., "Mid-Sem Theory") so students can identify exams in the calendar.' },
@@ -69,7 +66,6 @@ export class ExaminationFormComponent implements OnInit {
     date: [''],
     duration: [null, [Validators.min(1)]],
     maxMarks: [null, [Validators.min(0)]],
-    semesterId: [null],
   });
 
   constructor() {
@@ -82,16 +78,12 @@ export class ExaminationFormComponent implements OnInit {
         this.previewDate.set(v.date || null);
         this.previewDuration.set(v.duration ? Number(v.duration) : null);
         this.previewMaxMarks.set(v.maxMarks != null && v.maxMarks !== '' ? Number(v.maxMarks) : null);
-        this.previewSemId.set(v.semesterId ?? null);
       });
   }
 
   ngOnInit(): void {
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/courses`).subscribe({
       next: (data) => this.courses.set(data),
-    });
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/semesters`).subscribe({
-      next: (data) => this.semesters.set(data),
     });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -101,7 +93,7 @@ export class ExaminationFormComponent implements OnInit {
       this.loading.set(true);
       this.examinationService.getById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ name: item.name, courseId: item.courseId, examType: item.examType, date: item.date || '', duration: item.duration, maxMarks: item.maxMarks, semesterId: item.semesterId });
+          this.form.patchValue({ name: item.name, courseId: item.courseId, examType: item.examType, date: item.date || '', duration: item.duration, maxMarks: item.maxMarks });
           this.loading.set(false);
         },
         error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/examinations']); },
@@ -112,7 +104,7 @@ export class ExaminationFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
-    const request: ExaminationRequest = { name: v.name.trim(), courseId: v.courseId, examType: v.examType, date: v.date || undefined, duration: v.duration || undefined, maxMarks: v.maxMarks ?? undefined, semesterId: v.semesterId || undefined };
+    const request: ExaminationRequest = { name: v.name.trim(), courseId: v.courseId, examType: v.examType, date: v.date || undefined, duration: v.duration || undefined, maxMarks: v.maxMarks ?? undefined };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.examinationService.update(this.itemId!, request) : this.examinationService.create(request);
     op$.subscribe({

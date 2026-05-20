@@ -1,2 +1,13 @@
-// Fee payment list — uses global list-page classes from styles.scss
-// No component-specific overrides needed
+// fee-payment-list — component-specific overrides only.
+// Layout uses global toolbar/table/card classes from styles.scss.
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.fpl-skeleton { padding: 0 0 8px; }
+
+.fpl-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--cms-line);
+}

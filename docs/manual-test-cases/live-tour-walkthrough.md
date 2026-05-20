@@ -235,7 +235,7 @@ built on Angular CDK Overlay (`TourService`, `TourSpotlightComponent`, `TourTool
 - Application is running.
 
 **Steps:**
-1. Open each list screen: Programs, Courses, Academic Years, Semesters, Faculty, Agents, Referral Types, Fee Structures, Equipment, Curriculum Versions, Experiments, and Syllabus.
+1. Open each list screen: Programs, Courses, Academic Years, Faculty, Agents, Referral Types, Fee Structures, Equipment, Curriculum Versions, Experiments, and Syllabus.
 2. Verify a **Take a Tour** button is visible in the page header/actions area.
 3. Click **Take a Tour** on each screen.
 4. Step through the tour until the final confirmation step.

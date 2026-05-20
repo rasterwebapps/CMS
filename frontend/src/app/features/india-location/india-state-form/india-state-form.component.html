@@ -1,55 +1,106 @@
-<div class="form-page">
-  <div class="form-page__header">
-    <a routerLink="/india-locations" class="back-link">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-      Back to India Locations
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/india-locations" aria-label="Back to location master">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>State / UT</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the state or union territory details below.' : 'Create a state or union territory under the selected country.' }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="form-page__loading">Loading…</div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card" novalidate>
-
-      <div class="form-section">
-        <h2 class="form-section__title">State / UT Details</h2>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label class="form-label" for="state-name">Name <span class="required">*</span></label>
-            <input id="state-name" class="form-input" formControlName="name" placeholder="e.g. Tamil Nadu" />
-            @if (getFieldError('name')) {
-              <span class="form-error">{{ getFieldError('name') }}</span>
-            }
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V5l8-3v19"/><path d="M19 21V9l-6-3"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
           </div>
-
-          <div class="form-field">
-            <label class="form-label" for="state-code">Code <span class="required">*</span></label>
-            <input id="state-code" class="form-input font-mono" formControlName="code" placeholder="e.g. TN" maxlength="10" />
-            <span class="form-hint">2-letter ISO state code (e.g. TN, MH, DL)</span>
-            @if (getFieldError('code')) {
-              <span class="form-error">{{ getFieldError('code') }}</span>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">State / UT Information</div>
+            <div class="entry-form-card__hdr-sub">Parent country, official code and availability</div>
           </div>
         </div>
 
-        <div class="form-field">
-          <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
-          <p class="form-hint">Inactive states are hidden from new forms but retained for existing records.</p>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <div class="field-group">
+              <label class="field-label" for="state-country">Country <span class="required-star">*</span></label>
+              <select id="state-country" class="field-select" formControlName="countryId" [class.field-select--error]="form.get('countryId')?.invalid && form.get('countryId')?.touched">
+                <option [ngValue]="null">Select country</option>
+                @for (c of countries(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+              @if (getFieldError('countryId')) {
+                <p class="field-error">{{ getFieldError('countryId') }}</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="state-name">Name <span class="required-star">*</span></label>
+                <input id="state-name" class="field-input" formControlName="name" placeholder="e.g. Tamil Nadu" autocomplete="off" [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="state-code">Code <span class="required-star">*</span></label>
+                <input id="state-code" class="field-input font-mono" formControlName="code" placeholder="e.g. TN" maxlength="10" autocomplete="off" [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
+                <p class="field-hint">Official state code (e.g. TN, MH, DL)</p>
+                @if (getFieldError('code')) {
+                  <p class="field-error">{{ getFieldError('code') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">Inactive states are hidden from new forms but retained for existing records.</p>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/india-locations">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update State' : 'Create State' }}
+              }
+            </button>
+          </div>
+        </form>
       </div>
 
-      <div class="form-actions">
-        <a routerLink="/india-locations" class="btn-secondary">Cancel</a>
-        <button type="submit" class="btn-primary" [disabled]="saving()">
-          @if (saving()) { Saving… } @else { {{ isEditMode() ? 'Update State' : 'Create State' }} }
-        </button>
-      </div>
-    </form>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'State / UT name will appear here' }}
+          </div>
+          @if (previewCountryName()) {
+            <div class="prev-sub">{{ previewCountryName() }}</div>
+          }
+          <div class="prev-meta-row">
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
   }
 </div>
-

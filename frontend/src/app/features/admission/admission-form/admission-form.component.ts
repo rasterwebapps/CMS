@@ -29,7 +29,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
+import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
 type Mode = 'from-enquiry' | 'manual';
 
@@ -48,7 +48,7 @@ type Mode = 'from-enquiry' | 'manual';
     MatProgressSpinnerModule,
     PageHeaderComponent,
     CmsTourButtonComponent,
-    CmsStateDistrictSelectorComponent],
+    CmsCountryStateDistrictSelectorComponent],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
 })
@@ -124,6 +124,7 @@ export class AdmissionFormComponent implements OnInit {
     motherEmail: ['', Validators.email],
     parentMobile: [''],
     address: this.fb.group({
+      country: [null as number | null],
       postalAddress: [''],
       street: [''],
       city: [''],
@@ -390,6 +391,7 @@ export class AdmissionFormComponent implements OnInit {
       parentMobile: this.nullableStr(v['parentMobile'] as string),
       address: this.hasValidAddressFields(addr)
         ? {
+            countryId: (addr['country'] as number | null) ?? null,
             postalAddress: this.nullableStr(addr['postalAddress'] as string),
             street: this.nullableStr(addr['street'] as string),
             city: this.nullableStr(addr['city'] as string),

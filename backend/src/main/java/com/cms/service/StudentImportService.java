@@ -241,7 +241,7 @@ public class StudentImportService {
         s.setMotherName(row.motherName);
         s.setParentMobile(row.parentMobile);
         if (hasAnyAddress(row)) {
-            s.setAddress(new Address(row.postalAddress, row.street, row.city,
+            s.setAddress(new Address(1L, row.postalAddress, row.street, row.city,
                                       row.district, row.state, row.pincode));
         }
         return studentRepo.save(s);
@@ -265,11 +265,9 @@ public class StudentImportService {
         BigDecimal perYear  = totalFee.subtract(discount)
             .divide(BigDecimal.valueOf(durationYears), 2, java.math.RoundingMode.HALF_UP);
 
-        LocalDate baseDate = LocalDate.now();
         List<StudentFeeAllocationRequest.YearFee> yearFees = new ArrayList<>();
         for (int y = 1; y <= durationYears; y++) {
-            LocalDate due = baseDate.plusMonths((long) (y - 1) * 12);
-            yearFees.add(new StudentFeeAllocationRequest.YearFee(y, perYear, due));
+            yearFees.add(new StudentFeeAllocationRequest.YearFee(y, perYear));
         }
 
         feeFinalizationService.finalize(

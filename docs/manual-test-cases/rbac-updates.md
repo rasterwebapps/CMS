@@ -14,7 +14,7 @@ This document summarizes the role-based access control updates implemented for t
 - Programs (Create, Read, Update, Delete)
 - Courses (Create, Read, Update, Delete)
 - Academic Years (Create, Read, Update, Delete)
-- Semesters (Create, Read, Update, Delete)
+- Academic Calendar / term setup access
 - Fee Structures (Create, Read, Update, Delete)
 - Faculty (Create, Read, Update, Delete)
 - Agents (Create, Read, Update, Delete)
@@ -112,7 +112,7 @@ Updated navigation menu filtering in `/frontend/src/app/app.ts`:
 2. Verify the sidenav navigation menu is displayed
 3. Verify the following menu items are visible:
    - Dashboard
-   - Preferences (with sub-items: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types)
+   - Preferences (with sub-items: Departments, Programs, Courses, Academic Years, Academic Calendar, Fee Structures, Faculty, Agents, Referral Types)
    - Admission Management (with sub-items: Enquiries, Submit Documents, Complete Admission, Admissions, Students)
    - Finance (with sub-items: Student Fees, Fee Payments, Fee Finalization)
    - Reports

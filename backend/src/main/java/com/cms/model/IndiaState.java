@@ -9,9 +9,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -23,10 +26,14 @@ public class IndiaState {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "country_id")
+    private LocationCountry country;
+
+    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 10)
+    @Column(nullable = false, length = 10)
     private String code;
 
     @Column(name = "is_active", nullable = false)
@@ -47,8 +54,17 @@ public class IndiaState {
         this.code = code;
     }
 
+    public IndiaState(String name, String code, LocationCountry country) {
+        this.name = name;
+        this.code = code;
+        this.country = country;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public LocationCountry getCountry() { return country; }
+    public void setCountry(LocationCountry country) { this.country = country; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -65,4 +81,3 @@ public class IndiaState {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
-

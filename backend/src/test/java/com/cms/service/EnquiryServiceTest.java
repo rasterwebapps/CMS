@@ -48,6 +48,7 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -85,6 +86,8 @@ class EnquiryServiceTest {
     private com.cms.service.EnquiryDocumentService enquiryDocumentService;
     @Mock
     private ApplicationNumberSequenceService numberSequenceService;
+    @Mock
+    private LocationCountryRepository countryRepository;
 
     private EnquiryService enquiryService;
 
@@ -109,7 +112,8 @@ class EnquiryServiceTest {
             academicYearRepository,
             feeStructureService,
             enquiryDocumentService,
-            numberSequenceService
+            numberSequenceService,
+            countryRepository
         );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
@@ -123,8 +127,10 @@ class EnquiryServiceTest {
             .when(academicYearRepository.findById(100L))
             .thenReturn(java.util.Optional.of(joiningAY));
         org.mockito.Mockito.lenient()
-            .when(numberSequenceService.nextAdmissionNumber(org.mockito.ArgumentMatchers.any(AcademicYear.class)))
-            .thenReturn("ADM-2425-0001");
+            .when(numberSequenceService.nextAdmissionNumber(
+                org.mockito.ArgumentMatchers.any(AcademicYear.class),
+                org.mockito.ArgumentMatchers.any()))
+            .thenReturn("2024650001");
         org.mockito.Mockito.lenient()
             .when(enquiryDocumentRepository.findByEnquiryId(org.mockito.ArgumentMatchers.anyLong()))
             .thenReturn(List.of());
@@ -636,11 +642,11 @@ class EnquiryServiceTest {
             java.math.BigDecimal feeGuidelineTotal, java.math.BigDecimal referralAdditionalAmount,
             java.math.BigDecimal finalCalculatedFee, String yearWiseFees,
             com.cms.model.enums.StudentType studentType,
-            String country, String state, String district) {
+            Long countryId, String state, String district) {
         return new EnquiryRequest(
             name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
-            finalCalculatedFee, yearWiseFees, studentType, country, state, district,
+            finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
             null, null, null
         );
     }
@@ -1346,7 +1352,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
 
         com.cms.dto.AddressRequest address = new com.cms.dto.AddressRequest(
-            "Door 12", "MG Road", "Salem", "Salem", "TN", "636001"
+            1L, "Door 12", "MG Road", "Salem", "Salem", "TN", "636001"
         );
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(

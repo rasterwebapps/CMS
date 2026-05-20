@@ -85,7 +85,6 @@ global `entry-form-page` / `entry-form-card` / `field-group` / `field-input` des
 
 **Preconditions:**
 - At least one Academic Year exists
-- Navigate to Semesters → **Add Semester**
 
 **Steps:**
 1. Verify Academic Year, Semester Number dropdowns are native `<select>` elements

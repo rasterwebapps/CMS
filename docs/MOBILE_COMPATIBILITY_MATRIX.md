@@ -56,7 +56,6 @@ All MLP list screens benefit from the global safety nets: toolbar stacks, header
 | Programs | 🟢 | |
 | Courses | 🟢 | |
 | Academic Years | 🟢 | |
-| Semesters | 🟢 | |
 | Subjects | 🟢 | |
 | Fee Heads | 🟢 | |
 | Fee Structures | 🟡 | Wide fee matrix → horizontal scroll on phones. Consider card view on phone. |

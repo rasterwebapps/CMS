@@ -47,7 +47,7 @@ Four operational roles have been defined and provisioned in this system.
 **Steps:**
 1. Log in as `collegeadmin` / `College@123`
 2. Verify the sidebar shows: Preferences, Admission Management, Finance, Reports
-3. Verify Preferences shows: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types
+3. Verify Preferences shows: Departments, Programs, Courses, Academic Years, Academic Calendar, Fee Structures, Faculty, Agents, Referral Types
 4. Verify Preferences does NOT show: Settings, Labs, Equipment, Academic Calendar
 5. Verify Admission Management shows all items: Enquiries, Submit Documents, Complete Admission, Admissions, Students, Roll Number Assignment
 6. Verify Finance shows: Student Fees, Fee Payments, Fee Finalization

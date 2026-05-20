@@ -1,392 +1,360 @@
-<div class="detail-page">
+<div class="entry-form-page">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <div class="entry-form-header">
-    <button mat-icon-button routerLink="/academic-years" class="back-btn" aria-label="Back to academic years">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <div>
-      <h1 class="page-title">Academic Year Detail</h1>
-      <p class="page-subtitle">Manage term instances and billing schedules</p>
+    <a class="entry-form-back-btn" routerLink="/academic-years" aria-label="Back to academic years">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">
+        @if (academicYear()) { {{ academicYear()!.name }} }
+        @else { Academic <em>Year</em> }
+      </h1>
+      <p class="page-subtitle">Academic year details, term instances and fee billing configuration</p>
     </div>
+    @if (canEdit()) {
+      <a class="btn-secondary ayd-edit-btn"
+         [routerLink]="['/academic-years', academicYearId, 'edit']">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit
+      </a>
+    }
   </div>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
-  } @else if (academicYear()) {
-    <!-- AY Header -->
-    <div class="detail-card ay-header-card">
-      <div class="ay-header-card__info">
-        <h2 class="ay-header-card__name">{{ academicYear()!.name }}</h2>
-        <div class="ay-header-card__dates">
-          {{ academicYear()!.startDate | appDate }} – {{ academicYear()!.endDate | appDate }}
-        </div>
-      </div>
-      @if (academicYear()!.isCurrent) {
-        <span class="cms-badge cms-badge--soft-success">Current</span>
-      } @else {
-        <span class="cms-badge cms-badge--soft-default">Past</span>
-      }
+    <div class="ayd-skeleton">
+      @for (_ of [1,2,3]; track $index) { <div class="ayd-skel-block"></div> }
     </div>
 
-    <!-- Term Instances -->
-    <h3 class="section-title">Term Instances</h3>
-    <div class="terms-grid">
-      @for (termType of ['ODD', 'EVEN']; track termType) {
-        @let term = termType === 'ODD' ? oddTermInstance() : evenTermInstance();
-        @let termForm = termType === 'ODD' ? oddTermForm : evenTermForm;
-        <div class="detail-card term-card">
-          <div class="term-card__header">
-            <h4 class="term-card__title">{{ termType }} Term</h4>
+  } @else if (academicYear(); as ay) {
+
+    <!-- ── Academic Year Info card ──────────────────────────────────────── -->
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Academic Year Information</div>
+          <div class="entry-form-card__hdr-sub">Academic year period and current status</div>
+        </div>
+      </div>
+      <div class="entry-form-card__body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Name</span>
+            <span class="detail-value">{{ ay.name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Start Date</span>
+            <span class="detail-value">{{ ay.startDate | appDate }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">End Date</span>
+            <span class="detail-value">{{ ay.endDate | appDate }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">
+              @if (ay.isCurrent) {
+                <span class="cms-badge cms-badge--soft-success">Current Year</span>
+              } @else {
+                <span class="cms-badge cms-badge--soft-default">Past Year</span>
+              }
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Term Cards (ODD + EVEN) ─────────────────────────────────────── -->
+    <div class="ayd-terms-grid">
+
+      @for (side of ['ODD', 'EVEN']; track side) {
+        @let term     = side === 'ODD' ? oddTermInstance()  : evenTermInstance();
+        @let billing  = side === 'ODD' ? oddBilling()       : evenBilling();
+        @let advancing  = side === 'ODD' ? advancingOdd()   : advancingEven();
+        @let generating = side === 'ODD' ? generatingOdd()  : generatingEven();
+
+        <div class="entry-form-card entry-form-card--sectioned">
+
+          <!-- Card header -->
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div style="flex:1">
+              <div class="entry-form-card__hdr-title">
+                <span class="term-badge" [class.term-badge--odd]="side === 'ODD'" [class.term-badge--even]="side === 'EVEN'">
+                  {{ side }} Term
+                </span>
+                <span style="font-size:11.5px;color:var(--cms-text-muted);font-weight:400;">
+                  {{ side === 'ODD' ? 'Semester 1 · Jun – Nov' : 'Semester 2 · Dec – May' }}
+                </span>
+              </div>
+            </div>
             @if (term) {
               <span class="cms-badge"
                 [class.cms-badge--soft-default]="term.status === 'PLANNED'"
                 [class.cms-badge--soft-warning]="term.status === 'OPEN'"
                 [class.cms-badge--soft-success]="term.status === 'LOCKED'">
-                {{ getStatusLabel(term.status) }}
+                {{ term.status }}
               </span>
-            } @else {
-              <span class="cms-badge cms-badge--soft-default">Not Created</span>
             }
           </div>
 
           @if (term) {
-            <!-- Status Stepper -->
-            <div class="status-stepper">
-              @for (step of ['PLANNED', 'OPEN', 'LOCKED']; track step) {
-                <div class="step" [class]="getStatusStepClass(term.status, $any(step))">
-                  <div class="step__dot"></div>
-                  <span class="step__label">{{ step }}</span>
+
+            <!-- Status stepper -->
+            <div class="ayd-stepper">
+              @for (step of ['PLANNED', 'OPEN', 'LOCKED']; track step; let last = $last) {
+                <div class="ayd-step" [class]="getStatusStepClass(term.status, $any(step))">
+                  <div class="ayd-step__dot"></div>
+                  <span class="ayd-step__lbl">{{ step }}</span>
                 </div>
-                @if (step !== 'LOCKED') {
-                  <div class="step__connector"></div>
-                }
+                @if (!last) { <div class="ayd-step__line"></div> }
               }
             </div>
 
-            <!-- Dates Form -->
-            <form [formGroup]="termForm" class="term-dates-form">
-              <div class="dates-row">
-                <div class="field-group field-group--inline">
-                  <label class="field-label">Start Date</label>
-                  <input type="date" class="field-input" formControlName="startDate" />
+            <!-- Term Period (read-only) -->
+            <div class="ayd-card-section">
+              <div class="ayd-card-section__title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Term Period
+              </div>
+              <div class="detail-grid detail-grid--compact">
+                <div class="detail-item">
+                  <span class="detail-label">Start Date</span>
+                  <span class="detail-value">{{ term.startDate ? (term.startDate | appDate) : '—' }}</span>
                 </div>
-                <div class="field-group field-group--inline">
-                  <label class="field-label">End Date</label>
-                  <input type="date" class="field-input" formControlName="endDate" />
+                <div class="detail-item">
+                  <span class="detail-label">End Date</span>
+                  <span class="detail-value">{{ term.endDate ? (term.endDate | appDate) : '—' }}</span>
                 </div>
               </div>
-              <div class="term-card__actions">
-                <button type="button" class="btn-secondary" (click)="saveTermDates($any(termType))">
-                  Save Dates
-                </button>
-                @if (getNextStatus(term.status)) {
-                  <button type="button" class="btn-primary" (click)="advanceTermStatus(term)">
-                    Advance to {{ getNextStatus(term.status) }}
+            </div>
+
+            <!-- Fee Billing (read-only) -->
+            <div class="ayd-card-section">
+              <div class="ayd-card-section__title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Fee Billing Schedule
+              </div>
+              @if (billing) {
+                <div class="detail-grid detail-grid--compact">
+                  <div class="detail-item">
+                    <span class="detail-label">Fee Due Date</span>
+                    <span class="detail-value">{{ billing.dueDate | appDate }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Late Fee</span>
+                    <span class="detail-value">{{ lateFeeLabel(billing.lateFeeType, billing.lateFeeAmount) }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Grace Days</span>
+                    <span class="detail-value">{{ billing.graceDays }} days</span>
+                  </div>
+                </div>
+              } @else {
+                <p class="detail-empty">No billing schedule configured — set one via Edit.</p>
+              }
+            </div>
+
+            <!-- Operational footer -->
+            @if (canEdit()) {
+              <div class="ayd-term-footer">
+                @if (term.status === 'OPEN') {
+                  <button class="btn-secondary btn-sm"
+                    (click)="generateEnrollments($any(side))" [disabled]="generating">
+                    @if (generating) { <span class="btn-spinner btn-spinner--dark"></span> }
+                    @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.42"/>
+                      </svg>
+                    }
+                    Generate Enrollments
+                  </button>
+                }
+                @let nextStatus = getNextStatus(term.status);
+                @if (nextStatus) {
+                  <button class="btn-secondary btn-sm"
+                    (click)="advanceTermStatus($any(side))" [disabled]="advancing">
+                    @if (advancing) { <span class="btn-spinner btn-spinner--dark"></span> }
+                    Advance to {{ nextStatus }}
                   </button>
                 }
               </div>
-            </form>
-
-            <!-- Enrollments Section -->
-            <div class="enrollments-section">
-              <h4>Enrollments</h4>
-              @if (term.status === 'OPEN') {
-                <button mat-stroked-button (click)="generateEnrollments(term)" [disabled]="generatingEnrollments()">
-                  <mat-icon>refresh</mat-icon>
-                  Generate Enrollments
-                </button>
-              }
-              <p>{{ enrollments().length }} enrollment(s)</p>
-            </div>
-          } @else {
-            <p class="term-card__empty">Term instances are created automatically by the backend.</p>
-          }
-        </div>
-      }
-    </div>
-
-    <!-- Billing Schedules -->
-    <h3 class="section-title">Term Billing Schedules</h3>
-    <div class="terms-grid">
-      @for (termType of ['ODD', 'EVEN']; track termType) {
-        @let billingForm = termType === 'ODD' ? oddBillingForm : evenBillingForm;
-        @let billing = termType === 'ODD' ? oddBilling() : evenBilling();
-        <div class="detail-card billing-card">
-          <h4 class="billing-card__title">{{ termType }} Term Billing</h4>
-          @if (termType === 'EVEN') {
-            <p class="billing-card__note">
-              For yearly-pattern programs, annual fees are billed at ODD term opening — EVEN term demands are generated for semester-pattern students only.
-            </p>
-          }
-          @if (billing) {
-            <p class="billing-card__existing">
-              Due: <strong>{{ billing.dueDate | appDate }}</strong> ·
-              Late fee: <strong>{{ billing.lateFeeType === 'FLAT' ? '₹' + billing.lateFeeAmount : '₹' + billing.lateFeeAmount + '/day' }}</strong> ·
-              Grace: <strong>{{ billing.graceDays }} days</strong>
-            </p>
-          }
-          <form [formGroup]="billingForm" (ngSubmit)="saveBillingSchedule($any(termType))">
-            <div class="field-group">
-              <label class="field-label">Due Date</label>
-              <input type="date" class="field-input field-input--narrow" formControlName="dueDate" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Late Fee Type</label>
-              <select class="field-input field-input--narrow" formControlName="lateFeeType">
-                <option value="FLAT">Flat Amount</option>
-                <option value="PER_DAY">Per Day</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Late Fee Amount (₹)</label>
-              <input type="number" class="field-input field-input--narrow" formControlName="lateFeeAmount" min="0" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Grace Days</label>
-              <input type="number" class="field-input field-input--narrow" formControlName="graceDays" min="0" />
-            </div>
-            <div class="form-footer">
-              <button type="submit" class="btn-primary" [disabled]="saving()">
-                @if (saving()) {
-                  <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                } @else {
-                  {{ billing ? 'Update' : 'Create' }} Billing Schedule
-                }
-              </button>
-            </div>
-          </form>
-        </div>
-      }
-    </div>
-
-    <!-- Course Offerings Section -->
-    @let openTerm = oddTermInstance()?.status === 'OPEN' ? oddTermInstance() : (evenTermInstance()?.status === 'OPEN' ? evenTermInstance() : null);
-    @let anyOpenOrLocked = oddTermInstance()?.status === 'OPEN' || oddTermInstance()?.status === 'LOCKED' || evenTermInstance()?.status === 'OPEN' || evenTermInstance()?.status === 'LOCKED';
-    @if (anyOpenOrLocked) {
-      <h3 class="section-title">Course Offerings</h3>
-      <div class="detail-card">
-        <div class="offerings-header">
-          <div class="offerings-filter">
-            <label class="field-label">Filter by Sem/Year</label>
-            <select class="field-input field-input--narrow" (change)="setSemesterFilter($any($event.target).value)">
-              <option value="">All</option>
-              @for (pos of availableTermPositions(); track pos) {
-                <option [value]="pos">{{ pos }}</option>
-              }
-            </select>
-          </div>
-          @if (openTerm) {
-            <button class="btn-secondary" (click)="generateCourseOfferings(openTerm)" [disabled]="generatingOfferings()">
-              <mat-icon>auto_awesome</mat-icon>
-              Generate Offerings
-            </button>
-          }
-        </div>
-
-        @if (filteredOfferings().length === 0) {
-          <p class="no-data">No course offerings found. Click "Generate Offerings" to create them.</p>
-        } @else {
-          <div class="offerings-table-wrapper">
-            <table class="enrollments-table">
-              <thead>
-                <tr>
-                  <th>Subject</th>
-                  <th>Code</th>
-                  <th>Sem</th>
-                  <th>Curriculum Version</th>
-                  <th>Faculty ID</th>
-                  <th>Section</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (offering of filteredOfferings(); track offering.id) {
-                  @if (editingOffering() === offering.id) {
-                    <tr class="editing-row">
-                      <td colspan="2">{{ offering.subjectName }} ({{ offering.subjectCode }})</td>
-                      <td>{{ offering.semesterNumber }}</td>
-                      <td>{{ offering.curriculumVersionName }}</td>
-                      <td>
-                        <form [formGroup]="offeringEditForm" class="inline-edit-form">
-                          <input type="number" class="field-input field-input--xs" formControlName="facultyId"
-                            placeholder="Faculty ID" />
-                        </form>
-                      </td>
-                      <td>
-                        <form [formGroup]="offeringEditForm" class="inline-edit-form">
-                          <input type="text" class="field-input field-input--xs" formControlName="sectionLabel"
-                            placeholder="Section" />
-                        </form>
-                      </td>
-                      <td>
-                        <span class="cms-badge" [class.cms-badge--soft-success]="offering.isActive"
-                          [class.cms-badge--soft-default]="!offering.isActive">
-                          {{ offering.isActive ? 'Active' : 'Inactive' }}
-                        </span>
-                      </td>
-                      <td>
-                        <button class="btn-primary btn-xs"
-                          (click)="saveOffering(offering, offering.termInstanceId)">Save</button>
-                        <button class="btn-ghost btn-xs" (click)="cancelEditOffering()">Cancel</button>
-                      </td>
-                    </tr>
-                  } @else {
-                    <tr>
-                      <td>{{ offering.subjectName }}</td>
-                      <td><span class="code-value">{{ offering.subjectCode }}</span></td>
-                      <td>{{ offering.semesterNumber }}</td>
-                      <td>{{ offering.curriculumVersionName }}</td>
-                      <td>{{ offering.facultyId ?? '—' }}</td>
-                      <td>{{ offering.sectionLabel ?? '—' }}</td>
-                      <td>
-                        <span class="cms-badge" [class.cms-badge--soft-success]="offering.isActive"
-                          [class.cms-badge--soft-default]="!offering.isActive">
-                          {{ offering.isActive ? 'Active' : 'Inactive' }}
-                        </span>
-                      </td>
-                      <td>
-                        <button class="btn-ghost btn-xs" (click)="startEditOffering(offering)">
-                          <mat-icon>edit</mat-icon>
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
-
-      <!-- Course Registrations Summary Section -->
-      <h3 class="section-title">Course Registrations</h3>
-      <div class="detail-card">
-        <div class="offerings-header">
-          <p class="registrations-summary">
-            <strong>{{ courseOfferings().length }}</strong> offering(s) available ·
-            Registrations shown per offering (click "View Class List" per row)
-          </p>
-          @if (openTerm && courseOfferings().length > 0) {
-            <button class="btn-secondary" (click)="generateCourseRegistrations(openTerm)"
-              [disabled]="generatingRegistrations()">
-              <mat-icon>how_to_reg</mat-icon>
-              Generate Registrations
-            </button>
-          }
-        </div>
-        @if (courseRegistrations().length > 0) {
-          <table class="enrollments-table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Cohort</th>
-                <th>Sem/Year</th>
-                <th>Subject</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (reg of courseRegistrations(); track reg.id) {
-                <tr>
-                  <td>{{ reg.studentName }}</td>
-                  <td><span class="code-value">{{ reg.cohortCode }}</span></td>
-                  <td>{{ reg.semesterNumber }}</td>
-                  <td>{{ reg.subjectName }}</td>
-                  <td>
-                    <span class="cms-badge"
-                      [class.cms-badge--soft-success]="reg.status === 'REGISTERED'"
-                      [class.cms-badge--soft-warning]="reg.status === 'DROPPED'"
-                      [class.cms-badge--soft-default]="reg.status === 'COMPLETED'">
-                      {{ reg.status }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-      </div>
-    }
-
-    <!-- Fee Demands Section -->
-    @if (openOrLockedTerm()) {
-      <h3 class="section-title">Fee Demands</h3>
-      <div class="detail-card">
-        <div class="offerings-header">
-          <div class="offerings-filter">
-            <label class="field-label">Filter by Status</label>
-            <select class="field-input field-input--narrow"
-              (change)="setDemandStatusFilter($any($event.target).value)">
-              <option value="">All</option>
-              <option value="UNPAID">Unpaid</option>
-              <option value="PARTIAL">Partial</option>
-              <option value="PAID">Paid</option>
-              <option value="WAIVED">Waived</option>
-            </select>
-          </div>
-          @if (openOrLockedTerm()?.status === 'OPEN') {
-            <button class="btn-secondary"
-              (click)="generateFeeDemands(openOrLockedTerm()!)"
-              [disabled]="generatingDemands()">
-              <mat-icon>request_quote</mat-icon>
-              Generate Fee Demands
-            </button>
-          }
-        </div>
-
-        @if (filteredDemands().length === 0) {
-          <p class="no-data">No fee demands found.
-            @if (openOrLockedTerm()?.status === 'OPEN') {
-              Click "Generate Fee Demands" to create them.
             }
-          </p>
-        } @else {
-          <div class="offerings-table-wrapper">
-            <table class="enrollments-table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Cohort</th>
-                  <th>Total (₹)</th>
-                  <th>Due Date</th>
-                  <th>Paid (₹)</th>
-                  <th>Outstanding (₹)</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (demand of filteredDemands(); track demand.id) {
-                  <tr>
-                    <td>{{ demand.studentName }}</td>
-                    <td><span class="code-value">{{ demand.cohortCode }}</span></td>
-                    <td>{{ demand.totalAmount | inr:true:false }}</td>
-                    <td>{{ demand.dueDate | appDate }}</td>
-                    <td>{{ demand.paidAmount | inr:true:false }}</td>
-                    <td>{{ demand.outstandingAmount | inr:true:false }}</td>
-                    <td>
-                      <span class="cms-badge" [ngClass]="getDemandStatusClass(demand.status)">
-                        {{ demand.status }}
-                      </span>
-                    </td>
-                    <td>
-                      @if (demand.status !== 'PAID' && demand.status !== 'WAIVED') {
-                        <button class="btn-ghost btn-xs"
-                          (click)="openPaymentDialog(demand, openOrLockedTerm()!)">
-                          <mat-icon>payments</mat-icon>
-                          Pay
-                        </button>
+
+          } @else {
+            <p class="ayd-term-empty">Term not yet created — save this academic year from the Edit screen to generate it.</p>
+          }
+
+        </div>
+      }
+
+    </div>
+
+    <!-- ── Cohort Seat Allocations ─────────────────────────────────────── -->
+    @if (cohorts().length > 0) {
+      <div class="entry-form-card entry-form-card--sectioned" style="margin-top: 24px;">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Cohort Seat Allocations</div>
+            <div class="entry-form-card__hdr-sub">Set government-approved management and counselling seat intake per program batch</div>
+          </div>
+        </div>
+
+        <div class="entry-form-card__body">
+          <div class="cohort-seats-table">
+            <div class="cohort-seats-table__head">
+              <span>Program</span>
+              <span>Batch</span>
+              <span>Management Seats</span>
+              <span>Counselling Seats</span>
+              <span>Total Seats</span>
+              <span></span>
+            </div>
+            @for (cohort of cohorts(); track cohort.id) {
+              <div class="cohort-seats-table__row">
+                <span class="cohort-seats-table__program">
+                  <span class="cohort-seats-table__code">{{ cohort.programCode }}</span>
+                  {{ cohort.programName }}
+                </span>
+                <span class="cohort-seats-table__batch">{{ cohort.displayName }}</span>
+                <span>
+                  <input
+                    type="number"
+                    class="field-input field-input--narrow cohort-seat-input"
+                    min="0"
+                    placeholder="e.g. 40"
+                    [value]="getCohortEdit(cohort.id).managementSeats ?? ''"
+                    (input)="onCohortSeatChange(cohort.id, 'managementSeats', $any($event.target).value)"
+                  />
+                </span>
+                <span>
+                  <input
+                    type="number"
+                    class="field-input field-input--narrow cohort-seat-input"
+                    min="0"
+                    placeholder="e.g. 20"
+                    [value]="getCohortEdit(cohort.id).counsellingSeats ?? ''"
+                    (input)="onCohortSeatChange(cohort.id, 'counsellingSeats', $any($event.target).value)"
+                  />
+                </span>
+                <span class="cohort-seats-table__row-total">
+                  {{ getCohortTotalSeats(cohort.id) }}
+                </span>
+                <span class="cohort-seats-table__actions">
+                  <button
+                    class="btn-secondary btn-sm"
+                    (click)="saveCohortSeats(cohort.id)"
+                    [disabled]="savingCohortId() === cohort.id">
+                    @if (savingCohortId() === cohort.id) {
+                      <span class="btn-spinner btn-spinner--dark"></span>
+                    } @else {
+                      Save
+                    }
+                  </button>
+                  @if (canEdit() && !cohort.hasStudents) {
+                    <button
+                      class="btn-ghost btn-sm btn-ghost--danger"
+                      (click)="deleteCohort(cohort.id)"
+                      [disabled]="deletingCohortId() === cohort.id"
+                      title="Remove cohort">
+                      @if (deletingCohortId() === cohort.id) {
+                        <span class="btn-spinner btn-spinner--dark"></span>
+                      } @else {
+                        Remove
                       }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+                    </button>
+                  }
+                </span>
+              </div>
+            }
+            <div class="cohort-seats-table__footer">
+              <span class="cohort-seats-table__footer-label">Grand Total</span>
+              <span></span>
+              <span class="cohort-seats-table__footer-value">{{ grandTotals().management }}</span>
+              <span class="cohort-seats-table__footer-value">{{ grandTotals().counselling }}</span>
+              <span class="cohort-seats-table__footer-value cohort-seats-table__footer-value--total">{{ grandTotals().total }}</span>
+              <span></span>
+            </div>
+          </div>
+          <p class="field-hint" style="margin-top: 12px;">
+            Total seats per cohort = Management + Counselling. Government Lapsed Seats on the dashboard = sum of Counselling Seats across all cohorts minus students admitted via counselling.
+          </p>
+        </div>
+      </div>
+    } @else {
+      <div class="entry-form-card entry-form-card--sectioned" style="margin-top: 24px;">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Cohort Seat Allocations</div>
+            <div class="entry-form-card__hdr-sub">No cohorts configured for this academic year</div>
+          </div>
+        </div>
+        @if (canEdit()) {
+          <div class="entry-form-card__body">
+            <p class="field-hint" style="margin-bottom: 12px;">
+              Initialize cohorts for all active programs and set government-approved seat limits before admission begins.
+            </p>
+            <button
+              class="btn-primary btn-sm"
+              (click)="initializeCohorts()"
+              [disabled]="initializingCohorts()">
+              @if (initializingCohorts()) {
+                <span class="btn-spinner"></span> Initializing…
+              } @else {
+                Initialize Cohorts
+              }
+            </button>
           </div>
         }
       </div>
     }
+
   }
+
 </div>

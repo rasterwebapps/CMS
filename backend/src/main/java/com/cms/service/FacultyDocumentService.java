@@ -12,7 +12,6 @@ import com.cms.dto.DocumentFileDownload;
 import com.cms.dto.FacultyDocumentHistoryResponse;
 import com.cms.dto.FacultyDocumentRequest;
 import com.cms.dto.FacultyDocumentResponse;
-import com.cms.dto.FacultyPendingDocumentsSummary;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
@@ -51,28 +50,6 @@ public class FacultyDocumentService {
         }
         return documentRepository.findByFacultyId(facultyId).stream()
             .map(this::toResponse)
-            .toList();
-    }
-
-    public List<FacultyPendingDocumentsSummary> findPendingSummaries() {
-        return documentRepository.findByStatus(DocumentVerificationStatus.UPLOADED).stream()
-            .collect(java.util.stream.Collectors.groupingBy(
-                doc -> doc.getFaculty().getId(),
-                java.util.LinkedHashMap::new,
-                java.util.stream.Collectors.toList()
-            ))
-            .entrySet().stream()
-            .map(entry -> {
-                var faculty = entry.getValue().get(0).getFaculty();
-                return new FacultyPendingDocumentsSummary(
-                    faculty.getId(),
-                    faculty.getFullName(),
-                    faculty.getEmployeeCode(),
-                    faculty.getDepartment().getName(),
-                    faculty.getDesignation().name(),
-                    entry.getValue().size()
-                );
-            })
             .toList();
     }
 

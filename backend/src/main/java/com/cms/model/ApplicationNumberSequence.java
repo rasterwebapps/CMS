@@ -48,6 +48,12 @@ public class ApplicationNumberSequence {
     @Column(name = "last_sequence", nullable = false)
     private Integer lastSequence;
 
+    @Column(name = "separator", nullable = false, length = 5)
+    private String separator = "-";
+
+    @Column(name = "include_scope_in_number", nullable = false)
+    private boolean includeScopeInNumber = true;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -73,6 +79,23 @@ public class ApplicationNumberSequence {
         this.sequencePadding = sequencePadding;
         this.lastSequence = lastSequence;
         this.description = description;
+        this.separator = "-";
+        this.includeScopeInNumber = true;
+    }
+
+    public ApplicationNumberSequence(String seriesCode, String seriesName, String scopeType, String scopeKey,
+                                     String prefix, Integer sequencePadding, Integer lastSequence,
+                                     String description, String separator, boolean includeScopeInNumber) {
+        this.seriesCode = seriesCode;
+        this.seriesName = seriesName;
+        this.scopeType = scopeType;
+        this.scopeKey = scopeKey;
+        this.prefix = prefix;
+        this.sequencePadding = sequencePadding;
+        this.lastSequence = lastSequence;
+        this.description = description;
+        this.separator = separator;
+        this.includeScopeInNumber = includeScopeInNumber;
     }
 
     public Long getId() { return id; }
@@ -91,6 +114,10 @@ public class ApplicationNumberSequence {
     public void setSequencePadding(Integer sequencePadding) { this.sequencePadding = sequencePadding; }
     public Integer getLastSequence() { return lastSequence; }
     public void setLastSequence(Integer lastSequence) { this.lastSequence = lastSequence; }
+    public String getSeparator() { return separator; }
+    public void setSeparator(String separator) { this.separator = separator; }
+    public boolean isIncludeScopeInNumber() { return includeScopeInNumber; }
+    public void setIncludeScopeInNumber(boolean includeScopeInNumber) { this.includeScopeInNumber = includeScopeInNumber; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public Instant getCreatedAt() { return createdAt; }

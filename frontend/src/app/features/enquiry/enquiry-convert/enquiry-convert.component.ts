@@ -20,7 +20,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
+import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -32,7 +32,7 @@ import { CmsStateDistrictSelectorComponent } from '../../../shared/state-distric
     MatTooltipModule,
     InrPipe,
     CmsTourButtonComponent,
-    CmsStateDistrictSelectorComponent,
+    CmsCountryStateDistrictSelectorComponent,
   ],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
@@ -97,6 +97,7 @@ export class EnquiryConvertComponent implements OnInit {
     motherPhone:       [''],
     motherEmail:       ['', Validators.email],
     address: this.fb.group({
+      country:       [null as number | null],
       postalAddress: [''],
       street:        [''],
       city:          [''],
@@ -290,6 +291,7 @@ export class EnquiryConvertComponent implements OnInit {
       motherEmail:        this.nullable(v['motherEmail'] as string) ?? null,
 
       address: hasAddress ? {
+        countryId:     (addr['country'] as number | null) ?? null,
         postalAddress: this.nullable(addr['postalAddress'] as string) ?? null,
         street:        this.nullable(addr['street'] as string) ?? null,
         city:          this.nullable(addr['city'] as string) ?? null,

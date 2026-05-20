@@ -19,7 +19,7 @@ import { STUDENT_FORM_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
-import { CmsStateDistrictSelectorComponent } from '../../../shared/state-district-selector/state-district-selector.component';
+import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface Program {
@@ -39,7 +39,7 @@ interface Program {
     CmsTourButtonComponent,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
-    CmsStateDistrictSelectorComponent,
+    CmsCountryStateDistrictSelectorComponent,
   ],
   templateUrl: './student-form.component.html',
   styleUrl: './student-form.component.scss',
@@ -132,6 +132,7 @@ export class StudentFormComponent implements OnInit {
     isFirstGraduate: [false],
     fatherEducation: [''],
     motherEducation: [''],
+    country: [null as number | null],
     postalAddress: [''],
     street: [''],
     city: [''],
@@ -213,6 +214,7 @@ export class StudentFormComponent implements OnInit {
       fatherEducation: v.fatherEducation?.trim() || undefined,
       motherEducation: v.motherEducation?.trim() || undefined,
       address: {
+        countryId: v.country || undefined,
         postalAddress: v.postalAddress?.trim() || undefined,
         street: v.street?.trim() || undefined,
         city: v.city?.trim() || undefined,
@@ -317,6 +319,7 @@ export class StudentFormComponent implements OnInit {
           postalAddress: student.postalAddress || '',
           street: student.street || '',
           city: student.city || '',
+          country: student.countryId ?? null,
           district: student.district || '',
           state: student.state || '',
           pincode: student.pincode || '',

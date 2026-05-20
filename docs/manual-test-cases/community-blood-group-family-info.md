@@ -86,6 +86,54 @@ Related: V92 migration, new `/communities` and `/blood-groups` endpoints, Comple
 
 ---
 
+## TC-COMM-005: Add/Edit community screen follows master-entry design standards
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- Application is running.
+
+**Steps:**
+1. Navigate to **Preferences → Communities**.
+2. Click **Add Community**.
+3. Verify the screen uses the master-entry layout with a back icon, title/subtitle, sectioned form card, live preview card, and guidance card.
+4. Enter Name = `Backward Class`, Code = `bc`, Description = `Reservation category` and verify the code is normalized to `BC` without spaces.
+5. Toggle **Active** off and on, and verify the live preview status pill updates.
+6. Click **Cancel** and verify navigation returns to the Communities list.
+7. Open an existing community in edit mode and verify the same layout and populated preview are shown.
+
+**Expected Result:**
+- Add and edit screens match the current master-entry standards used by other master screens.
+- Required-field and max-length errors use the standard inline error styling.
+- Submit button shows **Create Community** in add mode and **Update Community** in edit mode.
+- No horizontal page scroll appears on desktop or mobile-width viewports.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-COMM-006: Community list action icons match master list design
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- At least one community exists.
+
+**Steps:**
+1. Navigate to **Preferences → Communities**.
+2. Switch to card view and hover/focus a community card.
+3. Verify the edit and delete icon buttons appear in the same compact MLP style used by Academic Years.
+4. Switch to table view and hover/focus a community row.
+5. Verify row action buttons use the standard rounded icon-button style, align to the right, and show edit/delete tooltips.
+6. Repeat in light mode, dark mode, and a 360 x 740 viewport.
+
+**Expected Result:**
+- Card and table actions are visually consistent with other master list screens.
+- Pencil/trash icons are not rendered as oversized, unstyled, or text-like glyphs.
+- Buttons remain reachable and usable on mobile with no horizontal page scroll.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-BG-001: Create a new blood group
 
 **Preconditions:**
@@ -113,11 +161,59 @@ Related: V92 migration, new `/communities` and `/blood-groups` endpoints, Comple
 **Steps:**
 1. Navigate to **Blood Groups → Add Blood Group**.
 2. Enter Name = `O Pos Duplicate`, Code = `O+`.
-3. Click **Create**.
+3. Click **Create Blood Group**.
 
 **Expected Result:**
 - Backend returns HTTP 400 with "already exists" message.
 - Toast displays the error; no record is created.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-BG-003: Add/Edit blood group screen follows master-entry design standards
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- Application is running.
+
+**Steps:**
+1. Navigate to **Preferences → Blood Groups**.
+2. Click **Add Blood Group**.
+3. Verify the screen uses the master-entry layout with a back icon, title/subtitle, sectioned form card, live preview card, and guidance card.
+4. Enter Name = `A Positive`, Code = `a +` and verify the code is normalized to `A+` without spaces.
+5. Toggle **Active** off and on, and verify the live preview status pill updates.
+6. Click **Cancel** and verify navigation returns to the Blood Groups list.
+7. Open an existing blood group in edit mode and verify the same layout and populated preview are shown.
+
+**Expected Result:**
+- Add and edit screens match the current master-entry standards used by other master screens.
+- Required-field errors use the standard inline error styling.
+- Submit button shows **Create Blood Group** in add mode and **Update Blood Group** in edit mode.
+- No horizontal page scroll appears on desktop or mobile-width viewports.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-BG-004: Blood Group list action icons match master list design
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- At least one blood group exists.
+
+**Steps:**
+1. Navigate to **Preferences → Blood Groups**.
+2. Switch to card view and hover/focus a blood group card.
+3. Verify the edit and delete icon buttons appear in the same compact MLP style used by Academic Years.
+4. Switch to table view and hover/focus a blood group row.
+5. Verify row action buttons use the standard rounded icon-button style, align to the right, and show edit/delete tooltips.
+6. Repeat in light mode, dark mode, and a 360 x 740 viewport.
+
+**Expected Result:**
+- Card and table actions are visually consistent with other master list screens.
+- Pencil/trash icons are not rendered as oversized, unstyled, or text-like glyphs.
+- Buttons remain reachable and usable on mobile with no horizontal page scroll.
 
 **Status:** NOT TESTED
 

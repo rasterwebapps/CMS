@@ -15,6 +15,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.IntakeRule;
 import com.cms.model.Program;
 import com.cms.model.Student;
@@ -168,7 +169,7 @@ public class AdmissionService {
                 .orElse(null);
         }
         student.setExpectedGraduationTermInstance(expectedGraduationTermInstance);
-        ensureAdmissionNumber(student, admission.getJoiningAcademicYear());
+        ensureAdmissionNumber(student, admission.getJoiningAcademicYear(), student.getCourse());
         studentRepository.save(student);
 
         Long expectedGraduationTermInstanceId = expectedGraduationTermInstance != null
@@ -216,9 +217,9 @@ public class AdmissionService {
         );
     }
 
-    private void ensureAdmissionNumber(Student student, AcademicYear academicYear) {
+    private void ensureAdmissionNumber(Student student, AcademicYear academicYear, Course course) {
         if (student.getAdmissionNumber() == null || student.getAdmissionNumber().isBlank()) {
-            student.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(academicYear));
+            student.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(academicYear, course));
         }
     }
 }

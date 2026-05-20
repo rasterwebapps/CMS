@@ -65,7 +65,7 @@
                   <select class="field-input" formControlName="subjectId">
                     <option [value]="null">-- Select --</option>
                     @for (subject of subjects(); track subject.id) {
-                      <option [value]="subject.id">{{ subject.code }} — {{ subject.name }}</option>
+                      <option [value]="subject.id">{{ subject.name }}</option>
                     }
                   </select>
                 </div>

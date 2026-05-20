@@ -42,12 +42,11 @@ Comprehensive user guides and handbooks have been created for all primary user r
 - Role overview and permissions
 - Getting started and login
 - Dashboard widgets and functionality
-- Preferences & Settings (8 subsections):
+- Preferences & Settings:
   - Departments management
   - Programs management
   - Courses management
   - Academic Years
-  - Semesters
   - Fee Structures
   - Faculty management
   - Agents & Referral Types

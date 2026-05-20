@@ -133,7 +133,9 @@ public class Enquiry {
     private Instant finalizedAt;
 
     // ── Location ─────────────────────────────────────────────────────────────
-    private String country;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "country_id")
+    private LocationCountry country;
     private String state;
     private String district;
 
@@ -378,8 +380,8 @@ public class Enquiry {
         this.finalizedAt = finalizedAt;
     }
 
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
+    public LocationCountry getCountry() { return country; }
+    public void setCountry(LocationCountry country) { this.country = country; }
 
     public String getState() { return state; }
     public void setState(String state) { this.state = state; }

@@ -26,6 +26,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.IntakeRule;
 import com.cms.model.Program;
 import com.cms.model.Student;
@@ -76,8 +77,8 @@ class AdmissionServiceTest {
             .when(academicYearRepository.findById(100L))
             .thenReturn(Optional.of(createAcademicYear()));
         org.mockito.Mockito.lenient()
-            .when(numberSequenceService.nextAdmissionNumber(any(AcademicYear.class)))
-            .thenReturn("ADM-2425-0001");
+            .when(numberSequenceService.nextAdmissionNumber(any(AcademicYear.class), any(Course.class)))
+            .thenReturn("2026650001");
     }
 
     private AcademicYear createAcademicYear() {
@@ -87,9 +88,12 @@ class AdmissionServiceTest {
     }
 
     private Student createStudent(Long id) {
+        Course course = new Course("BSc Nursing", "BSCN", null, null);
+        course.setAdmissionNumberCode("65");
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
             null, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
         student.setId(id);
+        student.setCourse(course);
         return student;
     }
 

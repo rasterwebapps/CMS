@@ -213,7 +213,7 @@
                 <select id="fac-blood" class="field-select" formControlName="bloodGroup">
                   <option value="">Select blood group</option>
                   @for (bg of bloodGroups(); track bg.id) {
-                    <option [value]="bg.code">{{ bg.code }} — {{ bg.name }}</option>
+                    <option [value]="bg.code">{{ bg.name }}</option>
                   }
                 </select>
               </div>
@@ -394,7 +394,7 @@
             </div>
 
             <div class="field-row">
-              <cms-state-district-selector [parentForm]="form" />
+              <cms-country-state-district-selector [parentForm]="form" />
             </div>
 
             <div class="field-group" style="margin-bottom: 0;">

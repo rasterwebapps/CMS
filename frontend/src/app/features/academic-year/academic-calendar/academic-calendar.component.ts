@@ -15,7 +15,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
@@ -25,7 +24,9 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
-  Semester,
+  TermInstance,
+  TermInstanceStatus,
+  TermType,
 } from '../academic-year.model';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -48,8 +49,8 @@ interface DayCell {
   date: Date;
   dayNum: number;
   isCurrentMonth: boolean;
-  semesterStatus: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null;
-  semesterName: string | null;
+  termStatus: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null;
+  termName: string | null;
   events: CalendarEvent[];
   isToday: boolean;
 }
@@ -86,7 +87,6 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
-    MatDialogModule,
     MatMenuModule,
     MatTooltipModule,
     PageHeaderComponent,
@@ -97,7 +97,6 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
 export class AcademicCalendarComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   private readonly printService = inject(PrintService);
   private readonly csvExporter = inject(CsvExporterService);
@@ -115,7 +114,7 @@ export class AcademicCalendarComponent implements OnInit {
   // ─── Data signals ───
   protected readonly allAcademicYears = signal<AcademicYear[]>([]);
   protected readonly selectedAcademicYear = signal<AcademicYear | null>(null);
-  protected readonly semesters = signal<Semester[]>([]);
+  protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly events = signal<CalendarEvent[]>([]);
 
   // ─── View mode ───
@@ -139,7 +138,7 @@ export class AcademicCalendarComponent implements OnInit {
   // ─── Stats ───
   protected readonly stats = computed(() => {
     const ay = this.selectedAcademicYear();
-    const sems = this.semesters();
+    const terms = this.termInstances();
     const evts = this.events();
 
     if (!ay) return null;
@@ -152,22 +151,22 @@ export class AcademicCalendarComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const currentSem = sems.find((s) => {
-      const ss = new Date(s.startDate);
-      const se = new Date(s.endDate);
-      return today >= ss && today <= se;
+    const currentTerm = terms.find((term) => {
+      const start = new Date(term.startDate);
+      const end = new Date(term.endDate);
+      return today >= start && today <= end;
     });
 
-    const daysRemaining = currentSem
+    const daysRemaining = currentTerm
       ? Math.max(
           0,
-          Math.round((new Date(currentSem.endDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY),
+          Math.round((new Date(currentTerm.endDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY),
         )
       : null;
 
     return {
       totalWeeks,
-      semesterCount: sems.length,
+      termCount: terms.length,
       daysRemaining,
       eventCount: evts.length,
     };
@@ -192,7 +191,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly monthGrids = computed<MonthGrid[]>(() => {
     const ay = this.selectedAcademicYear();
     if (!ay) return [];
-    return this.buildMonthGrids(ay, this.semesters(), this.events());
+    return this.buildMonthGrids(ay, this.termInstances(), this.events());
   });
 
   // ─── Event form ───
@@ -202,7 +201,6 @@ export class AcademicCalendarComponent implements OnInit {
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
     eventType: ['HOLIDAY' as CalendarEventType, Validators.required],
-    semesterId: [null as number | null],
   });
 
   private readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
@@ -256,11 +254,11 @@ export class AcademicCalendarComponent implements OnInit {
 
   private loadYearData(yearId: number): void {
     forkJoin({
-      semesters: this.academicYearService.getSemestersByAcademicYear(yearId),
+      termInstances: this.academicYearService.getTermInstancesByAcademicYear(yearId),
       events: this.academicYearService.getCalendarEventsByAcademicYear(yearId),
     }).subscribe({
-      next: ({ semesters, events }) => {
-        this.semesters.set(semesters);
+      next: ({ termInstances, events }) => {
+        this.termInstances.set(termInstances);
         this.events.set(events);
         this.loading.set(false);
       },
@@ -271,24 +269,25 @@ export class AcademicCalendarComponent implements OnInit {
     });
   }
 
-  // ─── Semester helpers ───
-  protected getSemesterProgress(semester: Semester): number {
+  // ─── Term helpers ───
+  protected getTermProgress(term: TermInstance): number {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = new Date(semester.startDate);
-    const end = new Date(semester.endDate);
+    const start = new Date(term.startDate);
+    const end = new Date(term.endDate);
     if (today < start) return 0;
     if (today > end) return 100;
     const total = end.getTime() - start.getTime();
+    if (total <= 0) return 100;
     const elapsed = today.getTime() - start.getTime();
     return Math.round((elapsed / total) * 100);
   }
 
-  protected getSemesterDays(semester: Semester): { elapsed: number; total: number } {
+  protected getTermDays(term: TermInstance): { elapsed: number; total: number } {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = new Date(semester.startDate);
-    const end = new Date(semester.endDate);
+    const start = new Date(term.startDate);
+    const end = new Date(term.endDate);
     const total = Math.round((end.getTime() - start.getTime()) / AcademicCalendarComponent.MS_PER_DAY) + 1;
     const elapsed = Math.min(
       total,
@@ -297,13 +296,34 @@ export class AcademicCalendarComponent implements OnInit {
     return { elapsed: today < start ? 0 : elapsed, total };
   }
 
-  // ─── Events panel helpers ───
-  protected getEventsForSemester(semester: Semester): CalendarEvent[] {
-    return this.events().filter((e) => e.semester?.id === semester.id);
+  protected getTermLabel(term: TermInstance): string {
+    return `${this.termTypeLabel(term.termType)} Term`;
   }
 
-  protected getUnassignedEvents(): CalendarEvent[] {
-    return this.events().filter((e) => !e.semester);
+  protected getTermStatus(term: TermInstance): 'UPCOMING' | 'ONGOING' | 'COMPLETED' {
+    const byStatus = this.mapTermStatus(term.status);
+    if (byStatus) return byStatus;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(term.startDate);
+    const end = new Date(term.endDate);
+    if (today < start) return 'UPCOMING';
+    if (today > end) return 'COMPLETED';
+    return 'ONGOING';
+  }
+
+  protected termTypeLabel(type: TermType): string {
+    return type === 'ODD' ? 'Odd' : 'Even';
+  }
+
+  // ─── Events panel helpers ───
+  protected getEventsForTerm(term: TermInstance): CalendarEvent[] {
+    return this.events().filter((event) => event.startDate <= term.endDate && event.endDate >= term.startDate);
+  }
+
+  protected getYearLevelEvents(): CalendarEvent[] {
+    return this.events();
   }
 
   protected eventTypeBadgeClass(type: CalendarEventType): string {
@@ -323,7 +343,7 @@ export class AcademicCalendarComponent implements OnInit {
     const ay = this.selectedAcademicYear();
     if (!ay) return;
     this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY', semesterId: null });
+    this.eventForm.reset({ eventType: 'HOLIDAY' });
     this.showEventDialog.set(true);
   }
 
@@ -335,7 +355,6 @@ export class AcademicCalendarComponent implements OnInit {
       startDate: event.startDate,
       endDate: event.endDate,
       eventType: event.eventType,
-      semesterId: event.semester?.id ?? null,
     });
     this.showEventDialog.set(true);
   }
@@ -343,7 +362,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected closeEventDialog(): void {
     this.showEventDialog.set(false);
     this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY', semesterId: null });
+    this.eventForm.reset({ eventType: 'HOLIDAY' });
   }
 
   protected saveEvent(): void {
@@ -362,7 +381,6 @@ export class AcademicCalendarComponent implements OnInit {
       endDate: val.endDate!,
       eventType: val.eventType as CalendarEventType,
       academicYearId: ay.id,
-      semesterId: val.semesterId ?? undefined,
     };
 
     this.eventSaving.set(true);
@@ -425,9 +443,9 @@ export class AcademicCalendarComponent implements OnInit {
         { key: 'endDate', header: 'End Date' },
         { key: 'description', header: 'Description', format: (v) => String(v ?? '') },
         {
-          key: 'semester',
-          header: 'Semester',
-          format: (_v, row) => (row as CalendarEvent).semester?.name ?? '',
+          key: 'academicYear',
+          header: 'Academic Year',
+          format: (_v, row) => (row as CalendarEvent).academicYear?.name ?? ay?.name ?? '',
         },
       ],
       evts,
@@ -437,7 +455,7 @@ export class AcademicCalendarComponent implements OnInit {
   // ─── Grid builder ───
   private buildMonthGrids(
     ay: AcademicYear,
-    semesters: Semester[],
+    termInstances: TermInstance[],
     events: CalendarEvent[],
   ): MonthGrid[] {
     const start = new Date(ay.startDate);
@@ -461,16 +479,16 @@ export class AcademicCalendarComponent implements OnInit {
 
       for (let pad = 0; pad < startDow; pad++) {
         const d = new Date(year, month, -startDow + pad + 1);
-        days.push(this.buildDayCell(d, false, semesters, events, today));
+        days.push(this.buildDayCell(d, false, termInstances, events, today));
       }
       for (let d = 1; d <= lastDay.getDate(); d++) {
         const date = new Date(year, month, d);
-        days.push(this.buildDayCell(date, true, semesters, events, today));
+        days.push(this.buildDayCell(date, true, termInstances, events, today));
       }
       // Pad end to complete final week
       while (days.length % 7 !== 0) {
         const date = new Date(year, month + 1, days.length - lastDay.getDate() - startDow + 1);
-        days.push(this.buildDayCell(date, false, semesters, events, today));
+        days.push(this.buildDayCell(date, false, termInstances, events, today));
       }
 
       grids.push({ year, month, label: `${this.MONTH_NAMES[month]} ${year}`, days });
@@ -482,22 +500,31 @@ export class AcademicCalendarComponent implements OnInit {
   private buildDayCell(
     date: Date,
     isCurrentMonth: boolean,
-    semesters: Semester[],
+    termInstances: TermInstance[],
     events: CalendarEvent[],
     today: Date,
   ): DayCell {
     const iso = this.toIso(date);
-    const sem = semesters.find((s) => s.startDate <= iso && s.endDate >= iso);
+    const term = termInstances.find((item) => item.startDate <= iso && item.endDate >= iso);
     const dayEvents = events.filter((e) => e.startDate <= iso && e.endDate >= iso);
     return {
       date,
       dayNum: date.getDate(),
       isCurrentMonth,
-      semesterStatus: sem ? sem.status : null,
-      semesterName: sem ? sem.name : null,
+      termStatus: term ? this.getTermStatus(term) : null,
+      termName: term ? this.getTermLabel(term) : null,
       events: dayEvents,
       isToday: date.getTime() === today.getTime(),
     };
+  }
+
+  private mapTermStatus(status: TermInstanceStatus): 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null {
+    switch (status) {
+      case 'PLANNED': return 'UPCOMING';
+      case 'OPEN': return 'ONGOING';
+      case 'LOCKED': return 'COMPLETED';
+      default: return null;
+    }
   }
 
   private toIso(d: Date): string {

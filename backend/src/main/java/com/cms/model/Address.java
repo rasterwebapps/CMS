@@ -6,6 +6,9 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class Address {
 
+    @Column(name = "country_id")
+    private Long countryId;
+
     @Column(name = "postal_address")
     private String postalAddress;
 
@@ -22,8 +25,9 @@ public class Address {
     public Address() {
     }
 
-    public Address(String postalAddress, String street, String city,
+    public Address(Long countryId, String postalAddress, String street, String city,
                    String district, String state, String pincode) {
+        this.countryId = countryId;
         this.postalAddress = postalAddress;
         this.street = street;
         this.city = city;
@@ -31,6 +35,9 @@ public class Address {
         this.state = state;
         this.pincode = pincode;
     }
+
+    public Long getCountryId() { return countryId; }
+    public void setCountryId(Long countryId) { this.countryId = countryId; }
 
     public String getPostalAddress() {
         return postalAddress;

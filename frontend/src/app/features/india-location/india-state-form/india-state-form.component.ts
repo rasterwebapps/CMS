@@ -2,10 +2,13 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { IndiaLocationService } from '../india-location.service';
-import { IndiaStateRequest } from '../india-location.model';
+import { Country, IndiaStateRequest } from '../india-location.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import {
   noConsecutiveSpaces,
@@ -15,10 +18,19 @@ import {
   stripSpaces,
 } from '../../../shared/validators/cms-validators';
 
+const STATE_FORM_IMPORTS = [
+  RouterLink,
+  ReactiveFormsModule,
+  MatProgressSpinnerModule,
+  MatSlideToggleModule,
+  CmsPreviewCardComponent,
+  CmsTipsCardComponent,
+];
+
 @Component({
   selector: 'app-india-state-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatSlideToggleModule],
+  imports: STATE_FORM_IMPORTS,
   templateUrl: './india-state-form.component.html',
   styleUrl: './india-state-form.component.scss',
 })
@@ -34,6 +46,29 @@ export class IndiaStateFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add State / UT');
+  protected readonly countries = signal<Country[]>([]);
+  protected readonly previewName = signal('');
+  protected readonly previewCode = signal('');
+  protected readonly previewCountryName = signal('');
+  protected readonly previewActive = signal(true);
+
+  protected readonly TIPS: CmsTip[] = [
+    {
+      icon: 'flag',
+      title: 'Parent country',
+      subtitle: 'Choose the country this state or union territory belongs to. India is selected by default when available.',
+    },
+    {
+      icon: 'tag',
+      title: 'State code',
+      subtitle: 'Use the official short code such as TN, MH or DL. Spaces are removed automatically.',
+    },
+    {
+      icon: 'visibility',
+      title: 'Active status',
+      subtitle: 'Inactive states stay linked to existing records but are hidden from new selections.',
+    },
+  ];
 
   private itemId: number | null = null;
 
@@ -43,6 +78,7 @@ export class IndiaStateFormComponent implements OnInit {
       [Validators.required, trimmedMinLength(1), Validators.maxLength(100), noConsecutiveSpaces()],
     ],
     code: ['', [Validators.required, Validators.maxLength(10), noInternalSpaces()]],
+    countryId: [null as number | null, [Validators.required]],
     isActive: [true],
   });
 
@@ -54,15 +90,28 @@ export class IndiaStateFormComponent implements OnInit {
         const cleaned = stripSpaces(v ?? '').toUpperCase();
         if (cleaned !== v) this.form.get('code')!.setValue(cleaned, { emitEvent: false });
       });
+
+    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((v) => {
+      this.previewName.set((v.name ?? '').trim());
+      this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
+      this.previewActive.set(!!v.isActive);
+      this.refreshPreviewCountryName();
+    });
   }
 
   ngOnInit(): void {
+    this.loadCountries();
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);
       this.isEditMode.set(true);
       this.pageTitle.set('Edit State / UT');
       this.loadItem(this.itemId);
+    }
+    // Pre-select country if passed as query param (e.g. from country → states drill-down)
+    const countryId = this.route.snapshot.queryParamMap.get('countryId');
+    if (countryId) {
+      this.form.patchValue({ countryId: Number(countryId) });
     }
   }
 
@@ -76,6 +125,7 @@ export class IndiaStateFormComponent implements OnInit {
       name: this.form.value.name,
       code: this.form.value.code,
       isActive: this.form.value.isActive,
+      countryId: this.form.value.countryId ?? undefined,
     };
     const op = this.isEditMode()
       ? this.service.updateState(this.itemId!, request)
@@ -92,11 +142,31 @@ export class IndiaStateFormComponent implements OnInit {
     });
   }
 
+  private loadCountries(): void {
+    this.service.getCountries(false).subscribe({
+      next: (list) => {
+        this.countries.set(list);
+        // Default to India if not already set
+        if (!this.form.value.countryId) {
+          const india = list.find((c) => c.isoCode === 'IN');
+          if (india) this.form.patchValue({ countryId: india.id });
+        }
+        this.refreshPreviewCountryName();
+      },
+      error: () => this.toast.error('Failed to load countries'),
+    });
+  }
+
   private loadItem(id: number): void {
     this.loading.set(true);
     this.service.getStateById(id).subscribe({
       next: (item) => {
-        this.form.patchValue({ name: item.name, code: item.code, isActive: item.isActive });
+        this.form.patchValue({
+          name: item.name,
+          code: item.code,
+          isActive: item.isActive,
+          countryId: item.countryId ?? null,
+        });
         this.loading.set(false);
       },
       error: () => {
@@ -107,8 +177,16 @@ export class IndiaStateFormComponent implements OnInit {
   }
 
   protected getFieldError(field: string): string {
-    const labels: Record<string, string> = { name: 'Name', code: 'Code' };
+    const labels: Record<string, string> = {
+      name: 'Name',
+      code: 'Code',
+      countryId: 'Country',
+    };
     return cmsFieldError(this.form.get(field), labels[field] ?? field);
   }
-}
 
+  private refreshPreviewCountryName(): void {
+    const countryId = Number(this.form.value.countryId);
+    this.previewCountryName.set(this.countries().find((country) => country.id === countryId)?.name ?? '');
+  }
+}

@@ -1,25 +1,24 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { formatCurrency } from '@angular/common';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({
   selector: 'app-fee-explorer',
   standalone: true,
   imports: [
-    RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, PageHeaderComponent, CmsStatusBadgeComponent],
+    InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
+    MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent,
+  ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
 })
@@ -37,12 +36,19 @@ export class FeeExplorerComponent implements OnInit {
 
   protected readonly displayedColumns = [
     'rollNumber', 'studentName', 'programName', 'totalFee',
-    'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions'];
+    'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions',
+  ];
   protected readonly dataSource = new MatTableDataSource<StudentFeeSummary>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+  protected readonly computeInitials = computeInitials;
 
   ngOnInit(): void {
+    this.dataSource.filterPredicate = (row: StudentFeeSummary, filter: string) => {
+      if (!filter) return true;
+      return row.studentName.toLowerCase().includes(filter) ||
+        (row.rollNumber ?? '').toLowerCase().includes(filter);
+    };
     this.load();
   }
 
@@ -64,10 +70,6 @@ export class FeeExplorerComponent implements OnInit {
 
   protected viewDetails(student: StudentFeeSummary): void {
     void this.router.navigate(['/student-fees', student.studentId]);
-  }
-
-  protected formatInr(value: number | null | undefined): string {
-    return value == null ? '—' : formatCurrency(value, 'en-IN', '', 'INR', '1.0-0');
   }
 
   private load(search?: string): void {

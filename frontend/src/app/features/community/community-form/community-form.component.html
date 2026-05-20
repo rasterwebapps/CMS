@@ -1,60 +1,178 @@
-<div class="form-page">
-  <div class="form-page__header">
-    <a routerLink="/communities" class="back-link">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="15 18 9 12 15 6"/>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/communities" aria-label="Back to communities">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
       </svg>
-      Back to Communities
     </a>
-    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Community</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{
+          isEditMode()
+            ? 'Update the community details below.'
+            : 'Define a community category for admissions and student records.'
+        }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="form-page__loading">Loading…</div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card" novalidate>
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Community Information</div>
+            <div class="entry-form-card__hdr-sub">
+              Name, code and availability for student records
+            </div>
+          </div>
+        </div>
 
-      <div class="form-section">
-        <h2 class="form-section__title">Community Details</h2>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="community-name"
+                  >Name <span class="required-star">*</span></label
+                >
+                <input
+                  id="community-name"
+                  class="field-input"
+                  formControlName="name"
+                  placeholder="e.g., Backward Class"
+                  autocomplete="off"
+                  [class.field-input--error]="
+                    form.get('name')?.invalid && form.get('name')?.touched
+                  "
+                />
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label class="form-label" for="name">Name <span class="required">*</span></label>
-            <input id="name" class="form-input" formControlName="name" placeholder="e.g. Backward Class" />
-            @if (getFieldError('name')) {
-              <span class="form-error">{{ getFieldError('name') }}</span>
-            }
+              <div class="field-group">
+                <label class="field-label" for="community-code"
+                  >Code <span class="required-star">*</span></label
+                >
+                <input
+                  id="community-code"
+                  class="field-input field-input--narrow font-mono"
+                  formControlName="code"
+                  placeholder="e.g., BC"
+                  autocomplete="off"
+                  [class.field-input--error]="
+                    form.get('code')?.invalid && form.get('code')?.touched
+                  "
+                />
+                <p class="field-hint">
+                  Short code shown in dropdowns and reports (e.g., BC, MBC, OC)
+                </p>
+                @if (getFieldError('code')) {
+                  <p class="field-error">{{ getFieldError('code') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="community-description">Description</label>
+              <textarea
+                id="community-description"
+                class="field-textarea"
+                formControlName="description"
+                rows="3"
+                placeholder="Optional description"
+                [class.field-input--error]="
+                  form.get('description')?.invalid && form.get('description')?.touched
+                "
+              ></textarea>
+              <p class="field-hint">Optional internal note, up to 255 characters.</p>
+              @if (getFieldError('description')) {
+                <p class="field-error">{{ getFieldError('description') }}</p>
+              }
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">
+                Inactive communities are hidden from new student forms but kept for historical
+                records.
+              </p>
+            </div>
           </div>
 
-          <div class="form-field">
-            <label class="form-label" for="code">Code <span class="required">*</span></label>
-            <input id="code" class="form-input font-mono" formControlName="code" placeholder="e.g. BC" />
-            @if (getFieldError('code')) {
-              <span class="form-error">{{ getFieldError('code') }}</span>
-            }
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/communities">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Community' : 'Create Community' }}
+              }
+            </button>
           </div>
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="description">Description</label>
-          <textarea id="description" class="form-textarea" formControlName="description" rows="3"
-                    placeholder="Optional description"></textarea>
-        </div>
-
-        <div class="form-field">
-          <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
-          <p class="form-hint">Inactive communities are hidden from new student forms but kept for historical records.</p>
-        </div>
+        </form>
       </div>
 
-      <div class="form-actions">
-        <a routerLink="/communities" class="btn-secondary">Cancel</a>
-        <button type="submit" class="btn-primary" [disabled]="saving()">
-          @if (saving()) { Saving… } @else { {{ isEditMode() ? 'Update Community' : 'Create Community' }} }
-        </button>
-      </div>
-    </form>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Community name will appear here' }}
+          </div>
+          @if (previewDesc()) {
+            <p class="prev-desc">{{ previewDesc() }}</p>
+          }
+          <div class="prev-meta-row">
+            <span
+              class="prev-pill"
+              [class.prev-pill--green]="previewActive()"
+              [class.prev-pill--muted]="!previewActive()"
+            >
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
   }
 </div>
-

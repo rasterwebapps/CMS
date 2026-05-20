@@ -87,15 +87,6 @@
               </div>
             </div>
 
-            <div class="field-group" style="margin-bottom: 0;">
-              <label for="ex-semester" class="field-label">Semester</label>
-              <select id="ex-semester" class="field-select" formControlName="semesterId">
-                <option [ngValue]="null">None</option>
-                @for (s of semesters(); track s.id) {
-                  <option [ngValue]="s.id">{{ s.name }}</option>
-                }
-              </select>
-            </div>
           </div>
 
           <div class="entry-form-card__footer">
@@ -122,7 +113,6 @@
             @if (previewType()) { <span class="prev-pill prev-pill--primary">{{ previewType() }}</span> }
             @if (previewDuration()) { <span class="prev-pill">{{ previewDuration() }} min</span> }
             @if (previewMaxMarks() != null) { <span class="prev-pill">{{ previewMaxMarks() }} marks</span> }
-            @if (previewSemName()) { <span class="prev-pill">{{ previewSemName() }}</span> }
           </div>
         </cms-preview-card>
 

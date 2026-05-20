@@ -1,85 +1,199 @@
-<div class="list-page">
-  <app-page-header title="Student Fees" subtitle="View fee allocations and payment status">
-    <a actions class="btn-primary" routerLink="/student-fees/finalize">
-      <mat-icon>add</mat-icon> Finalize Fee
-    </a>
-  </app-page-header>
+<div class="sfx-page">
 
-  <div class="content-card">
-    <div class="table-controls">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)" (keyup.enter)="searchFromApi()" placeholder="Search by roll number or program..." aria-label="Search student fees" />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </div>
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="sfx-hdr anim-rise">
+    <div class="sfx-hdr-left">
+      <h1 class="sfx-title">Student <em>Fees</em></h1>
+      <p class="sfx-sub">View fee allocations and payment status across all students</p>
+      @if (!loading()) {
+        <div class="sfx-meta">
+          <span class="sfx-stat">
+            <span class="sfx-stat-dot sfx-stat-dot--blue"></span>
+            {{ dataSource.data.length }} Total
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="sfx-toolbar anim-rise anim-rise--d1">
+
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
+             (keyup.enter)="searchFromApi()"
+             placeholder="Search by name or roll no." type="text" aria-label="Search student fees" />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
     </div>
 
+    <div class="toolbar-right">
+      @if (!loading()) {
+        <span class="row-count">
+          {{ dataSource.filteredData.length }}
+          @if (dataSource.filteredData.length !== dataSource.data.length) { of {{ dataSource.data.length }} }
+          students
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- ── Content Card ─────────────────────────────────────────────────────── -->
+  <div class="content-card sfx-table-card">
+
     @if (loading()) {
-      <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+      <div class="sfx-skeleton">
+        @for (_ of [1,2,3,4,5,6,7]; track $index) {
+          <div class="sfx-skel-row">
+            <div class="skel skel--code"></div>
+            <div class="skel skel--avatar"></div>
+            <div class="skel skel--name"></div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--text"></div>
+            <div class="skel skel--pill"></div>
+          </div>
+        }
+      </div>
+
     } @else {
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+
+          <!-- Roll Number -->
           <ng-container matColumnDef="rollNumber">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
-            <td mat-cell *matCellDef="let row">{{ row.rollNumber }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll No.</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.rollNumber) {
+                <span class="code-chip">{{ row.rollNumber }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
           </ng-container>
+
+          <!-- Student Name -->
           <ng-container matColumnDef="studentName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student Name</th>
-            <td mat-cell *matCellDef="let row">{{ row.studentName }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="student-cell">
+                <span class="avatar">{{ computeInitials(row.studentName) }}</span>
+                <span class="cell-name">{{ row.studentName }}</span>
+              </div>
+            </td>
           </ng-container>
+
+          <!-- Program -->
           <ng-container matColumnDef="programName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-            <td mat-cell *matCellDef="let row">{{ row.programName }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.programName || '—' }}</span>
+            </td>
           </ng-container>
+
+          <!-- Total Fee -->
           <ng-container matColumnDef="totalFee">
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Fee (₹)</th>
-            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalFee) }}</td>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">
+              <span class="cell-mono">{{ row.totalFee | inr:false:false }}</span>
+            </td>
           </ng-container>
+
+          <!-- Paid -->
           <ng-container matColumnDef="totalPaid">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Paid (₹)</th>
-            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPaid) }}</td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Paid (₹)</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">
+              <span class="cell-mono cell-mono--green">{{ row.totalPaid | inr:false:false }}</span>
+            </td>
           </ng-container>
+
+          <!-- Pending -->
           <ng-container matColumnDef="totalPending">
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Pending (₹)</th>
-            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPending) }}</td>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">
+              @if (row.totalPending > 0) {
+                <span class="cell-mono cell-mono--red">{{ row.totalPending | inr:false:false }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
           </ng-container>
+
+          <!-- Penalty -->
           <ng-container matColumnDef="totalPenalty">
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Penalty (₹)</th>
-            <td mat-cell *matCellDef="let row" class="cell-align-right">{{ formatInr(row.totalPenalty) }}</td>
+            <td mat-cell *matCellDef="let row" class="cell-align-right">
+              @if (row.totalPenalty > 0) {
+                <span class="cell-mono cell-mono--amber">{{ row.totalPenalty | inr:false:false }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
           </ng-container>
+
+          <!-- Status -->
           <ng-container matColumnDef="allocationStatus">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
-            <td mat-cell *matCellDef="let row" class="cell-align-center"><cms-status-badge [status]="row.allocationStatus"></cms-status-badge></td>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Status</th>
+            <td mat-cell *matCellDef="let row" class="col-center">
+              <cms-status-badge [status]="row.allocationStatus" />
+            </td>
           </ng-container>
+
+          <!-- Actions -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-            <td mat-cell *matCellDef="let row">
+            <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+            <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <button class="action-btn" mat-icon-button matTooltip="View Details" (click)="viewDetails(row)" aria-label="View fee details">
-                  <mat-icon>visibility</mat-icon>
+                <button class="action-btn" matTooltip="View" (click)="viewDetails(row)" aria-label="View fee details">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
                 </button>
               </div>
             </td>
           </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"
+              class="table-row table-row--clickable"
+              (click)="viewDetails(row)"></tr>
+
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
-              <div class="empty-state__content">
-                <p class="empty-state__text">No student fee data available</p>
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0;border:none;">
+              <cms-empty-state
+                icon="payments"
+                [title]="searchValue() ? 'No students match your search' : 'No fee allocations yet'"
+                [subtitle]="searchValue() ? 'Try adjusting the search term.' : 'Fee allocations will appear here once finalized.'"
+                [actionLabel]="searchValue() ? 'Clear Search' : ''"
+                (actionClick)="clearFilter()"
+              />
             </td>
           </tr>
         </table>
       </div>
 
-      <div class="pagination-wrapper">
-        <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
-      </div>
+      @if (dataSource.data.length > 0) {
+        <div class="table-footer">
+          <span class="row-count">
+            {{ dataSource.filteredData.length }}
+            @if (dataSource.filteredData.length !== dataSource.data.length) { of {{ dataSource.data.length }} }
+            students
+          </span>
+          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+        </div>
+      }
     }
   </div>
+
 </div>

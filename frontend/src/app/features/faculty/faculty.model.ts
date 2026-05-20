@@ -57,6 +57,7 @@ export interface FacultyDocumentReviewSummary {
 }
 
 export interface AddressDto {
+  countryId?: number | null;
   postalAddress?: string;
   street?: string;
   city?: string;
@@ -225,15 +226,6 @@ export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string 
   { value: 'CURRENT', label: 'Current' },
   { value: 'SALARY', label: 'Salary' },
 ];
-
-export interface FacultyPendingDocumentsSummary {
-  facultyId: number;
-  fullName: string;
-  employeeCode: string;
-  departmentName: string;
-  designation: string;
-  pendingCount: number;
-}
 
 export interface FacultyDocumentTypeRequirement {
   id: number;

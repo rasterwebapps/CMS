@@ -1,55 +1,152 @@
-<div class="form-page">
-  <div class="form-page__header">
-    <a routerLink="/blood-groups" class="back-link">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="15 18 9 12 15 6"/>
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/blood-groups" aria-label="Back to blood groups">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
       </svg>
-      Back to Blood Groups
     </a>
-    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Blood Group</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{
+          isEditMode()
+            ? 'Update the blood group details below.'
+            : 'Define a blood group for admissions and student records.'
+        }}
+      </p>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="form-page__loading">Loading…</div>
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
   } @else {
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card" novalidate>
-
-      <div class="form-section">
-        <h2 class="form-section__title">Blood Group Details</h2>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label class="form-label" for="name">Name <span class="required">*</span></label>
-            <input id="name" class="form-input" formControlName="name" placeholder="e.g. A Positive" />
-            @if (getFieldError('name')) {
-              <span class="form-error">{{ getFieldError('name') }}</span>
-            }
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+            </svg>
           </div>
-
-          <div class="form-field">
-            <label class="form-label" for="code">Code <span class="required">*</span></label>
-            <input id="code" class="form-input font-mono" formControlName="code" placeholder="e.g. A+" />
-            <span class="form-hint">Short code shown in dropdowns (e.g. A+, O-, AB+)</span>
-            @if (getFieldError('code')) {
-              <span class="form-error">{{ getFieldError('code') }}</span>
-            }
+          <div>
+            <div class="entry-form-card__hdr-title">Blood Group Information</div>
+            <div class="entry-form-card__hdr-sub">
+              Name, code and availability for student records
+            </div>
           </div>
         </div>
 
-        <div class="form-field">
-          <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
-          <p class="form-hint">Inactive blood groups are hidden from new student forms but kept for historical records.</p>
-        </div>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="bg-name"
+                  >Name <span class="required-star">*</span></label
+                >
+                <input
+                  id="bg-name"
+                  class="field-input"
+                  formControlName="name"
+                  placeholder="e.g., A Positive"
+                  autocomplete="off"
+                  [class.field-input--error]="
+                    form.get('name')?.invalid && form.get('name')?.touched
+                  "
+                />
+                @if (getFieldError('name')) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="bg-code"
+                  >Code <span class="required-star">*</span></label
+                >
+                <input
+                  id="bg-code"
+                  class="field-input field-input--narrow font-mono"
+                  formControlName="code"
+                  placeholder="e.g., A+"
+                  autocomplete="off"
+                  [class.field-input--error]="
+                    form.get('code')?.invalid && form.get('code')?.touched
+                  "
+                />
+                <p class="field-hint">Short code shown in dropdowns (e.g., A+, O-, AB+)</p>
+                @if (getFieldError('code')) {
+                  <p class="field-error">{{ getFieldError('code') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">
+                Inactive blood groups are hidden from new student forms but kept for historical
+                records.
+              </p>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/blood-groups">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Blood Group' : 'Create Blood Group' }}
+              }
+            </button>
+          </div>
+        </form>
       </div>
 
-      <div class="form-actions">
-        <a routerLink="/blood-groups" class="btn-secondary">Cancel</a>
-        <button type="submit" class="btn-primary" [disabled]="saving()">
-          @if (saving()) { Saving… } @else { {{ isEditMode() ? 'Update Blood Group' : 'Create Blood Group' }} }
-        </button>
-      </div>
-    </form>
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Blood group name will appear here' }}
+          </div>
+          <div class="prev-meta-row">
+            <span
+              class="prev-pill"
+              [class.prev-pill--green]="previewActive()"
+              [class.prev-pill--muted]="!previewActive()"
+            >
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
   }
 </div>
-

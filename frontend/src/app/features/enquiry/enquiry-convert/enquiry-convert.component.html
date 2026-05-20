@@ -310,7 +310,7 @@
                 <select id="conv-community" class="field-input" formControlName="communityCategory">
                   <option value="">— Select —</option>
                   @for (c of communities(); track c.id) {
-                    <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
+                    <option [value]="c.code">{{ c.name }}</option>
                   }
                 </select>
               </div>
@@ -326,7 +326,7 @@
                 <select id="conv-blood" class="field-input" formControlName="bloodGroup">
                   <option value="">— Select —</option>
                   @for (b of bloodGroups(); track b.id) {
-                    <option [value]="b.code">{{ b.code }} — {{ b.name }}</option>
+                    <option [value]="b.code">{{ b.name }}</option>
                   }
                 </select>
               </div>
@@ -415,7 +415,7 @@
             </div>
 
             <div class="field-row">
-              <cms-state-district-selector [parentForm]="addressForm" />
+              <cms-country-state-district-selector [parentForm]="addressForm" />
             </div>
 
             <div class="field-row">

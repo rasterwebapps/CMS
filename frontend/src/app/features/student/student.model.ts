@@ -76,6 +76,7 @@ export interface Student {
   isFirstGraduate?: boolean;
   fatherEducation?: string;
   motherEducation?: string;
+  countryId?: number | null;
   postalAddress?: string;
   street?: string;
   city?: string;
@@ -179,6 +180,7 @@ export interface StudentRequest {
   fatherEducation?: string;
   motherEducation?: string;
   address?: {
+    countryId?: number | null;
     postalAddress?: string;
     street?: string;
     city?: string;

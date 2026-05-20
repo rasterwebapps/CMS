@@ -103,15 +103,18 @@ public class EnquiryPaymentService {
 
         String feeCategory = enquiry.getStudentType() == StudentType.HOSTELER
             ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+        String towardsLabel = "TUITION_AND_HOSTEL".equals(feeCategory)
+            ? "Tuition Fees And Hostel Fees" : "Tuition Fees";
 
         // Persist to the unified receipts table
         unifiedReceiptService.saveEnquiryReceipt(
             receiptNumber,
             enquiry.getId(), enquiry.getName(),
-            enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
+            enquiry.getCourse() != null ? enquiry.getCourse().getName()
+                : enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
             request.amountPaid(), request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
-            "Pre-enrollment Fee", collectedBy, feeCategory);
+            towardsLabel, collectedBy, feeCategory);
 
         return toResponse(saved, newStatus);
     }

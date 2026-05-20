@@ -23,6 +23,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.CountryRequest;
+import com.cms.dto.CountryResponse;
 import com.cms.dto.IndiaDistrictRequest;
 import com.cms.dto.IndiaDistrictResponse;
 import com.cms.dto.IndiaStateRequest;
@@ -40,7 +42,11 @@ class IndiaLocationControllerTest {
     @MockitoBean private IndiaLocationService service;
 
     private IndiaStateResponse stateResponse(Long id, String name, String code) {
-        return new IndiaStateResponse(id, name, code, true, Instant.now(), Instant.now());
+        return new IndiaStateResponse(id, name, code, true, Instant.now(), Instant.now(), 1L, "India", "IN");
+    }
+
+    private CountryResponse countryResponse(Long id, String name, String isoCode) {
+        return new CountryResponse(id, name, isoCode, true, Instant.now(), Instant.now());
     }
 
     private IndiaDistrictResponse districtResponse(Long id, Long stateId, String stateName, String name) {
@@ -87,7 +93,7 @@ class IndiaLocationControllerTest {
 
     @Test
     void shouldCreateState() throws Exception {
-        IndiaStateRequest req = new IndiaStateRequest("Tamil Nadu", "TN", true);
+        IndiaStateRequest req = new IndiaStateRequest("Tamil Nadu", "TN", true, null);
         when(service.createState(any())).thenReturn(stateResponse(1L, "Tamil Nadu", "TN"));
 
         mockMvc.perform(post("/india/states")
@@ -99,7 +105,7 @@ class IndiaLocationControllerTest {
 
     @Test
     void shouldReturn400WhenStateNameBlank() throws Exception {
-        IndiaStateRequest req = new IndiaStateRequest("", "TN", true);
+        IndiaStateRequest req = new IndiaStateRequest("", "TN", true, null);
 
         mockMvc.perform(post("/india/states")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,8 +115,7 @@ class IndiaLocationControllerTest {
 
     @Test
     void shouldUpdateState() throws Exception {
-        IndiaStateRequest req = new IndiaStateRequest("Tamil Nadu", "TN", true);
-        when(service.updateState(eq(1L), any())).thenReturn(stateResponse(1L, "Tamil Nadu", "TN"));
+        IndiaStateRequest req = new IndiaStateRequest("Tamil Nadu", "TN", true, null);
 
         mockMvc.perform(put("/india/states/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -176,6 +181,71 @@ class IndiaLocationControllerTest {
 
         mockMvc.perform(delete("/india/districts/1"))
             .andExpect(status().isNoContent());
+    }
+
+    // ─── Country endpoints ────────────────────────────────────────────────────
+
+    @Test
+    void shouldGetAllCountries() throws Exception {
+        when(service.findAllCountries()).thenReturn(List.of(countryResponse(1L, "India", "IN")));
+
+        mockMvc.perform(get("/india/countries"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].name").value("India"))
+            .andExpect(jsonPath("$[0].isoCode").value("IN"));
+    }
+
+    @Test
+    void shouldCreateCountry() throws Exception {
+        CountryRequest req = new CountryRequest("United States", "US", true);
+        when(service.createCountry(any())).thenReturn(countryResponse(2L, "United States", "US"));
+
+        mockMvc.perform(post("/india/countries")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value("United States"))
+            .andExpect(jsonPath("$.isoCode").value("US"));
+    }
+
+    @Test
+    void shouldReturn400WhenCountryNameBlank() throws Exception {
+        CountryRequest req = new CountryRequest("", "US", true);
+
+        mockMvc.perform(post("/india/countries")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldUpdateCountry() throws Exception {
+        CountryRequest req = new CountryRequest("India Updated", "IN", true);
+        when(service.updateCountry(eq(1L), any())).thenReturn(countryResponse(1L, "India Updated", "IN"));
+
+        mockMvc.perform(put("/india/countries/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("India Updated"));
+    }
+
+    @Test
+    void shouldDeleteCountry() throws Exception {
+        doNothing().when(service).deleteCountry(1L);
+
+        mockMvc.perform(delete("/india/countries/1"))
+            .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldGetStatesByCountry() throws Exception {
+        when(service.findActiveStatesByCountry(1L))
+            .thenReturn(List.of(stateResponse(1L, "Tamil Nadu", "TN")));
+
+        mockMvc.perform(get("/india/countries/1/states"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].name").value("Tamil Nadu"));
     }
 }
 

@@ -59,7 +59,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly previewLabName     = computed(() => this.labs().find(l => l.id === this.previewLabId())?.name ?? '');
   protected readonly previewCourseName  = computed(() => {
     const c = this.courses().find(x => x.id === this.previewCourseId());
-    return c ? `${c.name} (${c.code})` : '';
+    return c ? c.name : '';
   });
   protected readonly previewFacultyName = computed(() => this.faculty().find(f => f.id === this.previewFacultyId())?.name ?? '');
   protected readonly previewTermLabel   = computed(() => {

@@ -16,7 +16,6 @@
    - [5.2 Programs](#52-programs)
    - [5.3 Courses (Subjects)](#53-courses-subjects)
    - [5.4 Academic Years](#54-academic-years)
-   - [5.5 Semesters](#55-semesters)
    - [5.6 Fee Structures](#56-fee-structures)
    - [5.7 Faculty](#57-faculty)
    - [5.8 Agents & Referral Types](#58-agents--referral-types)
@@ -253,33 +252,6 @@ SKS College follows the **INC academic calendar** (August to July).
 
 ---
 
-### 5.5 Semesters
-
-**Navigate**: Sidenav → Preferences → Semesters
-
-Each academic year has two semesters for degree programs and three blocks for GNM.
-
-| Semester Name | Number | Period | Exam Dates |
-|---------------|--------|--------|------------|
-| Sem 1 — Foundation (Odd) 2026 | 1 | 01 Aug – 12 Dec 2026 | 15 Dec – 28 Dec 2026 |
-| Sem 2 — Foundation (Even) 2027 | 2 | 03 Jan – 10 May 2027 | 12 May – 25 May 2027 |
-| Sem 3 — Clinical I (Odd) 2027 | 3 | 01 Aug – 12 Dec 2027 | 15 Dec – 28 Dec 2027 |
-| Sem 4 — Clinical I (Even) 2028 | 4 | 03 Jan – 10 May 2028 | 12 May – 25 May 2028 |
-
-#### How to Create a Semester
-
-1. Click **"+ New Semester"**
-2. Enter:
-   - **Name**: `Sem 1 — Foundation (Odd) 2026`
-   - **Semester Number**: `1`
-   - **Academic Year**: `2026–27`
-   - **Start Date**: `01-08-2026`
-   - **End Date**: `12-12-2026`
-   - **Exam Start Date**: `15-12-2026`
-   - **Exam End Date**: `28-12-2026`
-3. Click **"Save"**
-
----
 
 ### 5.6 Fee Structures
 

@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.CountryRequest;
+import com.cms.dto.CountryResponse;
 import com.cms.dto.IndiaDistrictRequest;
 import com.cms.dto.IndiaDistrictResponse;
 import com.cms.dto.IndiaStateRequest;
@@ -24,8 +26,13 @@ import com.cms.service.IndiaLocationService;
 import jakarta.validation.Valid;
 
 /**
- * REST controller for India States and Districts master data.
+ * REST controller for Location master data (Countries, States, Districts).
  * Base path: /api/v1/india
+ *
+ * Country endpoints: GET/POST/PUT/DELETE /india/countries
+ * States per country: GET /india/countries/{countryId}/states
+ * States (India legacy): GET /india/states  (activeOnly=true by default)
+ * Districts: GET/POST/PUT/DELETE under /india/states/{stateId}/districts
  */
 @RestController
 @RequestMapping("/india")
@@ -37,7 +44,67 @@ public class IndiaLocationController {
         this.service = service;
     }
 
-    // ─── States ──────────────────────────────────────────────────────────────
+    // ─── Countries ────────────────────────────────────────────────────────────
+
+    @GetMapping("/countries")
+    public ResponseEntity<List<CountryResponse>> getCountries(
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+        List<CountryResponse> result = activeOnly
+            ? service.findActiveCountries()
+            : service.findAllCountries();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/countries/{id}")
+    public ResponseEntity<CountryResponse> getCountry(@PathVariable Long id) {
+        return ResponseEntity.ok(service.findCountryById(id));
+    }
+
+    @PostMapping("/countries")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<CountryResponse> createCountry(@Valid @RequestBody CountryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createCountry(request));
+    }
+
+    @PutMapping("/countries/{id}")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<CountryResponse> updateCountry(
+            @PathVariable Long id,
+            @Valid @RequestBody CountryRequest request) {
+        return ResponseEntity.ok(service.updateCountry(id, request));
+    }
+
+    @DeleteMapping("/countries/{id}")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<Void> deleteCountry(@PathVariable Long id) {
+        service.deleteCountry(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Get states belonging to a specific country. */
+    @GetMapping("/countries/{countryId}/states")
+    public ResponseEntity<List<IndiaStateResponse>> getStatesByCountry(
+            @PathVariable Long countryId,
+            @RequestParam(required = false, defaultValue = "true") boolean activeOnly) {
+        List<IndiaStateResponse> result = activeOnly
+            ? service.findActiveStatesByCountry(countryId)
+            : service.findStatesByCountry(countryId);
+        return ResponseEntity.ok(result);
+    }
+
+    /** Create a state under a specific country. */
+    @PostMapping("/countries/{countryId}/states")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<IndiaStateResponse> createStateForCountry(
+            @PathVariable Long countryId,
+            @Valid @RequestBody IndiaStateRequest request) {
+        // Build a request with the countryId baked in
+        IndiaStateRequest withCountry = new IndiaStateRequest(
+            request.name(), request.code(), request.isActive(), countryId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createState(withCountry));
+    }
+
+    // ─── States (India-scoped — legacy / backward-compat) ────────────────────
 
     @GetMapping("/states")
     public ResponseEntity<List<IndiaStateResponse>> getStates(

@@ -1,8 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { formatCurrency } from '@angular/common';
@@ -13,7 +11,6 @@ import {
   EnquiryYearFee, CreateAllocationYearFee,
 } from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
@@ -31,11 +28,8 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    PaymentModeLabelPipe,
-    InrPipe, RouterLink, ReactiveFormsModule,
-    MatIconModule, MatProgressSpinnerModule,
-    MatDialogModule, MatTooltipModule,
-    PageHeaderComponent, CmsStatusBadgeComponent,
+    PaymentModeLabelPipe, InrPipe, RouterLink, ReactiveFormsModule,
+    MatDialogModule, MatTooltipModule, CmsStatusBadgeComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',
@@ -54,7 +48,7 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly allocation      = signal<StudentFeeAllocation | null>(null);
   protected readonly receiptGroups   = signal<ReceiptGroup[]>([]);
   protected readonly enquiryYearFees = signal<EnquiryYearFee[]>([]);
-  protected readonly yearFeeRows     = signal<{ yearNumber: number; amount: number; dueDate: string }[]>([]);
+  protected readonly yearFeeRows     = signal<{ yearNumber: number; amount: number }[]>([]);
 
   protected readonly setupForm: FormGroup = this.fb.group({
     discountAmount: [0, [Validators.min(0)]],
@@ -124,25 +118,14 @@ export class StudentFeeDetailComponent implements OnInit {
     this.yearFeeRows.set(rows);
   }
 
-  protected updateYearDueDate(index: number, value: string): void {
-    const rows = [...this.yearFeeRows()];
-    rows[index] = { ...rows[index], dueDate: value };
-    this.yearFeeRows.set(rows);
-  }
-
   // ── Setup: create allocation ──────────────────────────────────────────────────
   protected createAllocation(): void {
-    if (this.yearFeeRows().some(r => !r.dueDate)) {
-      this.toast.error('Please set a due date for all years');
-      return;
-    }
     const discount = Number(this.setupForm.get('discountAmount')?.value) || 0;
     const reason   = this.setupForm.get('discountReason')?.value?.trim() || undefined;
 
     const yearFees: CreateAllocationYearFee[] = this.yearFeeRows().map(r => ({
       yearNumber: r.yearNumber,
       amount: r.amount,
-      dueDate: r.dueDate,
     }));
 
     const request = {
@@ -160,7 +143,7 @@ export class StudentFeeDetailComponent implements OnInit {
         this.allocation.set(data);
         this.noAllocation.set(false);
         this.savingAlloc.set(false);
-        this.toast.success('Fee allocation created — installments generated automatically');
+        this.toast.success('Fees finalized — term-wise installments generated with due dates from billing schedule');
         this.loadAll();
       },
       error: () => {
@@ -205,15 +188,14 @@ export class StudentFeeDetailComponent implements OnInit {
         this.yearFeeRows.set(fees.map(f => ({
           yearNumber: f.yearNumber,
           amount: f.amount,
-          dueDate: f.suggestedDueDate,
         })));
         this.setupLoading.set(false);
       },
       error: () => {
         // No linked enquiry — show empty setup form with default rows
         this.yearFeeRows.set([
-          { yearNumber: 1, amount: 0, dueDate: '' },
-          { yearNumber: 2, amount: 0, dueDate: '' },
+          { yearNumber: 1, amount: 0 },
+          { yearNumber: 2, amount: 0 },
         ]);
         this.setupLoading.set(false);
       },

@@ -228,3 +228,51 @@
 
 **Status:** NOT TESTED
 
+---
+
+## TC-LOC-015: Location master add/edit forms follow entry-form UX pattern
+
+**Preconditions:**
+- Logged in with `INDIA_LOCATION_MANAGE` permission
+- Application is running with at least one country, state / UT, and district
+
+**Steps:**
+1. Navigate to **Location Master**.
+2. Open **Add Country**, **Add State / UT**, and **Add District** one by one.
+3. Verify each screen has the entry-form header, back icon button, sectioned form card, Save/Cancel footer, live preview card, and guidance card on desktop.
+4. Submit each form with required fields blank.
+5. Fill valid values and verify the live preview updates while typing.
+6. Repeat steps 2–5 for editing an existing country, state / UT, and district.
+7. Check the same screens in light mode, dark mode, and a 360 x 740 viewport.
+
+**Expected Result:**
+- All six add/edit flows use the current `entry-form-*` visual pattern consistently.
+- Required-field validation appears under the correct controls and prevents invalid submission.
+- Save buttons show a spinner while saving, then show the success toast and return to `/india-locations`.
+- Mobile layout has no horizontal page scroll, clipped controls, or unreachable primary actions.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-LOC-016: Location Master list action icons match master list design
+
+**Preconditions:**
+- Logged in with `INDIA_LOCATION_MANAGE` permission.
+- Application is running with at least one country, state / UT, and district.
+
+**Steps:**
+1. Navigate to **Location Master**.
+2. Switch to card view and expand a country and a state / UT.
+3. Verify country and state action buttons use compact rounded icon buttons for edit, add, and delete.
+4. Verify district chips use SVG edit/delete icon buttons, not raw text glyphs.
+5. Switch to table view, expand a state / UT row, and verify row actions align with other master tables.
+6. Repeat in light mode, dark mode, and a 360 x 740 viewport.
+
+**Expected Result:**
+- Location Master action icons are visually consistent with Department / Academic Year master list patterns.
+- Edit, add, and delete controls are clear, aligned, and not oversized or oddly rendered.
+- Mobile layout has no horizontal page scroll, clipped controls, or unreachable primary actions.
+
+**Status:** NOT TESTED
+

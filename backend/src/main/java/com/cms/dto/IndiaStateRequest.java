@@ -12,6 +12,8 @@ public record IndiaStateRequest(
     @Size(max = 10, message = "Code must not exceed 10 characters")
     String code,
 
-    Boolean isActive
-) {}
+    Boolean isActive,
 
+    /** Optional country ID. When null, defaults to India (iso_code = 'IN'). */
+    Long countryId
+) {}

@@ -386,7 +386,7 @@ class StudentControllerTest {
             null, null, null, null,
             1, LocalDate.of(2024, 6, 1), "Batch-A", StudentStatus.ACTIVE,
             null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
             now, now
         );
     }

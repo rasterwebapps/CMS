@@ -92,7 +92,6 @@ public class ProgramService {
         if (request.assessmentPattern() != null) {
             program.setAssessmentPattern(request.assessmentPattern());
         }
-
         return toResponse(programRepository.save(program));
     }
 

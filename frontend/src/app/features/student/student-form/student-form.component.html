@@ -201,7 +201,7 @@
                 <select id="stu-community" class="field-select" formControlName="communityCategory">
                   <option value="">— Select —</option>
                   @for (c of communities(); track c.id) {
-                    <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
+                    <option [value]="c.code">{{ c.name }}</option>
                   }
                 </select>
               </div>
@@ -217,7 +217,7 @@
               <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
                 <option value="">— Select —</option>
                 @for (bg of bloodGroups(); track bg.id) {
-                  <option [value]="bg.code">{{ bg.code }} — {{ bg.name }}</option>
+                  <option [value]="bg.code">{{ bg.name }}</option>
                 }
               </select>
             </div>
@@ -317,7 +317,7 @@
             </div>
 
             <div class="field-row">
-              <cms-state-district-selector [parentForm]="form" />
+              <cms-country-state-district-selector [parentForm]="form" />
             </div>
 
             <div class="field-group" style="margin-bottom: 0;">

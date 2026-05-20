@@ -188,14 +188,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'faculty/document-verification',
-    canActivate: withPermission('FACULTY_MANAGE'),
-    loadComponent: () =>
-      import('./features/faculty/faculty-doc-verification/faculty-doc-verification.component').then(
-        (m) => m.FacultyDocVerificationComponent
-      ),
-  },
-  {
     path: 'faculty/new',
     canActivate: withPermission('FACULTY_MANAGE'),
     loadComponent: () =>
@@ -907,13 +899,29 @@ export const routes: Routes = [
         (m) => m.BloodGroupFormComponent
       ),
   },
-  // ── India Locations (States & Districts) ─────────────────────────────────
+  // ── India Locations / Location Master (Countries, States & Districts) ────────────────────
   {
     path: 'india-locations',
     canActivate: [authGuard, requiresPermission('INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE')],
     loadComponent: () =>
       import('./features/india-location/india-location-list/india-location-list.component').then(
         (m) => m.IndiaLocationListComponent
+      ),
+  },
+  {
+    path: 'india-locations/countries/new',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/country-form/country-form.component').then(
+        (m) => m.CountryFormComponent
+      ),
+  },
+  {
+    path: 'india-locations/countries/:id/edit',
+    canActivate: [authGuard, requiresPermission('INDIA_LOCATION_MANAGE')],
+    loadComponent: () =>
+      import('./features/india-location/country-form/country-form.component').then(
+        (m) => m.CountryFormComponent
       ),
   },
   {

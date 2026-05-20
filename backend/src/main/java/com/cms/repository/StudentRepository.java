@@ -6,6 +6,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cms.model.Student;
+import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
@@ -43,4 +45,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByCohortIdAndStatus(Long cohortId, StudentStatus status);
 
     List<Student> findByCohortId(Long cohortId);
+
+    boolean existsByCohortId(Long cohortId);
+
+    long countByGender(Gender gender);
+
+    long countByAdmissionCategory(AdmissionCategory admissionCategory);
 }

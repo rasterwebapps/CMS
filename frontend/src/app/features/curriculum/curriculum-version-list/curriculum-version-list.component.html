@@ -20,7 +20,7 @@
       <select class="field-input" (change)="onProgramChange($event)">
         <option value="">-- Select a program --</option>
         @for (p of programs(); track p.id) {
-          <option [value]="p.id" [selected]="p.id === selectedProgramId()">{{ p.name }} ({{ p.code }})</option>
+          <option [value]="p.id" [selected]="p.id === selectedProgramId()">{{ p.name }}</option>
         }
       </select>
     </div>

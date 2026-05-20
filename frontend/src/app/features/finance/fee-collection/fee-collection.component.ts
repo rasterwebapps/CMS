@@ -19,6 +19,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
+import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -91,7 +92,7 @@ export class FeeCollectionComponent implements OnInit {
     const today  = new Date();
 
     return this.feeEntries().filter(e => {
-      if (term && !e.name.toLowerCase().includes(term) && !e.programName.toLowerCase().includes(term)) return false;
+      if (term && !e.name.toLowerCase().includes(term)) return false;
       if (type !== 'ALL' && e.type !== type) return false;
       if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
       return status !== 'OUTSTANDING' || e.totalOutstanding > 0;
@@ -109,7 +110,7 @@ export class FeeCollectionComponent implements OnInit {
     amount:               [null, [Validators.required, Validators.min(1)]],
     paymentDate:          ['', Validators.required],
     paymentMode:          ['', Validators.required],
-    transactionReference: [''],
+    transactionReference: ['', [transactionReferenceRequiredValidator('paymentMode')]],
     remarks:              [''],
   });
 
@@ -297,19 +298,22 @@ export class FeeCollectionComponent implements OnInit {
       this.enquiryService.collectPayment(entry.id, req).subscribe({
         next: (res) => {
           this.saving.set(false);
+          const towardsLabel = res.feeCategory === 'TUITION_AND_HOSTEL'
+            ? 'Tuition Fees And Hostel Fees' : 'Tuition Fees';
           this.receipt.set({
             receiptNumber:       res.receiptNumber,
             payerType:           'ENQUIRY',
             payerName:           res.enquiryName,
             payerIdentifier:     null,
-            programName:         entry.programName !== '—' ? entry.programName : null,
+            programName:         entry.courseName ?? (entry.programName !== '—' ? entry.programName : null),
             amountPaid:          Number(res.amountPaid),
             paymentDate:         String(res.paymentDate),
             paymentMode:         String(res.paymentMode),
             transactionReference: res.transactionReference,
             remarks:             res.remarks,
-            installmentsCovered: 'Pre-enrollment Fee',
-            installmentBreakdown: [{ label: 'Pre-enrollment Fee', amount: Number(res.amountPaid) }],
+            feeCategory:         res.feeCategory,
+            installmentsCovered: towardsLabel,
+            installmentBreakdown: [{ label: towardsLabel, amount: Number(res.amountPaid) }],
           });
         },
         error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
