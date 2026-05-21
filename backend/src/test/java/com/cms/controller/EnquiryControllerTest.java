@@ -177,13 +177,13 @@ class EnquiryControllerTest {
 
     @Test
     void shouldConvertToStudent() throws Exception {
-        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.CONVERTED);
+        EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ADMITTED);
 
         when(enquiryService.convertToStudent(1L, 10L)).thenReturn(response);
 
         mockMvc.perform(put("/enquiries/1/convert").param("studentId", "10"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("CONVERTED"))
+            .andExpect(jsonPath("$.status").value("ADMITTED"))
             .andExpect(jsonPath("$.convertedStudentId").value(10));
 
         verify(enquiryService).convertToStudent(1L, 10L);
@@ -242,14 +242,14 @@ class EnquiryControllerTest {
 
     @Test
     void shouldFindAdmissionPending() throws Exception {
-        EnquiryResponse docsSubmitted = createResponse(1L, "Ravi Kumar", EnquiryStatus.DOCUMENTS_SUBMITTED);
+        EnquiryResponse docsVerified = createResponse(1L, "Ravi Kumar", EnquiryStatus.DOCUMENTS_VERIFIED);
 
-        when(enquiryService.findAdmissionPending()).thenReturn(List.of(docsSubmitted));
+        when(enquiryService.findAdmissionPending()).thenReturn(List.of(docsVerified));
 
         mockMvc.perform(get("/enquiries/admission-pending"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].status").value("DOCUMENTS_SUBMITTED"));
+            .andExpect(jsonPath("$[0].status").value("DOCUMENTS_VERIFIED"));
 
         verify(enquiryService).findAdmissionPending();
     }
@@ -414,6 +414,7 @@ class EnquiryControllerTest {
             "First instalment",
             "RCP-20240701-ABCD1234",
             "system",
+            null,
             "PARTIALLY_PAID",
             Instant.now()
         );
@@ -443,6 +444,7 @@ class EnquiryControllerTest {
             "RCP-20240701-ABCD1234",
             "system",
             null,
+            null,
             Instant.now()
         );
 
@@ -466,7 +468,8 @@ class EnquiryControllerTest {
             status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
-            convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null
+            convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null,
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
         );
     }
 
@@ -482,7 +485,8 @@ class EnquiryControllerTest {
             name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
             finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
-            null, null, null
+            null, null, null,
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
         );
     }
 }

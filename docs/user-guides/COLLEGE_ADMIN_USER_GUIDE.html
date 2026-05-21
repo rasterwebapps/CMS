@@ -206,7 +206,7 @@
 </tr>
 <tr class="even">
 <td>🎓 Create Admission</td>
-<td><code>DOCUMENTS_SUBMITTED</code> (via enquiry detail)</td>
+<td><code>DOCUMENTS_VERIFIED</code> (via enquiry detail or Complete Admission)</td>
 <td>Create admission and student record</td>
 </tr>
 </tbody>
@@ -261,7 +261,7 @@ Complete Step 5 (Preferences) before processing first admission</li>
 </tr>
 <tr class="odd">
 <td>Ready for Admission</td>
-<td>Enquiries in <code>DOCUMENTS_SUBMITTED</code> status</td>
+<td>Enquiries in <code>DOCUMENTS_VERIFIED</code> status</td>
 </tr>
 <tr class="even">
 <td>Monthly Collections</td>
@@ -1018,7 +1018,11 @@ Complete Step 5 (Preferences) before processing first admission</li>
                │  Action: Collect 7 mandatory documents
                ▼
   [DOCUMENTS_SUBMITTED]
-    │  All 7 documents uploaded and verified
+    │  All mandatory documents uploaded
+    │  Action: College Admin / Front Office verifies documents
+    ▼
+  [DOCUMENTS_VERIFIED]
+    │  All mandatory documents verified
     │  Action: College Admin / Front Office creates admission
     │
     ▼
@@ -1152,8 +1156,7 @@ Complete Step 5 (Preferences) before processing first admission</li>
 <ul>
 <li>Select document type from dropdown</li>
 <li>Click <strong>“Upload File”</strong> → Browse and select file (PDF or JPG, max 5 MB)</li>
-<li>Click <strong>“Verify”</strong> if document meets requirements</li>
-<li>Click <strong>“Reject”</strong> if document is unacceptable → Add rejection reason</li>
+<li>Save/upload the file for verification</li>
 </ul></li>
 <li>When all 7 documents are <code>UPLOADED</code> or <code>VERIFIED</code>:
 <ul>
@@ -1161,6 +1164,8 @@ Complete Step 5 (Preferences) before processing first admission</li>
 <li>System validates completeness</li>
 <li>Status changes to <code>DOCUMENTS_SUBMITTED</code></li>
 </ul></li>
+<li>Go to <strong>Admission Management → Verify Documents</strong> and verify every mandatory document.</li>
+<li>Once all mandatory documents are verified, status changes to <code>DOCUMENTS_VERIFIED</code>.</li>
 </ol>
 <h4 id="document-verification-standards">Document Verification Standards</h4>
 <table>
@@ -1189,7 +1194,7 @@ Complete Step 5 (Preferences) before processing first admission</li>
 <hr />
 <h3 id="admission-completion">6.4 Complete Admission</h3>
 <p><strong>Navigate</strong>: Sidenav → Admission Management → Complete Admission</p>
-<p>This screen shows <strong>only</strong> enquiries in <code>DOCUMENTS_SUBMITTED</code> status — i.e., students ready for admission creation.</p>
+<p>This screen shows <strong>only</strong> enquiries in <code>DOCUMENTS_VERIFIED</code> status — i.e., students whose mandatory documents are verified and are ready for admission creation.</p>
 <h4 id="how-to-create-an-admission">How to Create an Admission</h4>
 <ol type="1">
 <li><p>Find the student’s enquiry in the list</p></li>
@@ -1507,19 +1512,26 @@ Balance:    ₹53,000 remaining</code></pre></li>
                                      ▼
   ┌────────────────────────────────────────────────────────────────────┐
   │  STEP 5 — DOCUMENT COLLECTION   [Front Office / College Admin]    │
-  │  Upload &amp; verify 7 mandatory documents:                           │
+  │  Upload 7 mandatory documents:                                    │
   │    ✓ 10th Marksheet                  ✓ Medical Fitness Certificate │
   │    ✓ 12th Marksheet (Science stream)  ✓ Blood Group Report         │
   │    ✓ Transfer Certificate             ✓ Aadhar Card                │
   │    ✓ Passport Photo                                               │
-  │  Click &quot;Submit Documents&quot; once all 7 are verified                 │
+  │  Click &quot;Submit Documents&quot; once all 7 are uploaded                 │
   │  Status = DOCUMENTS_SUBMITTED                                     │
   └──────────────────────────────────┬─────────────────────────────────┘
                                      │
                                      ▼
   ┌────────────────────────────────────────────────────────────────────┐
-  │  STEP 6 — ADMISSION CREATION    [College Admin / Front Office]    │
-  │  • Open Complete Admission screen                               │
+  │  STEP 6 — DOCUMENT VERIFICATION [College Admin / Front Office]     │
+  │  • Verify all mandatory documents                                 │
+  │  • Status = DOCUMENTS_VERIFIED                                    │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 7 — ADMISSION CREATION    [College Admin / Front Office]    │
+  │  • Open Complete Admission screen                                │
   │  • Auto-fill from enquiry: Name, Program, Phone                   │
   │  • Enter: Semester, Admission date, DOB, Blood Group, Community   │
   │  • Click &quot;Create Admission&quot;                                       │
@@ -1538,9 +1550,10 @@ Balance:    ₹53,000 remaining</code></pre></li>
 </ul>
 <h3 id="admission-creation-is-disabled-greyed-out">Admission Creation is disabled / greyed out</h3>
 <ul>
-<li>Check that <strong>all 7 mandatory documents</strong> are uploaded (UPLOADED or VERIFIED status)</li>
-<li>Verify enquiry status is <code>DOCUMENTS_SUBMITTED</code></li>
-<li>If stuck at <code>FEES_PAID</code>, go to Submit Documents, upload docs, then submit</li>
+<li>Check that <strong>all 7 mandatory documents</strong> are verified.</li>
+<li>Verify enquiry status is <code>DOCUMENTS_VERIFIED</code>.</li>
+<li>If stuck at <code>DOCUMENTS_SUBMITTED</code>, go to Verify Documents and verify every mandatory document.</li>
+<li>If stuck at <code>FEES_PAID</code>, go to Submit Documents, upload docs, then submit.</li>
 </ul>
 <h3 id="fee-amount-shows-as-0-or-incorrect-amount">Fee amount shows as ₹0 or incorrect amount</h3>
 <ul>
@@ -1675,9 +1688,14 @@ Balance:    ₹53,000 remaining</code></pre></li>
 <tr class="even">
 <td>DOCUMENTS_SUBMITTED</td>
 <td>All docs uploaded</td>
-<td>🎓 Create admission</td>
+<td>Verify documents</td>
 </tr>
 <tr class="odd">
+<td>DOCUMENTS_VERIFIED</td>
+<td>All mandatory docs verified</td>
+<td>🎓 Create admission</td>
+</tr>
+<tr class="even">
 <td>ADMITTED</td>
 <td>✅ Done!</td>
 <td>Enroll in semester</td>
@@ -1693,7 +1711,7 @@ Balance:    ₹53,000 remaining</code></pre></li>
 AFTERNOON:
   [ ] Process fee finalizations for interested students
   [ ] Review and follow up on outstanding payments
-  [ ] Handle admissions for DOCUMENTS_SUBMITTED enquiries
+  [ ] Handle admissions for DOCUMENTS_VERIFIED enquiries
 
 END OF DAY:
   [ ] Generate daily collections summary

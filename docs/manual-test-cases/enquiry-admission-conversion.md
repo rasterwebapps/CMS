@@ -4,16 +4,16 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 ---
 
-## TC-EAC-001: Successful admission creation from DOCUMENTS_SUBMITTED enquiry
+## TC-EAC-001: Successful admission creation from DOCUMENTS_VERIFIED enquiry
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status with mandatory documents verified
+- An enquiry exists in `DOCUMENTS_VERIFIED` status with mandatory documents verified
 - The application is running
 
 **Steps:**
 1. Navigate to **Enquiries** list.
-2. Locate the enquiry in `DOCUMENTS_SUBMITTED` status.
+2. Locate the enquiry in `DOCUMENTS_VERIFIED` status.
 3. Click the **Create Admission** icon button in the Actions column (graduation-cap icon).
 4. Verify the browser navigates to `/enquiries/{id}/convert`.
 5. Verify all fields are pre-filled from the enquiry: First Name, Last Name, Email, Phone, Semester, Academic Year From (current year), Academic Year To (current year + 1), Application Date (today), Admission Date (today).
@@ -32,20 +32,20 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 ---
 
-## TC-EAC-002: Create Admission button is visible only for DOCUMENTS_SUBMITTED status
+## TC-EAC-002: Create Admission button is visible only for DOCUMENTS_VERIFIED status
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- Enquiries exist in various statuses: ENQUIRED, INTERESTED, FEES_FINALIZED, FEES_PAID, DOCUMENTS_SUBMITTED, ADMITTED
+- Enquiries exist in various statuses: ENQUIRED, INTERESTED, FEES_FINALIZED, FEES_PAID, DOCUMENTS_SUBMITTED, DOCUMENTS_VERIFIED, ADMITTED
 
 **Steps:**
 1. Navigate to **Enquiries** list.
 2. Inspect each row's action buttons.
 
 **Expected Result:**
-- The **Create Admission** button is visible only for rows with status `DOCUMENTS_SUBMITTED`.
+- The **Create Admission** button is visible only for rows with status `DOCUMENTS_VERIFIED`.
 - Rows with status `ADMITTED` show no conversion button.
-- Rows with status `ENQUIRED`, `INTERESTED`, `FEES_FINALIZED`, `FEES_PAID` do not show the button.
+- Rows with status `ENQUIRED`, `INTERESTED`, `FEES_FINALIZED`, `FEES_PAID`, and `DOCUMENTS_SUBMITTED` do not show the button.
 
 **Status:** NOT TESTED
 
@@ -55,10 +55,10 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 
 **Steps:**
-1. Navigate to the **Enquiry Detail** page for a `DOCUMENTS_SUBMITTED` enquiry.
+1. Navigate to the **Enquiry Detail** page for a `DOCUMENTS_VERIFIED` enquiry.
 2. Inspect the action buttons in the header area.
 
 **Expected Result:**
@@ -74,10 +74,10 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 
 **Steps:**
-1. Navigate to `/enquiries/{id}/convert` for a DOCUMENTS_SUBMITTED enquiry.
+1. Navigate to `/enquiries/{id}/convert` for a DOCUMENTS_VERIFIED enquiry.
 2. Observe the pre-filled values in the form.
 
 **Expected Result:**
@@ -95,7 +95,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 
 **Steps:**
 1. Complete the **Create Admission** form (TC-EAC-001).
@@ -105,7 +105,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 **Expected Result:**
 - The enquiry's status badge shows **ADMITTED** (not CONVERTED).
 - The enquiry status in the detail page shows **ADMITTED**.
-- The enquiry Status History tab shows a transition from `DOCUMENTS_SUBMITTED` → `ADMITTED`.
+- The enquiry Status History tab shows a transition from `DOCUMENTS_VERIFIED` → `ADMITTED`.
 
 **Status:** NOT TESTED
 
@@ -134,7 +134,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 
 **Steps:**
 1. Complete the **Create Admission** form with valid data.
@@ -155,7 +155,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 
 **Steps:**
 1. Navigate to `/enquiries/{id}/convert`.
@@ -175,7 +175,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
-- An enquiry exists in `DOCUMENTS_SUBMITTED` status
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
 - A student already exists with the email "existing@college.edu"
 
 **Steps:**
@@ -187,7 +187,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 - The API returns a 409/400 error.
 - The snack bar shows "Failed to create admission".
 - No duplicate student or admission is created.
-- The enquiry status remains `DOCUMENTS_SUBMITTED`.
+- The enquiry status remains `DOCUMENTS_VERIFIED`.
 
 **Status:** NOT TESTED
 
@@ -199,7 +199,7 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 - User is logged in with `ROLE_ADMIN`
 
 **Steps:**
-1. Navigate to `/enquiries/{id}/convert` for a `DOCUMENTS_SUBMITTED` enquiry.
+1. Navigate to `/enquiries/{id}/convert` for a `DOCUMENTS_VERIFIED` enquiry.
 2. Observe the focus mode header bar at the top of the page.
 
 **Expected Result:**

@@ -28,6 +28,7 @@ export const STATUS_LABELS: Record<string, string> = {
   FEES_PAID:            'Fees Paid',
   PARTIALLY_PAID:       'Partially Paid',
   DOCUMENTS_SUBMITTED:  'Docs Submitted',
+  DOCUMENTS_VERIFIED:   'Docs Verified',
   ADMITTED:             'Admitted',
   CLOSED:               'Closed',
 };
@@ -40,6 +41,7 @@ const STATUS_COLOURS: Record<string, string> = {
   FEES_PAID:            '#16a34a',
   PARTIALLY_PAID:       '#d97706',
   DOCUMENTS_SUBMITTED:  '#0284c7',
+  DOCUMENTS_VERIFIED:   '#15803d',
   ADMITTED:             '#15803d',
   CLOSED:               'var(--cms-text-muted)',
 };
@@ -126,7 +128,7 @@ export class EnquiryListComponent implements OnInit {
 
   protected readonly ALL_STATUSES = [
     'ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED',
-    'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'ADMITTED', 'CLOSED',
+    'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED', 'CLOSED',
   ];
 
   // ── Per-status counts from full loaded data ───────────────────────────────
@@ -351,7 +353,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   // ── Action guards ─────────────────────────────────────────────────────────
-  protected canConvert(item: Enquiry): boolean { return item.status === 'DOCUMENTS_SUBMITTED'; }
+  protected canConvert(item: Enquiry): boolean { return item.status === 'DOCUMENTS_VERIFIED'; }
 
   protected canFinalizeFee(item: Enquiry): boolean {
     return item.status === 'INTERESTED' &&

@@ -15,130 +15,25 @@
     </div>
   </div>
 
-  @if (loading()) {
+  @if (loading() || initializing()) {
     <div class="sfd-skeleton">
       @for (_ of [1,2,3]; track $index) {
         <div class="content-card" style="height:80px;"></div>
       }
     </div>
 
-  } @else if (noAllocation()) {
-    <!-- ── No allocation yet — Setup panel ── -->
-    <div class="no-alloc-banner">
+  } @else if (initError()) {
+    <!-- ── Auto-init failed ── -->
+    <div class="no-alloc-banner no-alloc-banner--error">
       <svg class="no-alloc-banner__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
       <div>
-        <strong>Fee allocation not set up</strong>
-        <p>
-          Year-wise fees are pre-filled from the student's enquiry. Verify the amounts
-          and apply any discount, then click <em>Finalize Fees</em>. Each year is
-          automatically split into 2 term installments. Due dates are taken from the
-          <strong>Term Billing Schedules</strong> configured on the Academic Year page.
-        </p>
+        <strong>Term-wise fee setup could not be initialized</strong>
+        <p>No finalized fee data was found linked to this student. Ensure fee finalization was completed before the student was converted.</p>
+        <button class="btn-retry" (click)="retryInit()">Retry</button>
       </div>
-    </div>
-
-    <div class="content-card">
-      <div class="card-hdr">
-        <div class="card-hdr__title">
-          <svg class="card-hdr__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          Year-wise Fee Setup
-        </div>
-        @if (setupLoading()) {
-          <span class="card-spinner"></span>
-        }
-      </div>
-
-      @if (!setupLoading()) {
-        <div class="setup-table-wrap">
-          <table class="setup-table">
-            <thead>
-              <tr>
-                <th>Year</th>
-                <th class="text-right">Fee Amount (₹)</th>
-                <th class="text-right">Term 1 (ODD)</th>
-                <th class="text-right">Term 2 (EVEN)</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of yearFeeRows(); track row.yearNumber; let i = $index) {
-                <tr>
-                  <td>
-                    <span class="year-pill">Y{{ row.yearNumber }}</span>
-                    Year {{ row.yearNumber }}
-                  </td>
-                  <td class="text-right">
-                    <div class="amt-wrap">
-                      <span class="amt-prefix">₹</span>
-                      <input class="amt-input" type="number" min="0"
-                        [value]="row.amount"
-                        (change)="updateYearAmount(i, $any($event.target).value)" />
-                    </div>
-                  </td>
-                  <td class="text-right muted">{{ (row.amount / 2) | inr }}</td>
-                  <td class="text-right muted">{{ (row.amount - row.amount / 2) | inr }}</td>
-                </tr>
-              }
-            </tbody>
-            <tfoot>
-              <tr class="total-row">
-                <td><strong>Total</strong></td>
-                <td class="text-right mono"><strong>{{ setupTotal() | inr }}</strong></td>
-                <td colspan="3"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <!-- Discount row -->
-        <div class="setup-discount" [formGroup]="setupForm">
-          <div class="field-col">
-            <label class="field-label">Discount Amount (₹)</label>
-            <div class="amt-wrap">
-              <span class="amt-prefix">₹</span>
-              <input class="amt-input" type="number" min="0" placeholder="0"
-                formControlName="discountAmount" />
-            </div>
-          </div>
-          <div class="field-col" style="flex:1">
-            <label class="field-label">Discount Reason</label>
-            <input class="field-input" formControlName="discountReason"
-              placeholder="e.g., Merit scholarship…" />
-          </div>
-          <div class="field-col net-fee-col">
-            <label class="field-label">Net Fee</label>
-            <div class="net-fee-val">{{ setupNetFee() | inr }}</div>
-          </div>
-        </div>
-
-        <div class="setup-footer">
-          <p class="setup-note">
-            <svg class="setup-note__icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            Each year is split into <strong>ODD term</strong> + <strong>EVEN term</strong> installments.
-            Due dates come from Term Billing Schedules. Payments cascade in sequence.
-          </p>
-          <button class="btn-primary" (click)="createAllocation()" [disabled]="savingAlloc()">
-            @if (savingAlloc()) {
-              <span class="btn-spinner"></span>
-            } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              Finalize Fees
-            }
-          </button>
-        </div>
-      }
     </div>
 
   } @else {

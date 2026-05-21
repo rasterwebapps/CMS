@@ -160,8 +160,9 @@ export class AdmissionCompletionListComponent implements OnInit {
     this.loading.set(true);
     this.enquiryService.getAdmissionPending().subscribe({
       next:  enquiries => {
-        this._allData.set(enquiries);
-        this.dataSource.data = enquiries;
+        const verified = enquiries.filter((item) => item.status === 'DOCUMENTS_VERIFIED');
+        this._allData.set(verified);
+        this.dataSource.data = verified;
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
@@ -171,6 +172,10 @@ export class AdmissionCompletionListComponent implements OnInit {
   protected viewEnquiry(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id]); }
 
   protected completeAdmission(item: Enquiry): void {
+    if (item.status !== 'DOCUMENTS_VERIFIED') {
+      this.toast.warning('Only enquiries with Documents Verified status can be completed.');
+      return;
+    }
     void this.router.navigate(['/enquiries', item.id, 'convert']);
   }
 }

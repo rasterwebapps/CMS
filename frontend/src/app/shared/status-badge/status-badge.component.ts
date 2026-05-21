@@ -46,6 +46,7 @@ export class CmsStatusBadgeComponent {
       case 'ADMITTED':
       case 'FEES_PAID':
       case 'DOCUMENTS_SUBMITTED':
+      case 'DOCUMENTS_VERIFIED':
       case 'ACTIVE':
       case 'PRESENT':
       case 'AVAILABLE':

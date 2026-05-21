@@ -387,19 +387,19 @@ The enquiry status transitions automatically based on actions taken in the syste
 | **FEES_FINALIZED** | Admin has finalized the fee structure | Admin completes fee finalization (BR-6) |
 | **FEES_PAID** | Full fees have been paid | Full payment collected (BR-7) |
 | **PARTIALLY_PAID** | Partial fees have been paid | Partial payment collected (BR-7) |
-| **DOCUMENTS_SUBMITTED** | Student has submitted required documents | Documents uploaded/verified (BR-9) |
-| **CONVERTED** | Enquiry has been converted to a student record | Enquiry-to-student conversion (BR-10) |
+| **DOCUMENTS_SUBMITTED** | Student has submitted/uploaded required documents and is pending verification | Documents uploaded/submitted (BR-9) |
+| **DOCUMENTS_VERIFIED** | All mandatory submitted documents have been verified | Document verification completed (BR-9) |
+| **ADMITTED** | Enquiry has been converted to an admission and student record | Complete Admission (BR-10) |
 | **CLOSED** | Enquiry closed without conversion | Admin manually closes |
 
 ### Status Transition Diagram
 
 ```
 ENQUIRED
-  ├── → INTERESTED → FEES_FINALIZED → FEES_PAID → DOCUMENTS_SUBMITTED → CONVERTED
-  │                        │                │
-  │                        │                └── → PARTIALLY_PAID → FEES_PAID
-  │                        │
-  │                        └── (admin can edit finalized fees at any time before CONVERTED)
+  ├── → INTERESTED → FEES_FINALIZED
+  │                        ├── → FEES_PAID → DOCUMENTS_SUBMITTED → DOCUMENTS_VERIFIED → ADMITTED
+  │                        ├── → PARTIALLY_PAID → DOCUMENTS_SUBMITTED → DOCUMENTS_VERIFIED → ADMITTED
+  │                        └── (admin can edit finalized fees at any time before ADMITTED)
   │
   ├── → NOT_INTERESTED → CLOSED
   │
@@ -416,9 +416,10 @@ ENQUIRED
 | Admin finalizes fees | INTERESTED | FEES_FINALIZED |
 | Full payment collected | FEES_FINALIZED / PARTIALLY_PAID | FEES_PAID |
 | Partial payment collected | FEES_FINALIZED | PARTIALLY_PAID |
-| Documents submitted and verified | FEES_PAID / PARTIALLY_PAID | DOCUMENTS_SUBMITTED |
-| Convert to student | DOCUMENTS_SUBMITTED | CONVERTED |
-| Close enquiry | Any (except CONVERTED) | CLOSED |
+| Documents submitted | FEES_PAID / PARTIALLY_PAID | DOCUMENTS_SUBMITTED |
+| All mandatory documents verified | DOCUMENTS_SUBMITTED | DOCUMENTS_VERIFIED |
+| Complete admission | DOCUMENTS_VERIFIED | ADMITTED |
+| Close enquiry | Any (except ADMITTED) | CLOSED |
 
 ### Note on Previous Statuses
 
@@ -430,7 +431,7 @@ The previous status values (`NEW`, `CONTACTED`, `FEE_DISCUSSED`) are being repla
 
 ### Business Rule
 
-After fees are paid (fully or partially), the student must submit required documents (e.g., 10th certificate, 12th certificate, ID proofs). Once all required documents are submitted and verified, the enquiry status transitions to **DOCUMENTS_SUBMITTED**.
+After fees are paid (fully or partially), the student must submit required documents (e.g., 10th certificate, 12th certificate, ID proofs). Once all mandatory documents are submitted/uploaded, the enquiry status transitions to **DOCUMENTS_SUBMITTED** and enters the document verification queue. Once all mandatory documents are verified, the enquiry status transitions to **DOCUMENTS_VERIFIED**.
 
 ### Key Points
 
@@ -443,10 +444,11 @@ After fees are paid (fully or partially), the student must submit required docum
    - Aadhar Card
    - Passport-size photographs
    - Income Certificate (for scholarship eligibility)
-2. Each document has a status: `PENDING`, `SUBMITTED`, `VERIFIED`, `REJECTED`.
+2. Each document has a status such as `NOT_UPLOADED`, `UPLOADED`, `VERIFIED`, or `REJECTED`.
 3. The system tracks which documents are submitted and which are pending.
-4. The enquiry status transitions to **DOCUMENTS_SUBMITTED** only when all mandatory documents are submitted.
-5. Document verification can be done by the admin.
+4. The enquiry status transitions to **DOCUMENTS_SUBMITTED** when all mandatory documents are submitted/uploaded.
+5. Document verification can be done by authorized staff/admin.
+6. The enquiry status transitions to **DOCUMENTS_VERIFIED** only when all mandatory documents are verified.
 
 ### Entities Involved
 
@@ -464,18 +466,18 @@ After fees are paid (fully or partially), the student must submit required docum
 
 ### Business Rule
 
-Once the enquiry reaches **DOCUMENTS_SUBMITTED** status, the system provides the option to **convert the enquiry to a student record**. This creates a full student entity in the system with all data captured during the enquiry process.
+Once the enquiry reaches **DOCUMENTS_VERIFIED** status, the system provides the option to **complete admission**. This creates a full student entity and admission record in the system with all data captured during the enquiry process.
 
 ### Key Points
 
-1. Conversion is only allowed from **DOCUMENTS_SUBMITTED** status.
+1. Complete Admission is only allowed from **DOCUMENTS_VERIFIED** status.
 2. The student record is created with:
    - Personal details from the enquiry (name, email, phone)
    - Program from the enquiry
    - Admission date set to the conversion date
    - Fee allocation linked to the finalized fee data
    - Documents linked from the enquiry
-3. Upon conversion, the enquiry status transitions to **CONVERTED**.
+3. Upon completion, the enquiry status transitions to **ADMITTED**.
 4. The enquiry retains a reference to the created student (`convertedStudentId`).
 5. The conversion is **irreversible** — once converted, the enquiry cannot be reverted.
 6. A roll number is generated for the student based on the institution's numbering scheme.
@@ -1095,17 +1097,20 @@ Step 4: PAYMENT COLLECTION (Accounting/Cashier)
 
 Step 5: SUBMIT DOCUMENTS
   ↓  Student submits required documents (10th, 12th, TC, etc.)
-  ↓  Admin verifies documents
   ↓  Status: DOCUMENTS_SUBMITTED
 
-Step 6: CONVERSION TO STUDENT (Admin)
-  ↓  Admin converts enquiry to student
+Step 6: VERIFY DOCUMENTS
+  ↓  Admin/staff verifies all mandatory documents
+  ↓  Status: DOCUMENTS_VERIFIED
+
+Step 7: COMPLETE ADMISSION (Admin)
+  ↓  Admin completes admission from verified enquiries only
   ↓  Student record created with all data
   ↓  Roll number assigned
   ↓  Fee allocation linked
-  ↓  Status: CONVERTED
+  ↓  Status: ADMITTED
 
-Step 7: STUDENT EXPLORER
+Step 8: STUDENT EXPLORER
   ↓  Student appears in Student Explorer with all filters
   ↓  Full student lifecycle management begins
 ```

@@ -420,7 +420,7 @@
   - `feeGuidelineTotal`, `referralTypeId` (FK → ReferralType), `referralAdditionalAmount`, `finalCalculatedFee`
   - Year-wise guideline breakdown stored as related records
 - [ ] **R1-4.1b.2** Update `EnquiryStatus` enum to reflect new workflow:
-  - ENQUIRED, INTERESTED, NOT_INTERESTED, FEES_FINALIZED, FEES_PAID, PARTIALLY_PAID, DOCUMENTS_SUBMITTED, CONVERTED, CLOSED
+  - ENQUIRED, INTERESTED, NOT_INTERESTED, FEES_FINALIZED, FEES_PAID, PARTIALLY_PAID, DOCUMENTS_SUBMITTED, DOCUMENTS_VERIFIED, ADMITTED, CLOSED
 - [ ] **R1-4.1b.3** Enhance enquiry service:
   - Fee guideline lookup by program + current academic year (BR-3)
   - Referral additional amount calculation (BR-5)
@@ -434,7 +434,7 @@
   - `POST /api/v1/enquiries/{id}/documents` — Submit document
   - `GET /api/v1/enquiries/{id}/documents` — List submitted documents
   - `PATCH /api/v1/enquiries/{id}/documents/{docId}/verify` — Verify document
-- [ ] **R1-4.1b.7** Enhance convert-to-student to require DOCUMENTS_SUBMITTED status (BR-10)
+- [ ] **R1-4.1b.7** Enhance complete-admission conversion to require DOCUMENTS_VERIFIED status (BR-10)
 - [ ] **R1-4.1b.8** Create student explorer endpoint with filters (BR-11):
   - `GET /api/v1/students/explorer` — Search with filters (program, department, academicYear, semester, status, feeStatus, search)
 - [ ] **R1-4.1b.9** Create DTOs and Flyway migrations for all new fields/tables

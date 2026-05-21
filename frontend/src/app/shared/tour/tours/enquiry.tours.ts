@@ -289,7 +289,7 @@ export const ADMISSION_COMPLETION_LIST_TOUR: TourDefinition = {
       popover: {
         title: '🎓 Complete Admission',
         description:
-          'The final step in the admission workflow. Candidates here have paid and submitted documents — they\'re ready to be promoted to active students.',
+          'The final step in the admission workflow. Candidates here have paid and completed document verification — they\'re ready to be admitted as active students.',
         side: 'over',
         align: 'center',
       },

@@ -44,10 +44,11 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 
 ---
 
-## TC-ADM-ENQ-003: Enquiry dropdown lists only DOCUMENTS_SUBMITTED enquiries
+## TC-ADM-ENQ-003: Enquiry dropdown lists only DOCUMENTS_VERIFIED enquiries
 
 **Preconditions:**
-- At least one enquiry is in `DOCUMENTS_SUBMITTED` status.
+- At least one enquiry is in `DOCUMENTS_VERIFIED` status.
+- At least one enquiry is in `DOCUMENTS_SUBMITTED` status (uploaded but not verified).
 - At least one enquiry is in `FEES_PAID` or `PARTIALLY_PAID` status (not yet document-submitted).
 - User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
 
@@ -57,8 +58,8 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 3. Note the enquiries listed.
 
 **Expected Result:**
-- Only enquiries in `DOCUMENTS_SUBMITTED` status appear in the list.
-- Enquiries in `FEES_PAID`, `PARTIALLY_PAID`, `ADMITTED`, or other statuses do not appear.
+- Only enquiries in `DOCUMENTS_VERIFIED` status appear in the list.
+- Enquiries in `FEES_PAID`, `PARTIALLY_PAID`, `DOCUMENTS_SUBMITTED`, `ADMITTED`, or other statuses do not appear.
 - Each option shows the student name, program, and course (if present).
 
 **Status:** NOT TESTED
@@ -68,7 +69,7 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 ## TC-ADM-ENQ-004: Selecting an enquiry pre-fills student and admission details
 
 **Preconditions:**
-- At least one enquiry is in `DOCUMENTS_SUBMITTED` status with a program assigned.
+- At least one enquiry is in `DOCUMENTS_VERIFIED` status with a program assigned.
 - User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
 
 **Steps:**
@@ -91,7 +92,7 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 ## TC-ADM-ENQ-005: Submitting the from-enquiry form creates a Student and Admission atomically
 
 **Preconditions:**
-- An enquiry in `DOCUMENTS_SUBMITTED` status with a program exists.
+- An enquiry in `DOCUMENTS_VERIFIED` status with a program exists.
 - User is logged in with `ROLE_ADMIN`.
 
 **Steps:**
@@ -133,7 +134,7 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 ## TC-ADM-ENQ-007: Validation prevents submission when required student fields are empty
 
 **Preconditions:**
-- An enquiry in `DOCUMENTS_SUBMITTED` status exists.
+- An enquiry in `DOCUMENTS_VERIFIED` status exists.
 - The enquiry's stored name has no email.
 
 **Steps:**
@@ -211,7 +212,7 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 ## TC-ADM-ENQ-011: Empty enquiry list shows a helpful hint message
 
 **Preconditions:**
-- No enquiries are in `DOCUMENTS_SUBMITTED` status (all are in earlier stages or already admitted).
+- No enquiries are in `DOCUMENTS_VERIFIED` status (all are in earlier stages, only submitted/not verified, or already admitted).
 - User is logged in with `ROLE_ADMIN`.
 
 **Steps:**
@@ -219,7 +220,7 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 2. Observe the **Select Enquiry** area.
 
 **Expected Result:**
-- The hint message is displayed: *"No enquiries are currently awaiting admission (documents must be submitted first)."*
+- The hint message is displayed explaining that no enquiries are currently awaiting admission and documents must be verified first.
 - The dropdown is present but empty.
 
 **Status:** NOT TESTED

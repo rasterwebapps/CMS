@@ -54,8 +54,8 @@ export class DocumentCollectionComponent implements OnInit {
   private readonly tourService = inject(TourService);
 
   /**
-   * When true the component is in "verify" mode — opened from the
-   * Complete Admission list for a DOCUMENTS_SUBMITTED enquiry.
+   * When true the component is in "verify" mode — opened from document
+   * verification for a DOCUMENTS_SUBMITTED enquiry.
    * In this mode:
    *  - VERIFIED documents are locked (no edits allowed).
    *  - The "Submit Documents" button is replaced by "Back to Admission".

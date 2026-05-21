@@ -67,7 +67,7 @@ From the **Enquiries list**, you can trigger key workflow steps with a single bu
 | 💰 Finalize Fee | `INTERESTED` | Set student's fee amount, apply scholarships |
 | 💳 Collect Payment | `FEES_FINALIZED` or `PARTIALLY_PAID` | Record a cash/online/cheque payment |
 | 📁 Submit Documents | `FEES_PAID` or `PARTIALLY_PAID` | Open document upload workflow |
-| 🎓 Create Admission | `DOCUMENTS_SUBMITTED` (via enquiry detail) | Create admission and student record |
+| 🎓 Create Admission | `DOCUMENTS_VERIFIED` (via enquiry detail or Complete Admission) | Create admission and student record |
 
 ---
 
@@ -100,7 +100,7 @@ From the **Enquiries list**, you can trigger key workflow steps with a single bu
 |--------|--------------|
 | New Enquiries This Month | Count of prospective students who enquired |
 | Pending Fee Finalizations | Enquiries in `INTERESTED` status awaiting fee setup |
-| Ready for Admission | Enquiries in `DOCUMENTS_SUBMITTED` status |
+| Ready for Admission | Enquiries in `DOCUMENTS_VERIFIED` status |
 | Monthly Collections | Total fees received this calendar month |
 | Outstanding Balance | Total fees yet to be collected across all students |
 | Active Academic Year | Currently configured academic year (e.g., 2026–27) |
@@ -402,7 +402,11 @@ Every prospective student passes through the following statuses, each unlocking 
                │  Action: Collect 7 mandatory documents
                ▼
   [DOCUMENTS_SUBMITTED]
-    │  All 7 documents uploaded and verified
+    │  All mandatory documents uploaded
+    │  Action: College Admin / Front Office verifies documents
+    ▼
+  [DOCUMENTS_VERIFIED]
+    │  All mandatory documents verified
     │  Action: College Admin / Front Office creates admission
     │
     ▼
@@ -488,12 +492,13 @@ SKS College Of Nursing is affiliated with the **Indian Nursing Council (INC)** a
 4. For each of the 7 documents:
    - Select document type from dropdown
    - Click **"Upload File"** → Browse and select file (PDF or JPG, max 5 MB)
-   - Click **"Verify"** if document meets requirements
-   - Click **"Reject"** if document is unacceptable → Add rejection reason
+   - Save/upload the file for verification
 5. When all 7 documents are `UPLOADED` or `VERIFIED`:
    - Click **"Submit Documents"** button
    - System validates completeness
    - Status changes to `DOCUMENTS_SUBMITTED`
+6. Go to **Admission Management → Verify Documents** and verify every mandatory document.
+7. Once all mandatory documents are verified, status changes to `DOCUMENTS_VERIFIED`.
 
 #### Document Verification Standards
 
@@ -516,7 +521,7 @@ SKS College Of Nursing is affiliated with the **Indian Nursing Council (INC)** a
 
 **Navigate**: Sidenav → Admission Management → Complete Admission
 
-This screen shows **only** enquiries in `DOCUMENTS_SUBMITTED` status — i.e., students ready for admission creation.
+This screen shows **only** enquiries in `DOCUMENTS_VERIFIED` status — i.e., students whose mandatory documents are verified and are ready for admission creation.
 
 #### How to Create an Admission
 
@@ -789,19 +794,26 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
                                      ▼
   ┌────────────────────────────────────────────────────────────────────┐
   │  STEP 5 — DOCUMENT COLLECTION   [Front Office / College Admin]    │
-  │  Upload & verify 7 mandatory documents:                           │
+  │  Upload 7 mandatory documents:                                    │
   │    ✓ 10th Marksheet                  ✓ Medical Fitness Certificate │
   │    ✓ 12th Marksheet (Science stream)  ✓ Blood Group Report         │
   │    ✓ Transfer Certificate             ✓ Aadhar Card                │
   │    ✓ Passport Photo                                               │
-  │  Click "Submit Documents" once all 7 are verified                 │
+  │  Click "Submit Documents" once all 7 are uploaded                 │
   │  Status = DOCUMENTS_SUBMITTED                                     │
   └──────────────────────────────────┬─────────────────────────────────┘
                                      │
                                      ▼
   ┌────────────────────────────────────────────────────────────────────┐
-  │  STEP 6 — ADMISSION CREATION    [College Admin / Front Office]    │
-  │  • Open Complete Admission screen                               │
+  │  STEP 6 — DOCUMENT VERIFICATION [College Admin / Front Office]     │
+  │  • Verify all mandatory documents                                 │
+  │  • Status = DOCUMENTS_VERIFIED                                    │
+  └──────────────────────────────────┬─────────────────────────────────┘
+                                     │
+                                     ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  STEP 7 — ADMISSION CREATION    [College Admin / Front Office]    │
+  │  • Open Complete Admission screen                                │
   │  • Auto-fill from enquiry: Name, Program, Phone                   │
   │  • Enter: Semester, Admission date, DOB, Blood Group, Community   │
   │  • Click "Create Admission"                                       │
@@ -824,9 +836,10 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 
 ### Admission Creation is disabled / greyed out
 
-- Check that **all 7 mandatory documents** are uploaded (UPLOADED or VERIFIED status)
-- Verify enquiry status is `DOCUMENTS_SUBMITTED`
-- If stuck at `FEES_PAID`, go to Submit Documents, upload docs, then submit
+- Check that **all 7 mandatory documents** are verified.
+- Verify enquiry status is `DOCUMENTS_VERIFIED`.
+- If stuck at `DOCUMENTS_SUBMITTED`, go to Verify Documents and verify every mandatory document.
+- If stuck at `FEES_PAID`, go to Submit Documents, upload docs, then submit.
 
 ### Fee amount shows as ₹0 or incorrect amount
 
@@ -882,7 +895,8 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 | FEES_FINALIZED | Fees set | Wait for payment |
 | FEES_PAID | Fully paid | 📁 Collect documents |
 | PARTIALLY_PAID | Partially paid | Collect documents, collect remaining fee |
-| DOCUMENTS_SUBMITTED | All docs uploaded | 🎓 Create admission |
+| DOCUMENTS_SUBMITTED | All docs uploaded | Verify documents |
+| DOCUMENTS_VERIFIED | All mandatory docs verified | 🎓 Create admission |
 | ADMITTED | ✅ Done! | Enroll in semester |
 
 ### Admin Daily Checklist
@@ -896,7 +910,7 @@ MORNING:
 AFTERNOON:
   [ ] Process fee finalizations for interested students
   [ ] Review and follow up on outstanding payments
-  [ ] Handle admissions for DOCUMENTS_SUBMITTED enquiries
+  [ ] Handle admissions for DOCUMENTS_VERIFIED enquiries
 
 END OF DAY:
   [ ] Generate daily collections summary

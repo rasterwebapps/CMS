@@ -1,23 +1,24 @@
 # Complete Admission Manual Test Cases
 
 These tests cover the complete admission flow which lets an Admin or Front Office user
-pick an enquiry that is in `DOCUMENTS_SUBMITTED` status and complete the admission by
+pick an enquiry that is in `DOCUMENTS_VERIFIED` status and complete the admission by
 collecting all student and admission details. On submit, both the `students` and
 `admissions` rows are created and the enquiry is moved to `ADMITTED`.
 
-## TC-ADMCOMP-001: Complete Admission list shows only DOCUMENTS_SUBMITTED enquiries
+## TC-ADMCOMP-001: Complete Admission list shows only DOCUMENTS_VERIFIED enquiries
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
-- At least one enquiry exists in `DOCUMENTS_SUBMITTED` status, plus enquiries in other statuses
-  (e.g. `INTERESTED`, `FEES_PAID`, `ADMITTED`).
+- At least one enquiry exists in `DOCUMENTS_VERIFIED` status, plus enquiries in other statuses
+  (e.g. `INTERESTED`, `FEES_PAID`, `DOCUMENTS_SUBMITTED`, `ADMITTED`).
 
 **Steps:**
 1. Open the side menu and click **Admission Management → Complete Admission**.
 2. Wait for the list to load.
 
 **Expected Result:**
-- Only enquiries with status `DOCUMENTS_SUBMITTED` are shown.
+- Only enquiries with status `DOCUMENTS_VERIFIED` are shown.
+- Enquiries with status `DOCUMENTS_SUBMITTED` are not shown in Complete Admission.
 - The header reads "Complete Admission" with subtitle about choosing one to complete.
 - The count badge matches the number of rows.
 
@@ -25,11 +26,11 @@ collecting all student and admission details. On submit, both the `students` and
 
 ---
 
-## TC-ADMCOMP-002: Empty state when no DOCUMENTS_SUBMITTED enquiries exist
+## TC-ADMCOMP-002: Empty state when no DOCUMENTS_VERIFIED enquiries exist
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`.
-- No enquiry is in `DOCUMENTS_SUBMITTED` status.
+- No enquiry is in `DOCUMENTS_VERIFIED` status.
 
 **Steps:**
 1. Navigate to **Admission Management → Complete Admission**.
@@ -44,7 +45,7 @@ collecting all student and admission details. On submit, both the `students` and
 ## TC-ADMCOMP-003: Complete admission with full student + admission data
 
 **Preconditions:**
-- One enquiry with a `programId` is in `DOCUMENTS_SUBMITTED` status.
+- One enquiry with a `programId` is in `DOCUMENTS_VERIFIED` status.
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
@@ -79,7 +80,7 @@ collecting all student and admission details. On submit, both the `students` and
 ## TC-ADMCOMP-004: Complete admission with only mandatory fields
 
 **Preconditions:**
-- One enquiry with a `programId` is in `DOCUMENTS_SUBMITTED` status.
+- One enquiry with a `programId` is in `DOCUMENTS_VERIFIED` status.
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
@@ -98,10 +99,10 @@ collecting all student and admission details. On submit, both the `students` and
 
 ---
 
-## TC-ADMCOMP-005: Conversion is rejected when enquiry is not DOCUMENTS_SUBMITTED
+## TC-ADMCOMP-005: Conversion is rejected when enquiry is not DOCUMENTS_VERIFIED
 
 **Preconditions:**
-- An enquiry exists in any non-`DOCUMENTS_SUBMITTED` status (for example `INTERESTED`).
+- An enquiry exists in any non-`DOCUMENTS_VERIFIED` status (for example `INTERESTED` or `DOCUMENTS_SUBMITTED`).
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
@@ -109,8 +110,7 @@ collecting all student and admission details. On submit, both the `students` and
    with a valid `EnquiryConversionRequest` body, where `{id}` is the non-eligible enquiry.
 
 **Expected Result:**
-- HTTP `409 Conflict` (or equivalent error) is returned with a message containing
-  `DOCUMENTS_SUBMITTED`.
+- HTTP `409 Conflict` is returned with a message containing `DOCUMENTS_VERIFIED`.
 - No new `students` or `admissions` row is created.
 - Enquiry status is unchanged.
 
@@ -122,7 +122,7 @@ collecting all student and admission details. On submit, both the `students` and
 
 **Preconditions:**
 - A `students` row already exists with email `existing@college.edu`.
-- An enquiry is in `DOCUMENTS_SUBMITTED` status.
+- An enquiry is in `DOCUMENTS_VERIFIED` status.
 - Logged in as `ROLE_ADMIN`.
 
 **Steps:**
@@ -151,38 +151,36 @@ collecting all student and admission details. On submit, both the `students` and
 
 **Status:** NOT TESTED
 ---
-## TC-ADMCOMP-008: Verify Documents button opens document verification screen
+## TC-ADMCOMP-008: Document verification moves enquiry into Complete Admission queue
 **Preconditions:**
 - At least one enquiry is in `DOCUMENTS_SUBMITTED` status.
 - User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
 **Steps:**
-1. Navigate to **Admission Management → Complete Admission**.
-2. Locate an enquiry in the list.
-3. Click the **"Verify Docs"** button (green shield icon) in the actions column.
+1. Navigate to **Admission Management → Verify Documents**.
+2. Open the `DOCUMENTS_SUBMITTED` enquiry.
+3. Verify every mandatory document.
+4. Navigate to **Admission Management → Complete Admission**.
 **Expected Result:**
-- Browser navigates to `/enquiries/document-submission/{id}?mode=verify`.
-- The document collection screen loads in **verify mode** — header shows "X/Y verified".
-- Section hint reads: "Verify each document — verified docs are locked and cannot be changed".
-- VERIFIED documents show a green "Locked" badge and have no edit/upload/status-change buttons.
-- UPLOADED (not yet verified) documents show the full verify/reject/upload controls.
+- The enquiry status changes from `DOCUMENTS_SUBMITTED` to `DOCUMENTS_VERIFIED`.
+- The enquiry appears in the Complete Admission list only after the status is `DOCUMENTS_VERIFIED`.
+- The Complete Admission row status displays **Docs Verified**.
 **Status:** NOT TESTED
 ---
-## TC-ADMCOMP-009: Cannot complete admission without verifying all documents
+## TC-ADMCOMP-009: DOCUMENTS_SUBMITTED enquiry does not open Complete Admission directly
 **Preconditions:**
 - An enquiry is in `DOCUMENTS_SUBMITTED` status with at least one document still in UPLOADED (not VERIFIED) status.
 - User is logged in with `ROLE_ADMIN`.
 **Steps:**
-1. Navigate to **Admission Management → Complete Admission**.
-2. Click the **"Complete"** button (or click the table row) for that enquiry.
+1. Navigate directly to `/enquiries/{id}/convert` for that enquiry.
 **Expected Result:**
-- A warning toast appears: "N document(s) still need verification. Please verify all documents first."
-- The browser navigates to the document verification screen for that enquiry (`?mode=verify`).
+- A warning toast explains Complete Admission is allowed only after documents are verified.
+- The browser navigates to the document verification screen for that enquiry.
 - The convert/admission form screen is NOT opened.
 **Status:** NOT TESTED
 ---
-## TC-ADMCOMP-010: Create Admission screen shows blocking banner when docs unverified
+## TC-ADMCOMP-010: Create Admission screen blocks inconsistent unverified document data
 **Preconditions:**
-- An enquiry is in `DOCUMENTS_SUBMITTED` status with at least one document in UPLOADED status.
+- An enquiry is in `DOCUMENTS_VERIFIED` status but at least one mandatory document is not actually `VERIFIED` (data inconsistency test only).
 - User navigates directly to `/enquiries/{id}/convert` (bypassing the list check).
 **Steps:**
 1. Open the Create Admission screen via direct URL.
@@ -191,12 +189,13 @@ collecting all student and admission details. On submit, both the `students` and
 - Banner reads: "Document Verification Required — N mandatory document(s) have not been verified yet."
 - A "Go to Verify Documents" link is visible in the banner.
 - The "Create Admission" button is replaced with an amber "Verify Documents First" button that links to the verify screen.
-- Submitting the form is blocked (backend returns 400 with "mandatory documents must be verified").
+- Submitting the form is blocked (backend returns `409 Conflict` with "mandatory documents must be verified").
 **Status:** NOT TESTED
 ---
 ## TC-ADMCOMP-011: All documents verified — admission can be completed
 **Preconditions:**
 - All mandatory enquiry documents are marked as VERIFIED.
+- The enquiry status is `DOCUMENTS_VERIFIED`.
 - User is logged in with `ROLE_ADMIN`.
 **Steps:**
 1. Navigate to **Admission Management → Complete Admission**.
@@ -224,10 +223,10 @@ collecting all student and admission details. On submit, both the `students` and
 ---
 ## TC-ADMCOMP-013: Backend enforces document verification on conversion API
 **Preconditions:**
-- An enquiry is in `DOCUMENTS_SUBMITTED` status with UPLOADED documents (not VERIFIED).
+- An enquiry is in `DOCUMENTS_VERIFIED` status but has an unverified mandatory document (data inconsistency test only).
 **Steps:**
 1. Send a POST request directly to `/api/v1/enquiries/{id}/convert` with a valid conversion payload.
 **Expected Result:**
-- Response status is `400 Bad Request`.
+- Response status is `409 Conflict`.
 - Response body contains: `"All mandatory documents must be verified before completing admission"`.
 **Status:** NOT TESTED

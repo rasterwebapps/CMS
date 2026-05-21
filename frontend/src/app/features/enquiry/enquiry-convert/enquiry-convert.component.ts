@@ -134,6 +134,17 @@ export class EnquiryConvertComponent implements OnInit {
     }).subscribe({
       next: ({ enquiry, prefill, years, communities, bloodGroups, verification }) => {
         this.enquiry.set(enquiry);
+        if (enquiry.status !== 'DOCUMENTS_VERIFIED') {
+          this.docsNotVerified.set(true);
+          this.loading.set(false);
+          this.toast.warning('Complete Admission is allowed only after documents are verified.');
+          const target = enquiry.status === 'DOCUMENTS_SUBMITTED'
+            ? ['/enquiries/document-verification', enquiry.id]
+            : ['/enquiries', enquiry.id];
+          void this.router.navigate(target);
+          return;
+        }
+
         this.prefill.set(prefill);
         this.communities.set(communities);
         this.bloodGroups.set(bloodGroups);
@@ -207,6 +218,10 @@ export class EnquiryConvertComponent implements OnInit {
 
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.enquiry()?.status !== 'DOCUMENTS_VERIFIED') {
+      this.toast.warning('Complete Admission is allowed only for Documents Verified enquiries.');
+      return;
+    }
     if (this.docsNotVerified()) {
       this.toast.warning('All mandatory documents must be verified before completing admission.');
       return;

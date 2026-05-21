@@ -150,7 +150,7 @@
 14. Verify new student record created in Students list
 
 **Expected Result**:
-- ✅ College Admin can see "Create Admission" button for DOCUMENTS_SUBMITTED enquiries
+- ✅ College Admin can see "Create Admission" button for DOCUMENTS_VERIFIED enquiries
 - ✅ College Admin can navigate to admission creation form
 - ✅ Form pre-fills with enquiry data correctly
 - ✅ Backend returns HTTP 201 and creates admission + student

@@ -110,7 +110,7 @@ export class EnquiryDetailComponent implements OnInit {
   }
 
   protected canConvert(): boolean {
-    return this.enquiry()?.status === 'DOCUMENTS_SUBMITTED';
+    return this.enquiry()?.status === 'DOCUMENTS_VERIFIED';
   }
 
   protected submitDocuments(): void {

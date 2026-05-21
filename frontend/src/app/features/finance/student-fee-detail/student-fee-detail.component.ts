@@ -1,15 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { formatCurrency } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
-import {
-  StudentFeeAllocation, InstallmentFeeDetail, Receipt,
-  EnquiryYearFee, CreateAllocationYearFee,
-} from '../finance.model';
+import { StudentFeeAllocation, InstallmentFeeDetail, Receipt } from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -28,7 +24,7 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    PaymentModeLabelPipe, InrPipe, RouterLink, ReactiveFormsModule,
+    PaymentModeLabelPipe, InrPipe, RouterLink,
     MatDialogModule, MatTooltipModule, CmsStatusBadgeComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
@@ -39,21 +35,12 @@ export class StudentFeeDetailComponent implements OnInit {
   private readonly finance = inject(FinanceService);
   private readonly toast   = inject(ToastService);
   private readonly dialog  = inject(MatDialog);
-  private readonly fb      = inject(FormBuilder);
 
-  protected readonly loading         = signal(true);
-  protected readonly noAllocation    = signal(false);
-  protected readonly setupLoading    = signal(false);
-  protected readonly savingAlloc     = signal(false);
-  protected readonly allocation      = signal<StudentFeeAllocation | null>(null);
-  protected readonly receiptGroups   = signal<ReceiptGroup[]>([]);
-  protected readonly enquiryYearFees = signal<EnquiryYearFee[]>([]);
-  protected readonly yearFeeRows     = signal<{ yearNumber: number; amount: number }[]>([]);
-
-  protected readonly setupForm: FormGroup = this.fb.group({
-    discountAmount: [0, [Validators.min(0)]],
-    discountReason: [''],
-  });
+  protected readonly loading      = signal(true);
+  protected readonly initializing = signal(false);
+  protected readonly initError    = signal(false);
+  protected readonly allocation   = signal<StudentFeeAllocation | null>(null);
+  protected readonly receiptGroups = signal<ReceiptGroup[]>([]);
 
   // ── Computed totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
@@ -70,14 +57,6 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly nextDueSemester = computed(() =>
     this.allocation()?.installmentFees.find(sf => sf.pendingAmount > 0) ?? null
   );
-
-  protected readonly setupTotal = computed(() =>
-    this.yearFeeRows().reduce((s, r) => s + r.amount, 0)
-  );
-  protected readonly setupNetFee = computed(() => {
-    const discount = Number(this.setupForm.get('discountAmount')?.value) || 0;
-    return Math.max(0, this.setupTotal() - discount);
-  });
 
   private studentId!: number;
 
@@ -111,52 +90,15 @@ export class StudentFeeDetailComponent implements OnInit {
     });
   }
 
-  // ── Setup: year fee row editing ───────────────────────────────────────────────
-  protected updateYearAmount(index: number, value: string): void {
-    const rows = [...this.yearFeeRows()];
-    rows[index] = { ...rows[index], amount: Math.max(0, parseFloat(value) || 0) };
-    this.yearFeeRows.set(rows);
-  }
-
-  // ── Setup: create allocation ──────────────────────────────────────────────────
-  protected createAllocation(): void {
-    const discount = Number(this.setupForm.get('discountAmount')?.value) || 0;
-    const reason   = this.setupForm.get('discountReason')?.value?.trim() || undefined;
-
-    const yearFees: CreateAllocationYearFee[] = this.yearFeeRows().map(r => ({
-      yearNumber: r.yearNumber,
-      amount: r.amount,
-    }));
-
-    const request = {
-      studentId: this.studentId,
-      totalFee: this.setupTotal(),
-      discountAmount: discount || undefined,
-      discountReason: reason,
-      agentCommission: undefined,
-      yearFees,
-    };
-
-    this.savingAlloc.set(true);
-    this.finance.createStudentFeeAllocation(request).subscribe({
-      next: (data) => {
-        this.allocation.set(data);
-        this.noAllocation.set(false);
-        this.savingAlloc.set(false);
-        this.toast.success('Fees finalized — term-wise installments generated with due dates from billing schedule');
-        this.loadAll();
-      },
-      error: () => {
-        this.toast.error('Failed to create fee allocation');
-        this.savingAlloc.set(false);
-      },
-    });
+  protected retryInit(): void {
+    this.initError.set(false);
+    this.autoInitializeAllocation();
   }
 
   // ── Data loading ──────────────────────────────────────────────────────────────
   private loadAll(): void {
     this.loading.set(true);
-    this.noAllocation.set(false);
+    this.initError.set(false);
 
     this.finance.getFeeAllocationStatus(this.studentId).subscribe({
       next: (data) => {
@@ -164,14 +106,12 @@ export class StudentFeeDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
+        this.loading.set(false);
         if (err.status === 404) {
-          // No allocation yet — load enquiry year fees to pre-fill the setup form
-          this.noAllocation.set(true);
-          this.loadEnquiryYearFees();
+          this.autoInitializeAllocation();
         } else {
           this.toast.error('Failed to load fee details');
         }
-        this.loading.set(false);
       },
     });
 
@@ -180,24 +120,34 @@ export class StudentFeeDetailComponent implements OnInit {
     });
   }
 
-  private loadEnquiryYearFees(): void {
-    this.setupLoading.set(true);
+  private autoInitializeAllocation(): void {
+    this.initializing.set(true);
+
     this.finance.getEnquiryYearFees(this.studentId).subscribe({
       next: (fees) => {
-        this.enquiryYearFees.set(fees);
-        this.yearFeeRows.set(fees.map(f => ({
-          yearNumber: f.yearNumber,
-          amount: f.amount,
-        })));
-        this.setupLoading.set(false);
+        if (!fees.length) {
+          this.initializing.set(false);
+          this.initError.set(true);
+          return;
+        }
+        const yearFees = fees.map(f => ({ yearNumber: f.yearNumber, amount: f.amount }));
+        const totalFee = yearFees.reduce((s, f) => s + f.amount, 0);
+
+        this.finance.createStudentFeeAllocation({ studentId: this.studentId, totalFee, yearFees }).subscribe({
+          next: (data) => {
+            this.allocation.set(data);
+            this.initializing.set(false);
+            this.toast.success('Term-wise installments created from finalized fee');
+          },
+          error: () => {
+            this.initializing.set(false);
+            this.initError.set(true);
+          },
+        });
       },
       error: () => {
-        // No linked enquiry — show empty setup form with default rows
-        this.yearFeeRows.set([
-          { yearNumber: 1, amount: 0 },
-          { yearNumber: 2, amount: 0 },
-        ]);
-        this.setupLoading.set(false);
+        this.initializing.set(false);
+        this.initError.set(true);
       },
     });
   }

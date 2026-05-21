@@ -7,7 +7,7 @@
         <h1 class="adcomp-title">Complete <em>Admission</em></h1>
         <cms-tour-button tourKey="admission-completion-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="adcomp-sub">Candidates with documents submitted — ready to be converted to active students</p>
+      <p class="adcomp-sub">Candidates with documents verified — ready to be admitted as active students</p>
       @if (!loading()) {
         <div class="adcomp-meta">
           <span class="adcomp-stat">
@@ -171,7 +171,7 @@
             <td mat-cell *matCellDef="let row" class="cell-align-center">
               <span class="docs-badge">
                 <span class="docs-badge__dot"></span>
-                Docs Submitted
+                Docs Verified
               </span>
             </td>
           </ng-container>
@@ -251,7 +251,7 @@
                 <cms-empty-state
                   icon="how_to_reg"
                   title="No candidates pending"
-                  subtitle="Enquiries in Documents Submitted status will appear here automatically."
+                  subtitle="Enquiries in Documents Verified status will appear here automatically."
                 />
               } @else {
                 <cms-empty-state

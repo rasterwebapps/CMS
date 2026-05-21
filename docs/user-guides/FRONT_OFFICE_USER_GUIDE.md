@@ -64,7 +64,7 @@ From the **Enquiries list row**, you will see these shortcut buttons:
 |--------|----------------|-------------|
 | 💳 Collect Payment | `FEES_FINALIZED` or `PARTIALLY_PAID` | Jump to payment form pre-filled with this enquiry |
 | 📁 Submit Documents | `FEES_PAID` or `PARTIALLY_PAID` | Jump to document upload screen |
-| 🎓 Create Admission | `DOCUMENTS_SUBMITTED` (from detail view) | Open admission creation form |
+| 🎓 Create Admission | `DOCUMENTS_VERIFIED` (from detail view or Complete Admission) | Open admission creation form |
 
 ---
 
@@ -97,7 +97,7 @@ Your dashboard shows metrics relevant to your daily responsibilities.
 | Today's New Enquiries | Enquiries created today |
 | Awaiting Documents | Students in `FEES_PAID` status (need documents collected) |
 | Awaiting Payments | Students in `FEES_FINALIZED` (need to pay) |
-| Ready for Admission | Students in `DOCUMENTS_SUBMITTED` |
+| Ready for Admission | Students in `DOCUMENTS_VERIFIED` |
 | Monthly Conversions | Enquiries converted to admissions this month |
 | Collections Today | Payments recorded today by you |
 
@@ -249,7 +249,7 @@ Timeline of all changes:
 | Button | When Visible | Action |
 |--------|-------------|--------|
 | Submit Documents | Status = `FEES_PAID` or `PARTIALLY_PAID` | Submits all docs and changes status to `DOCUMENTS_SUBMITTED` |
-| Create Admission | Status = `DOCUMENTS_SUBMITTED` | Opens admission creation form |
+| Create Admission | Status = `DOCUMENTS_VERIFIED` | Opens admission creation form |
 | Edit | Always | Edit enquiry details |
 | Back | Always | Return to list |
 
@@ -285,6 +285,9 @@ FEES_PAID ───────────────────────�
                 📁 "Submit Documents" button is now visible.   │
 
 DOCUMENTS_SUBMITTED ─────────────────────────────────────────►
+                Your Action: Verify every mandatory document.
+
+DOCUMENTS_VERIFIED ──────────────────────────────────────────►
                 Enquiry detail shows "Create Admission".
                 🎓 Click to complete admission.
 
@@ -438,7 +441,7 @@ FOR EACH of the 7 documents:
     └─ Proceed to next document
           │
           ▼
-All 7 documents uploaded and verified?
+All 7 documents uploaded?
           │
     ┌─────┴─────┐
    YES         NO
@@ -448,7 +451,7 @@ Click "Submit Documents"
           │
           ▼
 ✅ Status changes to DOCUMENTS_SUBMITTED
-   Student is now ready for admission!
+   Student is now ready for document verification!
 ```
 
 ### Verifying Each Document
@@ -491,7 +494,7 @@ Click "Submit Documents"
 
 ### Submitting Documents
 
-Once all 7 are uploaded and verified:
+Once all 7 are uploaded:
 
 1. Scroll to bottom of submit documents screen
 2. Click **"Submit Documents"** button
@@ -500,18 +503,20 @@ Once all 7 are uploaded and verified:
    - At least UPLOADED (not necessarily VERIFIED)?
 4. If all present → Status changes to `DOCUMENTS_SUBMITTED`
 5. Success message confirms submission
+6. Verify every mandatory document from **Admission Management → Verify Documents**.
+7. Once verified, status changes to `DOCUMENTS_VERIFIED` and the enquiry appears in Complete Admission.
 
 ---
 
 ## 8. Admission Creation
 
-When a student's enquiry is in `DOCUMENTS_SUBMITTED` status, you can create their official admission record.
+When a student's enquiry is in `DOCUMENTS_VERIFIED` status, you can create their official admission record.
 
 ### Create Admission from Complete Admission Screen
 
 **Navigate**: Sidenav → Admission Management → Complete Admission
 
-1. Screen shows all enquiries with `DOCUMENTS_SUBMITTED` status
+1. Screen shows all enquiries with `DOCUMENTS_VERIFIED` status
 2. Search for your student
 3. Click on the enquiry
 4. Click **"Create Admission"** button
@@ -635,17 +640,21 @@ navigate to Admission Management → Submit Documents
          │
          ▼
 Go through 7 documents one by one:
-  1. 10th Marksheet        ── Upload → Verify ✅
-  2. 12th Marksheet        ── Upload → Verify ✅
-  3. Transfer Certificate  ── Upload → Verify ✅
-  4. Aadhar Card           ── Upload → Verify ✅
-  5. Passport Photo        ── Upload → Verify ✅
-  6. Medical Fitness Cert  ── Upload → Verify ✅ (Check date!)
-  7. Blood Group Report    ── Upload → Verify ✅
+  1. 10th Marksheet        ── Upload
+  2. 12th Marksheet        ── Upload
+  3. Transfer Certificate  ── Upload
+  4. Aadhar Card           ── Upload
+  5. Passport Photo        ── Upload
+  6. Medical Fitness Cert  ── Upload (Check date!)
+  7. Blood Group Report    ── Upload
          │
          ▼
-All 7 verified? → Click "Submit Documents"
+All 7 uploaded? → Click "Submit Documents"
 Status: DOCUMENTS_SUBMITTED
+         │
+         ▼
+Verify all mandatory documents
+Status: DOCUMENTS_VERIFIED
          │
          ▼
 Inform College Admin / schedule admission
@@ -778,7 +787,8 @@ creation appointment
 | FEES_FINALIZED | Call student to collect payment ← **💳 Action** |
 | FEES_PAID | Collect 7 documents ← **📁 Action** |
 | PARTIALLY_PAID | Collect documents AND chase remaining payment |
-| DOCUMENTS_SUBMITTED | Create admission ← **🎓 Action** |
+| DOCUMENTS_SUBMITTED | Verify documents |
+| DOCUMENTS_VERIFIED | Create admission ← **🎓 Action** |
 | ADMITTED | ✅ Done! Welcome new student to SKS! |
 
 ### 7 Mandatory Documents Checklist

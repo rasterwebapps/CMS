@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.FeeStructureResponse;
@@ -394,22 +395,24 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudent() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
 
         EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
 
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.ADMITTED);
         assertThat(response.convertedStudentId()).isEqualTo(10L);
     }
 
@@ -422,7 +425,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
@@ -434,7 +437,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
@@ -449,9 +452,11 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenStudentNotFoundOnConvert() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 999L))
@@ -517,16 +522,16 @@ class EnquiryServiceTest {
 
     @Test
     void shouldFindAdmissionPending() {
-        Enquiry docsSubmitted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+        Enquiry docsVerified = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
-        when(enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_SUBMITTED))
-            .thenReturn(List.of(docsSubmitted));
+        when(enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_VERIFIED))
+            .thenReturn(List.of(docsVerified));
 
         List<EnquiryResponse> responses = enquiryService.findAdmissionPending();
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).status()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        assertThat(responses.get(0).status()).isEqualTo(EnquiryStatus.DOCUMENTS_VERIFIED);
     }
 
     @Test
@@ -955,24 +960,38 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldConvertFromDocumentsSubmittedStatus() {
+    void shouldConvertFromDocumentsVerifiedStatus() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         Student student = new Student();
         student.setId(10L);
 
         Enquiry converted = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.CONVERTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ADMITTED);
         converted.setConvertedStudentId(10L);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(converted);
 
         EnquiryResponse response = enquiryService.convertToStudent(1L, 10L);
 
-        assertThat(response.status()).isEqualTo(EnquiryStatus.CONVERTED);
+        assertThat(response.status()).isEqualTo(EnquiryStatus.ADMITTED);
+    }
+
+    @Test
+    void shouldRejectLegacyConversionFromDocumentsSubmittedStatus() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
@@ -984,7 +1003,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
@@ -996,7 +1015,7 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudent(1L, 10L))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
@@ -1236,7 +1255,7 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudentWithData() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
@@ -1257,7 +1276,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
         when(admissionRepository.save(any(Admission.class))).thenReturn(new Admission());
@@ -1274,7 +1293,7 @@ class EnquiryServiceTest {
     @Test
     void shouldMigrateEnquiryDocumentsToAdmissionOnConversion() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         EnquiryDocument verifiedDoc = new EnquiryDocument(enquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.VERIFIED);
         verifiedDoc.setFileName("10th.pdf");
@@ -1308,7 +1327,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
         when(admissionRepository.save(any(Admission.class))).thenReturn(savedAdmission);
@@ -1326,7 +1345,7 @@ class EnquiryServiceTest {
     @Test
     void shouldThrowWhenConvertingWithUnverifiedDocuments() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
@@ -1337,10 +1356,10 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(
+            .thenReturn(new DocumentVerificationStatusResponse(
                 false, false,
-                java.util.List.of("TENTH_MARKSHEET", "AADHAR_CARD"),
-                java.util.List.of("TENTH_MARKSHEET", "AADHAR_CARD")));
+                List.of("TENTH_MARKSHEET", "AADHAR_CARD"),
+                List.of("TENTH_MARKSHEET", "AADHAR_CARD")));
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
             .isInstanceOf(IllegalStateException.class)
@@ -1350,7 +1369,7 @@ class EnquiryServiceTest {
     @Test
     void shouldConvertToStudentWithFullStudentAndAdmissionData() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         com.cms.dto.AddressRequest address = new com.cms.dto.AddressRequest(
             1L, "Door 12", "MG Road", "Salem", "Salem", "TN", "636001"
@@ -1389,7 +1408,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenAnswer(inv -> {
             Student s = inv.getArgument(0);
@@ -1451,7 +1470,7 @@ class EnquiryServiceTest {
     }
 
     @Test
-    void shouldRejectConversionWhenNotDocumentsSubmitted() {
+    void shouldRejectConversionWhenNotDocumentsVerified() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.FEES_PAID);
 
@@ -1466,13 +1485,32 @@ class EnquiryServiceTest {
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DOCUMENTS_SUBMITTED");
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
+    }
+
+    @Test
+    void shouldRejectConversionWhenDocumentsSubmittedButNotVerified() {
+        Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+
+        EnquiryConversionRequest request = new EnquiryConversionRequest(
+            "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
+            100L, LocalDate.of(2024, 7, 1), null, null,
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
+
+        assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("DOCUMENTS_VERIFIED");
     }
 
     @Test
     void shouldRejectConversionWhenEmailAlreadyExists() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "existing@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
@@ -1483,7 +1521,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.existsByEmail("existing@college.edu")).thenReturn(true);
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))
@@ -1494,7 +1532,7 @@ class EnquiryServiceTest {
     @Test
     void shouldRejectConversionWhenNoProgramOnEnquiry() {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
-            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_SUBMITTED);
+            null, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.DOCUMENTS_VERIFIED);
 
         EnquiryConversionRequest request = new EnquiryConversionRequest(
             "Ravi", "Kumar", "ravi@college.edu", "9876543210", 1, LocalDate.of(2024, 7, 1),
@@ -1505,7 +1543,7 @@ class EnquiryServiceTest {
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryDocumentService.allMandatoryDocumentsVerified(1L))
-            .thenReturn(new com.cms.dto.DocumentVerificationStatusResponse(true, true, java.util.List.of(), java.util.List.of()));
+            .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));
         when(studentRepository.existsByEmail("ravi@college.edu")).thenReturn(false);
 
         assertThatThrownBy(() -> enquiryService.convertToStudentWithData(1L, request, "admin"))

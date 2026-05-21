@@ -76,6 +76,7 @@
 ║                     ▼                                                         ║
 ║   ┌──────────────────────────────────┐                                        ║
 ║   │ STEP 6: ADMISSION CREATION       │ ← Front Office / Admin                ║
+║   │ Requires: DOCUMENTS_VERIFIED     │                                        ║
 ║   │ Student ID: SKS-NUR-2026-XXX     │                                        ║
 ║   │ Status: ADMITTED ✅              │                                        ║
 ║   └──────────────────────────────────┘                                        ║
@@ -112,7 +113,8 @@
 | `FEES_FINALIZED` | Fee amount set | Cashier/Front Office: collect payment |
 | `FEES_PAID` | Fully paid | Front Office: collect documents |
 | `PARTIALLY_PAID` | Partially paid | Cashier: collect more; Front Office: collect docs |
-| `DOCUMENTS_SUBMITTED` | All 7 docs uploaded | Front Office/Admin: create admission |
+| `DOCUMENTS_SUBMITTED` | All 7 docs uploaded | Front Office/Admin: verify documents |
+| `DOCUMENTS_VERIFIED` | All mandatory docs verified | Front Office/Admin: create admission |
 | `ADMITTED` | ✅ Student admitted | Everyone: celebrate! |
 
 ---

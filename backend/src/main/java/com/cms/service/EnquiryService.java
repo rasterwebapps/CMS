@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.AddressRequest;
+import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryRequest;
 import com.cms.dto.EnquiryResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
@@ -339,21 +340,17 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_VERIFIED) {
-            throw new IllegalStateException(
-                "Enquiry must be in DOCUMENTS_VERIFIED status to convert. Current status: " + enquiry.getStatus()
-            );
-        }
+        validateAdmissionReadiness(enquiry);
 
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
         EnquiryStatus oldStatus = enquiry.getStatus();
-        enquiry.setStatus(EnquiryStatus.CONVERTED);
+        enquiry.setStatus(EnquiryStatus.ADMITTED);
         enquiry.setConvertedStudentId(student.getId());
 
         Enquiry saved = enquiryRepository.save(enquiry);
-        recordHistory(saved, oldStatus, EnquiryStatus.CONVERTED, "system", null);
+        recordHistory(saved, oldStatus, EnquiryStatus.ADMITTED, "system", null);
         return toResponse(saved);
     }
 
@@ -438,11 +435,7 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_VERIFIED) {
-            throw new IllegalStateException(
-                "Enquiry must be in DOCUMENTS_VERIFIED status to convert. Current: " + enquiry.getStatus()
-            );
-        }
+        validateAdmissionReadiness(enquiry);
 
         if (studentRepository.existsByEmail(request.email())) {
             throw new IllegalStateException("A student with this email already exists: " + request.email());
@@ -536,6 +529,25 @@ public class EnquiryService {
         enquiryDocuments.forEach(doc -> doc.setAdmission(admission));
         if (!enquiryDocuments.isEmpty()) {
             enquiryDocumentRepository.saveAll(enquiryDocuments);
+        }
+    }
+
+    private void validateAdmissionReadiness(Enquiry enquiry) {
+        if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_VERIFIED) {
+            throw new IllegalStateException(
+                "Enquiry must be in DOCUMENTS_VERIFIED status to complete admission. Current status: " + enquiry.getStatus()
+            );
+        }
+
+        DocumentVerificationStatusResponse verification = enquiryDocumentService
+            .allMandatoryDocumentsVerified(enquiry.getId());
+        if (!verification.allVerified()) {
+            String unverified = verification.unverifiedDocumentTypes().isEmpty()
+                ? ""
+                : " Unverified: " + String.join(", ", verification.unverifiedDocumentTypes());
+            throw new IllegalStateException(
+                "All mandatory documents must be verified before completing admission." + unverified
+            );
         }
     }
 
