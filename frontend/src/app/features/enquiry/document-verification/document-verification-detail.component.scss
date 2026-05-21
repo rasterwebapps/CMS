@@ -17,8 +17,8 @@
 
 // ── Hero ──────────────────────────────────────────────────────────────────
 .docvd-hero {
-  background: var(--cms-surface);
-  border: 1px solid var(--cms-border);
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 14px;
   padding: 20px 24px;
   display: flex;
@@ -31,8 +31,8 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid var(--cms-border);
-  background: var(--cms-bg);
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
   color: var(--cms-text-muted);
   display: flex;
   align-items: center;
@@ -40,8 +40,9 @@
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 2px;
+  transition: background 0.12s, color 0.12s;
 
-  &:hover { background: var(--cms-surface-hover); color: var(--cms-text-primary); }
+  &:hover { background: var(--cms-bg-hover); color: var(--cms-text-primary); }
 }
 
 .hero-person {
@@ -55,8 +56,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--cms-accent) 15%, transparent);
-  color: var(--cms-accent);
+  background: color-mix(in srgb, var(--cms-primary) 15%, transparent);
+  color: var(--cms-primary);
   font-size: 0.75rem;
   font-weight: 700;
   display: flex;
@@ -96,11 +97,11 @@
   border-radius: 10px;
   font-size: 0.72rem;
   font-weight: 500;
-  background: color-mix(in srgb, var(--cms-accent) 10%, transparent);
-  color: var(--cms-accent);
+  background: color-mix(in srgb, var(--cms-primary) 10%, transparent);
+  color: var(--cms-primary);
 
   &--muted {
-    background: var(--cms-surface-hover);
+    background: var(--cms-bg-muted);
     color: var(--cms-text-muted);
   }
 }
@@ -126,6 +127,7 @@
   font-weight: 700;
   color: var(--cms-text-primary);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 
   &--done { color: #22c55e; }
 }
@@ -145,7 +147,7 @@
 .progress-track {
   width: 100%;
   height: 5px;
-  background: var(--cms-border);
+  background: var(--cms-border-default);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -153,7 +155,7 @@
 .progress-fill {
   height: 100%;
   border-radius: 3px;
-  background: var(--cms-accent);
+  background: var(--cms-primary);
   transition: width 0.4s ease;
 
   &--done { background: #22c55e; }
@@ -214,8 +216,8 @@
 
 // ── Section ───────────────────────────────────────────────────────────────
 .doc-section {
-  background: var(--cms-surface);
-  border: 1px solid var(--cms-border);
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 14px;
   overflow: hidden;
   flex-shrink: 0;
@@ -229,7 +231,7 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--cms-text-muted);
-  border-bottom: 1px solid var(--cms-border);
+  border-bottom: 1px solid var(--cms-border-default);
 
   &--optional { color: var(--cms-text-muted); font-size: 0.73rem; }
 }
@@ -249,11 +251,11 @@
   align-items: flex-start;
   gap: 14px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--cms-border);
+  border-bottom: 1px solid var(--cms-border-default);
   transition: background 0.15s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: var(--cms-surface-hover); }
+  &:hover { background: var(--cms-bg-hover); }
 
   &--verified { background: color-mix(in srgb, #22c55e 5%, transparent); }
   &--rejected { background: color-mix(in srgb, #ef4444 5%, transparent); }
@@ -267,8 +269,8 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--cms-accent) 10%, transparent);
-  color: var(--cms-accent);
+  background: color-mix(in srgb, var(--cms-primary) 10%, transparent);
+  color: var(--cms-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,14 +367,15 @@
   height: 28px;
   padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--cms-border);
-  background: var(--cms-surface);
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
   font-size: 0.72rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 
-  &:hover { background: var(--cms-surface-hover); color: var(--cms-text-primary); }
+  &:hover { background: var(--cms-bg-hover); color: var(--cms-text-primary); }
 }
 
 .btn-verify {
@@ -388,6 +391,7 @@
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.12s;
 
   :host-context(.dark-mode) & { color: #86efac; }
   &:hover { background: color-mix(in srgb, #22c55e 25%, transparent); }
@@ -406,6 +410,7 @@
   font-size: 0.72rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s;
 
   :host-context(.dark-mode) & { color: #fca5a5; }
   &:hover { background: color-mix(in srgb, #ef4444 10%, transparent); }
@@ -414,8 +419,8 @@
 .doc-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--cms-border);
-  border-top-color: var(--cms-accent);
+  border: 2px solid var(--cms-border-default);
+  border-top-color: var(--cms-primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -446,7 +451,7 @@
     padding: 8px 10px;
     border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
     border-radius: 8px;
-    background: var(--cms-surface);
+    background: var(--cms-bg-card);
     color: var(--cms-text-primary);
     font-size: 0.8rem;
     resize: vertical;
@@ -468,14 +473,15 @@
   height: 30px;
   padding: 0 12px;
   border-radius: 7px;
-  border: 1px solid var(--cms-border);
-  background: var(--cms-surface);
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
   color: var(--cms-text-muted);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 
-  &:hover { background: var(--cms-surface-hover); color: var(--cms-text-primary); }
+  &:hover { background: var(--cms-bg-hover); color: var(--cms-text-primary); }
 }
 
 .btn-confirm-reject {
@@ -488,6 +494,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.12s;
 
   :host-context(.dark-mode) & { color: #fca5a5; }
   &:hover { background: color-mix(in srgb, #ef4444 25%, transparent); }
@@ -506,8 +513,8 @@
   align-items: center;
   gap: 14px;
   padding: 20px 24px;
-  background: var(--cms-surface);
-  border: 1px solid var(--cms-border);
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 14px;
 }
 
@@ -523,8 +530,8 @@
   align-items: center;
   gap: 14px;
   padding: 14px 20px;
-  background: var(--cms-surface);
-  border: 1px solid var(--cms-border);
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 8px;
 }
 

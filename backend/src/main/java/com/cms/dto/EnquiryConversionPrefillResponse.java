@@ -2,6 +2,9 @@ package com.cms.dto;
 
 import java.time.LocalDate;
 
+import com.cms.model.enums.Gender;
+import com.cms.model.enums.StudentType;
+
 public record EnquiryConversionPrefillResponse(
     String firstName,
     String lastName,
@@ -14,5 +17,13 @@ public record EnquiryConversionPrefillResponse(
     Integer suggestedSemester,
     Integer suggestedAcademicYearFrom,
     Integer suggestedAcademicYearTo,
-    LocalDate suggestedApplicationDate
+    LocalDate suggestedApplicationDate,
+    LocalDate dateOfBirth,
+    Gender gender,
+    StudentType studentType,
+    Long countryId,
+    String countryName,
+    String state,
+    String district,
+    String remarks
 ) {}

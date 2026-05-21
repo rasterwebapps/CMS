@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
 
 public record EnquiryResponse(
@@ -50,5 +51,7 @@ public record EnquiryResponse(
     String referredStaffName,
     Instant createdAt,
     Instant updatedAt,
-    BigDecimal totalPaidAmount
+    BigDecimal totalPaidAmount,
+    LocalDate dateOfBirth,
+    Gender gender
 ) {}

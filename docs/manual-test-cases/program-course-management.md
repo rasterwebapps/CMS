@@ -166,3 +166,14 @@
 |-------------|--------------------------------------------------|
 | **Action**  | GET `/api/v1/courses/1` |
 | **Expected**| Response includes nested `program` object with `durationYears` field (e.g., `program.durationYears: 4`) |
+
+---
+
+### TC-COURSE-009: Configure Admission Number Code
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | User is logged in as admin; at least one program exists |
+| **Action**  | Open Add/Edit Course, enter Admission Number Code such as `65`, fill required fields, and save |
+| **Expected**| Course saves successfully; reopening the course shows the same Admission Number Code; admissions for that course can generate admission numbers without the `admission_number_code` configuration error |
+

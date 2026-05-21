@@ -66,6 +66,37 @@
         </div>
       </div>
 
+      <!-- DOB + Age + Gender -->
+      <div class="field-row">
+        <div class="field-group">
+          <label for="enq-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
+          <input id="enq-dob" type="date" class="field-input" formControlName="dateOfBirth"
+                 [attr.max]="dobMaxStr" autocomplete="bday"
+                 [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
+          @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
+            <p class="field-error">Date of birth is required and must be in the past</p>
+          }
+        </div>
+        <div class="field-group">
+          <label for="enq-age" class="field-label">Age (years)</label>
+          <input id="enq-age" type="number" class="field-input" formControlName="age"
+                 min="0" max="150" step="1" inputmode="numeric"
+                 placeholder="Auto from DOB" autocomplete="off" />
+        </div>
+        <div class="field-group">
+          <label for="enq-gender" class="field-label">Gender <span class="field-required">*</span></label>
+          <select id="enq-gender" class="field-select" formControlName="gender"
+                  [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
+            @for (g of genderOptions; track g.value) {
+              <option [value]="g.value">{{ g.label }}</option>
+            }
+          </select>
+          @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
+            <p class="field-error">Gender is required</p>
+          }
+        </div>
+      </div>
+
       <!-- Country + State + District -->
       <cms-country-state-district-selector
         [parentForm]="form"

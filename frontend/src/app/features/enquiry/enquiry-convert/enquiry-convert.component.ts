@@ -163,9 +163,16 @@ export class EnquiryConvertComponent implements OnInit {
           lastName:     prefill.lastName,
           email:        prefill.email ?? '',
           phone:        prefill.phone ?? '',
+          dateOfBirth:  prefill.dateOfBirth ?? '',
+          gender:       prefill.gender ?? '',
           admissionDate:   new Date().toISOString().split('T')[0],
           applicationDate: prefill.suggestedApplicationDate,
           declarationDate: prefill.suggestedApplicationDate,
+          address: {
+            country:  prefill.countryId ?? null,
+            state:    prefill.state ?? '',
+            district: prefill.district ?? '',
+          },
         });
 
         this.loading.set(false);

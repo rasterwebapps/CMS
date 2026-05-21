@@ -187,7 +187,7 @@ class EnquiryServiceTest {
             null, "BSc Nursing", null,
             new BigDecimal("2345000.00"), new BigDecimal("25000.00"), new BigDecimal("2345000.00"), null,
             StudentType.DAY_SCHOLAR,
-            "India", "Tamil Nadu", null
+            null, "Tamil Nadu", null
         );
         FeeStructureResponse currentYearTuition = feeResponse(1L, FeeType.TUITION, new BigDecimal("1000000.00"));
 
@@ -647,7 +647,8 @@ class EnquiryServiceTest {
             name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
             finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
-            null, null, null
+            null, null, null,
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
         );
     }
 

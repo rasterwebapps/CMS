@@ -153,6 +153,8 @@ public class EnquiryService {
         enquiry.setCourse(course);
         enquiry.setRemarks(request.remarks());
         enquiry.setStudentType(request.studentType());
+        enquiry.setDateOfBirth(request.dateOfBirth());
+        enquiry.setGender(request.gender());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
@@ -238,6 +240,8 @@ public class EnquiryService {
         enquiry.setReferralType(referralType);
         enquiry.setRemarks(request.remarks());
         enquiry.setStudentType(request.studentType());
+        enquiry.setDateOfBirth(request.dateOfBirth());
+        enquiry.setGender(request.gender());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
@@ -464,9 +468,9 @@ public class EnquiryService {
             student.setCourse(enquiry.getCourse());
         }
 
-        // Personal information
-        student.setDateOfBirth(request.dateOfBirth());
-        student.setGender(request.gender());
+        // Personal information (fall back to enquiry data if not provided in convert request)
+        student.setDateOfBirth(request.dateOfBirth() != null ? request.dateOfBirth() : enquiry.getDateOfBirth());
+        student.setGender(request.gender() != null ? request.gender() : enquiry.getGender());
         student.setAadharNumber(request.aadharNumber());
 
         // Demographics
@@ -558,7 +562,15 @@ public class EnquiryService {
             1,
             currentYear,
             currentYear + 1,
-            LocalDate.now()
+            LocalDate.now(),
+            enquiry.getDateOfBirth(),
+            enquiry.getGender(),
+            enquiry.getStudentType(),
+            enquiry.getCountry() != null ? enquiry.getCountry().getId() : null,
+            enquiry.getCountry() != null ? enquiry.getCountry().getName() : null,
+            enquiry.getState(),
+            enquiry.getDistrict(),
+            enquiry.getRemarks()
         );
     }
 
@@ -727,7 +739,9 @@ public class EnquiryService {
             e.getReferredStaffName(),
             e.getCreatedAt(),
             e.getUpdatedAt(),
-            totalPaid
+            totalPaid,
+            e.getDateOfBirth(),
+            e.getGender()
         );
     }
 }

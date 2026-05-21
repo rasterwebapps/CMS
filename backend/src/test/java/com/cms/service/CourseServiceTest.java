@@ -63,11 +63,14 @@ class CourseServiceTest {
             "B.Sc. Nursing",
             "BSN",
             "General",
-            null,
+            "RN",
+            "65",
             1L
         );
 
         Course savedCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        savedCourse.setRollNumberCode("RN");
+        savedCourse.setAdmissionNumberCode("65");
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
         when(courseRepository.save(any(Course.class))).thenReturn(savedCourse);
@@ -78,6 +81,8 @@ class CourseServiceTest {
         assertThat(response.name()).isEqualTo("B.Sc. Nursing");
         assertThat(response.code()).isEqualTo("BSN");
         assertThat(response.specialization()).isEqualTo("General");
+        assertThat(response.rollNumberCode()).isEqualTo("RN");
+        assertThat(response.admissionNumberCode()).isEqualTo("65");
         assertThat(response.program().id()).isEqualTo(1L);
         assertThat(response.program().durationYears()).isEqualTo(4);
 
@@ -86,6 +91,8 @@ class CourseServiceTest {
         Course captured = captor.getValue();
         assertThat(captured.getName()).isEqualTo("B.Sc. Nursing");
         assertThat(captured.getCode()).isEqualTo("BSN");
+        assertThat(captured.getRollNumberCode()).isEqualTo("RN");
+        assertThat(captured.getAdmissionNumberCode()).isEqualTo("65");
     }
 
     @Test
@@ -205,11 +212,14 @@ class CourseServiceTest {
             "M.Sc. Nursing",
             "MSN",
             "Obs Gyn",
-            null,
+            "MN",
+            "66",
             2L
         );
 
         Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
+        updatedCourse.setRollNumberCode("MN");
+        updatedCourse.setAdmissionNumberCode("66");
 
         Instant now = Instant.now();
         ProgramResponse newProgResponse = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
@@ -226,11 +236,16 @@ class CourseServiceTest {
         assertThat(response.name()).isEqualTo("M.Sc. Nursing");
         assertThat(response.code()).isEqualTo("MSN");
         assertThat(response.specialization()).isEqualTo("Obs Gyn");
+        assertThat(response.rollNumberCode()).isEqualTo("MN");
+        assertThat(response.admissionNumberCode()).isEqualTo("66");
         assertThat(response.program().id()).isEqualTo(2L);
         assertThat(response.program().durationYears()).isEqualTo(2);
 
         verify(courseRepository).findById(1L);
-        verify(courseRepository).save(any(Course.class));
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).save(captor.capture());
+        assertThat(captor.getValue().getRollNumberCode()).isEqualTo("MN");
+        assertThat(captor.getValue().getAdmissionNumberCode()).isEqualTo("66");
     }
 
     @Test

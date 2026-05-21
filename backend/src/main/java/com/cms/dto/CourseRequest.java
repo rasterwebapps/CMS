@@ -19,10 +19,17 @@ public record CourseRequest(
     @Size(max = 2, message = "Roll number code must be exactly 2 characters")
     String rollNumberCode,
 
+    @Size(max = 20, message = "Admission number code must not exceed 20 characters")
+    String admissionNumberCode,
+
     @NotNull(message = "Program ID is required")
     Long programId
 ) {
+    public CourseRequest(String name, String code, String specialization, String rollNumberCode, Long programId) {
+        this(name, code, specialization, rollNumberCode, null, programId);
+    }
+
     public CourseRequest(String name, String code, String specialization, Long programId) {
-        this(name, code, specialization, null, programId);
+        this(name, code, specialization, null, null, programId);
     }
 }

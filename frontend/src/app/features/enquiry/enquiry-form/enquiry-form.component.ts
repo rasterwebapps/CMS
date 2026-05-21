@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { EnquiryRequest } from '../enquiry.model';
@@ -21,7 +20,6 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
-
 interface ProgramInfo {
   id: number;
   name: string;
@@ -29,7 +27,6 @@ interface ProgramInfo {
   durationYears: number;
   departments: { id: number; name: string }[];
 }
-
 interface CourseInfo {
   id: number;
   name: string;
@@ -37,7 +34,6 @@ interface CourseInfo {
   specialization: string | null;
   programId: number;
 }
-
 interface FeeStructureInfo {
   id: number;
   programId: number;
@@ -51,7 +47,6 @@ interface FeeStructureInfo {
   isActive: boolean;
   yearAmounts: { yearNumber: number; yearLabel: string; amount: number }[];
 }
-
 @Component({
   selector: 'app-enquiry-form',
   standalone: true,
@@ -75,7 +70,6 @@ export class EnquiryFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   protected readonly layoutService = inject(LayoutService);
   private readonly tourService = inject(TourService);
-
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
@@ -85,32 +79,38 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly agents = signal<Agent[]>([]);
   protected readonly referralTypes = signal<ReferralType[]>([]);
   protected readonly referralAdditionalAmount = signal(0);
-
   // Person search signals (loaded on-demand when referral type changes)
   protected readonly studentList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
   protected readonly alumniList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
   protected readonly facultyList = signal<{ id: number; fullName: string; employeeCode: string }[]>([]);
   protected readonly personSearchTerm = signal('');
   protected readonly personSearchOpen = signal(false);
-
   // Agent search signals
   protected readonly agentSearchTerm = signal('');
   protected readonly agentSearchOpen = signal(false);
   protected readonly feeError = signal(false);
   private readonly yearWiseFees = signal<string>('');
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'CONVERTED', 'CLOSED'];
-
   /** Max date for enquiry date input — today as YYYY-MM-DD string */
   protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
-
+  /** Max date for DOB input — yesterday (DOB must be in the past) */
+  protected readonly dobMaxStr: string = (() => {
+    const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0];
+  })();
+  /** Gender options for the gender select */
+  protected readonly genderOptions = [
+    { value: 'FEMALE', label: 'Female' },
+    { value: 'MALE',   label: 'Male' },
+    { value: 'OTHER',  label: 'Other' },
+  ];
+  /** Guard flag — prevents ping-pong between DOB ↔ Age valueChanges listeners */
+  private dobAgeSyncing = false;
   /** Fee structures loaded for the selected program */
   protected readonly feeStructures = signal<FeeStructureInfo[]>([]);
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
   protected readonly totalFees = signal(0);
   protected readonly finalCalculatedFee = computed(() => this.totalFees());
-
   private itemId: number | null = null;
-
   protected readonly form: FormGroup = this.fb.group({
     name:           ['', [Validators.required, Validators.maxLength(255)]],
     email:          [''],
@@ -129,11 +129,12 @@ export class EnquiryFormComponent implements OnInit {
     referredStudentId: [null as number | null],
     referredFacultyId: [null as number | null],
     referredStaffName: [null as string | null],
+    dateOfBirth:    ['', Validators.required],
+    age:            [null as number | null, [Validators.min(0), Validators.max(150)]],
+    gender:         ['FEMALE', Validators.required],
   });
-
   /** Tracks which referral-related sub-form to show; updated imperatively in onReferralTypeChange. */
   protected readonly referralCategory = signal<'AGENT' | 'STUDENT' | 'ALUMNI' | 'FACULTY' | 'STAFF' | 'NONE'>('NONE');
-
   /** Filtered student list based on the current search term. */
   protected readonly filteredStudents = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
@@ -142,7 +143,6 @@ export class EnquiryFormComponent implements OnInit {
       .filter(s => s.fullName.toLowerCase().includes(term) || s.rollNumber.toLowerCase().includes(term))
       .slice(0, 20);
   });
-
   /** Filtered alumni list based on the current search term. */
   protected readonly filteredAlumni = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
@@ -151,7 +151,6 @@ export class EnquiryFormComponent implements OnInit {
       .filter(s => s.fullName.toLowerCase().includes(term) || s.rollNumber.toLowerCase().includes(term))
       .slice(0, 20);
   });
-
   /** Filtered faculty list based on the current search term. */
   protected readonly filteredFaculty = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
@@ -160,7 +159,6 @@ export class EnquiryFormComponent implements OnInit {
       .filter(f => f.fullName.toLowerCase().includes(term) || f.employeeCode.toLowerCase().includes(term))
       .slice(0, 20);
   });
-
   /** Filtered agent list based on the current agent search term. */
   protected readonly filteredAgents = computed(() => {
     const term = this.agentSearchTerm().trim().toLowerCase();
@@ -169,14 +167,27 @@ export class EnquiryFormComponent implements OnInit {
       .filter(a => a.name.toLowerCase().includes(term) || (a.phone ?? '').toLowerCase().includes(term))
       .slice(0, 20);
   });
-
   protected setStudentType(type: 'DAY_SCHOLAR' | 'HOSTELER'): void {
     this.form.patchValue({ studentType: type });
     this.onStudentTypeChange();
   }
-
   ngOnInit(): void {
     this.tourService.register('enquiry-form', ENQUIRY_FORM_TOUR);
+    // Bidirectional DOB ↔ Age sync
+    this.form.get('dateOfBirth')?.valueChanges.subscribe((dob: string | null) => {
+      if (this.dobAgeSyncing) return;
+      const age = this.calcAgeFromDob(dob);
+      this.dobAgeSyncing = true;
+      this.form.get('age')?.setValue(age, { emitEvent: false });
+      this.dobAgeSyncing = false;
+    });
+    this.form.get('age')?.valueChanges.subscribe((age: number | null) => {
+      if (this.dobAgeSyncing) return;
+      const dob = this.calcDobFromAge(age);
+      this.dobAgeSyncing = true;
+      this.form.get('dateOfBirth')?.setValue(dob, { emitEvent: false });
+      this.dobAgeSyncing = false;
+    });
     this.http.get<ProgramInfo[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (data) => this.programs.set(data),
     });
@@ -188,7 +199,6 @@ export class EnquiryFormComponent implements OnInit {
       next: (data) => this.referralTypes.set(data),
       error: () => {},
     });
-
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);
@@ -211,6 +221,8 @@ export class EnquiryFormComponent implements OnInit {
             referredStudentId: item.referredStudentId ?? null,
             referredFacultyId: item.referredFacultyId ?? null,
             referredStaffName: item.referredStaffName ?? null,
+            dateOfBirth: item.dateOfBirth ?? '',
+            gender: item.gender ?? 'FEMALE',
           });
           // Pre-populate person search term for display
           if (item.referredStudentName) {
@@ -253,7 +265,6 @@ export class EnquiryFormComponent implements OnInit {
       });
     }
   }
-
   protected onProgramChange(programId: number): void {
     this.form.patchValue({ courseId: null });
     this.courses.set([]);
@@ -266,7 +277,6 @@ export class EnquiryFormComponent implements OnInit {
       this.selectedProgram.set(program);
     }
   }
-
   protected onCourseChange(courseId: number): void {
     const programId = this.form.get('programId')?.value;
     if (programId && courseId) {
@@ -276,25 +286,20 @@ export class EnquiryFormComponent implements OnInit {
       this.totalFees.set(0);
     }
   }
-
   protected onStudentTypeChange(): void {
     // Recompute total fees based on new student type
     this.computeTotalFromFeeStructures(this.feeStructures());
   }
-
   private computeTotalFromFeeStructures(data: FeeStructureInfo[]): void {
     const studentType = this.form.get('studentType')?.value as 'DAY_SCHOLAR' | 'HOSTELER' | null;
-
     const relevant = data.filter((fs) => {
       if (fs.feeType === 'HOSTEL_FEE')    return studentType === 'HOSTELER';
       if (fs.feeType === 'TRANSPORT_FEE') return studentType === 'DAY_SCHOLAR';
       return true;
     });
-
     this.totalFees.set(this.paiseToAmount(
       relevant.reduce((s, fs) => s + this.amountToPaise(fs.amount), 0)
     ));
-
     // Build year-wise fee breakdown from yearAmounts on each fee structure item
     const yearMap = new Map<number, number>();
     for (const fs of relevant) {
@@ -311,7 +316,6 @@ export class EnquiryFormComponent implements OnInit {
       this.yearWiseFees.set('');
     }
   }
-
   protected updateCourseValidator(): void {
     const ctrl = this.form.get('courseId');
     if (this.courses().length > 0) {
@@ -322,17 +326,14 @@ export class EnquiryFormComponent implements OnInit {
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
   }
-
   private loadCoursesForProgram(programId: number): void {
     this.http.get<CourseInfo[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
       next: (data) => { this.courses.set(data); this.updateCourseValidator(); },
       error: () => { this.courses.set([]); this.updateCourseValidator(); },
     });
   }
-
   private loadFeeStructures(programId: number, courseId: number): void {
     const url = `${environment.apiUrl}/fee-structures?programId=${programId}&courseId=${courseId}`;
-
     this.http.get<FeeStructureInfo[]>(url).subscribe({
       next: (data) => {
         this.feeStructures.set(data);
@@ -344,13 +345,11 @@ export class EnquiryFormComponent implements OnInit {
       },
     });
   }
-
   protected selectedReferralType(): ReferralType | undefined {
     const rtId = this.form.get('referralTypeId')?.value;
     if (!rtId) return undefined;
     return this.referralTypes().find((r) => r.id === rtId);
   }
-
   protected onReferralTypeChange(referralTypeId: number): void {
     // Reset all person selectors
     this.form.patchValue({ agentId: null, referredStudentId: null, referredFacultyId: null, referredStaffName: null });
@@ -358,7 +357,6 @@ export class EnquiryFormComponent implements OnInit {
     this.personSearchOpen.set(false);
     this.agentSearchTerm.set('');
     this.agentSearchOpen.set(false);
-
     if (!referralTypeId) {
       this.referralAdditionalAmount.set(0);
       this.referralCategory.set('NONE');
@@ -368,7 +366,6 @@ export class EnquiryFormComponent implements OnInit {
     }
     const rt = this.referralTypes().find((r) => r.id === referralTypeId);
     this.referralAdditionalAmount.set(rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
-
     const code = rt?.code ?? '';
     if (code === 'AGENT_REFERRAL') {
       this.referralCategory.set('AGENT');
@@ -399,7 +396,6 @@ export class EnquiryFormComponent implements OnInit {
       this.updateStaffNameValidator(false);
     }
   }
-
   protected updateAgentValidator(required: boolean): void {
     const ctrl = this.form.get('agentId');
     if (required) {
@@ -409,7 +405,6 @@ export class EnquiryFormComponent implements OnInit {
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
   }
-
   protected updateStaffNameValidator(required: boolean): void {
     const ctrl = this.form.get('referredStaffName');
     if (required) {
@@ -419,27 +414,23 @@ export class EnquiryFormComponent implements OnInit {
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
   }
-
   protected selectAgent(id: number, name: string): void {
     this.form.patchValue({ agentId: id });
     this.agentSearchTerm.set(name);
     this.agentSearchOpen.set(false);
     this.onAgentChange(id);
   }
-
   protected clearAgent(): void {
     this.form.patchValue({ agentId: null });
     this.agentSearchTerm.set('');
     this.onAgentChange(null);
   }
-
   protected onAgentSearchInput(event: Event): void {
     this.agentSearchTerm.set((event.target as HTMLInputElement).value);
     this.agentSearchOpen.set(true);
     // Clear the stored agentId when user types (until they pick from the list)
     this.form.patchValue({ agentId: null }, { emitEvent: false });
   }
-
   protected onAgentChange(agentId: number | null): void {
     const rt = this.selectedReferralType();
     if (!rt) return;
@@ -453,7 +444,6 @@ export class EnquiryFormComponent implements OnInit {
       : (rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
     this.referralAdditionalAmount.set(commission);
   }
-
   protected selectPerson(id: number, name: string, type: 'STUDENT' | 'ALUMNI' | 'FACULTY'): void {
     if (type === 'STUDENT' || type === 'ALUMNI') {
       this.form.patchValue({ referredStudentId: id });
@@ -463,17 +453,14 @@ export class EnquiryFormComponent implements OnInit {
     this.personSearchTerm.set(name);
     this.personSearchOpen.set(false);
   }
-
   protected clearPerson(): void {
     this.form.patchValue({ referredStudentId: null, referredFacultyId: null });
     this.personSearchTerm.set('');
   }
-
   protected onPersonSearchInput(event: Event): void {
     this.personSearchTerm.set((event.target as HTMLInputElement).value);
     this.personSearchOpen.set(true);
   }
-
   private loadStudentList(): void {
     if (this.studentList().length > 0) return;
     this.http.get<{ id: number; fullName: string; rollNumber: string }[]>(
@@ -483,7 +470,6 @@ export class EnquiryFormComponent implements OnInit {
       error: () => {},
     });
   }
-
   private loadAlumniList(): void {
     if (this.alumniList().length > 0) return;
     this.http.get<{ id: number; fullName: string; rollNumber: string }[]>(
@@ -493,7 +479,6 @@ export class EnquiryFormComponent implements OnInit {
       error: () => {},
     });
   }
-
   private loadFacultyList(): void {
     if (this.facultyList().length > 0) return;
     this.http.get<{ id: number; fullName: string; employeeCode: string }[]>(
@@ -503,13 +488,11 @@ export class EnquiryFormComponent implements OnInit {
       error: () => {},
     });
   }
-
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     if (this.totalFees() <= 0) { this.feeError.set(true); return; }
     this.feeError.set(false);
     const v = this.form.value;
-
     const request: EnquiryRequest = {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
       programId: v.programId || undefined, courseId: v.courseId || undefined,
@@ -527,6 +510,8 @@ export class EnquiryFormComponent implements OnInit {
       referredStudentId: v.referredStudentId ?? undefined,
       referredFacultyId: v.referredFacultyId ?? undefined,
       referredStaffName: v.referredStaffName?.trim() || undefined,
+      dateOfBirth: v.dateOfBirth,
+      gender: v.gender,
     };
     this.saving.set(true);
     const op$ = this.isEditMode()
@@ -540,12 +525,28 @@ export class EnquiryFormComponent implements OnInit {
       error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
-
   private amountToPaise(value: number | null | undefined): number {
     return Math.round((Number(value) || 0) * 100);
   }
-
   private paiseToAmount(value: number): number {
     return value / 100;
+  }
+  /** Calculate completed age in years from a YYYY-MM-DD date string. Returns null if invalid. */
+  private calcAgeFromDob(dob: string | null | undefined): number | null {
+    if (!dob) return null;
+    const birth = new Date(dob);
+    if (isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const mDiff = today.getMonth() - birth.getMonth();
+    if (mDiff < 0 || (mDiff === 0 && today.getDate() < birth.getDate())) age--;
+    return age < 0 ? null : age;
+  }
+  /** Approximate DOB from age: today minus N years (same month/day). Returns YYYY-MM-DD or ''. */
+  private calcDobFromAge(age: number | null | undefined): string {
+    if (age == null || age < 0 || age > 150) return '';
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - age);
+    return d.toISOString().split('T')[0];
   }
 }

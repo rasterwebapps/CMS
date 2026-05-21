@@ -59,11 +59,23 @@
               </div>
 
               <div class="field-group">
-                <label for="course-specialization" class="field-label">Specialization</label>
-                <input id="course-specialization" class="field-input" formControlName="specialization"
-                  placeholder="e.g., Obs Gyn" autocomplete="off" />
-                <p class="field-hint">Optional specialization</p>
+                <label for="course-admission-number-code" class="field-label">Admission Number Code</label>
+                <input id="course-admission-number-code" class="field-input" formControlName="admissionNumberCode"
+                  placeholder="e.g., 65" autocomplete="off" maxlength="20"
+                  (input)="onAdmissionNumberCodeInput($event)"
+                  [class.field-input--error]="form.get('admissionNumberCode')?.invalid && form.get('admissionNumberCode')?.touched" />
+                <p class="field-hint">Used when generating admission numbers</p>
+                @if (form.get('admissionNumberCode')?.invalid && form.get('admissionNumberCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('admissionNumberCode') }}</p>
+                }
               </div>
+            </div>
+
+            <div class="field-group">
+              <label for="course-specialization" class="field-label">Specialization</label>
+              <input id="course-specialization" class="field-input" formControlName="specialization"
+                placeholder="e.g., Obs Gyn" autocomplete="off" />
+              <p class="field-hint">Optional specialization</p>
             </div>
 
             <div class="field-group" style="margin-bottom: 0;">

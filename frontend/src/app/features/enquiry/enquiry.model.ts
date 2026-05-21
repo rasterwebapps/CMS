@@ -42,6 +42,8 @@ export interface Enquiry {
   createdAt: string;
   updatedAt: string;
   totalPaidAmount: number | null;
+  dateOfBirth?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
 }
 
 export interface EnquiryRequest {
@@ -67,6 +69,8 @@ export interface EnquiryRequest {
   referredStudentId?: number;
   referredFacultyId?: number;
   referredStaffName?: string;
+  dateOfBirth: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
 }
 
 export interface FeeFinalizationRequest {
@@ -227,6 +231,14 @@ export interface EnquiryConversionPrefillResponse {
   suggestedAcademicYearFrom: number;
   suggestedAcademicYearTo: number;
   suggestedApplicationDate: string;
+  dateOfBirth?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  studentType?: 'DAY_SCHOLAR' | 'HOSTELER' | null;
+  countryId?: number | null;
+  countryName?: string | null;
+  state?: string | null;
+  district?: string | null;
+  remarks?: string | null;
 }
 
 export interface YearFeeStatus {

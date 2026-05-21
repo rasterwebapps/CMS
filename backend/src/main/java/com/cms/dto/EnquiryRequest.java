@@ -4,10 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 
 public record EnquiryRequest(
     @NotBlank(message = "Name is required")
@@ -55,5 +57,12 @@ public record EnquiryRequest(
 
     Long referredFacultyId,
 
-    String referredStaffName
+    String referredStaffName,
+
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be in the past")
+    LocalDate dateOfBirth,
+
+    @NotNull(message = "Gender is required")
+    Gender gender
 ) {}
