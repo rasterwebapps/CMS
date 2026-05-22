@@ -102,19 +102,19 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly feeTypes = [
     'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
     'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
-    'MISCELLANEOUS', 'LATE_FEE', 'TRANSPORT_FEE', 'HOSTEL_FEE',
+    'MISCELLANEOUS', 'TRANSPORT_FEE', 'HOSTEL_FEE',
   ];
 
   protected readonly genericFeeTypes = [
     'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
     'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
-    'MISCELLANEOUS', 'LATE_FEE',
+    'MISCELLANEOUS',
   ];
 
   protected readonly courseFeeTypes = [
     'TUITION', 'LABORATORY_FEE', 'CLINICAL_FEE', 'LIBRARY_FEE', 'EXAMINATION_FEE',
     'BOOK_AND_PACKET_FEE', 'UNIFORM_AND_SHOES_FEE', 'UNIVERSITY_REGISTRATION_FEE',
-    'MISCELLANEOUS', 'LATE_FEE', 'TRANSPORT_FEE',
+    'MISCELLANEOUS', 'TRANSPORT_FEE',
   ];
 
   protected readonly additionalFeeTypes = ['HOSTEL_FEE'];
@@ -131,7 +131,6 @@ export class FeeStructureFormComponent implements OnInit {
     HOSTEL_FEE:                 { label: 'Hostel Fee',                icon: 'hotel' },
     TRANSPORT_FEE:              { label: 'Transport Fee',             icon: 'directions_bus' },
     MISCELLANEOUS:              { label: 'Miscellaneous',             icon: 'category' },
-    LATE_FEE:                   { label: 'Late Fee',                  icon: 'schedule' },
   };
 
   protected readonly bulkForm: FormGroup = this.fb.group({
