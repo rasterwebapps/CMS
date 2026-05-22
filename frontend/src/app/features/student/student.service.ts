@@ -80,9 +80,8 @@ export class StudentService {
   }
 
   getStudentFeeLedger(studentId: number): Observable<StudentFeeLedger> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<StudentFeeLedger>(
-      `${baseUrl}/api/fee-reports/student-ledger?studentId=${studentId}`,
+      `${environment.apiUrl}/api/fee-reports/student-ledger?studentId=${studentId}`,
     );
   }
 

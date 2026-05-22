@@ -19,22 +19,32 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.FeeCollectionSummaryDto;
 import com.cms.dto.StudentFeeLedgerDto;
 import com.cms.dto.TermFeePaymentDto;
+import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.FeeDemand;
 import com.cms.model.Program;
+import com.cms.model.SemesterFee;
 import com.cms.model.Student;
+import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermFeePayment;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.SemesterFeeRepository;
+import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.TermFeePaymentRepository;
 
@@ -49,6 +59,18 @@ class FeeReportServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private FeeDemandService feeDemandService;
+    @Mock
+    private StudentFeeAllocationRepository allocationRepository;
+    @Mock
+    private SemesterFeeRepository semesterFeeRepository;
+    @Mock
+    private FeeInstallmentRepository installmentRepository;
+    @Mock
+    private EnquiryRepository enquiryRepository;
+    @Mock
+    private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock
+    private FeeFinalizationService feeFinalizationService;
 
     private FeeReportService service;
 
@@ -63,7 +85,8 @@ class FeeReportServiceTest {
     @BeforeEach
     void setUp() {
         service = new FeeReportService(feeDemandRepository, paymentRepository,
-            studentRepository, feeDemandService);
+            studentRepository, feeDemandService, allocationRepository, semesterFeeRepository,
+            installmentRepository, enquiryRepository, enquiryPaymentRepository, feeFinalizationService);
 
         academicYear = new AcademicYear("2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), true);
@@ -80,9 +103,12 @@ class FeeReportServiceTest {
         program = new Program("BSc Nursing", "BSCN", 4, ProgramStatus.ACTIVE);
         program.setId(100L);
 
+        Course course = new Course("BSc Nursing", "BSCN", null, program);
+        course.setId(101L);
+
         cohort = new Cohort();
         cohort.setId(200L);
-        cohort.setProgram(program);
+        cohort.setCourse(course);
         cohort.setCohortCode("BSCN-2026-2030");
 
         student = new Student();
@@ -182,6 +208,7 @@ class FeeReportServiceTest {
     void shouldGetStudentLedger() {
         TermFeePayment payment = buildPayment(BigDecimal.ZERO);
         when(studentRepository.findById(300L)).thenReturn(Optional.of(student));
+        when(allocationRepository.findByStudentId(300L)).thenReturn(Optional.empty());
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(300L))
             .thenReturn(List.of(demand));
         when(paymentRepository.findByFeeDemandId(800L)).thenReturn(List.of(payment));
@@ -194,6 +221,56 @@ class FeeReportServiceTest {
         StudentFeeLedgerDto.LedgerEntry entry = ledger.entries().get(0);
         assertThat(entry.demandId()).isEqualTo(800L);
         assertThat(entry.payments()).hasSize(1);
+    }
+
+    @Test
+    void shouldPreferStudentFeeAllocationLedger() {
+        StudentFeeAllocation allocation = new StudentFeeAllocation(
+            student, program, new BigDecimal("50000.00"), BigDecimal.ZERO, null,
+            BigDecimal.ZERO, new BigDecimal("50000.00"), FeeAllocationStatus.FINALIZED
+        );
+        allocation.setId(700L);
+        SemesterFee semesterFee = new SemesterFee(
+            allocation, 1, "Year 1 - First Installment", new BigDecimal("25000.00"),
+            LocalDate.of(2026, 7, 31), 1
+        );
+        semesterFee.setId(701L);
+
+        when(studentRepository.findById(300L)).thenReturn(Optional.of(student));
+        when(allocationRepository.findByStudentId(300L)).thenReturn(Optional.of(allocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(700L))
+            .thenReturn(List.of(semesterFee));
+        when(enquiryRepository.findByConvertedStudentId(300L)).thenReturn(Optional.empty());
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(701L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.findBySemesterFeeId(701L)).thenReturn(List.of());
+
+        StudentFeeLedgerDto ledger = service.getStudentLedger(300L);
+
+        assertThat(ledger.entries()).hasSize(1);
+        StudentFeeLedgerDto.LedgerEntry entry = ledger.entries().get(0);
+        assertThat(entry.demandId()).isEqualTo(701L);
+        assertThat(entry.termLabel()).isEqualTo("Year 1 - First Installment");
+        assertThat(entry.totalAmount()).isEqualByComparingTo(new BigDecimal("25000.00"));
+        assertThat(entry.status()).isEqualTo(DemandStatus.UNPAID);
+    }
+
+    @Test
+    void shouldBuildLedgerFromEnquiryYearFeesWhenAllocationAndDemandsAreMissing() {
+        when(studentRepository.findById(300L)).thenReturn(Optional.of(student));
+        when(allocationRepository.findByStudentId(300L)).thenReturn(Optional.empty());
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(300L)).thenReturn(List.of());
+        when(feeFinalizationService.getEnquiryYearFees(300L)).thenReturn(List.of(
+            new YearFeeFromEnquiry(1, new BigDecimal("50000.00"), LocalDate.of(2026, 7, 31))
+        ));
+        when(enquiryRepository.findByConvertedStudentId(300L)).thenReturn(Optional.empty());
+
+        StudentFeeLedgerDto ledger = service.getStudentLedger(300L);
+
+        assertThat(ledger.entries()).hasSize(2);
+        assertThat(ledger.entries().get(0).termLabel()).isEqualTo("Year 1 - First Installment");
+        assertThat(ledger.entries().get(0).totalAmount()).isEqualByComparingTo(new BigDecimal("25000.00"));
+        assertThat(ledger.entries().get(1).termLabel()).isEqualTo("Year 1 - Second Installment");
+        assertThat(ledger.entries().get(1).dueDate()).isEqualTo(LocalDate.of(2027, 1, 31));
     }
 
     @Test

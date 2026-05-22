@@ -29,6 +29,7 @@ import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
@@ -50,6 +51,7 @@ public class FeeFinalizationService {
     private final PenaltyRepository penaltyRepository;
     private final StudentRepository studentRepository;
     private final EnquiryRepository enquiryRepository;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final StudentScholarshipService studentScholarshipService;
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final AcademicYearRepository academicYearRepository;
@@ -61,6 +63,7 @@ public class FeeFinalizationService {
                                    PenaltyRepository penaltyRepository,
                                    StudentRepository studentRepository,
                                    EnquiryRepository enquiryRepository,
+                                   EnquiryPaymentRepository enquiryPaymentRepository,
                                    StudentScholarshipService studentScholarshipService,
                                    TermBillingScheduleRepository billingScheduleRepository,
                                    AcademicYearRepository academicYearRepository,
@@ -71,6 +74,7 @@ public class FeeFinalizationService {
         this.penaltyRepository = penaltyRepository;
         this.studentRepository = studentRepository;
         this.enquiryRepository = enquiryRepository;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.studentScholarshipService = studentScholarshipService;
         this.billingScheduleRepository = billingScheduleRepository;
         this.academicYearRepository = academicYearRepository;
@@ -160,10 +164,14 @@ public class FeeFinalizationService {
             ? student.getCohort().getAdmissionAcademicYear().getStartYear()
             : LocalDate.now().getYear();
 
-        // Load admission-year billing dates as fallback for years whose AY isn't created yet
+        // Load admission-year billing dates as fallback for years whose AY isn't created yet.
+        // When there is no cohort, resolve the admission AY by start year directly.
         Long admissionAyId = student.getCohort() != null
             ? student.getCohort().getAdmissionAcademicYear().getId()
-            : null;
+            : academicYearRepository
+                .findByNameStartingWith(String.valueOf(joiningStartYear))
+                .map(AcademicYear::getId)
+                .orElse(null);
         LocalDate fallbackOdd = admissionAyId == null ? null :
             billingScheduleRepository.findByAcademicYearIdAndTermType(admissionAyId, TermType.ODD)
                 .map(TermBillingSchedule::getDueDate).orElse(null);
@@ -247,30 +255,42 @@ public class FeeFinalizationService {
     }
 
     private StudentFeeAllocationResponse toResponse(StudentFeeAllocation allocation, List<SemesterFee> semesterFees) {
-        List<StudentFeeAllocationResponse.InstallmentFeeDetail> details = semesterFees.stream()
-            .map(sf -> {
-                BigDecimal paid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
-                BigDecimal pending = sf.getAmount().subtract(paid).max(BigDecimal.ZERO);
-                BigDecimal penaltyAmount = penaltyRepository.findBySemesterFeeId(sf.getId()).stream()
-                    .filter(p -> !p.getIsPaid())
-                    .map(Penalty::getTotalPenalty)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Enquiry payments act as a pre-payment credit distributed across installments in order.
+        BigDecimal remainingEnquiryCredit = enquiryRepository
+            .findByConvertedStudentId(allocation.getStudent().getId())
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
 
-                String paymentStatus;
-                if (pending.compareTo(BigDecimal.ZERO) <= 0) {
-                    paymentStatus = "PAID";
-                } else if (paid.compareTo(BigDecimal.ZERO) > 0) {
-                    paymentStatus = "PARTIAL";
-                } else {
-                    paymentStatus = "PENDING";
-                }
+        List<StudentFeeAllocationResponse.InstallmentFeeDetail> details = new ArrayList<>();
+        for (SemesterFee sf : semesterFees) {
+            BigDecimal feeInstallmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
 
-                return new StudentFeeAllocationResponse.InstallmentFeeDetail(
-                    sf.getId(), sf.getYearNumber(), sf.getSemesterSequence(), sf.getSemesterLabel(),
-                    sf.getAmount(), sf.getDueDate(), paid, pending, penaltyAmount, paymentStatus
-                );
-            })
-            .toList();
+            BigDecimal maxCredit = sf.getAmount().subtract(feeInstallmentPaid).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
+            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            BigDecimal totalPaid = feeInstallmentPaid.add(creditForThis);
+            BigDecimal pending = sf.getAmount().subtract(totalPaid).max(BigDecimal.ZERO);
+
+            BigDecimal penaltyAmount = penaltyRepository.findBySemesterFeeId(sf.getId()).stream()
+                .filter(p -> !p.getIsPaid())
+                .map(Penalty::getTotalPenalty)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            String paymentStatus;
+            if (pending.compareTo(BigDecimal.ZERO) <= 0) {
+                paymentStatus = "PAID";
+            } else if (totalPaid.compareTo(BigDecimal.ZERO) > 0) {
+                paymentStatus = "PARTIAL";
+            } else {
+                paymentStatus = "PENDING";
+            }
+
+            details.add(new StudentFeeAllocationResponse.InstallmentFeeDetail(
+                sf.getId(), sf.getYearNumber(), sf.getSemesterSequence(), sf.getSemesterLabel(),
+                sf.getAmount(), sf.getDueDate(), totalPaid, pending, penaltyAmount, paymentStatus
+            ));
+        }
 
         return new StudentFeeAllocationResponse(
             allocation.getId(),

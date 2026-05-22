@@ -451,3 +451,28 @@
 - Explorer shows accurate financial summary
 
 **Status:** NOT TESTED
+
+---
+
+## TC-SFW-023: Student profile Finance tab shows new-flow fee ledger
+
+**Preconditions:**
+- User is logged in with a role that can view student fee reports
+- A student was admitted from a finalized enquiry flow
+- The student has no legacy `FeeDemand` rows
+- The enquiry has year-wise finalized fee data and may have enquiry payment receipts
+
+**Steps:**
+1. Open the admitted student's profile page.
+2. Select the **Finance** tab.
+3. Verify the tab does not show "No fee demands found for this student.".
+4. Verify installment rows are visible with total, paid, outstanding, due date, and status.
+5. Open **Full Fee Screen** for the same student and compare the total demand, total paid, and outstanding values.
+
+**Expected Result:**
+- The Student Finance tab displays fee ledger entries from `StudentFeeAllocation` when present.
+- If allocation has not been materialized yet, the tab displays the linked enquiry's finalized year-wise fee ledger instead of an empty state.
+- Enquiry payment credit is reflected in paid/outstanding totals consistently with the Student Fee Collection screen.
+
+**Status:** NOT TESTED
+

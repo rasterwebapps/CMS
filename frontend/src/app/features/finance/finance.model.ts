@@ -257,11 +257,11 @@ export interface Receipt {
   id: number;
   receiptNumber: string;
   studentId: number;
-  studentName: string;
-  rollNumber: string;
-  installmentFeeId: number;
-  installmentLabel: string;
-  yearNumber: number;
+  studentName: string | null;
+  rollNumber: string | null;
+  installmentFeeId: number | null;
+  installmentLabel: string | null;
+  yearNumber: number | null;
   amountPaid: number;
   paymentDate: string;
   paymentMode: string;

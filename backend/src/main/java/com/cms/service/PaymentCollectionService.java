@@ -16,11 +16,14 @@ import com.cms.dto.ReceiptResponse;
 import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.EnquiryPayment;
 import com.cms.model.FeeInstallment;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
@@ -34,17 +37,23 @@ public class PaymentCollectionService {
     private final SemesterFeeRepository semesterFeeRepository;
     private final FeeInstallmentRepository installmentRepository;
     private final StudentRepository studentRepository;
+    private final EnquiryRepository enquiryRepository;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final UnifiedReceiptService unifiedReceiptService;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
                                      FeeInstallmentRepository installmentRepository,
                                      StudentRepository studentRepository,
+                                     EnquiryRepository enquiryRepository,
+                                     EnquiryPaymentRepository enquiryPaymentRepository,
                                      UnifiedReceiptService unifiedReceiptService) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
         this.studentRepository = studentRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.unifiedReceiptService = unifiedReceiptService;
     }
 
@@ -65,6 +74,12 @@ public class PaymentCollectionService {
         List<SemesterFee> semesterFees = semesterFeeRepository
             .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
+        // Enquiry payments act as pre-payment credit — distribute in installment order before accepting new payment.
+        BigDecimal remainingEnquiryCredit = enquiryRepository
+            .findByConvertedStudentId(studentId)
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+
         BigDecimal remaining = request.amount();
         List<String> allocationDetails = new ArrayList<>();
         List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
@@ -77,7 +92,12 @@ public class PaymentCollectionService {
             }
 
             BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
-            BigDecimal pendingForSemester = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
+
+            BigDecimal maxCredit = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
+            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            BigDecimal pendingForSemester = sf.getAmount().subtract(alreadyPaid).subtract(creditForThis).max(BigDecimal.ZERO);
 
             if (pendingForSemester.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
@@ -137,9 +157,31 @@ public class PaymentCollectionService {
         if (!studentRepository.existsById(studentId)) {
             throw new ResourceNotFoundException("Student not found with id: " + studentId);
         }
-        return installmentRepository.findByStudentIdOrderByPaymentDateDesc(studentId).stream()
+
+        List<ReceiptResponse> studentReceipts = installmentRepository
+            .findByStudentIdOrderByPaymentDateDesc(studentId).stream()
             .map(this::toReceiptResponse)
-            .toList();
+            .collect(Collectors.toCollection(ArrayList::new));
+
+        // Append enquiry payment receipts at the end — they pre-date student fee collections
+        enquiryRepository.findByConvertedStudentId(studentId).ifPresent(enquiry ->
+            enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(enquiry.getId())
+                .stream()
+                .map(ep -> toEnquiryReceiptResponse(ep, studentId))
+                .forEach(studentReceipts::add)
+        );
+
+        return studentReceipts;
+    }
+
+    private ReceiptResponse toEnquiryReceiptResponse(EnquiryPayment ep, Long studentId) {
+        return new ReceiptResponse(
+            ep.getId(), ep.getReceiptNumber(),
+            studentId, null, null,
+            null, "Admission Payment", null,
+            ep.getAmountPaid(), ep.getPaymentDate(), ep.getPaymentMode(),
+            ep.getTransactionReference(), ep.getRemarks(), ep.getCreatedAt()
+        );
     }
 
     public ReceiptResponse getReceiptById(Long studentId, Long installmentId) {
