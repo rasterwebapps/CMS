@@ -116,6 +116,62 @@
               <p class="field-hint">Determines how results, exams, and fee demands are structured for students in this program.</p>
             </div>
 
+            <hr class="form-section-divider" />
+            <p class="form-section-title">Admission Age Requirement</p>
+
+            <div class="field-group">
+              <label for="program-min-age" class="field-label">Minimum Age (Years) <span class="required-star">*</span></label>
+              <input
+                id="program-min-age"
+                class="field-input field-input--narrow"
+                type="number"
+                formControlName="minimumAgeYears"
+                placeholder="e.g., 17"
+                min="1"
+                max="100"
+                [class.field-input--error]="form.get('minimumAgeYears')?.invalid && form.get('minimumAgeYears')?.touched"
+              />
+              <p class="field-hint">Student must be at least this many years old as of the cutoff date.</p>
+              @if (form.get('minimumAgeYears')?.invalid && form.get('minimumAgeYears')?.touched) {
+                <p class="field-error">{{ getErrorMessage('minimumAgeYears') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Age Cutoff Date (Day / Month) <span class="required-star">*</span></label>
+              <div style="display:flex; gap:8px; align-items:flex-start;">
+                <div style="flex:0 0 100px;">
+                  <input
+                    id="program-cutoff-day"
+                    class="field-input"
+                    type="number"
+                    formControlName="ageCutoffDay"
+                    placeholder="Day"
+                    min="1"
+                    max="31"
+                    [class.field-input--error]="form.get('ageCutoffDay')?.invalid && form.get('ageCutoffDay')?.touched"
+                  />
+                </div>
+                <div style="flex:1;">
+                  <select
+                    id="program-cutoff-month"
+                    class="field-input"
+                    formControlName="ageCutoffMonth"
+                    [class.field-input--error]="form.get('ageCutoffMonth')?.invalid && form.get('ageCutoffMonth')?.touched"
+                  >
+                    @for (m of MONTH_OPTIONS; track m.value) {
+                      <option [value]="m.value">{{ m.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <p class="field-hint">Age is checked as of this day/month of the admission year (e.g., 31 December 2026 for the 2026-27 batch).</p>
+              @if ((form.get('ageCutoffDay')?.invalid && form.get('ageCutoffDay')?.touched) ||
+                   (form.get('ageCutoffMonth')?.invalid && form.get('ageCutoffMonth')?.touched)) {
+                <p class="field-error">Valid day (1–31) and month are required.</p>
+              }
+            </div>
+
             <div class="field-group" style="margin-bottom: 0;">
               <label class="field-label">Required Documents</label>
               <button type="button" class="doc-manage-btn" (click)="openDocumentPanel()">

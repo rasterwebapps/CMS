@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +34,7 @@ public class ProgramService {
         String name = requireTrimmed(request.name(), "Program name is required");
         String code = requireTrimmed(request.code(), "Program code is required");
         validateCode(code);
+        validateAgeCutoffDate(request.ageCutoffDay(), request.ageCutoffMonth());
 
         if (programRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException(
@@ -50,6 +52,9 @@ public class ProgramService {
             request.status(),
             request.assessmentPattern()
         );
+        program.setMinimumAgeYears(request.minimumAgeYears());
+        program.setAgeCutoffDay(request.ageCutoffDay());
+        program.setAgeCutoffMonth(request.ageCutoffMonth());
         return toResponse(programRepository.save(program));
     }
 
@@ -73,6 +78,7 @@ public class ProgramService {
         String code = requireTrimmed(request.code(), "Program code is required");
 
         validateCode(code);
+        validateAgeCutoffDate(request.ageCutoffDay(), request.ageCutoffMonth());
 
         if (programRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
@@ -92,6 +98,9 @@ public class ProgramService {
         if (request.assessmentPattern() != null) {
             program.setAssessmentPattern(request.assessmentPattern());
         }
+        program.setMinimumAgeYears(request.minimumAgeYears());
+        program.setAgeCutoffDay(request.ageCutoffDay());
+        program.setAgeCutoffMonth(request.ageCutoffMonth());
         return toResponse(programRepository.save(program));
     }
 
@@ -117,6 +126,9 @@ public class ProgramService {
             program.getStatus(),
             program.getAssessmentPattern(),
             new HashSet<>(program.getRequiredDocumentTypes()),
+            program.getMinimumAgeYears(),
+            program.getAgeCutoffDay(),
+            program.getAgeCutoffMonth(),
             program.getCreatedAt(),
             program.getUpdatedAt()
         );
@@ -161,6 +173,16 @@ public class ProgramService {
         }
         if (code.contains(" ")) {
             throw new IllegalArgumentException("Program code must not contain spaces");
+        }
+    }
+
+    private void validateAgeCutoffDate(Integer day, Integer month) {
+        if (day == null || month == null) return;
+        try {
+            LocalDate.of(2000, month, day);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "Invalid age cutoff date: day " + day + " does not exist in month " + month);
         }
     }
 

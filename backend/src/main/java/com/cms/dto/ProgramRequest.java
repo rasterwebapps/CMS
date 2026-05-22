@@ -25,5 +25,20 @@ public record ProgramRequest(
 
     ProgramStatus status,
 
-    AssessmentPattern assessmentPattern
+    AssessmentPattern assessmentPattern,
+
+    @NotNull(message = "Minimum age is required")
+    @Min(value = 1, message = "Minimum age must be at least 1")
+    @Max(value = 100, message = "Minimum age must not exceed 100")
+    Integer minimumAgeYears,
+
+    @NotNull(message = "Age cutoff day is required")
+    @Min(value = 1, message = "Cutoff day must be between 1 and 31")
+    @Max(value = 31, message = "Cutoff day must be between 1 and 31")
+    Integer ageCutoffDay,
+
+    @NotNull(message = "Age cutoff month is required")
+    @Min(value = 1, message = "Cutoff month must be between 1 and 12")
+    @Max(value = 12, message = "Cutoff month must be between 1 and 12")
+    Integer ageCutoffMonth
 ) {}

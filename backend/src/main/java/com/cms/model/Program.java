@@ -56,6 +56,15 @@ public class Program {
     @Column(name = "assessment_pattern", nullable = false, length = 20)
     private AssessmentPattern assessmentPattern = AssessmentPattern.TERM_BASED;
 
+    @Column(name = "minimum_age_years", nullable = false)
+    private Integer minimumAgeYears = 17;
+
+    @Column(name = "age_cutoff_day", nullable = false)
+    private Integer ageCutoffDay = 31;
+
+    @Column(name = "age_cutoff_month", nullable = false)
+    private Integer ageCutoffMonth = 12;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "program_document_types",
@@ -116,6 +125,13 @@ public class Program {
     public void setAssessmentPattern(AssessmentPattern assessmentPattern) {
         this.assessmentPattern = assessmentPattern != null ? assessmentPattern : AssessmentPattern.TERM_BASED;
     }
+
+    public Integer getMinimumAgeYears() { return minimumAgeYears; }
+    public void setMinimumAgeYears(Integer minimumAgeYears) { this.minimumAgeYears = minimumAgeYears; }
+    public Integer getAgeCutoffDay() { return ageCutoffDay; }
+    public void setAgeCutoffDay(Integer ageCutoffDay) { this.ageCutoffDay = ageCutoffDay; }
+    public Integer getAgeCutoffMonth() { return ageCutoffMonth; }
+    public void setAgeCutoffMonth(Integer ageCutoffMonth) { this.ageCutoffMonth = ageCutoffMonth; }
 
     @Transient
     public Integer getTotalTerms() {

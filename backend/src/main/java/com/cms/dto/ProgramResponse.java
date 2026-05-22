@@ -16,6 +16,9 @@ public record ProgramResponse(
     ProgramStatus status,
     AssessmentPattern assessmentPattern,
     Set<DocumentType> requiredDocumentTypes,
+    Integer minimumAgeYears,
+    Integer ageCutoffDay,
+    Integer ageCutoffMonth,
     Instant createdAt,
     Instant updatedAt
 ) {}

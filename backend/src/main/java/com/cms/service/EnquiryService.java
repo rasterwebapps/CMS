@@ -4,6 +4,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.Period;
+import java.time.format.TextStyle;
+import java.util.Locale;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -149,6 +153,10 @@ public class EnquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
         }
 
+        if (program != null) {
+            validateAgeRestriction(program, request.dateOfBirth(), request.enquiryDate().getYear());
+        }
+
         EnquiryStatus status = request.status() != null ? request.status() : EnquiryStatus.ENQUIRED;
 
         Enquiry enquiry = new Enquiry(
@@ -236,6 +244,10 @@ public class EnquiryService {
         if (request.courseId() != null) {
             course = courseRepository.findById(request.courseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        }
+
+        if (program != null) {
+            validateAgeRestriction(program, request.dateOfBirth(), request.enquiryDate().getYear());
         }
 
         enquiry.setName(request.name());
@@ -510,6 +522,9 @@ public class EnquiryService {
         AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found: " + request.joiningAcademicYearId()));
+
+        LocalDate effectiveDob = request.dateOfBirth() != null ? request.dateOfBirth() : enquiry.getDateOfBirth();
+        validateAgeRestriction(program, effectiveDob, joiningYear.getStartYear());
 
         Admission admission = new Admission(savedStudent, joiningYear, request.applicationDate());
         admission.setParentConsentGiven(request.parentConsentGiven());
@@ -788,5 +803,24 @@ public class EnquiryService {
             e.getFeeState() != null ? e.getFeeState().getName() : null,
             admissionNumber
         );
+    }
+
+    private void validateAgeRestriction(Program program, LocalDate dateOfBirth, int referenceYear) {
+        if (program.getMinimumAgeYears() == null || dateOfBirth == null) return;
+        LocalDate cutoff = LocalDate.of(
+            referenceYear,
+            program.getAgeCutoffMonth(),
+            program.getAgeCutoffDay()
+        );
+        int ageAtCutoff = Period.between(dateOfBirth, cutoff).getYears();
+        if (ageAtCutoff < program.getMinimumAgeYears()) {
+            String monthName = Month.of(program.getAgeCutoffMonth())
+                .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+            throw new IllegalArgumentException(
+                "Student does not meet the minimum age requirement for " + program.getName() +
+                ". Must be at least " + program.getMinimumAgeYears() + " years old as of " +
+                program.getAgeCutoffDay() + " " + monthName + " " + referenceYear + "."
+            );
+        }
     }
 }

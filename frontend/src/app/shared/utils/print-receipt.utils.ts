@@ -77,7 +77,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
 <meta charset="UTF-8"/>
 <title>Receipt - ${data.receiptNumber}</title>
 <style>
-  @page { size: A5 landscape; margin: 7mm 10mm; }
+  @page { size: A5 landscape; margin: 12.7mm; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     width: 210mm;
@@ -96,12 +96,12 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     body { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   }
 
-  /* ── Outer card — fills the full A5 landscape page ── */
+  /* ── Outer card — fills printable area: 148mm − 2×12.7mm = 122.6mm ── */
   .receipt {
     width: 100%;
-    height: 134mm;
+    height: 122.6mm;
     border: 3px double #1a237e;
-    padding: 10px 16px 12px;
+    padding: 8px 14px 10px;
     display: flex;
     flex-direction: column;
   }
@@ -111,16 +111,16 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1.5px solid #1a237e;
   }
-  .logo { width: 56px; height: 56px; flex-shrink: 0; object-fit: contain; }
+  .logo { width: 52px; height: 52px; flex-shrink: 0; object-fit: contain; }
   .header-center { flex: 1; }
   .college-name {
-    font-size: 20px; font-weight: 900; color: #1a237e;
+    font-size: 19px; font-weight: 900; color: #1a237e;
     letter-spacing: 0.4px; text-transform: uppercase; line-height: 1.15;
   }
-  .college-sub { font-size: 10px; color: #333; margin-top: 3px; line-height: 1.5; }
+  .college-sub { font-size: 10px; color: #333; margin-top: 2px; line-height: 1.5; }
   .receipt-badge {
     border: 2px solid #1a237e; padding: 5px 14px;
     font-size: 12px; font-weight: 800; letter-spacing: 3px;
@@ -133,8 +133,8 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin: 8px 0 2px;
-    padding-bottom: 4px;
+    margin: 6px 0 2px;
+    padding-bottom: 3px;
     border-bottom: 1px solid #c5cae9;
   }
   .receipt-no { font-size: 12.5px; }
@@ -142,11 +142,11 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   .meta-date { font-size: 12px; font-weight: 600; }
 
   /* ── Fill-in rows ── */
-  .body { margin-top: 10px; }
+  .body { margin-top: 7px; }
   .fill-row {
     display: flex;
     align-items: flex-end;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 12.5px;
     line-height: 1;
   }
@@ -177,7 +177,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     justify-content: flex-end;
     align-items: flex-end;
     margin-top: auto;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     gap: 0;
   }
   .amount-box {
@@ -190,14 +190,14 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   .amount-value { font-size: 20px; font-weight: 900; margin-top: 3px; color: #1a237e; }
 
   /* ── Footer ── */
-  .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 8px; }
+  .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 6px; }
   .footer { display: flex; justify-content: space-between; align-items: flex-end; }
   .footer-left { font-size: 10px; color: #555; line-height: 1.6; padding-bottom: 3px; }
   .footer-left strong { color: #000; font-size: 10.5px; }
   .sig-block { text-align: center; min-width: 190px; }
   .for-word { font-size: 10px; margin-bottom: 1px; }
   .for-college { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; }
-  .sig-space { height: 34px; }
+  .sig-space { height: 26px; }
   .sig-line-rule { border-top: 1px solid #000; }
   .sig-text { font-size: 10px; padding-top: 3px; }
 </style>

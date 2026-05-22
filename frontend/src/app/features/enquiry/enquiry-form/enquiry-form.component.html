@@ -66,6 +66,9 @@
           @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
             <p class="field-error">Required, must be in the past</p>
           }
+          @if (ageRestrictionError()) {
+            <p class="field-error">{{ ageRestrictionError() }}</p>
+          }
         </div>
         <div class="field-group">
           <label for="enq-age" class="field-label">Age (years)</label>

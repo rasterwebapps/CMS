@@ -26,6 +26,9 @@ interface ProgramInfo {
   code: string;
   durationYears: number;
   departments: { id: number; name: string }[];
+  minimumAgeYears: number | null;
+  ageCutoffDay: number | null;
+  ageCutoffMonth: number | null;
 }
 interface CourseInfo {
   id: number;
@@ -121,6 +124,7 @@ export class EnquiryFormComponent implements OnInit {
   /** Guard flag — prevents ping-pong between DOB ↔ Age valueChanges listeners */
   private dobAgeSyncing = false;
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
+  protected readonly ageRestrictionError = signal<string | null>(null);
   protected readonly totalFees = signal(0);
   protected readonly finalCalculatedFee = computed(() => this.totalFees());
   private itemId: number | null = null;
@@ -191,12 +195,15 @@ export class EnquiryFormComponent implements OnInit {
     // Re-compute fee whenever the address state changes
     this.form.get('state')?.valueChanges.subscribe(() => this.tryLoadFeeGuideline());
 
+    this.form.get('enquiryDate')?.valueChanges.subscribe(() => this.recomputeAgeRestrictionError());
+
     this.form.get('dateOfBirth')?.valueChanges.subscribe((dob: string | null) => {
       if (this.dobAgeSyncing) return;
       const age = this.calcAgeFromDob(dob);
       this.dobAgeSyncing = true;
       this.form.get('age')?.setValue(age, { emitEvent: false });
       this.dobAgeSyncing = false;
+      this.recomputeAgeRestrictionError();
     });
     this.form.get('age')?.valueChanges.subscribe((age: number | null) => {
       if (this.dobAgeSyncing) return;
@@ -298,6 +305,7 @@ export class EnquiryFormComponent implements OnInit {
       const program = this.programs().find((p) => p.id === programId) ?? null;
       this.selectedProgram.set(program);
     }
+    this.recomputeAgeRestrictionError();
   }
 
   protected onCourseChange(_courseId: number): void {
@@ -565,6 +573,7 @@ export class EnquiryFormComponent implements OnInit {
   }
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.ageRestrictionError()) { return; }
     if (this.feeNotFound()) { this.feeError.set(true); return; }
     if (this.totalFees() <= 0) { this.feeError.set(true); return; }
     this.feeError.set(false);
@@ -626,5 +635,35 @@ export class EnquiryFormComponent implements OnInit {
     const d = new Date();
     d.setFullYear(d.getFullYear() - age);
     return d.toISOString().split('T')[0];
+  }
+
+  private recomputeAgeRestrictionError(): void {
+    const program = this.selectedProgram();
+    if (!program?.minimumAgeYears || !program?.ageCutoffDay || !program?.ageCutoffMonth) {
+      this.ageRestrictionError.set(null);
+      return;
+    }
+    const dobStr = this.form.get('dateOfBirth')?.value as string | null;
+    const enquiryDateStr = this.form.get('enquiryDate')?.value as string | null;
+    if (!dobStr || !enquiryDateStr) {
+      this.ageRestrictionError.set(null);
+      return;
+    }
+    const dob = new Date(dobStr);
+    const refYear = new Date(enquiryDateStr).getFullYear();
+    const cutoff = new Date(refYear, program.ageCutoffMonth - 1, program.ageCutoffDay);
+    let age = refYear - dob.getFullYear();
+    const mDiff = cutoff.getMonth() - dob.getMonth();
+    if (mDiff < 0 || (mDiff === 0 && cutoff.getDate() < dob.getDate())) age--;
+    if (age < program.minimumAgeYears) {
+      const monthNames = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+      const cutoffStr = `${program.ageCutoffDay} ${monthNames[program.ageCutoffMonth - 1]} ${refYear}`;
+      this.ageRestrictionError.set(
+        `Student must be at least ${program.minimumAgeYears} years old as of ${cutoffStr}.`
+      );
+    } else {
+      this.ageRestrictionError.set(null);
+    }
   }
 }

@@ -89,6 +89,14 @@ export class ProgramFormComponent implements OnInit {
     { icon: 'event',       title: 'Duration',           subtitle: 'Number of years a student takes to complete the program.' },
     { icon: 'school',      title: 'Assessment Pattern', subtitle: 'Term-based: installments per term. Yearly: one annual exam at end of year.' },
     { icon: 'toggle_on',   title: 'Status',             subtitle: 'Inactive programs are hidden from new admissions but kept for historical records.' },
+    { icon: 'cake',        title: 'Age Restriction',    subtitle: 'Government-mandated minimum age as of the cutoff date. Enforced at enquiry and admission.' },
+  ];
+
+  protected readonly MONTH_OPTIONS = [
+    { value: 1, label: 'January' }, { value: 2, label: 'February' }, { value: 3, label: 'March' },
+    { value: 4, label: 'April' },   { value: 5, label: 'May' },       { value: 6, label: 'June' },
+    { value: 7, label: 'July' },    { value: 8, label: 'August' },    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },{ value: 11, label: 'November' }, { value: 12, label: 'December' },
   ];
 
   private programId: number | null = null;
@@ -99,6 +107,9 @@ export class ProgramFormComponent implements OnInit {
     durationYears: [null as number | null, [Validators.required, Validators.min(1), Validators.max(10)]],
     status: ['ACTIVE' as ProgramStatus, Validators.required],
     assessmentPattern: ['TERM_BASED' as AssessmentPattern, Validators.required],
+    minimumAgeYears: [17, [Validators.required, Validators.min(1), Validators.max(100)]],
+    ageCutoffDay: [31, [Validators.required, Validators.min(1), Validators.max(31)]],
+    ageCutoffMonth: [12, Validators.required],
   });
 
   constructor() {
@@ -163,6 +174,9 @@ export class ProgramFormComponent implements OnInit {
       durationYears: this.form.value.durationYears,
       status: this.form.value.status as ProgramStatus,
       assessmentPattern: this.form.value.assessmentPattern as AssessmentPattern,
+      minimumAgeYears: this.form.value.minimumAgeYears,
+      ageCutoffDay: this.form.value.ageCutoffDay,
+      ageCutoffMonth: this.form.value.ageCutoffMonth,
     };
 
     this.saving.set(true);
@@ -226,6 +240,9 @@ export class ProgramFormComponent implements OnInit {
     name: 'Program Name',
     code: 'Code',
     durationYears: 'Duration',
+    minimumAgeYears: 'Minimum Age',
+    ageCutoffDay: 'Cutoff Day',
+    ageCutoffMonth: 'Cutoff Month',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -244,6 +261,9 @@ export class ProgramFormComponent implements OnInit {
           durationYears: program.durationYears,
           status: program.status,
           assessmentPattern: program.assessmentPattern ?? 'TERM_BASED',
+          minimumAgeYears: program.minimumAgeYears ?? 17,
+          ageCutoffDay: program.ageCutoffDay ?? 31,
+          ageCutoffMonth: program.ageCutoffMonth ?? 12,
         });
         this.selectedDocumentTypes.set(new Set(program.requiredDocumentTypes ?? []));
         this.loading.set(false);

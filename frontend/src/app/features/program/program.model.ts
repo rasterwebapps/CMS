@@ -10,6 +10,9 @@ export interface Program {
   status: ProgramStatus;
   assessmentPattern: AssessmentPattern;
   requiredDocumentTypes: string[];
+  minimumAgeYears: number;
+  ageCutoffDay: number;
+  ageCutoffMonth: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +23,9 @@ export interface ProgramRequest {
   durationYears: number;
   status?: ProgramStatus;
   assessmentPattern?: AssessmentPattern;
+  minimumAgeYears: number;
+  ageCutoffDay: number;
+  ageCutoffMonth: number;
 }
 
 /**
