@@ -34,18 +34,24 @@ interface CourseInfo {
   specialization: string | null;
   programId: number;
 }
-interface FeeStructureInfo {
-  id: number;
-  programId: number;
-  programName: string;
-  courseId: number | null;
-  courseName: string | null;
+interface FeeStructureItem {
   feeType: string;
   amount: number;
-  description: string;
-  isMandatory: boolean;
-  isActive: boolean;
   yearAmounts: { yearNumber: number; yearLabel: string; amount: number }[];
+}
+
+interface FeeGuidelineResponse {
+  totalFee: number;
+  items: FeeStructureItem[];
+}
+
+interface FeeState {
+  id: number;
+  name: string;
+  code: string;
+  isDefault: boolean;
+  isFallback: boolean;
+  sortOrder: number;
 }
 @Component({
   selector: 'app-enquiry-form',
@@ -89,7 +95,16 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly agentSearchTerm = signal('');
   protected readonly agentSearchOpen = signal(false);
   protected readonly feeError = signal(false);
+  protected readonly feeLoading    = signal(false);
+  protected readonly feeNotFound   = signal(false);
+  protected readonly feeStates     = signal<FeeState[]>([]);
   private readonly yearWiseFees = signal<string>('');
+  private _cachedFeeItems: FeeStructureItem[] = [];
+
+  protected readonly quotaOptions = [
+    { value: 'MANAGEMENT',  label: 'Management Quota' },
+    { value: 'COUNSELLING', label: 'Counselling Quota' },
+  ];
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED', 'CLOSED'];
   /** Max date for enquiry date input — today as YYYY-MM-DD string */
   protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
@@ -105,8 +120,6 @@ export class EnquiryFormComponent implements OnInit {
   ];
   /** Guard flag — prevents ping-pong between DOB ↔ Age valueChanges listeners */
   private dobAgeSyncing = false;
-  /** Fee structures loaded for the selected program */
-  protected readonly feeStructures = signal<FeeStructureInfo[]>([]);
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
   protected readonly totalFees = signal(0);
   protected readonly finalCalculatedFee = computed(() => this.totalFees());
@@ -123,6 +136,7 @@ export class EnquiryFormComponent implements OnInit {
     agentId:        [null as number | null],
     remarks:        [''],
     studentType:    ['DAY_SCHOLAR' as 'DAY_SCHOLAR' | 'HOSTELER', Validators.required],
+    admissionQuota: ['MANAGEMENT' as 'MANAGEMENT' | 'COUNSELLING', Validators.required],
     country:        [null as number | null, Validators.required],
     state:          ['', Validators.required],
     district:       [''],
@@ -173,7 +187,10 @@ export class EnquiryFormComponent implements OnInit {
   }
   ngOnInit(): void {
     this.tourService.register('enquiry-form', ENQUIRY_FORM_TOUR);
-    // Bidirectional DOB ↔ Age sync
+
+    // Re-compute fee whenever the address state changes
+    this.form.get('state')?.valueChanges.subscribe(() => this.tryLoadFeeGuideline());
+
     this.form.get('dateOfBirth')?.valueChanges.subscribe((dob: string | null) => {
       if (this.dobAgeSyncing) return;
       const age = this.calcAgeFromDob(dob);
@@ -190,6 +207,9 @@ export class EnquiryFormComponent implements OnInit {
     });
     this.http.get<ProgramInfo[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (data) => this.programs.set(data),
+    });
+    this.http.get<FeeState[]>(`${environment.apiUrl}/fee-states`).subscribe({
+      next: (states) => this.feeStates.set(states),
     });
     this.agentService.getActiveAgents().subscribe({
       next: (data) => this.agents.set(data),
@@ -215,6 +235,7 @@ export class EnquiryFormComponent implements OnInit {
             agentId: item.agentId,
             remarks: item.remarks,
             studentType: item.studentType ?? 'DAY_SCHOLAR',
+            admissionQuota: item.admissionQuota ?? 'MANAGEMENT',
             country: item.countryId ?? null,
             state: item.state ?? '',
             district: item.district ?? '',
@@ -252,9 +273,10 @@ export class EnquiryFormComponent implements OnInit {
             const program = this.programs().find((p) => p.id === item.programId) ?? null;
             this.selectedProgram.set(program);
             this.loadCoursesForProgram(item.programId);
-            if (item.courseId) {
-              this.loadFeeStructures(item.programId, item.courseId);
-            }
+            // Fee loading is deferred until feeStateId is also patched (the fee-states
+            // API call above may still be in flight). A brief scheduler trick ensures
+            // the fee-state has been set before we attempt the guideline call.
+            setTimeout(() => this.tryLoadFeeGuideline(), 300);
           }
           this.loading.set(false);
         },
@@ -268,42 +290,106 @@ export class EnquiryFormComponent implements OnInit {
   protected onProgramChange(programId: number): void {
     this.form.patchValue({ courseId: null });
     this.courses.set([]);
-    this.feeStructures.set([]);
     this.selectedProgram.set(null);
     this.totalFees.set(0);
+    this.feeNotFound.set(false);
     if (programId) {
       this.loadCoursesForProgram(programId);
       const program = this.programs().find((p) => p.id === programId) ?? null;
       this.selectedProgram.set(program);
     }
   }
-  protected onCourseChange(courseId: number): void {
-    const programId = this.form.get('programId')?.value;
-    if (programId && courseId) {
-      this.loadFeeStructures(programId, courseId);
-    } else {
-      this.feeStructures.set([]);
-      this.totalFees.set(0);
-    }
+
+  protected onCourseChange(_courseId: number): void {
+    this.tryLoadFeeGuideline();
   }
+
   protected onStudentTypeChange(): void {
-    // Recompute total fees based on new student type
-    this.computeTotalFromFeeStructures(this.feeStructures());
+    // No new API call needed — re-filter already-cached items by the new student type
+    this._applyFeeItems(this._cachedFeeItems);
   }
-  private computeTotalFromFeeStructures(data: FeeStructureInfo[]): void {
-    const studentType = this.form.get('studentType')?.value as 'DAY_SCHOLAR' | 'HOSTELER' | null;
-    const relevant = data.filter((fs) => {
-      if (fs.feeType === 'HOSTEL_FEE')    return studentType === 'HOSTELER';
-      if (fs.feeType === 'TRANSPORT_FEE') return studentType === 'DAY_SCHOLAR';
-      return true;
+
+  protected onDimensionChange(): void {
+    this.tryLoadFeeGuideline();
+  }
+
+  /** Resolve the fee state ID from the address state text field.
+   *  Tries an exact name match first; falls back to the state marked isFallback. */
+  private resolveFeeStateId(): number | null {
+    const stateText = (this.form.get('state')?.value as string ?? '').trim().toLowerCase();
+    const states = this.feeStates();
+    if (!states.length) return null;
+    const exact = states.find(s => s.name.toLowerCase() === stateText);
+    if (exact) return exact.id;
+    return states.find(s => s.isFallback)?.id ?? null;
+  }
+
+  private tryLoadFeeGuideline(): void {
+    const v = this.form.getRawValue();
+    const feeStateId = this.resolveFeeStateId();
+    // studentType is still required so we know which total to display after loading
+    if (!v.programId || !v.admissionQuota || !feeStateId || !v.gender || !v.studentType) {
+      this._cachedFeeItems = [];
+      this.totalFees.set(0);
+      this.feeNotFound.set(false);
+      return;
+    }
+    if (this.courses().length > 0 && !v.courseId) {
+      // Program has courses but none selected yet — don't show a misleading "not found"
+      this._cachedFeeItems = [];
+      this.totalFees.set(0);
+      this.feeNotFound.set(false);
+      return;
+    }
+    const params = new URLSearchParams({
+      programId:  v.programId.toString(),
+      quota:      v.admissionQuota,
+      feeStateId: feeStateId.toString(),
+      gender:     v.gender,
     });
+    if (v.courseId) params.set('courseId', v.courseId.toString());
+
+    this._cachedFeeItems = [];
+    this.feeLoading.set(true);
+    this.feeNotFound.set(false);
+    this.http.get<FeeGuidelineResponse>(`${environment.apiUrl}/fee-structures/guideline?${params.toString()}`).subscribe({
+      next: (data) => {
+        this._cachedFeeItems = data.items;
+        this.feeLoading.set(false);
+        this._applyFeeItems(data.items);
+      },
+      error: (err) => {
+        this._cachedFeeItems = [];
+        this.feeLoading.set(false);
+        if (err.status === 404) {
+          this.feeNotFound.set(true);
+          this.totalFees.set(0);
+        } else {
+          this.totalFees.set(0);
+        }
+      },
+    });
+  }
+
+  /** Filters items by student type and sets totalFees + yearWiseFees signals. */
+  private _applyFeeItems(items: FeeStructureItem[]): void {
+    if (!items.length) {
+      this.totalFees.set(0);
+      this.yearWiseFees.set('');
+      return;
+    }
+    const studentType = this.form.get('studentType')?.value as string;
+    const filtered = studentType === 'HOSTELER'
+      ? items.filter(i => i.feeType !== 'TRANSPORT_FEE')   // hosteler: no transport
+      : items.filter(i => i.feeType !== 'HOSTEL_FEE');      // day scholar: no hostel
+
     this.totalFees.set(this.paiseToAmount(
-      relevant.reduce((s, fs) => s + this.amountToPaise(fs.amount), 0)
+      filtered.reduce((s, item) => s + this.amountToPaise(item.amount), 0)
     ));
-    // Build year-wise fee breakdown from yearAmounts on each fee structure item
+
     const yearMap = new Map<number, number>();
-    for (const fs of relevant) {
-      for (const ya of fs.yearAmounts ?? []) {
+    for (const item of filtered) {
+      for (const ya of item.yearAmounts ?? []) {
         yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
       }
     }
@@ -323,6 +409,8 @@ export class EnquiryFormComponent implements OnInit {
     } else {
       ctrl?.clearValidators();
       ctrl?.setValue(null);
+      // Program has no courses — fee lookup can proceed with courseId = null
+      this.tryLoadFeeGuideline();
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
   }
@@ -330,19 +418,6 @@ export class EnquiryFormComponent implements OnInit {
     this.http.get<CourseInfo[]>(`${environment.apiUrl}/courses/program/${programId}`).subscribe({
       next: (data) => { this.courses.set(data); this.updateCourseValidator(); },
       error: () => { this.courses.set([]); this.updateCourseValidator(); },
-    });
-  }
-  private loadFeeStructures(programId: number, courseId: number): void {
-    const url = `${environment.apiUrl}/fee-structures?programId=${programId}&courseId=${courseId}`;
-    this.http.get<FeeStructureInfo[]>(url).subscribe({
-      next: (data) => {
-        this.feeStructures.set(data);
-        this.computeTotalFromFeeStructures(data);
-      },
-      error: () => {
-        this.feeStructures.set([]);
-        this.totalFees.set(0);
-      },
     });
   }
   protected selectedReferralType(): ReferralType | undefined {
@@ -490,6 +565,7 @@ export class EnquiryFormComponent implements OnInit {
   }
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.feeNotFound()) { this.feeError.set(true); return; }
     if (this.totalFees() <= 0) { this.feeError.set(true); return; }
     this.feeError.set(false);
     const v = this.form.value;
@@ -512,6 +588,8 @@ export class EnquiryFormComponent implements OnInit {
       referredStaffName: v.referredStaffName?.trim() || undefined,
       dateOfBirth: v.dateOfBirth,
       gender: v.gender,
+      admissionQuota: v.admissionQuota || undefined,
+      feeStateId: this.resolveFeeStateId() ?? undefined,
     };
     this.saving.set(true);
     const op$ = this.isEditMode()

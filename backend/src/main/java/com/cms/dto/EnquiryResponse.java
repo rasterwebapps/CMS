@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
@@ -53,5 +54,9 @@ public record EnquiryResponse(
     Instant updatedAt,
     BigDecimal totalPaidAmount,
     LocalDate dateOfBirth,
-    Gender gender
+    Gender gender,
+    AdmissionQuota admissionQuota,
+    Long feeStateId,
+    String feeStateName,
+    String admissionNumber
 ) {}

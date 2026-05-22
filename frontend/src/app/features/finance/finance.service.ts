@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
-  FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
+  FeeState, FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
@@ -18,6 +18,10 @@ export class FinanceService {
   private readonly feeStructureUrl = `${environment.apiUrl}/fee-structures`;
   private readonly feePaymentUrl = `${environment.apiUrl}/fee-payments`;
   private readonly studentFeeUrl = `${environment.apiUrl}/student-fees`;
+
+  getFeeStates(): Observable<FeeState[]> {
+    return this.http.get<FeeState[]>(`${environment.apiUrl}/fee-states`);
+  }
 
   bulkCreateFeeStructures(request: BulkFeeStructureRequest): Observable<FeeStructure[]> {
     return this.http.post<FeeStructure[]>(`${this.feeStructureUrl}/bulk`, request);
@@ -39,10 +43,16 @@ export class FinanceService {
     return this.http.get<GroupedFeeStructure[]>(`${this.feeStructureUrl}/grouped`, { params: httpParams });
   }
 
-  deleteGroupedFeeStructures(programId: number, academicYearId: number, courseId?: number): Observable<void> {
+  deleteGroupedFeeStructures(
+    programId: number, academicYearId: number, courseId: number | undefined,
+    quota: string, feeStateId: number, gender: string
+  ): Observable<void> {
     let httpParams = new HttpParams()
       .set('programId', programId.toString())
-      .set('academicYearId', academicYearId.toString());
+      .set('academicYearId', academicYearId.toString())
+      .set('quota', quota)
+      .set('feeStateId', feeStateId.toString())
+      .set('gender', gender);
     if (courseId) httpParams = httpParams.set('courseId', courseId.toString());
     return this.http.delete<void>(`${this.feeStructureUrl}/group`, { params: httpParams });
   }

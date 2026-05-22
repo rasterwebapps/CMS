@@ -34,7 +34,7 @@ public interface FeePaymentRepository extends JpaRepository<FeePayment, Long> {
         @Param("feeStructureId") Long feeStructureId);
 
     @Query("SELECT fp FROM FeePayment fp " +
-           "WHERE fp.student.id = :studentId AND fp.feeStructure.academicYear.id = :academicYearId")
+           "WHERE fp.student.id = :studentId AND fp.feeStructure.feeStructureGroup.academicYear.id = :academicYearId")
     List<FeePayment> findByStudentIdAndAcademicYearId(
         @Param("studentId") Long studentId,
         @Param("academicYearId") Long academicYearId);

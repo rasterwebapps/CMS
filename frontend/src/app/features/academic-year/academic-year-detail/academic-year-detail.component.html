@@ -242,67 +242,23 @@
         <div class="entry-form-card__body">
           <div class="cohort-seats-table">
             <div class="cohort-seats-table__head">
-              <span>Program</span>
+              <span>Course</span>
               <span>Batch</span>
               <span>Management Seats</span>
               <span>Counselling Seats</span>
               <span>Total Seats</span>
-              <span></span>
             </div>
             @for (cohort of cohorts(); track cohort.id) {
               <div class="cohort-seats-table__row">
                 <span class="cohort-seats-table__program">
-                  <span class="cohort-seats-table__code">{{ cohort.programCode }}</span>
-                  {{ cohort.programName }}
+                  <span class="cohort-seats-table__code">{{ cohort.courseCode }}</span>
+                  {{ cohort.courseName }}
                 </span>
                 <span class="cohort-seats-table__batch">{{ cohort.displayName }}</span>
-                <span>
-                  <input
-                    type="number"
-                    class="field-input field-input--narrow cohort-seat-input"
-                    min="0"
-                    placeholder="e.g. 40"
-                    [value]="getCohortEdit(cohort.id).managementSeats ?? ''"
-                    (input)="onCohortSeatChange(cohort.id, 'managementSeats', $any($event.target).value)"
-                  />
-                </span>
-                <span>
-                  <input
-                    type="number"
-                    class="field-input field-input--narrow cohort-seat-input"
-                    min="0"
-                    placeholder="e.g. 20"
-                    [value]="getCohortEdit(cohort.id).counsellingSeats ?? ''"
-                    (input)="onCohortSeatChange(cohort.id, 'counsellingSeats', $any($event.target).value)"
-                  />
-                </span>
+                <span class="cohort-seats-table__value">{{ cohort.managementSeats ?? 0 }}</span>
+                <span class="cohort-seats-table__value">{{ cohort.counsellingSeats ?? 0 }}</span>
                 <span class="cohort-seats-table__row-total">
-                  {{ getCohortTotalSeats(cohort.id) }}
-                </span>
-                <span class="cohort-seats-table__actions">
-                  <button
-                    class="btn-secondary btn-sm"
-                    (click)="saveCohortSeats(cohort.id)"
-                    [disabled]="savingCohortId() === cohort.id">
-                    @if (savingCohortId() === cohort.id) {
-                      <span class="btn-spinner btn-spinner--dark"></span>
-                    } @else {
-                      Save
-                    }
-                  </button>
-                  @if (canEdit() && !cohort.hasStudents) {
-                    <button
-                      class="btn-ghost btn-sm btn-ghost--danger"
-                      (click)="deleteCohort(cohort.id)"
-                      [disabled]="deletingCohortId() === cohort.id"
-                      title="Remove cohort">
-                      @if (deletingCohortId() === cohort.id) {
-                        <span class="btn-spinner btn-spinner--dark"></span>
-                      } @else {
-                        Remove
-                      }
-                    </button>
-                  }
+                  {{ (cohort.managementSeats ?? 0) + (cohort.counsellingSeats ?? 0) }}
                 </span>
               </div>
             }
@@ -312,7 +268,6 @@
               <span class="cohort-seats-table__footer-value">{{ grandTotals().management }}</span>
               <span class="cohort-seats-table__footer-value">{{ grandTotals().counselling }}</span>
               <span class="cohort-seats-table__footer-value cohort-seats-table__footer-value--total">{{ grandTotals().total }}</span>
-              <span></span>
             </div>
           </div>
           <p class="field-hint" style="margin-top: 12px;">

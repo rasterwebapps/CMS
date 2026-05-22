@@ -26,7 +26,7 @@ import com.cms.model.Course;
 import com.cms.model.Program;
 
 import com.cms.repository.CourseRepository;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,7 +42,7 @@ class CourseServiceTest {
     private ProgramService programService;
 
     @Mock
-    private FeeStructureRepository feeStructureRepository;
+    private FeeStructureGroupRepository feeStructureGroupRepository;
 
     private CourseService courseService;
 
@@ -50,7 +50,7 @@ class CourseServiceTest {
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, programRepository, programService, feeStructureRepository);
+        courseService = new CourseService(courseRepository, programRepository, programService, feeStructureGroupRepository);
         program = createProgram(1L, "Bachelor", "BACHELOR", 4);
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
@@ -316,7 +316,7 @@ class CourseServiceTest {
     @Test
     void shouldDeleteCourse() {
         when(courseRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByCourseId(1L)).thenReturn(false);
+        when(feeStructureGroupRepository.existsByCourseId(1L)).thenReturn(false);
 
         courseService.delete(1L);
 
@@ -327,7 +327,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenDeletingCourseWithFeeStructures() {
         when(courseRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByCourseId(1L)).thenReturn(true);
+        when(feeStructureGroupRepository.existsByCourseId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> courseService.delete(1L))
             .isInstanceOf(IllegalStateException.class)

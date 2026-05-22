@@ -12,7 +12,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
 import com.cms.model.Program;
 import com.cms.repository.CourseRepository;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
 
 @Service
@@ -22,16 +22,16 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final ProgramRepository programRepository;
     private final ProgramService programService;
-    private final FeeStructureRepository feeStructureRepository;
+    private final FeeStructureGroupRepository feeStructureGroupRepository;
 
     public CourseService(CourseRepository courseRepository,
                          ProgramRepository programRepository,
                          ProgramService programService,
-                         FeeStructureRepository feeStructureRepository) {
+                         FeeStructureGroupRepository feeStructureGroupRepository) {
         this.courseRepository = courseRepository;
         this.programRepository = programRepository;
         this.programService = programService;
-        this.feeStructureRepository = feeStructureRepository;
+        this.feeStructureGroupRepository = feeStructureGroupRepository;
     }
 
     @Transactional
@@ -118,7 +118,7 @@ public class CourseService {
         if (!courseRepository.existsById(id)) {
             throw new ResourceNotFoundException("Course not found with id: " + id);
         }
-        if (feeStructureRepository.existsByCourseId(id)) {
+        if (feeStructureGroupRepository.existsByCourseId(id)) {
             throw new IllegalStateException(
                 "Cannot delete course because fee structures are associated with it.");
         }

@@ -1,5 +1,9 @@
 # Phase 5 — Fee Collection Manual Test Cases
 
+> **BR-30 Context (2026-05-21):** Fee demand generation (TC-FEE5-001) queries fee structures through `FeeStructureGroup`. The lookup for term-level demands returns items across **all groups** matching the student's program + academic year, regardless of the 4 admission dimensions. This means if multiple groups exist for a program/year (different quotas or states), the demand may include amounts from all of them. For new enrollments, ensure only the relevant group is configured for the program, or refine the demand service query in a future task.
+
+---
+
 ## TC-FEE5-001: Generate fee demands for a term instance
 
 **Preconditions:**

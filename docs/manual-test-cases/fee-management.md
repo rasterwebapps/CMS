@@ -1,5 +1,11 @@
 # Manual Test Cases — Fee Management (R1-M4.1)
 
+> **⚠️ OUTDATED (2026-05-21):** This file was written for the original flat fee structure (pre-BR-30). The column descriptions, API paths, and fee structure model in this file no longer match the current implementation. Current fee structure tests are maintained in:
+> - [`fee-structure-management.md`](fee-structure-management.md) — combination picker, duplicate rejection, dimension filters
+> - [`fee-structure-classification-and-enquiry-flow.md`](fee-structure-classification-and-enquiry-flow.md) — 6-field enquiry fee load, blocking rule
+>
+> This file is retained for historical reference only. Do not use for active test execution.
+
 ## Prerequisites
 
 - Frontend running (`ng serve`) at `http://localhost:4200`

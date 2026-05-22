@@ -1,6 +1,122 @@
 # Manual Test Cases — Fee Structure Classification & Enquiry Fee Flow
 
-Covers: fee type classification (Generic / Additional) on the fee structure screen, course-filtered enquiry fee loading, read-only fee total, student-type fee rules, and fee-finalization discount-only constraint.
+> **BR-30 Update:** Fee lookup on the enquiry form now requires 6 fields (program, course, quota, state, gender, studentType). The old TC-FSCLS-005 through TC-FSCLS-008 (student-type-only fee filtering) are superseded. See new test cases TC-FSCLS-100 to TC-FSCLS-105 below.
+
+Covers: fee type classification (Generic / Additional) on the fee structure screen, course-filtered enquiry fee loading, read-only fee total, multi-dimension fee rules (BR-30), and fee-finalization discount-only constraint.
+
+---
+
+## TC-FSCLS-100: Fee does not load until all 6 enquiry fee fields are filled
+
+**Preconditions:**
+- Fee structure configured for B.Sc Nursing / Management / Tamil Nadu / Female / Day Scholar
+
+**Steps:**
+1. Open Add Enquiry form
+2. Select Program (B.Sc Nursing) — observe fee banner
+3. Select Course — observe fee banner
+4. Select Quota (Management) — observe fee banner
+5. Select Student Type (Day Scholar) — observe fee banner
+6. Fill in DOB, State (Tamil Nadu), Gender (Female), and all other required fields
+
+**Expected Result:**
+- Fee banner shows guidance text until all 6 fee-dimension fields are filled
+- Fee loads (spinner → amount) only after program + course + quota + state (from address) + gender + studentType are all set
+- Fee total is read-only
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-101: Fee loads correctly for Management / Tamil Nadu / Female / Day Scholar
+
+**Preconditions:**
+- Fee structure configured: Tuition ₹95,000, Lab ₹12,000 for Management / Tamil Nadu / Female / Day Scholar / B.Sc Nursing 2024-25
+
+**Steps:**
+1. Open Add Enquiry
+2. Select B.Sc Nursing program and course
+3. Set Quota = Management, enter State = "Tamil Nadu" in address, Gender = Female, Student Type = Day Scholar
+
+**Expected Result:**
+- Fee banner shows ₹1,07,000 (Tuition + Lab) with "Day Scholar" tag
+- No manual editing allowed
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-102: Same program but Counselling quota shows different fee
+
+**Preconditions:**
+- Management quota fee for above = ₹1,07,000
+- Counselling quota fee configured separately = ₹80,000
+
+**Steps:**
+1. Same enquiry form — change Quota from Management to Counselling
+
+**Expected Result:**
+- Fee banner re-fetches automatically and shows ₹80,000
+- No page reload required
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-103: State auto-derived from address — Other State fallback activates
+
+**Preconditions:**
+- Tamil Nadu fee structure configured; Other State fee structure also configured (same quota/gender/studentType)
+- No fee structure configured for "Kerala"
+
+**Steps:**
+1. Open Add Enquiry
+2. Enter address State = "Kerala"
+3. Select program, course, quota = Management, gender = Female, studentType = Day Scholar
+
+**Expected Result:**
+- System cannot find an exact "Kerala" FeeState
+- Fallback kicks in → looks up "Other State" group
+- Fee banner shows the "Other State" fee total
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-104: No fee structure for combination — submission blocked
+
+**Preconditions:**
+- No fee structure configured for Management / Tamil Nadu / Male / Hosteler
+
+**Steps:**
+1. Open Add Enquiry
+2. Set: program with fee structures, quota = Management, state = "Tamil Nadu", gender = Male, studentType = Hosteler
+
+**Expected Result:**
+- Fee banner turns amber/warning and shows: "No fee structure configured for this combination. Please contact admin."
+- **Create Enquiry button is disabled**
+- Form cannot be submitted until the combination is configured
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-105: Fee finalization shows all 4 dimensions as read-only context
+
+**Preconditions:**
+- Enquiry with: admissionQuota = MANAGEMENT, feeStateName = "Tamil Nadu", gender = FEMALE, studentType = HOSTELER is in INTERESTED status
+
+**Steps:**
+1. Navigate to Fee Finalization
+2. Click Finalize on the above enquiry
+
+**Expected Result:**
+- Info panel shows: Quota = "Management", State = "Tamil Nadu", Gender = "Female", Student Type = "Hosteler"
+- All 4 rows are read-only — admin cannot change these values during finalization
+
+**Status:** NOT TESTED
+
+---
 
 ---
 
@@ -75,6 +191,69 @@ Covers: fee type classification (Generic / Additional) on the fee structure scre
 **Expected Result:**
 - No fee total is shown (fee panel / read-only fee field remains absent)
 - No fee structure API call is made for just the program selection
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-106: Program without courses — fee calculates correctly without courseId
+
+**Preconditions:**
+- A program exists with no courses (e.g., a standalone certificate program)
+- A fee structure group is configured for: that program / current year / Management / Tamil Nadu / Female / Day Scholar with `courseId = null`
+
+**Steps:**
+1. Open Add Enquiry
+2. Select the no-course program
+3. Observe: Course dropdown is disabled/absent; no "Select course first" hint shown
+4. Enter state = "Tamil Nadu", gender = Female, student type = Day Scholar, quota = Management
+5. Observe the fee banner
+
+**Expected Result:**
+- Fee banner auto-loads (spinner → total) without requiring a course selection
+- The fee is correctly fetched using the null-course group
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-107: Fee banner shows contextual "what's missing" guidance
+
+**Preconditions:**
+- Fee structure exists for B.Sc Nursing / Tamil Nadu / Management / Female / Day Scholar
+
+**Steps:**
+1. Open Add Enquiry (all fields blank)
+2. Observe fee banner — note message
+3. Enter State = "Tamil Nadu" — note message
+4. Select Program — note message
+5. Select Course — observe what happens
+
+**Expected Result:**
+- When no state: banner reads "Enter address state."
+- After state is entered, no program: banner reads "Select a program."
+- After program, no course (when courses exist): banner reads "Select a course."
+- After course is selected: fee auto-loads without any further user action
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FSCLS-108: Changing gender after fee loads triggers re-fetch
+
+**Preconditions:**
+- Fee structure for B.Sc Nursing / Management / Tamil Nadu / Female / Day Scholar = ₹1,07,000
+- Fee structure for B.Sc Nursing / Management / Tamil Nadu / Male / Day Scholar = ₹95,000
+- Enquiry form open; current total = ₹1,07,000 (Female loaded)
+
+**Steps:**
+1. Change Gender from Female to Male
+2. Observe the fee banner
+
+**Expected Result:**
+- Fee banner briefly shows loading spinner
+- Fee total updates to ₹95,000 (Male fee structure loaded)
+- No page reload required
 
 **Status:** NOT TESTED
 

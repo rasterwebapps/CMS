@@ -5,6 +5,104 @@
   gap: 20px;
   @media (max-width: 768px) { padding: 16px; gap: 14px; }
 }
+// ── Success panel ─────────────────────────────────────────────
+.success-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 56px 32px 48px;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.success-icon {
+  color: #16a34a;
+  margin-bottom: 4px;
+}
+.success-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+.success-sub {
+  font-size: 14px;
+  color: var(--cms-text-secondary);
+  margin-top: -4px;
+}
+.success-adm-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  padding: 12px 32px;
+  margin: 8px 0;
+}
+.success-adm-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cms-text-secondary);
+}
+.success-adm-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--cms-color-primary, #1a237e);
+  letter-spacing: 1px;
+  font-family: monospace;
+}
+.success-student {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+.success-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+%success-btn-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.btn-print {
+  @extend %success-btn-base;
+  background: var(--cms-color-primary, #1a237e);
+  color: #fff;
+}
+.btn-download {
+  @extend %success-btn-base;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-primary);
+}
+.btn-students {
+  @extend %success-btn-base;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-primary);
+}
+.success-hint {
+  font-size: 12px;
+  color: var(--cms-text-tertiary, var(--cms-text-secondary));
+  margin-top: 4px;
+}
+
 .loading-box {
   display: flex;
   justify-content: center;

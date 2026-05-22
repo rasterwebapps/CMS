@@ -1,5 +1,61 @@
 # Fee Finalization & Payment Collection — Manual Test Cases
 
+> **BR-30 Update:** The finalization list now includes a Quota column. The finalization form now shows all 4 fee dimensions (Quota, State, Gender, Student Type) as read-only context rows. Year-wise fee breakdown is fetched from stored `yearWiseFees` JSON; if missing, it is re-fetched from the guideline endpoint using the 4 stored dimensions.
+
+---
+
+## TC-FIN-100: Finalization list shows Quota column
+
+**Preconditions:**
+- Multiple INTERESTED enquiries exist, some with Management quota and some with Counselling quota
+
+**Steps:**
+1. Navigate to Fee Finalization
+2. Observe the table
+
+**Expected Result:**
+- Table has a "Quota" column
+- Management entries show a "Mgmt" badge (violet)
+- Counselling entries show a "CET" badge (blue)
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-101: Finalization form shows all 4 fee dimensions
+
+**Preconditions:**
+- An INTERESTED enquiry exists with: admissionQuota = MANAGEMENT, feeStateName = "Tamil Nadu", gender = FEMALE, studentType = DAY_SCHOLAR
+
+**Steps:**
+1. Click Finalize on the above enquiry
+2. Observe the Enquiry Details panel on the left
+
+**Expected Result:**
+- Panel shows 4 read-only rows: Quota = "Management", State = "Tamil Nadu", Gender = "Female", Student Type = "Day Scholar"
+- None of these values are editable in the finalization form
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-102: Year-wise fees load correctly from stored yearWiseFees
+
+**Preconditions:**
+- INTERESTED enquiry exists with `yearWiseFees` JSON = [{ yearNumber: 1, amount: 25000 }, { yearNumber: 2, amount: 25000 }]
+
+**Steps:**
+1. Open finalization for this enquiry
+2. Observe the Year-wise Fee Breakdown table
+
+**Expected Result:**
+- Year 1 = ₹25,000 and Year 2 = ₹25,000 are pre-populated
+- No API call for /fee-structures is made (uses stored JSON)
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-FIN-001: Fee finalization screen lists INTERESTED enquiries
 
 **Preconditions:**
@@ -15,6 +71,64 @@
 **Expected Result:**
 - Only INTERESTED enquiries are displayed in the table
 - Each row has a "Finalize" button
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-103: Quota filter on finalization toolbar
+
+**Preconditions:**
+- INTERESTED enquiries exist for both Management and Counselling quotas
+
+**Steps:**
+1. Navigate to Fee Finalization
+2. Select "Management" from the Quota dropdown in the toolbar
+3. Observe the enquiry list
+4. Select "Counselling" from the Quota dropdown
+5. Click Clear filters
+
+**Expected Result:**
+- Selecting Management shows only Management-quota enquiries; Counselling rows are hidden
+- Selecting Counselling shows only Counselling-quota enquiries
+- Searching by text "management" also filters to Management-quota rows
+- Clearing filters restores the full list
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-104: Year-wise fee fallback uses actual program duration
+
+**Preconditions:**
+- An INTERESTED enquiry exists for a 2-year program (e.g., M.Sc Nursing) with `yearWiseFees = null` and no 4-dimension guideline data stored
+
+**Steps:**
+1. Navigate to Fee Finalization
+2. Click Finalize on the 2-year program enquiry
+
+**Expected Result:**
+- Year-wise breakdown shows exactly **2 rows** (Year 1, Year 2), not 4
+- Each year gets an equal share: `finalCalculatedFee / 2`
+- The total row matches `finalCalculatedFee`
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-105: "Fee Basis" section in finalization info panel is visually separated
+
+**Preconditions:**
+- An INTERESTED enquiry with admissionQuota, feeStateName, gender, and studentType set
+
+**Steps:**
+1. Open finalization form for that enquiry
+2. Observe the left Enquiry Details panel
+
+**Expected Result:**
+- A divider line and "FEE BASIS" micro-label appear above the Quota/State/Gender/Student Type rows
+- The Quota row shows a colored badge (violet for Management, blue for Counselling)
+- The other dimension rows (State, Gender, Student Type) show plain text values
 
 **Status:** NOT TESTED
 

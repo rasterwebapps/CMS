@@ -28,9 +28,6 @@ import com.cms.model.Examination;
 import com.cms.model.ExamResult;
 import com.cms.model.Experiment;
 import com.cms.model.Faculty;
-import com.cms.model.FeePayment;
-import com.cms.model.FeeStructure;
-import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.InventoryItem;
 import com.cms.model.Lab;
 import com.cms.model.LabCurriculumMapping;
@@ -131,9 +128,6 @@ public class DataLoader implements CommandLineRunner {
     private final AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
     private final ReferralTypeRepository referralTypeRepository;
     private final EnquiryRepository enquiryRepository;
-    private final FeeStructureRepository feeStructureRepository;
-    private final FeeStructureYearAmountRepository feeStructureYearAmountRepository;
-    private final FeePaymentRepository feePaymentRepository;
     private final EquipmentRepository equipmentRepository;
     private final InventoryItemRepository inventoryItemRepository;
     private final MaintenanceRequestRepository maintenanceRequestRepository;
@@ -165,9 +159,6 @@ public class DataLoader implements CommandLineRunner {
                       AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
                       ReferralTypeRepository referralTypeRepository,
                       EnquiryRepository enquiryRepository,
-                      FeeStructureRepository feeStructureRepository,
-                      FeeStructureYearAmountRepository feeStructureYearAmountRepository,
-                      FeePaymentRepository feePaymentRepository,
                       EquipmentRepository equipmentRepository,
                       InventoryItemRepository inventoryItemRepository,
                       MaintenanceRequestRepository maintenanceRequestRepository,
@@ -198,9 +189,6 @@ public class DataLoader implements CommandLineRunner {
         this.agentCommissionGuidelineRepository = agentCommissionGuidelineRepository;
         this.referralTypeRepository = referralTypeRepository;
         this.enquiryRepository = enquiryRepository;
-        this.feeStructureRepository = feeStructureRepository;
-        this.feeStructureYearAmountRepository = feeStructureYearAmountRepository;
-        this.feePaymentRepository = feePaymentRepository;
         this.equipmentRepository = equipmentRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.maintenanceRequestRepository = maintenanceRequestRepository;
@@ -362,47 +350,9 @@ public class DataLoader implements CommandLineRunner {
         agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag2, bachelorProgram, LocalityType.STATE,    new BigDecimal("10000.00")));
         agentCommissionGuidelineRepository.save(new AgentCommissionGuideline(ag3, diplomaProgram, LocalityType.DISTRICT, new BigDecimal("7000.00")));
 
-        // ── 16. Fee Structures ───────────────────────────────────────────────
-        FeeStructure bscTuition = new FeeStructure(bachelorProgram, ay2425, FeeType.TUITION, new BigDecimal("95000.00"), true, true);
-        bscTuition.setDescription("B.Sc Nursing 4-Year Tuition Fee 2024-25");
-        bscTuition = feeStructureRepository.save(bscTuition);
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 1, "Year 1", new BigDecimal("25000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 2, "Year 2", new BigDecimal("25000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 3, "Year 3", new BigDecimal("25000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscTuition, 4, "Year 4", new BigDecimal("20000.00")));
+        // Fee structures are now configured through the admin UI (BR-30: multi-dimension fee structure).
 
-        FeeStructure bscLabFee = new FeeStructure(bachelorProgram, ay2425, FeeType.LABORATORY_FEE, new BigDecimal("12000.00"), true, true);
-        bscLabFee.setDescription("B.Sc Nursing Lab Fee 2024-25");
-        bscLabFee = feeStructureRepository.save(bscLabFee);
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 1, "Year 1", new BigDecimal("3000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 2, "Year 2", new BigDecimal("3000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 3, "Year 3", new BigDecimal("3000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(bscLabFee, 4, "Year 4", new BigDecimal("3000.00")));
-
-        FeeStructure gnmTuition = new FeeStructure(diplomaProgram, ay2425, FeeType.TUITION, new BigDecimal("65000.00"), true, true);
-        gnmTuition.setDescription("GNM 3-Year Tuition Fee 2024-25");
-        gnmTuition = feeStructureRepository.save(gnmTuition);
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 1, "Year 1", new BigDecimal("22000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 2, "Year 2", new BigDecimal("22000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(gnmTuition, 3, "Year 3", new BigDecimal("21000.00")));
-
-        FeeStructure mscTuition = new FeeStructure(masterProgram, ay2425, FeeType.TUITION, new BigDecimal("45000.00"), true, true);
-        mscTuition.setDescription("M.Sc Nursing 2-Year Tuition Fee 2024-25");
-        mscTuition = feeStructureRepository.save(mscTuition);
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(mscTuition, 1, "Year 1", new BigDecimal("23000.00")));
-        feeStructureYearAmountRepository.save(new FeeStructureYearAmount(mscTuition, 2, "Year 2", new BigDecimal("22000.00")));
-
-        // ── 17. Fee Payments ─────────────────────────────────────────────────
-        feePaymentRepository.save(new FeePayment(s1, bscTuition, "RCP-2024-0001",
-                new BigDecimal("25000.00"), LocalDate.of(2024, 6, 15), PaymentMode.CASH, PaymentStatus.PAID));
-        feePaymentRepository.save(new FeePayment(s2, bscTuition, "RCP-2024-0002",
-                new BigDecimal("25000.00"), LocalDate.of(2024, 6, 18), PaymentMode.UPI, PaymentStatus.PAID));
-        feePaymentRepository.save(new FeePayment(s6, gnmTuition, "RCP-2024-0003",
-                new BigDecimal("22000.00"), LocalDate.of(2024, 6, 20), PaymentMode.BANK_TRANSFER, PaymentStatus.PAID));
-        feePaymentRepository.save(new FeePayment(s8, mscTuition, "RCP-2024-0004",
-                new BigDecimal("23000.00"), LocalDate.of(2024, 6, 22), PaymentMode.DEMAND_DRAFT, PaymentStatus.PAID));
-
-        // ── 18. Student Fee Allocations ──────────────────────────────────────
+        // ── 17. Student Fee Allocations ──────────────────────────────────────
         StudentFeeAllocation alloc1 = studentFeeAllocationRepository.save(
                 new StudentFeeAllocation(s1, bachelorProgram, new BigDecimal("95000.00"),
                         new BigDecimal("5000.00"), "Merit Scholarship", null, new BigDecimal("90000.00"),

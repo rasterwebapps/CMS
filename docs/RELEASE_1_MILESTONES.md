@@ -365,7 +365,37 @@
 
 ### R1-M4.1 — Fee Structure & Collection (Module 8)
 
-> **Business Requirements:** See [BR-1](BUSINESS_REQUIREMENTS.md#br-1-fee-structure--academic-year) and [BR-2](BUSINESS_REQUIREMENTS.md#br-2-year-wise-fee-boxes-per-program-duration).
+> **Business Requirements:** See [BR-1](BUSINESS_REQUIREMENTS.md#br-1-fee-structure--academic-year), [BR-2](BUSINESS_REQUIREMENTS.md#br-2-year-wise-fee-boxes-per-program-duration), and [BR-30](BUSINESS_REQUIREMENTS.md#br-30-multi-dimension-fee-structure-quota--state--gender--student-type) (multi-dimension extension).
+
+### R1-M4.1b — Multi-Dimension Fee Structure (BR-30)
+
+> **Business Requirement:** [BR-30](BUSINESS_REQUIREMENTS.md#br-30-multi-dimension-fee-structure-quota--state--gender--student-type)
+
+**Backend:**
+- [x] **R1-4.1b.1** Create `AdmissionQuota` enum (`MANAGEMENT`, `COUNSELLING`)
+- [x] **R1-4.1b.2** Create `FeeState` master entity + repository + seeder (Tamil Nadu = default, Other State = fallback)
+- [x] **R1-4.1b.3** Create `FeeStructureGroup` entity with unique constraint on `(program, academicYear, course, quota, feeState, gender, studentType)`
+- [x] **R1-4.1b.4** Refactor `FeeStructure` — replaced direct program/academicYear/course FKs with `feeStructureGroup` FK
+- [x] **R1-4.1b.5** Add `admissionQuota` and `feeState` FK fields to `Enquiry`
+- [x] **R1-4.1b.6** Rewrite `FeeStructureService` — group-based create/update/delete; `findForEnquiry()` with Other State fallback
+- [x] **R1-4.1b.7** Add `GET /api/v1/fee-states` endpoint
+- [x] **R1-4.1b.8** Add `GET /api/v1/fee-structures/guideline` endpoint
+- [x] **R1-4.1b.9** Flyway migrations V165–V168 (fee_states, fee_structure_groups, fee_structures refactor, enquiry columns)
+
+**Frontend:**
+- [x] **R1-4.1b.10** Update `finance.model.ts` — add `FeeState`, update `BulkFeeStructureRequest`, `FeeStructure`, `GroupedFeeStructure` with 4 new dimension fields
+- [x] **R1-4.1b.11** Update fee structure admin form — 7-field Combination Picker (AY + Program + Course + 4 dimensions)
+- [x] **R1-4.1b.12** Update fee structure list — 4 new filter dropdowns, dimension badges on cards and new table columns
+- [x] **R1-4.1b.13** Update enquiry form — Quota dropdown; state auto-derived from address; fee re-loads on any dimension change; submission blocked when no fee configured
+- [x] **R1-4.1b.14** Update fee finalization — Quota column in list table; Gender/Quota/State info rows; `initYearRows` fallback uses guideline endpoint
+- [x] **R1-4.1b.15** Update manual test cases: fee-structure-management.md, fee-structure-classification-and-enquiry-flow.md, fee-finalization-payment.md, student-fee-workflow.md
+
+**Review-pass fixes (Phases 3–5 audit):**
+- [x] **R1-4.1b.16** Enquiry form: gender `(change)` wired to `onDimensionChange()`; fee banner shows contextual "what's missing" text; `updateCourseValidator` triggers fee load for no-course programs; `tryLoadFeeGuideline` guard prevents false "not found" when course not yet selected
+- [x] **R1-4.1b.17** `applyAuthoritativeFees` null-guard: removed `courseId == null` check — programs without courses correctly have fee calculated
+- [x] **R1-4.1b.18** Fee finalization: Quota filter dropdown in toolbar; `filteredEnquiries` includes quota in text search; `applyEqualSplitFallback` uses `program.durationYears` (not hardcoded 4); `discountReason` signal synced to FormControl; "Fee Basis" section divider added to info panel
+- [x] **R1-4.1b.19** API: `applyAuthoritativeFees` error shows fee state name not raw ID; `GET /fee-structures/grouped` extended with `quota`, `feeStateId`, `gender`, `studentType` filter params; `DataIntegrityViolationException` handler improved for fee-structure-specific constraint names
+- [x] **R1-4.1b.20** Update manual test cases: TC-FSCLS-106/107/108, TC-FIN-103/104/105, TC-ENQ-BR30-004, TC-FEE-106/107
 
 **Backend:**
 - [x] **R1-4.1.1** Create `FeeStructure` entity (`id`, `name`, `program`, `academicYear`, `feeType`, `amount` [BigDecimal], `isMandatory`)

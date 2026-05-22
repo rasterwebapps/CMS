@@ -17,6 +17,9 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tours';
+import { StudentService } from '../../student/student.service';
+import { Student } from '../../student/student.model';
+import { AdmissionFormData, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
 
 @Component({
   selector: 'app-admission-detail',
@@ -40,11 +43,13 @@ export class AdmissionDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly admissionService = inject(AdmissionService);
+  private readonly studentService = inject(StudentService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
 
   readonly loading = signal(true);
   readonly admission = signal<AdmissionResponse | null>(null);
+  readonly student = signal<Student | null>(null);
   readonly qualifications = signal<AcademicQualificationResponse[]>([]);
   readonly documents = signal<AdmissionDocumentResponse[]>([]);
   readonly checklist = signal<Record<string, string>>({});
@@ -72,6 +77,10 @@ export class AdmissionDetailComponent implements OnInit {
         this.admission.set(a);
         this.loadDocuments(id);
         this.loadQualifications(id);
+        this.studentService.getById(a.studentId).subscribe({
+          next: (s) => this.student.set(s),
+          error: () => {},
+        });
       },
       error: () => {
         this.toast.error('Failed to load admission');
@@ -151,6 +160,73 @@ export class AdmissionDetailComponent implements OnInit {
 
   uploadPlaceholder(): void {
     this.toast.info('File upload will be available soon');
+  }
+
+  printForm(): void {
+    const data = this.buildFormData();
+    if (data) printAdmissionForm(data);
+  }
+
+  downloadForm(): void {
+    const data = this.buildFormData();
+    if (data) downloadAdmissionForm(data);
+  }
+
+  private buildFormData(): AdmissionFormData | null {
+    const a = this.admission();
+    if (!a) return null;
+    const s = this.student();
+    return {
+      admissionNumber:   a.admissionNumber ?? '',
+      applicationDate:   a.applicationDate,
+      admissionDate:     s?.admissionDate ?? '',
+      academicYear:      a.joiningAcademicYearName ?? '',
+      programName:       a.programName ?? '',
+      courseName:        a.courseName,
+      yearOfStudy:       a.yearOfStudy ?? null,
+      studentType:       null,
+      admissionQuota:    null,
+      studentName:       a.studentName,
+      dateOfBirth:       s?.dateOfBirth ?? null,
+      gender:            s?.gender ?? null,
+      bloodGroup:        s?.bloodGroup ?? null,
+      aadharNumber:      null,
+      nationality:       s?.nationality ?? null,
+      religion:          s?.religion ?? null,
+      communityCategory: s?.communityCategory ?? null,
+      caste:             s?.caste ?? null,
+      phone:             s?.phone ?? null,
+      email:             s?.email ?? null,
+      postalAddress:     s?.postalAddress ?? null,
+      street:            s?.street ?? null,
+      city:              s?.city ?? null,
+      district:          s?.district ?? null,
+      state:             s?.state ?? null,
+      pincode:           s?.pincode ?? null,
+      fatherName:        s?.fatherName ?? null,
+      fatherPhone:       s?.fatherPhone ?? null,
+      fatherEmail:       s?.fatherEmail ?? null,
+      motherName:        s?.motherName ?? null,
+      motherPhone:       s?.motherPhone ?? null,
+      motherEmail:       s?.motherEmail ?? null,
+      qualifications: this.qualifications().map(q => ({
+        qualificationType:      q.qualificationType,
+        schoolName:             q.schoolName,
+        universityOrBoard:      q.universityOrBoard,
+        monthAndYearOfPassing:  q.monthAndYearOfPassing,
+        percentage:             q.percentage,
+        totalMarks:             q.totalMarks,
+        majorSubject:           q.majorSubject,
+      })),
+      documents: this.documents().map(d => ({
+        documentType:       d.documentType,
+        verificationStatus: d.verificationStatus,
+      })),
+      declarationPlace:      a.declarationPlace,
+      declarationDate:       a.declarationDate ? String(a.declarationDate) : null,
+      parentConsentGiven:    a.parentConsentGiven,
+      applicantConsentGiven: a.applicantConsentGiven,
+    };
   }
 
   edit(): void {

@@ -1,3 +1,12 @@
+export interface FeeState {
+  id: number;
+  name: string;
+  code: string;
+  isDefault: boolean;
+  isFallback: boolean;
+  sortOrder: number;
+}
+
 export interface FeeStructureItemRequest {
   feeType: string;
   amount: number;
@@ -11,17 +20,25 @@ export interface BulkFeeStructureRequest {
   programId: number;
   academicYearId: number;
   courseId?: number;
+  quota: 'MANAGEMENT' | 'COUNSELLING';
+  feeStateId: number;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
   items: FeeStructureItemRequest[];
 }
 
 export interface FeeStructure {
   id: number;
+  groupId: number;
   programId: number;
   programName: string;
   courseId: number | null;
   courseName: string | null;
   academicYearId: number;
   academicYearName: string;
+  quota: 'MANAGEMENT' | 'COUNSELLING';
+  feeStateId: number;
+  feeStateName: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
   feeType: string;
   amount: number;
   description: string;
@@ -33,12 +50,17 @@ export interface FeeStructure {
 }
 
 export interface GroupedFeeStructure {
+  groupId: number;
   programId: number;
   programName: string;
   courseId: number | null;
   courseName: string | null;
   academicYearId: number;
   academicYearName: string;
+  quota: 'MANAGEMENT' | 'COUNSELLING';
+  feeStateId: number;
+  feeStateName: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
   totalAmount: number;
   items: FeeStructure[];
 }

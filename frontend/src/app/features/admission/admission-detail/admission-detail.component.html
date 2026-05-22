@@ -36,6 +36,12 @@
           </div>
         </div>
         <div class="profile-hero__actions">
+          <button class="btn-secondary" type="button" (click)="printForm()" title="Print Admission Form">
+            <mat-icon>print</mat-icon> Print Form
+          </button>
+          <button class="btn-secondary" type="button" (click)="downloadForm()" title="Download Admission Form">
+            <mat-icon>download</mat-icon> Download
+          </button>
           <button class="btn-primary" type="button" (click)="edit()">
             <mat-icon>edit</mat-icon> Edit
           </button>

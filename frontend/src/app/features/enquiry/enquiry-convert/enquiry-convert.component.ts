@@ -21,6 +21,17 @@ import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { AdmissionService } from '../../admission/admission.service';
+import { AdmissionDocumentResponse } from '../../admission/admission.model';
+import { AdmissionFormData, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
+
+interface SuccessState {
+  admissionNumber: string;
+  studentId: number;
+  studentName: string;
+  enquiry: Enquiry;
+  academicYearName: string;
+}
 
 @Component({
   selector: 'app-enquiry-convert',
@@ -38,27 +49,31 @@ import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/countr
   styleUrl: './enquiry-convert.component.scss',
 })
 export class EnquiryConvertComponent implements OnInit {
-  private readonly route           = inject(ActivatedRoute);
-  private readonly router          = inject(Router);
-  private readonly fb              = inject(FormBuilder);
-  private readonly enquiryService  = inject(EnquiryService);
-  private readonly academicYearSvc = inject(AcademicYearService);
-  private readonly toast           = inject(ToastService);
-  private readonly tourService     = inject(TourService);
+  private readonly route             = inject(ActivatedRoute);
+  private readonly router            = inject(Router);
+  private readonly fb                = inject(FormBuilder);
+  private readonly enquiryService    = inject(EnquiryService);
+  private readonly academicYearSvc   = inject(AcademicYearService);
+  private readonly admissionService  = inject(AdmissionService);
+  private readonly toast             = inject(ToastService);
+  private readonly tourService       = inject(TourService);
 
   protected readonly computeInitials = computeInitials;
 
-  private readonly communityService = inject(CommunityService);
+  private readonly communityService  = inject(CommunityService);
   private readonly bloodGroupService = inject(BloodGroupService);
 
-  protected readonly enquiry          = signal<Enquiry | null>(null);
-  protected readonly prefill          = signal<EnquiryConversionPrefillResponse | null>(null);
-  protected readonly academicYears    = signal<AcademicYear[]>([]);
-  protected readonly communities      = signal<Community[]>([]);
-  protected readonly bloodGroups      = signal<BloodGroup[]>([]);
+  protected readonly enquiry               = signal<Enquiry | null>(null);
+  protected readonly prefill               = signal<EnquiryConversionPrefillResponse | null>(null);
+  protected readonly academicYears         = signal<AcademicYear[]>([]);
+  protected readonly communities           = signal<Community[]>([]);
+  protected readonly bloodGroups           = signal<BloodGroup[]>([]);
   protected readonly selectedAcademicYearId = signal<number | null>(null);
-  protected readonly loading          = signal(true);
-  protected readonly saving           = signal(false);
+  protected readonly loading               = signal(true);
+  protected readonly saving                = signal(false);
+  protected readonly successState          = signal<SuccessState | null>(null);
+  protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
+  protected readonly printReady            = signal(false);
 
   /** Document verification status — loaded alongside the enquiry. */
   protected readonly docVerification  = signal<DocumentVerificationStatus | null>(null);
@@ -235,8 +250,8 @@ export class EnquiryConvertComponent implements OnInit {
     this.saving.set(true);
 
     this.enquiryService.convertEnquiry(id, this.buildRequest()).subscribe({
-      next: () => {
-        this.uploadConsentDocs(id);
+      next: (enquiry) => {
+        this.uploadConsentDocs(id, enquiry);
       },
       error: (error: HttpErrorResponse) => {
         this.toast.error(this.getErrorMessage(error, 'Failed to create admission'));
@@ -245,7 +260,7 @@ export class EnquiryConvertComponent implements OnInit {
     });
   }
 
-  private uploadConsentDocs(enquiryId: number): void {
+  private uploadConsentDocs(enquiryId: number, enquiry: Enquiry): void {
     const uploads = [];
     if (this.parentConsentFile()) {
       uploads.push(
@@ -260,7 +275,8 @@ export class EnquiryConvertComponent implements OnInit {
 
     const done = () => {
       this.toast.success('Admission created and student enrolled successfully');
-      void this.router.navigate(['/students']);
+      this.saving.set(false);
+      this.showSuccess(enquiry);
     };
 
     if (uploads.length === 0) { done(); return; }
@@ -268,11 +284,98 @@ export class EnquiryConvertComponent implements OnInit {
     forkJoin(uploads).subscribe({
       next: () => done(),
       error: () => {
-        // Admission was already created — just warn about the upload failure
         this.toast.warning('Admission created but consent document upload failed. You can re-upload from the enquiry documents screen.');
-        void this.router.navigate(['/students']);
+        this.saving.set(false);
+        this.showSuccess(enquiry);
       },
     });
+  }
+
+  private showSuccess(enquiry: Enquiry): void {
+    const v = this.form.value as Record<string, unknown>;
+    const year = this.academicYears().find(y => y.id === this.selectedAcademicYearId());
+    this.successState.set({
+      admissionNumber: enquiry.admissionNumber ?? '',
+      studentId: enquiry.convertedStudentId!,
+      studentName: `${String(v['firstName'] ?? '')} ${String(v['lastName'] ?? '')}`.trim(),
+      enquiry,
+      academicYearName: year?.name ?? '',
+    });
+    const studentId = enquiry.convertedStudentId;
+    if (!studentId) { this.printReady.set(true); return; }
+    this.admissionService.getByStudent(studentId).subscribe({
+      next: (admission) => {
+        this.admissionService.getDocuments(admission.id).subscribe({
+          next: (docs) => { this.admissionDocs.set(docs); this.printReady.set(true); },
+          error: () => this.printReady.set(true),
+        });
+      },
+      error: () => this.printReady.set(true),
+    });
+  }
+
+  protected printForm(): void {
+    const data = this.buildFormData();
+    if (data) printAdmissionForm(data);
+  }
+
+  protected downloadForm(): void {
+    const data = this.buildFormData();
+    if (data) downloadAdmissionForm(data);
+  }
+
+  protected goToStudents(): void {
+    void this.router.navigate(['/students']);
+  }
+
+  private buildFormData(): AdmissionFormData | null {
+    const s = this.successState();
+    if (!s) return null;
+    const v = this.form.value as Record<string, unknown>;
+    const addr = (v['address'] ?? {}) as Record<string, unknown>;
+    return {
+      admissionNumber:   s.admissionNumber,
+      applicationDate:   String(v['applicationDate'] ?? ''),
+      admissionDate:     String(v['admissionDate'] ?? ''),
+      academicYear:      s.academicYearName,
+      programName:       s.enquiry.programName,
+      courseName:        s.enquiry.courseName,
+      yearOfStudy:       v['yearOfStudy'] as number ?? null,
+      studentType:       s.enquiry.studentType ?? null,
+      admissionQuota:    s.enquiry.admissionQuota ?? null,
+      studentName:       s.studentName,
+      dateOfBirth:       v['dateOfBirth'] as string | null ?? null,
+      gender:            v['gender'] as string | null ?? null,
+      bloodGroup:        v['bloodGroup'] as string | null ?? null,
+      aadharNumber:      v['aadharNumber'] as string | null ?? null,
+      nationality:       v['nationality'] as string | null ?? null,
+      religion:          v['religion'] as string | null ?? null,
+      communityCategory: v['communityCategory'] as string | null ?? null,
+      caste:             v['caste'] as string | null ?? null,
+      phone:             v['phone'] as string | null ?? null,
+      email:             v['email'] as string | null ?? null,
+      postalAddress:     addr['postalAddress'] as string | null ?? null,
+      street:            addr['street'] as string | null ?? null,
+      city:              addr['city'] as string | null ?? null,
+      district:          addr['district'] as string | null ?? null,
+      state:             addr['state'] as string | null ?? null,
+      pincode:           addr['pincode'] as string | null ?? null,
+      fatherName:        v['fatherName'] as string | null ?? null,
+      fatherPhone:       v['fatherPhone'] as string | null ?? null,
+      fatherEmail:       v['fatherEmail'] as string | null ?? null,
+      motherName:        v['motherName'] as string | null ?? null,
+      motherPhone:       v['motherPhone'] as string | null ?? null,
+      motherEmail:       v['motherEmail'] as string | null ?? null,
+      qualifications:    [],
+      documents:         this.admissionDocs().map(d => ({
+        documentType:        d.documentType,
+        verificationStatus:  d.verificationStatus,
+      })),
+      declarationPlace:      v['declarationPlace'] as string | null ?? null,
+      declarationDate:       v['declarationDate'] as string | null ?? null,
+      parentConsentGiven:    v['parentConsentGiven'] as boolean | null ?? null,
+      applicantConsentGiven: v['applicantConsentGiven'] as boolean | null ?? null,
+    };
   }
 
   private nullable<T>(value: T): T | undefined {

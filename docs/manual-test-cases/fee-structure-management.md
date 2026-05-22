@@ -1,5 +1,158 @@
 # Fee Structure Management — Manual Test Cases
 
+> **BR-30 Update:** Fee structures are now keyed by 7 dimensions: program, academic year, course (optional), quota, state, gender, and student type. The test cases below have been updated to reflect the new Combination Picker flow. Old test cases TC-FEE-001 through TC-FEE-009 should be read with this context.
+>
+> **Phase 5 API update:** `GET /fee-structures/grouped` now accepts optional filter params: `quota`, `feeStateId`, `gender`, `studentType`. The duplicate-group error message was improved; see TC-FEE-106 and TC-FEE-107.
+
+---
+
+## TC-FEE-100: Add fee structure for a specific combination (Management / Tamil Nadu / Female / Day Scholar)
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` with `FEE_STRUCTURE_MANAGE` permission
+- At least one Program, Course, and Academic Year exist
+- Fee States are seeded (Tamil Nadu, Other State)
+
+**Steps:**
+1. Navigate to **Fee Structures → Add Fee Structure**
+2. Select Academic Year, Program, Course (optional)
+3. In Row 2, select: Quota = "Management Quota", State = "Tamil Nadu", Gender = "Female", Student Type = "Day Scholar"
+4. Observe that the fee grid appears only after all 7 criteria are filled
+5. Enter ₹95,000 for Tuition Fee (Year 1–4 if multi-year), ₹12,000 for Laboratory Fee
+6. Observe the Fee Schedule header shows combination badges: "Management Quota", "Tamil Nadu", "Female", "Day Scholar"
+7. Click **Save Fee Structure**
+
+**Expected Result:**
+- Fee grid appears only after all 7 criteria are filled
+- Combination badges are visible in the Fee Schedule header
+- Save succeeds; the list shows a new row with all 4 dimension badges
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-101: Duplicate combination is rejected
+
+**Preconditions:**
+- A fee structure already exists for: B.Sc Nursing / 2024-2025 / Management / Tamil Nadu / Female / Day Scholar
+
+**Steps:**
+1. Navigate to Add Fee Structure
+2. Select the same 7-field combination
+3. Enter amounts and click Save
+
+**Expected Result:**
+- Save fails with: "A fee structure already exists for this combination. Use the edit function to update it."
+- No duplicate is created
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-102: Different quota produces a separate group
+
+**Preconditions:**
+- Management quota fee structure exists for B.Sc Nursing / 2024-2025 / TN / Female / Day Scholar
+
+**Steps:**
+1. Add fee structure with same program/year/gender/studentType but quota = "Counselling Quota"
+2. Enter different amounts and save
+
+**Expected Result:**
+- Second group is created (separate row in the list)
+- Two distinct rows visible in the list, each with their own quota badge
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-103: Different state produces a separate group
+
+**Preconditions:**
+- Tamil Nadu fee structure exists for Management / B.Sc Nursing / Female / Day Scholar
+
+**Steps:**
+1. Add fee structure with State = "Other State" (all other dimensions same)
+2. Enter amounts and save
+
+**Expected Result:**
+- Second group created; list shows two rows — one Tamil Nadu, one Other State
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-104: Fee state filter in list view
+
+**Preconditions:**
+- Multiple fee structure groups exist across Tamil Nadu and Other State
+
+**Steps:**
+1. Navigate to Fee Structures list
+2. Observe all groups shown
+3. Filter by Gender = "Male"
+
+**Expected Result:**
+- Only groups configured for Male gender are shown
+- Other groups are hidden while the filter is active
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-105: Delete fee structure group removes all fee types for that combination
+
+**Preconditions:**
+- A fee structure group exists with 5 fee types configured
+
+**Steps:**
+1. In the list, click Delete on a group
+2. Confirm the deletion dialog
+
+**Expected Result:**
+- All fee type items for that group are deleted
+- The row disappears from the list
+- No other groups are affected
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-106: `GET /fee-structures/grouped` filters by quota via API
+
+**Preconditions:**
+- Fee structure groups exist for both Management and Counselling quotas for the same program/year
+
+**Steps:**
+1. Send `GET /api/v1/fee-structures/grouped?programId=1&academicYearId=1&quota=MANAGEMENT`
+2. Inspect the response list
+
+**Expected Result:**
+- Response contains only groups where `quota = "MANAGEMENT"`
+- Counselling groups are excluded from the response
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE-107: Duplicate combination DB constraint returns meaningful error message
+
+**Preconditions:**
+- Two concurrent requests attempt to create the same combination simultaneously (race condition) OR
+- A fee structure group already exists and the service-level check is bypassed
+
+**Steps:**
+1. Send `POST /api/v1/fee-structures/bulk` for a combination that already exists at the DB level (simulating a race condition)
+
+**Expected Result:**
+- Response: 409 Conflict
+- Error message: `"A fee structure already exists for this combination (program + year + quota + state + gender + student type). Use the edit function to update it."`
+- NOT the generic "A record with the same name or code already exists."
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-FEE-001: Add fee structures for a course — all types pre-populated
 
 **Preconditions:**

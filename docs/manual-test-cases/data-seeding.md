@@ -1,5 +1,7 @@
 # Manual Test Cases — Demo Data Seeding
 
+> **BR-30 Update (2026-05-21):** Fee structure seeding has been removed from `DataLoader` and `LocalDataSeeder`. The "Fee Structures → verify 4 fee structures" step in TC-SEED-001 no longer applies. Fee structures must now be configured manually through the admin UI using the multi-dimension Combination Picker (program + course + quota + state + gender + studentType). The seed now only creates two `FeeState` entries (Tamil Nadu, Other State) via Flyway migration V165.
+
 ## TC-SEED-001: Verify automatic seed data loads on application startup (local profile)
 
 **Preconditions:**

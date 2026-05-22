@@ -48,6 +48,49 @@
 
 ---
 
+### TC-AY-004A: Add Academic Year — Cohort Seat Allocations
+
+**Preconditions:**
+- User is logged in with permission `ACADEMIC_YEAR_MANAGE`.
+- At least two active programs/courses exist, for example BCA and B.Com.
+
+**Steps:**
+1. Navigate to **Academic Years** and click **Add Academic Year**.
+2. Enter academic-year information, term dates, and billing schedule.
+3. In **Course / Program Seat Allocations**, enter management and counselling seats for each active program, for example BCA = 45 management + 15 counselling.
+4. Click **Create Academic Year**.
+5. Open the created academic-year detail screen.
+
+**Expected Result:**
+- The create form displays one seat-allocation row per active program/course.
+- The academic year is created successfully.
+- Cohort rows are created for the submitted programs.
+- The detail screen shows the same management and counselling seat values and correct totals.
+
+**Status:** NOT TESTED
+
+---
+
+### TC-AY-004B: Add Academic Year — Negative Seat Validation
+
+**Preconditions:**
+- User is logged in with permission `ACADEMIC_YEAR_MANAGE`.
+- At least one active program/course exists.
+
+**Steps:**
+1. Navigate to **Academic Years** and click **Add Academic Year**.
+2. Fill all required academic-year, term, and billing fields.
+3. Enter `-1` in a management or counselling seat field.
+4. Click **Create Academic Year**.
+
+**Expected Result:**
+- The form remains on screen and does not submit while a negative seat value is present.
+- No academic year or cohort is created from the invalid request.
+
+**Status:** NOT TESTED
+
+---
+
 ### TC-AY-005: Edit/Delete Academic Year
 
 | Field       | Value                                            |

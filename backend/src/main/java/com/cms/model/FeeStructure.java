@@ -21,9 +21,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "fee_structures")
+@Table(
+    name = "fee_structures",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_fee_structure_group_fee_type",
+        columnNames = {"fee_structure_group_id", "fee_type"}
+    )
+)
 @EntityListeners(AuditingEntityListener.class)
 public class FeeStructure {
 
@@ -32,16 +39,8 @@ public class FeeStructure {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "program_id", nullable = false)
-    private Program program;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "academic_year_id", nullable = false)
-    private AcademicYear academicYear;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id")
-    private Course course;
+    @JoinColumn(name = "fee_structure_group_id", nullable = false)
+    private FeeStructureGroup feeStructureGroup;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "fee_type", nullable = false)
@@ -66,104 +65,41 @@ public class FeeStructure {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public FeeStructure() {
-    }
+    public FeeStructure() {}
 
-    public FeeStructure(Program program, AcademicYear academicYear, FeeType feeType,
+    public FeeStructure(FeeStructureGroup feeStructureGroup, FeeType feeType,
                         BigDecimal amount, Boolean isMandatory, Boolean isActive) {
-        this.program = program;
-        this.academicYear = academicYear;
+        this.feeStructureGroup = feeStructureGroup;
         this.feeType = feeType;
         this.amount = amount;
         this.isMandatory = isMandatory;
         this.isActive = isActive;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public FeeStructureGroup getFeeStructureGroup() { return feeStructureGroup; }
+    public void setFeeStructureGroup(FeeStructureGroup feeStructureGroup) { this.feeStructureGroup = feeStructureGroup; }
 
-    public Program getProgram() {
-        return program;
-    }
+    public FeeType getFeeType() { return feeType; }
+    public void setFeeType(FeeType feeType) { this.feeType = feeType; }
 
-    public void setProgram(Program program) {
-        this.program = program;
-    }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public AcademicYear getAcademicYear() {
-        return academicYear;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setAcademicYear(AcademicYear academicYear) {
-        this.academicYear = academicYear;
-    }
+    public Boolean getIsMandatory() { return isMandatory; }
+    public void setIsMandatory(Boolean isMandatory) { this.isMandatory = isMandatory; }
 
-    public Course getCourse() {
-        return course;
-    }
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 
-    public void setCourse(Course course) {
-        this.course = course;
-    }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public FeeType getFeeType() {
-        return feeType;
-    }
-
-    public void setFeeType(FeeType feeType) {
-        this.feeType = feeType;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Boolean getIsMandatory() {
-        return isMandatory;
-    }
-
-    public void setIsMandatory(Boolean isMandatory) {
-        this.isMandatory = isMandatory;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

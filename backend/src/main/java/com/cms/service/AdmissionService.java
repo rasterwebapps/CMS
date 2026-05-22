@@ -135,18 +135,23 @@ public class AdmissionService {
                     + " and admission date " + admissionDate
                     + ". Please configure an intake rule first."));
 
+        com.cms.model.Course studentCourse = student.getCourse();
+        if (studentCourse == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Student does not have a course assigned. Please assign a course before confirming admission.");
+        }
         Cohort cohort = cohortRepository
-            .findByProgramIdAndAdmissionAcademicYearId(program.getId(), rule.getMappedAcademicYear().getId())
+            .findByCourseIdAndAdmissionAcademicYearId(studentCourse.getId(), rule.getMappedAcademicYear().getId())
             .orElseGet(() -> {
                 int startYear = rule.getMappedAcademicYear().getStartYear();
                 int durationYears = program.getDurationYears();
-                String cohortCode = program.getCode() + "-" + startYear + "-" + (startYear + durationYears);
-                String displayName = program.getName() + " (" + startYear + "-" + (startYear + durationYears) + ")";
+                String cohortCode = studentCourse.getCode() + "-" + startYear + "-" + (startYear + durationYears);
+                String displayName = studentCourse.getName() + " (" + startYear + "-" + (startYear + durationYears) + ")";
                 AcademicYear expectedGradAY = academicYearRepository
                     .findByName((startYear + durationYears) + "-" + (startYear + durationYears + 1))
                     .orElse(null);
                 Cohort newCohort = new Cohort();
-                newCohort.setProgram(program);
+                newCohort.setCourse(studentCourse);
                 newCohort.setAdmissionAcademicYear(rule.getMappedAcademicYear());
                 newCohort.setExpectedGraduationAcademicYear(expectedGradAY);
                 newCohort.setCohortCode(cohortCode);

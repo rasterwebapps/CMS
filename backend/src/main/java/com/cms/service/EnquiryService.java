@@ -36,10 +36,11 @@ import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
+import com.cms.model.FeeState;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
-import com.cms.model.enums.FeeType;
 import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
@@ -50,6 +51,7 @@ import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.FeeStateRepository;
 import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
@@ -83,6 +85,7 @@ public class EnquiryService {
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureService feeStructureService;
+    private final FeeStateRepository feeStateRepository;
     private final EnquiryDocumentService enquiryDocumentService;
     private final ApplicationNumberSequenceService numberSequenceService;
     private final LocationCountryRepository countryRepository;
@@ -100,6 +103,7 @@ public class EnquiryService {
                            EnquiryDocumentRepository enquiryDocumentRepository,
                            AcademicYearRepository academicYearRepository,
                            FeeStructureService feeStructureService,
+                           FeeStateRepository feeStateRepository,
                            EnquiryDocumentService enquiryDocumentService,
                            ApplicationNumberSequenceService numberSequenceService,
                            LocationCountryRepository countryRepository) {
@@ -116,6 +120,7 @@ public class EnquiryService {
         this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.academicYearRepository = academicYearRepository;
         this.feeStructureService = feeStructureService;
+        this.feeStateRepository = feeStateRepository;
         this.enquiryDocumentService = enquiryDocumentService;
         this.numberSequenceService = numberSequenceService;
         this.countryRepository = countryRepository;
@@ -156,6 +161,8 @@ public class EnquiryService {
         enquiry.setStudentType(request.studentType());
         enquiry.setDateOfBirth(request.dateOfBirth());
         enquiry.setGender(request.gender());
+        enquiry.setAdmissionQuota(request.admissionQuota());
+        applyFeeState(enquiry, request.feeStateId());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
@@ -243,6 +250,8 @@ public class EnquiryService {
         enquiry.setStudentType(request.studentType());
         enquiry.setDateOfBirth(request.dateOfBirth());
         enquiry.setGender(request.gender());
+        enquiry.setAdmissionQuota(request.admissionQuota());
+        applyFeeState(enquiry, request.feeStateId());
         applyAuthoritativeFees(enquiry, request);
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
@@ -521,7 +530,8 @@ public class EnquiryService {
             "Admitted: student ID " + savedStudent.getId() + ", admission number "
                 + savedStudent.getAdmissionNumber() + ", admission created");
 
-        return toResponse(saved);
+        BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(saved.getId());
+        return toResponse(saved, paid, savedStudent.getAdmissionNumber());
     }
 
     private void linkEnquiryDocumentsToAdmission(Long enquiryId, Admission admission) {
@@ -608,37 +618,52 @@ public class EnquiryService {
         statusHistoryRepository.save(new EnquiryStatusHistory(enquiry, from, to, changedBy, remarks));
     }
 
+    private void applyFeeState(Enquiry enquiry, Long feeStateId) {
+        if (feeStateId != null) {
+            feeStateRepository.findById(feeStateId).ifPresent(enquiry::setFeeState);
+        }
+    }
+
     private void applyAuthoritativeFees(Enquiry enquiry, EnquiryRequest request) {
-        if (request.programId() == null || request.courseId() == null) {
+        // courseId is intentionally NOT in the null-guard — programs without courses
+        // send courseId = null and must still have their fee calculated.
+        // The form's updateCourseValidator enforces courseId when the program has courses.
+        if (request.programId() == null
+                || request.admissionQuota() == null || request.feeStateId() == null
+                || request.gender() == null) {
             enquiry.setFeeDiscussedAmount(normalizeNullable(request.feeDiscussedAmount()));
             enquiry.setFinalCalculatedFee(null);
             enquiry.setYearWiseFees(null);
             return;
         }
 
-        List<FeeStructureResponse> feeStructures = feeStructureService
-            .findByProgramIdAndCourseId(request.programId(), request.courseId());
-        List<FeeStructureResponse> relevant = feeStructures.stream()
-            .filter(fs -> isRelevantForStudentType(fs.feeType(), request.studentType()))
-            .toList();
-        BigDecimal total = relevant.stream()
+        var feeItems = feeStructureService.findForEnquiry(
+            request.programId(), request.courseId(),
+            request.admissionQuota(), request.feeStateId(),
+            request.gender()
+        );
+
+        if (feeItems.isEmpty()) {
+            String stateName = feeStateRepository.findById(request.feeStateId())
+                .map(com.cms.model.FeeState::getName)
+                .orElse("unknown state");
+            throw new IllegalArgumentException(
+                "No fee structure configured for this combination: "
+                + request.admissionQuota() + " quota, "
+                + stateName + ", "
+                + request.gender()
+                + ". Please ask the admin to configure the fee structure.");
+        }
+
+        List<FeeStructureResponse> items = feeItems.get();
+        BigDecimal total = items.stream()
             .map(FeeStructureResponse::amount)
             .map(this::normalizeAmount)
             .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
 
         enquiry.setFeeDiscussedAmount(total);
         enquiry.setFinalCalculatedFee(total);
-        enquiry.setYearWiseFees(buildYearWiseFeesJson(relevant));
-    }
-
-    private boolean isRelevantForStudentType(FeeType feeType, StudentType studentType) {
-        if (feeType == FeeType.HOSTEL_FEE) {
-            return studentType == StudentType.HOSTELER;
-        }
-        if (feeType == FeeType.TRANSPORT_FEE) {
-            return studentType == StudentType.DAY_SCHOLAR;
-        }
-        return true;
+        enquiry.setYearWiseFees(buildYearWiseFeesJson(items));
     }
 
     private String buildYearWiseFeesJson(List<FeeStructureResponse> feeStructures) {
@@ -704,10 +729,14 @@ public class EnquiryService {
 
     private EnquiryResponse toResponse(Enquiry e) {
         BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId());
-        return toResponse(e, paid);
+        return toResponse(e, paid, null);
     }
 
     private EnquiryResponse toResponse(Enquiry e, BigDecimal totalPaid) {
+        return toResponse(e, totalPaid, null);
+    }
+
+    private EnquiryResponse toResponse(Enquiry e, BigDecimal totalPaid, String admissionNumber) {
         return new EnquiryResponse(
             e.getId(),
             e.getName(),
@@ -753,7 +782,11 @@ public class EnquiryService {
             e.getUpdatedAt(),
             totalPaid,
             e.getDateOfBirth(),
-            e.getGender()
+            e.getGender(),
+            e.getAdmissionQuota(),
+            e.getFeeState() != null ? e.getFeeState().getId() : null,
+            e.getFeeState() != null ? e.getFeeState().getName() : null,
+            admissionNumber
         );
     }
 }

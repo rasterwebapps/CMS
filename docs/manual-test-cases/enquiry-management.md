@@ -1,5 +1,102 @@
 # Enquiry Management — Manual Test Cases
 
+> **BR-30 Update (2026-05-21):** The enquiry creation API now accepts two additional fields: `admissionQuota` (`MANAGEMENT` | `COUNSELLING`) and `feeStateId` (derived from address state). The backend computes the fee using all 4 dimensions (quota, feeState, gender, studentType) against the current academic year. If no matching fee structure group is found (including the Other State fallback), the API returns **400 Bad Request**. Existing test cases TC-ENQ-002 and any fee-related create scenarios must be updated to include these fields or ensure a matching fee structure is configured.
+
+---
+
+## TC-ENQ-BR30-001: Create enquiry with admission quota — fee resolved correctly
+
+**Preconditions:**
+- Fee structure configured for: B.Sc Nursing / 2024-2025 / Management / Tamil Nadu / Female / Day Scholar — Tuition ₹95,000
+- Tamil Nadu FeeState exists with `id = 1`
+- A referral type exists (id = 1)
+
+**Steps:**
+1. Send `POST /api/v1/enquiries` with:
+   ```json
+   {
+     "name": "Meena R",
+     "phone": "9876543210",
+     "programId": 1,
+     "courseId": 1,
+     "enquiryDate": "2026-05-21",
+     "referralTypeId": 1,
+     "gender": "FEMALE",
+     "dateOfBirth": "2005-01-15",
+     "studentType": "DAY_SCHOLAR",
+     "admissionQuota": "MANAGEMENT",
+     "feeStateId": 1,
+     "state": "Tamil Nadu",
+     "countryId": 1
+   }
+   ```
+2. Verify response status is 201 Created
+3. Inspect `finalCalculatedFee` in the response
+
+**Expected Result:**
+- Enquiry is created with status ENQUIRED
+- `finalCalculatedFee` = 95000 (from the configured fee structure group)
+- `admissionQuota` = "MANAGEMENT" stored on the enquiry
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-BR30-002: Create enquiry fails when no fee structure is configured for combination
+
+**Preconditions:**
+- No fee structure configured for Management / Tamil Nadu / Male / Hosteler
+
+**Steps:**
+1. Send `POST /api/v1/enquiries` with gender = MALE, studentType = HOSTELER, admissionQuota = MANAGEMENT, feeStateId = 1 (Tamil Nadu)
+2. Ensure no Other State fallback exists either
+
+**Expected Result:**
+- Response status 400 Bad Request
+- Error message: "No fee structure configured for this combination..."
+- Enquiry is NOT created
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-BR30-004: Program without courses — fee calculated correctly (courseId = null)
+
+**Preconditions:**
+- A program "Certificate in Nursing Basics" exists with no courses
+- Fee structure group configured for: that program / current year / Management / Tamil Nadu / Female / Day Scholar (courseId = null)
+
+**Steps:**
+1. Send `POST /api/v1/enquiries` with `programId` for the no-course program, `courseId` omitted (or null), all other required fields set
+
+**Expected Result:**
+- Response status 201 Created
+- `finalCalculatedFee` is correctly calculated from the null-course fee group
+- No error about missing courseId
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-BR30-003: Other State fallback activates for non-Tamil Nadu state
+
+**Preconditions:**
+- No Tamil Nadu fee structure for Management / Female / Day Scholar  
+- Other State fee structure exists for Management / Female / Day Scholar — Tuition ₹85,000
+- OtherState FeeState exists with `id = 2`, `isFallback = true`
+
+**Steps:**
+1. Send POST `/api/v1/enquiries` with `feeStateId = 99` (a non-existent state ID, or state name = "Kerala")
+   — the system maps to the "Other State" fallback
+
+**Expected Result:**
+- Enquiry created using the Other State fee structure total (₹85,000)
+- `finalCalculatedFee` = 85000
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-ENQ-001: List all enquiries
 
 **Preconditions:**

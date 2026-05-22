@@ -2,6 +2,8 @@
 
 This document contains manual test cases to verify that fee increases are prevented during finalization and only discounts are allowed.
 
+> **BR-30 Context (2026-05-21):** The fee prevention logic is **unchanged** — fees still cannot be increased above the guideline during finalization. However, the source of the guideline total has changed: `finalCalculatedFee` on the enquiry is now computed using the 4-dimension fee structure group (quota × feeState × gender × studentType). The finalization screen must therefore still enforce that `totalFee ≤ enquiry.finalCalculatedFee`. Test cases below remain valid; preconditions now assume the enquiry was created with a configured 4-dimension fee structure.
+
 ---
 
 ## TC-FEE-INCR-001: Prevent fee increase during finalization (Backend)

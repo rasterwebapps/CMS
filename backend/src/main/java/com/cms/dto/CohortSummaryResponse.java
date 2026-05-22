@@ -4,8 +4,8 @@ public record CohortSummaryResponse(
     Long    id,
     String  cohortCode,
     String  displayName,
-    String  programName,
-    String  programCode,
+    String  courseName,
+    String  courseCode,
     Integer managementSeats,
     Integer counsellingSeats,
     boolean hasStudents

@@ -4,6 +4,61 @@
   max-width: 1100px;
 }
 
+// ── Duplicate warning banner ────────────────────────────────────────────────
+.duplicate-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-top: 16px;
+  background: var(--cms-warning-bg, #fff8e1);
+  border: 1px solid var(--cms-warning-border, #f9a825);
+  border-radius: 10px;
+
+  &__icon {
+    color: var(--cms-warning, #f9a825);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+
+  &__desc {
+    font-size: 0.8125rem;
+    color: var(--cms-text-secondary);
+    line-height: 1.45;
+  }
+
+  &__action {
+    flex-shrink: 0;
+    padding: 5px 14px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cms-primary);
+    border: 1px solid var(--cms-primary);
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+    align-self: center;
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--cms-primary-alpha-10, rgba(var(--cms-primary-rgb), 0.08));
+    }
+  }
+}
+
 // ── Page Header ────────────────────────────────────────────────────────────
 .page-header {
   display: flex;
@@ -104,13 +159,30 @@
   }
 }
 
-// 3-column horizontal criteria row
+// 3-column row (program scope)
 .selection-panel__fields {
   padding: 16px 20px 12px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0 16px;
   align-items: start;
+
+  // 4-column row (admission dimensions)
+  &--dimensions {
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px dashed var(--cms-border-light);
+    padding-top: 14px;
+    background: var(--cms-primary-alpha-4);
+  }
+}
+
+.selection-panel__hint {
+  padding: 0 20px 14px;
+  font-size: 0.78rem;
+  color: var(--cms-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .full-width { width: 100%; }
@@ -150,6 +222,13 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--cms-text-primary);
+}
+
+.fee-panel__combination-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 6px;
 }
 
 .fee-panel__hint {

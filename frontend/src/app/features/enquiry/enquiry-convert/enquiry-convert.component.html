@@ -4,6 +4,65 @@
     <div class="loading-box">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
+  } @else if (successState()) {
+
+    <!-- ── SUCCESS PANEL ──────────────────────────────────────────────────── -->
+    <div class="success-panel anim-rise">
+      <div class="success-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <h2 class="success-title">Admission Completed</h2>
+      <p class="success-sub">Student enrolled successfully.</p>
+
+      <div class="success-adm-badge">
+        <span class="success-adm-label">Admission Number</span>
+        <span class="success-adm-number">{{ successState()!.admissionNumber || '—' }}</span>
+      </div>
+
+      <p class="success-student">{{ successState()!.studentName }}</p>
+
+      <div class="success-actions">
+        <button class="btn-print" type="button" (click)="printForm()" [disabled]="!printReady()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          @if (!printReady()) {
+            Loading…
+          } @else {
+            Print Admission Form
+          }
+        </button>
+        <button class="btn-download" type="button" (click)="downloadForm()" [disabled]="!printReady()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download Form
+        </button>
+        <button class="btn-students" type="button" (click)="goToStudents()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Go to Students
+        </button>
+      </div>
+
+      <p class="success-hint">You can also re-print the admission form any time from the Admission Detail page.</p>
+    </div>
+
   } @else {
 
     <!-- ── Header ─────────────────────────────────────────────────────────── -->

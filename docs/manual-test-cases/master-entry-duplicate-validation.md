@@ -289,16 +289,20 @@ already exists.
 
 ## TC-DUP-017: Edit fee structure with a fee type that already exists in the same group
 
+> **BR-30 Update:** Uniqueness is now `(feeStructureGroup_id, fee_type)` — i.e., within one group (program + year + course + quota + feeState + gender + studentType), each fee type must be unique. The test below remains valid but the error message has changed.
+
 **Preconditions:**
-- Two fee structures exist for the same Program + Academic Year + Course: TUITION and LAB_FEE
+- A fee structure group exists for Program + Academic Year + Course + Management + Tamil Nadu + Female + Day Scholar
+- The group already has TUITION and LAB_FEE items
 
 **Steps:**
-1. Navigate to Fee Structures and edit the TUITION entry for that combination
-2. Change the Fee Type to "LAB_FEE"
-3. Click Save
+1. Navigate to Fee Structures and edit the TUITION item for that group
+2. Attempt to change its fee type to "LAB_FEE" via the single-item update API: `PUT /fee-structures/{id}`
+3. Send with `feeType: "LAB_FEE"` in the body
 
 **Expected Result:**
-- Save is rejected with an error alert: "A fee structure with fee type 'LAB_FEE' already exists for this program and academic year combination"
+- Response is 400 Bad Request
+- Error message: "A fee structure with fee type 'LAB_FEE' already exists in this group"
 - Fee structure is NOT updated
 
 **Status:** NOT TESTED

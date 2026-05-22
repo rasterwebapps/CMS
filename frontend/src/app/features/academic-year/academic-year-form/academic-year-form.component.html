@@ -163,7 +163,86 @@
 
           <div class="ayf-divider"></div>
 
-          <!-- ═══ Section 3: Billing Schedules ═══════════════════════════════ -->
+          <!-- ═══ Section 3: Cohort Seat Allocations ═════════════════════════ -->
+          <div class="ayf-section">
+            <div class="ayf-section__hdr">
+              <span class="ayf-section__ico">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </span>
+              <div>
+                <div class="ayf-section__title">Course / Program Seat Allocations</div>
+                <div class="ayf-section__sub">
+                  Set management and counselling intake for every active course/program in this academic year
+                </div>
+              </div>
+            </div>
+
+            <div class="ayf-section__body">
+              @if (seatAllocationControls().length > 0) {
+                <div class="seat-allocation-table" role="table" aria-label="Course and program seat allocations">
+                  <div class="seat-allocation-table__head" role="row">
+                    <span role="columnheader">Course</span>
+                    <span role="columnheader">Management Seats</span>
+                    <span role="columnheader">Counselling Seats</span>
+                    <span role="columnheader">Total Seats</span>
+                  </div>
+
+                  @for (row of seatAllocationControls(); track $index) {
+                    <div class="seat-allocation-table__row" [formGroup]="row" role="row">
+                      <span class="seat-allocation-table__program" role="cell">
+                        <span class="seat-allocation-table__code">{{ row.get('courseCode')?.value }}</span>
+                        {{ row.get('courseName')?.value }}
+                      </span>
+                      <span role="cell">
+                        <input
+                          type="number"
+                          class="field-input field-input--narrow seat-input"
+                          formControlName="managementSeats"
+                          min="0"
+                          inputmode="numeric"
+                          placeholder="0"
+                          aria-label="Management seats"
+                        />
+                      </span>
+                      <span role="cell">
+                        <input
+                          type="number"
+                          class="field-input field-input--narrow seat-input"
+                          formControlName="counsellingSeats"
+                          min="0"
+                          inputmode="numeric"
+                          placeholder="0"
+                          aria-label="Counselling seats"
+                        />
+                      </span>
+                      <span class="seat-allocation-table__total" role="cell">{{ getSeatTotal(row) }}</span>
+                    </div>
+                  }
+                </div>
+                <p class="field-hint" style="margin-top: 12px;">
+                  @if (isEditMode()) {
+                    Seat counts are saved to existing cohorts. New programs not yet in this year's cohorts will be created automatically.
+                  } @else {
+                    Cohorts are created automatically with these seat limits when the academic year is saved.
+                  }
+                </p>
+              } @else {
+                <div class="seat-allocation-empty">
+                  No active courses/programs found. Activate programs first to collect cohort seat allocations.
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="ayf-divider"></div>
+
+          <!-- ═══ Section 4: Billing Schedules ═══════════════════════════════ -->
           <div class="ayf-section">
             <div class="ayf-section__hdr">
               <span class="ayf-section__ico">

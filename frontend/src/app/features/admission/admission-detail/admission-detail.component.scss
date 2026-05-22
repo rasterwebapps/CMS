@@ -2,6 +2,38 @@
   padding: 16px 0;
 }
 
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  color: var(--cms-text-secondary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+  text-decoration: none;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--cms-bg-muted);
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+  }
+}
+
 .profile-hero {
   flex-direction: column;
   gap: 0;

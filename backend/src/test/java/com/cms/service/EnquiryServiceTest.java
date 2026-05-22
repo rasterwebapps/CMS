@@ -84,6 +84,8 @@ class EnquiryServiceTest {
     @Mock
     private FeeStructureService feeStructureService;
     @Mock
+    private com.cms.repository.FeeStateRepository feeStateRepository;
+    @Mock
     private com.cms.service.EnquiryDocumentService enquiryDocumentService;
     @Mock
     private ApplicationNumberSequenceService numberSequenceService;
@@ -112,6 +114,7 @@ class EnquiryServiceTest {
             enquiryDocumentRepository,
             academicYearRepository,
             feeStructureService,
+            feeStateRepository,
             enquiryDocumentService,
             numberSequenceService,
             countryRepository
@@ -653,7 +656,8 @@ class EnquiryServiceTest {
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
             finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
             null, null, null,
-            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
+            null, null
         );
     }
 
@@ -670,7 +674,9 @@ class EnquiryServiceTest {
 
     private FeeStructureResponse feeResponse(Long id, FeeType feeType, BigDecimal amount) {
         return new FeeStructureResponse(
-            id, 1L, testProgram.getName(), 2L, "BSc Nursing", 100L, "2024-2025",
+            id, 1L, 1L, testProgram.getName(), 2L, "BSc Nursing", 100L, "2024-2025",
+            com.cms.model.enums.AdmissionQuota.MANAGEMENT, 1L, "Tamil Nadu",
+            com.cms.model.enums.Gender.FEMALE, com.cms.model.enums.StudentType.DAY_SCHOLAR,
             feeType, amount, null, true, true, List.of(), Instant.now(), Instant.now()
         );
     }

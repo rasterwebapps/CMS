@@ -21,10 +21,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AcademicYearRequest;
 import com.cms.dto.AcademicYearResponse;
+import com.cms.dto.CohortSeatAllocationRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.Program;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.AcademicYearRepository;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.CohortRepository;
+import com.cms.repository.FeeStructureGroupRepository;
+import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AcademicYearServiceTest {
@@ -33,17 +39,24 @@ class AcademicYearServiceTest {
     private AcademicYearRepository academicYearRepository;
 
     @Mock
-    private FeeStructureRepository feeStructureRepository;
+    private FeeStructureGroupRepository feeStructureGroupRepository;
 
     @Mock
     private TermInstanceService termInstanceService;
+
+    @Mock
+    private CohortRepository cohortRepository;
+
+    @Mock
+    private ProgramRepository programRepository;
 
     private AcademicYearService academicYearService;
 
     @BeforeEach
     void setUp() {
         academicYearService = new AcademicYearService(
-            academicYearRepository, feeStructureRepository, termInstanceService);
+            academicYearRepository, feeStructureGroupRepository, termInstanceService,
+            cohortRepository, programRepository);
     }
 
     @Test
@@ -370,7 +383,7 @@ class AcademicYearServiceTest {
     @Test
     void shouldDeleteAcademicYear() {
         when(academicYearRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByAcademicYearId(1L)).thenReturn(false);
+        when(feeStructureGroupRepository.existsByAcademicYearId(1L)).thenReturn(false);
 
         academicYearService.delete(1L);
 
@@ -381,7 +394,7 @@ class AcademicYearServiceTest {
     @Test
     void shouldThrowWhenDeletingAcademicYearWithFeeStructures() {
         when(academicYearRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByAcademicYearId(1L)).thenReturn(true);
+        when(feeStructureGroupRepository.existsByAcademicYearId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> academicYearService.delete(1L))
             .isInstanceOf(IllegalStateException.class)
@@ -449,6 +462,58 @@ class AcademicYearServiceTest {
         verify(termInstanceService).createTermInstancesForAcademicYear(any(AcademicYear.class));
     }
 
+    @Test
+    void shouldCreateCohortsWithSeatAllocationsWhenAcademicYearIsCreated() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2026-2027",
+            LocalDate.of(2026, 6, 1),
+            LocalDate.of(2027, 5, 31),
+            false,
+            List.of(new CohortSeatAllocationRequest(10L, 45, 15))
+        );
+
+        AcademicYear saved = createAcademicYear(1L, "2026-2027",
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), false);
+        Program bca = createProgram(10L, "BCA", "BCA", 3, ProgramStatus.ACTIVE);
+
+        when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
+        when(programRepository.findById(10L)).thenReturn(Optional.of(bca));
+        when(academicYearRepository.findByName("2029-2030")).thenReturn(Optional.empty());
+
+        academicYearService.create(request);
+
+        ArgumentCaptor<Cohort> captor = ArgumentCaptor.forClass(Cohort.class);
+        verify(cohortRepository).save(captor.capture());
+        Cohort cohort = captor.getValue();
+        assertThat(cohort.getProgram()).isEqualTo(bca);
+        assertThat(cohort.getAdmissionAcademicYear()).isEqualTo(saved);
+        assertThat(cohort.getCohortCode()).isEqualTo("BCA-2026-2029");
+        assertThat(cohort.getManagementSeats()).isEqualTo(45);
+        assertThat(cohort.getCounsellingSeats()).isEqualTo(15);
+    }
+
+    @Test
+    void shouldRejectSeatAllocationForInactiveProgram() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2026-2027",
+            LocalDate.of(2026, 6, 1),
+            LocalDate.of(2027, 5, 31),
+            false,
+            List.of(new CohortSeatAllocationRequest(10L, 45, 15))
+        );
+
+        AcademicYear saved = createAcademicYear(1L, "2026-2027",
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), false);
+        Program inactive = createProgram(10L, "BCA", "BCA", 3, ProgramStatus.INACTIVE);
+
+        when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
+        when(programRepository.findById(10L)).thenReturn(Optional.of(inactive));
+
+        assertThatThrownBy(() -> academicYearService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("active programs");
+    }
+
     private AcademicYear createAcademicYear(Long id, String name, LocalDate startDate,
                                              LocalDate endDate, Boolean isCurrent) {
         AcademicYear academicYear = new AcademicYear(name, startDate, endDate, isCurrent);
@@ -457,5 +522,12 @@ class AcademicYearServiceTest {
         academicYear.setCreatedAt(now);
         academicYear.setUpdatedAt(now);
         return academicYear;
+    }
+
+    private Program createProgram(Long id, String name, String code, Integer durationYears,
+                                  ProgramStatus status) {
+        Program program = new Program(name, code, durationYears, status);
+        program.setId(id);
+        return program;
     }
 }

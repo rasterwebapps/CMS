@@ -124,6 +124,90 @@
   line-height: 1.4;
 }
 
+// ── Seat allocation grid ──────────────────────────────────────────────────────
+.seat-allocation-table {
+  overflow-x: auto;
+  border: 1px solid var(--cms-line);
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-bg-card);
+}
+
+.seat-allocation-table__head,
+.seat-allocation-table__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 150px 150px 120px;
+  gap: 12px;
+  align-items: center;
+  min-width: 680px;
+}
+
+.seat-allocation-table__head {
+  padding: 10px 14px;
+  background: var(--cms-bg-surface-2);
+  border-bottom: 1px solid var(--cms-line);
+  color: var(--cms-text-muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seat-allocation-table__row {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--cms-line);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.seat-allocation-table__program {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--cms-text-primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.seat-allocation-table__code {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  color: var(--cms-primary);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-input {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-allocation-table__total {
+  justify-self: end;
+  color: var(--cms-text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-allocation-empty {
+  padding: 16px;
+  border: 1px dashed var(--cms-line-strong);
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-bg-surface-2);
+  color: var(--cms-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 // ── Current-year toggle (custom, no Material) ─────────────────────────────────
 .toggle-wrap {
   display: inline-flex;
@@ -249,5 +333,59 @@ input:checked + .toggle-track {
     width: 100%;
     height: 1px;
     margin: 16px 0;
+  }
+
+  .seat-allocation-table__head,
+  .seat-allocation-table__row {
+    min-width: 0;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .seat-allocation-table__head {
+    display: none;
+  }
+
+  .seat-allocation-table__row {
+    align-items: stretch;
+  }
+
+  .seat-allocation-table__row > span[role="cell"] {
+    display: grid;
+    gap: 4px;
+  }
+
+  .seat-allocation-table__row > span[role="cell"]:nth-child(2)::before {
+    content: 'Management Seats';
+    color: var(--cms-text-muted);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .seat-allocation-table__row > span[role="cell"]:nth-child(3)::before {
+    content: 'Counselling Seats';
+    color: var(--cms-text-muted);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .seat-allocation-table__total {
+    justify-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    padding-top: 4px;
+
+    &::before {
+      content: 'Total Seats';
+      color: var(--cms-text-muted);
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
   }
 }

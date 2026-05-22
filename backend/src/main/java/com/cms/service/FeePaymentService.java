@@ -17,6 +17,7 @@ import com.cms.model.FeePayment;
 import com.cms.model.FeeStructure;
 import com.cms.model.Student;
 import com.cms.repository.FeePaymentRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.StudentRepository;
 
@@ -26,13 +27,16 @@ public class FeePaymentService {
 
     private final FeePaymentRepository feePaymentRepository;
     private final StudentRepository studentRepository;
+    private final FeeStructureGroupRepository feeStructureGroupRepository;
     private final FeeStructureRepository feeStructureRepository;
 
     public FeePaymentService(FeePaymentRepository feePaymentRepository,
                               StudentRepository studentRepository,
+                              FeeStructureGroupRepository feeStructureGroupRepository,
                               FeeStructureRepository feeStructureRepository) {
         this.feePaymentRepository = feePaymentRepository;
         this.studentRepository = studentRepository;
+        this.feeStructureGroupRepository = feeStructureGroupRepository;
         this.feeStructureRepository = feeStructureRepository;
     }
 
@@ -94,8 +98,11 @@ public class FeePaymentService {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
-        List<FeeStructure> feeStructures = feeStructureRepository
-            .findByProgramIdAndAcademicYearIdAndIsActiveTrue(student.getProgram().getId(), academicYearId);
+        List<FeeStructure> feeStructures = feeStructureGroupRepository
+            .findByProgramIdAndAcademicYearId(student.getProgram().getId(), academicYearId)
+            .stream()
+            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream())
+            .toList();
 
         BigDecimal totalFees = BigDecimal.ZERO;
         BigDecimal totalPaid = BigDecimal.ZERO;

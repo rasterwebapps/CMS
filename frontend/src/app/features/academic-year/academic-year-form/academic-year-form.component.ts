@@ -1,10 +1,25 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
-import { LateFeeType, TermBillingScheduleRequest } from '../academic-year.model';
+import {
+  AcademicYearRequest,
+  CohortSeatAllocationRequest,
+  CohortSummary,
+  LateFeeType,
+  TermBillingScheduleRequest,
+} from '../academic-year.model';
+import { Course } from '../../course/course.model';
+import { CourseService } from '../../course/course.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -28,6 +43,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly route              = inject(ActivatedRoute);
   private readonly router             = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
+  private readonly courseService      = inject(CourseService);
   private readonly toast              = inject(ToastService);
   private readonly tourService        = inject(TourService);
   private readonly destroyRef         = inject(DestroyRef);
@@ -44,6 +60,7 @@ export class AcademicYearFormComponent implements OnInit {
   protected readonly TIPS: CmsTip[] = [
     { icon: 'label',       title: 'Naming convention',  subtitle: 'Use a hyphenated range like "2025-2026" — sorts naturally and is recognised across the app.' },
     { icon: 'date_range',  title: 'Term dates',          subtitle: 'Odd term typically June–Nov; Even term Dec–May. These can be updated later if needed.' },
+    { icon: 'groups',      title: 'Seat allocation',      subtitle: 'Create intake cohorts for every active course/program and split seats between management and counselling quotas.' },
     { icon: 'payments',    title: 'Billing schedule',    subtitle: 'Due date drives overdue flags on student fees. Grace days allow a buffer before late fees apply.' },
     { icon: 'check_circle',title: 'Current Year',        subtitle: 'Only one year can be marked Current — used as the system-wide default.' },
   ];
@@ -76,6 +93,9 @@ export class AcademicYearFormComponent implements OnInit {
     evenLateFeeType:  ['FLAT' as LateFeeType, Validators.required],
     evenLateFeeAmount: [0,  [Validators.required, Validators.min(0)]],
     evenGraceDays:    [0,  [Validators.required, Validators.min(0)]],
+
+    // ── Cohort Seats ──────────────────────────────────────────────────────────
+    seatAllocations: this.fb.array([]),
   });
 
   constructor() {
@@ -94,7 +114,9 @@ export class AcademicYearFormComponent implements OnInit {
     if (idParam) {
       this.academicYearId = Number(idParam);
       this.isEditMode.set(true);
-      this.loadForEdit();
+      this.loadActiveProgramsForEdit();
+    } else {
+      this.loadActiveProgramsForCreate();
     }
   }
 
@@ -105,11 +127,12 @@ export class AcademicYearFormComponent implements OnInit {
     }
 
     const v = this.form.value;
-    const ayRequest = {
+    const ayRequest: AcademicYearRequest = {
       name:      (v.name ?? '').trim(),
       startDate: v.startDate,
       endDate:   v.endDate,
       isCurrent: v.isCurrent ?? false,
+      cohortSeatAllocations: this.isEditMode() ? undefined : this.buildSeatAllocations(),
     };
 
     this.saving.set(true);
@@ -135,7 +158,28 @@ export class AcademicYearFormComponent implements OnInit {
                   this.academicYearService.createOrUpdateTermBillingSchedule(oddBilling),
                   this.academicYearService.createOrUpdateTermBillingSchedule(evenBilling),
                 ]);
-              })
+              }),
+              switchMap(() => {
+                if (!this.isEditMode()) return of([]);
+                // Ensure cohorts exist for all active programs (idempotent), then update seats
+                return this.academicYearService.initializeCohorts(this.academicYearId!).pipe(
+                  switchMap(allCohorts => {
+                    const rows = this.seatAllocationControls();
+                    const updates = rows
+                      .map(row => {
+                        const code = row.get('courseCode')?.value as string;
+                        const cohort = allCohorts.find(c => c.courseCode === code);
+                        if (!cohort) return null;
+                        return this.academicYearService.updateCohortSeats(cohort.id, {
+                          managementSeats:  this.toSeatCount(row.get('managementSeats')?.value),
+                          counsellingSeats: this.toSeatCount(row.get('counsellingSeats')?.value),
+                        });
+                      })
+                      .filter((u): u is NonNullable<typeof u> => u !== null);
+                    return updates.length ? forkJoin(updates) : of([]);
+                  })
+                );
+              }),
             );
           })
         )
@@ -166,7 +210,65 @@ export class AcademicYearFormComponent implements OnInit {
     return !!(ctrl?.invalid && ctrl.touched);
   }
 
-  private loadForEdit(): void {
+  protected seatAllocationControls(): FormGroup[] {
+    return this.seatAllocationArray.controls as FormGroup[];
+  }
+
+  protected getSeatTotal(row: AbstractControl): number {
+    const management = Number(row.get('managementSeats')?.value ?? 0) || 0;
+    const counselling = Number(row.get('counsellingSeats')?.value ?? 0) || 0;
+    return management + counselling;
+  }
+
+  private get seatAllocationArray(): FormArray {
+    return this.form.get('seatAllocations') as FormArray;
+  }
+
+  private loadActiveProgramsForCreate(): void {
+    this.loading.set(true);
+    this.courseService.getAll().subscribe({
+      next: (courses) => {
+        const sorted = courses.slice().sort((a, b) => a.name.localeCompare(b.name));
+        this.setSeatAllocationRows(sorted);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to load courses for seat allocation');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private setSeatAllocationRows(courses: Course[], cohorts: CohortSummary[] = []): void {
+    this.seatAllocationArray.clear();
+    for (const course of courses) {
+      const cohort = cohorts.find(c => c.courseCode === course.code);
+      this.seatAllocationArray.push(this.fb.group({
+        cohortId:        [cohort?.id ?? null],
+        courseId:        [course.id, Validators.required],
+        courseCode:      [course.code],
+        courseName:      [course.name],
+        managementSeats: [cohort?.managementSeats ?? 0, [Validators.min(0)]],
+        counsellingSeats:[cohort?.counsellingSeats ?? 0, [Validators.min(0)]],
+      }));
+    }
+  }
+
+  private buildSeatAllocations(): CohortSeatAllocationRequest[] {
+    return this.seatAllocationArray.controls.map(row => ({
+      courseId:        Number(row.get('courseId')?.value),
+      managementSeats: this.toSeatCount(row.get('managementSeats')?.value),
+      counsellingSeats:this.toSeatCount(row.get('counsellingSeats')?.value),
+    }));
+  }
+
+  private toSeatCount(value: unknown): number {
+    if (value === '' || value == null) return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private loadActiveProgramsForEdit(): void {
     if (!this.academicYearId) return;
     this.loading.set(true);
 
@@ -174,8 +276,10 @@ export class AcademicYearFormComponent implements OnInit {
       this.academicYearService.getAcademicYearById(this.academicYearId),
       this.academicYearService.getTermInstancesByAcademicYear(this.academicYearId),
       this.academicYearService.getTermBillingSchedulesByAcademicYear(this.academicYearId),
+      this.courseService.getAll(),
+      this.academicYearService.getCohortsByAcademicYear(this.academicYearId),
     ]).subscribe({
-      next: ([ay, terms, schedules]) => {
+      next: ([ay, terms, schedules, courses, cohorts]) => {
         const odd        = terms.find(t => t.termType === 'ODD');
         const even       = terms.find(t => t.termType === 'EVEN');
         const oddBilling  = schedules.find(b => b.termType === 'ODD');
@@ -196,6 +300,9 @@ export class AcademicYearFormComponent implements OnInit {
           evenLateFeeAmount: evenBilling?.lateFeeAmount ?? 0,
           evenGraceDays:     evenBilling?.graceDays     ?? 0,
         });
+
+        const sorted = courses.slice().sort((a, b) => a.name.localeCompare(b.name));
+        this.setSeatAllocationRows(sorted, cohorts);
         this.loading.set(false);
       },
       error: () => {

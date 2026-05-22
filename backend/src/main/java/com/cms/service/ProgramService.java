@@ -12,7 +12,7 @@ import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
 import com.cms.model.enums.DocumentType;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
 
 @Service
@@ -20,12 +20,12 @@ import com.cms.repository.ProgramRepository;
 public class ProgramService {
 
     private final ProgramRepository programRepository;
-    private final FeeStructureRepository feeStructureRepository;
+    private final FeeStructureGroupRepository feeStructureGroupRepository;
 
     public ProgramService(ProgramRepository programRepository,
-                          FeeStructureRepository feeStructureRepository) {
+                          FeeStructureGroupRepository feeStructureGroupRepository) {
         this.programRepository = programRepository;
-        this.feeStructureRepository = feeStructureRepository;
+        this.feeStructureGroupRepository = feeStructureGroupRepository;
     }
 
     @Transactional
@@ -100,7 +100,7 @@ public class ProgramService {
         if (!programRepository.existsById(id)) {
             throw new ResourceNotFoundException("Program not found with id: " + id);
         }
-        if (feeStructureRepository.existsByProgramId(id)) {
+        if (feeStructureGroupRepository.existsByProgramId(id)) {
             throw new IllegalStateException(
                 "Cannot delete program because fee structures are associated with it.");
         }

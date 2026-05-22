@@ -48,6 +48,12 @@ export class CmsCountryStateDistrictSelectorComponent implements OnInit {
   readonly countryRequired = input<boolean>(false);
   readonly stateRequired = input<boolean>(false);
   readonly districtRequired = input<boolean>(false);
+  /** When false the country field is hidden; parent is responsible for rendering and pre-selecting country. */
+  readonly showCountry = input<boolean>(true);
+  /** If set and no state is already selected, auto-selects this state after states load. */
+  readonly defaultStateName = input<string>('');
+  /** If set and no district is already selected, auto-selects this district after districts load. */
+  readonly defaultDistrictName = input<string>('');
 
   protected readonly countries = signal<Country[]>([]);
   protected readonly states = signal<IndiaState[]>([]);
@@ -67,7 +73,8 @@ export class CmsCountryStateDistrictSelectorComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    this.loadCountries();
+    // Only load countries when the field is visible; parent handles it when showCountry=false
+    if (this.showCountry()) this.loadCountries();
 
     // React to country control changes → reload states
     const countryControl = this.parentForm().get(this.countryControlName());
@@ -143,10 +150,14 @@ export class CmsCountryStateDistrictSelectorComponent implements OnInit {
         this.states.set(states);
         this.loadingStates.set(false);
 
-        // If state control already has a value, reload districts
         const stateControl = this.parentForm().get(this.stateControlName());
         if (stateControl?.value) {
           this.loadDistrictsForStateName(stateControl.value as string);
+        } else if (this.defaultStateName()) {
+          const match = states.find(
+            s => s.name.toLowerCase() === this.defaultStateName().toLowerCase()
+          );
+          if (match) stateControl?.setValue(match.name, { emitEvent: true });
         }
       });
   }
@@ -174,6 +185,14 @@ export class CmsCountryStateDistrictSelectorComponent implements OnInit {
       .subscribe((districts) => {
         this.districts.set(districts);
         this.loadingDistricts.set(false);
+
+        const districtControl = this.parentForm().get(this.districtControlName());
+        if (!districtControl?.value && this.defaultDistrictName()) {
+          const match = districts.find(
+            d => d.name.toLowerCase() === this.defaultDistrictName().toLowerCase()
+          );
+          if (match) districtControl?.setValue(match.name);
+        }
       });
   }
 }

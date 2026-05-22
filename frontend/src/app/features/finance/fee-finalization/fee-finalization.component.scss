@@ -73,6 +73,21 @@
   flex: 1; // fill available height so fee-summary sits at the bottom
 }
 
+.info-row-divider {
+  height: 1px;
+  background: var(--cms-line);
+  margin: 4px 0;
+}
+
+.info-row-group-label {
+  padding: 4px 14px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--cms-text-muted);
+}
+
 .info-row {
   display: flex;
   align-items: center;

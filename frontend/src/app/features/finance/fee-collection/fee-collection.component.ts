@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -55,6 +56,7 @@ export interface FeeEntry {
   styleUrl: './fee-collection.component.scss',
 })
 export class FeeCollectionComponent implements OnInit {
+  private readonly route          = inject(ActivatedRoute);
   private readonly enquiryService = inject(EnquiryService);
   private readonly financeService = inject(FinanceService);
   private readonly toast          = inject(ToastService);
@@ -169,10 +171,10 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadAll();
+    this.loadAll(() => this.applyDeepLink());
   }
 
-  private loadAll(): void {
+  private loadAll(onComplete?: () => void): void {
     this.loading.set(true);
     forkJoin({
       enquiries: this.enquiryService.getEnquiries(),
@@ -196,12 +198,25 @@ export class FeeCollectionComponent implements OnInit {
 
         this.feeEntries.set(all);
         this.loading.set(false);
+        onComplete?.();
       },
       error: () => {
         this.toast.error('Failed to load fee data');
         this.loading.set(false);
       },
     });
+  }
+
+  private applyDeepLink(): void {
+    const param = this.route.snapshot.queryParamMap.get('enquiryId');
+    if (!param) return;
+    const id = Number(param);
+    const entry = this.feeEntries().find(e => e.type === 'ENQUIRY' && e.id === id);
+    if (entry) {
+      this.selectEntry(entry);
+    } else {
+      this.toast.info('This enquiry has no outstanding balance');
+    }
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {

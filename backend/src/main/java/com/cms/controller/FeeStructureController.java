@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -16,9 +17,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.BulkFeeStructureRequest;
+import com.cms.dto.FeeGuidelineResponse;
 import com.cms.dto.FeeStructureRequest;
 import com.cms.dto.FeeStructureResponse;
 import com.cms.dto.GroupedFeeStructureResponse;
+import com.cms.model.enums.AdmissionQuota;
+import com.cms.model.enums.Gender;
 import com.cms.service.FeeStructureService;
 
 import jakarta.validation.Valid;
@@ -47,12 +51,39 @@ public class FeeStructureController {
         return ResponseEntity.ok(responses);
     }
 
+    /**
+     * Fee guideline for the enquiry form — returns the items for a specific
+     * (program, course, quota, feeState, gender) combination with
+     * fallback to Other State if no exact match exists.
+     * Returns 404 when no fee structure is configured (after fallback).
+     */
+    @GetMapping("/guideline")
+    public ResponseEntity<FeeGuidelineResponse> getFeeGuideline(
+            @RequestParam Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam AdmissionQuota quota,
+            @RequestParam Long feeStateId,
+            @RequestParam Gender gender) {
+        return feeStructureService.findForEnquiry(programId, courseId, quota, feeStateId, gender)
+            .map(items -> {
+                BigDecimal total = items.stream()
+                    .map(FeeStructureResponse::amount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                return ResponseEntity.ok(new FeeGuidelineResponse(total, items));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/grouped")
     public ResponseEntity<List<GroupedFeeStructureResponse>> findGrouped(
             @RequestParam(required = false) Long programId,
             @RequestParam(required = false) Long academicYearId,
-            @RequestParam(required = false) Long courseId) {
-        List<GroupedFeeStructureResponse> grouped = feeStructureService.findGrouped(programId, academicYearId, courseId);
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) AdmissionQuota quota,
+            @RequestParam(required = false) Long feeStateId,
+            @RequestParam(required = false) Gender gender) {
+        List<GroupedFeeStructureResponse> grouped =
+            feeStructureService.findGrouped(programId, academicYearId, courseId, quota, feeStateId, gender);
         return ResponseEntity.ok(grouped);
     }
 
@@ -61,8 +92,11 @@ public class FeeStructureController {
     public ResponseEntity<Void> deleteGroup(
             @RequestParam Long programId,
             @RequestParam Long academicYearId,
-            @RequestParam(required = false) Long courseId) {
-        feeStructureService.deleteGroup(programId, academicYearId, courseId);
+            @RequestParam(required = false) Long courseId,
+            @RequestParam AdmissionQuota quota,
+            @RequestParam Long feeStateId,
+            @RequestParam Gender gender) {
+        feeStructureService.deleteGroup(programId, academicYearId, courseId, quota, feeStateId, gender);
         return ResponseEntity.noContent().build();
     }
 

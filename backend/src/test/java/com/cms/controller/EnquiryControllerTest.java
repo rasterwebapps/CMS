@@ -469,7 +469,8 @@ class EnquiryControllerTest {
             new BigDecimal("50000.00"), null, null, null, null, null, null,
             null, null, null, null, null, null,
             convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null,
-            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
+            null, null, null
         );
     }
 
@@ -486,7 +487,8 @@ class EnquiryControllerTest {
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
             finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
             null, null, null,
-            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
+            null, null
         );
     }
 }

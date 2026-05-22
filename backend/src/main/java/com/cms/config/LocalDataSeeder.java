@@ -48,8 +48,6 @@ public class LocalDataSeeder {
             AttendanceRepository attendanceRepo,
             AgentRepository agentRepo,
             EnquiryRepository enquiryRepo,
-            FeeStructureRepository feeStructureRepo,
-            FeePaymentRepository feePaymentRepo,
             ReferralTypeRepository referralTypeRepo,
             LabScheduleRepository labScheduleRepo,
             LabSlotRepository labSlotRepo,
@@ -252,27 +250,7 @@ public class LocalDataSeeder {
             enquiryRepo.save(createEnquiry("Ganesh T", "ganesh.t@email.com", "9876534567", progBAC, rt5, EnquiryStatus.FEES_FINALIZED, null, LocalDate.of(2026, 4, 5)));
             log.info("✓ Created 8 enquiries");
 
-            // ═══════════════════════════════════════════════════════════════
-            // 15. FEE STRUCTURES
-            // ═══════════════════════════════════════════════════════════════
-            FeeStructure fs1 = feeStructureRepo.save(createFeeStructure(progBAC, ay2025, FeeType.TUITION, new BigDecimal("75000.00")));
-            FeeStructure fs2 = feeStructureRepo.save(createFeeStructure(progBAC, ay2025, FeeType.LABORATORY_FEE, new BigDecimal("10000.00")));
-            FeeStructure fs3 = feeStructureRepo.save(createFeeStructure(progMAS, ay2025, FeeType.TUITION, new BigDecimal("100000.00")));
-            FeeStructure fs4 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.TUITION, new BigDecimal("100000.00")));
-            FeeStructure fs5 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.TUITION, new BigDecimal("55000.00")));
-            FeeStructure fs6 = feeStructureRepo.save(createFeeStructure(progDIP, ay2025, FeeType.LABORATORY_FEE, new BigDecimal("10000.00")));
-            log.info("✓ Created 6 fee structures");
-
-            // ═══════════════════════════════════════════════════════════════
-            // 16. FEE PAYMENTS
-            // ═══════════════════════════════════════════════════════════════
-            feePaymentRepo.save(createFeePayment(s1, fs1, "RCP-2025-001", new BigDecimal("37500.00"), PaymentMode.UPI, PaymentStatus.COMPLETED, LocalDate.of(2025, 6, 20), "TXN001"));
-            feePaymentRepo.save(createFeePayment(s1, fs1, "RCP-2025-002", new BigDecimal("37500.00"), PaymentMode.BANK_TRANSFER, PaymentStatus.COMPLETED, LocalDate.of(2025, 12, 15), "TXN002"));
-            feePaymentRepo.save(createFeePayment(s2, fs1, "RCP-2025-003", new BigDecimal("75000.00"), PaymentMode.CHEQUE, PaymentStatus.COMPLETED, LocalDate.of(2025, 6, 18), "CHQ-12345"));
-            feePaymentRepo.save(createFeePayment(s3, fs1, "RCP-2025-004", new BigDecimal("37500.00"), PaymentMode.CASH, PaymentStatus.COMPLETED, LocalDate.of(2025, 6, 22), "REC-001"));
-            feePaymentRepo.save(createFeePayment(s5, fs5, "RCP-2025-005", new BigDecimal("27500.00"), PaymentMode.UPI, PaymentStatus.COMPLETED, LocalDate.of(2025, 6, 25), "TXN003"));
-            feePaymentRepo.save(createFeePayment(s7, fs3, "RCP-2025-006", new BigDecimal("50000.00"), PaymentMode.BANK_TRANSFER, PaymentStatus.COMPLETED, LocalDate.of(2025, 6, 28), "TXN004"));
-            log.info("✓ Created 6 fee payments");
+            // Fee structures are now configured through the admin UI (BR-30: multi-dimension fee structure).
 
             // ═══════════════════════════════════════════════════════════════
             // 17. EXAMINATIONS
@@ -516,30 +494,6 @@ public class LocalDataSeeder {
         e.setAgent(agent);
         e.setEnquiryDate(date);
         return e;
-    }
-
-    private FeeStructure createFeeStructure(Program program, AcademicYear ay, FeeType feeType, BigDecimal amount) {
-        FeeStructure f = new FeeStructure();
-        f.setProgram(program);
-        f.setAcademicYear(ay);
-        f.setFeeType(feeType);
-        f.setAmount(amount);
-        f.setIsMandatory(true);
-        f.setIsActive(true);
-        return f;
-    }
-
-    private FeePayment createFeePayment(Student student, FeeStructure feeStructure, String receiptNumber, BigDecimal amount, PaymentMode mode, PaymentStatus status, LocalDate date, String txnRef) {
-        FeePayment p = new FeePayment();
-        p.setStudent(student);
-        p.setFeeStructure(feeStructure);
-        p.setReceiptNumber(receiptNumber);
-        p.setAmountPaid(amount);
-        p.setPaymentMode(mode);
-        p.setStatus(status);
-        p.setPaymentDate(date);
-        p.setTransactionReference(txnRef);
-        return p;
     }
 
     private Examination createExamination(String name, Subject subject, ExamType type, LocalDate date, int duration, int maxMarks) {

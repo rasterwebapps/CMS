@@ -1,17 +1,27 @@
 package com.cms.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AcademicYearRequest;
 import com.cms.dto.AcademicYearResponse;
+import com.cms.dto.CohortSeatAllocationRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.Course;
+import com.cms.model.enums.CohortStatus;
 import com.cms.repository.AcademicYearRepository;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.CohortRepository;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,15 +30,21 @@ public class AcademicYearService {
     private static final Pattern YEAR_RANGE_PATTERN = Pattern.compile("^\\d{4}-\\d{4}$");
 
     private final AcademicYearRepository academicYearRepository;
-    private final FeeStructureRepository feeStructureRepository;
+    private final FeeStructureGroupRepository feeStructureGroupRepository;
     private final TermInstanceService termInstanceService;
+    private final CohortRepository cohortRepository;
+    private final CourseRepository courseRepository;
 
     public AcademicYearService(AcademicYearRepository academicYearRepository,
-                               FeeStructureRepository feeStructureRepository,
-                               TermInstanceService termInstanceService) {
+                               FeeStructureGroupRepository feeStructureGroupRepository,
+                               TermInstanceService termInstanceService,
+                               CohortRepository cohortRepository,
+                               CourseRepository courseRepository) {
         this.academicYearRepository = academicYearRepository;
-        this.feeStructureRepository = feeStructureRepository;
+        this.feeStructureGroupRepository = feeStructureGroupRepository;
         this.termInstanceService = termInstanceService;
+        this.cohortRepository = cohortRepository;
+        this.courseRepository = courseRepository;
     }
 
     @Transactional
@@ -56,6 +72,7 @@ public class AcademicYearService {
         );
         AcademicYear saved = academicYearRepository.save(academicYear);
         termInstanceService.createTermInstancesForAcademicYear(saved);
+        createCohortsWithSeats(saved, request.cohortSeatAllocations());
         return toResponse(saved);
     }
 
@@ -111,7 +128,7 @@ public class AcademicYearService {
         if (!academicYearRepository.existsById(id)) {
             throw new ResourceNotFoundException("Academic year not found with id: " + id);
         }
-        if (feeStructureRepository.existsByAcademicYearId(id)) {
+        if (feeStructureGroupRepository.existsByAcademicYearId(id)) {
             throw new IllegalStateException(
                 "Cannot delete academic year because fee structures are associated with it.");
         }
@@ -151,6 +168,57 @@ public class AcademicYearService {
             throw new IllegalArgumentException(message);
         }
         return t;
+    }
+
+    private void createCohortsWithSeats(AcademicYear academicYear,
+                                        List<CohortSeatAllocationRequest> allocations) {
+        if (allocations == null || allocations.isEmpty()) {
+            return;
+        }
+
+        Set<Long> duplicateCourseIds = allocations.stream()
+            .collect(Collectors.groupingBy(CohortSeatAllocationRequest::courseId, Collectors.counting()))
+            .entrySet().stream()
+            .filter(entry -> entry.getValue() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+        if (!duplicateCourseIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Duplicate seat allocation found for course id(s): " + duplicateCourseIds);
+        }
+
+        Map<Long, CohortSeatAllocationRequest> allocationsByCourseId = allocations.stream()
+            .collect(Collectors.toMap(CohortSeatAllocationRequest::courseId, Function.identity()));
+
+        for (Long courseId : allocationsByCourseId.keySet()) {
+            Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+            CohortSeatAllocationRequest allocation = allocationsByCourseId.get(courseId);
+            Cohort cohort = buildCohort(course, academicYear);
+            cohort.setManagementSeats(defaultSeats(allocation.managementSeats()));
+            cohort.setCounsellingSeats(defaultSeats(allocation.counsellingSeats()));
+            cohortRepository.save(cohort);
+        }
+    }
+
+    private Cohort buildCohort(Course course, AcademicYear admissionAcademicYear) {
+        int startYear = admissionAcademicYear.getStartYear();
+        int durationYears = course.getProgram() != null ? course.getProgram().getDurationYears() : 0;
+        int endYear = startYear + durationYears;
+
+        Cohort cohort = new Cohort();
+        cohort.setCourse(course);
+        cohort.setAdmissionAcademicYear(admissionAcademicYear);
+        cohort.setExpectedGraduationAcademicYear(
+            academicYearRepository.findByName(endYear + "-" + (endYear + 1)).orElse(null));
+        cohort.setCohortCode(course.getCode() + "-" + startYear + "-" + endYear);
+        cohort.setDisplayName(course.getName() + " (" + startYear + "-" + endYear + ")");
+        cohort.setStatus(CohortStatus.ACTIVE);
+        return cohort;
+    }
+
+    private static Integer defaultSeats(Integer seats) {
+        return seats != null ? seats : 0;
     }
 
     private AcademicYearResponse toResponse(AcademicYear academicYear) {

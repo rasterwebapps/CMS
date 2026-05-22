@@ -9,37 +9,13 @@ import com.cms.model.enums.FeeType;
 
 public interface FeeStructureRepository extends JpaRepository<FeeStructure, Long> {
 
-    List<FeeStructure> findByProgramId(Long programId);
+    List<FeeStructure> findByFeeStructureGroupId(Long groupId);
 
-    List<FeeStructure> findByAcademicYearId(Long academicYearId);
+    List<FeeStructure> findByFeeStructureGroupIdAndIsActiveTrue(Long groupId);
 
-    List<FeeStructure> findByProgramIdAndAcademicYearId(Long programId, Long academicYearId);
+    void deleteByFeeStructureGroupId(Long groupId);
 
-    List<FeeStructure> findByProgramIdAndAcademicYearIdAndIsActiveTrue(Long programId, Long academicYearId);
+    boolean existsByFeeStructureGroupId(Long groupId);
 
-    List<FeeStructure> findByFeeType(FeeType feeType);
-
-    List<FeeStructure> findByIsActiveTrue();
-
-    List<FeeStructure> findByProgramIdAndCourseId(Long programId, Long courseId);
-
-    List<FeeStructure> findByProgramIdAndCourseIdAndAcademicYearId(Long programId, Long courseId, Long academicYearId);
-
-    List<FeeStructure> findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(Long programId, Long courseId, Long academicYearId);
-
-    List<FeeStructure> findByProgramIdAndAcademicYearIdAndCourseIsNull(Long programId, Long academicYearId);
-
-    List<FeeStructure> findByProgramIdAndAcademicYearIdAndCourseIsNullAndIsActiveTrue(Long programId, Long academicYearId);
-
-    boolean existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIdAndIdNot(
-        FeeType feeType, Long programId, Long academicYearId, Long courseId, Long id);
-
-    boolean existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
-        FeeType feeType, Long programId, Long academicYearId, Long id);
-
-    boolean existsByProgramId(Long programId);
-
-    boolean existsByAcademicYearId(Long academicYearId);
-
-    boolean existsByCourseId(Long courseId);
+    boolean existsByFeeTypeAndFeeStructureGroupIdAndIdNot(FeeType feeType, Long groupId, Long id);
 }

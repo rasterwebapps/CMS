@@ -17,13 +17,14 @@
 
     <form [formGroup]="bulkForm" (ngSubmit)="onSubmit()">
 
-      <!-- ── Selection Criteria (3-column horizontal row) ────────── -->
+      <!-- ── Selection Criteria ─────────────────────────────────── -->
       <div id="tour-fs-criteria" class="selection-panel">
         <div class="selection-panel__header">
           <mat-icon>tune</mat-icon>
           <span>Select Criteria</span>
         </div>
 
+        <!-- Row 1: Program scope -->
         <div class="selection-panel__fields">
 
           <div class="field-group">
@@ -32,7 +33,7 @@
               id="fs-ay"
               class="field-select"
               formControlName="academicYearId"
-              (change)="onBulkAcademicYearChange(bulkForm.get('academicYearId')?.value)"
+              (change)="onAcademicYearChange(bulkForm.get('academicYearId')!.value)"
               [class.field-select--error]="bulkForm.get('academicYearId')?.invalid && bulkForm.get('academicYearId')?.touched"
             >
               <option [ngValue]="null" disabled>Select academic year</option>
@@ -51,7 +52,7 @@
               id="fs-program"
               class="field-select"
               formControlName="programId"
-              (change)="onBulkProgramChange(bulkForm.get('programId')?.value)"
+              (change)="onProgramChange(bulkForm.get('programId')!.value)"
               [class.field-select--error]="bulkForm.get('programId')?.invalid && bulkForm.get('programId')?.touched"
             >
               <option [ngValue]="null" disabled>Select program</option>
@@ -73,13 +74,11 @@
               id="fs-course"
               class="field-select"
               formControlName="courseId"
-              (change)="onBulkCourseChange(bulkForm.get('courseId')?.value)"
+              (change)="onCourseChange(bulkForm.get('courseId')!.value)"
             >
               <option [ngValue]="null">— None —</option>
               @for (c of courses(); track c.id) {
-                <option [ngValue]="c.id" [disabled]="isCourseDisabled(c.id)">
-                  {{ c.name }}{{ isCourseDisabled(c.id) ? ' (already configured)' : '' }}
-                </option>
+                <option [ngValue]="c.id">{{ c.name }}</option>
               }
             </select>
             @if (!isEditMode() && !bulkForm.get('programId')?.value) {
@@ -90,7 +89,94 @@
           </div>
 
         </div>
+
+        <!-- Row 2: Admission dimensions (unlocks the fee grid) -->
+        <div class="selection-panel__fields selection-panel__fields--dimensions">
+
+          <div class="field-group">
+            <label for="fs-quota" class="field-label">Quota *</label>
+            <select
+              id="fs-quota"
+              class="field-select"
+              formControlName="quota"
+              (change)="onDimensionChange()"
+            >
+              @for (q of quotaOptions; track q.value) {
+                <option [value]="q.value">{{ q.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="fs-state" class="field-label">State *</label>
+            <select
+              id="fs-state"
+              class="field-select"
+              formControlName="feeStateId"
+              (change)="onDimensionChange()"
+            >
+              <option [ngValue]="null" disabled>Select state</option>
+              @for (s of feeStates(); track s.id) {
+                <option [ngValue]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="fs-gender" class="field-label">Gender *</label>
+            <select
+              id="fs-gender"
+              class="field-select"
+              formControlName="gender"
+              (change)="onDimensionChange()"
+            >
+              @for (g of genderOptions; track g.value) {
+                <option [value]="g.value">{{ g.label }}</option>
+              }
+            </select>
+          </div>
+
+        </div>
+
+        @if (!isEditMode() && !showFeeItems() && !duplicateGroup()) {
+          <p class="field-hint selection-panel__hint">
+            <mat-icon style="font-size:14px;vertical-align:middle">info</mat-icon>
+            Fill in all criteria above to configure the fee schedule for this combination.
+          </p>
+        }
+
       </div>
+
+      @if (!isEditMode() && duplicateGroup(); as dup) {
+        <div class="duplicate-banner">
+          <mat-icon class="duplicate-banner__icon">warning</mat-icon>
+          <div class="duplicate-banner__body">
+            <span class="duplicate-banner__title">Fee structure already exists</span>
+            <span class="duplicate-banner__desc">
+              A fee structure for
+              <strong>{{ dup.programName }}</strong>
+              @if (dup.courseName) { — <strong>{{ dup.courseName }}</strong> }
+              (<strong>{{ dup.academicYearName }}</strong>,
+              {{ dup.quota === 'MANAGEMENT' ? 'Management' : 'Counselling' }},
+              {{ dup.feeStateName }},
+              {{ dup.gender === 'FEMALE' ? 'Female' : dup.gender === 'MALE' ? 'Male' : 'Other' }})
+              already exists. Use Edit to update it.
+            </span>
+          </div>
+          <a class="duplicate-banner__action"
+             [routerLink]="['/fee-structures/new']"
+             [queryParams]="{
+               programId:      dup.programId,
+               academicYearId: dup.academicYearId,
+               courseId:       dup.courseId,
+               quota:          dup.quota,
+               feeStateId:     dup.feeStateId,
+               gender:         dup.gender
+             }">
+            Edit
+          </a>
+        </div>
+      }
 
       @if (showFeeItems()) {
 
@@ -101,6 +187,15 @@
             <div class="fee-panel__title-row">
               <mat-icon class="fee-panel__icon">receipt_long</mat-icon>
               <h3 class="fee-panel__title">Fee Schedule</h3>
+            </div>
+            <div class="fee-panel__combination-badges">
+              <span class="cms-badge cms-badge--violet">{{ bulkForm.get('quota')?.value === 'MANAGEMENT' ? 'Management' : 'Counselling' }} Quota</span>
+              @for (s of feeStates(); track s.id) {
+                @if (s.id === bulkForm.get('feeStateId')?.value) {
+                  <span class="cms-badge cms-badge--gray">{{ s.name }}</span>
+                }
+              }
+              <span class="cms-badge cms-badge--gray">{{ bulkForm.get('gender')?.value === 'FEMALE' ? 'Female' : (bulkForm.get('gender')?.value === 'MALE' ? 'Male' : 'Other') }}</span>
             </div>
             <p class="fee-panel__hint">Enter amounts per year. Leave zero to exclude a fee type.</p>
           </div>

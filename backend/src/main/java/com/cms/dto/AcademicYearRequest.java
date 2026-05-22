@@ -1,7 +1,9 @@
 package com.cms.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -17,5 +19,12 @@ public record AcademicYearRequest(
     @NotNull(message = "End date is required")
     LocalDate endDate,
 
-    Boolean isCurrent
-) {}
+    Boolean isCurrent,
+
+    @Valid
+    List<CohortSeatAllocationRequest> cohortSeatAllocations
+) {
+    public AcademicYearRequest(String name, LocalDate startDate, LocalDate endDate, Boolean isCurrent) {
+        this(name, startDate, endDate, isCurrent, List.of());
+    }
+}

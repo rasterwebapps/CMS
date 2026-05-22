@@ -81,9 +81,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         String message;
         Throwable cause = ex.getMostSpecificCause();
-        if (cause != null && cause.getMessage() != null
-                && cause.getMessage().toLowerCase().contains("foreign key")) {
+        String causeMsg = cause != null && cause.getMessage() != null
+            ? cause.getMessage().toLowerCase() : "";
+        if (causeMsg.contains("foreign key")) {
             message = "Cannot delete or update this record because it is referenced by other records.";
+        } else if (causeMsg.contains("uq_fee_structure_group")) {
+            message = "A fee structure already exists for this combination "
+                + "(program + year + quota + state + gender + student type). "
+                + "Use the edit function to update it.";
+        } else if (causeMsg.contains("uq_fee_structure_group_fee_type")) {
+            message = "A fee entry with this fee type already exists in this group. "
+                + "Each fee type can appear only once per combination.";
         } else {
             message = "A record with the same name or code already exists.";
         }

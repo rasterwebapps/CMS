@@ -23,6 +23,7 @@ import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -36,6 +37,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     private final FeeDemandRepository feeDemandRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final StudentTermEnrollmentRepository enrollmentRepository;
+    private final FeeStructureGroupRepository feeStructureGroupRepository;
     private final FeeStructureRepository feeStructureRepository;
     private final FeeStructureYearAmountRepository yearAmountRepository;
     private final TermBillingScheduleRepository billingScheduleRepository;
@@ -43,12 +45,14 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     public FeeDemandServiceImpl(FeeDemandRepository feeDemandRepository,
                                  TermInstanceRepository termInstanceRepository,
                                  StudentTermEnrollmentRepository enrollmentRepository,
+                                 FeeStructureGroupRepository feeStructureGroupRepository,
                                  FeeStructureRepository feeStructureRepository,
                                  FeeStructureYearAmountRepository yearAmountRepository,
                                  TermBillingScheduleRepository billingScheduleRepository) {
         this.feeDemandRepository = feeDemandRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.feeStructureGroupRepository = feeStructureGroupRepository;
         this.feeStructureRepository = feeStructureRepository;
         this.yearAmountRepository = yearAmountRepository;
         this.billingScheduleRepository = billingScheduleRepository;
@@ -162,8 +166,11 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         Long programId = enrollment.getCohort().getProgram().getId();
         Integer yearOfStudy = enrollment.getYearOfStudy();
 
-        List<FeeStructure> feeStructures = feeStructureRepository
-            .findByProgramIdAndAcademicYearIdAndIsActiveTrue(programId, academicYear.getId());
+        List<FeeStructure> feeStructures = feeStructureGroupRepository
+            .findByProgramIdAndAcademicYearId(programId, academicYear.getId())
+            .stream()
+            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream())
+            .toList();
 
         if (feeStructures.isEmpty()) {
             throw new IllegalStateException(

@@ -11,13 +11,12 @@ import {
 } from '../academic-year.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import { FormsModule } from '@angular/forms';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 @Component({
   selector: 'app-academic-year-detail',
   standalone: true,
-  imports: [AppDatePipe, RouterLink, FormsModule],
+  imports: [AppDatePipe, RouterLink],
   templateUrl: './academic-year-detail.component.html',
   styleUrl: './academic-year-detail.component.scss',
 })
@@ -36,11 +35,8 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly academicYear     = signal<AcademicYear | null>(null);
   protected readonly termInstances    = signal<TermInstance[]>([]);
   protected readonly billingSchedules = signal<TermBillingSchedule[]>([]);
-  protected readonly cohorts              = signal<CohortSummary[]>([]);
-  protected readonly savingCohortId       = signal<number | null>(null);
-  protected readonly deletingCohortId     = signal<number | null>(null);
-  protected readonly initializingCohorts  = signal(false);
-  protected readonly cohortEdits          = signal<Record<number, { managementSeats: number | null; counsellingSeats: number | null }>>({});
+  protected readonly cohorts             = signal<CohortSummary[]>([]);
+  protected readonly initializingCohorts = signal(false);
 
   protected readonly oddTermInstance  = computed(() => this.termInstances().find(t => t.termType === 'ODD')  ?? null);
   protected readonly evenTermInstance = computed(() => this.termInstances().find(t => t.termType === 'EVEN') ?? null);
@@ -48,12 +44,10 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly evenBilling      = computed(() => this.billingSchedules().find(b => b.termType === 'EVEN') ?? null);
 
   protected readonly grandTotals = computed(() => {
-    const edits = this.cohortEdits();
     let management = 0, counselling = 0;
     for (const c of this.cohorts()) {
-      const edit = edits[c.id];
-      management  += (edit?.managementSeats  ?? c.managementSeats  ?? 0);
-      counselling += (edit?.counsellingSeats ?? c.counsellingSeats ?? 0);
+      management  += (c.managementSeats  ?? 0);
+      counselling += (c.counsellingSeats ?? 0);
     }
     return { management, counselling, total: management + counselling };
   });
@@ -84,11 +78,6 @@ export class AcademicYearDetailComponent implements OnInit {
         this.termInstances.set(terms);
         this.billingSchedules.set(schedules);
         this.cohorts.set(cohorts);
-        const edits: Record<number, { managementSeats: number | null; counsellingSeats: number | null }> = {};
-        for (const c of cohorts) {
-          edits[c.id] = { managementSeats: c.managementSeats, counsellingSeats: c.counsellingSeats };
-        }
-        this.cohortEdits.set(edits);
         this.loading.set(false);
       },
       error: () => {
@@ -98,80 +87,17 @@ export class AcademicYearDetailComponent implements OnInit {
     });
   }
 
-  protected getCohortEdit(id: number): { managementSeats: number | null; counsellingSeats: number | null } {
-    return this.cohortEdits()[id] ?? { managementSeats: null, counsellingSeats: null };
-  }
-
-  protected getCohortTotalSeats(cohortId: number): number {
-    const e = this.getCohortEdit(cohortId);
-    return (e.managementSeats ?? 0) + (e.counsellingSeats ?? 0);
-  }
-
-  protected onCohortSeatChange(id: number, field: 'managementSeats' | 'counsellingSeats', value: string): void {
-    const parsed = value === '' ? null : Number(value);
-    this.cohortEdits.update(edits => ({ ...edits, [id]: { ...this.getCohortEdit(id), [field]: parsed } }));
-  }
-
   protected initializeCohorts(): void {
     this.initializingCohorts.set(true);
     this.academicYearService.initializeCohorts(this.academicYearId).subscribe({
       next: (cohorts) => {
         this.cohorts.set(cohorts);
-        const edits: Record<number, { managementSeats: number | null; counsellingSeats: number | null }> = {};
-        for (const c of cohorts) {
-          edits[c.id] = { managementSeats: c.managementSeats, counsellingSeats: c.counsellingSeats };
-        }
-        this.cohortEdits.set(edits);
         this.initializingCohorts.set(false);
         this.toast.success(`${cohorts.length} cohort(s) initialized`);
       },
       error: () => {
         this.toast.error('Failed to initialize cohorts');
         this.initializingCohorts.set(false);
-      },
-    });
-  }
-
-  protected saveCohortSeats(cohortId: number): void {
-    const raw = this.getCohortEdit(cohortId);
-    const request = {
-      managementSeats:  raw.managementSeats  ?? 0,
-      counsellingSeats: raw.counsellingSeats ?? 0,
-    };
-    this.savingCohortId.set(cohortId);
-    this.academicYearService.updateCohortSeats(cohortId, request).subscribe({
-      next: (updated) => {
-        this.cohorts.update(list => list.map(c => c.id === cohortId ? updated : c));
-        this.cohortEdits.update(edits => ({
-          ...edits,
-          [cohortId]: { managementSeats: updated.managementSeats, counsellingSeats: updated.counsellingSeats },
-        }));
-        this.savingCohortId.set(null);
-        this.toast.success('Seat allocation saved');
-      },
-      error: () => {
-        this.toast.error('Failed to save seat allocation');
-        this.savingCohortId.set(null);
-      },
-    });
-  }
-
-  protected deleteCohort(cohortId: number): void {
-    this.deletingCohortId.set(cohortId);
-    this.academicYearService.deleteCohort(cohortId).subscribe({
-      next: () => {
-        this.cohorts.update(list => list.filter(c => c.id !== cohortId));
-        this.cohortEdits.update(edits => {
-          const updated = { ...edits };
-          delete updated[cohortId];
-          return updated;
-        });
-        this.deletingCohortId.set(null);
-        this.toast.success('Cohort removed');
-      },
-      error: () => {
-        this.toast.error('Cannot delete a cohort that has students enrolled');
-        this.deletingCohortId.set(null);
       },
     });
   }

@@ -1,5 +1,9 @@
 # Student Fee Workflow — Manual Test Cases
 
+> **BR-30 Update:** For new enquiries, the fee is computed during enquiry creation using all 4 dimensions (quota, state, gender, studentType) via the `/fee-structures/guideline` endpoint. The `yearWiseFees` JSON stored on the enquiry is the authoritative source used during finalization. The legacy fee-structure filtering by student type (HOSTEL_FEE / TRANSPORT_FEE) no longer applies to new enquiries — fee lookup now uses a dedicated group per combination.
+
+---
+
 ## TC-SFW-001: Finalize student fee allocation
 
 **Preconditions:**

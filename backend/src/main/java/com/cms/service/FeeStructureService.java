@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -21,13 +21,19 @@ import com.cms.dto.YearAmountResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Course;
+import com.cms.model.FeeState;
 import com.cms.model.FeeStructure;
+import com.cms.model.FeeStructureGroup;
 import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.Program;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.FeeType;
+import com.cms.model.enums.Gender;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.FeePaymentRepository;
+import com.cms.repository.FeeStateRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.ProgramRepository;
@@ -50,6 +56,8 @@ public class FeeStructureService {
     );
 
     private final FeeStructureRepository feeStructureRepository;
+    private final FeeStructureGroupRepository groupRepository;
+    private final FeeStateRepository feeStateRepository;
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureYearAmountRepository yearAmountRepository;
@@ -57,12 +65,16 @@ public class FeeStructureService {
     private final FeePaymentRepository feePaymentRepository;
 
     public FeeStructureService(FeeStructureRepository feeStructureRepository,
+                                FeeStructureGroupRepository groupRepository,
+                                FeeStateRepository feeStateRepository,
                                 ProgramRepository programRepository,
                                 AcademicYearRepository academicYearRepository,
                                 FeeStructureYearAmountRepository yearAmountRepository,
                                 CourseRepository courseRepository,
                                 FeePaymentRepository feePaymentRepository) {
         this.feeStructureRepository = feeStructureRepository;
+        this.groupRepository = groupRepository;
+        this.feeStateRepository = feeStateRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
         this.yearAmountRepository = yearAmountRepository;
@@ -70,122 +82,131 @@ public class FeeStructureService {
         this.feePaymentRepository = feePaymentRepository;
     }
 
+    // ── Bulk create ──────────────────────────────────────────────────────────
+
     @Transactional
     public List<FeeStructureResponse> bulkCreate(BulkFeeStructureRequest request) {
         validateNoDuplicateFeeTypes(request.items());
         validateCourseTotalGreaterThanZero(request.items());
 
-        programRepository.findById(request.programId())
-            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        Program program = resolveProgram(request.programId());
+        AcademicYear academicYear = resolveAcademicYear(request.academicYearId());
+        Course course = resolveCourse(request.courseId());
+        FeeState feeState = resolveFeeState(request.feeStateId());
 
-        academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
+        groupRepository.findExact(
+            request.programId(), request.academicYearId(), request.courseId(),
+            request.quota(), request.feeStateId(), request.gender()
+        ).ifPresent(g -> { throw new IllegalArgumentException(
+            "A fee structure already exists for this combination. Use the edit function to update it."); });
 
-        if (request.courseId() != null) {
-            courseRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
-        }
+        FeeStructureGroup group = groupRepository.save(
+            new FeeStructureGroup(program, academicYear, course,
+                request.quota(), feeState, request.gender()));
 
-        // Enforce one fee structure group per (program, academic year, course)
-        List<FeeStructure> existing;
-        if (request.courseId() != null) {
-            existing = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(
-                request.programId(), request.courseId(), request.academicYearId());
-        } else {
-            existing = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(
-                request.programId(), request.academicYearId());
-        }
-        if (!existing.isEmpty()) {
-            throw new IllegalArgumentException(
-                "A fee structure already exists for this program, course, and academic year combination. Use the edit function to update it.");
-        }
-
-        return bulkCreateInternal(request);
+        return saveItems(group, request.items());
     }
 
-    private void validateNoDuplicateFeeTypes(List<FeeStructureItemRequest> items) {
-        Set<com.cms.model.enums.FeeType> seenTypes = new HashSet<>();
-        for (FeeStructureItemRequest item : items) {
-            if (!seenTypes.add(item.feeType())) {
-                throw new IllegalArgumentException("Duplicate fee type in bulk request: " + item.feeType());
-            }
-        }
-    }
+    // ── Bulk update (upsert items, delete removed fee types) ─────────────────
 
-    private List<FeeStructureResponse> bulkCreateInternal(BulkFeeStructureRequest request) {
+    @Transactional
+    public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
         validateNoDuplicateFeeTypes(request.items());
         validateCourseTotalGreaterThanZero(request.items());
-        Program program = programRepository.findById(request.programId())
-            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
 
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
+        resolveFeeState(request.feeStateId());
 
-        Course course = null;
-        if (request.courseId() != null) {
-            course = courseRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
+        FeeStructureGroup group = groupRepository.findExact(
+            request.programId(), request.academicYearId(), request.courseId(),
+            request.quota(), request.feeStateId(), request.gender()
+        ).orElseThrow(() -> new ResourceNotFoundException(
+            "No fee structure group found for the given combination"));
+
+        List<FeeStructure> existingItems = feeStructureRepository.findByFeeStructureGroupId(group.getId());
+
+        Map<FeeType, FeeStructure> existingByType = new EnumMap<>(FeeType.class);
+        for (FeeStructure fs : existingItems) {
+            existingByType.put(fs.getFeeType(), fs);
+        }
+
+        Set<FeeType> incomingTypes = new HashSet<>();
+        for (FeeStructureItemRequest item : request.items()) {
+            incomingTypes.add(item.feeType());
+        }
+
+        // Fail fast: cannot remove a fee type that has recorded payments
+        for (FeeStructure fs : existingItems) {
+            if (!incomingTypes.contains(fs.getFeeType())
+                    && feePaymentRepository.existsByFeeStructureId(fs.getId())) {
+                throw new IllegalStateException(
+                    "Cannot remove fee type '" + fs.getFeeType()
+                    + "' because payments have been recorded against it.");
+            }
         }
 
         List<FeeStructureResponse> responses = new ArrayList<>();
         for (FeeStructureItemRequest item : request.items()) {
+            BigDecimal amount = resolveItemAmount(item);
             Boolean isMandatory = item.isMandatory() != null ? item.isMandatory() : true;
             Boolean isActive = item.isActive() != null ? item.isActive() : true;
-            BigDecimal amount = resolveItemAmount(item);
 
-            FeeStructure feeStructure = new FeeStructure(
-                program, academicYear, item.feeType(), amount, isMandatory, isActive
-            );
-            feeStructure.setDescription(item.description());
-            feeStructure.setCourse(course);
-
-            FeeStructure saved = feeStructureRepository.save(feeStructure);
-
-            List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(saved, item);
-
-            responses.add(toResponse(saved, yearAmounts));
+            FeeStructure fs = existingByType.get(item.feeType());
+            if (fs != null) {
+                fs.setAmount(amount);
+                fs.setDescription(item.description());
+                fs.setIsMandatory(isMandatory);
+                fs.setIsActive(isActive);
+                FeeStructure updated = feeStructureRepository.save(fs);
+                yearAmountRepository.deleteByFeeStructureId(updated.getId());
+                List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(updated, item);
+                responses.add(toResponse(updated, yearAmounts));
+            } else {
+                FeeStructure newFs = new FeeStructure(group, item.feeType(), amount, isMandatory, isActive);
+                newFs.setDescription(item.description());
+                FeeStructure saved = feeStructureRepository.save(newFs);
+                List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(saved, item);
+                responses.add(toResponse(saved, yearAmounts));
+            }
         }
+
+        for (FeeStructure fs : existingItems) {
+            if (!incomingTypes.contains(fs.getFeeType())) {
+                yearAmountRepository.deleteByFeeStructureId(fs.getId());
+                feeStructureRepository.deleteById(fs.getId());
+            }
+        }
+
         return responses;
     }
+
+    // ── Single-item CRUD (for completeness; bulk endpoints are the main path) ─
 
     @Transactional
     public FeeStructureResponse create(FeeStructureRequest request) {
         BigDecimal amount = resolveRequestAmount(request);
         validateAmountGreaterThanZero(amount);
 
-        Program program = programRepository.findById(request.programId())
-            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        Program program = resolveProgram(request.programId());
+        AcademicYear academicYear = resolveAcademicYear(request.academicYearId());
+        Course course = resolveCourse(request.courseId());
+        FeeState feeState = resolveFeeState(request.feeStateId());
 
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
-
-        Course course = null;
-        if (request.courseId() != null) {
-            course = courseRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
-        }
+        FeeStructureGroup group = groupRepository.findExact(
+            request.programId(), request.academicYearId(), request.courseId(),
+            request.quota(), request.feeStateId(), request.gender()
+        ).orElseGet(() -> groupRepository.save(
+            new FeeStructureGroup(program, academicYear, course,
+                request.quota(), feeState, request.gender())));
 
         Boolean isMandatory = request.isMandatory() != null ? request.isMandatory() : true;
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
-        FeeStructure feeStructure = new FeeStructure(
-            program, academicYear, request.feeType(), amount, isMandatory, isActive
-        );
+        FeeStructure feeStructure = new FeeStructure(group, request.feeType(), amount, isMandatory, isActive);
         feeStructure.setDescription(request.description());
-        feeStructure.setCourse(course);
-
         FeeStructure saved = feeStructureRepository.save(feeStructure);
 
-        // Save year-wise amounts if provided
         List<FeeStructureYearAmount> yearAmounts = saveYearAmounts(saved, request);
-
         return toResponse(saved, yearAmounts);
-    }
-
-    public List<FeeStructureResponse> findAll() {
-        return feeStructureRepository.findAll().stream()
-            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
-            .toList();
     }
 
     public FeeStructureResponse findById(Long id) {
@@ -195,46 +216,41 @@ public class FeeStructureService {
         return toResponse(feeStructure, yearAmounts);
     }
 
+    public List<FeeStructureResponse> findAll() {
+        return feeStructureRepository.findAll().stream()
+            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+            .toList();
+    }
+
     public List<FeeStructureResponse> findByProgramId(Long programId) {
         if (!programRepository.existsById(programId)) {
             throw new ResourceNotFoundException("Program not found with id: " + programId);
         }
-        return feeStructureRepository.findByProgramId(programId).stream()
-            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+        return groupRepository.findByProgramId(programId).stream()
+            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupId(g.getId()).stream()
+                .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId()))))
             .toList();
     }
 
     public List<FeeStructureResponse> findByProgramIdAndAcademicYearId(Long programId, Long academicYearId) {
-        if (!programRepository.existsById(programId)) {
-            throw new ResourceNotFoundException("Program not found with id: " + programId);
-        }
-        if (!academicYearRepository.existsById(academicYearId)) {
-            throw new ResourceNotFoundException("Academic year not found with id: " + academicYearId);
-        }
-        return feeStructureRepository.findByProgramIdAndAcademicYearIdAndIsActiveTrue(programId, academicYearId)
-            .stream()
-            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+        return groupRepository.findByProgramIdAndAcademicYearId(programId, academicYearId).stream()
+            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream()
+                .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId()))))
             .toList();
     }
 
     public List<FeeStructureResponse> findByProgramIdAndCourseId(Long programId, Long courseId) {
-        if (!programRepository.existsById(programId)) {
-            throw new ResourceNotFoundException("Program not found with id: " + programId);
-        }
         AcademicYear currentAcademicYear = academicYearRepository.findByIsCurrentTrue()
             .orElseThrow(() -> new ResourceNotFoundException("No current academic year found"));
         return findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, currentAcademicYear.getId());
     }
 
-    public List<FeeStructureResponse> findByProgramIdAndCourseIdAndAcademicYearId(Long programId, Long courseId, Long academicYearId) {
-        if (!programRepository.existsById(programId)) {
-            throw new ResourceNotFoundException("Program not found with id: " + programId);
-        }
-        if (!academicYearRepository.existsById(academicYearId)) {
-            throw new ResourceNotFoundException("Academic year not found with id: " + academicYearId);
-        }
-        return feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(programId, courseId, academicYearId).stream()
-            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+    public List<FeeStructureResponse> findByProgramIdAndCourseIdAndAcademicYearId(
+            Long programId, Long courseId, Long academicYearId) {
+        return groupRepository.findByProgramIdAndAcademicYearId(programId, academicYearId).stream()
+            .filter(g -> courseId == null ? g.getCourse() == null : (g.getCourse() != null && g.getCourse().getId().equals(courseId)))
+            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream()
+                .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId()))))
             .toList();
     }
 
@@ -246,54 +262,21 @@ public class FeeStructureService {
         FeeStructure feeStructure = feeStructureRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Fee structure not found with id: " + id));
 
-        Program program = programRepository.findById(request.programId())
-            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
-
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
-
-        Course course = null;
-        if (request.courseId() != null) {
-            course = courseRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
-        }
-
-        boolean duplicateFeeType;
-        if (request.courseId() != null) {
-            duplicateFeeType = feeStructureRepository
-                .existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIdAndIdNot(
-                    request.feeType(), request.programId(), request.academicYearId(), request.courseId(), id);
-        } else {
-            duplicateFeeType = feeStructureRepository
-                .existsByFeeTypeAndProgramIdAndAcademicYearIdAndCourseIsNullAndIdNot(
-                    request.feeType(), request.programId(), request.academicYearId(), id);
-        }
-        if (duplicateFeeType) {
+        if (feeStructureRepository.existsByFeeTypeAndFeeStructureGroupIdAndIdNot(
+                request.feeType(), feeStructure.getFeeStructureGroup().getId(), id)) {
             throw new IllegalArgumentException(
-                "A fee structure with fee type '" + request.feeType()
-                + "' already exists for this program and academic year combination");
+                "A fee structure with fee type '" + request.feeType() + "' already exists in this group");
         }
 
-        feeStructure.setProgram(program);
-        feeStructure.setAcademicYear(academicYear);
-        feeStructure.setCourse(course);
         feeStructure.setFeeType(request.feeType());
         feeStructure.setAmount(amount);
         feeStructure.setDescription(request.description());
-
-        if (request.isMandatory() != null) {
-            feeStructure.setIsMandatory(request.isMandatory());
-        }
-        if (request.isActive() != null) {
-            feeStructure.setIsActive(request.isActive());
-        }
+        if (request.isMandatory() != null) feeStructure.setIsMandatory(request.isMandatory());
+        if (request.isActive() != null) feeStructure.setIsActive(request.isActive());
 
         FeeStructure updated = feeStructureRepository.save(feeStructure);
-
-        // Replace year amounts
         yearAmountRepository.deleteByFeeStructureId(id);
         List<FeeStructureYearAmount> yearAmounts = saveYearAmounts(updated, request);
-
         return toResponse(updated, yearAmounts);
     }
 
@@ -310,197 +293,144 @@ public class FeeStructureService {
         feeStructureRepository.deleteById(id);
     }
 
-    public List<GroupedFeeStructureResponse> findGrouped(Long programId, Long academicYearId, Long courseId) {
-        List<FeeStructure> allStructures;
-        if (programId != null && academicYearId != null && courseId != null) {
-            allStructures = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearIdAndIsActiveTrue(programId, courseId, academicYearId);
-        } else if (programId != null && academicYearId != null) {
-            allStructures = feeStructureRepository.findByProgramIdAndAcademicYearId(programId, academicYearId);
-        } else if (programId != null && courseId != null) {
-            allStructures = feeStructureRepository.findByProgramIdAndCourseId(programId, courseId);
+    // ── Grouped list view ────────────────────────────────────────────────────
+
+    public List<GroupedFeeStructureResponse> findGrouped(
+            Long programId, Long academicYearId, Long courseId,
+            AdmissionQuota quota, Long feeStateId, Gender gender) {
+
+        List<FeeStructureGroup> groups;
+        if (programId != null && academicYearId != null) {
+            groups = groupRepository.findByProgramIdAndAcademicYearId(programId, academicYearId);
         } else if (programId != null) {
-            allStructures = feeStructureRepository.findByProgramId(programId);
+            groups = groupRepository.findByProgramId(programId);
         } else if (academicYearId != null) {
-            allStructures = feeStructureRepository.findByAcademicYearId(academicYearId);
+            groups = groupRepository.findByAcademicYearId(academicYearId);
         } else {
-            allStructures = feeStructureRepository.findAll();
+            groups = groupRepository.findAll();
         }
 
-        Map<String, List<FeeStructure>> grouped = new LinkedHashMap<>();
-        for (FeeStructure fs : allStructures) {
-            String key = fs.getProgram().getId() + "_" + fs.getAcademicYear().getId() + "_"
-                + (fs.getCourse() != null ? fs.getCourse().getId() : "null");
-            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(fs);
+        // Apply remaining filters in memory (avoids a complex JPQL for optional multi-param filtering)
+        if (courseId != null) {
+            final Long cId = courseId;
+            groups = groups.stream()
+                .filter(g -> g.getCourse() != null && g.getCourse().getId().equals(cId))
+                .toList();
+        }
+        if (quota != null) {
+            groups = groups.stream().filter(g -> g.getQuota() == quota).toList();
+        }
+        if (feeStateId != null) {
+            groups = groups.stream().filter(g -> g.getFeeState().getId().equals(feeStateId)).toList();
+        }
+        if (gender != null) {
+            groups = groups.stream().filter(g -> g.getGender() == gender).toList();
         }
 
         List<GroupedFeeStructureResponse> result = new ArrayList<>();
-        for (List<FeeStructure> group : grouped.values()) {
-            FeeStructure first = group.get(0);
-            BigDecimal total = group.stream()
+        for (FeeStructureGroup group : groups) {
+            List<FeeStructure> items = feeStructureRepository.findByFeeStructureGroupId(group.getId());
+            BigDecimal total = items.stream()
                 .map(FeeStructure::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-            List<FeeStructureResponse> items = group.stream()
+            List<FeeStructureResponse> itemResponses = items.stream()
                 .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
                 .toList();
-            result.add(new GroupedFeeStructureResponse(
-                first.getProgram().getId(),
-                first.getProgram().getName(),
-                first.getCourse() != null ? first.getCourse().getId() : null,
-                first.getCourse() != null ? first.getCourse().getName() : null,
-                first.getAcademicYear().getId(),
-                first.getAcademicYear().getName(),
-                total,
-                items
-            ));
+            result.add(toGroupedResponse(group, total, itemResponses));
         }
         return result;
     }
 
-    /**
-     * Updates an existing fee structure group in place using an upsert strategy:
-     * <ul>
-     *   <li>Fee types present in both the existing group and the request are updated in place,
-     *       preserving their database IDs so that any fee payment references remain valid.</li>
-     *   <li>Fee types only in the request are inserted as new records.</li>
-     *   <li>Fee types only in the existing group are deleted, but only if no payments have been
-     *       recorded against them; otherwise an {@link IllegalStateException} is thrown.</li>
-     * </ul>
-     */
     @Transactional
-    public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
-        validateNoDuplicateFeeTypes(request.items());
-        validateCourseTotalGreaterThanZero(request.items());
+    public void deleteGroup(Long programId, Long academicYearId, Long courseId,
+                             AdmissionQuota quota, Long feeStateId, Gender gender) {
+        FeeStructureGroup group = groupRepository.findExact(
+            programId, academicYearId, courseId, quota, feeStateId, gender
+        ).orElseThrow(() -> new ResourceNotFoundException(
+            "No fee structure group found for the given combination"));
 
-        Program program = programRepository.findById(request.programId())
-            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
-
-        AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + request.academicYearId()));
-
-        Course course = null;
-        if (request.courseId() != null) {
-            course = courseRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
-        }
-
-        // Load existing fee structures in this group
-        List<FeeStructure> existingGroup;
-        if (request.courseId() != null) {
-            existingGroup = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(
-                request.programId(), request.courseId(), request.academicYearId());
-        } else {
-            existingGroup = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(
-                request.programId(), request.academicYearId());
-        }
-
-        // Build lookup: feeType → existing FeeStructure
-        Map<FeeType, FeeStructure> existingByType = new EnumMap<>(FeeType.class);
-        for (FeeStructure fs : existingGroup) {
-            existingByType.put(fs.getFeeType(), fs);
-        }
-
-        // Determine which fee types are being removed
-        Set<FeeType> incomingTypes = new HashSet<>();
-        for (FeeStructureItemRequest item : request.items()) {
-            incomingTypes.add(item.feeType());
-        }
-
-        // Fail fast: reject removal of any fee type that has recorded payments
-        for (FeeStructure fs : existingGroup) {
-            if (!incomingTypes.contains(fs.getFeeType())
-                    && feePaymentRepository.existsByFeeStructureId(fs.getId())) {
+        List<FeeStructure> items = feeStructureRepository.findByFeeStructureGroupId(group.getId());
+        for (FeeStructure fs : items) {
+            if (feePaymentRepository.existsByFeeStructureId(fs.getId())) {
                 throw new IllegalStateException(
-                    "Cannot remove fee type '" + fs.getFeeType()
-                    + "' from the fee structure because payments have been recorded against it.");
+                    "Cannot delete group because payments exist against fee type '" + fs.getFeeType() + "'.");
+            }
+        }
+        for (FeeStructure fs : items) {
+            yearAmountRepository.deleteByFeeStructureId(fs.getId());
+        }
+        feeStructureRepository.deleteByFeeStructureGroupId(group.getId());
+        groupRepository.deleteById(group.getId());
+    }
+
+    // ── Fee lookup for enquiry (authoritative with fallback) ─────────────────
+
+    /**
+     * Looks up the fee structure items for the given 4-dimension combination.
+     * Falls back to the fee state marked as {@code isFallback=true} if no
+     * exact match exists. Returns empty if neither match is found.
+     */
+    public Optional<List<FeeStructureResponse>> findForEnquiry(
+            Long programId, Long courseId,
+            AdmissionQuota quota, Long feeStateId, Gender gender) {
+
+        AcademicYear currentYear = academicYearRepository.findByIsCurrentTrue()
+            .orElseThrow(() -> new ResourceNotFoundException("No current academic year found"));
+
+        // Try exact match
+        Optional<FeeStructureGroup> group = groupRepository.findExact(
+            programId, currentYear.getId(), courseId, quota, feeStateId, gender);
+
+        // Fall back to the fallback fee state if no exact match
+        if (group.isEmpty()) {
+            Optional<FeeState> fallbackState = feeStateRepository.findByIsFallbackTrue();
+            if (fallbackState.isPresent() && !fallbackState.get().getId().equals(feeStateId)) {
+                group = groupRepository.findExact(
+                    programId, currentYear.getId(), courseId, quota,
+                    fallbackState.get().getId(), gender);
             }
         }
 
-        // Process each incoming item: update in place or create new
+        if (group.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<FeeStructureResponse> items = feeStructureRepository
+            .findByFeeStructureGroupIdAndIsActiveTrue(group.get().getId())
+            .stream()
+            .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
+            .toList();
+
+        return Optional.of(items);
+    }
+
+    // ── Internal helpers ─────────────────────────────────────────────────────
+
+    private List<FeeStructureResponse> saveItems(FeeStructureGroup group,
+                                                   List<FeeStructureItemRequest> items) {
         List<FeeStructureResponse> responses = new ArrayList<>();
-        for (FeeStructureItemRequest item : request.items()) {
+        for (FeeStructureItemRequest item : items) {
             Boolean isMandatory = item.isMandatory() != null ? item.isMandatory() : true;
             Boolean isActive = item.isActive() != null ? item.isActive() : true;
             BigDecimal amount = resolveItemAmount(item);
 
-            FeeStructure fs = existingByType.get(item.feeType());
-            if (fs != null) {
-                // Update existing record in place — ID is preserved, no FK violation
-                fs.setAmount(amount);
-                fs.setDescription(item.description());
-                fs.setIsMandatory(isMandatory);
-                fs.setIsActive(isActive);
-                FeeStructure updated = feeStructureRepository.save(fs);
-                yearAmountRepository.deleteByFeeStructureId(updated.getId());
-                List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(updated, item);
-                responses.add(toResponse(updated, yearAmounts));
-            } else {
-                // New fee type — insert a fresh record
-                FeeStructure newFs = new FeeStructure(
-                    program, academicYear, item.feeType(), amount, isMandatory, isActive);
-                newFs.setDescription(item.description());
-                newFs.setCourse(course);
-                FeeStructure saved = feeStructureRepository.save(newFs);
-                List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(saved, item);
-                responses.add(toResponse(saved, yearAmounts));
-            }
-        }
+            FeeStructure fs = new FeeStructure(group, item.feeType(), amount, isMandatory, isActive);
+            fs.setDescription(item.description());
+            FeeStructure saved = feeStructureRepository.save(fs);
 
-        // Delete fee structures for removed fee types (already confirmed no payments above)
-        for (FeeStructure fs : existingGroup) {
-            if (!incomingTypes.contains(fs.getFeeType())) {
-                yearAmountRepository.deleteByFeeStructureId(fs.getId());
-                feeStructureRepository.deleteById(fs.getId());
-            }
+            List<FeeStructureYearAmount> yearAmounts = saveItemYearAmounts(saved, item);
+            responses.add(toResponse(saved, yearAmounts));
         }
-
         return responses;
     }
 
-    @Transactional
-    public void deleteGroup(Long programId, Long academicYearId, Long courseId) {
-        deleteGroupInternal(programId, academicYearId, courseId);
-    }
-
-    private void deleteGroupInternal(Long programId, Long academicYearId, Long courseId) {
-        List<FeeStructure> toDelete;
-        if (courseId != null) {
-            toDelete = feeStructureRepository.findByProgramIdAndCourseIdAndAcademicYearId(programId, courseId, academicYearId);
-        } else {
-            toDelete = feeStructureRepository.findByProgramIdAndAcademicYearIdAndCourseIsNull(programId, academicYearId);
-        }
-        // Fail fast: reject deletion if any fee structure in the group has recorded payments
-        for (FeeStructure fs : toDelete) {
-            if (feePaymentRepository.existsByFeeStructureId(fs.getId())) {
-                throw new IllegalStateException(
-                    "Cannot delete fee structure group because payments have been recorded against one or more fee types.");
+    private void validateNoDuplicateFeeTypes(List<FeeStructureItemRequest> items) {
+        Set<FeeType> seen = new HashSet<>();
+        for (FeeStructureItemRequest item : items) {
+            if (!seen.add(item.feeType())) {
+                throw new IllegalArgumentException("Duplicate fee type in request: " + item.feeType());
             }
         }
-        for (FeeStructure fs : toDelete) {
-            yearAmountRepository.deleteByFeeStructureId(fs.getId());
-            feeStructureRepository.deleteById(fs.getId());
-        }
-    }
-
-    private List<FeeStructureYearAmount> saveYearAmounts(FeeStructure feeStructure, FeeStructureRequest request) {
-        return buildYearAmounts(feeStructure, request.yearAmounts());
-    }
-
-    private List<FeeStructureYearAmount> saveItemYearAmounts(FeeStructure feeStructure, FeeStructureItemRequest item) {
-        return buildYearAmounts(feeStructure, item.yearAmounts());
-    }
-
-    private List<FeeStructureYearAmount> buildYearAmounts(FeeStructure feeStructure,
-            List<com.cms.dto.YearAmountRequest> yearAmountRequests) {
-        List<FeeStructureYearAmount> yearAmounts = new ArrayList<>();
-        if (yearAmountRequests != null && !yearAmountRequests.isEmpty()) {
-            for (var ya : yearAmountRequests) {
-                FeeStructureYearAmount yearAmount = new FeeStructureYearAmount(
-                    feeStructure, ya.yearNumber(), ya.yearLabel(), normalizeAmount(ya.amount())
-                );
-                yearAmounts.add(yearAmountRepository.save(yearAmount));
-            }
-        }
-        return yearAmounts;
     }
 
     private void validateCourseTotalGreaterThanZero(List<FeeStructureItemRequest> items) {
@@ -545,19 +475,66 @@ public class FeeStructureService {
         return normalized;
     }
 
+    private List<FeeStructureYearAmount> saveYearAmounts(FeeStructure fs, FeeStructureRequest request) {
+        return buildYearAmounts(fs, request.yearAmounts());
+    }
+
+    private List<FeeStructureYearAmount> saveItemYearAmounts(FeeStructure fs, FeeStructureItemRequest item) {
+        return buildYearAmounts(fs, item.yearAmounts());
+    }
+
+    private List<FeeStructureYearAmount> buildYearAmounts(FeeStructure fs,
+            List<com.cms.dto.YearAmountRequest> yearAmountRequests) {
+        List<FeeStructureYearAmount> yearAmounts = new ArrayList<>();
+        if (yearAmountRequests != null && !yearAmountRequests.isEmpty()) {
+            for (var ya : yearAmountRequests) {
+                yearAmounts.add(yearAmountRepository.save(
+                    new FeeStructureYearAmount(fs, ya.yearNumber(), ya.yearLabel(), normalizeAmount(ya.amount()))));
+            }
+        }
+        return yearAmounts;
+    }
+
+    private Program resolveProgram(Long programId) {
+        return programRepository.findById(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + programId));
+    }
+
+    private AcademicYear resolveAcademicYear(Long academicYearId) {
+        return academicYearRepository.findById(academicYearId)
+            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found with id: " + academicYearId));
+    }
+
+    private Course resolveCourse(Long courseId) {
+        if (courseId == null) return null;
+        return courseRepository.findById(courseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+    }
+
+    private FeeState resolveFeeState(Long feeStateId) {
+        return feeStateRepository.findById(feeStateId)
+            .orElseThrow(() -> new ResourceNotFoundException("Fee state not found with id: " + feeStateId));
+    }
+
     private FeeStructureResponse toResponse(FeeStructure fs, List<FeeStructureYearAmount> yearAmounts) {
         List<YearAmountResponse> yaResponses = yearAmounts.stream()
             .map(ya -> new YearAmountResponse(ya.getId(), ya.getYearNumber(), ya.getYearLabel(), ya.getAmount()))
             .toList();
 
+        FeeStructureGroup group = fs.getFeeStructureGroup();
         return new FeeStructureResponse(
             fs.getId(),
-            fs.getProgram().getId(),
-            fs.getProgram().getName(),
-            fs.getCourse() != null ? fs.getCourse().getId() : null,
-            fs.getCourse() != null ? fs.getCourse().getName() : null,
-            fs.getAcademicYear().getId(),
-            fs.getAcademicYear().getName(),
+            group.getId(),
+            group.getProgram().getId(),
+            group.getProgram().getName(),
+            group.getCourse() != null ? group.getCourse().getId() : null,
+            group.getCourse() != null ? group.getCourse().getName() : null,
+            group.getAcademicYear().getId(),
+            group.getAcademicYear().getName(),
+            group.getQuota(),
+            group.getFeeState().getId(),
+            group.getFeeState().getName(),
+            group.getGender(),
             fs.getFeeType(),
             fs.getAmount(),
             fs.getDescription(),
@@ -566,6 +543,25 @@ public class FeeStructureService {
             yaResponses,
             fs.getCreatedAt(),
             fs.getUpdatedAt()
+        );
+    }
+
+    private GroupedFeeStructureResponse toGroupedResponse(FeeStructureGroup group,
+            BigDecimal total, List<FeeStructureResponse> items) {
+        return new GroupedFeeStructureResponse(
+            group.getId(),
+            group.getProgram().getId(),
+            group.getProgram().getName(),
+            group.getCourse() != null ? group.getCourse().getId() : null,
+            group.getCourse() != null ? group.getCourse().getName() : null,
+            group.getAcademicYear().getId(),
+            group.getAcademicYear().getName(),
+            group.getQuota(),
+            group.getFeeState().getId(),
+            group.getFeeState().getName(),
+            group.getGender(),
+            total,
+            items
         );
     }
 }

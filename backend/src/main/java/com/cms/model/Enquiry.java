@@ -8,11 +8,12 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.AdmissionQuota;
+import com.cms.model.enums.CommissionPaymentStatus;
+import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
-import com.cms.model.enums.CommissionSource;
-import com.cms.model.enums.CommissionPaymentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -72,6 +73,14 @@ public class Enquiry {
     @Enumerated(EnumType.STRING)
     @Column(name = "student_type")
     private StudentType studentType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admission_quota", length = 20)
+    private AdmissionQuota admissionQuota;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fee_state_id")
+    private FeeState feeState;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
@@ -445,4 +454,10 @@ public class Enquiry {
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public AdmissionQuota getAdmissionQuota() { return admissionQuota; }
+    public void setAdmissionQuota(AdmissionQuota admissionQuota) { this.admissionQuota = admissionQuota; }
+
+    public FeeState getFeeState() { return feeState; }
+    public void setFeeState(FeeState feeState) { this.feeState = feeState; }
 }

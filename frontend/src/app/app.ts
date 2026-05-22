@@ -150,54 +150,53 @@ export class App implements OnInit, AfterViewInit {
       label: 'Admission Management',
       icon: 'how_to_reg',
       items: [
-        { label: 'Enquiries',                icon: 'contact_mail',     route: '/enquiries',                     permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'] },
-        { label: 'Submit Documents',         icon: 'upload_file',      route: '/enquiries/document-submission',   permissions: ['DOCUMENT_SUBMISSION_MANAGE'] },
-        { label: 'Verify Documents',         icon: 'verified',         route: '/enquiries/document-verification', permissions: ['DOCUMENT_VERIFICATION_MANAGE'] },
-        { label: 'Complete Admission',       icon: 'how_to_reg',       route: '/enquiries/admission-completion',  permissions: ['ADMISSION_CREATE'] },
-        { label: 'Admission Explorer',        icon: 'assignment_ind',   route: '/admissions',                    permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
-        { label: 'Student Explorer',         icon: 'person',           route: '/students',                      permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'] },
-        { label: 'Roll Number Assignment',   icon: 'tag',              route: '/students/roll-numbers',         permissions: ['ROLL_NUMBER_ASSIGN'] },
-        { label: 'Import Data',              icon: 'upload',           route: '/import',                        permissions: ['IMPORT_DATA'] },
+        { label: 'Enquiries',          icon: 'contact_mail',   route: '/enquiries',                     permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT'] },
+        { label: 'Finalize Fee',       icon: 'lock',           route: '/student-fees/finalize',         permissions: ['FEE_FINALIZE'] },
+        { label: 'Collect Payment',    icon: 'payments',       route: '/fee-collection',                permissions: ['FEE_COLLECT'] },
+        { label: 'Submit Documents',   icon: 'upload_file',    route: '/enquiries/document-submission',  permissions: ['DOCUMENT_SUBMISSION_MANAGE'] },
+        { label: 'Verify Documents',   icon: 'verified',       route: '/enquiries/document-verification',permissions: ['DOCUMENT_VERIFICATION_MANAGE'] },
+        { label: 'Complete Admission', icon: 'how_to_reg',     route: '/enquiries/admission-completion', permissions: ['ADMISSION_CREATE'] },
+        { label: 'Admission Explorer', icon: 'assignment_ind', route: '/admissions',                    permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
       ],
     },
-    // 3. Finance
+    // 3. Student Management
+    {
+      label: 'Student Management',
+      icon: 'person',
+      items: [
+        { label: 'Student Explorer',       icon: 'person',   route: '/students',               permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT'] },
+        { label: 'Assign Roll Numbers',    icon: 'tag',      route: '/students/roll-numbers',  permissions: ['ROLL_NUMBER_ASSIGN'] },
+        { label: 'Scholarship Applications', icon: 'verified', route: '/scholarship-applications', permissions: ['SCHOLARSHIP_APPROVE'] },
+        { label: 'Data Import',            icon: 'upload',   route: '/import',                 permissions: ['IMPORT_DATA'] },
+      ],
+    },
+    // 4. Finance
     {
       label: 'Finance',
       icon: 'account_balance_wallet',
       items: [
-        { label: 'Student Fees',             icon: 'account_balance_wallet', route: '/student-fees',              permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
-        { label: 'Fee Collection',           icon: 'payments',               route: '/fee-collection',            permissions: ['FEE_COLLECT'] },
-        { label: 'Receipts',                 icon: 'receipt_long',           route: '/receipts',                  permissions: ['RECEIPT_VIEW'] },
-        { label: 'Fee Finalization',         icon: 'lock',                   route: '/student-fees/finalize',     permissions: ['FEE_FINALIZE'] },
-        { label: 'Scholarships',             icon: 'school',                 route: '/scholarships',              permissions: ['SCHOLARSHIP_MANAGE'] },
-        { label: 'Scholarship Applications', icon: 'verified',               route: '/scholarship-applications',  permissions: ['SCHOLARSHIP_APPROVE'] },
+        { label: 'Fee Explorer', icon: 'account_balance_wallet', route: '/student-fees', permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
+        { label: 'Receipts',     icon: 'receipt_long',           route: '/receipts',     permissions: ['RECEIPT_VIEW'] },
       ],
     },
-    // 4. Curriculum & Academics
+    // 5. Academics
     {
-      label: 'Curriculum & Academics',
+      label: 'Academics',
       icon: 'auto_stories',
       items: [
-        { label: 'Syllabi',             icon: 'library_books',      route: '/syllabi',             permissions: ['SYLLABUS_VIEW', 'SYLLABUS_MANAGE'] },
+        { label: 'Syllabus',            icon: 'library_books',      route: '/syllabi',             permissions: ['SYLLABUS_VIEW', 'SYLLABUS_MANAGE'] },
         { label: 'Experiments',         icon: 'biotech',            route: '/experiments',         permissions: ['EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'] },
         { label: 'CO/PO Mapping',       icon: 'account_tree',       route: '/curriculum-mappings', permissions: ['COPO_VIEW', 'COPO_MANAGE', 'CURRICULUM_VIEW'] },
         { label: 'Curriculum Versions', icon: 'layers',             route: '/curriculum-versions', permissions: ['CURRICULUM_VIEW', 'CURRICULUM_MANAGE'] },
         { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'] },
         { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',          permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE'] },
+        { label: 'Manage Exams',        icon: 'quiz',               route: '/examinations',        permissions: ['EXAMINATION_VIEW', 'EXAMINATION_MANAGE'] },
+        { label: 'Exam Results',        icon: 'grade',              route: '/exam-results',        permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'] },
       ],
     },
-    // 5. Examinations
+    // 6. Infrastructure
     {
-      label: 'Examinations',
-      icon: 'quiz',
-      items: [
-        { label: 'Examinations', icon: 'quiz',  route: '/examinations', permissions: ['EXAMINATION_VIEW', 'EXAMINATION_MANAGE'] },
-        { label: 'Exam Results', icon: 'grade', route: '/exam-results',  permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'] },
-      ],
-    },
-    // 6. Lab & Infrastructure
-    {
-      label: 'Lab & Infrastructure',
+      label: 'Infrastructure',
       icon: 'construction',
       items: [
         { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
@@ -209,8 +208,8 @@ export class App implements OnInit, AfterViewInit {
       label: 'Reports & Analytics',
       icon: 'analytics',
       items: [
-        { label: 'Reports',     icon: 'assessment',    route: '/reports',     permissions: ['REPORT_VIEW'] },
-        { label: 'Fee Reports', icon: 'request_quote', route: '/fee-reports', permissions: ['FEE_REPORT_VIEW'] },
+        { label: 'General Reports', icon: 'assessment',    route: '/reports',     permissions: ['REPORT_VIEW'] },
+        { label: 'Fee Reports',     icon: 'request_quote', route: '/fee-reports', permissions: ['FEE_REPORT_VIEW'] },
       ],
     },
     // 8. Preferences
@@ -218,32 +217,33 @@ export class App implements OnInit, AfterViewInit {
       label: 'Preferences',
       icon: 'tune',
       items: [
-        { label: 'Departments',          icon: 'business',         route: '/departments',             permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
-        { label: 'Programs',             icon: 'school',           route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
-        { label: 'Courses',              icon: 'menu_book',        route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
-        { label: 'Academic Years',       icon: 'calendar_month',   route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
-        { label: 'Academic Calendar',    icon: 'event_note',       route: '/academic-calendar',       permissions: ['ACADEMIC_YEAR_MANAGE'] },
-        { label: 'Number Sequences',     icon: 'tag',              route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW'] },
-        { label: 'Labs',                 icon: 'science',          route: '/labs',                    permissions: ['LAB_MANAGE'] },
-        { label: 'Fee Structures',       icon: 'account_balance',  route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
-        { label: 'Equipment',            icon: 'devices',          route: '/equipment',               permissions: ['EQUIPMENT_MANAGE'] },
-        { label: 'Faculty',              icon: 'groups',           route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
-        { label: 'Faculty Doc Config',   icon: 'rule',             route: '/faculty/document-config', permissions: ['FACULTY_MANAGE'] },
-        { label: 'Agents',               icon: 'support_agent',    route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
-        { label: 'Referral Types',       icon: 'share',            route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
-        { label: 'Communities',          icon: 'people',           route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_MANAGE'] },
-        { label: 'Blood Groups',         icon: 'bloodtype',        route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE'] },
-        { label: 'Location Master',         icon: 'public',           route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE'] },
-        { label: 'Settings',             icon: 'settings',         route: '/settings',                permissions: ['SETTINGS_MANAGE'] },
+        { label: 'Departments',        icon: 'business',         route: '/departments',             permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
+        { label: 'Programs',           icon: 'school',           route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
+        { label: 'Courses',            icon: 'menu_book',        route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
+        { label: 'Academic Years',     icon: 'calendar_month',   route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Academic Calendar',  icon: 'event_note',       route: '/academic-calendar',       permissions: ['ACADEMIC_YEAR_MANAGE'] },
+        { label: 'Number Sequences',   icon: 'tag',              route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW'] },
+        { label: 'Labs',               icon: 'science',          route: '/labs',                    permissions: ['LAB_MANAGE'] },
+        { label: 'Fee Structures',     icon: 'account_balance',  route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
+        { label: 'Equipment',          icon: 'devices',          route: '/equipment',               permissions: ['EQUIPMENT_MANAGE'] },
+        { label: 'Faculty',            icon: 'groups',           route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
+        { label: 'Faculty Doc Config',   icon: 'rule',          route: '/faculty/document-config', permissions: ['FACULTY_MANAGE'] },
+        { label: 'Scholarship Types',    icon: 'school',        route: '/scholarships',             permissions: ['SCHOLARSHIP_MANAGE'] },
+        { label: 'Agents',               icon: 'support_agent', route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
+        { label: 'Referral Types',     icon: 'share',            route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
+        { label: 'Communities',        icon: 'people',           route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_MANAGE'] },
+        { label: 'Blood Groups',       icon: 'bloodtype',        route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE'] },
+        { label: 'Location Master',    icon: 'public',           route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE'] },
+        { label: 'Settings',           icon: 'settings',         route: '/settings',                permissions: ['SETTINGS_MANAGE'] },
       ],
     },
-    // 9. User & Roles
+    // 9. User Management
     {
-      label: 'User & Roles',
+      label: 'User Management',
       icon: 'manage_accounts',
       items: [
-        { label: 'User Management',    icon: 'manage_accounts', route: '/user-management', permissions: ['USER_VIEW'] },
-        { label: 'Roles & Permissions', icon: 'shield',         route: '/role-management', permissions: ['ROLE_VIEW'] },
+        { label: 'Users',               icon: 'manage_accounts', route: '/user-management', permissions: ['USER_VIEW'] },
+        { label: 'Roles & Permissions', icon: 'shield',          route: '/role-management', permissions: ['ROLE_VIEW'] },
       ],
     },
   ];

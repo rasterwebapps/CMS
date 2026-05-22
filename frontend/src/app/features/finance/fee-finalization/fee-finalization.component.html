@@ -50,6 +50,17 @@
         }
       </select>
 
+      <select
+        class="mlp-filter-select"
+        [value]="selectedQuota() ?? ''"
+        (change)="onQuotaFilter($any($event.target).value)"
+        aria-label="Filter by quota"
+      >
+        <option value="">All Quotas</option>
+        <option value="MANAGEMENT">Management</option>
+        <option value="COUNSELLING">Counselling</option>
+      </select>
+
       @if (hasActiveFilters) {
         <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -97,6 +108,17 @@
             <ng-container matColumnDef="courseName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
               <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="quota">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Quota</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.admissionQuota) {
+                  <span class="cms-badge cms-badge--{{ row.admissionQuota === 'MANAGEMENT' ? 'violet' : 'blue' }}">
+                    {{ row.admissionQuota === 'MANAGEMENT' ? 'Mgmt' : 'CET' }}
+                  </span>
+                } @else { — }
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="referralTypeName">
@@ -184,6 +206,35 @@
               <span class="info-label">Commission</span>
               <span class="info-val info-val--warn info-val--amount">
                 {{ selectedEnquiry()!.referralCommissionAmount | inr }}
+              </span>
+            </div>
+          }
+          @if (selectedEnquiry()!.admissionQuota || selectedEnquiry()!.feeStateName ||
+               selectedEnquiry()!.gender || selectedEnquiry()!.studentType) {
+            <div class="info-row-divider"></div>
+            <div class="info-row-group-label">Fee Basis</div>
+          }
+          @if (selectedEnquiry()!.admissionQuota) {
+            <div class="info-row">
+              <span class="info-label">Quota</span>
+              <span class="info-val">
+                <span class="cms-badge cms-badge--{{ selectedEnquiry()!.admissionQuota === 'MANAGEMENT' ? 'violet' : 'blue' }}">
+                  {{ selectedEnquiry()!.admissionQuota === 'MANAGEMENT' ? 'Management' : 'Counselling' }}
+                </span>
+              </span>
+            </div>
+          }
+          @if (selectedEnquiry()!.feeStateName) {
+            <div class="info-row">
+              <span class="info-label">State</span>
+              <span class="info-val">{{ selectedEnquiry()!.feeStateName }}</span>
+            </div>
+          }
+          @if (selectedEnquiry()!.gender) {
+            <div class="info-row">
+              <span class="info-label">Gender</span>
+              <span class="info-val">
+                {{ selectedEnquiry()!.gender === 'FEMALE' ? 'Female' : (selectedEnquiry()!.gender === 'MALE' ? 'Male' : 'Other') }}
               </span>
             </div>
           }

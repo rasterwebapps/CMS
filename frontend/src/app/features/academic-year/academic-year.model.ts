@@ -12,8 +12,8 @@ export interface CohortSummary {
   id: number;
   cohortCode: string;
   displayName: string;
-  programName: string;
-  programCode: string;
+  courseName: string;
+  courseCode: string;
   managementSeats: number | null;
   counsellingSeats: number | null;
   hasStudents: boolean;
@@ -24,11 +24,16 @@ export interface CohortSeatsRequest {
   counsellingSeats: number | null;
 }
 
+export interface CohortSeatAllocationRequest extends CohortSeatsRequest {
+  courseId: number;
+}
+
 export interface AcademicYearRequest {
   name: string;
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  cohortSeatAllocations?: CohortSeatAllocationRequest[];
 }
 
 export type CalendarEventType = 'HOLIDAY' | 'EXAM' | 'CULTURAL' | 'SPORTS' | 'WORKSHOP' | 'OTHER';

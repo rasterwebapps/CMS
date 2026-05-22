@@ -44,6 +44,10 @@ export interface Enquiry {
   totalPaidAmount: number | null;
   dateOfBirth?: string | null;
   gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  admissionQuota?: 'MANAGEMENT' | 'COUNSELLING' | null;
+  feeStateId?: number | null;
+  feeStateName?: string | null;
+  admissionNumber?: string | null;
 }
 
 export interface EnquiryRequest {
@@ -71,6 +75,8 @@ export interface EnquiryRequest {
   referredStaffName?: string;
   dateOfBirth: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
+  admissionQuota?: 'MANAGEMENT' | 'COUNSELLING';
+  feeStateId?: number;
 }
 
 export interface FeeFinalizationRequest {

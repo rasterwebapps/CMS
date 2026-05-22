@@ -36,6 +36,7 @@
 - [BR-26: Faculty Document Review Summary and Verification Locks](#br-26-faculty-document-review-summary-and-verification-locks)
 - [BR-27: Permanent Admission Number Generation](#br-27-permanent-admission-number-generation)
 - [BR-29: UI Validation & Form Behaviour Standards](#br-29-ui-validation--form-behaviour-standards)
+- [BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -76,10 +77,13 @@ All 8 fee types are grouped into two categories displayed on the fee structure s
 - The **Additional Fees Total** (HOSTEL_FEE + TRANSPORT_FEE) is shown separately below the course total.
 - This separation allows enquiry and finalization screens to pick the relevant additional fee based on the student's accommodation type.
 
+> **⚠️ Amended by BR-30.** The uniqueness key for fee structures has been extended to include `quota`, `feeState`, `gender`, and `studentType`. See [BR-30](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type) for the current authoritative rule.
+
 ### Key Points
 
 1. A fee structure record is uniquely identified by the combination of **program + academic year + fee type**.
-2. **There must be only one fee structure group per course (or program) per academic year.** Creating a second group for the same combination is rejected by the system.
+   - **BR-30 update:** The unique group key is `program + academicYear + course + quota + feeState + gender + studentType`. Multiple groups can exist per program/year, one per dimension combination.
+2. **There must be only one fee structure group per course (or program) per academic year per dimension combination.** Creating a second group for the same 7-field combination is rejected by the system.
 3. Fee structures from previous academic years are retained for historical reference but are not used for new enquiries or admissions.
 4. When a new academic year begins, administrators must create new fee structure entries for each program. Previous year entries are **not** automatically carried forward.
 5. The fee structure screen must allow filtering by both program and academic year.
@@ -94,6 +98,18 @@ All 8 fee types are grouped into two categories displayed on the fee structure s
 ### Permissions
 
 - `FEE_STRUCTURE_MANAGE` — can create, update, and delete fee structures
+
+### Academic Year Cohort Seat Allocation
+
+When an academic year is created, the administrator must be able to enter intake seats for each active program/course offered in that admission year. The system creates the corresponding `Cohort` rows during academic-year creation using the existing cohort model.
+
+Key rules:
+
+1. Seat allocation is captured per active `Program` for the new academic year.
+2. Each allocation has `managementSeats` and `counsellingSeats`; blank values are saved as `0` and negative values are rejected.
+3. The cohort uniqueness remains `program + admissionAcademicYear`, preventing duplicate cohorts for the same program/year.
+4. Seat allocation is saved in the same transaction as academic-year creation, so a failed cohort allocation rolls back the academic year setup.
+5. Existing academic years continue to manage seats from the academic-year detail screen.
 
 ---
 
@@ -149,36 +165,39 @@ FeeStructureYearAmount:
 
 ## BR-3: Fee Structure Guideline on Enquiry Screen
 
+> **⚠️ Amended by BR-30.** Fee lookup now requires 6 fields (program, course, quota, state, gender, student type). The old 2-field flow (program + course) is superseded. See [BR-30](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type) for the full current rule.
+
 ### Business Rule
 
-When the front office selects a **program** and then a **course** on the enquiry screen, the system must automatically load and display the **fee for that course in the current academic year** as a read-only guideline. The total fee shown depends on the **student type** selected.
+When the front office fills in the enquiry form with program, course, quota, state, gender, and student type, the system automatically looks up and displays the **fee for that exact combination in the current academic year** as a read-only guideline. If no configuration is found, submission is blocked until admin configures the fee.
 
 ### Key Points
 
-1. The fee guideline is **read-only** on the enquiry screen — it cannot be manually edited by the user.
-2. **Flow**: Select Program → Select Course → (optionally) Select Student Type → Fee total auto-loads.
-   - Courses shown in the dropdown are filtered to only the courses belonging to the selected program.
-   - Fees are only loaded **after a course is selected** (selecting a program alone does not load fees).
-3. **Only the total fee is displayed** — no year-wise breakdown or individual fee type amounts.
-4. The guideline values are fetched from the fee structure for the **current (active) academic year** filtered by **course**.
-5. If no fee structure exists for the selected course, a message is shown: "No fee structures configured for this course."
-6. The total fee is saved with the enquiry record as `feeGuidelineTotal` for use during fee finalization (BR-6).
-7. The backend is the source of truth: when an enquiry is created or updated, the backend recalculates the fee from the current active academic year's fee structures and does **not** trust client-submitted fee totals.
+1. The fee guideline is **read-only** on the enquiry screen — it cannot be manually edited.
+2. **Flow**: Program → Course (if program has courses) → Quota → (State auto-derived from address state) → Gender → Student Type → Fee auto-loads.
+   - For programs with no courses, `courseId = null` is valid; fee auto-loads as soon as the other 5 fields are filled.
+   - For programs with courses, a course must be selected before fee loads.
+3. Fee lookup uses **all 6 dimensions** against the current active academic year. Missing any required field shows a contextual guidance message in the fee banner; the fee does not load.
+4. **Fallback**: If no exact match is found, the system tries the fee state marked `isFallback = true` (e.g., "Other State") with the same quota/gender/studentType. If the fallback also has no configuration, submission is **blocked** with: *"No fee structure configured for this combination. Please contact admin."*
+5. The address `state` field (from the country/state/district selector) is automatically mapped to a `FeeState` for lookup — no separate state selector is shown.
+6. The total fee is saved with the enquiry record for use during fee finalization (BR-6).
+7. The backend is the source of truth; client-submitted fee totals are not trusted.
 
-### Student Type Fee Rules (BR-12)
+### Fee Dimensions
 
-The total fee displayed depends on the **student type** chosen on the enquiry form:
+| Dimension | Source on Enquiry Form | Default |
+|-----------|------------------------|---------|
+| **Quota** | Admission Quota dropdown (Management / Counselling) | Management |
+| **State** | Auto-derived from address State field | Tamil Nadu (or fallback) |
+| **Gender** | Gender field | Female |
+| **Student Type** | Student Type toggle | Day Scholar |
 
-| Student Type | Fee Types Included |
-|---|---|
-| **Day Scholar** | Generic fees (TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + MISCELLANEOUS + LATE_FEE) + **TRANSPORT_FEE** |
-| **Hosteler** | Generic fees (TUITION + LAB_FEE + LIBRARY_FEE + EXAMINATION_FEE + MISCELLANEOUS + LATE_FEE) + **HOSTEL_FEE** |
-| **Not Specified** | Generic fees only (HOSTEL_FEE and TRANSPORT_FEE are excluded) |
+Each fee structure group is configured for a specific combination. HOSTEL_FEE and TRANSPORT_FEE are separate fee type line items within the group configured for that student type — no post-lookup filtering is applied.
 
-- HOSTEL_FEE is included **only for Hostelers**.
-- TRANSPORT_FEE is included **only for Day Scholars**.
-- Generic fees are always included regardless of student type.
-- When student type changes, the fee total updates automatically.
+### Submission Blocking Rule (BR-30)
+
+- If the fee total is `0` or no fee structure is found after fallback, the **Create / Update Enquiry button is disabled** and an error is shown.
+- This is a hard block — enquiry cannot be submitted without a valid fee configuration.
 
 ### Screen Layout
 
@@ -299,7 +318,7 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 3. The **Fee Finalization Screen** shows a list of enquiries in **INTERESTED** status.
 4. The admin selects an enquiry to finalize, and the form is pre-populated with:
    - Total fee from enquiry's `finalCalculatedFee` (or `feeGuidelineTotal`) — **read-only, not editable**
-   - Student type context (Day Scholar / Hosteler)
+   - **BR-30 update**: All 4 fee dimensions are shown as read-only context: Quota, State (fee state name), Gender, Student Type
    - Commission info separately for referral payout visibility only — it does not increase the student fee
 5. The admin can:
    - **Provide a discount** (reduce the fee) by entering a discount amount and reason
@@ -518,9 +537,11 @@ All students created through the enquiry-to-admission process (and other admissi
 
 ## BR-12: Student Type on Enquiry
 
+> **⚠️ Amended by BR-30.** Student type is no longer the sole fee dimension — it is one of four (quota, state, gender, studentType). The post-lookup filtering by fee type (HOSTEL_FEE / TRANSPORT_FEE) described below is superseded. Fee lookup now uses a dedicated group per studentType; filtering happens at configuration time, not at lookup time.
+
 ### Business Rule
 
-Every enquiry can optionally capture the **student type** — whether the student will be a **Day Scholar** or a **Hosteler**. This choice affects which fee types are included in the total fee displayed on the enquiry screen.
+Every enquiry must capture the **student type** — whether the student will be a **Day Scholar** or a **Hosteler**. Under BR-30, student type is used as one of four dimensions to select the correct fee structure group at enquiry creation. The group itself contains the appropriate fee types for that student type.
 
 ### Key Points
 
@@ -1013,6 +1034,8 @@ This is enforced via a dynamic Angular validator updated after each program chan
 
 ## BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules
 
+> **BR-30 Update:** Points 2 and 4 below are superseded for new enquiries. Under BR-30, fee lookup now uses a 6-field key (`programId + courseId + quota + feeStateId + gender + studentType`) against `FeeStructureGroup`. The HOSTEL_FEE / TRANSPORT_FEE filter in point 4 no longer applies — the correct group for the student's type is selected at lookup time. All other penny-safe arithmetic rules remain unchanged.
+
 ### Business Rule
 
 All student fee amounts must be calculated from authoritative backend data using exact decimal arithmetic. The system must never overcharge or undercharge due to duplicated academic-year fee structures, referral commission, browser floating-point rounding, stale client-submitted totals, or unfiltered fee rows. Not even one paise may be introduced or lost by calculation logic.
@@ -1061,8 +1084,10 @@ Application authorization is controlled by database role-permission mappings onl
 3. Frontend navigation, route guards, and action buttons must use DB permissions returned by `/api/v1/permissions/my`.
 4. Keycloak realm exports must not define or assign application business roles through `roles.realm`, `defaultRoles`, or user `realmRoles`.
 5. Immutable platform roles are limited to `DEV_ADMIN` and `SUPPORT_ADMIN`; they are seeded and cannot be edited through role management.
-6. The DB role `collegeadmin` is the admission-focused operational role and receives only admission workflow, required master-view, student, and fee completion permissions.
-7. Other operational roles and assignments are managed by administrators in the application instead of being pre-seeded as Keycloak realm roles.
+6. The go-live baseline contains only three DB roles: `DEV_ADMIN`, `SUPPORT_ADMIN`, and `collegeadmin`.
+7. The DB role `collegeadmin` is the admission-focused operational role. It receives only the permissions needed to create/manage admission setup masters and complete enquiry → admission → fee finalization/payment workflows.
+8. `collegeadmin` must not see or assign the `DEV_ADMIN` or `SUPPORT_ADMIN` platform roles.
+9. Other operational roles are not required in the go-live baseline and are removed by the go-live wipe process.
 
 ---
 
@@ -1345,12 +1370,15 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-21 | BR-30, BR-3, BR-6, BR-23 | **BR-30 post-implementation fixes (review pass):** (1) Enquiry form — gender change now re-fetches fee; fee banner shows contextual "what's still needed" text; programs without courses correctly trigger fee calculation (`courseId` removed from null-guard in `applyAuthoritativeFees`); `updateCourseValidator` triggers fee load for no-course programs; `tryLoadFeeGuideline` guard prevents misleading "not found" when courses exist but none is selected. (2) Fee finalization — Quota filter dropdown added to toolbar; `filteredEnquiries` includes quota in text search; `applyEqualSplitFallback` uses actual program `durationYears` (not hardcoded 4); `discountReason` signal synced to FormControl; "Fee Basis" group label + divider added to info panel. (3) API layer — `applyAuthoritativeFees` error message now shows fee state name (not raw ID); `GET /fee-structures/grouped` extended to accept `quota`, `feeStateId`, `gender`, `studentType` as optional filters; `DataIntegrityViolationException` handler improved with specific messages for `uq_fee_structure_group` and `uq_fee_structure_group_fee_type` constraint violations. | — |
+| 2026-05-21 | BR-30, BR-1, BR-3, BR-6, BR-12 | **Multi-dimension fee structure (BR-30):** Fee structure uniqueness key extended to `program + academicYear + course + quota + feeState + gender + studentType`. New `FeeState` master (Tamil Nadu = default, Other State = fallback); new `FeeStructureGroup` entity; `FeeStructure` items linked to group. `Enquiry` gains `admissionQuota` and `feeState` FK. Fee lookup on enquiry form uses 6 fields; state auto-derived from address; fallback to Other State if no exact match; submission blocked if no configuration found. Enquiry form adds Admission Quota dropdown (default: Management). Fee finalization shows all 4 dimensions as read-only context rows. Migrations V165–V168. BR-1 uniqueness rule amended; BR-3 fee-load flow rewritten; BR-6 finalization amended; BR-12 studentType noted as one of 4 dimensions. | — |
 | 2026-05-18 | BR-29 | Added UI Validation & Form Behaviour Standards: boundary value / empty-space rules, code-field no-space rule, case-insensitive unique validation, dropdown/autocomplete UX, date-picker range rules, submit multi-click prevention, update button label, inactive/delete protection, table ordering, pagination spinner, and search scope. Implemented `cms-validators.ts` with `noConsecutiveSpaces`, `noInternalSpaces`, `trimmedMinLength`, `cmsFieldError`, `stripSpaces`, `collapseSpaces`. Applied across all master-data form components. | — |
 | 2026-05-16 | BR-28 | Added notification & alert preferences: generic vs role-specific categories, per-role defaults, delivery channels (in-app/email/both), backend requirements for `user_notification_preferences` table, sending service triggers, and current localStorage-only state with migration path to backend | — |
 | 2026-05-16 | BR-27 | Added permanent admission number generation on successful admission completion/confirmation, academic-year format `ADM-2526-0001`, immutable student reference, receipt display, searchable admission/student screens, and read-only number sequence registry | — |
 | 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |
 | 2026-05-14 | BR-25 | Added profile self-service rules: authenticated users can update only their own phone, blood group, and address; profile photos are stored on `app_users` for all roles with JPEG/PNG and 2 MB limits; admin-only academic/employment/login fields remain locked | — |
 | 2026-05-12 | BR-24 | RBAC aligned to DB-driven authorization: Keycloak realm exports are identity-only, immutable default roles are limited to `DEV_ADMIN`/`SUPPORT_ADMIN`, and `collegeadmin` is scoped to admission-related DB permissions | — |
+| 2026-05-22 | BR-24 | Go-live RBAC baseline tightened to exactly `DEV_ADMIN`, `SUPPORT_ADMIN`, and `collegeadmin`; `collegeadmin` can manage admission-required masters and admission/fee workflows but cannot see platform admin roles | — |
 | 2026-05-06 | BR-3, BR-5, BR-6, BR-23 | Fixed enquiry fee over-calculation risk: fee guideline lookup is current-academic-year scoped and active-row-only; backend recalculates enquiry fee totals from authoritative fee structures on create/update; referral/agent commission is decoupled from student fee and tracked separately; fee finalization uses backend-calculated totals and enforces exact two-decimal monetary values with discount bounds; frontend aggregation uses integer paise arithmetic to prevent rounding drift | — |
 | 2026-05-06 | BR-22 | Enquiry form mandatory fields (Phone, Country, State, Program, Course), Country/State pre-filled to India/Tamil Nadu; referral-linked person search: AGENT_REFERRAL→Agent dropdown (existing), ALUMNI/STUDENT→Student table search, FACULTY→Faculty table search; two new referral type seeds (STUDENT ₹500, FACULTY ₹500); `referred_student_id` and `referred_faculty_id` FK columns added to enquiries; course required conditionally based on program having courses | — |
 | 2026-05-06 | BR-14 to BR-21 | Added scholarship management module: (BR-14) Scholarship Type master with INSTITUTION/GOVT_PORTAL application modes, PERCENTAGE/FIXED_AMOUNT/FULL_WAIVER discount types, year-of-study eligibility bounds, renewal flag, govt portal fields; (BR-15) Student scholarship eligibility profile with EWS income auto-flag (₹3,00,000 limit), DBT bank account & Aadhaar fields, admin verification workflow; (BR-16) Scholarship application lifecycle — PENDING → APPROVED → SANCTIONED (govt-portal only) / REJECTED / ON_HOLD / CANCELLED, renewal across academic years, year-of-study restriction; (BR-17) Scholarship disbursement recording with DIRECT_CREDIT / FEE_WAIVER / CHEQUE modes; (BR-18) Optional country/state/district location fields on Enquiry; (BR-19) Transaction reference mandatory for UPI, BANK_TRANSFER, CHEQUE payments via custom `@TransactionReferenceRequired` Bean Validation annotation; (BR-20) FeeType enum expanded with CLINICAL_FEE, BOOK_AND_PACKET_FEE, UNIFORM_AND_SHOES_FEE, UNIVERSITY_REGISTRATION_FEE; LAB_FEE renamed LABORATORY_FEE; (BR-21) Student entity gains isFirstGraduate, fatherEducation, motherEducation fields auto-mirrored from eligibility profile | — |
@@ -1420,6 +1448,103 @@ Default channel for all roles: **In-App only**.
 
 ### Permissions Required
 - `NOTIFICATION_MANAGE` — update own notification preferences (all authenticated users)
+
+---
+
+---
+
+## BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)
+
+### Business Rule
+
+The fee a student pays varies across four admission dimensions: **Admission Quota** (Management / Counselling), **State** (Tamil Nadu or Other State), **Gender** (Male / Female / Other), and **Student Type** (Day Scholar / Hosteler). Each unique combination of these four dimensions — scoped to a program, academic year, and optional course — has its own independently configured fee structure group.
+
+### Fee Dimensions
+
+| Dimension | Values | Notes |
+|-----------|--------|-------|
+| **Admission Quota** | `MANAGEMENT`, `COUNSELLING` | Captured on the enquiry form |
+| **Fee State** | Master-table entries (initially: Tamil Nadu, Other State) | Derived from the student's address state; extensible |
+| **Gender** | `MALE`, `FEMALE`, `OTHER` | Captured on the enquiry form |
+| **Student Type** | `DAY_SCHOLAR`, `HOSTELER` | Captured on the enquiry form |
+
+### Data Model
+
+```
+FeeState (master table):
+  id, name, code, isDefault, isFallback, sortOrder, isActive
+
+FeeStructureGroup:
+  program, academicYear, course (nullable), quota, feeState, gender, studentType
+  UNIQUE: (program, academicYear, course, quota, feeState, gender, studentType)
+
+FeeStructure (items within a group):
+  feeStructureGroup (FK), feeType, amount, yearAmounts[]
+  UNIQUE: (feeStructureGroup, feeType)
+```
+
+### Unique Key Rule
+
+One fee structure group per `(program, academicYear, course, quota, feeState, gender, studentType)`. Attempting to create a duplicate combination is rejected.
+
+### Fee State Resolution
+
+1. The student's **address state** (free-text, from the country/state/district selector) is matched against `FeeState.name` (case-insensitive).
+2. If matched → use that FeeState's ID for lookup.
+3. If not matched → use the FeeState marked `isFallback = true` (initially: "Other State").
+4. The student does **not** select a fee state separately — it is derived automatically.
+
+### Fallback Rule
+
+Fee lookup order:
+1. Exact match: `(program, year, course, quota, feeState, gender, studentType)`.
+2. Fallback match: same as above but with `feeState = fallback state`.
+3. If neither exists → block enquiry submission with an admin contact message.
+
+### Admin Configuration (Fee Structure Form)
+
+Admins configure fees using a **Combination Picker → Fee Grid** pattern:
+1. Select: Academic Year, Program, Course (optional)
+2. Select: Quota, State, Gender, Student Type (4 new dropdowns)
+3. Once all 7 criteria are filled → fee grid appears
+4. Enter per-year amounts for each fee type
+5. Save creates the group + items
+
+### Enquiry Form Integration
+
+- **Admission Quota** dropdown added after Course selection (default: Management)
+- **State** is derived automatically from the address state — no separate selector
+- **Gender** and **Student Type** already existed; defaults are Female and Day Scholar
+- All 6 fields must be filled before fee auto-loads
+- Submission is blocked if no fee structure is found
+
+### Fee Finalization Integration
+
+The finalization screen shows all 4 dimensions as read-only context:
+Quota, State (fee state name), Gender, Student Type.
+The year-wise fee breakdown is loaded from the stored `yearWiseFees` JSON on the enquiry.
+If `yearWiseFees` is absent (old data), the system re-fetches via the guideline endpoint using the stored dimensions.
+
+### New API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/v1/fee-states` | List active fee states (for dropdowns) |
+| `GET` | `/api/v1/fee-structures/guideline` | Fee lookup for enquiry (all 6 params required) |
+| `GET/POST/PUT/DELETE` | `/api/v1/fee-structures/bulk` | Group-based fee structure CRUD |
+| `DELETE` | `/api/v1/fee-structures/group` | Delete a specific group + its items |
+
+### Permissions
+
+- `FEE_STRUCTURE_MANAGE` — configure fee structure groups
+- `ENQUIRY_CREATE` / `ENQUIRY_EDIT` — set quota/student type on enquiry
+- `FEE_FINALIZE` — finalize fees (unchanged from BR-6)
+
+### Migration Notes
+
+- Existing fee structure rows were cleared; fee structures must be re-entered via the admin UI.
+- Existing enquiries retain null `admissionQuota` and `feeStateId`; they are not affected by BR-30.
+- New enquiries require all 4 dimensions to be filled.
 
 ---
 

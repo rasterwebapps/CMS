@@ -19,23 +19,13 @@
         </div>
         <p class="enq-form-sub">{{ isEditMode() ? 'Update the enquiry details below.' : 'Fill in the details to register a new enquiry.' }}</p>
       </div>
-      <div class="enq-form-hdr-actions">
-        <a class="btn-cancel" routerLink="/enquiries">Cancel</a>
-        <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
-          @if (saving()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-          @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          }
-          {{ isEditMode() ? 'Update Enquiry' : 'Create Enquiry' }}
-        </button>
-      </div>
     </div>
 
     <!-- ── Form ──────────────────────────────────────────────────────────── -->
     <form class="enq-form-card anim-rise anim-rise--d1" [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <!-- ── Section: Personal Details ──────────────────────────────────── -->
+      <p class="form-section-hdr">Personal Details</p>
 
       <!-- Name -->
       <div id="tour-enq-form-basic" class="field-group">
@@ -67,14 +57,14 @@
       </div>
 
       <!-- DOB + Age + Gender -->
-      <div class="field-row">
+      <div class="field-row field-row--3">
         <div class="field-group">
           <label for="enq-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
           <input id="enq-dob" type="date" class="field-input" formControlName="dateOfBirth"
                  [attr.max]="dobMaxStr" autocomplete="bday"
                  [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
           @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
-            <p class="field-error">Date of birth is required and must be in the past</p>
+            <p class="field-error">Required, must be in the past</p>
           }
         </div>
         <div class="field-group">
@@ -86,28 +76,36 @@
         <div class="field-group">
           <label for="enq-gender" class="field-label">Gender <span class="field-required">*</span></label>
           <select id="enq-gender" class="field-select" formControlName="gender"
+                  (change)="onDimensionChange()"
                   [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
             @for (g of genderOptions; track g.value) {
               <option [value]="g.value">{{ g.label }}</option>
             }
           </select>
           @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
-            <p class="field-error">Gender is required</p>
+            <p class="field-error">Required</p>
           }
         </div>
       </div>
+
+      <!-- ── Section: Location ───────────────────────────────────────────── -->
+      <p class="form-section-hdr">Location</p>
 
       <!-- Country + State + District -->
       <cms-country-state-district-selector
         [parentForm]="form"
         [countryRequired]="true"
         [stateRequired]="true"
+        defaultStateName="Tamil Nadu"
+        defaultDistrictName="Salem"
       />
 
+      <!-- ── Section: Academic Interest ────────────────────────────────── -->
       <div class="form-divider"></div>
+      <p class="form-section-hdr" id="tour-enq-form-programme">Academic Interest</p>
 
       <!-- Program + Course -->
-      <div id="tour-enq-form-programme" class="field-row">
+      <div class="field-row">
         <div class="field-group">
           <label for="enq-program" class="field-label">Program <span class="field-required">*</span></label>
           <select id="enq-program" class="field-select" formControlName="programId"
@@ -142,37 +140,67 @@
         </div>
       </div>
 
-      <!-- Student Type toggle -->
-      <div class="field-group">
-        <label class="field-label">Student Type <span class="field-required">*</span></label>
-        <div class="stt-toggle" role="group" aria-label="Student type">
-          <button type="button" class="stt-btn"
-                  [class.stt-btn--active]="form.get('studentType')?.value === 'DAY_SCHOLAR'"
-                  (click)="setStudentType('DAY_SCHOLAR')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            Day Scholar
-          </button>
-          <button type="button" class="stt-btn"
-                  [class.stt-btn--active]="form.get('studentType')?.value === 'HOSTELER'"
-                  (click)="setStudentType('HOSTELER')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            Hosteler
-          </button>
+      <!-- Admission Quota + Student Type (2-col) -->
+      <div class="field-row">
+        <!-- Admission Quota -->
+        <div class="field-group">
+          <label for="enq-quota" class="field-label">Admission Quota <span class="field-required">*</span></label>
+          <select id="enq-quota" class="field-select" formControlName="admissionQuota"
+                  (change)="onDimensionChange()"
+                  [class.field-select--error]="form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched">
+            @for (q of quotaOptions; track q.value) {
+              <option [value]="q.value">{{ q.label }}</option>
+            }
+          </select>
+          @if (form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched) {
+            <p class="field-error">Quota is required</p>
+          }
+        </div>
+
+        <!-- Student Type toggle -->
+        <div class="field-group">
+          <label class="field-label">Student Type <span class="field-required">*</span></label>
+          <div class="stt-toggle" role="group" aria-label="Student type">
+            <button type="button" class="stt-btn"
+                    [class.stt-btn--active]="form.get('studentType')?.value === 'DAY_SCHOLAR'"
+                    (click)="setStudentType('DAY_SCHOLAR')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              Day Scholar
+            </button>
+            <button type="button" class="stt-btn"
+                    [class.stt-btn--active]="form.get('studentType')?.value === 'HOSTELER'"
+                    (click)="setStudentType('HOSTELER')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              Hosteler
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Estimated Fee (display only — computed from fee structure) -->
-      @if (totalFees() > 0) {
+      <!-- Estimated Fee banner -->
+      @if (feeLoading()) {
+        <div class="fee-banner fee-banner--loading">
+          <span class="fee-banner-label">Estimated Fee</span>
+          <mat-spinner diameter="18"></mat-spinner>
+        </div>
+      } @else if (feeNotFound()) {
+        <div class="fee-banner fee-banner--not-found" [class.fee-banner--error]="feeError()">
+          <span class="fee-banner-label">Estimated Fee</span>
+          <span class="fee-banner-not-found-msg">
+            No fee structure configured for this combination. Please contact admin.
+          </span>
+        </div>
+      } @else if (totalFees() > 0) {
         <div class="fee-banner" [class.fee-banner--error]="feeError()">
           <span class="fee-banner-label">
             Estimated Fee
@@ -183,17 +211,30 @@
       } @else {
         <div class="fee-banner fee-banner--empty" [class.fee-banner--error]="feeError()">
           <span class="fee-banner-label">Estimated Fee</span>
-          <span class="fee-banner-empty-msg">Select a program and course to view the estimated fee</span>
+          <span class="fee-banner-empty-msg">
+            @if (!form.get('state')?.value) { Enter address state. }
+            @else if (!form.get('programId')?.value) { Select a program. }
+            @else if (courses().length > 0 && !form.get('courseId')?.value) { Select a course. }
+            @else { Fee will load automatically. }
+          </span>
         </div>
       }
       @if (feeError()) {
-        <p class="field-error">Estimated fee is not available. Please select a valid program and course with fee structures configured.</p>
+        <p class="field-error">
+          @if (feeNotFound()) {
+            No fee structure is configured for this combination. Please contact the admin before saving.
+          } @else {
+            Estimated fee is not available. Please select a valid program and course with fee structures configured.
+          }
+        </p>
       }
 
+      <!-- ── Section: Enquiry Details ───────────────────────────────────── -->
       <div class="form-divider"></div>
+      <p class="form-section-hdr" id="tour-enq-form-referral">Enquiry Details</p>
 
       <!-- Date + Referral -->
-      <div id="tour-enq-form-referral" class="field-row">
+      <div class="field-row">
         <div class="field-group">
           <label for="enq-date" class="field-label">Enquiry Date <span class="field-required">*</span></label>
           <input id="enq-date" type="date" class="field-input" formControlName="enquiryDate"
@@ -254,7 +295,7 @@
         </div>
       }
 
-      <!-- Referred-by Active Student search (STUDENT referral type) -->
+      <!-- Referred-by Active Student search -->
       @if (referralCategory() === 'STUDENT') {
         <div class="field-group enq-person-search">
           <label class="field-label">Referred By (Active Student)</label>
@@ -285,7 +326,7 @@
         </div>
       }
 
-      <!-- Referred-by Alumni search (ALUMNI referral type) -->
+      <!-- Referred-by Alumni search -->
       @if (referralCategory() === 'ALUMNI') {
         <div class="field-group enq-person-search">
           <label class="field-label">Referred By (Alumni)</label>
@@ -347,7 +388,7 @@
         </div>
       }
 
-      <!-- Referred-by Staff name (free text, mandatory for STAFF type) -->
+      <!-- Referred-by Staff name (free text) -->
       @if (referralCategory() === 'STAFF') {
         <div class="field-group">
           <label for="enq-staff-name" class="field-label">Referred By (Staff Name) <span class="field-required">*</span></label>
@@ -373,13 +414,26 @@
         </div>
       }
 
-      <div class="form-divider"></div>
-
       <!-- Remarks -->
       <div class="field-group">
         <label for="enq-remarks" class="field-label">Remarks</label>
         <textarea id="enq-remarks" class="field-textarea" formControlName="remarks" rows="3"
                   placeholder="Interests, concerns, follow-up notes…"></textarea>
+      </div>
+
+      <!-- ── Sticky footer ─────────────────────────────────────────────── -->
+      <div class="enq-form-footer">
+        <a class="btn-cancel" routerLink="/enquiries">Cancel</a>
+        <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
+          @if (saving()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+          @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          }
+          {{ isEditMode() ? 'Update Enquiry' : 'Save Enquiry' }}
+        </button>
       </div>
 
     </form>

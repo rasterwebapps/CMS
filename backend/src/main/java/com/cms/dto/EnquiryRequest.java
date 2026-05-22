@@ -3,6 +3,7 @@ package com.cms.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
@@ -64,5 +65,9 @@ public record EnquiryRequest(
     LocalDate dateOfBirth,
 
     @NotNull(message = "Gender is required")
-    Gender gender
+    Gender gender,
+
+    AdmissionQuota admissionQuota,
+
+    Long feeStateId
 ) {}

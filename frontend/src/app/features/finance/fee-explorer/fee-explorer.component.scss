@@ -1,15 +1,188 @@
-// fee-explorer — component-specific overrides only.
-// Layout uses global MLP/toolbar/table classes from styles.scss.
+// fee-explorer
+// 91px = 56px toolbar + 35px breadcrumb
+
+// ── Page container ────────────────────────────────────────────────────────────
+.sfx-page {
+  height: calc(100vh - 91px);
+  overflow: hidden;
+  padding: 14px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+
+  @media (max-width: 900px) { padding: 10px 16px; gap: 6px; }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.sfx-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.sfx-hdr-left { display: flex; flex-direction: column; }
+
+.sfx-title {
+  margin: 0 0 4px;
+  font-family: var(--cms-font-display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+
+  em { font-style: italic; color: var(--cms-primary); }
+}
+
+.sfx-sub {
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.sfx-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sfx-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.sfx-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--blue  { background: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.6); }
+  &--green { background: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.6); }
+  &--amber { background: #f59e0b; box-shadow: 0 0 5px rgba(245, 158, 11, 0.6); }
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+.sfx-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 200;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.row-count {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
-.sfx-skeleton { padding: 0 0 8px; }
+.sfx-skeleton { padding: 0 16px; }
 
 .sfx-skel-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--cms-line);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+
+  &:last-child { border-bottom: none; }
+}
+
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--cms-bg-muted) 25%, var(--cms-border-default) 50%, var(--cms-bg-muted) 75%);
+  background-size: 400px 100%;
+  animation: skel-shimmer 1.5s infinite linear;
+
+  &--code   { width: 100px; height: 22px; border-radius: 6px; flex-shrink: 0; }
+  &--avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+  &--name   { width: 160px; height: 14px; }
+  &--text   { width: 110px; height: 12px; }
+  &--pill   { width: 90px; height: 22px; border-radius: 20px; }
+}
+
+@keyframes skel-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+// ── Table card ────────────────────────────────────────────────────────────────
+.sfx-table-card { min-height: 0; }
+
+.table-wrapper {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.modern-table { width: 100%; }
+.actions-col  { width: 60px; }
+
+// ── Table footer ──────────────────────────────────────────────────────────────
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 4px 20px;
+  border-top: 1px solid var(--cms-border-light);
+  flex-shrink: 0;
+}
+
+// ── Student cell ──────────────────────────────────────────────────────────────
+.student-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.1);
+  color: var(--cms-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+// ── Cell helpers ──────────────────────────────────────────────────────────────
+.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
+.cell-text  { font-size: 0.8125rem; color: var(--cms-text-secondary); }
+.cell-muted { font-size: 0.8125rem; color: var(--cms-text-disabled, #aaa); }
+
+.cell-mono {
+  font-family: var(--cms-font-mono), monospace;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 // ── Amount colour helpers ─────────────────────────────────────────────────────

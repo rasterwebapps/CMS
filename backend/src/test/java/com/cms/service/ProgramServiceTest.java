@@ -25,7 +25,7 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
-import com.cms.repository.FeeStructureRepository;
+import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,13 +35,13 @@ class ProgramServiceTest {
     private ProgramRepository programRepository;
 
     @Mock
-    private FeeStructureRepository feeStructureRepository;
+    private FeeStructureGroupRepository feeStructureGroupRepository;
 
     private ProgramService programService;
 
     @BeforeEach
     void setUp() {
-        programService = new ProgramService(programRepository, feeStructureRepository);
+        programService = new ProgramService(programRepository, feeStructureGroupRepository);
     }
 
     @Test
@@ -186,7 +186,7 @@ class ProgramServiceTest {
     @Test
     void shouldDeleteProgram() {
         when(programRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByProgramId(1L)).thenReturn(false);
+        when(feeStructureGroupRepository.existsByProgramId(1L)).thenReturn(false);
 
         programService.delete(1L);
 
@@ -197,7 +197,7 @@ class ProgramServiceTest {
     @Test
     void shouldThrowWhenDeletingProgramWithFeeStructures() {
         when(programRepository.existsById(1L)).thenReturn(true);
-        when(feeStructureRepository.existsByProgramId(1L)).thenReturn(true);
+        when(feeStructureGroupRepository.existsByProgramId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> programService.delete(1L))
             .isInstanceOf(IllegalStateException.class)

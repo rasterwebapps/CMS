@@ -17,12 +17,6 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 
-interface FeeStructureInfo {
-  feeType: string;
-  amount: number;
-  yearAmounts: { yearNumber: number; amount: number }[];
-}
-
 interface YearFeeRow {
   yearNumber: number;
   yearLabel: string;
@@ -30,7 +24,7 @@ interface YearFeeRow {
   finalAmount: number;
 }
 
-interface Program { id: number; name: string; }
+interface Program { id: number; name: string; durationYears: number; }
 
 @Component({
   selector: 'app-fee-finalization',
@@ -68,17 +62,25 @@ export class FeeFinalizationComponent implements OnInit {
   // ── List filters ────────────────────────────────────────────────────────────
   protected readonly searchValue        = signal('');
   protected readonly selectedProgramId  = signal<number | null>(null);
+  protected readonly selectedQuota      = signal<'MANAGEMENT' | 'COUNSELLING' | null>(null);
   protected readonly programs           = signal<Program[]>([]);
   protected readonly allEnquiries       = signal<Enquiry[]>([]);
 
   protected readonly filteredEnquiries = computed(() => {
-    const search  = this.searchValue().toLowerCase().trim();
-    const progId  = this.selectedProgramId();
+    const search = this.searchValue().toLowerCase().trim();
+    const progId = this.selectedProgramId();
+    const quota  = this.selectedQuota();
     return this.allEnquiries().filter(e => {
       if (progId != null && e.programId !== progId) return false;
-      return !search || e.name.toLowerCase().includes(search) ||
+      if (quota  != null && e.admissionQuota !== quota) return false;
+      if (!search) return true;
+      return (
+        e.name.toLowerCase().includes(search) ||
         !!e.programName?.toLowerCase().includes(search) ||
-        !!e.courseName?.toLowerCase().includes(search);
+        !!e.courseName?.toLowerCase().includes(search) ||
+        (e.admissionQuota === 'MANAGEMENT' && 'management'.includes(search)) ||
+        (e.admissionQuota === 'COUNSELLING' && 'counselling'.includes(search))
+      );
     });
   });
 
@@ -86,7 +88,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly discountReason = signal('');
 
   protected readonly displayedColumns = [
-    'name', 'programName', 'courseName', 'referralTypeName', 'finalCalculatedFee', 'actions',
+    'name', 'programName', 'courseName', 'quota', 'referralTypeName', 'finalCalculatedFee', 'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
@@ -133,6 +135,8 @@ export class FeeFinalizationComponent implements OnInit {
       this.dataSource.data = this.filteredEnquiries();
       if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
     });
+    // Keep discountReason signal in sync with the FormControl (covers programmatic resets)
+    this.discountReasonCtrl.valueChanges.subscribe(v => this.discountReason.set(v ?? ''));
   }
 
   ngOnInit(): void {
@@ -172,13 +176,19 @@ export class FeeFinalizationComponent implements OnInit {
     this.selectedProgramId.set(id);
   }
 
+  protected onQuotaFilter(value: string): void {
+    const v = value as 'MANAGEMENT' | 'COUNSELLING' | '';
+    this.selectedQuota.set(v || null);
+  }
+
   protected clearFilters(): void {
     this.searchValue.set('');
     this.selectedProgramId.set(null);
+    this.selectedQuota.set(null);
   }
 
   protected get hasActiveFilters(): boolean {
-    return !!this.searchValue() || this.selectedProgramId() != null;
+    return !!this.searchValue() || this.selectedProgramId() != null || this.selectedQuota() != null;
   }
 
   protected selectEnquiry(enquiry: Enquiry): void {
@@ -190,6 +200,7 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   private initYearRows(enquiry: Enquiry): void {
+    // 1. Best case: yearWiseFees already stored on the enquiry (set at creation time)
     if (enquiry.yearWiseFees) {
       try {
         const parsed: { yearNumber: number; amount: number }[] = JSON.parse(enquiry.yearWiseFees);
@@ -197,19 +208,25 @@ export class FeeFinalizationComponent implements OnInit {
       } catch { /* fall through */ }
     }
 
-    if (enquiry.programId && enquiry.courseId) {
-      const url = `${environment.apiUrl}/fee-structures?programId=${enquiry.programId}&courseId=${enquiry.courseId}`;
-      this.http.get<FeeStructureInfo[]>(url).subscribe({
+    // 2. Fallback: re-fetch from the guideline endpoint if all 4 dimensions are available
+    if (enquiry.programId && enquiry.admissionQuota && enquiry.feeStateId &&
+        enquiry.gender && enquiry.studentType) {
+      const params = new URLSearchParams({
+        programId:   enquiry.programId.toString(),
+        quota:       enquiry.admissionQuota,
+        feeStateId:  enquiry.feeStateId.toString(),
+        gender:      enquiry.gender,
+        studentType: enquiry.studentType,
+      });
+      if (enquiry.courseId) params.set('courseId', enquiry.courseId.toString());
+
+      this.http.get<{ totalFee: number; items: { feeType: string; amount: number; yearAmounts: { yearNumber: number; amount: number }[] }[] }>(
+        `${environment.apiUrl}/fee-structures/guideline?${params.toString()}`
+      ).subscribe({
         next: (data) => {
-          const studentType = enquiry.studentType;
-          const relevant = data.filter(fs => {
-            if (fs.feeType === 'HOSTEL_FEE')    return studentType === 'HOSTELER';
-            if (fs.feeType === 'TRANSPORT_FEE') return studentType === 'DAY_SCHOLAR';
-            return true;
-          });
           const yearMap = new Map<number, number>();
-          for (const fs of relevant) {
-            for (const ya of fs.yearAmounts ?? []) {
+          for (const item of data.items) {
+            for (const ya of item.yearAmounts ?? []) {
               yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
             }
           }
@@ -226,6 +243,8 @@ export class FeeFinalizationComponent implements OnInit {
       });
       return;
     }
+
+    // 3. Last resort: equal split across 4 years
     this.applyEqualSplitFallback(enquiry);
   }
 
@@ -240,14 +259,16 @@ export class FeeFinalizationComponent implements OnInit {
 
   private applyEqualSplitFallback(enquiry: Enquiry): void {
     const totalPaise = this.amountToPaise(enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0);
-    const n = 4;
+    // Use the program's actual duration years; fall back to 4 (typical nursing program)
+    const program = this.programs().find(p => p.id === enquiry.programId);
+    const n = program?.durationYears ?? 4;
     const perYearPaise = Math.floor(totalPaise / n);
     this.yearRows.set(
       Array.from({ length: n }, (_, i) => ({
         yearNumber: i + 1,
         yearLabel: `Year ${i + 1}`,
         originalAmount: this.paiseToAmount(i < n - 1 ? perYearPaise : totalPaise - perYearPaise * (n - 1)),
-        finalAmount: this.paiseToAmount(i < n - 1 ? perYearPaise : totalPaise - perYearPaise * (n - 1)),
+        finalAmount:    this.paiseToAmount(i < n - 1 ? perYearPaise : totalPaise - perYearPaise * (n - 1)),
       }))
     );
   }

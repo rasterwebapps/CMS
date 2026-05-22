@@ -2,10 +2,8 @@ package com.cms.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,38 +12,37 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.CohortSeatsRequest;
 import com.cms.dto.CohortSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
-import com.cms.model.Program;
+import com.cms.model.Course;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CohortRepository;
-import com.cms.repository.ProgramRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.StudentRepository;
 
 @RestController
 @RequestMapping("/cohorts")
 public class CohortController {
 
-    private final CohortRepository      cohortRepository;
-    private final ProgramRepository     programRepository;
-    private final AcademicYearRepository academicYearRepository;
-    private final StudentRepository     studentRepository;
+    private final CohortRepository       cohortRepository;
+    private final CourseRepository        courseRepository;
+    private final AcademicYearRepository  academicYearRepository;
+    private final StudentRepository       studentRepository;
 
     public CohortController(CohortRepository cohortRepository,
-                            ProgramRepository programRepository,
+                            CourseRepository courseRepository,
                             AcademicYearRepository academicYearRepository,
                             StudentRepository studentRepository) {
-        this.cohortRepository       = cohortRepository;
-        this.programRepository      = programRepository;
+        this.cohortRepository      = cohortRepository;
+        this.courseRepository      = courseRepository;
         this.academicYearRepository = academicYearRepository;
-        this.studentRepository      = studentRepository;
+        this.studentRepository     = studentRepository;
     }
 
     @GetMapping
@@ -65,17 +62,23 @@ public class CohortController {
         AcademicYear ay = academicYearRepository.findById(academicYearId)
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found: " + academicYearId));
         int startYear = ay.getStartYear();
-        for (Program program : programRepository.findByStatus(ProgramStatus.ACTIVE)) {
-            cohortRepository.findByProgramIdAndAdmissionAcademicYearId(program.getId(), academicYearId)
+
+        List<Course> activeCourses = courseRepository.findAll().stream()
+            .filter(c -> c.getProgram() != null && c.getProgram().getStatus() == ProgramStatus.ACTIVE)
+            .toList();
+
+        for (Course course : activeCourses) {
+            cohortRepository.findByCourseIdAndAdmissionAcademicYearId(course.getId(), academicYearId)
                 .orElseGet(() -> {
-                    int endYear = startYear + program.getDurationYears();
-                    String code = program.getCode() + "-" + startYear + "-" + endYear;
-                    String name = program.getName() + " (" + startYear + "-" + endYear + ")";
+                    int durationYears = course.getProgram().getDurationYears();
+                    int endYear = startYear + durationYears;
+                    String code = course.getCode() + "-" + startYear + "-" + endYear;
+                    String name = course.getName() + " (" + startYear + "-" + endYear + ")";
                     AcademicYear gradAY = academicYearRepository
                         .findByName(endYear + "-" + (endYear + 1))
                         .orElse(null);
                     Cohort c = new Cohort();
-                    c.setProgram(program);
+                    c.setCourse(course);
                     c.setAdmissionAcademicYear(ay);
                     c.setExpectedGraduationAcademicYear(gradAY);
                     c.setCohortCode(code);
@@ -100,25 +103,12 @@ public class CohortController {
         return ResponseEntity.ok(toResponse(cohortRepository.save(cohort)));
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
-    public ResponseEntity<Void> deleteCohort(@PathVariable Long id) {
-        Cohort cohort = cohortRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
-        if (studentRepository.existsByCohortId(id)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Cannot delete cohort with enrolled students");
-        }
-        cohortRepository.delete(cohort);
-        return ResponseEntity.noContent().build();
-    }
-
     private CohortSummaryResponse toResponse(Cohort c) {
-        String programName = c.getProgram() != null ? c.getProgram().getName() : "—";
-        String programCode = c.getProgram() != null ? c.getProgram().getCode() : "—";
+        String courseName = c.getCourse() != null ? c.getCourse().getName() : "—";
+        String courseCode = c.getCourse() != null ? c.getCourse().getCode() : "—";
         return new CohortSummaryResponse(
             c.getId(), c.getCohortCode(), c.getDisplayName(),
-            programName, programCode,
+            courseName, courseCode,
             c.getManagementSeats(), c.getCounsellingSeats(),
             studentRepository.existsByCohortId(c.getId())
         );

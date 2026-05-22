@@ -7,6 +7,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.CohortStatus;
+import jakarta.persistence.Transient;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +25,7 @@ import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "cohorts",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"program_id", "admission_academic_year_id"}))
+    uniqueConstraints = @UniqueConstraint(columnNames = {"course_id", "admission_academic_year_id"}))
 @EntityListeners(AuditingEntityListener.class)
 public class Cohort {
 
@@ -33,8 +34,8 @@ public class Cohort {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "program_id", nullable = false)
-    private Program program;
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admission_academic_year_id", nullable = false)
@@ -78,12 +79,18 @@ public class Cohort {
         this.id = id;
     }
 
-    public Program getProgram() {
-        return program;
+    public Course getCourse() {
+        return course;
     }
 
-    public void setProgram(Program program) {
-        this.program = program;
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    /** Delegation convenience — returns the Program via the Course chain. */
+    @Transient
+    public Program getProgram() {
+        return course != null ? course.getProgram() : null;
     }
 
     public AcademicYear getAdmissionAcademicYear() {

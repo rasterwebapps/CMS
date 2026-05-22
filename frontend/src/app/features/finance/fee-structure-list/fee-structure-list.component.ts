@@ -18,8 +18,11 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
 
 interface Program { id: number; name: string; }
-interface Course { id: number; name: string; }
+interface Course  { id: number; name: string; }
 interface AcademicYear { id: number; name: string; }
+
+type Quota  = 'MANAGEMENT' | 'COUNSELLING' | null;
+type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
 
 @Component({
   selector: 'app-fee-structure-list',
@@ -55,35 +58,47 @@ export class FeeStructureListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['programName', 'courseName', 'academicYearName', 'feeCount', 'dayScholarTotal', 'hostelerTotal', 'actions'];
+  protected readonly displayedColumns = [
+    'programName', 'courseName', 'academicYearName',
+    'quota', 'feeStateName', 'gender',
+    'feeCount', 'totalAmount', 'actions',
+  ];
   protected readonly dataSource = new MatTableDataSource<GroupedFeeStructure>([]);
-  protected readonly loading = signal(false);
+  protected readonly loading    = signal(false);
   protected readonly searchValue = signal('');
-  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
+  protected readonly viewMode   = signal<'card' | 'table'>(this.loadViewMode());
 
-  protected readonly programs = signal<Program[]>([]);
-  protected readonly courses = signal<Course[]>([]);
+  protected readonly programs      = signal<Program[]>([]);
+  protected readonly courses       = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
 
   protected readonly selectedAcademicYearId = signal<number | null>(null);
-  protected readonly selectedProgramId = signal<number | null>(null);
-  protected readonly selectedCourseId = signal<number | null>(null);
+  protected readonly selectedProgramId      = signal<number | null>(null);
+  protected readonly selectedCourseId       = signal<number | null>(null);
+  protected readonly selectedQuota  = signal<Quota>(null);
+  protected readonly selectedGender = signal<Gender>(null);
 
   private readonly allFeeStructures = signal<GroupedFeeStructure[]>([]);
 
   protected readonly filteredFeeStructures = computed(() => {
-    const ayId = this.selectedAcademicYearId();
-    const progId = this.selectedProgramId();
-    const courseId = this.selectedCourseId();
+    const ayId      = this.selectedAcademicYearId();
+    const progId    = this.selectedProgramId();
+    const courseId  = this.selectedCourseId();
+    const quota  = this.selectedQuota();
+    const gender = this.selectedGender();
     const search = this.searchValue().trim().toLowerCase();
 
     return this.allFeeStructures().filter(fs => {
-      if (ayId !== null && fs.academicYearId !== ayId) return false;
-      if (progId !== null && fs.programId !== progId) return false;
-      if (courseId !== null && fs.courseId !== courseId) return false;
+      if (ayId     !== null && fs.academicYearId !== ayId) return false;
+      if (progId   !== null && fs.programId !== progId)    return false;
+      if (courseId !== null && fs.courseId !== courseId)   return false;
+      if (quota    !== null && fs.quota !== quota)         return false;
+      if (gender   !== null && fs.gender !== gender)       return false;
       if (search) {
-        const haystack = [fs.programName, fs.courseName, fs.academicYearName]
-          .filter(Boolean).join(' ').toLowerCase();
+        const haystack = [
+          fs.programName, fs.courseName, fs.academicYearName,
+          fs.feeStateName, fs.quota, fs.gender,
+        ].filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(search)) return false;
       }
       return true;
@@ -95,58 +110,51 @@ export class FeeStructureListComponent implements OnInit {
     this.allFeeStructures().reduce((sum, fs) => sum + fs.totalAmount, 0)
   );
 
-  // ── Fee-split helpers ──────────────────────────────────────────────────────
+  protected readonly hasActiveFilters = computed(() =>
+    !!this.searchValue() || !!this.selectedAcademicYearId() || !!this.selectedProgramId() ||
+    !!this.selectedCourseId() || !!this.selectedQuota() || !!this.selectedGender()
+  );
 
-  /** Returns the effective amount for a single fee item (year-based or flat). */
+  // ── Fee-split helpers ─────────────────────────────────────────────────────
+
   private itemAmount(item: FeeStructure): number {
-    if (item.yearAmounts && item.yearAmounts.length > 0) {
-      return item.yearAmounts.reduce((s, ya) => s + ya.amount, 0);
-    }
+    if (item.yearAmounts?.length > 0) return item.yearAmounts.reduce((s, ya) => s + ya.amount, 0);
     return item.amount;
   }
 
-  /**
-   * Day Scholar total = all generic fee types + TRANSPORT_FEE (no HOSTEL_FEE).
-   * Only active items are counted.
-   */
   protected getDayScholarTotal(fs: GroupedFeeStructure): number {
-    return fs.items
-      .filter(i => i.isActive && i.feeType !== 'HOSTEL_FEE')
+    return fs.items.filter(i => i.isActive && i.feeType !== 'HOSTEL_FEE')
       .reduce((s, i) => s + this.itemAmount(i), 0);
   }
 
-  /**
-   * Hosteler total = all generic fee types + HOSTEL_FEE (no TRANSPORT_FEE).
-   * Only active items are counted.
-   */
   protected getHostelerTotal(fs: GroupedFeeStructure): number {
-    return fs.items
-      .filter(i => i.isActive && i.feeType !== 'TRANSPORT_FEE')
+    return fs.items.filter(i => i.isActive && i.feeType !== 'TRANSPORT_FEE')
       .reduce((s, i) => s + this.itemAmount(i), 0);
   }
 
-  /** True if the fee structure has at least one HOSTEL_FEE or TRANSPORT_FEE active item. */
   protected hasAccommodationFees(fs: GroupedFeeStructure): boolean {
     return fs.items.some(i => i.isActive && (i.feeType === 'HOSTEL_FEE' || i.feeType === 'TRANSPORT_FEE'));
+  }
+
+  protected quotaLabel(q: string): string {
+    return q === 'MANAGEMENT' ? 'Management' : 'Counselling';
+  }
+
+  protected genderLabel(g: string): string {
+    return g === 'FEMALE' ? 'Female' : g === 'MALE' ? 'Male' : 'Other';
   }
 
   constructor() {
     effect(() => {
       this.dataSource.data = this.filteredFeeStructures();
-      if (this.dataSource.paginator) {
-        this.dataSource.paginator.firstPage();
-      }
+      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
     });
   }
 
   ngOnInit(): void {
     this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);
-    this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
-      next: (d) => this.programs.set(d),
-    });
-    this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({
-      next: (d) => this.academicYears.set(d),
-    });
+    this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({ next: d => this.programs.set(d) });
+    this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: d => this.academicYears.set(d) });
     this.load();
   }
 
@@ -155,82 +163,81 @@ export class FeeStructureListComponent implements OnInit {
     localStorage.setItem(this.VIEW_MODE_KEY, mode);
   }
 
-  protected applyFilter(event: Event): void {
-    this.searchValue.set((event.target as HTMLInputElement).value);
-  }
+  protected applyFilter(event: Event): void { this.searchValue.set((event.target as HTMLInputElement).value); }
+  protected clearFilter(): void             { this.searchValue.set(''); }
 
-  protected clearFilter(): void {
-    this.searchValue.set('');
-  }
-
-  protected onAcademicYearChange(id: number | null): void {
-    this.selectedAcademicYearId.set(id);
-  }
+  protected onAcademicYearChange(id: number | null): void { this.selectedAcademicYearId.set(id); }
 
   protected onProgramFilterChange(id: number | null): void {
     this.selectedProgramId.set(id);
     this.selectedCourseId.set(null);
     this.courses.set([]);
     if (id !== null) {
-      this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${id}`).subscribe({
-        next: (d) => this.courses.set(d),
-      });
+      this.http.get<Course[]>(`${environment.apiUrl}/courses/program/${id}`)
+        .subscribe({ next: d => this.courses.set(d) });
     }
   }
 
-  protected onCourseChange(id: number | null): void {
-    this.selectedCourseId.set(id);
-  }
+  protected onCourseChange(id: number | null): void     { this.selectedCourseId.set(id); }
+  protected onQuotaChange(v: string | null): void  { this.selectedQuota.set((v || null) as Quota); }
+  protected onGenderChange(v: string | null): void { this.selectedGender.set((v || null) as Gender); }
 
   protected clearFilters(): void {
     this.selectedAcademicYearId.set(null);
     this.selectedProgramId.set(null);
     this.selectedCourseId.set(null);
+    this.selectedQuota.set(null);
+    this.selectedGender.set(null);
     this.searchValue.set('');
     this.courses.set([]);
   }
 
-  protected handleEmptyAction(): void {
-    void this.router.navigate(['/fee-structures/new']);
-  }
+  protected handleEmptyAction(): void { void this.router.navigate(['/fee-structures/new']); }
 
   protected edit(item: GroupedFeeStructure): void {
     const params: Record<string, string> = {
-      programId: item.programId.toString(),
+      programId:      item.programId.toString(),
       academicYearId: item.academicYearId.toString(),
+      quota:          item.quota,
+      feeStateId:     item.feeStateId.toString(),
+      gender:         item.gender,
     };
     if (item.courseId) params['courseId'] = item.courseId.toString();
-    void this.router.navigate(['/fee-structures/edit'], { queryParams: params });
+    void this.router.navigate(['/fee-structures/new'], { queryParams: params });
   }
 
   protected delete(item: GroupedFeeStructure): void {
-    const label = `${item.programName} / ${item.academicYearName}${item.courseName ? ' / ' + item.courseName : ''}`;
+    const label = [
+      item.programName,
+      item.academicYearName,
+      item.courseName,
+      this.quotaLabel(item.quota),
+      item.feeStateName,
+      this.genderLabel(item.gender),
+    ].filter(Boolean).join(' / ');
+
     this.dialog.open(ConfirmDialogComponent, {
       data: {
-        title: 'Delete Fee Structure Group',
-        message: `Delete all fee structures for "${label}"?`,
+        title: 'Delete Fee Structure',
+        message: `Delete all fee types for "${label}"?`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
       },
-    }).afterClosed().subscribe((confirmed) => {
-      if (confirmed) this.doDelete(item);
-    });
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.doDelete(item); });
   }
 
   private loadViewMode(): 'card' | 'table' {
-    try {
-      return localStorage.getItem(this.VIEW_MODE_KEY) === 'table' ? 'table' : 'card';
-    } catch {
-      return 'card';
-    }
+    try { return localStorage.getItem(this.VIEW_MODE_KEY) === 'table' ? 'table' : 'card'; }
+    catch { return 'card'; }
   }
 
   private doDelete(item: GroupedFeeStructure): void {
     this.loading.set(true);
     this.financeService.deleteGroupedFeeStructures(
-      item.programId, item.academicYearId, item.courseId ?? undefined
+      item.programId, item.academicYearId, item.courseId ?? undefined,
+      item.quota, item.feeStateId, item.gender,
     ).subscribe({
-      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      next:  () => { this.toast.success('Deleted successfully'); this.load(); },
       error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
     });
   }
@@ -238,11 +245,8 @@ export class FeeStructureListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.financeService.getGroupedFeeStructures().subscribe({
-      next: (data) => {
-        this.allFeeStructures.set(data);
-        this.loading.set(false);
-      },
-      error: () => { this.toast.error('Failed to load fee structures'); this.loading.set(false); },
+      next:  data => { this.allFeeStructures.set(data); this.loading.set(false); },
+      error: ()   => { this.toast.error('Failed to load fee structures'); this.loading.set(false); },
     });
   }
 }

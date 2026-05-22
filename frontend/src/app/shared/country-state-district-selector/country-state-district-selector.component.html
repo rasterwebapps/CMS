@@ -1,6 +1,7 @@
-<div class="state-district-row" [formGroup]="parentForm()">
+<div class="state-district-row" [class.state-district-row--2col]="!showCountry()" [formGroup]="parentForm()">
 
   <!-- Country -->
+  @if (showCountry()) {
   <div class="field-group">
     <label class="field-label" [for]="countryControlName() + '-select'">
       Country
@@ -29,6 +30,7 @@
       <span class="field-error">Country is required</span>
     }
   </div>
+  } <!-- /showCountry -->
 
   <!-- State -->
   <div class="field-group">
