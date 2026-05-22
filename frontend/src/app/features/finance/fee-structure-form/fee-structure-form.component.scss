@@ -680,3 +680,105 @@
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
   mat-spinner { margin-right: 4px; }
 }
+
+// ── Replication Panel ────────────────────────────────────────────────────────
+.replicate-panel {
+  margin-top: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  background: var(--cms-bg-card);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cms-text-secondary);
+    margin-bottom: 12px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--cms-primary);
+    }
+  }
+
+  &__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 4px;
+  }
+
+  &__preview {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.replicate-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--cms-text-primary);
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cms-primary);
+    cursor: pointer;
+  }
+}
+
+.replicate-preview-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--create .replicate-preview-label { color: var(--cms-success, #16a34a); }
+  &--skip   .replicate-preview-label { color: var(--cms-text-muted); }
+}
+
+.replicate-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+.replicate-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.replicate-tag {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.775rem;
+  font-weight: 500;
+
+  &--new {
+    background: rgba(22, 163, 74, 0.1);
+    color: var(--cms-success, #16a34a);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+  }
+
+  &--skip {
+    background: var(--cms-bg-subtle, #f5f5f5);
+    color: var(--cms-text-muted);
+    border: 1px solid var(--cms-border-light);
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+}

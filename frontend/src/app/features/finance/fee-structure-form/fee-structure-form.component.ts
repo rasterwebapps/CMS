@@ -34,6 +34,13 @@ interface NormalizedFeeStructureItemValue {
 type Quota  = 'MANAGEMENT' | 'COUNSELLING';
 type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 
+interface ReplicationTarget {
+  quota: Quota;
+  feeStateId: number;
+  feeStateName: string;
+  gender: Gender;
+}
+
 @Component({
   selector: 'app-fee-structure-form',
   standalone: true,
@@ -60,13 +67,19 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Fee Structures');
 
+  // ── Replication options (create mode only) ────────────────────────────────
+  protected readonly replicateAllGenders = signal(false);
+  protected readonly replicateAllStates  = signal(false);
+  protected readonly replicateAllQuotas  = signal(false);
+
   protected readonly programs      = signal<Program[]>([]);
   protected readonly courses       = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly feeStates     = signal<FeeState[]>([]);
   protected readonly selectedProgramDuration = signal(0);
 
-  private readonly _allCriteriaFilled = signal(false);
+  private readonly _allCriteriaFilled  = signal(false);
+  private readonly _dimensionVersion   = signal(0);
   private readonly _existingGroups    = signal<GroupedFeeStructure[]>([]);
   protected readonly duplicateGroup   = signal<GroupedFeeStructure | null>(null);
 
@@ -132,6 +145,20 @@ export class FeeStructureFormComponent implements OnInit {
   });
 
   get feeItems(): FormArray { return this.bulkForm.get('items') as FormArray; }
+
+  /** All quota×state×gender combos that will be created/skipped on replicate. */
+  protected readonly replicationPreview = computed(() => {
+    this._dimensionVersion(); // track dimension changes
+    if (this.isEditMode()) return { toCreate: [], toSkip: [] };
+    if (!this.replicateAllGenders() && !this.replicateAllStates() && !this.replicateAllQuotas()) {
+      return { toCreate: [], toSkip: [] };
+    }
+    const v = this.bulkForm.getRawValue();
+    if (!v.programId || !v.academicYearId || !v.quota || !v.feeStateId || !v.gender) {
+      return { toCreate: [], toSkip: [] };
+    }
+    return this._computeReplicationTargets(v.quota, v.feeStateId, v.gender);
+  });
 
   private readonly _grandTotalVersion = signal(0);
 
@@ -407,6 +434,7 @@ export class FeeStructureFormComponent implements OnInit {
       !!v.academicYearId && !!v.programId && hasCourse &&
       !!v.quota && !!v.feeStateId && !!v.gender;
     this._allCriteriaFilled.set(filled);
+    this._dimensionVersion.update(n => n + 1);
 
     if (filled && !this.isEditMode()) {
       const dup = this._existingGroups().find(g =>
@@ -466,6 +494,66 @@ export class FeeStructureFormComponent implements OnInit {
     const d = this.selectedProgramDuration();
     if (d > 1) this.buildYearAmountsForItem(this.feeItems.length - 1, d);
     this._grandTotalVersion.update(v => v + 1);
+  }
+
+  // ── Replication helpers ────────────────────────────────────────────────────
+
+  protected onReplicateChange(): void {
+    // trigger recompute of preview
+  }
+
+  private _computeReplicationTargets(
+    primaryQuota: string, primaryStateId: number, primaryGender: string
+  ): { toCreate: ReplicationTarget[]; toSkip: ReplicationTarget[] } {
+    const allQuotas  = this.replicateAllQuotas()  ? ['MANAGEMENT', 'COUNSELLING'] : [primaryQuota];
+    const allStateIds = this.replicateAllStates()
+      ? this.feeStates().map(s => s.id)
+      : [primaryStateId];
+    const allGenders = this.replicateAllGenders()
+      ? (['MALE', 'FEMALE', 'OTHER'] as Gender[])
+      : [primaryGender as Gender];
+
+    const v = this.bulkForm.getRawValue();
+    const toCreate: ReplicationTarget[] = [];
+    const toSkip:   ReplicationTarget[] = [];
+
+    for (const quota of allQuotas) {
+      for (const stateId of allStateIds) {
+        const state = this.feeStates().find(s => s.id === stateId);
+        if (!state) continue;
+        // Counselling quota is not applicable for fallback (Other State)
+        if (quota === 'COUNSELLING' && state.isFallback) continue;
+        for (const gender of allGenders) {
+          // Skip the primary combination itself
+          if (quota === primaryQuota && stateId === primaryStateId && gender === primaryGender) continue;
+          const target: ReplicationTarget = {
+            quota: quota as 'MANAGEMENT' | 'COUNSELLING',
+            feeStateId: stateId,
+            feeStateName: state.name,
+            gender,
+          };
+          const exists = this._existingGroups().some(g =>
+            g.programId      === v.programId &&
+            g.academicYearId === v.academicYearId &&
+            g.quota          === quota &&
+            g.feeStateId     === stateId &&
+            g.gender         === gender &&
+            (v.courseId ? g.courseId === v.courseId : g.courseId === null)
+          );
+          if (exists) toSkip.push(target);
+          else        toCreate.push(target);
+        }
+      }
+    }
+    return { toCreate, toSkip };
+  }
+
+  protected genderLabel(g: string): string {
+    return g === 'FEMALE' ? 'Female' : g === 'MALE' ? 'Male' : 'Other';
+  }
+
+  protected quotaLabel(q: string): string {
+    return q === 'MANAGEMENT' ? 'Management' : 'Counselling';
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -533,13 +621,59 @@ export class FeeStructureFormComponent implements OnInit {
 
     op$.subscribe({
       next: () => {
-        this.toast.success(this.isEditMode() ? 'Updated successfully' : 'Fee structure saved');
-        void this.router.navigate(['/fee-structures']);
+        if (this.isEditMode()) {
+          this.toast.success('Updated successfully');
+          void this.router.navigate(['/fee-structures']);
+          return;
+        }
+
+        // After primary save, create replicated combinations
+        const { toCreate } = this.replicationPreview();
+        if (toCreate.length === 0) {
+          this.toast.success('Fee structure saved');
+          void this.router.navigate(['/fee-structures']);
+          return;
+        }
+
+        this._saveReplicationTargets(request, toCreate);
       },
       error: err => {
         this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update' : 'Failed to save'));
         this.saving.set(false);
       },
     });
+  }
+
+  private _saveReplicationTargets(
+    primaryRequest: BulkFeeStructureRequest,
+    targets: ReplicationTarget[]
+  ): void {
+    const requests = targets.map(t => ({
+      ...primaryRequest,
+      quota: t.quota,
+      feeStateId: t.feeStateId,
+      gender: t.gender,
+    }));
+
+    let completed = 0;
+    let failed    = 0;
+
+    const tryNext = (index: number): void => {
+      if (index >= requests.length) {
+        const skipped = this.replicationPreview().toSkip.length;
+        const parts: string[] = [`Primary + ${completed} combination(s) saved`];
+        if (skipped > 0)  parts.push(`${skipped} skipped (already exist)`);
+        if (failed > 0)   parts.push(`${failed} failed`);
+        this.toast.success(parts.join(' · '));
+        void this.router.navigate(['/fee-structures']);
+        return;
+      }
+      this.financeService.bulkCreateFeeStructures(requests[index]).subscribe({
+        next:  () => { completed++; tryNext(index + 1); },
+        error: () => { failed++;    tryNext(index + 1); },
+      });
+    };
+
+    tryNext(0);
   }
 }

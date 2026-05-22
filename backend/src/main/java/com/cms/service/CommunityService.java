@@ -82,6 +82,22 @@ public class CommunityService {
         communityRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return communityRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return communityRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return communityRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return communityRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private Community findEntityById(Long id) {
         return communityRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Community not found with id: " + id));

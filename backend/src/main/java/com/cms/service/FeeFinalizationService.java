@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -159,31 +160,42 @@ public class FeeFinalizationService {
             ? student.getCohort().getAdmissionAcademicYear().getStartYear()
             : LocalDate.now().getYear();
 
+        // Load admission-year billing dates as fallback for years whose AY isn't created yet
+        Long admissionAyId = student.getCohort() != null
+            ? student.getCohort().getAdmissionAcademicYear().getId()
+            : null;
+        LocalDate fallbackOdd = admissionAyId == null ? null :
+            billingScheduleRepository.findByAcademicYearIdAndTermType(admissionAyId, TermType.ODD)
+                .map(TermBillingSchedule::getDueDate).orElse(null);
+        LocalDate fallbackEven = admissionAyId == null ? null :
+            billingScheduleRepository.findByAcademicYearIdAndTermType(admissionAyId, TermType.EVEN)
+                .map(TermBillingSchedule::getDueDate).orElse(null);
+
         List<SemesterFee> semesterFees = new ArrayList<>();
         for (StudentFeeAllocationRequest.YearFee yearFee : request.yearFees()) {
             BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
             BigDecimal sem2Amount = yearFee.amount().subtract(sem1Amount);
 
             int targetStartYear = joiningStartYear + (yearFee.yearNumber() - 1);
-            AcademicYear yearN = academicYearRepository
-                .findByNameStartingWith(String.valueOf(targetStartYear))
-                .orElseThrow(() -> new IllegalStateException(
-                    "Academic year not found for start year " + targetStartYear +
-                    ". Please create the academic year before finalizing fees."));
 
-            LocalDate oddDueDate = billingScheduleRepository
-                .findByAcademicYearIdAndTermType(yearN.getId(), TermType.ODD)
-                .map(TermBillingSchedule::getDueDate)
-                .orElseThrow(() -> new IllegalStateException(
-                    "No ODD term billing schedule configured for " + yearN.getName() +
-                    ". Please configure it on the Academic Year page before finalizing fees."));
+            Optional<AcademicYear> yearNOpt = academicYearRepository
+                .findByNameStartingWith(String.valueOf(targetStartYear));
 
-            LocalDate evenDueDate = billingScheduleRepository
-                .findByAcademicYearIdAndTermType(yearN.getId(), TermType.EVEN)
-                .map(TermBillingSchedule::getDueDate)
-                .orElseThrow(() -> new IllegalStateException(
-                    "No EVEN term billing schedule configured for " + yearN.getName() +
-                    ". Please configure it on the Academic Year page before finalizing fees."));
+            LocalDate oddDueDate;
+            LocalDate evenDueDate;
+
+            if (yearNOpt.isPresent()) {
+                Long ayId = yearNOpt.get().getId();
+                oddDueDate  = billingScheduleRepository.findByAcademicYearIdAndTermType(ayId, TermType.ODD)
+                    .map(TermBillingSchedule::getDueDate)
+                    .orElseGet(() -> shiftDueYear(fallbackOdd, joiningStartYear, targetStartYear));
+                evenDueDate = billingScheduleRepository.findByAcademicYearIdAndTermType(ayId, TermType.EVEN)
+                    .map(TermBillingSchedule::getDueDate)
+                    .orElseGet(() -> shiftDueYear(fallbackEven, joiningStartYear, targetStartYear));
+            } else {
+                oddDueDate  = shiftDueYear(fallbackOdd,  joiningStartYear, targetStartYear);
+                evenDueDate = shiftDueYear(fallbackEven, joiningStartYear, targetStartYear);
+            }
 
             int globalSem1 = (yearFee.yearNumber() - 1) * 2 + 1;
             int globalSem2 = globalSem1 + 1;
@@ -282,6 +294,16 @@ public class FeeFinalizationService {
             allocation.getCreatedAt(),
             allocation.getUpdatedAt()
         );
+    }
+
+    /**
+     * Shifts a billing due date from the admission year's billing to the target academic year.
+     * Preserves the same month and day; only the year changes by the same delta as the AY.
+     * Falls back to today if reference is null (should not happen in normal operation).
+     */
+    private LocalDate shiftDueYear(LocalDate reference, int fromStartYear, int toStartYear) {
+        if (reference == null) return LocalDate.now();
+        return reference.withYear(reference.getYear() + (toStartYear - fromStartYear));
     }
 
     private String combineDiscountReasons(String manualReason, StudentScholarship approvedScholarship) {

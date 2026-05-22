@@ -8,9 +8,12 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import {
   AcademicYearRequest,
   CohortSeatAllocationRequest,
@@ -47,6 +50,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly toast              = inject(ToastService);
   private readonly tourService        = inject(TourService);
   private readonly destroyRef         = inject(DestroyRef);
+  private readonly http               = inject(HttpClient);
 
   protected readonly loading  = signal(false);
   protected readonly saving   = signal(false);
@@ -117,6 +121,17 @@ export class AcademicYearFormComponent implements OnInit {
       this.loadActiveProgramsForEdit();
     } else {
       this.loadActiveProgramsForCreate();
+    }
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/academic-years/name-exists`, () => this.academicYearId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 
@@ -202,6 +217,7 @@ export class AcademicYearFormComponent implements OnInit {
     if (ctrl.errors['required'])   return 'This field is required';
     if (ctrl.errors['maxlength'])  return `Max ${ctrl.errors['maxlength'].requiredLength} characters`;
     if (ctrl.errors['min'])        return 'Must be 0 or more';
+    if (ctrl.errors['duplicate'])  return 'This name already exists';
     return '';
   }
 

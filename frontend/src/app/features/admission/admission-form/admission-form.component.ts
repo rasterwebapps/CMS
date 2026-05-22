@@ -85,7 +85,12 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;
 
   private static readonly FROM_ENQUIRY_CONTROLS: ReadonlyArray<string> = [
-    'enquiryId', 'firstName', 'lastName', 'email', 'yearOfStudy', 'admissionDate',
+    'enquiryId', 'firstName', 'lastName', 'email', 'phone', 'yearOfStudy', 'admissionDate',
+    'dateOfBirth', 'gender', 'aadharNumber',
+    'nationality', 'religion', 'communityCategory', 'caste', 'bloodGroup',
+    'fatherName', 'fatherPhone', 'fatherEmail',
+    'motherName', 'motherPhone', 'motherEmail', 'parentMobile',
+    'address.postalAddress', 'address.street', 'address.city', 'address.pincode',
   ];
   private static readonly MANUAL_CONTROLS: ReadonlyArray<string> = ['studentId'];
   private static readonly MODE_TOGGLED_CONTROLS: ReadonlyArray<string> = [
@@ -136,10 +141,10 @@ export class AdmissionFormComponent implements OnInit {
     // ── Common (both modes) ─────────────────────────────────────────────────
     joiningAcademicYearId: [null, Validators.required],
     applicationDate: [new Date().toISOString().split('T')[0], Validators.required],
-    declarationPlace: [''],
-    declarationDate: [''],
-    parentConsentGiven: [false],
-    applicantConsentGiven: [false],
+    declarationPlace: ['', Validators.required],
+    declarationDate: ['', Validators.required],
+    parentConsentGiven: [false, Validators.requiredTrue],
+    applicantConsentGiven: [false, Validators.requiredTrue],
   });
 
   get qualifications(): FormArray {
@@ -286,16 +291,56 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('firstName')?.setValidators([Validators.required]);
       this.form.get('lastName')?.setValidators([Validators.required]);
       this.form.get('email')?.setValidators([Validators.required, Validators.email]);
+      this.form.get('phone')?.setValidators([Validators.required]);
       this.form.get('yearOfStudy')?.setValidators([Validators.required, Validators.min(1)]);
       this.form.get('admissionDate')?.setValidators([Validators.required]);
+      this.form.get('dateOfBirth')?.setValidators([Validators.required]);
+      this.form.get('gender')?.setValidators([Validators.required]);
+      this.form.get('aadharNumber')?.setValidators([Validators.required]);
+      this.form.get('nationality')?.setValidators([Validators.required]);
+      this.form.get('religion')?.setValidators([Validators.required]);
+      this.form.get('communityCategory')?.setValidators([Validators.required]);
+      this.form.get('caste')?.setValidators([Validators.required]);
+      this.form.get('bloodGroup')?.setValidators([Validators.required]);
+      this.form.get('fatherName')?.setValidators([Validators.required]);
+      this.form.get('fatherPhone')?.setValidators([Validators.required]);
+      this.form.get('fatherEmail')?.setValidators([Validators.required, Validators.email]);
+      this.form.get('motherName')?.setValidators([Validators.required]);
+      this.form.get('motherPhone')?.setValidators([Validators.required]);
+      this.form.get('motherEmail')?.setValidators([Validators.required, Validators.email]);
+      this.form.get('parentMobile')?.setValidators([Validators.required]);
+      this.form.get('address.postalAddress')?.setValidators([Validators.required]);
+      this.form.get('address.street')?.setValidators([Validators.required]);
+      this.form.get('address.city')?.setValidators([Validators.required]);
+      this.form.get('address.pincode')?.setValidators([Validators.required]);
       this.form.get('studentId')?.clearValidators();
     } else {
       this.form.get('enquiryId')?.clearValidators();
       this.form.get('firstName')?.clearValidators();
       this.form.get('lastName')?.clearValidators();
       this.form.get('email')?.clearValidators();
+      this.form.get('phone')?.clearValidators();
       this.form.get('yearOfStudy')?.clearValidators();
       this.form.get('admissionDate')?.clearValidators();
+      this.form.get('dateOfBirth')?.clearValidators();
+      this.form.get('gender')?.clearValidators();
+      this.form.get('aadharNumber')?.clearValidators();
+      this.form.get('nationality')?.clearValidators();
+      this.form.get('religion')?.clearValidators();
+      this.form.get('communityCategory')?.clearValidators();
+      this.form.get('caste')?.clearValidators();
+      this.form.get('bloodGroup')?.clearValidators();
+      this.form.get('fatherName')?.clearValidators();
+      this.form.get('fatherPhone')?.clearValidators();
+      this.form.get('fatherEmail')?.clearValidators();
+      this.form.get('motherName')?.clearValidators();
+      this.form.get('motherPhone')?.clearValidators();
+      this.form.get('motherEmail')?.clearValidators();
+      this.form.get('parentMobile')?.clearValidators();
+      this.form.get('address.postalAddress')?.clearValidators();
+      this.form.get('address.street')?.clearValidators();
+      this.form.get('address.city')?.clearValidators();
+      this.form.get('address.pincode')?.clearValidators();
       this.form.get('studentId')?.setValidators([Validators.required]);
     }
     AdmissionFormComponent.MODE_TOGGLED_CONTROLS.forEach((ctrl) => {

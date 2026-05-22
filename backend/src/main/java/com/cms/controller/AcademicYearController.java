@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.AcademicYearRequest;
@@ -69,5 +70,13 @@ public class AcademicYearController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         academicYearService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(academicYearService.nameExists(value, excludeId));
     }
 }

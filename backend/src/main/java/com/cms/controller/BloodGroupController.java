@@ -65,5 +65,21 @@ public class BloodGroupController {
         bloodGroupService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('BLOOD_GROUP_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(bloodGroupService.nameExists(value, excludeId));
+    }
+
+    @GetMapping("/code-exists")
+    @PreAuthorize("@perm.has('BLOOD_GROUP_MANAGE')")
+    public ResponseEntity<Boolean> codeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(bloodGroupService.codeExists(value, excludeId));
+    }
 }
 

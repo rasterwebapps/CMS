@@ -1,18 +1,27 @@
-.entry-form-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; h1 { margin: 0; } }
 .loading-center { display: flex; justify-content: center; padding: 60px; }
-.full-width { width: 100%; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-// Stack to a single column on phones so labels and inputs remain readable.
-@media (max-width: 640px) {
-  .field-row { grid-template-columns: 1fr; }
+// Full-width field inside a .form-row CSS grid
+.field-group--full-width { grid-column: 1 / -1; }
+
+// Consent checkboxes with error support
+.consent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 8px 0 16px;
 }
-.consent-row { display: flex; gap: 24px; margin: 8px 0 16px; }
+
+.consent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consent-error { margin: 2px 0 0; }
+
 .qualifications-section { margin-top: 24px; border-top: 1px solid var(--cms-border-default); padding-top: 16px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; h3 { margin: 0; } }
 .qual-table { width: 100%; margin-bottom: 16px; }
-.table-field { width: 150px; }
-.table-field-sm { width: 100px; }
 
 // ── Student profile notice banner ───────────────────────────────────────────
 .student-profile-notice {

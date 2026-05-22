@@ -1,4 +1,5 @@
 import { numberToWords } from './number-to-words.utils';
+import { getPaymentModeLabel } from './payment-mode.utils';
 import { formatCurrency } from '@angular/common';
 
 const SKS_LOGO_DATA_URL = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPCEtLSBPdXRlciBjaXJjbGUgYmFja2dyb3VuZCAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk2IiBmaWxsPSIjMWEyYTVlIiBzdHJva2U9IiM0YTZmYTUiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIElubmVyIGRpdmlkaW5nIGNyb3NzIGxpbmVzIC0tPgogIDxsaW5lIHgxPSIxMDAiIHkxPSIzMCIgeDI9IjEwMCIgeTI9IjE3MCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNyIvPgogIDxsaW5lIHgxPSIzMCIgeTE9IjEwMCIgeDI9IjE3MCIgeTI9IjEwMCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNyIvPgoKICA8IS0tIENlbnRlciBzbWFsbCBjaXJjbGUgd2l0aCBFU1RELiAxOTkzIC0tPgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iMjIiIGZpbGw9IiMxYTJhNWUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTAwIiB5PSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+RVNURC48L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIxMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI3IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPjE5OTM8L3RleHQ+CgogIDwhLS0gVG9wLWxlZnQgcXVhZHJhbnQ6IEhlYXJ0IC0tPgogIDxwYXRoIGQ9Ik0gNzIgNzIgQyA2NiA2NCA1NSA2NCA1NSA3NCBDIDU1IDgwIDYyIDg3IDcyIDk0IEMgODIgODcgODkgODAgODkgNzQgQyA4OSA2NCA3OCA2NCA3MiA3MiBaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CgogIDwhLS0gVG9wLXJpZ2h0IHF1YWRyYW50OiBDYWR1Y2V1cy9tZWRpY2FsIHN0YWZmIChzaW1wbGlmaWVkKSAtLT4KICA8bGluZSB4MT0iMTI4IiB5MT0iNTUiIHgyPSIxMjgiIHkyPSI5MiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8cGF0aCBkPSJNIDExOCA2NSBDIDExOCA1OCAxMzggNTggMTM4IDY1IEMgMTM4IDcyIDExOCA3MiAxMTggNzkgQyAxMTggODYgMTM4IDg2IDEzOCA3OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8Y2lyY2xlIGN4PSIxMjgiIGN5PSI1MyIgcj0iNCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgoKICA8IS0tIEJvdHRvbS1sZWZ0IHF1YWRyYW50OiBGbGFtZSAtLT4KICA8cGF0aCBkPSJNIDcyIDE0OCBDIDYwIDEzOCA1OCAxMjUgNjUgMTE4IEMgNjMgMTI4IDcwIDEzMiA3MiAxMjUgQyA3NCAxMzIgODEgMTI4IDc5IDExOCBDIDg2IDEyNSA4NCAxMzggNzIgMTQ4IFoiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz4KCiAgPCEtLSBCb3R0b20tcmlnaHQgcXVhZHJhbnQ6IEdyYWR1YXRpb24gY2FwIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTI4LDExOCAxMDgsMTI4IDEyOCwxMzggMTQ4LDEyOCIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgogIDxyZWN0IHg9IjEyMCIgeT0iMTI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CiAgPGxpbmUgeDE9IjE0OCIgeTE9IjEyOCIgeDI9IjE0OCIgeTI9IjEzOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMTQ4IiBjeT0iMTQwIiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CgogIDwhLS0gQ2lyY3VsYXIgdGV4dDogU0tTIENPTExFR0UgT0YgTlVSU0lORyAodG9wIGFyYykgLS0+CiAgPHBhdGggaWQ9InRvcEFyYyIgZD0iTSAxOCwxMDAgQSA4Miw4MiAwIDAsMSAxODIsMTAwIiBmaWxsPSJub25lIi8+CiAgPHRleHQgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIGxldHRlci1zcGFjaW5nPSIyIj4KICAgIDx0ZXh0UGF0aCBocmVmPSIjdG9wQXJjIiBzdGFydE9mZnNldD0iNSUiPlNLUyBDT0xMRUdFIE9GIE5VUlNJTkc8L3RleHRQYXRoPgogIDwvdGV4dD4KCiAgPCEtLSBDaXJjdWxhciB0ZXh0OiBWUyBFRFVDQVRJT05BTCBUUlVTVCwgU0FMRU0gKGJvdHRvbSBhcmMpIC0tPgogIDxwYXRoIGlkPSJib3R0b21BcmMiIGQ9Ik0gMTgsMTAwIEEgODIsODIgMCAwLDAgMTgyLDEwMCIgZmlsbD0ibm9uZSIvPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgbGV0dGVyLXNwYWNpbmc9IjEiPgogICAgPHRleHRQYXRoIGhyZWY9IiNib3R0b21BcmMiIHN0YXJ0T2Zmc2V0PSI1JSI+VlMgRURVQ0FUSU9OQUwgVFJVU1QsIFNBTEVNPC90ZXh0UGF0aD4KICA8L3RleHQ+CgogIDwhLS0gWWVsbG93IHN0YXJzIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMjIsMTAwIDI1LDkyIDI4LDEwMCAyMCw5NSAzMCw5NSIgZmlsbD0iI0ZGRDcwMCIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTc4LDEwMCAxODEsOTIgMTg0LDEwMCAxNzYsOTUgMTg2LDk1IiBmaWxsPSIjRkZENzAwIi8+Cjwvc3ZnPgo=';
@@ -27,6 +28,7 @@ export interface ReceiptPrintData {
 
 function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   const amountWords = numberToWords(data.amountPaid);
+  const paymentModeLabel = getPaymentModeLabel(data.paymentMode);
   // Append 'T00:00:00' to avoid UTC-to-local-timezone shift on ISO date strings
   const formattedDate = new Date(data.paymentDate + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -75,7 +77,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
 <meta charset="UTF-8"/>
 <title>Receipt - ${data.receiptNumber}</title>
 <style>
-  @page { size: 210mm 148mm; margin: 7mm 10mm; }
+  @page { size: A5 landscape; margin: 7mm 10mm; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     width: 210mm;
@@ -94,10 +96,10 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     body { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   }
 
-  /* ── Outer card ── */
+  /* ── Outer card — fills the full A5 landscape page ── */
   .receipt {
     width: 100%;
-    min-height: 126mm;
+    height: 134mm;
     border: 3px double #1a237e;
     padding: 10px 16px 12px;
     display: flex;
@@ -120,7 +122,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   }
   .college-sub { font-size: 10px; color: #333; margin-top: 3px; line-height: 1.5; }
   .receipt-badge {
-    border: 2px solid #1a237e; padding: 4px 12px;
+    border: 2px solid #1a237e; padding: 5px 14px;
     font-size: 12px; font-weight: 800; letter-spacing: 3px;
     text-transform: uppercase; color: #1a237e;
     align-self: center; white-space: nowrap;
@@ -132,6 +134,8 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     justify-content: space-between;
     align-items: flex-end;
     margin: 8px 0 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #c5cae9;
   }
   .receipt-no { font-size: 12.5px; }
   .receipt-no strong { font-size: 15px; }
@@ -142,7 +146,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   .fill-row {
     display: flex;
     align-items: flex-end;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     font-size: 12.5px;
     line-height: 1;
   }
@@ -154,7 +158,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
   }
   .fill-blank {
     flex: 1;
-    border-bottom: 1.5px dotted #444;
+    border-bottom: 1.5px dotted #555;
     display: flex;
     align-items: flex-end;
     justify-content: flex-start;
@@ -167,30 +171,33 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     padding-left: 0.45in;
   }
 
-  /* ── Amount box — below fill rows, right-aligned ── */
+  /* ── Amount + footer anchored to bottom via margin-top: auto ── */
   .amount-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 2px;
-    margin-bottom: 4px;
+    align-items: flex-end;
+    margin-top: auto;
+    margin-bottom: 6px;
+    gap: 0;
   }
   .amount-box {
     border: 2px solid #1a237e;
-    padding: 4px 12px;
+    padding: 6px 16px;
     text-align: center;
-    min-width: 110px;
+    min-width: 130px;
   }
-  .amount-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-  .amount-value { font-size: 17px; font-weight: 900; margin-top: 2px; }
+  .amount-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #1a237e; }
+  .amount-value { font-size: 20px; font-weight: 900; margin-top: 3px; color: #1a237e; }
 
   /* ── Footer ── */
-  .spacer { flex: 1; }
-  .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 7px; }
-  .footer { display: flex; justify-content: flex-end; }
-  .sig-block { text-align: center; min-width: 160px; }
-  .for-word { font-size: 10px; margin-bottom: 2px; }
-  .for-college { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
-  .sig-space { height: 28px; }
+  .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 8px; }
+  .footer { display: flex; justify-content: space-between; align-items: flex-end; }
+  .footer-left { font-size: 10px; color: #555; line-height: 1.6; padding-bottom: 3px; }
+  .footer-left strong { color: #000; font-size: 10.5px; }
+  .sig-block { text-align: center; min-width: 190px; }
+  .for-word { font-size: 10px; margin-bottom: 1px; }
+  .for-college { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; }
+  .sig-space { height: 34px; }
   .sig-line-rule { border-top: 1px solid #000; }
   .sig-text { font-size: 10px; padding-top: 3px; }
 </style>
@@ -211,7 +218,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     <div class="receipt-badge">R E C E I P T</div>
   </div>
 
-  <!-- Receipt No (left) + Date (right, moved from bottom) -->
+  <!-- Receipt No (left) + Date (right) -->
   <div class="meta-row">
     <div class="receipt-no">No. <strong>${data.receiptNumber}</strong></div>
     <div class="meta-date">Date : ${formattedDate}</div>
@@ -236,7 +243,7 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     ${refRow}
   </div>
 
-  <!-- Amount box (moved below fill rows) -->
+  <!-- Amount box — margin-top: auto pulls it flush to the footer block -->
   <div class="amount-row">
     <div class="amount-box">
       <div class="amount-label">Amount</div>
@@ -244,11 +251,12 @@ function buildReceiptHtml(data: ReceiptPrintData, autoPrint: boolean): string {
     </div>
   </div>
 
-  <div class="spacer"></div>
-
   <!-- Footer -->
   <div class="footer-divider"></div>
   <div class="footer">
+    <div class="footer-left">
+      Mode of Payment: <strong>${paymentModeLabel}</strong>
+    </div>
     <div class="sig-block">
       <div class="for-word">For</div>
       <div class="for-college">SKS COLLEGE OF NURSING</div>

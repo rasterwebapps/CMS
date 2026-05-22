@@ -40,7 +40,9 @@
               <input id="course-name" class="field-input" formControlName="name"
                 placeholder="e.g., B.Sc Nursing" autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
                 <p class="field-error">{{ getErrorMessage('name') }}</p>
               }
             </div>
@@ -53,7 +55,9 @@
                   (input)="onCodeInput($event)"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
                 <p class="field-hint">Short identifier</p>
-                @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                @if (form.get('code')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
                   <p class="field-error">{{ getErrorMessage('code') }}</p>
                 }
               </div>

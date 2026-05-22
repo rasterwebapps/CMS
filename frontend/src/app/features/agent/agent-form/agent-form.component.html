@@ -40,7 +40,9 @@
               <input id="agent-name" class="field-input" formControlName="name"
                 placeholder="Enter agent name" autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
                 <p class="field-error">Name is required</p>
               }
             </div>

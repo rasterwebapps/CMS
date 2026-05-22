@@ -65,5 +65,21 @@ public class CommunityController {
         communityService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(communityService.nameExists(value, excludeId));
+    }
+
+    @GetMapping("/code-exists")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
+    public ResponseEntity<Boolean> codeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(communityService.codeExists(value, excludeId));
+    }
 }
 

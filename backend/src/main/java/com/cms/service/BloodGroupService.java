@@ -81,6 +81,22 @@ public class BloodGroupService {
         bloodGroupRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return bloodGroupRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return bloodGroupRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return bloodGroupRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return bloodGroupRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private BloodGroupMaster findEntityById(Long id) {
         return bloodGroupRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Blood group not found with id: " + id));

@@ -52,7 +52,9 @@
                 autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
               />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
                 <p class="field-error">{{ getErrorMessage('name') }}</p>
               }
             </div>
@@ -80,7 +82,9 @@
                 <span class="field-hint">Short uppercase code — max 20 characters</span>
                 <span class="char-count" aria-label="{{ codeCharCount() }} of 20 characters">{{ codeCharCount() }}/20</span>
               </div>
-              @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              @if (form.get('code')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
                 <p class="field-error">{{ getErrorMessage('code') }}</p>
               }
             </div>

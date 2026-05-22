@@ -91,6 +91,22 @@ public class DepartmentService {
         departmentRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return departmentRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return departmentRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return departmentRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return departmentRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private void applyHod(Department department, Long hodFacultyId) {
         if (hodFacultyId == null) {
             department.setHodFacultyId(null);

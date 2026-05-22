@@ -71,4 +71,20 @@ public class ReferralTypeController {
         referralTypeService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('REFERRAL_TYPE_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(referralTypeService.nameExists(value, excludeId));
+    }
+
+    @GetMapping("/code-exists")
+    @PreAuthorize("@perm.has('REFERRAL_TYPE_MANAGE')")
+    public ResponseEntity<Boolean> codeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(referralTypeService.codeExists(value, excludeId));
+    }
 }

@@ -58,6 +58,7 @@ export function cmsFieldError(
   const e = control.errors;
 
   if (e['required'])             return `${label} is required`;
+  if (e['duplicate'])            return `${label} already exists`;
   if (e['trimmedMinLength'])     return `${label} must be at least ${e['trimmedMinLength'].requiredLength} characters`;
   if (e['maxlength'])            return `${label} must be at most ${e['maxlength'].requiredLength} characters`;
   if (e['noConsecutiveSpaces']) return `${label} must not contain consecutive spaces`;

@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -17,6 +18,8 @@ import {
   cmsFieldError,
   stripSpaces,
 } from '../../../shared/validators/cms-validators';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-blood-group-form',
@@ -39,6 +42,7 @@ export class BloodGroupFormComponent implements OnInit {
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -96,6 +100,24 @@ export class BloodGroupFormComponent implements OnInit {
       this.itemId = Number(id);
       this.isEditMode.set(true);
       this.loadItem(this.itemId);
+    }
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/blood-groups/name-exists`, () => this.itemId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+    const codeCtrl = this.form.get('code');
+    if (codeCtrl) {
+      codeCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/blood-groups/code-exists`, () => this.itemId)
+      );
+      codeCtrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 

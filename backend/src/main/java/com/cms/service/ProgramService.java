@@ -138,6 +138,22 @@ public class ProgramService {
         return new HashSet<>(saved.getRequiredDocumentTypes());
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return programRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return programRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return programRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return programRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private void validateCode(String code) {
         if (code == null) return;
         if (!code.equals(code.toUpperCase())) {

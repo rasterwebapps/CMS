@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,6 +17,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-agent-form',
@@ -37,6 +40,7 @@ export class AgentFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -148,6 +152,17 @@ export class AgentFormComponent implements OnInit {
         },
         error: () => {},
       });
+    }
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/agents/name-exists`, () => this.itemId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 

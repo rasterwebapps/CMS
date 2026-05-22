@@ -80,7 +80,9 @@
                     form.get('name')?.invalid && form.get('name')?.touched
                   "
                 />
-                @if (getFieldError('name')) {
+                @if (form.get('name')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (getFieldError('name')) {
                   <p class="field-error">{{ getFieldError('name') }}</p>
                 }
               </div>
@@ -100,7 +102,9 @@
                   "
                 />
                 <p class="field-hint">Short code shown in dropdowns (e.g., A+, O-, AB+)</p>
-                @if (getFieldError('code')) {
+                @if (form.get('code')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (getFieldError('code')) {
                   <p class="field-error">{{ getFieldError('code') }}</p>
                 }
               </div>

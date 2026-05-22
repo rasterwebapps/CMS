@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CourseRequest;
@@ -69,5 +70,21 @@ public class CourseController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         courseService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(courseService.nameExists(value, excludeId));
+    }
+
+    @GetMapping("/code-exists")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
+    public ResponseEntity<Boolean> codeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(courseService.codeExists(value, excludeId));
     }
 }

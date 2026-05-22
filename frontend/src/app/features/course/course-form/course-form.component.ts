@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,8 @@ import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-ca
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-course-form',
@@ -43,6 +46,7 @@ export class CourseFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -115,6 +119,24 @@ export class CourseFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Course');
       this.loadCourse();
+    }
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/courses/name-exists`, () => this.courseId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+    const codeCtrl = this.form.get('code');
+    if (codeCtrl) {
+      codeCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/courses/code-exists`, () => this.courseId)
+      );
+      codeCtrl.updateValueAndValidity({ emitEvent: false });
     }
   }
 

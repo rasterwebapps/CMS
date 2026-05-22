@@ -125,6 +125,22 @@ public class CourseService {
         courseRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return courseRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return courseRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return courseRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return courseRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private CourseResponse toResponse(Course course) {
         Program program = course.getProgram();
         ProgramResponse programResponse = programService.toResponse(program);

@@ -386,6 +386,71 @@
 
         </div>
 
+        <!-- ── Replication Panel (create mode only) ──────────────── -->
+        @if (!isEditMode()) {
+          <div class="replicate-panel">
+            <div class="replicate-panel__header">
+              <mat-icon>content_copy</mat-icon>
+              <span>Also create for</span>
+            </div>
+            <div class="replicate-panel__options">
+              <label class="replicate-check">
+                <input type="checkbox"
+                       [checked]="replicateAllGenders()"
+                       (change)="replicateAllGenders.set($any($event.target).checked); onReplicateChange()" />
+                <span>All genders</span>
+              </label>
+              <label class="replicate-check">
+                <input type="checkbox"
+                       [checked]="replicateAllStates()"
+                       (change)="replicateAllStates.set($any($event.target).checked); onReplicateChange()" />
+                <span>All states</span>
+              </label>
+              <label class="replicate-check">
+                <input type="checkbox"
+                       [checked]="replicateAllQuotas()"
+                       (change)="replicateAllQuotas.set($any($event.target).checked); onReplicateChange()" />
+                <span>All quotas</span>
+              </label>
+            </div>
+
+            @if (replicationPreview().toCreate.length > 0 || replicationPreview().toSkip.length > 0) {
+              <div class="replicate-panel__preview">
+                @if (replicationPreview().toCreate.length > 0) {
+                  <div class="replicate-preview-group replicate-preview-group--create">
+                    <span class="replicate-preview-label">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      Will create ({{ replicationPreview().toCreate.length }})
+                    </span>
+                    <div class="replicate-tags">
+                      @for (t of replicationPreview().toCreate; track $index) {
+                        <span class="replicate-tag replicate-tag--new">
+                          {{ quotaLabel(t.quota) }} · {{ t.feeStateName }} · {{ genderLabel(t.gender) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (replicationPreview().toSkip.length > 0) {
+                  <div class="replicate-preview-group replicate-preview-group--skip">
+                    <span class="replicate-preview-label">
+                      <mat-icon>block</mat-icon>
+                      Already exist — will be skipped ({{ replicationPreview().toSkip.length }})
+                    </span>
+                    <div class="replicate-tags">
+                      @for (t of replicationPreview().toSkip; track $index) {
+                        <span class="replicate-tag replicate-tag--skip">
+                          {{ quotaLabel(t.quota) }} · {{ t.feeStateName }} · {{ genderLabel(t.gender) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
         <!-- ── Actions ─────────────────────────────────────────────── -->
         <div id="tour-fs-submit" class="form-actions">
           <button mat-stroked-button type="button" class="cancel-btn" routerLink="/fee-structures">

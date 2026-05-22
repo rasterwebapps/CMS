@@ -71,4 +71,12 @@ public class AgentController {
         agentService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('AGENT_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(agentService.nameExists(value, excludeId));
+    }
 }

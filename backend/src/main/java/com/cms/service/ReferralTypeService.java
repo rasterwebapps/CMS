@@ -131,6 +131,22 @@ public class ReferralTypeService {
         referralTypeRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return referralTypeRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return referralTypeRepository.existsByNameIgnoreCase(trimmed);
+    }
+
+    public boolean codeExists(String code, Long excludeId) {
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) {
+            return referralTypeRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return referralTypeRepository.existsByCodeIgnoreCase(trimmed);
+    }
+
     private ReferralTypeResponse toResponse(ReferralType rt) {
         return new ReferralTypeResponse(
             rt.getId(), rt.getName(), rt.getCode(), rt.getCommissionAmount(),

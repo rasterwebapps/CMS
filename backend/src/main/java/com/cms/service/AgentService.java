@@ -98,6 +98,14 @@ public class AgentService {
         agentRepository.deleteById(id);
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return agentRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return agentRepository.existsByNameIgnoreCase(trimmed);
+    }
+
     private void applyIdentityAndBank(Agent agent, AgentRequest r) {
         agent.setPanNumber(trim(r.panNumber()));
         agent.setAadhaarNumber(trim(r.aadhaarNumber()));

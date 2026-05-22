@@ -221,6 +221,14 @@ public class AcademicYearService {
         return seats != null ? seats : 0;
     }
 
+    public boolean nameExists(String name, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) {
+            return academicYearRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+        }
+        return academicYearRepository.existsByNameIgnoreCase(trimmed);
+    }
+
     private AcademicYearResponse toResponse(AcademicYear academicYear) {
         return new AcademicYearResponse(
             academicYear.getId(),

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ProgramRequest;
@@ -96,6 +97,22 @@ public class ProgramController {
             .map(Enum::name)
             .collect(Collectors.toSet());
         return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('PROGRAM_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(programService.nameExists(value, excludeId));
+    }
+
+    @GetMapping("/code-exists")
+    @PreAuthorize("@perm.has('PROGRAM_MANAGE')")
+    public ResponseEntity<Boolean> codeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(programService.codeExists(value, excludeId));
     }
 
     private DocumentType parseDocumentType(String raw) {

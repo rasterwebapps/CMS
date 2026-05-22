@@ -47,7 +47,9 @@
                 <input id="rt-name" class="field-input" formControlName="name"
                   placeholder="e.g., Walk-in" autocomplete="off"
                   [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-                @if (getFieldError('name')) {
+                @if (form.get('name')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (getFieldError('name')) {
                   <p class="field-error">{{ getFieldError('name') }}</p>
                 }
               </div>
@@ -59,7 +61,9 @@
                   (input)="onCodeInput($event)"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
                 <p class="field-hint">Uppercase letters, digits and underscores only (e.g., WALK_IN)</p>
-                @if (getFieldError('code')) {
+                @if (form.get('code')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (getFieldError('code')) {
                   <p class="field-error">{{ getFieldError('code') }}</p>
                 }
               </div>

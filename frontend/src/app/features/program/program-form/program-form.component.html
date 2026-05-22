@@ -47,7 +47,9 @@
                 autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
               />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
                 <p class="field-error">{{ getErrorMessage('name') }}</p>
               }
             </div>
@@ -64,7 +66,9 @@
                 [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
               />
               <p class="field-hint">Short uppercase code for the program (max 20 characters)</p>
-              @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              @if (form.get('code')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
                 <p class="field-error">{{ getErrorMessage('code') }}</p>
               }
             </div>

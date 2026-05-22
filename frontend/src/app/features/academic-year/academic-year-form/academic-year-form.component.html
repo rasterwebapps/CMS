@@ -56,7 +56,9 @@
                 <input id="ay-name" class="field-input" formControlName="name"
                   placeholder="e.g., 2025-2026" autocomplete="off"
                   [class.field-input--error]="isInvalid('name')" />
-                @if (isInvalid('name')) {
+                @if (form.get('name')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (isInvalid('name')) {
                   <p class="field-error">{{ getError('name') }}</p>
                 }
               </div>

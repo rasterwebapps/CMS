@@ -174,110 +174,78 @@ END $$;
 --   are intentionally ABSENT from this list — they will not be cascaded to.
 -- ----------------------------------------------------------------------------
 
-TRUNCATE TABLE
+DO $$
+DECLARE
+    v_requested_tables TEXT[] := ARRAY[
+        -- Audit / activity logs
+        'audit_log', 'user_dashboard_widget_configs',
 
-    -- Audit / activity logs
-    audit_log,
-    user_dashboard_widget_configs,
+        -- Document audit history
+        'faculty_document_history', 'enquiry_document_history',
 
-    -- Document audit history
-    faculty_document_history,
-    enquiry_document_history,
+        -- Scholarship transactional
+        'scholarship_disbursements', 'student_scholarships', 'student_scholarship_eligibility',
 
-    -- Scholarship transactional
-    scholarship_disbursements,
-    student_scholarships,
-    student_scholarship_eligibility,
+        -- Finance transactional
+        'agent_commission_payouts', 'term_fee_payments', 'fee_demands', 'payment_receipts',
+        'receipt_number_sequence', 'enquiry_payments', 'fee_installments', 'penalties',
+        'semester_fees', 'student_fee_allocations', 'fee_payments',
 
-    -- Finance transactional
-    agent_commission_payouts,
-    term_fee_payments,
-    fee_demands,
-    payment_receipts,
-    receipt_number_sequence,
-    enquiry_payments,
-    fee_installments,
-    penalties,
-    semester_fees,
-    student_fee_allocations,
-    fee_payments,
+        -- Fee structures (set up fresh at go-live)
+        'fee_structure_year_amounts', 'fee_structures', 'fee_structure_groups',
 
-    -- Fee structures (set up fresh at go-live)
-    fee_structure_year_amounts,
-    fee_structures,
-    fee_structure_groups,
+        -- Exams and results
+        'exam_results', 'student_marks', 'semester_results', 'exam_events', 'exam_sessions', 'examinations',
 
-    -- Exams and results
-    exam_results,
-    student_marks,
-    semester_results,
-    exam_events,
-    exam_sessions,
-    examinations,
+        -- Lab operations
+        'lab_continuous_evaluations', 'lab_attendances', 'attendances', 'course_registrations',
+        'course_offerings', 'lab_schedules', 'lab_slots', 'student_term_enrollments',
+        'term_billing_schedules', 'lab_curriculum_mappings',
 
-    -- Lab operations
-    lab_continuous_evaluations,
-    lab_attendances,
-    attendances,
-    course_registrations,
-    course_offerings,
-    lab_schedules,
-    lab_slots,
-    student_term_enrollments,
-    term_billing_schedules,
-    lab_curriculum_mappings,
+        -- Safety and maintenance
+        'safety_training_records', 'safety_audits', 'incident_reports', 'ppe_items', 'safety_guidelines',
+        'maintenance_requests', 'inventory_items', 'equipment', 'lab_incharge_assignments',
 
-    -- Safety and maintenance
-    safety_training_records,
-    safety_audits,
-    incident_reports,
-    ppe_items,
-    safety_guidelines,
-    maintenance_requests,
-    inventory_items,
-    equipment,
-    lab_incharge_assignments,
+        -- Admissions and enquiries
+        'enquiry_status_history', 'enquiry_documents', 'admission_documents', 'applicant_documents',
+        'admissions', 'enquiries',
 
-    -- Admissions and enquiries
-    enquiry_status_history,
-    enquiry_documents,
-    admission_documents,
-    applicant_documents,
-    admissions,
-    enquiries,
+        -- People
+        'academic_qualifications', 'student_program_transfers', 'faculty_documents',
+        'faculty_document_type_requirements', 'app_users', 'students', 'faculty',
+        'agent_commission_guidelines', 'agents',
 
-    -- People
-    academic_qualifications,
-    student_program_transfers,
-    faculty_documents,
-    faculty_document_type_requirements,
-    app_users,
-    students,
-    faculty,
-    agent_commission_guidelines,
-    agents,
+        -- Academic structure (configured fresh after go-live)
+        'term_instances', 'curriculum_semester_courses', 'curriculum_versions', 'calendar_events',
+        'intake_rules', 'cohorts', 'experiments', 'syllabi', 'subjects', 'program_document_types',
+        'courses', 'programs', 'labs', 'departments', 'academic_years',
 
-    -- Academic structure (configured fresh after go-live)
-    term_instances,
-    curriculum_semester_courses,
-    curriculum_versions,
-    calendar_events,
-    intake_rules,
-    cohorts,
-    experiments,
-    syllabi,
-    subjects,
-    program_document_types,
-    courses,
-    programs,
-    labs,
-    departments,
-    academic_years,
+        -- Number sequences (reset for live)
+        'application_number_sequences'
+    ];
+    v_existing_tables TEXT;
+    v_missing_tables  TEXT;
+BEGIN
+    SELECT string_agg(format('%I', table_name), ', ')
+    INTO v_existing_tables
+    FROM unnest(v_requested_tables) AS table_name
+    WHERE to_regclass(format('public.%I', table_name)) IS NOT NULL;
 
-    -- Number sequences (reset for live)
-    application_number_sequences
+    SELECT string_agg(table_name, ', ')
+    INTO v_missing_tables
+    FROM unnest(v_requested_tables) AS table_name
+    WHERE to_regclass(format('public.%I', table_name)) IS NULL;
 
-RESTART IDENTITY CASCADE;
+    IF v_existing_tables IS NULL THEN
+        RAISE EXCEPTION 'No wipe target tables exist — wrong database? Aborting.';
+    END IF;
+
+    IF v_missing_tables IS NOT NULL THEN
+        RAISE NOTICE 'Skipping non-existent legacy/optional tables: %', v_missing_tables;
+    END IF;
+
+    EXECUTE 'TRUNCATE TABLE ' || v_existing_tables || ' RESTART IDENTITY CASCADE';
+END $$;
 
 -- ── STRICT RBAC: Go-live admin roles and users only ─────────────────────────
 --   The wipe removes every app_user. Recreate only the three bootstrap users

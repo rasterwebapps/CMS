@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,8 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/department.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-department-form',
@@ -41,6 +44,7 @@ export class DepartmentFormComponent implements OnInit {
   private readonly snackBar          = inject(MatSnackBar);
   private readonly destroyRef        = inject(DestroyRef);
   private readonly tourService       = inject(TourService);
+  private readonly http              = inject(HttpClient);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -107,6 +111,24 @@ export class DepartmentFormComponent implements OnInit {
       });
 
     this.loadFaculties();
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/departments/name-exists`, () => this.departmentId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+    const codeCtrl = this.form.get('code');
+    if (codeCtrl) {
+      codeCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/departments/code-exists`, () => this.departmentId)
+      );
+      codeCtrl.updateValueAndValidity({ emitEvent: false });
+    }
   }
 
   private loadFaculties(): void {
