@@ -36,8 +36,6 @@ SET due_date = COALESCE(
             ON tbs_admit.academic_year_id = c.admission_academic_year_id
            AND tbs_admit.term_type = CASE WHEN sf.sequence = 1 THEN 'ODD' ELSE 'EVEN' END
         WHERE sfa.id = sf.allocation_id
-    ),
-    -- 3. Final safety net: keep the existing non-null due date if no schedule matches.
-    sf.due_date
+    )
 )
 WHERE sf.due_date IS NOT NULL;
