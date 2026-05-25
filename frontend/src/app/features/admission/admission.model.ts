@@ -18,6 +18,7 @@ export interface AdmissionResponse {
   programName: string | null;
   courseName: string | null;
   yearOfStudy: number | null;
+  physicalDisability: boolean | null;
   studentStatus: string | null;
   joiningAcademicYearId: number;
   joiningAcademicYearName: string;

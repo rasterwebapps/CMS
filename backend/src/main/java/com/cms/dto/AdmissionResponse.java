@@ -12,6 +12,7 @@ public record AdmissionResponse(
     String programName,
     String courseName,
     Integer semester,
+    Boolean physicalDisability,
     String studentStatus,
     Long joiningAcademicYearId,
     String joiningAcademicYearName,

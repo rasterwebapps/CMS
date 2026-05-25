@@ -338,6 +338,49 @@ Related: V92 migration, new `/communities` and `/blood-groups` endpoints, Comple
 
 ---
 
+## TC-PHYDIS-001: Capture Physical Disability on Student create/edit
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+- At least one Program exists.
+
+**Steps:**
+1. Navigate to **Students → Add Student**.
+2. Fill all required student fields.
+3. In **Personal Details**, select a Blood Group and check **Physical Disability**.
+4. Save the student.
+5. Open the created student detail page and then open edit mode again.
+
+**Expected Result:**
+- Student creation succeeds.
+- Student detail **Personal & Family** tab shows **Physical Disability = Yes**.
+- Student edit form has the **Physical Disability** checkbox checked.
+- Saving again preserves `physicalDisability = true` in `GET /api/v1/students/{id}`.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PHYDIS-002: Default Physical Disability value is No
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`.
+
+**Steps:**
+1. Create a student without checking **Physical Disability**.
+2. Open the student detail page.
+3. Open the student edit form.
+
+**Expected Result:**
+- Student creation succeeds.
+- Student detail shows **Physical Disability = No**.
+- Student edit form shows the checkbox unchecked.
+- API response contains `physicalDisability: false`.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-AUTH-001: Non-admin users cannot manage masters
 
 **Preconditions:**

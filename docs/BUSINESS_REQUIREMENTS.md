@@ -362,6 +362,7 @@ The enquiry screen is used by the **front office** to capture initial data. Once
 ### Business Rule
 
 After admin finalization (BR-6), the finalized fee data is presented to the **accounting team / cashier** for payment collection on the **Payment Collection Screen**. The screen lists enquiries in **FEES_FINALIZED** status. The student may pay the full amount or partial amounts using various payment modes.
+Once fees are finalized, balance collection is allowed at any pre-admission stage, including DOCUMENTS_SUBMITTED and DOCUMENTS_VERIFIED, except for NOT_INTERESTED, CLOSED, CANCELLED, ADMITTED, and converted enquiries. Payments collected after document submission/verification preserve the current enquiry status and do not move it backward. Admitted students use the student fee collection flow.
 
 ### Key Points
 
@@ -410,6 +411,8 @@ The enquiry status transitions automatically based on actions taken in the syste
 | **DOCUMENTS_VERIFIED** | All mandatory submitted documents have been verified | Document verification completed (BR-9) |
 | **ADMITTED** | Enquiry has been converted to an admission and student record | Complete Admission (BR-10) |
 | **CLOSED** | Enquiry closed without conversion | Admin manually closes |
+
+Once fees are finalized, balance collection is allowed at any pre-admission stage, including DOCUMENTS_SUBMITTED and DOCUMENTS_VERIFIED, except for NOT_INTERESTED, CLOSED, CANCELLED, ADMITTED, and converted enquiries. Payments collected after document submission/verification preserve the current enquiry status and do not move it backward. Admitted students use the student fee collection flow.
 
 ### Status Transition Diagram
 
@@ -500,7 +503,8 @@ Once the enquiry reaches **DOCUMENTS_VERIFIED** status, the system provides the 
 4. The enquiry retains a reference to the created student (`convertedStudentId`).
 5. The conversion is **irreversible** — once converted, the enquiry cannot be reverted.
 6. A roll number is generated for the student based on the institution's numbering scheme.
-7. Admission form view, print, and download outputs must use the same printable template. The document checklist is displayed in two balanced columns: up to 20 documents render as 10 rows, 23 documents render as 12 rows, 31 documents render as 16 rows, and so on using `ceil(document count / 2)` rows. The download action must produce a PDF file, not an HTML file.
+7. Admission form view, print, and download outputs must use the same printable template. The official printable admission form is optimized for A4 portrait output, excludes the Academic Qualifications section, and must keep text readable in print preview. The document checklist is displayed in two balanced columns: up to 20 documents render as 10 rows, 23 documents render as 12 rows, 31 documents render as 16 rows, and so on using `ceil(document count / 2)` rows. The passport photo submitted as the `PASSPORT_PHOTO` admission document must be shown in the photo box when available. The download action must produce the same printable output as view/print, not a separate layout.
+8. Admission document checklists are based on the student's program's current required-document mapping. If a required document is added to a program after admission creation, existing admissions remain valid and the new document appears as `NOT_UPLOADED` so staff can upload it from the admission/student documents screen. If a document type is removed from the program requirements after it was already collected, the uploaded document and verification history are preserved and shown as a collected document that is no longer currently required; it is not deleted and is not counted as missing.
 
 ### Permissions
 
@@ -1371,6 +1375,8 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-05-25 | BR-10 | Admission/student document screens now prioritize missing required documents at the top, allow uploading newly required documents for existing admissions, and preserve previously collected documents that were later removed from program requirements as "not currently required" records. | — |
+| 2026-05-25 | BR-10 | Admission printable template updated for one-page A4 print preview: Academic Qualifications are excluded from official View/Print/Download output, print text readability is improved, the document checklist remains two-column, and the submitted `PASSPORT_PHOTO` document is the source for the admission-form passport photo. | — |
 | 2026-05-25 | BR-10 | Admission form view/print/download standardized on one printable template; document checklist now renders in two balanced columns using `ceil(document count / 2)` rows (20→10, 23→12, 31→16), and the download action generates PDF instead of HTML. | — |
 | 2026-05-21 | BR-30, BR-3, BR-6, BR-23 | **BR-30 post-implementation fixes (review pass):** (1) Enquiry form — gender change now re-fetches fee; fee banner shows contextual "what's still needed" text; programs without courses correctly trigger fee calculation (`courseId` removed from null-guard in `applyAuthoritativeFees`); `updateCourseValidator` triggers fee load for no-course programs; `tryLoadFeeGuideline` guard prevents misleading "not found" when courses exist but none is selected. (2) Fee finalization — Quota filter dropdown added to toolbar; `filteredEnquiries` includes quota in text search; `applyEqualSplitFallback` uses actual program `durationYears` (not hardcoded 4); `discountReason` signal synced to FormControl; "Fee Basis" group label + divider added to info panel. (3) API layer — `applyAuthoritativeFees` error message now shows fee state name (not raw ID); `GET /fee-structures/grouped` extended to accept `quota`, `feeStateId`, `gender`, `studentType` as optional filters; `DataIntegrityViolationException` handler improved with specific messages for `uq_fee_structure_group` and `uq_fee_structure_group_fee_type` constraint violations. | — |
 | 2026-05-21 | BR-30, BR-1, BR-3, BR-6, BR-12 | **Multi-dimension fee structure (BR-30):** Fee structure uniqueness key extended to `program + academicYear + course + quota + feeState + gender + studentType`. New `FeeState` master (Tamil Nadu = default, Other State = fallback); new `FeeStructureGroup` entity; `FeeStructure` items linked to group. `Enquiry` gains `admissionQuota` and `feeState` FK. Fee lookup on enquiry form uses 6 fields; state auto-derived from address; fallback to Other State if no exact match; submission blocked if no configuration found. Enquiry form adds Admission Quota dropdown (default: Management). Fee finalization shows all 4 dimensions as read-only context rows. Migrations V165–V168. BR-1 uniqueness rule amended; BR-3 fee-load flow rewritten; BR-6 finalization amended; BR-12 studentType noted as one of 4 dimensions. | — |

@@ -223,12 +223,12 @@
 }
 
 .theme-dropdown-panel {
-  position:      absolute;
-  top:           calc(100% + 6px);
-  left:          0;
-  z-index:       100;
+  position:      fixed;
+  top:           0;   /* overridden by [style.top.px] binding */
+  left:          0;   /* overridden by [style.left.px] binding */
+  z-index:       9999;
   min-width:     200px;
-  max-height:    280px;
+  max-height:    320px;
   overflow-y:    auto;
   background:    rgba(30, 32, 48, .96);
   backdrop-filter: blur(20px);

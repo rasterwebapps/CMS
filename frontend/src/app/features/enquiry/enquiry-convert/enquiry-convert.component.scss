@@ -80,6 +80,12 @@
   transition: opacity 0.15s;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+.btn-view {
+  @extend %success-btn-base;
+  background: var(--cms-bg-surface-2, #f1f5f9);
+  border: 1.5px solid var(--cms-primary, #1a237e);
+  color: var(--cms-primary, #1a237e);
+}
 .btn-print {
   @extend %success-btn-base;
   background: var(--cms-color-primary, #1a237e);
@@ -287,7 +293,17 @@
   line-height: 1.6;
 }
 // ── Form ──────────────────────────────────────────────────────
-.conv-form { display: flex; flex-direction: column; gap: 16px; }
+.conv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
 .form-section {
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
@@ -462,7 +478,8 @@
   border-radius: 10px;
   border: 1px solid rgba(217, 119, 6, 0.3);
   background: rgba(254, 243, 199, 0.6);
-  margin-bottom: 16px;
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
 
   :host-context(.dark) & {
     background: rgba(217, 119, 6, 0.1);

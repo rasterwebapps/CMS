@@ -6,6 +6,12 @@
       <span class="progress-label">Documents Verified</span>
       <span class="progress-count">{{ verifiedCount() }} / {{ totalCount() }}</span>
     </div>
+    @if (missingRequiredCount() > 0) {
+      <div class="progress-alert">
+        <mat-icon>warning_amber</mat-icon>
+        {{ missingRequiredCount() }} required document{{ missingRequiredCount() === 1 ? '' : 's' }} missing
+      </div>
+    }
     <div class="progress-bar-track">
       <div class="progress-bar-fill" [style.width.%]="progressPct()"></div>
     </div>
@@ -20,124 +26,147 @@
     <cms-empty-state
       icon="folder_open"
       title="No documents required"
-      message="No document requirements are configured for this profile."
+      subtitle="No document requirements are configured for this profile."
     />
   } @else {
-    <div class="slots-list">
-      @for (slot of slots(); track slot.documentType) {
-        <div class="slot-card" [class.slot-card--verified]="slot.status === 'VERIFIED'"
-             [class.slot-card--rejected]="slot.status === 'REJECTED'">
-
-          <div class="slot-card__left">
-            <div class="doc-icon-wrap">
-              <mat-icon>{{ docIcon(slot.documentType) }}</mat-icon>
-            </div>
-            <div class="slot-card__info">
-              <div class="slot-card__name">
-                {{ slot.label }}
-                @if (slot.isMandatory) {
-                  <span class="mandatory-dot" matTooltip="Required">*</span>
-                }
+    <div class="slot-groups">
+      @for (group of slotGroups(); track group.key) {
+        <section class="slot-group" [class.slot-group--missing]="group.key === 'missing-required'">
+          <div class="slot-group__header">
+            <div class="slot-group__title-row">
+              <mat-icon>{{ group.icon }}</mat-icon>
+              <div>
+                <h3 class="slot-group__title">{{ group.title }}</h3>
+                <p class="slot-group__subtitle">{{ group.subtitle }}</p>
               </div>
-              @if (slot.status === 'REJECTED' && slot.remarks) {
-                <div class="rejection-reason">
-                  <mat-icon class="rejection-reason__icon">error_outline</mat-icon>
-                  {{ slot.remarks }}
-                </div>
-              }
-              @if (slot.verifiedBy && slot.status === 'VERIFIED') {
-                <div class="verified-by">
-                  Verified by {{ slot.verifiedBy }}
-                </div>
-              }
             </div>
+            <span class="slot-group__count">{{ group.slots.length }}</span>
           </div>
 
-          <div class="slot-card__right">
-            <cms-status-badge [status]="slot.status" />
+          <div class="slots-list">
+            @for (slot of group.slots; track slot.documentType) {
+              <div class="slot-card"
+                   [class.slot-card--verified]="slot.status === 'VERIFIED'"
+                   [class.slot-card--rejected]="slot.status === 'REJECTED'"
+                   [class.slot-card--missing]="slot.isMandatory && slot.status === 'NOT_UPLOADED'"
+                   [class.slot-card--extra]="!slot.isMandatory">
 
-            @if (slot.saving) {
-              <mat-spinner diameter="20" />
-            } @else {
-              <div class="slot-actions">
-                @if (slot.hasFile) {
-                  <button mat-icon-button matTooltip="View / Download" (click)="download(slot)">
-                    <mat-icon>download</mat-icon>
-                  </button>
-                }
+                <div class="slot-card__left">
+                  <div class="doc-icon-wrap">
+                    <mat-icon>{{ docIcon(slot.documentType) }}</mat-icon>
+                  </div>
+                  <div class="slot-card__info">
+                    <div class="slot-card__name">
+                      {{ slot.label }}
+                      @if (slot.isMandatory) {
+                        <span class="mandatory-dot" matTooltip="Required">*</span>
+                      } @else {
+                        <span class="optional-chip">No longer required</span>
+                      }
+                    </div>
+                    @if (!slot.isMandatory) {
+                      <div class="legacy-note">
+                        This document was already collected and is preserved, but it is not part of the current program checklist.
+                      </div>
+                    }
+                    @if (slot.status === 'REJECTED' && slot.remarks) {
+                      <div class="rejection-reason">
+                        <mat-icon class="rejection-reason__icon">error_outline</mat-icon>
+                        {{ slot.remarks }}
+                      </div>
+                    }
+                    @if (slot.verifiedBy && slot.status === 'VERIFIED') {
+                      <div class="verified-by">
+                        Verified by {{ slot.verifiedBy }}
+                      </div>
+                    }
+                  </div>
+                </div>
 
-                @if (slot.status === 'VERIFIED' && selfService) {
-                  <!-- Verified — locked: no upload or delete allowed -->
-                  <span class="lock-badge" matTooltip="Verified by admin — no further changes allowed">
-                    <mat-icon>lock</mat-icon>
-                  </span>
-                } @else {
-                  @if (canManage && slot.status !== 'VERIFIED') {
-                    <button
-                      mat-icon-button
-                      [matTooltip]="slot.status === 'REJECTED' ? 'Re-upload document' : slot.hasFile ? 'Replace document' : 'Upload document'"
-                      (click)="triggerUpload(slot)"
-                    >
-                      <mat-icon>{{ slot.hasFile ? 'swap_horiz' : 'upload_file' }}</mat-icon>
-                    </button>
+                <div class="slot-card__right">
+                  <cms-status-badge [status]="slot.status" />
+
+                  @if (slot.saving) {
+                    <mat-spinner diameter="20" />
+                  } @else {
+                    <div class="slot-actions">
+                      @if (slot.hasFile) {
+                        <button mat-icon-button matTooltip="View / Download" (click)="download(slot)">
+                          <mat-icon>download</mat-icon>
+                        </button>
+                      }
+
+                      @if (slot.status === 'VERIFIED' && selfService) {
+                        <span class="lock-badge" matTooltip="Verified by admin — no further changes allowed">
+                          <mat-icon>lock</mat-icon>
+                        </span>
+                      } @else {
+                        @if (canManage && slot.status !== 'VERIFIED') {
+                          <button
+                            mat-icon-button
+                            [matTooltip]="slot.status === 'REJECTED' ? 'Re-upload document' : slot.hasFile ? 'Replace document' : 'Upload document'"
+                            (click)="triggerUpload(slot)"
+                          >
+                            <mat-icon>{{ slot.hasFile ? 'swap_horiz' : 'upload_file' }}</mat-icon>
+                          </button>
+                        }
+
+                        @if (selfService && slot.hasFile && slot.status !== 'VERIFIED') {
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            matTooltip="Remove document"
+                            (click)="deleteSlot(slot)"
+                          >
+                            <mat-icon>delete_outline</mat-icon>
+                          </button>
+                        }
+
+                        @if (canVerify && slot.hasFile && slot.status === 'UPLOADED') {
+                          <button
+                            mat-icon-button
+                            color="primary"
+                            matTooltip="Verify document"
+                            (click)="verify(slot)"
+                          >
+                            <mat-icon>check_circle_outline</mat-icon>
+                          </button>
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            matTooltip="Reject document"
+                            (click)="startReject(slot)"
+                          >
+                            <mat-icon>cancel</mat-icon>
+                          </button>
+                        }
+                      }
+                    </div>
                   }
-
-                  @if (selfService && slot.hasFile && slot.status !== 'VERIFIED') {
-                    <button
-                      mat-icon-button
-                      color="warn"
-                      matTooltip="Remove document"
-                      (click)="deleteSlot(slot)"
-                    >
-                      <mat-icon>delete_outline</mat-icon>
-                    </button>
-                  }
-
-                  @if (canVerify && slot.hasFile && slot.status === 'UPLOADED') {
-                    <button
-                      mat-icon-button
-                      color="primary"
-                      matTooltip="Verify document"
-                      (click)="verify(slot)"
-                    >
-                      <mat-icon>check_circle_outline</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      color="warn"
-                      matTooltip="Reject document"
-                      (click)="startReject(slot)"
-                    >
-                      <mat-icon>cancel</mat-icon>
-                    </button>
-                  }
-                }
+                </div>
               </div>
+
+              @if (rejectingType === slot.documentType) {
+                <div class="reject-prompt">
+                  <span class="reject-prompt__label">Rejection reason</span>
+                  <input
+                    class="reject-prompt__input"
+                    [(ngModel)]="rejectReason"
+                    placeholder="Explain why this document is rejected…"
+                    (keydown.enter)="confirmReject(slot)"
+                    (keydown.escape)="cancelReject()"
+                    autofocus
+                  />
+                  <div class="reject-prompt__actions">
+                    <button mat-flat-button color="warn" [disabled]="!rejectReason.trim()"
+                            (click)="confirmReject(slot)">Confirm Reject</button>
+                    <button mat-button (click)="cancelReject()">Cancel</button>
+                  </div>
+                </div>
+              }
             }
           </div>
-
-        </div>
-
-        <!-- Inline reject reason prompt -->
-        @if (rejectingType === slot.documentType) {
-          <div class="reject-prompt">
-            <span class="reject-prompt__label">Rejection reason</span>
-            <input
-              class="reject-prompt__input"
-              [(ngModel)]="rejectReason"
-              placeholder="Explain why this document is rejected…"
-              (keydown.enter)="confirmReject(slot)"
-              (keydown.escape)="cancelReject()"
-              autofocus
-            />
-            <div class="reject-prompt__actions">
-              <button mat-flat-button color="warn" [disabled]="!rejectReason.trim()"
-                      (click)="confirmReject(slot)">Confirm Reject</button>
-              <button mat-button (click)="cancelReject()">Cancel</button>
-            </div>
-          </div>
-        }
-
+        </section>
       }
     </div>
   }

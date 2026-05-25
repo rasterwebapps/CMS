@@ -198,6 +198,7 @@ export interface EnquiryConversionRequest {
   communityCategory?: string | null;
   caste?: string | null;
   bloodGroup?: string | null;
+  physicalDisability?: boolean | null;
 
   // Student family information
   fatherName?: string | null;

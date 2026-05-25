@@ -32,6 +32,7 @@ public record EnquiryConversionRequest(
     String communityCategory,
     String caste,
     String bloodGroup,
+    Boolean physicalDisability,
 
     // ── Student family information ───────────────────────────────────────
     String fatherName,
@@ -48,4 +49,21 @@ public record EnquiryConversionRequest(
     // ── Admission declaration ────────────────────────────────────────────
     String declarationPlace,
     LocalDate declarationDate
-) {}
+) {
+    public EnquiryConversionRequest(String firstName, String lastName, String email, String phone,
+                                    Integer semester, LocalDate admissionDate, Long joiningAcademicYearId,
+                                    LocalDate applicationDate, Boolean parentConsentGiven,
+                                    Boolean applicantConsentGiven, LocalDate dateOfBirth, Gender gender,
+                                    String aadharNumber, String nationality, String religion,
+                                    String communityCategory, String caste, String bloodGroup,
+                                    String fatherName, String fatherPhone, String fatherEmail,
+                                    String motherName, String motherPhone, String motherEmail,
+                                    String parentMobile, AddressRequest address,
+                                    String declarationPlace, LocalDate declarationDate) {
+        this(firstName, lastName, email, phone, semester, admissionDate, joiningAcademicYearId,
+            applicationDate, parentConsentGiven, applicantConsentGiven, dateOfBirth, gender, aadharNumber,
+            nationality, religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone,
+            fatherEmail, motherName, motherPhone, motherEmail, parentMobile, address, declarationPlace,
+            declarationDate);
+    }
+}

@@ -212,14 +212,23 @@
               </div>
             </div>
 
-            <div class="field-group">
-              <label for="stu-blood" class="field-label">Blood Group</label>
-              <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
-                <option value="">— Select —</option>
-                @for (bg of bloodGroups(); track bg.id) {
-                  <option [value]="bg.code">{{ bg.name }}</option>
-                }
-              </select>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-blood" class="field-label">Blood Group</label>
+                <select id="stu-blood" class="field-select field-select--narrow" formControlName="bloodGroup">
+                  <option value="">— Select —</option>
+                  @for (bg of bloodGroups(); track bg.id) {
+                    <option [value]="bg.code">{{ bg.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label class="field-check">
+                  <input type="checkbox" formControlName="physicalDisability" />
+                  Physical Disability
+                </label>
+              </div>
             </div>
 
             <!-- ── Family Details ──────────────────────────────── -->

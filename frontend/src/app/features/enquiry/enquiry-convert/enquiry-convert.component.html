@@ -26,6 +26,14 @@
       <p class="success-student">{{ successState()!.studentName }}</p>
 
       <div class="success-actions">
+        <button class="btn-view" type="button" (click)="viewForm()" [disabled]="!printReady()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          View Form
+        </button>
         <button class="btn-print" type="button" (click)="printForm()" [disabled]="!printReady()">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -423,6 +431,12 @@
                 @if (form.get('bloodGroup')?.invalid && form.get('bloodGroup')?.touched) {
                   <p class="field-error">Blood group is required</p>
                 }
+              </div>
+              <div class="field-group">
+                <label class="consent-label-wrap">
+                  <input type="checkbox" class="consent-checkbox" formControlName="physicalDisability" />
+                  <span class="consent-label">Physical Disability</span>
+                </label>
               </div>
             </div>
           </div>

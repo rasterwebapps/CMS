@@ -206,3 +206,29 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 - The header title reads **Create Admission** (not "Convert Enquiry to Student").
 
 **Status:** NOT TESTED
+
+---
+
+## TC-EAC-011: Physical Disability is captured during Create Admission
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- An enquiry exists in `DOCUMENTS_VERIFIED` status with all mandatory documents verified.
+
+**Steps:**
+1. Navigate to `/enquiries/{id}/convert` for the verified enquiry.
+2. Fill all required admission, personal, demographics, family, address, declaration, and consent fields.
+3. In **Demographics**, check **Physical Disability**.
+4. Click **Create Admission**.
+5. Open the created student detail page.
+6. Open the created admission detail page and click **View Form**.
+
+**Expected Result:**
+- Admission creation succeeds.
+- The created student API response contains `physicalDisability: true`.
+- Student detail **Personal & Family** tab shows **Physical Disability = Yes**.
+- Admission detail **Student Snapshot** shows **Physical Disability = Yes**.
+- The generated admission form shows **Physical Disability = Yes** in Personal Details.
+
+**Status:** NOT TESTED
+

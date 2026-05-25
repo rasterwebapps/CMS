@@ -66,6 +66,7 @@ public record StudentRequest(
     String communityCategory,
     String caste,
     String bloodGroup,
+    Boolean physicalDisability,
 
     // Family information
     String fatherName,
@@ -93,7 +94,7 @@ public record StudentRequest(
                           String motherPhone, String motherEmail, String parentMobile, AddressRequest address) {
         this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specializationDepartmentId,
             yearOfStudy, admissionDate, labBatch, status, dateOfBirth, gender, aadharNumber, nationality,
-            religion, communityCategory, caste, bloodGroup, fatherName, fatherPhone, fatherEmail,
+            religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail,
             motherName, motherPhone, motherEmail, parentMobile, false, null, null, address);
     }
 }

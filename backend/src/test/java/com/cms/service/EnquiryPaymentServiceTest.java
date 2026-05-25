@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,9 +29,11 @@ import com.cms.model.EnquiryPayment;
 import com.cms.model.ReferralType;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.PaymentMode;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
+import com.cms.repository.TermBillingScheduleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +51,12 @@ class EnquiryPaymentServiceTest {
     @Mock
     private UnifiedReceiptService unifiedReceiptService;
 
+    @Mock
+    private AcademicYearRepository academicYearRepository;
+
+    @Mock
+    private TermBillingScheduleRepository billingScheduleRepository;
+
     private EnquiryPaymentService enquiryPaymentService;
 
     private Enquiry testEnquiry;
@@ -56,7 +65,7 @@ class EnquiryPaymentServiceTest {
     void setUp() {
         enquiryPaymentService = new EnquiryPaymentService(
             enquiryPaymentRepository, enquiryRepository, statusHistoryRepository,
-            new ObjectMapper(), unifiedReceiptService
+            new ObjectMapper(), unifiedReceiptService, academicYearRepository, billingScheduleRepository
         );
 
         testEnquiry = new Enquiry("Ravi Kumar", "ravi@email.com", "9876543210", null,
@@ -85,7 +94,7 @@ class EnquiryPaymentServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
-        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("100000.00"));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
 
         EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(1L, request, "cashier");
@@ -116,7 +125,7 @@ class EnquiryPaymentServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
-        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("50000.00"));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
 
         EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(1L, request, "cashier");
@@ -144,7 +153,94 @@ class EnquiryPaymentServiceTest {
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("FEES_FINALIZED or PARTIALLY_PAID");
+            .hasMessageContaining("Payment cannot be collected for enquiry status: ENQUIRED");
+    }
+
+    @Test
+    void shouldCollectPaymentInDocumentsSubmittedWithoutRegressingStatus() {
+        testEnquiry.setStatus(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("30000.00"),
+            LocalDate.of(2024, 7, 1),
+            PaymentMode.UPI,
+            "TXN123",
+            "Balance after document submission"
+        );
+
+        EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("30000.00"), "RCP-20240701-IJKL9012");
+        savedPayment.setCreatedAt(Instant.now());
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("20000.00"));
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
+
+        EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(1L, request, "cashier");
+
+        assertThat(response.newStatus()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED.name());
+        assertThat(testEnquiry.getStatus()).isEqualTo(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        verify(enquiryRepository, never()).save(any(Enquiry.class));
+        verify(statusHistoryRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectPaymentForNotInterestedStatus() {
+        testEnquiry.setStatus(EnquiryStatus.NOT_INTERESTED);
+
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+
+        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Payment cannot be collected for enquiry status: NOT_INTERESTED");
+    }
+
+    @Test
+    void shouldRejectPaymentForClosedStatus() {
+        testEnquiry.setStatus(EnquiryStatus.CLOSED);
+
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+
+        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Payment cannot be collected for enquiry status: CLOSED");
+    }
+
+    @Test
+    void shouldRejectPaymentForAdmittedStatus() {
+        testEnquiry.setStatus(EnquiryStatus.ADMITTED);
+
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+
+        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Payment cannot be collected for enquiry status: ADMITTED");
+    }
+
+    @Test
+    void shouldRejectOverpayment() {
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("20000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+        );
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("90000.00"));
+
+        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Payment amount cannot exceed outstanding balance");
+        verify(enquiryPaymentRepository, never()).save(any(EnquiryPayment.class));
     }
 
     @Test

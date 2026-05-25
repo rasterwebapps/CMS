@@ -188,3 +188,37 @@ Related: V91 migration, `DocumentType` enum refactor, new `/document-types` and 
 
 **Status:** NOT TESTED
 
+---
+## TC-DOCTYPES-011: Newly added program document appears as missing for existing admissions
+**Preconditions:**
+- An admission already exists for a student in a program.
+- The program's required document list does not currently include `COMMUNITY_CERTIFICATE`.
+- User is logged in with `DOCUMENT_SUBMISSION_MANAGE` permission.
+**Steps:**
+1. Open the program edit page and add `Community Certificate` to the required documents.
+2. Save the program required documents.
+3. Open the existing admission detail page and select the **Documents** tab.
+4. Upload a file for `Community Certificate` from the missing required documents section.
+**Expected Result:**
+- The existing admission remains admitted and is not reverted or cancelled.
+- `Community Certificate` appears under **Missing Required Documents** with status `NOT_UPLOADED`.
+- The Upload action is available for the missing document.
+- After upload, the document moves to **Uploaded / Pending Verification** with status `UPLOADED`.
+**Status:** NOT TESTED
+---
+## TC-DOCTYPES-012: Removed program document remains preserved for existing admissions
+**Preconditions:**
+- An admission already exists for a student in a program.
+- `10th Marksheet` is currently required for the program and has already been uploaded or verified for the admission.
+- User is logged in with `PROGRAM_MANAGE` and document-view permission.
+**Steps:**
+1. Open the program edit page and remove `10th Marksheet` from the required documents.
+2. Save the program required documents.
+3. Open the existing admission detail page and select the **Documents** tab.
+**Expected Result:**
+- The already collected `10th Marksheet` is not deleted.
+- Its uploaded file, status, and verification history remain available.
+- It is not shown as a missing required document.
+- It appears under **Collected Documents Not Currently Required** with a "No longer required" indicator.
+- The admission remains valid and admitted.
+**Status:** NOT TESTED

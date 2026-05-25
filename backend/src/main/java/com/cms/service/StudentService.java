@@ -119,6 +119,7 @@ public class StudentService {
         student.setCommunityCategory(request.communityCategory());
         student.setCaste(request.caste());
         student.setBloodGroup(request.bloodGroup());
+        student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
 
         // Family information
         student.setFatherName(request.fatherName());
@@ -235,6 +236,7 @@ public class StudentService {
         student.setCommunityCategory(request.communityCategory());
         student.setCaste(request.caste());
         student.setBloodGroup(request.bloodGroup());
+        student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
 
         // Family information
         student.setFatherName(request.fatherName());
@@ -346,6 +348,7 @@ public class StudentService {
             student.getCommunityCategory(),
             student.getCaste(),
             student.getBloodGroup(),
+            student.isPhysicalDisability(),
             student.getFatherName(),
             student.getFatherPhone(),
             student.getFatherEmail(),

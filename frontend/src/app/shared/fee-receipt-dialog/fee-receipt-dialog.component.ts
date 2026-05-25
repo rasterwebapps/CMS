@@ -3,7 +3,7 @@ import { InrPipe } from '../pipes/inr.pipe';
 import { AppDatePipe } from '../pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../pipes/payment-mode-label.pipe';
 import { ReceiptDisplayData } from '../../features/finance/finance.model';
-import { downloadFeeReceipt, printFeeReceipt, ReceiptPrintData } from '../utils/print-receipt.utils';
+import { downloadFeeReceipt, printFeeReceipt, shareReceiptPdf, ReceiptPrintData } from '../utils/print-receipt.utils';
 
 const ONES: string[] = [
   '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -51,39 +51,34 @@ export class FeeReceiptDialogComponent {
     this.closed.emit();
   }
 
-  protected print(): void {
+  protected async print(): Promise<void> {
     const r = this.receipt();
     if (!r) return;
-    printFeeReceipt(this.toReceiptPrintData(r));
+    await printFeeReceipt(this.toReceiptPrintData(r));
     this.printed.emit();
   }
 
-  protected download(): void {
+  protected async download(): Promise<void> {
     const r = this.receipt();
     if (!r) return;
-    downloadFeeReceipt(this.toReceiptPrintData(r));
+    await downloadFeeReceipt(this.toReceiptPrintData(r));
   }
 
   protected async share(): Promise<void> {
     const r = this.receipt();
     if (!r || !this.hasShare) return;
-    try {
-      await navigator.share({
-        title: `Fee Receipt – ${r.receiptNumber}`,
-        text: [
-          `SKS College Of Nursing`,
-          `Receipt No: ${r.receiptNumber}`,
-          `Name: ${r.payerName}`,
-          `Amount: ₹${r.amountPaid.toLocaleString('en-IN')}`,
-          `Mode: ${r.paymentMode}`,
-          r.installmentsCovered ? `Towards: ${r.installmentsCovered}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      });
-    } catch {
-      /* User cancelled or share API error — silently ignore */
-    }
+    const title = `Fee Receipt – ${r.receiptNumber}`;
+    const text = [
+      `SKS College Of Nursing`,
+      `Receipt No: ${r.receiptNumber}`,
+      `Name: ${r.payerName}`,
+      `Amount: ₹${r.amountPaid.toLocaleString('en-IN')}`,
+      `Mode: ${r.paymentMode}`,
+      r.installmentsCovered ? `Towards: ${r.installmentsCovered}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    await shareReceiptPdf(this.toReceiptPrintData(r), title, text);
   }
 
   /**

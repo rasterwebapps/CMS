@@ -182,7 +182,7 @@ export class FeeCollectionComponent implements OnInit {
     }).subscribe({
       next: ({ enquiries, students }) => {
         const enquiryEntries: FeeEntry[] = enquiries
-          .filter(e => e.status === 'FEES_FINALIZED' || e.status === 'PARTIALLY_PAID')
+          .filter(e => this.canCollectEnquiryBalance(e))
           .map(e => this.enquiryToEntry(e));
 
         const studentEntries: FeeEntry[] = (students.students ?? [])
@@ -215,8 +215,14 @@ export class FeeCollectionComponent implements OnInit {
     if (entry) {
       this.selectEntry(entry);
     } else {
-      this.toast.info('This enquiry has no outstanding balance');
+      this.toast.info('This enquiry is not eligible for balance collection');
     }
+  }
+
+  private canCollectEnquiryBalance(enquiry: Enquiry): boolean {
+    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'ADMITTED', 'CONVERTED'];
+    return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
+      !blockedStatuses.includes(enquiry.status);
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {

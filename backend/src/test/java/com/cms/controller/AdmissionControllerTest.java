@@ -63,7 +63,7 @@ class AdmissionControllerTest {
 
     private AdmissionResponse createAdmissionResponse(Long id) {
         return new AdmissionResponse(
-            id, 1L, "John Doe", "ADM-2425-0001", "CS001", "Computer Science", null, 1, "ACTIVE",
+            id, 1L, "John Doe", "ADM-2425-0001", "CS001", "Computer Science", null, 1, false, "ACTIVE",
             100L, "2024-2025", 2025,
             LocalDate.of(2024, 1, 15),
             "Chennai", LocalDate.of(2024, 1, 15), true, true,

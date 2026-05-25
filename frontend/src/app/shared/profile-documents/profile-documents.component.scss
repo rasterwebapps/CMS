@@ -32,6 +32,25 @@
   color: var(--mat-sys-primary);
 }
 
+.progress-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mat-sys-error-container) 55%, transparent);
+  color: var(--mat-sys-error);
+  font-size: 12px;
+  font-weight: 600;
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
 .progress-bar-track {
   height: 6px;
   border-radius: 3px;
@@ -54,6 +73,77 @@
   padding: 24px 0;
   color: var(--mat-sys-on-surface-variant);
   font-size: 14px;
+}
+
+// ── Grouped slot list ───────────────────────────────────────────
+.slot-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.slot-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 14px;
+  background: var(--mat-sys-surface-container-lowest);
+
+  &--missing {
+    border-color: color-mix(in srgb, var(--mat-sys-error) 45%, var(--mat-sys-outline-variant));
+    background: color-mix(in srgb, var(--mat-sys-error-container) 16%, var(--mat-sys-surface));
+  }
+}
+
+.slot-group__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.slot-group__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: var(--mat-sys-primary);
+    flex-shrink: 0;
+  }
+}
+
+.slot-group__title {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.slot-group__subtitle {
+  margin: 2px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.slot-group__count {
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 // ── Slot list ──────────────────────────────────────────────────
@@ -83,6 +173,15 @@
   &--rejected {
     border-color: var(--mat-sys-error);
     background: color-mix(in srgb, var(--mat-sys-error-container) 30%, transparent);
+  }
+
+  &--missing {
+    border-color: color-mix(in srgb, var(--mat-sys-error) 40%, var(--mat-sys-outline-variant));
+  }
+
+  &--extra {
+    border-style: dashed;
+    background: color-mix(in srgb, var(--mat-sys-surface-container-high) 45%, transparent);
   }
 
   &__left {
@@ -133,6 +232,26 @@
   color: var(--mat-sys-error);
   font-weight: 700;
   margin-left: 2px;
+}
+
+.optional-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.legacy-note {
+  max-width: 680px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .rejection-reason {
@@ -193,7 +312,6 @@
   }
 }
 
-
 // ── Self-service lock badge (VERIFIED state) ───────────────────────────────
 .lock-badge {
   display: inline-flex;
@@ -209,5 +327,28 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .slot-group,
+  .slot-card {
+    padding: 12px;
+  }
+
+  .slot-group__header,
+  .slot-card,
+  .slot-card__right {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .slot-card__right {
+    gap: 8px;
+  }
+
+  .slot-actions {
+    justify-content: flex-start;
+    min-height: 40px;
   }
 }

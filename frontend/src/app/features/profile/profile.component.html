@@ -407,22 +407,7 @@
                   <span class="theme-pill__name">{{ activeSwatch().name }}</span>
                   <mat-icon class="theme-pill__chevron">expand_more</mat-icon>
                 </button>
-                @if (themePickerOpen()) {
-                  <div class="theme-dropdown-panel" role="listbox">
-                    @for (sw of swatches; track sw.id) {
-                      <button class="theme-option-row" type="button" role="option"
-                              [class.active]="sw.id === activeSwatch().id"
-                              [attr.aria-selected]="sw.id === activeSwatch().id"
-                              (click)="selectTheme(sw)">
-                        <span class="theme-option-row__dot" [style.background]="sw.hex"></span>
-                        <span class="theme-option-row__name">{{ sw.name }}</span>
-                        @if (sw.id === activeSwatch().id) {
-                          <mat-icon class="theme-option-row__check">check</mat-icon>
-                        }
-                      </button>
-                    }
-                  </div>
-                }
+
               </div>
             </div>
 
@@ -664,6 +649,27 @@
       </div>
 
     </aside>
+  }
+
+  <!-- ══ Theme colour dropdown — rendered at profile-page root so position:fixed
+       is not clipped by backdrop-filter on .glass-card children ══ -->
+  @if (themePickerOpen()) {
+    <div class="theme-dropdown-panel" role="listbox"
+         [style.top.px]="themePickerPos().top"
+         [style.left.px]="themePickerPos().left">
+      @for (sw of swatches; track sw.id) {
+        <button class="theme-option-row" type="button" role="option"
+                [class.active]="sw.id === activeSwatch().id"
+                [attr.aria-selected]="sw.id === activeSwatch().id"
+                (click)="selectTheme(sw)">
+          <span class="theme-option-row__dot" [style.background]="sw.hex"></span>
+          <span class="theme-option-row__name">{{ sw.name }}</span>
+          @if (sw.id === activeSwatch().id) {
+            <mat-icon class="theme-option-row__check">check</mat-icon>
+          }
+        </button>
+      }
+    </div>
   }
 
 </div>

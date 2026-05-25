@@ -1,0 +1,2 @@
+ALTER TABLE students
+    ADD COLUMN IF NOT EXISTS physical_disability BOOLEAN NOT NULL DEFAULT FALSE;

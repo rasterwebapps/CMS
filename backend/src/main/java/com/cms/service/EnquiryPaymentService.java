@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,22 @@ public class EnquiryPaymentService {
     private static final TypeReference<List<TermWiseFeeEntry>> TERM_FEES_TYPE =
         new TypeReference<>() {};
 
+    private static final Set<String> PAYMENT_BLOCKED_STATUSES = Set.of(
+        "NOT_INTERESTED", "CANCELLED", "CLOSED", "ADMITTED", "CONVERTED"
+    );
+
+    private static final Set<EnquiryStatus> PAYMENT_ELIGIBLE_STATUSES = Set.of(
+        EnquiryStatus.FEES_FINALIZED,
+        EnquiryStatus.PARTIALLY_PAID,
+        EnquiryStatus.FEES_PAID,
+        EnquiryStatus.DOCUMENTS_SUBMITTED,
+        EnquiryStatus.DOCUMENTS_VERIFIED
+    );
+
+    private static final Set<EnquiryStatus> PAYMENT_STATUS_FLOW_STATUSES = Set.of(
+        EnquiryStatus.FEES_FINALIZED, EnquiryStatus.PARTIALLY_PAID, EnquiryStatus.FEES_PAID
+    );
+
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
@@ -72,11 +89,20 @@ public class EnquiryPaymentService {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
-        if (enquiry.getStatus() != EnquiryStatus.FEES_FINALIZED
-            && enquiry.getStatus() != EnquiryStatus.PARTIALLY_PAID) {
+        validatePaymentEligibility(enquiry);
+
+        BigDecimal totalPaidBefore = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal outstandingBefore = enquiry.getFinalizedNetFee().subtract(totalPaidBefore).max(BigDecimal.ZERO);
+        if (request.amountPaid().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Payment amount must be greater than zero");
+        }
+        if (outstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No outstanding balance is available for this enquiry");
+        }
+        if (request.amountPaid().compareTo(outstandingBefore) > 0) {
             throw new IllegalStateException(
-                "Payment can only be collected when enquiry is in FEES_FINALIZED or PARTIALLY_PAID status. Current: "
-                    + enquiry.getStatus()
+                "Payment amount cannot exceed outstanding balance: " + outstandingBefore
             );
         }
 
@@ -95,22 +121,19 @@ public class EnquiryPaymentService {
 
         EnquiryPayment saved = enquiryPaymentRepository.save(payment);
 
-        BigDecimal totalPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId);
+        BigDecimal totalPaid = totalPaidBefore.add(request.amountPaid());
 
         EnquiryStatus oldStatus = enquiry.getStatus();
-        EnquiryStatus newStatus;
-        if (enquiry.getFinalizedNetFee() != null && totalPaid.compareTo(enquiry.getFinalizedNetFee()) >= 0) {
-            newStatus = EnquiryStatus.FEES_PAID;
-        } else {
-            newStatus = EnquiryStatus.PARTIALLY_PAID;
+        EnquiryStatus newStatus = resolvePostPaymentStatus(oldStatus, enquiry.getFinalizedNetFee(), totalPaid);
+
+        if (newStatus != oldStatus) {
+            enquiry.setStatus(newStatus);
+            enquiryRepository.save(enquiry);
+
+            statusHistoryRepository.save(new EnquiryStatusHistory(
+                enquiry, oldStatus, newStatus, collectedBy, "Payment collected"
+            ));
         }
-
-        enquiry.setStatus(newStatus);
-        enquiryRepository.save(enquiry);
-
-        statusHistoryRepository.save(new EnquiryStatusHistory(
-            enquiry, oldStatus, newStatus, collectedBy, "Payment collected"
-        ));
 
         String feeCategory = enquiry.getStudentType() == StudentType.HOSTELER
             ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
@@ -128,6 +151,31 @@ public class EnquiryPaymentService {
             towardsLabel, collectedBy, feeCategory);
 
         return toResponse(saved, newStatus);
+    }
+
+    private void validatePaymentEligibility(Enquiry enquiry) {
+        EnquiryStatus status = enquiry.getStatus();
+        if (status == null
+            || PAYMENT_BLOCKED_STATUSES.contains(status.name())
+            || !PAYMENT_ELIGIBLE_STATUSES.contains(status)) {
+            throw new IllegalStateException(
+                "Payment cannot be collected for enquiry status: " + status
+            );
+        }
+        if (enquiry.getFinalizedNetFee() == null || enquiry.getFinalizedNetFee().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Payment can be collected only after fees are finalized");
+        }
+    }
+
+    private EnquiryStatus resolvePostPaymentStatus(EnquiryStatus currentStatus,
+                                                    BigDecimal finalizedNetFee,
+                                                    BigDecimal totalPaid) {
+        if (!PAYMENT_STATUS_FLOW_STATUSES.contains(currentStatus)) {
+            return currentStatus;
+        }
+        return totalPaid.compareTo(finalizedNetFee) >= 0
+            ? EnquiryStatus.FEES_PAID
+            : EnquiryStatus.PARTIALLY_PAID;
     }
 
     public BigDecimal getTotalAmountPaid(Long enquiryId) {

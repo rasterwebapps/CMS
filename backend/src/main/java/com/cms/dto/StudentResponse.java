@@ -38,6 +38,7 @@ public record StudentResponse(
     String communityCategory,
     String caste,
     String bloodGroup,
+    Boolean physicalDisability,
 
     // Family information
     String fatherName,
@@ -83,7 +84,7 @@ public record StudentResponse(
         this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
             courseId, courseName, specializationDepartmentId, specializationDepartmentName, yearOfStudy,
             admissionDate, labBatch, status, dateOfBirth, gender, nationality, religion, communityCategory,
-            caste, bloodGroup, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
+            caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
             null, null, null, null, createdAt, updatedAt);
     }

@@ -17,7 +17,13 @@
     <header id="tour-adm-detail-header" class="profile-hero">
       <div class="profile-hero__top">
         <div class="profile-hero__identity">
-          <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          @if (passportPhotoUrl()) {
+            <div class="profile-hero__avatar profile-hero__avatar--photo" aria-hidden="true">
+              <img [src]="passportPhotoUrl()!" alt="" class="profile-hero__avatar-img" />
+            </div>
+          } @else {
+            <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          }
           <div class="profile-hero__body">
             <div class="page-title-row">
               <h1 class="profile-hero__name">{{ admission()!.studentName }}</h1>
@@ -36,6 +42,9 @@
           </div>
         </div>
         <div class="profile-hero__actions">
+          <button class="btn-secondary" type="button" (click)="viewForm()" title="View Admission Form as PDF">
+            <mat-icon>visibility</mat-icon> View Form
+          </button>
           <button class="btn-secondary" type="button" (click)="printForm()" title="Print Admission Form">
             <mat-icon>print</mat-icon> Print Form
           </button>
@@ -150,6 +159,10 @@
                     <span class="detail-label">Status</span>
                     <cms-status-badge [status]="admission()!.studentStatus || ''" />
                   </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Physical Disability</span>
+                    <span class="detail-value">{{ yesNo(admission()!.physicalDisability) }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -227,67 +240,16 @@
       <!-- Tab 3: Documents -->
       <mat-tab label="Documents">
         <div class="tab-content">
-          @if (documents().length === 0 && getChecklistEntries().length === 0) {
-            <p class="no-data">No documents on record.</p>
-          } @else {
-            <div class="content-card document-card">
-              @if (getChecklistEntries().length > 0) {
-                <section class="document-section">
-                  <p class="overview-card__title">Document Checklist</p>
-                  <div class="checklist-list">
-                    @for (entry of getChecklistEntries(); track entry.type) {
-                      <div class="checklist-row">
-                        <div class="detail-item">
-                          <span class="detail-label">Document Type</span>
-                          <span class="detail-value">{{ entry.type }}</span>
-                        </div>
-                        <div class="detail-item checklist-row__status">
-                          <span class="detail-label">Status</span>
-                          <cms-status-badge [status]="entry.status" />
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </section>
-              }
-
-              @if (documents().length > 0) {
-                <section class="document-section">
-                  <p class="overview-card__title">Documents</p>
-                  <div class="document-list">
-                    @for (doc of documents(); track doc.id) {
-                      <div class="document-row">
-                        <div class="document-row__main">
-                          <div class="document-row__top">
-                            <span class="document-row__type">{{ doc.documentType }}</span>
-                            <cms-status-badge [status]="doc.verificationStatus" />
-                          </div>
-                          <div class="document-row__meta">
-                            <span>Verified by {{ doc.verifiedBy || '—' }}</span>
-                            <span class="dot-sep">·</span>
-                            <span>Uploaded {{ doc.uploadedAt | appDate:'dateTime' }}</span>
-                          </div>
-                        </div>
-                        <div class="document-row__actions">
-                          <button class="btn-small btn-secondary" type="button" (click)="uploadPlaceholder()">
-                            <mat-icon>upload</mat-icon> Upload
-                          </button>
-                          <select
-                            class="field-select field-select--inline"
-                            [value]="doc.verificationStatus"
-                            (change)="verifyDocument(doc, $any($event.target).value)">
-                            @for (status of verificationStatuses; track status) {
-                              <option [value]="status">{{ status }}</option>
-                            }
-                          </select>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </section>
-              }
-            </div>
-          }
+          <div class="content-card document-card document-card--profile">
+            <cms-profile-documents
+              entityType="STUDENT"
+              [entityId]="admission()!.id"
+              [programId]="student()?.programId"
+              [canManage]="canManageDocuments()"
+              [canVerify]="canManageDocuments()"
+              (slotsChange)="handleDocumentSlotsChange()"
+            />
+          </div>
         </div>
       </mat-tab>
     </mat-tab-group>

@@ -16,6 +16,7 @@ export interface AdmissionFormData {
   dateOfBirth: string | null;
   gender: string | null;
   bloodGroup: string | null;
+  physicalDisability: boolean | null;
   aadharNumber: string | null;
   nationality: string | null;
   religion: string | null;
@@ -52,6 +53,8 @@ export interface AdmissionFormData {
     documentType: string;
     verificationStatus: string;
   }>;
+
+  passportPhotoUrl?: string | null;
 
   declarationPlace: string | null;
   declarationDate: string | null;
@@ -129,7 +132,7 @@ function documentStatusColor(status: string): string {
 
 function fieldRow(label: string, value: string | null | undefined, cols = 1): string {
   const v = (value ?? '').trim();
-  const span = cols > 1 ? ` style="grid-column: span ${cols};"` : '';
+  const span = cols > 1 ? ' style="width:100%;"' : '';
   return `<div class="field"${span}>
     <div class="fl">${label}</div>
     <div class="fv">${v || '&nbsp;'}</div>
@@ -176,16 +179,6 @@ function safeFileNamePart(value: string): string {
   );
 }
 
-function waitForFrameAssets(doc: Document): Promise<void> {
-  const imageLoads = Array.from(doc.images).map((image) => {
-    if (image.complete) return Promise.resolve();
-    return new Promise<void>((resolve) => {
-      image.onload = () => resolve();
-      image.onerror = () => resolve();
-    });
-  });
-  return Promise.all(imageLoads).then(() => undefined);
-}
 
 function buildAdmissionFormHtml(
   data: AdmissionFormData,
@@ -232,146 +225,157 @@ function buildAdmissionFormHtml(
     data.parentConsentGiven === true ? 'Yes' : data.parentConsentGiven === false ? 'No' : '';
   const studentConsent =
     data.applicantConsentGiven === true ? 'Yes' : data.applicantConsentGiven === false ? 'No' : '';
+  const physicalDisability =
+    data.physicalDisability === true ? 'Yes' : data.physicalDisability === false ? 'No' : '';
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en"${pdfRender ? ' class="pdf-render"' : ''}>
 <head>
 <meta charset="UTF-8"/>
 <title>Admission Form — ${data.studentName}</title>
 <style>
-  @page { size: A4 portrait; margin: 10mm 12mm; }
+  @page { size: A4 portrait; margin: 0; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 210mm; background: #fff; color: #000; }
+
+  html { background: #fff; }
   body {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 10.5px;
-    line-height: 1.3;
+    font-size: 10.2px;
+    line-height: 1.28;
+    color: #000;
+    background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    display: flex;
-    flex-direction: column;
-    min-height: calc(297mm - 20mm);
+    width: 794px;
   }
-  .page-body { flex: 1; display: flex; flex-direction: column; }
+  .page-body { padding: 22px 30px; box-sizing: border-box; }
+
+  /* Screen-only preview styles — NOT applied during pdf-render iframe capture */
   @media screen {
-    html { background: #888; display: flex; justify-content: center; padding: 20px; }
-    body:not(.pdf-render) { box-shadow: 0 2px 16px rgba(0,0,0,.4); padding: 10mm 12mm; }
+    html:not(.pdf-render) { background: #888; padding: 20px; min-height: 100vh; }
+    body:not(.pdf-render) {
+      margin: 0 auto;
+      box-shadow: 0 2px 16px rgba(0,0,0,.4);
+      min-height: 1060px;
+      display: flex;
+      flex-direction: column;
+    }
+    body:not(.pdf-render) .page-body { flex: 1; display: flex; flex-direction: column; }
+    body:not(.pdf-render) .form-footer { margin-top: auto; }
   }
-  body.pdf-render { width: 210mm; min-height: 297mm; padding: 10mm 12mm; }
 
   /* ── HEADER ── */
   .page-header {
-    display: flex; align-items: flex-start; gap: 14px;
-    border-bottom: 2.5px double #1a237e; padding-bottom: 8px; margin-bottom: 7px;
+    display: flex; align-items: flex-start; gap: 12px;
+    border-bottom: 2.5px double #1a237e;
+    padding-bottom: 6px; margin-bottom: 5px;
   }
-  .logo { width: 72px; height: 72px; flex-shrink: 0; object-fit: contain; }
+  .logo { width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; }
   .college-info { flex: 1; }
   .college-name {
-    font-size: 18px; font-weight: 900; color: #1a237e;
+    font-size: 16px; font-weight: 900; color: #1a237e;
     text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;
   }
-  .college-sub { font-size: 9.5px; color: #333; margin-top: 3px; line-height: 1.65; }
+  .college-sub { font-size: 9.4px; color: #222; margin-top: 3px; line-height: 1.45; }
   .form-badge {
     align-self: center;
-    border: 2px solid #1a237e; padding: 6px 16px;
-    font-size: 11px; font-weight: 900; letter-spacing: 3px;
+    border: 2px solid #1a237e; padding: 5px 12px;
+    font-size: 10px; font-weight: 900; letter-spacing: 2.5px;
     text-transform: uppercase; color: #1a237e; white-space: nowrap;
   }
 
   /* ── SECTIONS ── */
-  .section { margin-bottom: 7px; }
+  .section { margin-bottom: 5px; }
   .section-hdr {
     background: #1a237e; color: #fff;
-    padding: 3.5px 8px; font-size: 8.5px; font-weight: bold;
-    letter-spacing: 1.8px; text-transform: uppercase;
+    padding: 3px 7px; font-size: 8.6px; font-weight: bold;
+    letter-spacing: 1.5px; text-transform: uppercase;
   }
-  .section-body {
-    border: 1px solid #9ba8c4; border-top: none; padding: 6px 8px;
-  }
+  .section-body { border: 1px solid #9ba8c4; border-top: none; padding: 5px 7px; }
 
-  /* ── FIELD GRID ── */
-  .field-grid { display: grid; gap: 6px 12px; }
-  .fg-2 { grid-template-columns: 1fr 1fr; }
-  .fg-3 { grid-template-columns: 1fr 1fr 1fr; }
-  .fg-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  /* ── FIELD GRID (flexbox — html2canvas does not support CSS Grid) ── */
+  .field-grid { display: flex; flex-wrap: wrap; }
+  .field-grid .field { box-sizing: border-box; padding-right: 8px; margin-bottom: 4px; }
+  .fg-2 .field  { width: 50%; }
+  .fg-3 .field  { width: 33.33%; }
+  .fg-4 .field  { width: 25%; }
   .field { display: flex; flex-direction: column; }
   .fl {
-    font-size: 7.5px; font-weight: bold; color: #444;
-    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px;
+    font-size: 7.8px; font-weight: bold; color: #333;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px;
   }
-  .fv {
-    border-bottom: 1px solid #888; min-height: 16px;
-    font-size: 11px; padding: 1px 2px; line-height: 1.4;
-  }
+  .fv { border-bottom: 1px solid #777; min-height: 14px; font-size: 10.8px; padding: 1px 2px; line-height: 1.25; }
 
-  /* ── PERSONAL SECTION LAYOUT (fields + photo) ── */
-  .personal-row { display: flex; gap: 12px; align-items: flex-start; }
+  /* ── PERSONAL SECTION ── */
+  .personal-row { display: flex; gap: 10px; align-items: flex-start; }
   .personal-fields { flex: 1; }
   .photo-placeholder {
-    width: 90px; flex-shrink: 0;
-    border: 1px dashed #777;
-    height: 115px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center;
-    color: #888; font-size: 8.5px; line-height: 1.7;
-    font-style: italic;
+    width: 78px; flex-shrink: 0; border: 1px dashed #777; height: 95px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: #555; font-size: 8.6px; line-height: 1.45; font-style: italic;
   }
-  .photo-placeholder .ph-icon { font-size: 22px; margin-bottom: 4px; color: #ccc; }
+  .photo-placeholder .ph-icon { font-size: 18px; margin-bottom: 3px; color: #ccc; }
+  .passport-photo { width: 78px; height: 95px; object-fit: cover; border: 1px solid #777; flex-shrink: 0; }
 
   /* ── TABLES ── */
-  table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  table { width: 100%; border-collapse: collapse; }
   thead th {
     background: #dde3f0; color: #1a237e;
-    font-size: 8.5px; font-weight: bold; text-transform: uppercase;
-    letter-spacing: 0.5px; padding: 4px 5px;
+    font-size: 8.4px; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 0.4px; padding: 3px 4px;
     border: 1px solid #9ba8c4; text-align: left;
   }
-  tbody td { padding: 3.5px 5px; border: 1px solid #c5cbd8; }
+  tbody td { padding: 2.4px 4px; border: 1px solid #c5cbd8; font-size: 9.2px; }
   tbody tr:nth-child(even) td { background: #f5f6fa; }
-  .doc-checklist-table { table-layout: fixed; font-size: 8.4px; }
-  .doc-checklist-table thead th {
-    padding: 3px 3px; font-size: 7.3px; text-align: center;
-  }
-  .doc-checklist-table tbody td { padding: 2px 3px; line-height: 1.1; }
+  .tac { text-align: center; }
+  .fw { font-weight: bold; }
+  .empty-state { text-align: center; color: #888; font-style: italic; }
+
+  /* ── DOCUMENT CHECKLIST ── */
+  .doc-checklist-table { table-layout: fixed; }
+  .doc-checklist-table thead th { padding: 2.4px 3px; font-size: 7.6px; text-align: center; }
+  .doc-checklist-table tbody td { padding: 2px 3px; font-size: 8.7px; }
   .doc-num { text-align: center; font-weight: bold; }
   .doc-name { word-break: break-word; }
   .doc-collected { text-align: center; font-weight: bold; }
-  .doc-status { text-align: center; font-size: 7.8px; font-weight: bold; }
+  .doc-status { text-align: center; font-size: 8px; font-weight: bold; }
   .doc-empty { background: #fff !important; border-color: #e2e8f0; }
-  .doc-empty-state {
-    text-align: center; color: #888; font-style: italic; padding: 8px;
-  }
-  .section, .sig-section { break-inside: avoid; page-break-inside: avoid; }
+  .doc-empty-state { text-align: center; color: #888; font-style: italic; padding: 6px; }
 
   /* ── DECLARATION ── */
-  .decl-text {
-    font-size: 10px; line-height: 1.65; margin-bottom: 9px;
-    text-align: justify;
-  }
-  .consent-row { display: flex; gap: 28px; margin-bottom: 7px; }
-  .consent-item { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+  .decl-text { font-size: 10.2px; line-height: 1.45; margin-bottom: 6px; text-align: justify; }
+  .consent-row { display: flex; gap: 24px; margin-bottom: 5px; }
+  .consent-item { display: flex; align-items: center; gap: 5px; font-size: 10px; }
   .consent-box {
-    width: 14px; height: 14px; border: 1.5px solid #444;
+    width: 13px; height: 13px; border: 1.5px solid #444;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: bold;
+    font-size: 9px; font-weight: bold;
   }
-  .decl-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
+  .decl-meta { display: flex; flex-wrap: wrap; margin-top: 4px; }
+  .decl-meta .field { width: 50%; box-sizing: border-box; padding-right: 8px; margin-bottom: 4px; }
 
   /* ── SIGNATURE BLOCK ── */
-  .sig-section { margin-top: 18px; }
+  .sig-section { margin-top: 12px; }
   .sig-row { display: flex; justify-content: space-between; align-items: flex-end; }
   .sig-block { text-align: center; width: 28%; }
-  .sig-space { height: 36px; }
-  .sig-line { border-top: 1px solid #000; padding-top: 3px; font-size: 9px; }
+  .sig-space { height: 28px; }
+  .sig-line { border-top: 1px solid #000; padding-top: 2px; font-size: 9px; }
+  .sig-seal {
+    border: 1.5px dashed #999; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8.5px; color: #777;
+  }
 
   /* ── FOOTER ── */
   .form-footer {
-    margin-top: auto; padding-top: 6px;
+    margin-top: 10px; padding-top: 5px;
     border-top: 1px solid #9ba8c4;
-    font-size: 8px; color: #777;
+    font-size: 8px; color: #555;
     display: flex; justify-content: space-between;
   }
+
+  /* ── PAGE BREAK GUARD ── */
+  .section, .sig-section { break-inside: avoid; page-break-inside: avoid; }
 </style>
 </head>
 <body${pdfRender ? ' class="pdf-render"' : ''}>
@@ -407,7 +411,7 @@ function buildAdmissionFormHtml(
     </div>
     ${
       studentTypeLabel
-        ? `<div class="field-grid fg-4" style="margin-top:6px;">
+        ? `<div class="field-grid fg-4" style="margin-top:4px;">
       ${fieldRow('Student Type', studentTypeLabel)}
     </div>`
         : ''
@@ -421,13 +425,14 @@ function buildAdmissionFormHtml(
   <div class="section-body">
     <div class="personal-row">
       <div class="personal-fields">
-        <div class="field-grid fg-2" style="margin-bottom:6px;">
+        <div class="field-grid fg-2" style="margin-bottom:4px;">
           ${fieldRow('Full Name', data.studentName, 2)}
         </div>
         <div class="field-grid fg-4">
           ${fieldRow('Date of Birth', fmtDate(data.dateOfBirth))}
           ${fieldRow('Gender', genderLabel)}
           ${fieldRow('Blood Group', data.bloodGroup)}
+          ${fieldRow('Physical Disability', physicalDisability)}
           ${fieldRow('Aadhar Number', data.aadharNumber)}
           ${fieldRow('Nationality', data.nationality)}
           ${fieldRow('Religion', data.religion)}
@@ -435,11 +440,13 @@ function buildAdmissionFormHtml(
           ${fieldRow('Caste', data.caste)}
         </div>
       </div>
-      <div class="photo-placeholder">
+      ${data.passportPhotoUrl
+        ? `<img class="passport-photo" src="${data.passportPhotoUrl}" alt="Passport Photo" />`
+        : `<div class="photo-placeholder">
         <div class="ph-icon">&#128247;</div>
         <div>Paste Photo Here</div>
-        <div style="font-size:7.5px;">(Passport Size)</div>
-      </div>
+        <div style="font-size:7px;">(Passport Size)</div>
+      </div>`}
     </div>
   </div>
 </div>
@@ -448,7 +455,7 @@ function buildAdmissionFormHtml(
 <div class="section">
   <div class="section-hdr">Contact Details</div>
   <div class="section-body">
-    <div class="field-grid fg-2" style="margin-bottom:6px;">
+    <div class="field-grid fg-2" style="margin-bottom:4px;">
       ${fieldRow('Address', addressParts || null, 2)}
     </div>
     <div class="field-grid fg-4">
@@ -462,7 +469,7 @@ function buildAdmissionFormHtml(
 <div class="section">
   <div class="section-hdr">Parent / Guardian Details</div>
   <div class="section-body">
-    <div class="field-grid fg-3" style="margin-bottom:6px;">
+    <div class="field-grid fg-3" style="margin-bottom:4px;">
       ${fieldRow("Father's Name", data.fatherName)}
       ${fieldRow("Father's Phone", data.fatherPhone)}
       ${fieldRow("Father's Email", data.fatherEmail)}
@@ -539,9 +546,7 @@ function buildAdmissionFormHtml(
       <div class="sig-line">Parent / Guardian Signature</div>
     </div>
     <div class="sig-block">
-      <div style="border:1.5px dashed #999;height:58px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaa;">
-        College Seal
-      </div>
+      <div class="sig-seal">College Seal</div>
     </div>
     <div class="sig-block">
       <div class="sig-space"></div>
@@ -561,65 +566,39 @@ ${autoPrint ? '<script>window.onload = function() { window.print(); };<\/script>
 </body>
 </html>`;
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery: open the form HTML directly in a new browser window.
+// The browser renders it perfectly with all CSS intact. Print / Save-as-PDF
+// uses the browser's native print dialog (Ctrl+P / Cmd+P).
+// ─────────────────────────────────────────────────────────────────────────────
 
-export function printAdmissionForm(data: AdmissionFormData): void {
-  const html = buildAdmissionFormHtml(data, true);
-  const win = window.open('', '_blank', 'width=900,height=750');
+type PdfDeliveryMode = 'save' | 'open' | 'print';
+
+function deliverAdmissionForm(data: AdmissionFormData, mode: PdfDeliveryMode): void {
+  const autoPrint = mode === 'print' || mode === 'save';
+  const html = buildAdmissionFormHtml(data, autoPrint, false);
+  const win = window.open('', '_blank');
   if (win) {
     win.document.write(html);
     win.document.close();
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API — identical PDF rendering across all three delivery modes
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Opens the admission form in a new browser tab for viewing. */
+export function viewAdmissionForm(data: AdmissionFormData): void {
+  deliverAdmissionForm(data, 'open');
+}
+
+/** Opens the admission form in a new browser tab and triggers the print dialog. */
+export function printAdmissionForm(data: AdmissionFormData): void {
+  deliverAdmissionForm(data, 'print');
+}
+
+/** Opens the admission form in a new browser tab with the print dialog (Save as PDF). */
 export function downloadAdmissionForm(data: AdmissionFormData): void {
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.left = '-10000px';
-  iframe.style.top = '0';
-  iframe.style.width = '210mm';
-  iframe.style.height = '297mm';
-  iframe.style.border = '0';
-  iframe.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(iframe);
-
-  const frameDoc = iframe.contentDocument ?? iframe.contentWindow?.document;
-  if (!frameDoc) {
-    iframe.remove();
-    return;
-  }
-
-  frameDoc.open();
-  frameDoc.write(buildAdmissionFormHtml(data, false, true));
-  frameDoc.close();
-
-  const safeName = safeFileNamePart(data.studentName);
-  const safeAdmissionNo = safeFileNamePart(data.admissionNumber || 'Admission');
-
-  void Promise.all([import('html2pdf.js'), waitForFrameAssets(frameDoc)])
-    .then(([html2pdfModule]) =>
-      html2pdfModule
-        .default()
-        .set({
-          margin: 0,
-          filename: `AdmissionForm_${safeName}_${safeAdmissionNo}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            backgroundColor: '#ffffff',
-            scale: 2,
-            scrollX: 0,
-            scrollY: 0,
-            useCORS: true,
-            windowWidth: 794,
-            windowHeight: 1123,
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(frameDoc.body)
-        .save(),
-    )
-    .catch((error: unknown) => {
-      console.error('Failed to generate admission form PDF', error);
-      printAdmissionForm(data);
-    })
-    .finally(() => iframe.remove());
+  deliverAdmissionForm(data, 'save');
 }

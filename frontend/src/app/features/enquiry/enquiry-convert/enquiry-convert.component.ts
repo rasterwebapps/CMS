@@ -23,7 +23,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { AdmissionService } from '../../admission/admission.service';
 import { AdmissionDocumentResponse } from '../../admission/admission.model';
-import { AdmissionFormData, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
+import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
 
 interface SuccessState {
   admissionNumber: string;
@@ -106,6 +106,7 @@ export class EnquiryConvertComponent implements OnInit {
     communityCategory: ['', Validators.required],
     caste:             ['', Validators.required],
     bloodGroup:        ['', Validators.required],
+    physicalDisability: [false],
     fatherName:        ['', Validators.required],
     fatherPhone:       ['', Validators.required],
     fatherEmail:       ['', [Validators.required, Validators.email]],
@@ -322,6 +323,11 @@ export class EnquiryConvertComponent implements OnInit {
     });
   }
 
+  protected viewForm(): void {
+    const data = this.buildFormData();
+    if (data) viewAdmissionForm(data);
+  }
+
   protected printForm(): void {
     const data = this.buildFormData();
     if (data) printAdmissionForm(data);
@@ -359,6 +365,7 @@ export class EnquiryConvertComponent implements OnInit {
       dateOfBirth:       v['dateOfBirth'] as string | null ?? null,
       gender:            v['gender'] as string | null ?? null,
       bloodGroup:        v['bloodGroup'] as string | null ?? null,
+      physicalDisability: v['physicalDisability'] as boolean | null ?? null,
       aadharNumber:      v['aadharNumber'] as string | null ?? null,
       nationality:       v['nationality'] as string | null ?? null,
       religion:          v['religion'] as string | null ?? null,
@@ -420,6 +427,7 @@ export class EnquiryConvertComponent implements OnInit {
       communityCategory:  this.nullable(v['communityCategory'] as string) ?? null,
       caste:              this.nullable(v['caste'] as string) ?? null,
       bloodGroup:         this.nullable(v['bloodGroup'] as string) ?? null,
+      physicalDisability: Boolean(v['physicalDisability']),
       fatherName:         this.nullable(v['fatherName'] as string) ?? null,
       fatherPhone:        this.nullable(v['fatherPhone'] as string) ?? null,
       fatherEmail:        this.nullable(v['fatherEmail'] as string) ?? null,

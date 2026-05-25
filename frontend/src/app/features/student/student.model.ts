@@ -66,6 +66,7 @@ export interface Student {
   communityCategory?: string;
   caste?: string;
   bloodGroup?: string;
+  physicalDisability?: boolean;
   fatherName?: string;
   fatherPhone?: string;
   fatherEmail?: string;
@@ -169,6 +170,7 @@ export interface StudentRequest {
   communityCategory?: string;
   caste?: string;
   bloodGroup?: string;
+  physicalDisability?: boolean;
   fatherName?: string;
   fatherPhone?: string;
   fatherEmail?: string;

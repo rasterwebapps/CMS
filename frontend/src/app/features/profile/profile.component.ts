@@ -122,9 +122,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
   protected readonly activeSwatch     = this.themeService.activeSwatch;
   protected readonly primaryColor     = computed(() => this.activeSwatch().hex);
   protected readonly themePickerOpen  = signal(false);
+  /** Fixed-position coordinates for the dropdown — escapes glass-card overflow:hidden */
+  protected readonly themePickerPos   = signal<{ top: number; left: number }>({ top: 0, left: 0 });
 
   protected toggleThemePicker(e: MouseEvent): void {
     e.stopPropagation();
+    if (!this.themePickerOpen()) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      this.themePickerPos.set({ top: rect.bottom + 6, left: rect.left });
+    }
     this.themePickerOpen.update(v => !v);
   }
 

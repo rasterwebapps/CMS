@@ -361,7 +361,9 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canCollectPayment(item: Enquiry): boolean {
-    return (item.status === 'FEES_FINALIZED' || item.status === 'PARTIALLY_PAID') &&
+    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'ADMITTED', 'CONVERTED'];
+    return item.finalizedNetFee !== null && item.finalizedNetFee !== undefined &&
+      !blockedStatuses.includes(item.status) &&
       this.permissionService.has('FEE_COLLECT');
   }
 

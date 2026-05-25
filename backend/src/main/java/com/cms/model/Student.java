@@ -121,6 +121,9 @@ public class Student {
     @Column(name = "blood_group")
     private String bloodGroup;
 
+    @Column(name = "physical_disability", nullable = false)
+    private boolean physicalDisability;
+
     // Family information
     @Column(name = "father_name")
     private String fatherName;
@@ -407,6 +410,14 @@ public class Student {
 
     public void setBloodGroup(String bloodGroup) {
         this.bloodGroup = bloodGroup;
+    }
+
+    public boolean isPhysicalDisability() {
+        return physicalDisability;
+    }
+
+    public void setPhysicalDisability(boolean physicalDisability) {
+        this.physicalDisability = physicalDisability;
     }
 
     public String getFatherName() {

@@ -42,6 +42,14 @@ interface DocumentSlot {
   saving: boolean;
 }
 
+interface DocumentSlotGroup {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  slots: DocumentSlot[];
+}
+
 @Component({
   selector: 'cms-profile-documents',
   standalone: true,
@@ -87,13 +95,59 @@ export class ProfileDocumentsComponent implements OnChanges {
   private readonly catalogue = signal<DocumentTypeInfo[]>([]);
   private labelMap = new Map<string, string>();
 
-  protected readonly verifiedCount = computed(
+  readonly verifiedCount = computed(
     () => this.slots().filter((s) => s.status === 'VERIFIED').length,
   );
-  protected readonly totalCount = computed(() => this.slots().length);
-  protected readonly progressPct = computed(() =>
+  readonly totalCount = computed(() => this.slots().length);
+  readonly missingRequiredCount = computed(
+    () => this.slots().filter((s) => s.isMandatory && s.status === 'NOT_UPLOADED').length,
+  );
+  readonly progressPct = computed(() =>
     this.totalCount() === 0 ? 0 : Math.round((this.verifiedCount() / this.totalCount()) * 100),
   );
+  readonly slotGroups = computed<DocumentSlotGroup[]>(() => {
+    const missingRequired = this.slots().filter(
+      (slot) => slot.isMandatory && slot.status === 'NOT_UPLOADED',
+    );
+    const pendingRequired = this.slots().filter(
+      (slot) => slot.isMandatory && slot.status !== 'NOT_UPLOADED' && slot.status !== 'VERIFIED',
+    );
+    const verifiedRequired = this.slots().filter(
+      (slot) => slot.isMandatory && slot.status === 'VERIFIED',
+    );
+    const extraCollected = this.slots().filter((slot) => !slot.isMandatory);
+
+    return [
+      {
+        key: 'missing-required',
+        title: 'Missing Required Documents',
+        subtitle: 'New or pending program requirements appear here first for quick upload.',
+        icon: 'priority_high',
+        slots: missingRequired,
+      },
+      {
+        key: 'pending-required',
+        title: 'Uploaded / Pending Verification',
+        subtitle: 'Required documents uploaded by the office or student and awaiting action.',
+        icon: 'pending_actions',
+        slots: pendingRequired,
+      },
+      {
+        key: 'verified-required',
+        title: 'Verified Required Documents',
+        subtitle: 'Required documents that are complete and locked from replacement.',
+        icon: 'verified',
+        slots: verifiedRequired,
+      },
+      {
+        key: 'extra-collected',
+        title: 'Collected Documents Not Currently Required',
+        subtitle: 'Previously collected documents are preserved even if removed from the program requirements.',
+        icon: 'inventory_2',
+        slots: extraCollected,
+      },
+    ].filter((group) => group.slots.length > 0);
+  });
 
   protected rejectingType: string | null = null;
   protected rejectReason = '';
@@ -447,8 +501,8 @@ export class ProfileDocumentsComponent implements OnChanges {
   }
 
   private updateSlot(documentType: string, patch: Partial<DocumentSlot>): void {
-    this.slots.update((list) =>
-      list.map((s) => (s.documentType === documentType ? { ...s, ...patch } : s)),
-    );
+    const next = this.slots().map((s) => (s.documentType === documentType ? { ...s, ...patch } : s));
+    this.slots.set(next);
+    this.slotsChange.emit(next);
   }
 }

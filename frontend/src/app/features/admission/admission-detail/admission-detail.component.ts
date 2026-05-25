@@ -19,7 +19,9 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
-import { AdmissionFormData, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
+import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
+import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
   selector: 'app-admission-detail',
@@ -33,6 +35,7 @@ import { AdmissionFormData, printAdmissionForm, downloadAdmissionForm } from '..
     CmsSkeletonComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    ProfileDocumentsComponent,
   ],
   templateUrl: './admission-detail.component.html',
   styleUrl: './admission-detail.component.scss',
@@ -46,6 +49,7 @@ export class AdmissionDetailComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   readonly loading = signal(true);
   readonly admission = signal<AdmissionResponse | null>(null);
@@ -53,6 +57,7 @@ export class AdmissionDetailComponent implements OnInit {
   readonly qualifications = signal<AcademicQualificationResponse[]>([]);
   readonly documents = signal<AdmissionDocumentResponse[]>([]);
   readonly checklist = signal<Record<string, string>>({});
+  readonly passportPhotoUrl = signal<string | null>(null);
 
   readonly selectedTabIndex = signal(this.readSavedTabIndex());
   readonly expandedQuals = signal(new Set<number>());
@@ -62,8 +67,6 @@ export class AdmissionDetailComponent implements OnInit {
   readonly verifiedDocsCount = computed(
     () => this.documents().filter((doc) => doc.verificationStatus === 'VERIFIED').length,
   );
-
-  readonly verificationStatuses = ['UPLOADED', 'VERIFIED', 'REJECTED', 'NOT_UPLOADED'];
 
   ngOnInit(): void {
     this.tourService.register('admission-detail', ADMISSION_DETAIL_TOUR);
@@ -101,11 +104,30 @@ export class AdmissionDetailComponent implements OnInit {
       next: (docs) => {
         this.documents.set(docs);
         this.loading.set(false);
+        const photoDoc = docs.find((d) => d.documentType === 'PASSPORT_PHOTO' && d.hasFile);
+        if (photoDoc) {
+          this.loadPassportPhoto(photoDoc.id);
+        } else {
+          this.passportPhotoUrl.set(null);
+        }
       },
       error: () => this.loading.set(false),
     });
     this.admissionService.getDocumentChecklist(id).subscribe({
       next: (cl) => this.checklist.set(cl),
+      error: () => {},
+    });
+  }
+
+  private loadPassportPhoto(documentId: number): void {
+    this.admissionService.downloadDocumentBlob(documentId).subscribe({
+      next: (response) => {
+        const blob = response.body;
+        if (!blob) return;
+        const reader = new FileReader();
+        reader.onload = () => this.passportPhotoUrl.set(reader.result as string);
+        reader.readAsDataURL(blob);
+      },
       error: () => {},
     });
   }
@@ -140,26 +162,18 @@ export class AdmissionDetailComponent implements OnInit {
     return value ? 'Yes' : 'No';
   }
 
-  verifyDocument(doc: AdmissionDocumentResponse, newStatus: string): void {
-    const verifiedBy = 'admin';
-    this.admissionService.verifyDocument(doc.id, newStatus, verifiedBy).subscribe({
-      next: (updated) => {
-        this.documents.update((docs) => docs.map((d) => (d.id === updated.id ? updated : d)));
-        this.toast.success('Document status updated');
-        const admissionId = this.admission()?.id;
-        if (admissionId) {
-          this.admissionService.getDocumentChecklist(admissionId).subscribe({
-            next: (cl) => this.checklist.set(cl),
-            error: () => {},
-          });
-        }
-      },
-      error: () => this.toast.error('Failed to update document status'),
-    });
+  handleDocumentSlotsChange(): void {
+    const admissionId = this.admission()?.id;
+    if (admissionId) this.loadDocuments(admissionId);
   }
 
-  uploadPlaceholder(): void {
-    this.toast.info('File upload will be available soon');
+  canManageDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
+  }
+
+  viewForm(): void {
+    const data = this.buildFormData();
+    if (data) viewAdmissionForm(data);
   }
 
   printForm(): void {
@@ -194,6 +208,7 @@ export class AdmissionDetailComponent implements OnInit {
       dateOfBirth:       s?.dateOfBirth ?? null,
       gender:            s?.gender ?? null,
       bloodGroup:        s?.bloodGroup ?? null,
+      physicalDisability: a.physicalDisability ?? s?.physicalDisability ?? null,
       aadharNumber:      null,
       nationality:       s?.nationality ?? null,
       religion:          s?.religion ?? null,
@@ -226,6 +241,7 @@ export class AdmissionDetailComponent implements OnInit {
         documentType:       d.documentType,
         verificationStatus: d.verificationStatus,
       })),
+      passportPhotoUrl:      this.passportPhotoUrl(),
       declarationPlace:      a.declarationPlace,
       declarationDate:       a.declarationDate ? String(a.declarationDate) : null,
       parentConsentGiven:    a.parentConsentGiven,

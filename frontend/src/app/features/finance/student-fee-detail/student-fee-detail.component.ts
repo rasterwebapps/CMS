@@ -10,6 +10,7 @@ import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
+import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 export interface ReceiptGroup {
   receiptNumber: string;
@@ -150,6 +151,35 @@ export class StudentFeeDetailComponent implements OnInit {
         this.initError.set(true);
       },
     });
+  }
+
+  // ── Receipt actions ───────────────────────────────────────────────────────────
+
+  protected viewReceipt(group: ReceiptGroup): void {
+    void printFeeReceipt(this.toReceiptPrintData(group));
+  }
+
+  protected downloadReceipt(group: ReceiptGroup): void {
+    void downloadFeeReceipt(this.toReceiptPrintData(group));
+  }
+
+  private toReceiptPrintData(group: ReceiptGroup) {
+    const alloc = this.allocation();
+    return {
+      receiptNumber:        group.receiptNumber,
+      payerName:            alloc?.studentName ?? group.lines[0]?.studentName ?? '',
+      payerIdentifier:      alloc?.rollNumber  ?? group.lines[0]?.rollNumber  ?? '',
+      programName:          alloc?.programName ?? '',
+      amountPaid:           group.totalAmount,
+      paymentDate:          group.paymentDate,
+      paymentMode:          group.paymentMode,
+      transactionReference: group.transactionReference || null,
+      feeCategory:          null as null,
+      installmentBreakdown: group.lines.map(l => ({
+        installmentLabel: l.installmentLabel ?? '',
+        amountApplied:    l.amountPaid,
+      })),
+    };
   }
 
   private groupReceipts(receipts: Receipt[]): ReceiptGroup[] {

@@ -208,6 +208,7 @@ public class AdmissionService {
             student.getProgram() != null ? student.getProgram().getName() : null,
             student.getCourse() != null ? student.getCourse().getName() : null,
             student.getSemester(),
+            student.isPhysicalDisability(),
             student.getStatus() != null ? student.getStatus().name() : null,
             ay != null ? ay.getId() : null,
             ay != null ? ay.getName() : null,

@@ -13,7 +13,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
-import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-receipts-list',
@@ -100,8 +100,26 @@ export class ReceiptsListComponent implements OnInit {
     this.dateTo.set('');
   }
 
-  protected printReceipt(r: UnifiedReceiptSummary): void {
-    printFeeReceipt({
+  protected viewReceipt(r: UnifiedReceiptSummary): void {
+    void printFeeReceipt({
+      receiptNumber:    r.receiptNumber,
+      payerName:        r.payerName,
+      payerIdentifier:  r.payerIdentifier ?? '',
+      admissionNumber:  r.admissionNumber ?? '',
+      programName:      r.programName ?? '',
+      amountPaid:       r.amountPaid,
+      paymentDate:      r.paymentDate,
+      paymentMode:      r.paymentMode,
+      transactionReference: r.transactionReference,
+      feeCategory:      r.feeCategory,
+      installmentBreakdown: r.installmentsCovered
+        ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
+        : [],
+    });
+  }
+
+  protected downloadReceipt(r: UnifiedReceiptSummary): void {
+    void downloadFeeReceipt({
       receiptNumber:    r.receiptNumber,
       payerName:        r.payerName,
       payerIdentifier:  r.payerIdentifier ?? '',
