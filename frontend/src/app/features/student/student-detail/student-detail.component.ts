@@ -6,13 +6,16 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { StudentService } from '../student.service';
 import {
   CourseRegistration,
   Student,
   StudentFeeLedger,
+  StudentLedgerEntry,
   StudentTermEnrollment,
+  TermFeePaymentSummary,
 } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -43,6 +46,10 @@ import {
 import {
   VerifyEligibilityDialogComponent,
 } from '../../scholarship/verify-eligibility-dialog/verify-eligibility-dialog.component';
+import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
+import { FinanceService } from '../../finance/finance.service';
+import { ReceiptDisplayData } from '../../finance/finance.model';
+import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-student-detail',
@@ -61,6 +68,8 @@ import {
     CmsSkeletonComponent,
     CmsTourButtonComponent,
     ProfileDocumentsComponent,
+    MatTooltipModule,
+    FeeReceiptDialogComponent,
   ],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
@@ -70,6 +79,7 @@ export class StudentDetailComponent implements OnInit {
   private readonly admissionService = inject(AdmissionService);
   private readonly permissionService = inject(PermissionService);
   private readonly programService = inject(ProgramService);
+  private readonly financeService = inject(FinanceService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -97,6 +107,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly allPrograms = signal<Program[]>([]);
   protected readonly selectedTabIndex = signal(0);
   protected readonly expandedEnrollments = signal(new Set<number>());
+  protected readonly selectedReceipt = signal<ReceiptDisplayData | null>(null);
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
@@ -384,6 +395,74 @@ export class StudentDetailComponent implements OnInit {
       error: () => {
         this.loadingScholarships.set(false);
       },
+    });
+  }
+
+  // ─── Receipt actions ─────────────────────────────────────────────────────
+
+  /**
+   * Opens the fee receipt slide-in panel for the given payment row.
+   * Fetches full receipt details (including transaction reference) via the
+   * unified receipts endpoint before showing the dialog.
+   */
+  protected viewReceipt(p: TermFeePaymentSummary, entry: StudentLedgerEntry): void {
+    const s = this.student();
+    // Try to fetch fuller receipt data first (to get transactionReference, etc.)
+    this.financeService.getReceiptByNumber(p.receiptNumber).subscribe({
+      next: (r) => {
+        this.selectedReceipt.set({
+          receiptNumber:        r.receiptNumber,
+          payerType:            'STUDENT',
+          payerName:            r.payerName,
+          payerIdentifier:      r.payerIdentifier,
+          programName:          r.programName,
+          amountPaid:           r.amountPaid,
+          paymentDate:          r.paymentDate,
+          paymentMode:          r.paymentMode,
+          transactionReference: r.transactionReference,
+          remarks:              r.remarks,
+          installmentsCovered:  r.installmentsCovered ?? entry.termLabel,
+          installmentBreakdown: r.installmentsCovered
+            ? [{ label: r.installmentsCovered, amount: r.amountPaid }]
+            : [{ label: entry.termLabel, amount: p.amountPaid }],
+          feeCategory:          r.feeCategory,
+        });
+      },
+      error: () => {
+        // Fallback: build from available data if the API call fails
+        this.selectedReceipt.set({
+          receiptNumber:        p.receiptNumber,
+          payerType:            'STUDENT',
+          payerName:            s?.fullName ?? '',
+          payerIdentifier:      s?.rollNumber ?? null,
+          programName:          s?.programName ?? null,
+          amountPaid:           p.amountPaid,
+          paymentDate:          p.paymentDate,
+          paymentMode:          p.paymentMode,
+          transactionReference: null,
+          remarks:              p.remarks,
+          installmentsCovered:  entry.termLabel,
+          installmentBreakdown: [{ label: entry.termLabel, amount: p.amountPaid }],
+          feeCategory:          null,
+        });
+      },
+    });
+  }
+
+  /** Directly prints the receipt without opening the dialog. */
+  protected printReceiptDirect(p: TermFeePaymentSummary, entry: StudentLedgerEntry): void {
+    const s = this.student();
+    printFeeReceipt({
+      receiptNumber:        p.receiptNumber,
+      payerName:            s?.fullName ?? '',
+      payerIdentifier:      s?.rollNumber ?? '',
+      programName:          s?.programName ?? '',
+      amountPaid:           p.amountPaid,
+      paymentDate:          p.paymentDate,
+      paymentMode:          p.paymentMode,
+      transactionReference: null,
+      feeCategory:          null,
+      installmentBreakdown: [{ installmentLabel: entry.termLabel, amountApplied: p.amountPaid }],
     });
   }
 }

@@ -224,3 +224,44 @@ These test cases cover the "Create from Enquiry" flow added to the **New Admissi
 - The dropdown is present but empty.
 
 **Status:** NOT TESTED
+
+---
+
+## TC-ADM-ENQ-PRINT-001: Admission print checklist renders in two balanced columns
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- An admission exists with 20, 23, or 31 checklist documents.
+
+**Steps:**
+1. Open the admission detail page.
+2. Click **Print Admission Form**.
+3. Inspect the **Document Checklist** section in Chrome or Edge print preview.
+
+**Expected Result:**
+- 20 checklist documents render in 10 rows.
+- 23 checklist documents render in 12 rows.
+- 31 checklist documents render in 16 rows.
+- The layout is two balanced columns and remains compact for A4 printing.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ADM-ENQ-PRINT-002: Admission form download creates PDF
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- An admission exists with student and document checklist data.
+
+**Steps:**
+1. Open the admission detail page.
+2. Click **Download Admission Form**.
+3. Check the downloaded file extension and open the file.
+
+**Expected Result:**
+- A `.pdf` file is downloaded instead of an `.html` file.
+- The PDF uses the same admission form template as print.
+- The document checklist appears in the same two-column balanced layout.
+
+**Status:** NOT TESTED

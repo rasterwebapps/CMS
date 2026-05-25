@@ -26,8 +26,8 @@ public enum DocumentType {
     ELIGIBILITY_CERTIFICATE("Eligibility Certificate"),
 
     // Administrative
-    TRANSFER_CERTIFICATE("Transfer Certificate"),
-    COLLEGE_OR_SCHOOL_TC("College TC / School TC"),
+    TRANSFER_CERTIFICATE("School Transfer Certificate"),
+    COLLEGE_OR_SCHOOL_TC("College Transfer Certificate"),
     MIGRATION_CERTIFICATE("Migration Certificate"),
 
     // Identity

@@ -399,6 +399,7 @@
                         <th>Amount (₹)</th>
                         <th>Late Fee (₹)</th>
                         <th>Mode</th>
+                        <th class="actions-col">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -409,6 +410,20 @@
                           <td>{{ p.amountPaid | inr:true:false }}</td>
                           <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                           <td>{{ p.paymentMode | paymentModeLabel }}</td>
+                          <td class="actions-col">
+                            <div class="receipt-actions">
+                              <button class="receipt-action-btn" type="button"
+                                      (click)="viewReceipt(p, entry)"
+                                      matTooltip="View receipt">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button class="receipt-action-btn" type="button"
+                                      (click)="printReceiptDirect(p, entry)"
+                                      matTooltip="Print receipt">
+                                <mat-icon>print</mat-icon>
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       }
                     </tbody>
@@ -659,3 +674,11 @@
     </mat-tab-group>
   }
 </div>
+
+<!-- Fee Receipt slide-in panel -->
+<cms-fee-receipt-dialog
+  [receipt]="selectedReceipt()"
+  (closed)="selectedReceipt.set(null)"
+  (printed)="selectedReceipt.set(null)"
+/>
+

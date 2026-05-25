@@ -150,4 +150,9 @@ export class FinanceService {
   getUnifiedReceipts(): Observable<UnifiedReceiptSummary[]> {
     return this.http.get<UnifiedReceiptSummary[]>(`${environment.apiUrl}/receipts`);
   }
+
+  /** Returns a single receipt by its receipt number. Backed by GET /api/v1/receipts/{receiptNumber}. */
+  getReceiptByNumber(receiptNumber: string): Observable<UnifiedReceiptSummary> {
+    return this.http.get<UnifiedReceiptSummary>(`${environment.apiUrl}/receipts/${encodeURIComponent(receiptNumber)}`);
+  }
 }

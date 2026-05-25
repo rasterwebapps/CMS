@@ -176,6 +176,10 @@ export class AdmissionDetailComponent implements OnInit {
     const a = this.admission();
     if (!a) return null;
     const s = this.student();
+    const checklistDocuments = this.getChecklistEntries().map((d) => ({
+      documentType:       d.type,
+      verificationStatus: d.status,
+    }));
     return {
       admissionNumber:   a.admissionNumber ?? '',
       applicationDate:   a.applicationDate,
@@ -218,7 +222,7 @@ export class AdmissionDetailComponent implements OnInit {
         totalMarks:             q.totalMarks,
         majorSubject:           q.majorSubject,
       })),
-      documents: this.documents().map(d => ({
+      documents: (checklistDocuments.length ? checklistDocuments : this.documents()).map(d => ({
         documentType:       d.documentType,
         verificationStatus: d.verificationStatus,
       })),

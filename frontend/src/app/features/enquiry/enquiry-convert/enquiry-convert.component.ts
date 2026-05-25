@@ -73,6 +73,7 @@ export class EnquiryConvertComponent implements OnInit {
   protected readonly saving                = signal(false);
   protected readonly successState          = signal<SuccessState | null>(null);
   protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
+  protected readonly admissionChecklist    = signal<Record<string, string>>({});
   protected readonly printReady            = signal(false);
 
   /** Document verification status — loaded alongside the enquiry. */
@@ -305,8 +306,15 @@ export class EnquiryConvertComponent implements OnInit {
     if (!studentId) { this.printReady.set(true); return; }
     this.admissionService.getByStudent(studentId).subscribe({
       next: (admission) => {
-        this.admissionService.getDocuments(admission.id).subscribe({
-          next: (docs) => { this.admissionDocs.set(docs); this.printReady.set(true); },
+        forkJoin({
+          docs: this.admissionService.getDocuments(admission.id),
+          checklist: this.admissionService.getDocumentChecklist(admission.id),
+        }).subscribe({
+          next: ({ docs, checklist }) => {
+            this.admissionDocs.set(docs);
+            this.admissionChecklist.set(checklist);
+            this.printReady.set(true);
+          },
           error: () => this.printReady.set(true),
         });
       },
@@ -333,6 +341,10 @@ export class EnquiryConvertComponent implements OnInit {
     if (!s) return null;
     const v = this.form.value as Record<string, unknown>;
     const addr = (v['address'] ?? {}) as Record<string, unknown>;
+    const checklistDocuments = Object.entries(this.admissionChecklist()).map(([documentType, verificationStatus]) => ({
+      documentType,
+      verificationStatus,
+    }));
     return {
       admissionNumber:   s.admissionNumber,
       applicationDate:   String(v['applicationDate'] ?? ''),
@@ -367,7 +379,7 @@ export class EnquiryConvertComponent implements OnInit {
       motherPhone:       v['motherPhone'] as string | null ?? null,
       motherEmail:       v['motherEmail'] as string | null ?? null,
       qualifications:    [],
-      documents:         this.admissionDocs().map(d => ({
+      documents:         (checklistDocuments.length ? checklistDocuments : this.admissionDocs()).map(d => ({
         documentType:        d.documentType,
         verificationStatus:  d.verificationStatus,
       })),

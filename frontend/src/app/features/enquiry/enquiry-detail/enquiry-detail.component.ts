@@ -23,6 +23,9 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
+import { ReceiptDisplayData } from '../../finance/finance.model';
+import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-enquiry-detail',
@@ -40,6 +43,7 @@ import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
     CmsTourButtonComponent,
+    FeeReceiptDialogComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
   styleUrl: './enquiry-detail.component.scss',
@@ -56,6 +60,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly payments = signal<EnquiryPaymentResponse[]>([]);
   protected readonly statusHistory = signal<EnquiryStatusHistoryResponse[]>([]);
   protected readonly loading = signal(true);
+  protected readonly selectedReceipt = signal<ReceiptDisplayData | null>(null);
 
   protected readonly selectedTabIndex = signal(0);
 
@@ -162,5 +167,44 @@ export class EnquiryDetailComponent implements OnInit {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  // ─── Receipt actions ─────────────────────────────────────────────────────
+
+  /** Opens the receipt slide-in panel for the given payment. */
+  protected viewReceipt(p: EnquiryPaymentResponse): void {
+    const e = this.enquiry();
+    this.selectedReceipt.set({
+      receiptNumber:        p.receiptNumber,
+      payerType:            'ENQUIRY',
+      payerName:            e?.name ?? p.enquiryName,
+      payerIdentifier:      null,
+      programName:          e?.programName ?? null,
+      amountPaid:           p.amountPaid,
+      paymentDate:          p.paymentDate,
+      paymentMode:          p.paymentMode,
+      transactionReference: p.transactionReference,
+      remarks:              p.remarks,
+      installmentsCovered:  '',
+      installmentBreakdown: [],
+      feeCategory:          p.feeCategory,
+    });
+  }
+
+  /** Directly prints the receipt without opening the dialog. */
+  protected printReceiptDirect(p: EnquiryPaymentResponse): void {
+    const e = this.enquiry();
+    printFeeReceipt({
+      receiptNumber:        p.receiptNumber,
+      payerName:            e?.name ?? p.enquiryName,
+      payerIdentifier:      '',
+      programName:          e?.programName ?? '',
+      amountPaid:           p.amountPaid,
+      paymentDate:          p.paymentDate,
+      paymentMode:          p.paymentMode,
+      transactionReference: p.transactionReference,
+      feeCategory:          p.feeCategory,
+      installmentBreakdown: [],
+    });
   }
 }
