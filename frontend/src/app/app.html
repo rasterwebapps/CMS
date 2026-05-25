@@ -1,14 +1,14 @@
 <mat-toolbar class="app-toolbar" [class.is-mobile]="isMobile()">
   <!-- Left section: brand panel whose width mirrors the sidenav.
        Logo is clickable button (toggles sidebar); text is static display (hidden when collapsed). -->
-  <div class="toolbar-left" [class.collapsed]="sidenavRail() && !isMobile()" [class.is-mobile]="isMobile()">
+  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed() && !isMobile()" [class.is-mobile]="isMobile()">
 
     @if (!isMobile()) {
       <!-- Desktop: logo button + static text -->
       <button type="button" mat-icon-button class="toolbar-logo-btn"
               (click)="toggleSidenav()"
-              [matTooltip]="sidenavRail() ? 'Expand sidebar' : 'Collapse sidebar'"
-              [attr.aria-pressed]="!sidenavRail()"
+              [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+              [attr.aria-pressed]="!sidenavCollapsed()"
               aria-label="Toggle sidebar">
         @if (!toolbarLogoError()) {
           <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
@@ -19,7 +19,7 @@
       </button>
 
       <!-- Static text (not clickable) - visible only when expanded -->
-      @if (!sidenavRail()) {
+      @if (!sidenavCollapsed()) {
         <span class="toolbar-brand-name">SKS College Of Nursing</span>
       }
     } @else {
@@ -140,7 +140,7 @@
                        [class.is-mobile]="isMobile()"
                        [hasBackdrop]="isMobile()">
   <mat-sidenav
-    [mode]="isMobile() || hoverExpanded() ? 'over' : 'side'"
+    [mode]="isMobile() ? 'over' : 'side'"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
     id="app-sidenav"
