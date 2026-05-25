@@ -1,7 +1,7 @@
 <mat-toolbar class="app-toolbar" [class.is-mobile]="isMobile()">
   <!-- Left section: brand panel whose width mirrors the sidenav.
        Logo is clickable button (toggles sidebar); text is static display (hidden when collapsed). -->
-  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed() && !isMobile()" [class.is-mobile]="isMobile()">
+  <div class="toolbar-left" [class.collapsed]="sidenavCollapsed() && !trayOpen() && !isMobile()" [class.is-mobile]="isMobile()">
 
     @if (!isMobile()) {
       <!-- Desktop: logo button + static text -->
@@ -18,8 +18,8 @@
         }
       </button>
 
-      <!-- Static text (not clickable) - visible only when expanded -->
-      @if (!sidenavCollapsed()) {
+      <!-- Static text: visible when expanded OR when the tray is open -->
+      @if (!sidenavCollapsed() || trayOpen()) {
         <span class="toolbar-brand-name">SKS College Of Nursing</span>
       }
     } @else {
@@ -136,6 +136,7 @@
 
 <mat-sidenav-container class="app-container"
                        [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()"
+                       [class.tray-open]="trayOpen()"
                        [class.is-mobile]="isMobile()"
                        [hasBackdrop]="isMobile()">
   <mat-sidenav

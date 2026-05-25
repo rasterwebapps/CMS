@@ -96,11 +96,19 @@
 .app-container {
   height: calc(100vh - 62px);
 
-  // Collapsed icon rail: content sits at 68 px
-  &.sidenav-collapsed {
+  // Collapsed icon rail only (no tray): content sits at 68px
+  &.sidenav-collapsed:not(.tray-open) {
     .mat-sidenav-content,
     .mat-drawer-content {
       margin-left: 68px !important;
+    }
+  }
+
+  // Rail + tray open: content pushed to full sidenav width (272px)
+  &.sidenav-collapsed.tray-open {
+    .mat-sidenav-content,
+    .mat-drawer-content {
+      margin-left: var(--cms-sidenav-width) !important;
     }
   }
 
@@ -116,10 +124,8 @@
   .mat-drawer-content {
     // CSS fully owns the content margin so Angular Material's ResizeObserver
     // never fires mid-transition and resets the animation.
-    // .sidenav-collapsed (specificity 3) overrides this (specificity 2).
-    // .is-mobile (specificity 3) overrides this for mobile.
     margin-left: var(--cms-sidenav-width) !important;
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
     overflow-y: auto;
     background-color: var(--cms-bg-shell) !important;
   }

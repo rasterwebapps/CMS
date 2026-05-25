@@ -107,6 +107,11 @@ export class App implements OnInit, AfterViewInit {
     () => this.sidenavCollapsed() && !this.isMobile(),
   );
 
+  /** True when the rail tray is open (pushing content to 272px). */
+  protected readonly trayOpen = computed(
+    () => this.activeTrayGroup() !== null && this.sidenavCollapsed() && !this.isMobile(),
+  );
+
   protected readonly isMobile = this.responsiveService.isMobile;
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
