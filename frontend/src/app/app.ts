@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, ViewChild, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit, NgZone } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -7,7 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
@@ -83,29 +83,17 @@ export class App implements OnInit, AfterViewInit {
   private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
 
-  private readonly ngZone = inject(NgZone);
-
   /** Tracks the current route URL so collapsed-group active state is reactive. */
   private readonly currentUrl = signal(this.router.url);
-
-  /** Shared timer for hover-open / hover-close delays on the collapsed flyout. */
-  private hoverMenuTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The trigger whose flyout is currently visible. */
-  private activeMenuTrigger: MatMenuTrigger | null = null;
 
   protected readonly navSearchActive = signal(false);
   @ViewChild('navSearchInput') private navSearchInputRef?: ElementRef<HTMLInputElement>;
 
   protected readonly darkTheme = signal(false);
-  /**
-   * `true` → user collapsed the sidenav into a 68 px icon rail.
-   * Stored in `localStorage` under {@link App.COLLAPSED_KEY}. When the rail is
-   * unpinned (i.e. `sidenavCollapsed() === true`), it expands as an overlay
-   * while {@link hoverExpanded} is `true`.
-   */
+  /** `true` → sidenav collapsed to the 68px icon rail. Persisted in localStorage. */
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
-  /** Tracks whether the unpinned rail is currently being hovered. */
-  protected readonly hoverExpanded = signal(false);
+  /** Which NavGroup's tray is currently open in rail mode (null = no tray). */
+  protected readonly activeTrayGroup = signal<NavGroup | null>(null);
   /** Mobile drawer open state. Independent of pinned/collapsed. */
   protected readonly mobileDrawerOpen = signal(false);
   protected readonly menuSearch = signal('');
@@ -114,9 +102,9 @@ export class App implements OnInit, AfterViewInit {
   protected readonly enquiryBadgeCount = signal(0);
   protected readonly isNavGroup = isNavGroup;
 
-  /** True only when the rail is unpinned AND not currently hover-expanded. */
+  /** True when the sidenav is collapsed to the 68px icon rail on desktop. */
   protected readonly sidenavRail = computed(
-    () => this.sidenavCollapsed() && !this.hoverExpanded(),
+    () => this.sidenavCollapsed() && !this.isMobile(),
   );
 
   protected readonly isMobile = this.responsiveService.isMobile;
@@ -361,14 +349,16 @@ export class App implements OnInit, AfterViewInit {
     // Load initial profile avatar for the toolbar.
     this.profileService.loadAvatar();
 
-    // Sync expanded group on initial load
+    // Sync expanded group and rail tray on initial load
     this.syncExpandedGroupToRoute(this.router.url);
+    this.syncActiveTrayGroup(this.router.url);
 
     // Keep currentUrl signal in sync, auto-expand the active group, auto-close mobile drawer.
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
       const url = (e as NavigationEnd).urlAfterRedirects;
       this.currentUrl.set(url);
       this.syncExpandedGroupToRoute(url);
+      this.syncActiveTrayGroup(url);
       this.navSearchActive.set(false);
       this.menuSearch.set('');
       if (this.isMobile()) {
@@ -414,14 +404,16 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
-  /**
-   * Toggles the *pinned* state of the sidenav. When unpinned, the rail
-   * collapses to a 68 px icon strip and expands as an overlay on hover.
-   */
+  /** Toggles the pinned state of the sidenav (expanded ↔ collapsed icon rail). */
   protected toggleSidenav(): void {
     this.sidenavCollapsed.update((v) => !v);
-    // Drop any active hover state when the user explicitly pins/unpins.
-    this.hoverExpanded.set(false);
+    if (this.sidenavCollapsed()) {
+      // Just collapsed — open the tray for the current route so the user sees context.
+      this.syncActiveTrayGroup(this.router.url);
+    } else {
+      // Just expanded — no tray needed.
+      this.activeTrayGroup.set(null);
+    }
     if (isPlatformBrowser(this.platformId)) {
       try {
         localStorage.setItem(App.COLLAPSED_KEY, JSON.stringify(this.sidenavCollapsed()));
@@ -437,19 +429,6 @@ export class App implements OnInit, AfterViewInit {
    */
   protected toggleMobileDrawer(): void {
     this.mobileDrawerOpen.update((v) => !v);
-  }
-
-  /** Hover-expand handlers — only active when the rail is unpinned. */
-  protected onSidenavMouseEnter(): void {
-    if (this.sidenavCollapsed() && !this.isMobile()) {
-      this.hoverExpanded.set(true);
-    }
-  }
-
-  protected onSidenavMouseLeave(): void {
-    if (this.hoverExpanded()) {
-      this.hoverExpanded.set(false);
-    }
   }
 
   protected openKeyboardShortcuts(): void {
@@ -500,7 +479,7 @@ export class App implements OnInit, AfterViewInit {
     const tag = (event.target as HTMLElement).tagName;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
     if ((event.target as HTMLElement).isContentEditable) return;
-    if (this.sidenavRail() && !this.isMobile()) return;
+    if (this.sidenavCollapsed() && !this.isMobile()) return;
     event.preventDefault();
     this.activateNavSearch();
   }
@@ -509,90 +488,35 @@ export class App implements OnInit, AfterViewInit {
     window.history.back();
   }
 
-
-  /**
-   * Open the flyout on hover.
-   * Immediately closes any other open flyout (no backdrop means we manage this ourselves).
-   * Cancels any pending close timer so re-entering the button keeps the menu alive.
-   */
-  protected openHoverMenu(trigger: MatMenuTrigger): void {
-    this.clearHoverTimer();
-    // Close the previously open group flyout immediately
-    if (this.activeMenuTrigger && this.activeMenuTrigger !== trigger) {
-      this.activeMenuTrigger.closeMenu();
-      this.activeMenuTrigger = null;
-    }
-    if (trigger.menuOpen) return;
-    this.hoverMenuTimer = setTimeout(() => {
-      this.ngZone.run(() => {
-        trigger.openMenu();
-        this.activeMenuTrigger = trigger;
-      });
-      this.hoverMenuTimer = null;
-    }, 100);
-  }
-
-  /**
-   * Schedule closing the menu after the cursor leaves the button or the panel.
-   * Also cancels a pending open so quickly brushing over a button never shows the flyout.
-   */
-  protected scheduleCloseHoverMenu(trigger: MatMenuTrigger): void {
-    this.clearHoverTimer();
-    if (!trigger.menuOpen) return;
-    this.hoverMenuTimer = setTimeout(() => {
-      this.ngZone.run(() => {
-        trigger.closeMenu();
-        if (this.activeMenuTrigger === trigger) this.activeMenuTrigger = null;
-      });
-      this.hoverMenuTimer = null;
-    }, 250);
-  }
-
-  /**
-   * Called via (menuOpened). Attaches hover listeners directly to the CDK panel
-   * element so moving from the button into the panel cancels the close timer.
-   * We also check immediately whether the cursor is already inside the panel
-   * (fast mouse movement can beat requestAnimationFrame).
-   */
-  protected attachHoverPanel(trigger: MatMenuTrigger): void {
-    const attach = () => {
-      const panels = document.querySelectorAll<HTMLElement>('.mat-mdc-menu-panel');
-      const panel = panels[panels.length - 1];
-      if (!panel) return;
-
-      const onEnter = () => this.clearHoverTimer();
-      const onLeave = () => this.scheduleCloseHoverMenu(trigger);
-
-      panel.addEventListener('mouseenter', onEnter);
-      panel.addEventListener('mouseleave', onLeave);
-
-      // If the cursor is already inside the panel, cancel any pending close now
-      if (panel.matches(':hover')) this.clearHoverTimer();
-
-      const sub = trigger.menuClosed.subscribe(() => {
-        panel.removeEventListener('mouseenter', onEnter);
-        panel.removeEventListener('mouseleave', onLeave);
-        if (this.activeMenuTrigger === trigger) this.activeMenuTrigger = null;
-        sub.unsubscribe();
-      });
-    };
-
-    // Try synchronously first; fall back to rAF if panel not yet in DOM
-    const immediate = document.querySelectorAll<HTMLElement>('.mat-mdc-menu-panel');
-    if (immediate.length) { attach(); } else { requestAnimationFrame(attach); }
-  }
-
-  private clearHoverTimer(): void {
-    if (this.hoverMenuTimer) {
-      clearTimeout(this.hoverMenuTimer);
-      this.hoverMenuTimer = null;
+  /** Click a rail group icon → open or close its tray. */
+  protected toggleRailGroup(group: NavGroup): void {
+    if (this.activeTrayGroup()?.label === group.label) {
+      this.activeTrayGroup.set(null);
+    } else {
+      // Use the permission-filtered version so hidden items don't appear in the tray.
+      const filtered = this.filteredNavEntries().find(
+        (e): e is NavGroup => isNavGroup(e) && e.label === group.label,
+      );
+      this.activeTrayGroup.set(filtered ?? group);
     }
   }
 
-  /**
-   * Returns true when any item inside the group matches the current route.
-   * Used to highlight the group icon in the collapsed icon rail.
-   */
+  /** Auto-opens the tray for the group that owns the current URL (rail mode only). */
+  private syncActiveTrayGroup(url: string): void {
+    if (!this.sidenavCollapsed() || this.isMobile()) return;
+    for (const entry of this.filteredNavEntries()) {
+      if (!isNavGroup(entry)) continue;
+      const ownsRoute = entry.items.some(
+        (item) => url === item.route || url.startsWith(item.route + '/'),
+      );
+      if (ownsRoute) {
+        this.activeTrayGroup.set(entry);
+        return;
+      }
+    }
+  }
+
+  /** Returns true when any item inside the group matches the current route. */
   protected isGroupActive(entry: NavGroup): boolean {
     const url = this.currentUrl();
     return entry.items.some(

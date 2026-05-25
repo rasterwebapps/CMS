@@ -138,25 +138,16 @@
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 
-  // ─── Collapsed Icon Rail ───
+  // ─── Collapsed Icon Rail (68px) ───
   &.collapsed {
     width: 68px !important;
-
-    .sidenav-nav {
-      padding: 8px 0;
-    }
+    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  // ─── Hover-expanded overlay ───────────────────────────────────────────────
-  // When the user hovers over the 68px rail, the sidenav switches to
-  // mode='over' (see app.html binding). Angular Material renders it as an
-  // absolutely-positioned overlay so it NEVER pushes the content.
-  // We just need to set the full width and a drop-shadow so it floats above.
-  &.hover-expanded {
-    width: var(--cms-sidenav-width) !important;  // restore full 272px
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.22);
-    // z-index is managed by Angular Material's overlay in 'over' mode;
-    // no manual z-index needed here.
+  // ─── Rail + Tray open (68 + 204 = 272px overlay over content) ───
+  &.collapsed.tray-open {
+    width: 272px !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
   }
 
   // sidenav-brand-header removed — toggle/expand is handled in the toolbar
@@ -411,50 +402,129 @@
 }
 
 // ──────────────────────────────────────────────────
-// Collapsed Sidebar — Icon Buttons
+// Three-layer Navigation — Rail + Tray
 // ──────────────────────────────────────────────────
-.collapsed-group {
+
+// Outer container: flex-row, fills sidenav column
+.three-layer-nav {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  justify-content: center;
-  padding: 2px 0;
+  flex-direction: row;
+  overflow: hidden;
 }
 
-.collapsed-nav-btn {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: var(--cms-radius-md) !important;
-  color: var(--cms-sidenav-icon, #94a3b8) !important;
-  transition: background-color 0.12s ease, color 0.12s ease !important;
+// ─── Layer 1: Rail (68px icon column) ────────────
+.nav-rail {
+  width: 68px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar { width: 2px; }
+  &::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
+  &:hover::-webkit-scrollbar-thumb { background: var(--cms-sidenav-scrollbar-thumb); }
+}
+
+// Rail group button (for NavGroups and standalone NavItems)
+.rail-group-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--cms-radius-md);
+  color: var(--cms-sidenav-icon, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px 0;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
 
   &:hover {
-    background: var(--cms-sidenav-hover) !important;
-    color: var(--cms-sidenav-text-bright) !important;
+    background: var(--cms-sidenav-hover);
+    color: var(--cms-sidenav-text-bright);
+  }
+
+  // Current route is inside this group
+  &.rail-active {
+    color: var(--cms-sidenav-active-text);
+  }
+
+  // Tray is open for this group (click-selected)
+  &.rail-tray-open {
+    background: var(--cms-sidenav-active-bg);
+    border: 1px solid var(--cms-sidenav-active-border, rgba(99, 102, 241, 0.24));
+    color: var(--cms-sidenav-active-text);
   }
 }
 
-// Active state for collapsed rail — pill capsule, no left bar
-.collapsed-group-active,
-.collapsed-active {
-  background: var(--cms-sidenav-active-bg) !important;
-  border: 1px solid var(--cms-sidenav-active-border, rgba(99, 102, 241, 0.24)) !important;
-  color: var(--cms-sidenav-active-text) !important;
+// Rail footer: Raster icon pinned at the bottom of the rail
+.rail-footer {
+  margin-top: auto;
+  padding: 8px 0 10px;
+  border-top: 1px solid var(--cms-sidenav-border);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  .rail-footer-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: var(--cms-radius-md);
+    transition: background 0.12s ease;
+
+    &:hover { background: var(--cms-sidenav-hover); }
+  }
 }
 
-// Flyout menu from collapsed sidebar
-.collapsed-nav-menu {
-  .collapsed-menu-title {
-    padding: 8px 16px 4px;
-    font-size: 0.7rem;
-    font-weight: 500;
-    text-transform: none;
-    letter-spacing: 0.01em;
-    color: var(--cms-text-muted);
-  }
+// ─── Layer 2: Tray (204px item list) ─────────────
+.nav-tray {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-left: 1px solid var(--cms-sidenav-border);
+  animation: tray-slide-in 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
 
-  .active-menu-item {
-    background: var(--cms-bg-hover);
-    color: var(--cms-primary);
-  }
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+  &:hover::-webkit-scrollbar-thumb { background: var(--cms-sidenav-scrollbar-thumb); }
+}
+
+.nav-tray-header {
+  padding: 12px 14px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-sidenav-group-text);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes tray-slide-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 // ──────────────────────────────────────────────────

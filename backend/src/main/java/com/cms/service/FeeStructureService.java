@@ -330,12 +330,17 @@ public class FeeStructureService {
         List<GroupedFeeStructureResponse> result = new ArrayList<>();
         for (FeeStructureGroup group : groups) {
             List<FeeStructure> items = feeStructureRepository.findByFeeStructureGroupId(group.getId());
-            BigDecimal total = items.stream()
-                .map(FeeStructure::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
             List<FeeStructureResponse> itemResponses = items.stream()
                 .map(fs -> toResponse(fs, yearAmountRepository.findByFeeStructureIdOrderByYearNumber(fs.getId())))
                 .toList();
+            // Derive total from itemResponses so yearAmounts take precedence over the flat amount field,
+            // and inactive fee types are excluded (matching frontend itemAmount() logic).
+            BigDecimal total = itemResponses.stream()
+                .filter(r -> Boolean.TRUE.equals(r.isActive()))
+                .map(r -> r.yearAmounts() != null && !r.yearAmounts().isEmpty()
+                    ? r.yearAmounts().stream().map(YearAmountResponse::amount).reduce(BigDecimal.ZERO, BigDecimal::add)
+                    : r.amount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
             result.add(toGroupedResponse(group, total, itemResponses));
         }
         return result;
