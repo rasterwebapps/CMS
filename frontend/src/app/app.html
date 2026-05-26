@@ -1,7 +1,7 @@
 <mat-toolbar class="app-toolbar">
 
   <!-- Left section: always static — hamburger | logo | brand name -->
-  <div class="toolbar-left">
+  <div class="toolbar-left" [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()">
     @if (!isMobile()) {
       <!-- Desktop: hamburger toggle + logo + text always visible -->
       <button type="button" mat-icon-button class="toolbar-hamburger-btn"

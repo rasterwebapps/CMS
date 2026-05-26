@@ -27,8 +27,7 @@
 // Toolbar split: left (stable brand) / right (context)
 // ──────────────────────────────────────────────────
 .toolbar-left {
-  // Always 272px — toolbar brand area never shrinks or collapses
-  width: var(--cms-sidenav-width); // 272px
+  width: var(--cms-sidenav-width);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -37,6 +36,22 @@
   height: 100%;
   overflow: hidden;
   border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Collapsed rail — match the 68px sidenav rail width
+  &.sidenav-collapsed {
+    width: 68px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+
+    // Hide brand logo and name — only hamburger remains centred
+    .toolbar-brand-icon,
+    .toolbar-brand-fallback,
+    .toolbar-brand-name {
+      display: none;
+    }
+  }
 
   // ── Mobile: brand area collapses to its content so the right-side
   //    actions (search, avatar) have room on small screens.
@@ -438,6 +453,11 @@
     transition: background 0.12s ease;
 
     &:hover { background: var(--cms-sidenav-hover); }
+  }
+
+  .sidenav-footer-product-icon {
+    width: 20px;
+    height: 20px;
   }
 }
 
