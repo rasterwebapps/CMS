@@ -27,38 +27,19 @@
 // Toolbar split: left (stable brand) / right (context)
 // ──────────────────────────────────────────────────
 .toolbar-left {
-  // Width mirrors the sidenav so the brand aligns visually with the sidebar
+  // Always 272px — toolbar brand area never shrinks or collapses
   width: var(--cms-sidenav-width); // 272px
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 4px 0 4px;
+  gap: 4px;
+  padding: 0 8px 0 4px;
   height: 100%;
   overflow: hidden;
   border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  // Brand button always fills the space and handles toggle
-  .toolbar-brand {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &.collapsed {
-    width: 68px;
-    padding: 0 4px;
-    justify-content: center;
-
-
-    // Hide the text name when collapsed
-    .toolbar-brand-name {
-      display: none;
-    }
-  }
 
   // ── Mobile: brand area collapses to its content so the right-side
-  //    actions (search, avatar) have room on small screens. The fixed
-  //    272px width that mirrors the sidenav is desktop-only.
+  //    actions (search, avatar) have room on small screens.
   &.is-mobile {
     width: auto;
     padding: 0 6px;
@@ -96,19 +77,11 @@
 .app-container {
   height: calc(100vh - 62px);
 
-  // Collapsed icon rail only (no tray): content sits at 68px
-  &.sidenav-collapsed:not(.tray-open) {
+  // Rail mode (collapsed, desktop): content starts at 68px
+  &.sidenav-collapsed {
     .mat-sidenav-content,
     .mat-drawer-content {
       margin-left: 68px !important;
-    }
-  }
-
-  // Rail + tray open: content pushed to full sidenav width (272px)
-  &.sidenav-collapsed.tray-open {
-    .mat-sidenav-content,
-    .mat-drawer-content {
-      margin-left: var(--cms-sidenav-width) !important;
     }
   }
 
@@ -148,12 +121,6 @@
   &.collapsed {
     width: 68px !important;
     transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  // ─── Rail + Tray open (68 + 204 = 272px overlay over content) ───
-  &.collapsed.tray-open {
-    width: 272px !important;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
   }
 
   // sidenav-brand-header removed — toggle/expand is handled in the toolbar
@@ -408,32 +375,15 @@
 }
 
 // ──────────────────────────────────────────────────
-// Three-layer Navigation — Rail + Tray
+// Rail Mode Navigation — Icon column (collapsed desktop)
 // ──────────────────────────────────────────────────
 
-// Outer container: flex-row, fills sidenav column
-.three-layer-nav {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-}
-
-// ─── Layer 1: Rail (68px icon column) ────────────
-.nav-rail {
-  width: 68px;
-  flex-shrink: 0;
+// Rail container: centred column of icon buttons
+.rail-nav {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 4px 0 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  &::-webkit-scrollbar { width: 2px; }
-  &::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
-  &:hover::-webkit-scrollbar-thumb { background: var(--cms-sidenav-scrollbar-thumb); }
 }
 
 // Rail group button (for NavGroups and standalone NavItems)
@@ -465,15 +415,7 @@
     color: var(--cms-sidenav-text-bright);
   }
 
-  // Current route is inside this group
   &.rail-active {
-    color: var(--cms-sidenav-active-text);
-  }
-
-  // Tray is open for this group (click-selected)
-  &.rail-tray-open {
-    background: var(--cms-sidenav-active-bg);
-    border: 1px solid var(--cms-sidenav-active-border, rgba(99, 102, 241, 0.24));
     color: var(--cms-sidenav-active-text);
   }
 }
@@ -499,38 +441,31 @@
   }
 }
 
-// ─── Layer 2: Tray (204px item list) ─────────────
-.nav-tray {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  border-left: 1px solid var(--cms-sidenav-border);
-  animation: tray-slide-in 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
-
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
-  &:hover::-webkit-scrollbar-thumb { background: var(--cms-sidenav-scrollbar-thumb); }
+// ──────────────────────────────────────────────────
+// Rail Hover Flyout (mat-menu panel)
+// ──────────────────────────────────────────────────
+::ng-deep .rail-flyout-menu .mat-mdc-menu-panel {
+  min-width: 200px !important;
+  border-radius: var(--cms-radius-xl) !important;
+  border: 1px solid var(--cms-line) !important;
+  box-shadow: var(--cms-shadow-xl) !important;
 }
 
-.nav-tray-header {
-  padding: 12px 14px 4px;
-  font-size: 0.68rem;
+.flyout-menu-title {
+  padding: 10px 16px 4px;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--cms-sidenav-group-text);
-  flex-shrink: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+  cursor: default;
+  user-select: none;
 }
 
-@keyframes tray-slide-in {
-  from { opacity: 0; transform: translateX(-10px); }
-  to   { opacity: 1; transform: translateX(0); }
+::ng-deep .flyout-active {
+  background: var(--cms-bg-hover) !important;
+  color: var(--cms-primary) !important;
+  mat-icon { color: var(--cms-primary) !important; }
 }
 
 // ──────────────────────────────────────────────────
@@ -740,51 +675,54 @@
   }
 }
 
-// Logo button: toggles sidebar, stays fixed size
-.toolbar-logo-btn {
-   flex-shrink: 0;
-   width: 40px !important;
-   height: 40px !important;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   padding: 0 !important;
-   color: var(--cms-toolbar-btn-color, var(--cms-text-secondary)) !important;
-   transition: var(--cms-transition) !important;
-   border-radius: var(--cms-radius-md) !important;
+// Hamburger toggle button in the toolbar (desktop)
+.toolbar-hamburger-btn {
+  flex-shrink: 0;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  color: var(--cms-toolbar-btn-color, var(--cms-text-secondary)) !important;
+  transition: var(--cms-transition) !important;
+  border-radius: var(--cms-radius-md) !important;
 
-   &:hover {
-     color: var(--cms-toolbar-btn-hover-color, var(--cms-primary)) !important;
-     background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover)) !important;
-   }
+  &:hover {
+    color: var(--cms-toolbar-btn-hover-color, var(--cms-primary)) !important;
+    background: var(--cms-toolbar-btn-hover-bg, var(--cms-bg-hover)) !important;
+  }
+}
 
-   .toolbar-brand-icon {
-     width: 30px;
-     height: 30px;
-     object-fit: contain;
-     border-radius: 6px;
-     display: block;
-   }
+// Logo image in the toolbar brand area
+.toolbar-brand-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+  flex-shrink: 0;
+}
 
-   .toolbar-brand-fallback {
-     width: 30px;
-     height: 30px;
-     border-radius: 6px;
-     background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
-     display: flex;
-     align-items: center;
-     justify-content: center;
+.toolbar-brand-fallback {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--cms-primary), var(--color-primary-400));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 
-     mat-icon {
-       font-size: 18px;
-       width: 18px;
-       height: 18px;
-       color: #ffffff;
-     }
-   }
- }
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #ffffff;
+  }
+}
 
-// Static brand name text (not clickable, only visible when expanded)
+// Static brand name text
 .toolbar-brand-name {
   font-size: 0.78rem !important;
   font-weight: 500 !important;

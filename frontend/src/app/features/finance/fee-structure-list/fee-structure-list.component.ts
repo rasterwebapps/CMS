@@ -123,17 +123,22 @@ export class FeeStructureListComponent implements OnInit {
   }
 
   protected getDayScholarTotal(fs: GroupedFeeStructure): number {
-    return fs.items.filter(i => i.isActive && i.feeType !== 'HOSTEL_FEE')
+    return fs.items.filter(i => i.isActive !== false && i.feeType !== 'HOSTEL_FEE')
       .reduce((s, i) => s + this.itemAmount(i), 0);
   }
 
   protected getHostelerTotal(fs: GroupedFeeStructure): number {
-    return fs.items.filter(i => i.isActive && i.feeType !== 'TRANSPORT_FEE')
+    // Transport fee applies to ALL students (same as form's courseFeeTypes which includes TRANSPORT_FEE).
+    // Hosteler total = all fees (transport + course fees + hostel), matching form's hostelerTotal.
+    return fs.items.filter(i => i.isActive !== false)
       .reduce((s, i) => s + this.itemAmount(i), 0);
   }
 
   protected hasAccommodationFees(fs: GroupedFeeStructure): boolean {
-    return fs.items.some(i => i.isActive && (i.feeType === 'HOSTEL_FEE' || i.feeType === 'TRANSPORT_FEE'));
+    // Only split the display when a HOSTEL_FEE exists — that is the fee that differs between
+    // day scholars and hostelers. TRANSPORT_FEE is paid by all students (it is a courseFeeType
+    // in the edit form) so it does not produce a meaningful split on its own.
+    return fs.items.some(i => i.isActive !== false && i.feeType === 'HOSTEL_FEE');
   }
 
   protected quotaLabel(q: string): string {
