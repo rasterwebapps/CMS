@@ -152,8 +152,8 @@
                     <span class="detail-value">{{ admission()!.courseName || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">Year of Study</span>
-                    <span class="detail-value code-value">{{ admission()!.yearOfStudy || '—' }}</span>
+                    <span class="detail-label">Student Type</span>
+                    <span class="detail-value">{{ admission()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : admission()!.studentType === 'HOSTELER' ? 'Hosteler' : '—' }}</span>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">Status</span>

@@ -25,6 +25,7 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -40,6 +41,7 @@ public class AdmissionService {
     private final AcademicYearRepository academicYearRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final ApplicationNumberSequenceService numberSequenceService;
+    private final EnquiryRepository enquiryRepository;
 
     public AdmissionService(AdmissionRepository admissionRepository,
                             StudentRepository studentRepository,
@@ -47,7 +49,8 @@ public class AdmissionService {
                             IntakeRuleRepository intakeRuleRepository,
                             AcademicYearRepository academicYearRepository,
                             TermInstanceRepository termInstanceRepository,
-                            ApplicationNumberSequenceService numberSequenceService) {
+                            ApplicationNumberSequenceService numberSequenceService,
+                            EnquiryRepository enquiryRepository) {
         this.admissionRepository = admissionRepository;
         this.studentRepository = studentRepository;
         this.cohortRepository = cohortRepository;
@@ -55,6 +58,7 @@ public class AdmissionService {
         this.academicYearRepository = academicYearRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.numberSequenceService = numberSequenceService;
+        this.enquiryRepository = enquiryRepository;
     }
 
     @Transactional
@@ -199,6 +203,9 @@ public class AdmissionService {
             ? student.getProgram().getDurationYears() : null;
         Integer expectedCompletion = (ay != null && durationYears != null)
             ? ay.getStartYear() + durationYears : null;
+        String studentType = enquiryRepository.findByConvertedStudentId(student.getId())
+            .map(e -> e.getStudentType() != null ? e.getStudentType().name() : null)
+            .orElse(null);
         return new AdmissionResponse(
             admission.getId(),
             student.getId(),
@@ -219,7 +226,8 @@ public class AdmissionService {
             admission.getParentConsentGiven(),
             admission.getApplicantConsentGiven(),
             admission.getCreatedAt(),
-            admission.getUpdatedAt()
+            admission.getUpdatedAt(),
+            studentType
         );
     }
 

@@ -22,6 +22,7 @@ import { Student } from '../../student/student.model';
 import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
 import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { SettingsService } from '../../settings/settings.service';
 
 @Component({
   selector: 'app-admission-detail',
@@ -50,6 +51,7 @@ export class AdmissionDetailComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
   private readonly permissionService = inject(PermissionService);
+  private readonly settingsService = inject(SettingsService);
 
   readonly loading = signal(true);
   readonly admission = signal<AdmissionResponse | null>(null);
@@ -58,6 +60,12 @@ export class AdmissionDetailComponent implements OnInit {
   readonly documents = signal<AdmissionDocumentResponse[]>([]);
   readonly checklist = signal<Record<string, string>>({});
   readonly passportPhotoUrl = signal<string | null>(null);
+  readonly collegeLogo = signal<string | null>(null);
+  readonly collegeName = signal<string | null>(null);
+  readonly collegeTrustLine = signal<string | null>(null);
+  readonly collegeAddress = signal<string | null>(null);
+  readonly collegePhone = signal<string | null>(null);
+  readonly collegeEmail = signal<string | null>(null);
 
   readonly selectedTabIndex = signal(this.readSavedTabIndex());
   readonly expandedQuals = signal(new Set<number>());
@@ -72,6 +80,33 @@ export class AdmissionDetailComponent implements OnInit {
     this.tourService.register('admission-detail', ADMISSION_DETAIL_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.loadAll(id);
+    this.loadBranding();
+  }
+
+  private loadBranding(): void {
+    this.settingsService.getAll().subscribe({
+      next: (configs) => {
+        const val = (key: string) => configs.find(c => c.configKey === key)?.configValue || null;
+        this.collegeName.set(val('college.name'));
+        this.collegeAddress.set(val('college.address'));
+        this.collegePhone.set(val('college.phone'));
+        this.collegeEmail.set(val('college.email'));
+
+        const trustName = val('college.trust_name');
+        const regNum = val('college.registration_number');
+        if (trustName) {
+          const trustLine = regNum
+            ? `Run By ${trustName} (Regn. No. ${regNum})`
+            : `Run By ${trustName}`;
+          this.collegeTrustLine.set(trustLine);
+        }
+
+        // logo_data is a base64 data URL stored directly in the DB via the Branding settings page
+        const logoData = val('college.logo_data');
+        if (logoData) this.collegeLogo.set(logoData);
+      },
+      error: () => {},
+    });
   }
 
   private loadAll(id: number): void {
@@ -202,8 +237,14 @@ export class AdmissionDetailComponent implements OnInit {
       programName:       a.programName ?? '',
       courseName:        a.courseName,
       yearOfStudy:       a.yearOfStudy ?? null,
-      studentType:       null,
+      studentType:       a.studentType ?? null,
       admissionQuota:    null,
+      collegeLogo:       this.collegeLogo(),
+      collegeName:       this.collegeName(),
+      collegeTrustLine:  this.collegeTrustLine(),
+      collegeAddress:    this.collegeAddress(),
+      collegePhone:      this.collegePhone(),
+      collegeEmail:      this.collegeEmail(),
       studentName:       a.studentName,
       dateOfBirth:       s?.dateOfBirth ?? null,
       gender:            s?.gender ?? null,

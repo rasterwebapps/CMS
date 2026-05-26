@@ -56,7 +56,7 @@ export class SystemConfigurationFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     configKey: ['', [Validators.required, Validators.maxLength(255)]],
-    configValue: ['', [Validators.required, Validators.maxLength(1000)]],
+    configValue: ['', [Validators.required]],
     description: [''],
     dataType: ['STRING', Validators.required],
     category: ['', [Validators.required, Validators.maxLength(255)]],

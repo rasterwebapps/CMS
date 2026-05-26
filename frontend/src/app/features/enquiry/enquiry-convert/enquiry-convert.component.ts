@@ -24,6 +24,7 @@ import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/countr
 import { AdmissionService } from '../../admission/admission.service';
 import { AdmissionDocumentResponse } from '../../admission/admission.model';
 import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
+import { SettingsService } from '../../settings/settings.service';
 
 interface SuccessState {
   admissionNumber: string;
@@ -62,6 +63,7 @@ export class EnquiryConvertComponent implements OnInit {
 
   private readonly communityService  = inject(CommunityService);
   private readonly bloodGroupService = inject(BloodGroupService);
+  private readonly settingsService   = inject(SettingsService);
 
   protected readonly enquiry               = signal<Enquiry | null>(null);
   protected readonly prefill               = signal<EnquiryConversionPrefillResponse | null>(null);
@@ -75,6 +77,13 @@ export class EnquiryConvertComponent implements OnInit {
   protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
   protected readonly admissionChecklist    = signal<Record<string, string>>({});
   protected readonly printReady            = signal(false);
+
+  private readonly collegeLogo      = signal<string | null>(null);
+  private readonly collegeName      = signal<string | null>(null);
+  private readonly collegeTrustLine = signal<string | null>(null);
+  private readonly collegeAddress   = signal<string | null>(null);
+  private readonly collegePhone     = signal<string | null>(null);
+  private readonly collegeEmail     = signal<string | null>(null);
 
   /** Document verification status — loaded alongside the enquiry. */
   protected readonly docVerification  = signal<DocumentVerificationStatus | null>(null);
@@ -138,6 +147,29 @@ export class EnquiryConvertComponent implements OnInit {
     this.tourService.register('enquiry-convert', ENQUIRY_CONVERT_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
+    this.loadBranding();
+  }
+
+  private loadBranding(): void {
+    this.settingsService.getAll().subscribe({
+      next: (configs) => {
+        const val = (key: string) => configs.find(c => c.configKey === key)?.configValue || null;
+        this.collegeName.set(val('college.name'));
+        this.collegeAddress.set(val('college.address'));
+        this.collegePhone.set(val('college.phone'));
+        this.collegeEmail.set(val('college.email'));
+        const trustName = val('college.trust_name');
+        const regNum = val('college.registration_number');
+        if (trustName) {
+          this.collegeTrustLine.set(regNum
+            ? `Run By ${trustName} (Regn. No. ${regNum})`
+            : `Run By ${trustName}`);
+        }
+        const logoData = val('college.logo_data');
+        if (logoData) this.collegeLogo.set(logoData);
+      },
+      error: () => {},
+    });
   }
 
   private load(id: number): void {
@@ -361,6 +393,12 @@ export class EnquiryConvertComponent implements OnInit {
       yearOfStudy:       v['yearOfStudy'] as number ?? null,
       studentType:       s.enquiry.studentType ?? null,
       admissionQuota:    s.enquiry.admissionQuota ?? null,
+      collegeLogo:       this.collegeLogo(),
+      collegeName:       this.collegeName(),
+      collegeTrustLine:  this.collegeTrustLine(),
+      collegeAddress:    this.collegeAddress(),
+      collegePhone:      this.collegePhone(),
+      collegeEmail:      this.collegeEmail(),
       studentName:       s.studentName,
       dateOfBirth:       v['dateOfBirth'] as string | null ?? null,
       gender:            v['gender'] as string | null ?? null,

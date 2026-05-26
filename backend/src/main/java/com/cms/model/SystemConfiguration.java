@@ -30,7 +30,7 @@ public class SystemConfiguration {
     @Column(name = "config_key", nullable = false, unique = true)
     private String configKey;
 
-    @Column(name = "config_value", nullable = false, length = 1000)
+    @Column(name = "config_value", nullable = false, columnDefinition = "TEXT")
     private String configValue;
 
     @Column(length = 500)

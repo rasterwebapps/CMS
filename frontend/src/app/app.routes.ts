@@ -642,6 +642,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'settings/branding',
+    canActivate: withPermission('SETTINGS_MANAGE'),
+    loadComponent: () =>
+      import('./features/settings/branding/branding.component').then(
+        (m) => m.BrandingComponent
+      ),
+  },
+  {
     path: 'settings/new',
     canActivate: withPermission('SETTINGS_MANAGE'),
     loadComponent: () =>

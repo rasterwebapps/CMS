@@ -23,5 +23,6 @@ public record AdmissionResponse(
     Boolean parentConsentGiven,
     Boolean applicantConsentGiven,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String studentType
 ) {}

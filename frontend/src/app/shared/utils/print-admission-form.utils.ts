@@ -12,6 +12,13 @@ export interface AdmissionFormData {
   studentType: string | null;
   admissionQuota: string | null;
 
+  collegeLogo: string | null;
+  collegeName: string | null;
+  collegeTrustLine: string | null;
+  collegeAddress: string | null;
+  collegePhone: string | null;
+  collegeEmail: string | null;
+
   studentName: string;
   dateOfBirth: string | null;
   gender: string | null;
@@ -307,7 +314,7 @@ function buildAdmissionFormHtml(
   .fv { border-bottom: 1px solid #777; min-height: 14px; font-size: 10.8px; padding: 1px 2px; line-height: 1.25; }
 
   /* ── PERSONAL SECTION ── */
-  .personal-row { display: flex; gap: 10px; align-items: flex-start; }
+  .personal-row { display: flex; gap: 10px; align-items: center; }
   .personal-fields { flex: 1; }
   .photo-placeholder {
     width: 78px; flex-shrink: 0; border: 1px dashed #777; height: 95px;
@@ -383,13 +390,15 @@ function buildAdmissionFormHtml(
 
 <!-- HEADER -->
 <div class="page-header">
-  <img class="logo" src="${SKS_LOGO_DATA_URL}" alt="SKS College of Nursing Logo" />
+  <img class="logo" src="${data.collegeLogo ?? SKS_LOGO_DATA_URL}" alt="${data.collegeName ?? 'College'} Logo" />
   <div class="college-info">
-    <div class="college-name">SKS College Of Nursing</div>
+    <div class="college-name">${data.collegeName ?? 'SKS College Of Nursing'}</div>
     <div class="college-sub">
-      Run By VS Educational Trust (Regn. No. 579 / 1997)<br/>
-      No.31, Neikkarapatti, Salem &ndash; 636 010.<br/>
-      Phone: &nbsp;&nbsp;|&nbsp;&nbsp; Email:
+      ${data.collegeTrustLine ? `${data.collegeTrustLine}<br/>` : ''}
+      ${data.collegeAddress ? `${data.collegeAddress}<br/>` : ''}
+      ${data.collegePhone ? `Phone: ${data.collegePhone}` : 'Phone:'}
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      ${data.collegeEmail ? `Email: ${data.collegeEmail}` : 'Email:'}
     </div>
   </div>
   <div class="form-badge">Admission&nbsp;Form</div>
@@ -406,16 +415,9 @@ function buildAdmissionFormHtml(
       ${fieldRow('Academic Year', data.academicYear)}
       ${fieldRow('Programme', data.programName)}
       ${fieldRow('Course / Specialisation', data.courseName)}
-      ${fieldRow('Year of Study', data.yearOfStudy != null ? `Year ${data.yearOfStudy}` : '')}
+      ${fieldRow('Student Type', studentTypeLabel)}
       ${fieldRow('Admission Quota', quotaLabel || fmtEnum(data.admissionQuota))}
     </div>
-    ${
-      studentTypeLabel
-        ? `<div class="field-grid fg-4" style="margin-top:4px;">
-      ${fieldRow('Student Type', studentTypeLabel)}
-    </div>`
-        : ''
-    }
   </div>
 </div>
 
@@ -428,7 +430,7 @@ function buildAdmissionFormHtml(
         <div class="field-grid fg-2" style="margin-bottom:4px;">
           ${fieldRow('Full Name', data.studentName, 2)}
         </div>
-        <div class="field-grid fg-4">
+        <div class="field-grid fg-3">
           ${fieldRow('Date of Birth', fmtDate(data.dateOfBirth))}
           ${fieldRow('Gender', genderLabel)}
           ${fieldRow('Blood Group', data.bloodGroup)}
@@ -515,18 +517,18 @@ function buildAdmissionFormHtml(
     <p class="decl-text">
       I, the undersigned, hereby declare that all the particulars furnished above are true and correct to the best of my knowledge
       and belief. I am aware that any misrepresentation or concealment of facts may result in cancellation of admission.
-      I agree to abide by all the rules and regulations of <strong>SKS College Of Nursing</strong> as in force from time to time.
+      I agree to abide by all the rules and regulations of <strong>${data.collegeName ?? 'SKS College Of Nursing'}</strong> as in force from time to time.
     </p>
     <div class="consent-row">
       <div class="consent-item">
         <div class="consent-box">${parentConsent === 'Yes' ? '&#10003;' : '&nbsp;'}</div>
-        <span>Parent / Guardian consent given &nbsp;&nbsp;
+        <span>Parent / Guardian Consent Given &nbsp;&nbsp;
           <strong>${parentConsent || 'No'}</strong>
         </span>
       </div>
       <div class="consent-item">
         <div class="consent-box">${studentConsent === 'Yes' ? '&#10003;' : '&nbsp;'}</div>
-        <span>Applicant consent given &nbsp;&nbsp;
+        <span>Applicant Consent Given &nbsp;&nbsp;
           <strong>${studentConsent || 'No'}</strong>
         </span>
       </div>
@@ -550,7 +552,7 @@ function buildAdmissionFormHtml(
     </div>
     <div class="sig-block">
       <div class="sig-space"></div>
-      <div class="sig-line">Signature of Principal</div>
+      <div class="sig-line">Authorized Signature</div>
     </div>
   </div>
 </div>
