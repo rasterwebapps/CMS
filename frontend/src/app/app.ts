@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, ViewChild, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit, NgZone } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, inject, signal, computed, PLATFORM_ID, OnInit, AfterViewInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -7,7 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDivider } from '@angular/material/divider';
@@ -83,15 +83,13 @@ export class App implements OnInit, AfterViewInit {
   private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
 
-  private readonly ngZone = inject(NgZone);
-
   /** Tracks the current route URL so collapsed-group active state is reactive. */
   private readonly currentUrl = signal(this.router.url);
 
-  /** Shared timer for hover-open / hover-close delays on the collapsed flyout. */
-  private hoverMenuTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The trigger whose flyout is currently visible. */
-  private activeMenuTrigger: MatMenuTrigger | null = null;
+  /** Timer for rail-hover peek open/close delay. */
+  private railHoverTimer: ReturnType<typeof setTimeout> | null = null;
+  /** True while the mouse is over the rail or the peek tray — drives the peek animation. */
+  protected readonly railHovering = signal(false);
 
   protected readonly navSearchActive = signal(false);
   @ViewChild('navSearchInput') private navSearchInputRef?: ElementRef<HTMLInputElement>;
@@ -407,9 +405,10 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
-  /** Toggles the sidenav between expanded (272px) and icon rail (68px). */
+  /** Toggles the second tray visibility. First tray (rail) is always pinned. */
   protected toggleSidenav(): void {
     this.sidenavCollapsed.update((v) => !v);
+    this.railHovering.set(false);
     if (isPlatformBrowser(this.platformId)) {
       try {
         localStorage.setItem(App.COLLAPSED_KEY, JSON.stringify(this.sidenavCollapsed()));
@@ -417,6 +416,30 @@ export class App implements OnInit, AfterViewInit {
         // Ignore storage errors
       }
     }
+  }
+
+  /** Mouse enters the first-tray rail — start peek timer if second tray is hidden. */
+  protected onRailEnter(): void {
+    if (!this.sidenavCollapsed() || this.isMobile()) return;
+    if (this.railHoverTimer) clearTimeout(this.railHoverTimer);
+    this.railHoverTimer = setTimeout(() => this.railHovering.set(true), 120);
+  }
+
+  /** Mouse leaves the first-tray rail — schedule peek close (cancelled if entering second tray). */
+  protected onRailLeave(): void {
+    if (this.railHoverTimer) clearTimeout(this.railHoverTimer);
+    this.railHoverTimer = setTimeout(() => this.railHovering.set(false), 220);
+  }
+
+  /** Mouse enters the peek second tray — cancel any pending close timer. */
+  protected onSecondTrayEnter(): void {
+    if (this.railHoverTimer) clearTimeout(this.railHoverTimer);
+  }
+
+  /** Mouse leaves the peek second tray — close the peek. */
+  protected onSecondTrayLeave(): void {
+    if (!this.sidenavCollapsed() || this.isMobile()) return;
+    this.railHoverTimer = setTimeout(() => this.railHovering.set(false), 220);
   }
 
   /**
@@ -475,55 +498,13 @@ export class App implements OnInit, AfterViewInit {
     const tag = (event.target as HTMLElement).tagName;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
     if ((event.target as HTMLElement).isContentEditable) return;
-    if (this.sidenavCollapsed() && !this.isMobile()) return;
+    if (this.sidenavCollapsed() && !this.railHovering() && !this.isMobile()) return;
     event.preventDefault();
     this.activateNavSearch();
   }
 
   protected navigateBack(): void {
     window.history.back();
-  }
-
-  /** Open hover flyout with a short delay; cancels any pending close timer. */
-  protected openHoverMenu(trigger: MatMenuTrigger): void {
-    this.clearHoverTimer();
-    if (this.activeMenuTrigger && this.activeMenuTrigger !== trigger) {
-      this.activeMenuTrigger.closeMenu();
-    }
-    this.hoverMenuTimer = setTimeout(() => {
-      this.ngZone.run(() => {
-        trigger.openMenu();
-        this.activeMenuTrigger = trigger;
-      });
-    }, 100);
-  }
-
-  /** Schedule flyout close after mouse leaves; can be cancelled by entering the panel. */
-  protected scheduleCloseHoverMenu(trigger: MatMenuTrigger): void {
-    this.clearHoverTimer();
-    this.hoverMenuTimer = setTimeout(() => {
-      this.ngZone.run(() => {
-        trigger.closeMenu();
-        this.activeMenuTrigger = null;
-      });
-    }, 250);
-  }
-
-  /** After CDK panel renders, attach hover listeners directly to it so the flyout stays open as the mouse moves into the panel. */
-  protected attachHoverPanel(trigger: MatMenuTrigger): void {
-    const panel = document.querySelector('.cdk-overlay-container .mat-mdc-menu-panel') as HTMLElement | null;
-    if (!panel) return;
-    const enter = () => this.ngZone.run(() => this.clearHoverTimer());
-    const leave = () => this.ngZone.run(() => this.scheduleCloseHoverMenu(trigger));
-    panel.addEventListener('mouseenter', enter);
-    panel.addEventListener('mouseleave', leave);
-  }
-
-  private clearHoverTimer(): void {
-    if (this.hoverMenuTimer) {
-      clearTimeout(this.hoverMenuTimer);
-      this.hoverMenuTimer = null;
-    }
   }
 
   /** Returns true when any item inside the group matches the current route. */

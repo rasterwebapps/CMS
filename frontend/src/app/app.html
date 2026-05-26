@@ -3,11 +3,11 @@
   <!-- Left section: always static — hamburger | logo | brand name -->
   <div class="toolbar-left" [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()">
     @if (!isMobile()) {
-      <!-- Desktop: hamburger toggle + logo + text always visible -->
+      <!-- Desktop: hamburger toggle always visible; logo+name shown when second tray is open -->
       <button type="button" mat-icon-button class="toolbar-hamburger-btn"
               (click)="toggleSidenav()"
-              [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
-              aria-label="Toggle sidebar">
+              [matTooltip]="sidenavCollapsed() ? 'Open navigation' : 'Close navigation'"
+              aria-label="Toggle navigation">
         <mat-icon>{{ sidenavCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
       </button>
       @if (!toolbarLogoError()) {
@@ -128,80 +128,119 @@
   </div>
 </mat-toolbar>
 
+<!-- ═══════════════════════════════════════════════════════
+     DESKTOP SECOND TRAY — position:fixed, slides from behind the rail
+     Permanent when tray-open; peek overlay on rail hover.
+     ═══════════════════════════════════════════════════════ -->
+@if (!isMobile()) {
+  <div class="second-tray-panel"
+       [class.tray-open]="!sidenavCollapsed()"
+       [class.tray-peek]="sidenavCollapsed() && railHovering()"
+       (mouseenter)="onSecondTrayEnter()"
+       (mouseleave)="onSecondTrayLeave()">
+
+    @if (navSearchActive()) {
+      <div class="sidenav-search">
+        <mat-icon class="sidenav-search-icon">search</mat-icon>
+        <input
+          #navSearchInput
+          type="text"
+          class="sidenav-search-input"
+          placeholder="Filter menu..."
+          [value]="menuSearch()"
+          (input)="onMenuSearchInput($event)"
+          (keydown)="onNavSearchKeyDown($event)"
+          aria-label="Filter navigation menu"
+          autocomplete="off"
+        />
+        @if (menuSearch()) {
+          <button mat-icon-button class="sidenav-search-clear" (click)="clearNavSearch()" matTooltip="Clear">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+    }
+
+    <div class="sidenav-nav">
+      @for (entry of filteredNavEntries(); track entry.label) {
+        @if (isNavGroup(entry)) {
+          <mat-expansion-panel
+            class="nav-group"
+            [expanded]="isGroupExpanded(entry.label)"
+            (afterExpand)="setGroupExpanded(entry.label, true)"
+            (afterCollapse)="setGroupExpanded(entry.label, false)"
+          >
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="nav-group-icon">{{ entry.icon }}</mat-icon>
+                <span class="nav-group-label">{{ entry.label }}</span>
+                <mat-icon class="nav-group-chevron">chevron_right</mat-icon>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-nav-list dense>
+              @for (item of entry.items; track item.route) {
+                <a mat-list-item [routerLink]="item.route"
+                   routerLinkActive="active-link"
+                   [routerLinkActiveOptions]="{exact: true}"
+                   [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
+                   [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
+                   matBadgeColor="warn" matBadgeSize="small">
+                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                  <span matListItemTitle>{{ item.label }}</span>
+                </a>
+              }
+            </mat-nav-list>
+          </mat-expansion-panel>
+        } @else {
+          <a [routerLink]="entry.route" routerLinkActive="top-level-active"
+             class="top-level-nav-item">
+            <mat-icon class="top-level-icon">{{ entry.icon }}</mat-icon>
+            <span class="top-level-label">{{ entry.label }}</span>
+          </a>
+        }
+      }
+    </div>
+
+    <!-- Sidenav footer — product identity -->
+    <div class="sidenav-footer">
+      <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
+         class="sidenav-footer-brand"
+         matTooltip="Raster Images Private Limited"
+         aria-label="OneCMS by Raster Images Private Limited">
+        <img src="assets/images/raster-icon.png" alt="" aria-hidden="true"
+             class="sidenav-footer-product-icon" />
+        <div class="sidenav-footer-product-text">
+          <span class="sidenav-footer-product-name">OneCMS</span>
+          <span class="sidenav-footer-product-by">Raster Images Private Limited</span>
+        </div>
+      </a>
+    </div>
+
+  </div>
+}
+
 <mat-sidenav-container class="app-container"
-                       [class.sidenav-collapsed]="sidenavCollapsed() && !isMobile()"
+                       [class.tray-open]="!sidenavCollapsed() && !isMobile()"
                        [class.is-mobile]="isMobile()"
                        [hasBackdrop]="isMobile()">
+
+  <!-- ═══════════════════════════════════════════════════
+       FIRST TRAY — always 68px, always visible on desktop.
+       Mobile: full-width navigation drawer.
+       ═══════════════════════════════════════════════════ -->
   <mat-sidenav
     [mode]="isMobile() ? 'over' : 'side'"
     [opened]="isMobile() ? mobileDrawerOpen() : true"
     (openedChange)="isMobile() && mobileDrawerOpen.set($event)"
     id="app-sidenav"
     class="app-sidenav"
-    [class.collapsed]="sidenavCollapsed() && !isMobile()"
-    [class.mobile-drawer]="isMobile()">
+    [class.mobile-drawer]="isMobile()"
+    (mouseenter)="onRailEnter()"
+    (mouseleave)="onRailLeave()">
 
-    @if (sidenavRail()) {
+    @if (isMobile()) {
 
-      <!-- ═══════════════════════════════════════
-           RAIL MODE (collapsed, desktop only)
-           Icon column — hover opens mat-menu flyout
-           ═══════════════════════════════════════ -->
-      <nav class="sidenav-nav rail-nav" aria-label="Main navigation">
-        @for (entry of filteredNavEntries(); track entry.label) {
-          @if (isNavGroup(entry)) {
-            <button type="button"
-                    class="rail-group-btn"
-                    [class.rail-active]="isGroupActive(entry)"
-                    [matMenuTriggerFor]="flyoutMenu"
-                    #flyoutTrigger="matMenuTrigger"
-                    (mouseenter)="openHoverMenu(flyoutTrigger)"
-                    (mouseleave)="scheduleCloseHoverMenu(flyoutTrigger)"
-                    (menuOpened)="attachHoverPanel(flyoutTrigger)"
-                    [attr.aria-label]="entry.label">
-              <mat-icon>{{ entry.icon }}</mat-icon>
-            </button>
-
-            <mat-menu #flyoutMenu="matMenu" [hasBackdrop]="false" class="rail-flyout-menu">
-              <div class="flyout-menu-title" (click)="$event.stopPropagation()">{{ entry.label }}</div>
-              @for (item of entry.items; track item.route) {
-                <a mat-menu-item [routerLink]="item.route" routerLinkActive="flyout-active"
-                   [routerLinkActiveOptions]="{exact: true}">
-                  <mat-icon>{{ item.icon }}</mat-icon>
-                  <span>{{ item.label }}</span>
-                </a>
-              }
-            </mat-menu>
-          } @else {
-            <a class="rail-group-btn"
-               [routerLink]="entry.route"
-               routerLinkActive="rail-active"
-               [attr.aria-label]="entry.label">
-              <mat-icon>{{ entry.icon }}</mat-icon>
-            </a>
-          }
-        }
-
-        <!-- Rail footer -->
-        <div class="rail-footer">
-          <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
-             class="rail-footer-brand"
-             matTooltip="OneCMS · Raster Images" matTooltipPosition="right"
-             aria-label="OneCMS by Raster Images Private Limited">
-            <img src="assets/images/raster-icon.png" alt="Raster"
-                 class="sidenav-footer-product-icon" />
-          </a>
-        </div>
-      </nav>
-
-    } @else {
-
-      <!-- ═══════════════════════════════════════
-           EXPANDED / MOBILE NAVIGATION
-           Full expansion-panel tree + footer
-           ═══════════════════════════════════════ -->
-
-      <!-- Search bar (desktop: / key activates; mobile: visible tap target) -->
+      <!-- ─── Mobile: full navigation drawer ─── -->
       @if (navSearchActive()) {
         <div class="sidenav-search">
           <mat-icon class="sidenav-search-icon">search</mat-icon>
@@ -272,7 +311,6 @@
         }
       </div>
 
-      <!-- Sidenav footer — product identity -->
       <div class="sidenav-footer">
         <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
            class="sidenav-footer-brand"
@@ -286,6 +324,40 @@
           </div>
         </a>
       </div>
+
+    } @else {
+
+      <!-- ─── Desktop: icon rail (first tray, always 68px) ─── -->
+      <nav class="sidenav-nav rail-nav" aria-label="Main navigation">
+        @for (entry of filteredNavEntries(); track entry.label) {
+          @if (isNavGroup(entry)) {
+            <button type="button"
+                    class="rail-group-btn"
+                    [class.rail-active]="isGroupActive(entry)"
+                    [attr.aria-label]="entry.label">
+              <mat-icon>{{ entry.icon }}</mat-icon>
+            </button>
+          } @else {
+            <a class="rail-group-btn"
+               [routerLink]="entry.route"
+               routerLinkActive="rail-active"
+               [attr.aria-label]="entry.label">
+              <mat-icon>{{ entry.icon }}</mat-icon>
+            </a>
+          }
+        }
+
+        <!-- Rail footer -->
+        <div class="rail-footer">
+          <a href="https://raster.in" target="_blank" rel="noopener noreferrer"
+             class="rail-footer-brand"
+             matTooltip="OneCMS · Raster Images" matTooltipPosition="right"
+             aria-label="OneCMS by Raster Images Private Limited">
+            <img src="assets/images/raster-icon.png" alt="Raster"
+                 class="sidenav-footer-product-icon" />
+          </a>
+        </div>
+      </nav>
 
     }
   </mat-sidenav>

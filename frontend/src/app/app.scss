@@ -27,7 +27,8 @@
 // Toolbar split: left (stable brand) / right (context)
 // ──────────────────────────────────────────────────
 .toolbar-left {
-  width: var(--cms-sidenav-width);
+  // Rail (68px) + second tray (248px) = total when both visible
+  width: calc(68px + var(--cms-sidenav-width));
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -38,7 +39,7 @@
   border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  // Collapsed rail — match the 68px sidenav rail width
+  // Second tray hidden — only rail visible
   &.sidenav-collapsed {
     width: 68px;
     padding: 0;
@@ -92,11 +93,11 @@
 .app-container {
   height: calc(100vh - 62px);
 
-  // Rail mode (collapsed, desktop): content starts at 68px
-  &.sidenav-collapsed {
+  // Second tray open: content shifts past rail (68px) + second tray (248px)
+  &.tray-open {
     .mat-sidenav-content,
     .mat-drawer-content {
-      margin-left: 68px !important;
+      margin-left: calc(68px + var(--cms-sidenav-width)) !important;
     }
   }
 
@@ -112,8 +113,8 @@
   .mat-drawer-content {
     // CSS fully owns the content margin so Angular Material's ResizeObserver
     // never fires mid-transition and resets the animation.
-    margin-left: var(--cms-sidenav-width) !important;
-    transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin-left: 68px !important; // default: rail only
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     overflow-y: auto;
     background-color: var(--cms-bg-shell) !important;
   }
@@ -125,17 +126,16 @@
 .app-sidenav {
   display: flex;
   flex-direction: column;
-  width: var(--cms-sidenav-width);
+  // Desktop: always 68px — permanent first tray (icon rail)
+  width: 68px;
   background: var(--cms-sidenav-bg) !important;
   border-right: 1px solid var(--cms-sidenav-border) !important;
   border-radius: 0 !important;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 
-  // ─── Collapsed Icon Rail (68px) ───
-  &.collapsed {
-    width: 68px !important;
-    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  // Mobile drawer: full navigation width
+  &.mobile-drawer {
+    width: var(--cms-sidenav-width) !important;
   }
 
   // sidenav-brand-header removed — toggle/expand is handled in the toolbar
@@ -390,6 +390,44 @@
 }
 
 // ──────────────────────────────────────────────────
+// Desktop Second Tray — fixed panel, slides from behind the rail
+// ──────────────────────────────────────────────────
+.second-tray-panel {
+  position: fixed;
+  top: 62px;        // below toolbar
+  left: 68px;       // immediately right of the first-tray rail
+  width: var(--cms-sidenav-width);
+  height: calc(100vh - 62px);
+  z-index: 90;      // above content, below toolbar (z-index 100)
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  background: var(--cms-sidenav-bg) !important;
+  border-right: 1px solid var(--cms-sidenav-border);
+
+  // Hidden: slide behind the rail (translateX -100% = 248px left → behind the 68px rail)
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s ease;
+
+  // Permanently open — no shadow, content has shifted to make room
+  &.tray-open {
+    transform: translateX(0);
+  }
+
+  // Peek (hover overlay) — slides over content with a shadow to indicate float
+  &.tray-peek {
+    transform: translateX(0);
+    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  // Re-use all sidenav interior styles (sidenav-nav, sidenav-footer, nav-group, etc.)
+  // These are already defined at component scope below and apply here automatically.
+}
+
+// ──────────────────────────────────────────────────
 // Rail Mode Navigation — Icon column (collapsed desktop)
 // ──────────────────────────────────────────────────
 
@@ -459,33 +497,6 @@
     width: 20px;
     height: 20px;
   }
-}
-
-// ──────────────────────────────────────────────────
-// Rail Hover Flyout (mat-menu panel)
-// ──────────────────────────────────────────────────
-::ng-deep .rail-flyout-menu .mat-mdc-menu-panel {
-  min-width: 200px !important;
-  border-radius: var(--cms-radius-xl) !important;
-  border: 1px solid var(--cms-line) !important;
-  box-shadow: var(--cms-shadow-xl) !important;
-}
-
-.flyout-menu-title {
-  padding: 10px 16px 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--cms-text-muted);
-  cursor: default;
-  user-select: none;
-}
-
-::ng-deep .flyout-active {
-  background: var(--cms-bg-hover) !important;
-  color: var(--cms-primary) !important;
-  mat-icon { color: var(--cms-primary) !important; }
 }
 
 // ──────────────────────────────────────────────────
