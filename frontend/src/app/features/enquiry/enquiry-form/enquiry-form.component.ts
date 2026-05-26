@@ -388,7 +388,7 @@ export class EnquiryFormComponent implements OnInit {
     }
     const studentType = this.form.get('studentType')?.value as string;
     const filtered = studentType === 'HOSTELER'
-      ? items.filter(i => i.feeType !== 'TRANSPORT_FEE')   // hosteler: no transport
+      ? items                                                // hosteler: all fees (transport + hostel + course)
       : items.filter(i => i.feeType !== 'HOSTEL_FEE');      // day scholar: no hostel
 
     this.totalFees.set(this.paiseToAmount(

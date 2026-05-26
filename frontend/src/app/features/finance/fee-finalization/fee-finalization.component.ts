@@ -224,8 +224,12 @@ export class FeeFinalizationComponent implements OnInit {
         `${environment.apiUrl}/fee-structures/guideline?${params.toString()}`
       ).subscribe({
         next: (data) => {
+          const studentType = enquiry.studentType;
+          const filteredItems = studentType === 'DAY_SCHOLAR'
+            ? data.items.filter((i: { feeType: string }) => i.feeType !== 'HOSTEL_FEE')
+            : data.items;
           const yearMap = new Map<number, number>();
-          for (const item of data.items) {
+          for (const item of filteredItems) {
             for (const ya of item.yearAmounts ?? []) {
               yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
             }
