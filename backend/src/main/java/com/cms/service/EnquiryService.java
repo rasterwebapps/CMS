@@ -41,6 +41,7 @@ import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.FeeState;
+import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
@@ -494,6 +495,9 @@ public class EnquiryService {
         student.setCaste(request.caste());
         student.setBloodGroup(request.bloodGroup());
         student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
+        if (enquiry.getAdmissionQuota() != null) {
+            student.setAdmissionCategory(AdmissionCategory.valueOf(enquiry.getAdmissionQuota().name()));
+        }
 
         // Family information
         student.setFatherName(request.fatherName());

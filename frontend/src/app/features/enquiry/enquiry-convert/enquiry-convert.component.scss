@@ -360,10 +360,6 @@
   flex-direction: column;
   gap: 5px;
   min-width: 0; // Allow flexbox to shrink
-  &--checkbox {
-    justify-content: flex-end;
-    padding-bottom: 2px;
-  }
 }
 
 .field-label {
