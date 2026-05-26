@@ -5,50 +5,64 @@
   max-width: 760px;
 }
 
+// ── Card ──────────────────────────────────────────────────────────────────────
 .branding-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px 24px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  padding: 22px 24px;
+  box-shadow: var(--cms-shadow-sm);
 }
 
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin: 0 0 4px;
 }
 
 .card-sub {
   font-size: 12px;
-  color: var(--text-muted);
-  margin: 0 0 16px;
+  color: var(--cms-text-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
 }
 
-/* ── Logo section ── */
+// ── Logo section ──────────────────────────────────────────────────────────────
 .logo-row {
   display: flex;
   align-items: center;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .logo-preview-wrap {
-  width: 140px;
-  height: 90px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-alt, #fafafa);
+  width: 160px;
+  height: 100px;
+  border: 1.5px dashed var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  transition: border-color 0.15s;
+
+  &:has(.logo-preview) {
+    border-style: solid;
+    border-color: var(--cms-border-default);
+    background: #fff;
+  }
 }
 
 .logo-preview {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  display: block;
 }
 
 .logo-empty {
@@ -56,10 +70,10 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: var(--text-muted);
+  color: var(--cms-text-muted);
   font-size: 11px;
 
-  svg { opacity: 0.4; }
+  svg { opacity: 0.35; }
 }
 
 .logo-actions {
@@ -74,62 +88,92 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  // inherits .btn-secondary from global styles
 }
 
 .logo-file-input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.logo-hint {
+  font-size: 11px;
+  color: var(--cms-text-muted);
+  margin: 0;
 }
 
 .btn-ghost-danger {
   background: none;
   border: none;
-  color: var(--error, #d32f2f);
-  font-size: 13px;
+  color: var(--cms-danger);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   padding: 0;
 
   &:hover { text-decoration: underline; }
 }
 
-/* ── Fields grid ── */
+// ── Fields grid ───────────────────────────────────────────────────────────────
 .fields-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px 20px;
+  gap: 16px 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 }
 
-.field-wrap { display: flex; flex-direction: column; gap: 5px; }
-.field-wrap--full { grid-column: 1 / -1; }
+.field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-wrap--full {
+  grid-column: 1 / -1;
+}
 
 .field-label {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--cms-text-secondary);
 }
 
 .field-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
   font-size: 13px;
-  color: var(--text-primary);
-  background: var(--input-bg, #fff);
-  transition: border-color 0.15s;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-muted);
+  font-family: var(--cms-font-ui, inherit);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 
   &:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+    background: var(--cms-bg-card);
+  }
+
+  &::placeholder {
+    color: var(--cms-text-muted);
   }
 }
 
 .field-textarea {
   resize: vertical;
-  min-height: 52px;
+  min-height: 64px;
 }
 
-/* ── Skeleton ── */
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 .branding-skeleton {
   display: flex;
   flex-direction: column;
@@ -137,19 +181,30 @@
   max-width: 760px;
 }
 
-.logo-skeleton {
-  width: 100%;
-  height: 140px;
-  background: var(--skeleton-base, #e8e8e8);
-  border-radius: 10px;
+.skeleton-block {
+  background: var(--cms-border-light);
+  border-radius: var(--cms-radius-lg);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
-.skeleton-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.logo-skeleton {
+  height: 148px;
+}
+
+.skeleton-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 22px 24px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+}
+
 .skeleton-field {
-  height: 56px;
-  background: var(--skeleton-base, #e8e8e8);
-  border-radius: 6px;
+  height: 52px;
+  background: var(--cms-border-light);
+  border-radius: var(--cms-radius-md);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
@@ -158,28 +213,31 @@
   50%       { opacity: 0.5; }
 }
 
-/* ── Spinner ── */
+// ── Save spinner ──────────────────────────────────────────────────────────────
 .btn-spinner {
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.4);
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   vertical-align: middle;
+  margin-right: 4px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
+// ── Back link ─────────────────────────────────────────────────────────────────
 .back-link {
   display: inline-flex;
   align-items: center;
-  color: var(--text-muted);
+  color: var(--cms-text-muted);
   text-decoration: none;
-  margin-right: 4px;
+  margin-right: 6px;
+  transition: color 0.15s;
 
-  &:hover { color: var(--text-primary); }
+  &:hover { color: var(--cms-text-primary); }
 }
