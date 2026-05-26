@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneCMS — Layout Preview</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
+    * { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.3) transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+const {
+  Home, UserCheck, User, Wallet, BookOpen, HardHat, BarChart2,
+  SlidersHorizontal, UserCog, LayoutDashboard, UserCircle,
+  Mail, Lock, CreditCard, Upload, ShieldCheck, ClipboardList,
+  Hash, GraduationCap, Receipt, BookMarked, FlaskConical,
+  Network, Layers, CalendarDays, ClipboardCheck, HelpCircle,
+  Star, Package, Wrench, TrendingUp, FileText, Building2,
+  Calendar, Landmark, Monitor, Users, FileCheck, Headphones,
+  Share2, Droplets, Globe, Settings, Shield, Menu, X,
+  ChevronRight, PanelLeft, Bell, Search, Sun, Moon, School
+} = LucideReact;
+
+/* ── Nav data (mirrored from app.ts) ─────────────────────────────────────── */
+const NAV_GROUPS = [
+  {
+    id: 'overview', label: 'Overview', Icon: Home,
+    items: [
+      { id: 'dashboard',  label: 'Dashboard',  Icon: LayoutDashboard, route: '/dashboard' },
+      { id: 'profile',    label: 'My Profile', Icon: UserCircle,      route: '/profile'   },
+    ],
+  },
+  {
+    id: 'admission', label: 'Admission Management', Icon: UserCheck,
+    items: [
+      { id: 'enquiries',          label: 'Enquiries',          Icon: Mail,          route: '/enquiries' },
+      { id: 'finalize-fee',       label: 'Finalize Fee',       Icon: Lock,          route: '/student-fees/finalize' },
+      { id: 'collect-payment',    label: 'Collect Payment',    Icon: CreditCard,    route: '/fee-collection' },
+      { id: 'submit-docs',        label: 'Submit Documents',   Icon: Upload,        route: '/enquiries/document-submission' },
+      { id: 'verify-docs',        label: 'Verify Documents',   Icon: ShieldCheck,   route: '/enquiries/document-verification' },
+      { id: 'complete-admission', label: 'Complete Admission', Icon: UserCheck,     route: '/enquiries/admission-completion' },
+      { id: 'admission-explorer', label: 'Admission Explorer', Icon: ClipboardList, route: '/admissions' },
+    ],
+  },
+  {
+    id: 'student', label: 'Student Management', Icon: User,
+    items: [
+      { id: 'students',      label: 'Student Explorer',         Icon: User,          route: '/students' },
+      { id: 'roll-numbers',  label: 'Assign Roll Numbers',      Icon: Hash,          route: '/students/roll-numbers' },
+      { id: 'scholarships',  label: 'Scholarship Applications', Icon: GraduationCap, route: '/scholarship-applications' },
+      { id: 'import',        label: 'Data Import',              Icon: Upload,        route: '/import' },
+    ],
+  },
+  {
+    id: 'finance', label: 'Finance', Icon: Wallet,
+    items: [
+      { id: 'fee-explorer', label: 'Fee Explorer', Icon: Wallet,  route: '/student-fees' },
+      { id: 'receipts',     label: 'Receipts',     Icon: Receipt, route: '/receipts' },
+    ],
+  },
+  {
+    id: 'academics', label: 'Academics', Icon: BookOpen,
+    items: [
+      { id: 'syllabus',      label: 'Syllabus',            Icon: BookMarked,   route: '/syllabi' },
+      { id: 'experiments',   label: 'Experiments',         Icon: FlaskConical, route: '/experiments' },
+      { id: 'copo',          label: 'CO/PO Mapping',       Icon: Network,      route: '/curriculum-mappings' },
+      { id: 'curriculum',    label: 'Curriculum Versions', Icon: Layers,       route: '/curriculum-versions' },
+      { id: 'lab-schedules', label: 'Lab Schedules',       Icon: CalendarDays, route: '/lab-schedules' },
+      { id: 'attendance',    label: 'Attendance',          Icon: ClipboardCheck, route: '/attendance' },
+      { id: 'exams',         label: 'Manage Exams',        Icon: HelpCircle,   route: '/examinations' },
+      { id: 'exam-results',  label: 'Exam Results',        Icon: Star,         route: '/exam-results' },
+    ],
+  },
+  {
+    id: 'infrastructure', label: 'Infrastructure', Icon: HardHat,
+    items: [
+      { id: 'inventory',   label: 'Inventory',   Icon: Package, route: '/inventory' },
+      { id: 'maintenance', label: 'Maintenance', Icon: Wrench,  route: '/maintenance' },
+    ],
+  },
+  {
+    id: 'reports', label: 'Reports & Analytics', Icon: BarChart2,
+    items: [
+      { id: 'general-reports', label: 'General Reports', Icon: TrendingUp, route: '/reports' },
+      { id: 'fee-reports',     label: 'Fee Reports',     Icon: FileText,   route: '/fee-reports' },
+    ],
+  },
+  {
+    id: 'preferences', label: 'Preferences', Icon: SlidersHorizontal,
+    items: [
+      { id: 'departments',      label: 'Departments',       Icon: Building2,    route: '/departments' },
+      { id: 'programs',         label: 'Programs',          Icon: GraduationCap,route: '/programs' },
+      { id: 'courses',          label: 'Courses',           Icon: BookOpen,     route: '/courses' },
+      { id: 'academic-years',   label: 'Academic Years',    Icon: Calendar,     route: '/academic-years' },
+      { id: 'acad-calendar',    label: 'Academic Calendar', Icon: CalendarDays, route: '/academic-calendar' },
+      { id: 'num-sequences',    label: 'Number Sequences',  Icon: Hash,         route: '/number-sequences' },
+      { id: 'labs',             label: 'Labs',              Icon: FlaskConical, route: '/labs' },
+      { id: 'fee-structures',   label: 'Fee Structures',    Icon: Landmark,     route: '/fee-structures' },
+      { id: 'equipment',        label: 'Equipment',         Icon: Monitor,      route: '/equipment' },
+      { id: 'faculty',          label: 'Faculty',           Icon: Users,        route: '/faculty' },
+      { id: 'faculty-doc',      label: 'Faculty Doc Config',Icon: FileCheck,    route: '/faculty/document-config' },
+      { id: 'schol-types',      label: 'Scholarship Types', Icon: GraduationCap,route: '/scholarships' },
+      { id: 'agents',           label: 'Agents',            Icon: Headphones,   route: '/agents' },
+      { id: 'referral-types',   label: 'Referral Types',    Icon: Share2,       route: '/referral-types' },
+      { id: 'communities',      label: 'Communities',       Icon: Users,        route: '/communities' },
+      { id: 'blood-groups',     label: 'Blood Groups',      Icon: Droplets,     route: '/blood-groups' },
+      { id: 'location-master',  label: 'Location Master',   Icon: Globe,        route: '/india-locations' },
+      { id: 'settings',         label: 'Settings',          Icon: Settings,     route: '/settings' },
+    ],
+  },
+  {
+    id: 'user-management', label: 'User Management', Icon: UserCog,
+    items: [
+      { id: 'users', label: 'Users',               Icon: UserCog, route: '/user-management' },
+      { id: 'roles', label: 'Roles & Permissions', Icon: Shield,  route: '/role-management' },
+    ],
+  },
+];
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+function Tooltip({ children, label, side = 'right', disabled = false }) {
+  const [show, setShow] = useState(false);
+  if (disabled || !label) return children;
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div
+          role="tooltip"
+          className={[
+            'absolute z-[100] px-2.5 py-1.5 text-xs font-medium text-white',
+            'bg-slate-800 rounded-lg shadow-xl whitespace-nowrap pointer-events-none',
+            'animate-[fadeIn_80ms_ease]',
+            side === 'right'  ? 'left-full ml-3 top-1/2 -translate-y-1/2' : '',
+            side === 'bottom' ? 'top-full mt-2 left-1/2 -translate-x-1/2' : '',
+          ].join(' ')}
+        >
+          {label}
+          {side === 'right' && (
+            <span className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-slate-800" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Rail button (Pane 1) ─────────────────────────────────────────────────── */
+function RailButton({ group, isActive, onClick, dark }) {
+  return (
+    <Tooltip label={group.label} side="right">
+      <button
+        onClick={onClick}
+        aria-label={group.label}
+        aria-pressed={isActive}
+        className={[
+          'relative flex items-center justify-center w-10 h-10 rounded-xl',
+          'transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+          isActive
+            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
+            : dark
+              ? 'text-slate-400 hover:bg-slate-700/70 hover:text-slate-200'
+              : 'text-slate-400 hover:bg-slate-700/70 hover:text-slate-200',
+        ].join(' ')}
+      >
+        <group.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+        {isActive && (
+          <span className="absolute -right-0.5 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-indigo-300 rounded-full" />
+        )}
+      </button>
+    </Tooltip>
+  );
+}
+
+/* ── Sidebar nav item (Pane 2) ───────────────────────────────────────────── */
+function SidebarItem({ item, isActive, expanded, onClick, dark }) {
+  return (
+    <Tooltip label={!expanded ? item.label : ''} side="right">
+      <button
+        onClick={onClick}
+        aria-current={isActive ? 'page' : undefined}
+        className={[
+          'w-full flex items-center rounded-lg transition-all duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+          expanded ? 'px-3 py-2 gap-2.5' : 'justify-center py-2.5',
+          isActive
+            ? dark
+              ? 'bg-indigo-500/15 text-indigo-400'
+              : 'bg-indigo-50 text-indigo-700'
+            : dark
+              ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+        ].join(' ')}
+      >
+        <item.Icon
+          size={16}
+          strokeWidth={isActive ? 2.2 : 1.8}
+          className="flex-shrink-0"
+        />
+        {/* Label — slides in/out via max-width so it animates with the sidebar transition */}
+        <span
+          className="text-sm font-medium whitespace-nowrap overflow-hidden leading-none"
+          style={{
+            maxWidth: expanded ? '180px' : '0px',
+            opacity: expanded ? 1 : 0,
+            transition: expanded
+              ? 'max-width 280ms ease-in-out, opacity 180ms ease-in-out 80ms'
+              : 'max-width 280ms ease-in-out, opacity 80ms ease-in-out',
+          }}
+        >
+          {item.label}
+        </span>
+        {isActive && (
+          <span
+            className={[
+              'flex-shrink-0 w-1.5 h-1.5 rounded-full ml-auto',
+              dark ? 'bg-indigo-400' : 'bg-indigo-600',
+            ].join(' ')}
+            style={{
+              opacity: expanded ? 1 : 0,
+              transition: 'opacity 150ms ease',
+            }}
+          />
+        )}
+      </button>
+    </Tooltip>
+  );
+}
+
+/* ── Main App ─────────────────────────────────────────────────────────────── */
+function App() {
+  const [activeGroupId, setActiveGroupId]     = useState('overview');
+  const [activeItemId, setActiveItemId]       = useState('dashboard');
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileOpen, setMobileOpen]           = useState(false);
+  const [dark, setDark]                       = useState(false);
+
+  const activeGroup = NAV_GROUPS.find(g => g.id === activeGroupId) ?? NAV_GROUPS[0];
+  const activeItem  = activeGroup.items.find(i => i.id === activeItemId)
+                   ?? NAV_GROUPS.flatMap(g => g.items).find(i => i.id === activeItemId)
+                   ?? activeGroup.items[0];
+
+  const selectGroup = useCallback((groupId) => {
+    const group = NAV_GROUPS.find(g => g.id === groupId);
+    if (!group) return;
+    setActiveGroupId(groupId);
+    const inGroup = group.items.some(i => i.id === activeItemId);
+    if (!inGroup) setActiveItemId(group.items[0].id);
+    setMobileOpen(true);
+  }, [activeItemId]);
+
+  const selectItem = useCallback((itemId) => {
+    setActiveItemId(itemId);
+    setMobileOpen(false);
+  }, []);
+
+  /* close mobile drawer on resize to desktop */
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const handler = (e) => { if (e.matches) setMobileOpen(false); };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const d = dark; /* shorthand */
+
+  return (
+    <div className={`flex h-full overflow-hidden ${d ? 'bg-slate-950' : 'bg-white'}`}>
+
+      {/* ── Mobile backdrop ──────────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ══ PANE 1 — Global Nav Rail (desktop only) ═════════════════════════ */}
+      <nav
+        aria-label="Module navigation"
+        className={`hidden md:flex flex-col items-center flex-shrink-0 w-16 z-20 ${d ? 'bg-[#0a0f1a]' : 'bg-slate-900'}`}
+      >
+        {/* Logo mark */}
+        <div className="flex items-center justify-center h-14 w-full border-b border-white/5 flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-900/60">
+            <span className="text-white text-[11px] font-extrabold tracking-tight select-none">S</span>
+          </div>
+        </div>
+
+        {/* Module icons */}
+        <div className="flex flex-col items-center gap-0.5 py-2 flex-1 w-full overflow-y-auto overflow-x-hidden">
+          {NAV_GROUPS.map(group => (
+            <RailButton
+              key={group.id}
+              group={group}
+              isActive={group.id === activeGroupId}
+              onClick={() => selectGroup(group.id)}
+              dark={d}
+            />
+          ))}
+        </div>
+
+        {/* Bottom utilities */}
+        <div className="flex flex-col items-center gap-0.5 pb-3 w-full flex-shrink-0">
+          <div className="w-8 h-px bg-white/5 my-1" />
+          <Tooltip label={d ? 'Light mode' : 'Dark mode'} side="right">
+            <button
+              onClick={() => setDark(v => !v)}
+              aria-label="Toggle theme"
+              className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-700/70 hover:text-slate-200 transition-all duration-150"
+            >
+              {d ? <Sun size={17} strokeWidth={1.8} /> : <Moon size={17} strokeWidth={1.8} />}
+            </button>
+          </Tooltip>
+          <Tooltip label="Notifications" side="right">
+            <button className="relative flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-700/70 hover:text-slate-200 transition-all duration-150">
+              <Bell size={17} strokeWidth={1.8} />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+            </button>
+          </Tooltip>
+          <div className="flex items-center justify-center w-10 h-10 mt-1">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
+              <span className="text-white text-xs font-semibold select-none">A</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* ══ Mobile top bar ══════════════════════════════════════════════════ */}
+      <div className={[
+        'md:hidden fixed top-0 left-0 right-0 z-40 flex items-center h-14 px-4 border-b',
+        d ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200',
+      ].join(' ')}>
+        <button
+          onClick={() => setMobileOpen(v => !v)}
+          aria-label="Open navigation"
+          className={`p-2 rounded-lg transition-colors ${d ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Menu size={20} strokeWidth={1.8} />
+        </button>
+        <div className="flex items-center gap-1.5 ml-3 min-w-0">
+          <span className={`text-xs ${d ? 'text-slate-500' : 'text-slate-400'} flex-shrink-0`}>{activeGroup.label}</span>
+          <ChevronRight size={11} className={d ? 'text-slate-600 flex-shrink-0' : 'text-slate-300 flex-shrink-0'} />
+          <span className={`text-sm font-semibold truncate ${d ? 'text-white' : 'text-slate-800'}`}>{activeItem.label}</span>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+          <button className={`relative p-2 rounded-lg ${d ? 'text-slate-400' : 'text-slate-500'}`}>
+            <Bell size={18} strokeWidth={1.8} />
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+          </button>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
+            <span className="text-white text-xs font-semibold select-none">A</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Mobile sidebar drawer ═══════════════════════════════════════════ */}
+      <aside
+        aria-label="Navigation drawer"
+        aria-hidden={!mobileOpen}
+        className={[
+          'md:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col w-[300px]',
+          'transition-transform duration-300 ease-in-out shadow-2xl',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          d ? 'bg-slate-900' : 'bg-white',
+        ].join(' ')}
+      >
+        {/* Drawer header */}
+        <div className={`flex items-center h-14 px-4 border-b flex-shrink-0 ${d ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center mr-3 shadow">
+            <span className="text-white text-[10px] font-extrabold select-none">S</span>
+          </div>
+          <div>
+            <p className={`text-sm font-semibold leading-tight ${d ? 'text-white' : 'text-slate-800'}`}>OneCMS</p>
+            <p className={`text-[10px] leading-tight ${d ? 'text-slate-500' : 'text-slate-400'}`}>SKS College of Nursing</p>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            className={`ml-auto p-2 rounded-lg ${d ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+          >
+            <X size={18} strokeWidth={1.8} />
+          </button>
+        </div>
+
+        {/* Module grid */}
+        <div className={`px-4 pt-4 pb-3 border-b flex-shrink-0 ${d ? 'border-slate-800' : 'border-slate-100'}`}>
+          <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2.5 ${d ? 'text-slate-500' : 'text-slate-400'}`}>Modules</p>
+          <div className="grid grid-cols-4 gap-1">
+            {NAV_GROUPS.map(group => {
+              const isActive = group.id === activeGroupId;
+              return (
+                <button
+                  key={group.id}
+                  onClick={() => selectGroup(group.id)}
+                  title={group.label}
+                  className={[
+                    'flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl transition-all duration-150',
+                    isActive
+                      ? 'bg-indigo-600 text-white'
+                      : d
+                        ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
+                  ].join(' ')}
+                >
+                  <group.Icon size={18} strokeWidth={1.8} />
+                  <span className="text-[9px] font-medium leading-tight text-center line-clamp-1">
+                    {group.label.replace(' Management','').replace(' & Analytics', '')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active group items */}
+        <div className="flex-1 overflow-y-auto px-3 py-3">
+          <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 px-1 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
+            {activeGroup.label}
+          </p>
+          {activeGroup.items.map(item => {
+            const isActive = item.id === activeItemId;
+            return (
+              <button
+                key={item.id}
+                onClick={() => selectItem(item.id)}
+                aria-current={isActive ? 'page' : undefined}
+                className={[
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 transition-all duration-150',
+                  isActive
+                    ? d ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
+                    : d ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50',
+                ].join(' ')}
+              >
+                <item.Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} className="flex-shrink-0" />
+                <span className="text-sm font-medium text-left">{item.label}</span>
+                {isActive && (
+                  <span className={`ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0 ${d ? 'bg-indigo-400' : 'bg-indigo-600'}`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Drawer footer */}
+        <div className={`px-4 py-3 border-t flex-shrink-0 ${d ? 'border-slate-800' : 'border-slate-100'}`}>
+          <p className={`text-[10px] ${d ? 'text-slate-600' : 'text-slate-300'}`}>
+            <span className="font-semibold">OneCMS</span> · Raster Images Pvt. Ltd.
+          </p>
+        </div>
+      </aside>
+
+      {/* ══ PANE 2 — Master Sidebar (desktop only) ═══════════════════════════ */}
+      <aside
+        aria-label="Section navigation"
+        className={[
+          'hidden md:flex flex-col flex-shrink-0 border-r overflow-hidden',
+          'transition-[width] duration-300 ease-in-out',
+          d ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200',
+        ].join(' ')}
+        style={{ width: sidebarExpanded ? '260px' : '48px' }}
+      >
+        {/* Sidebar header + toggle */}
+        <div className={[
+          'flex items-center h-14 flex-shrink-0 border-b',
+          d ? 'border-slate-800' : 'border-slate-200',
+          sidebarExpanded ? 'px-3 gap-2' : 'justify-center',
+        ].join(' ')}>
+          {/* Section label — fades with label animation */}
+          <span
+            className={`text-xs font-semibold uppercase tracking-widest truncate overflow-hidden whitespace-nowrap ${d ? 'text-slate-400' : 'text-slate-500'}`}
+            style={{
+              maxWidth: sidebarExpanded ? '160px' : '0px',
+              opacity: sidebarExpanded ? 1 : 0,
+              transition: sidebarExpanded
+                ? 'max-width 280ms ease-in-out, opacity 180ms ease-in-out 80ms'
+                : 'max-width 280ms ease-in-out, opacity 80ms ease-in-out',
+            }}
+          >
+            {activeGroup.label}
+          </span>
+          <Tooltip
+            label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            side={sidebarExpanded ? 'bottom' : 'right'}
+          >
+            <button
+              onClick={() => setSidebarExpanded(v => !v)}
+              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              className={[
+                'flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150',
+                d
+                  ? 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+                  : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600',
+              ].join(' ')}
+              style={{ transform: sidebarExpanded ? 'none' : 'scaleX(-1)' }}
+            >
+              <PanelLeft size={16} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+        </div>
+
+        {/* Nav items */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-1.5">
+          {activeGroup.items.map(item => (
+            <SidebarItem
+              key={item.id}
+              item={item}
+              isActive={item.id === activeItemId}
+              expanded={sidebarExpanded}
+              onClick={() => selectItem(item.id)}
+              dark={d}
+            />
+          ))}
+        </div>
+
+        {/* Sidebar footer */}
+        <div
+          className={`border-t flex-shrink-0 overflow-hidden ${d ? 'border-slate-800' : 'border-slate-200'}`}
+          style={{
+            maxHeight: sidebarExpanded ? '48px' : '0px',
+            opacity: sidebarExpanded ? 1 : 0,
+            transition: 'max-height 280ms ease-in-out, opacity 150ms ease-in-out',
+          }}
+        >
+          <div className="px-4 py-3">
+            <p className={`text-[11px] whitespace-nowrap ${d ? 'text-slate-600' : 'text-slate-400'}`}>
+              <span className="font-semibold">OneCMS</span> · Raster Images Pvt. Ltd.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      {/* ══ PANE 3 — Detail Canvas ══════════════════════════════════════════ */}
+      <main
+        className={`flex-1 flex flex-col overflow-hidden md:mt-0 mt-14 min-w-0 ${d ? 'bg-slate-950' : 'bg-white'}`}
+      >
+        {/* Canvas header / breadcrumb bar */}
+        <header className={[
+          'flex-shrink-0 flex items-center h-14 px-6 border-b gap-4',
+          d ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200',
+        ].join(' ')}>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`hidden sm:block text-xs ${d ? 'text-slate-500' : 'text-slate-400'} flex-shrink-0`}>
+              {activeGroup.label}
+            </span>
+            <ChevronRight size={12} className={`hidden sm:block flex-shrink-0 ${d ? 'text-slate-700' : 'text-slate-300'}`} />
+            <span className={`text-sm font-semibold truncate ${d ? 'text-slate-100' : 'text-slate-800'}`}>
+              {activeItem.label}
+            </span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+            {/* Fake search pill */}
+            <button className={[
+              'hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+              d
+                ? 'border-slate-800 text-slate-500 hover:bg-slate-900 hover:text-slate-300'
+                : 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600',
+            ].join(' ')}>
+              <Search size={13} strokeWidth={1.8} />
+              <span>Search</span>
+              <kbd className={`ml-1 px-1.5 py-0.5 text-[10px] rounded font-mono ${d ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-400'}`}>/</kbd>
+            </button>
+          </div>
+        </header>
+
+        {/* Canvas content */}
+        <div className={`flex-1 overflow-auto ${d ? 'bg-slate-950' : 'bg-slate-50/60'}`}>
+          <div className="flex flex-col items-center justify-center min-h-full p-8">
+            <div className={[
+              'rounded-2xl border shadow-sm p-10 text-center w-full max-w-sm',
+              d ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200',
+            ].join(' ')}>
+              <div className={[
+                'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5',
+                d ? 'bg-indigo-500/15' : 'bg-indigo-50',
+              ].join(' ')}>
+                <activeItem.Icon
+                  size={26}
+                  strokeWidth={1.8}
+                  className={d ? 'text-indigo-400' : 'text-indigo-600'}
+                />
+              </div>
+              <h2 className={`text-base font-semibold mb-1 ${d ? 'text-slate-100' : 'text-slate-800'}`}>
+                {activeItem.label}
+              </h2>
+              <p className={`text-sm mb-4 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
+                {activeGroup.label}
+              </p>
+              <code className={`text-xs px-3 py-1.5 rounded-lg font-mono ${d ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                {activeItem.route}
+              </code>
+              <p className={`mt-5 text-xs leading-relaxed ${d ? 'text-slate-600' : 'text-slate-400'}`}>
+                The Angular router-outlet content for this module renders here in the live application.
+              </p>
+            </div>
+
+            {/* Quick links to other items in the group */}
+            {activeGroup.items.length > 1 && (
+              <div className="mt-6 w-full max-w-sm">
+                <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 text-center ${d ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Other items in {activeGroup.label}
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {activeGroup.items
+                    .filter(i => i.id !== activeItemId)
+                    .map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => selectItem(item.id)}
+                        className={[
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
+                          d
+                            ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                            : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800',
+                        ].join(' ')}
+                      >
+                        <item.Icon size={12} strokeWidth={1.8} />
+                        {item.label}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
