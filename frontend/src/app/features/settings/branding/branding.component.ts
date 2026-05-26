@@ -74,20 +74,35 @@ export class BrandingComponent implements OnInit {
 
   protected save(): void {
     this.saving.set(true);
-    const toUpdate = this.fields
-      .filter(f => f.id !== null)
-      .map(f => this.settingsService.update(f.id!, this.buildRequest(f.key, f.value, 'BRANDING')));
+    const ops = this.fields.map(f =>
+      f.id !== null
+        ? this.settingsService.update(f.id, this.buildRequest(f.key, f.value, 'BRANDING'))
+        : this.settingsService.create(this.buildRequest(f.key, f.value, 'BRANDING'))
+    );
 
     const logoId = this.logoId();
     if (logoId !== null) {
-      toUpdate.push(this.settingsService.update(logoId,
+      ops.push(this.settingsService.update(logoId,
         this.buildRequest('college.logo_data', this.logoPreview() ?? '', 'BRANDING')));
+    } else if (this.logoPreview()) {
+      ops.push(this.settingsService.create(
+        this.buildRequest('college.logo_data', this.logoPreview()!, 'BRANDING')));
     }
 
-    if (toUpdate.length === 0) { this.saving.set(false); return; }
+    if (ops.length === 0) { this.saving.set(false); return; }
 
-    forkJoin(toUpdate).subscribe({
-      next: () => { this.toast.success('Branding settings saved'); this.saving.set(false); },
+    forkJoin(ops).subscribe({
+      next: (results) => {
+        // Update local ids so subsequent saves use update, not create
+        const created = results.filter(r => r.id);
+        for (const cfg of created) {
+          const field = this.fields.find(f => f.key === cfg.configKey);
+          if (field && field.id === null) field.id = cfg.id;
+          if (cfg.configKey === 'college.logo_data' && !this.logoId()) this.logoId.set(cfg.id);
+        }
+        this.toast.success('Branding settings saved');
+        this.saving.set(false);
+      },
       error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
   }
