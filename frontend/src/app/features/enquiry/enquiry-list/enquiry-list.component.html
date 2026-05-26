@@ -342,14 +342,14 @@
               class="table-row table-row--clickable"
               (click)="view(row)"></tr>
 
-          <tr class="mat-row" *matNoDataRow>
+          <tr class="mat-row no-data-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0; border:none;">
               <cms-empty-state
                 [icon]="searchValue() ? 'search_off' : 'person_search'"
                 [title]="searchValue() ? 'No enquiries match your search' : 'No enquiries found'"
                 [subtitle]="searchValue() ? 'Try adjusting the search term or clear filters.' : 'Add a new enquiry to get started.'"
                 [actionLabel]="searchValue() ? 'Clear Search' : 'Add Enquiry'"
-                (actionClick)="searchValue() ? clearFilter() : null"
+                (actionClick)="handleEmptyAction()"
               />
             </td>
           </tr>

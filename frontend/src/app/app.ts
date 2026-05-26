@@ -91,6 +91,12 @@ export class App implements OnInit, AfterViewInit {
   /** True while the mouse is over the rail or the peek tray — drives the peek animation. */
   protected readonly railHovering = signal(false);
 
+  /** The NavGroup currently selected on the icon rail — drives second-tray content. */
+  protected readonly activeRailGroup = signal<NavGroup | null>(null);
+
+  /** The NavGroup the cursor is currently hovering over on the rail (peek override). */
+  protected readonly hoveredRailGroup = signal<NavGroup | null>(null);
+
   protected readonly navSearchActive = signal(false);
   @ViewChild('navSearchInput') private navSearchInputRef?: ElementRef<HTMLInputElement>;
 
@@ -283,6 +289,31 @@ export class App implements OnInit, AfterViewInit {
       .filter((entry): entry is NavEntry => entry !== null);
   });
 
+  /**
+   * The permission-filtered NavGroup to display in the desktop second tray.
+   * During a hover-peek, the hovered group overrides the selected group.
+   * Falls back to the first available group when nothing is selected.
+   */
+  protected readonly activeGroupForTray = computed<NavGroup | null>(() => {
+    const entries = this.filteredNavEntries();
+
+    // Hover-peek: show whichever button the cursor is over
+    const hovered = this.hoveredRailGroup();
+    if (hovered && this.railHovering()) {
+      const match = entries.find((e) => isNavGroup(e) && e.label === hovered.label);
+      if (match) return match as NavGroup;
+    }
+
+    // Persistent selection (clicked or navigated)
+    const active = this.activeRailGroup();
+    if (active) {
+      const match = entries.find((e) => isNavGroup(e) && e.label === active.label);
+      if (match) return match as NavGroup;
+    }
+
+    return (entries.find(isNavGroup) as NavGroup) ?? null;
+  });
+
   protected setGroupExpanded(groupLabel: string, expanded: boolean): void {
     // Plain toggle — only collapse-on-navigate (syncExpandedGroupToRoute) enforces
     // the one-open-at-a-time rule. Clicking a header must never collapse the
@@ -316,6 +347,7 @@ export class App implements OnInit, AfterViewInit {
         }
         this.expandedGroups.set(next);
         this.saveExpandedGroups(next);
+        this.activeRailGroup.set(entry);
         return;
       }
     }
@@ -425,21 +457,13 @@ export class App implements OnInit, AfterViewInit {
     this.railHoverTimer = setTimeout(() => this.railHovering.set(true), 120);
   }
 
-  /** Mouse leaves the first-tray rail — schedule peek close (cancelled if entering second tray). */
+  /** Mouse leaves the sidenav — schedule peek close and clear the hover group. */
   protected onRailLeave(): void {
     if (this.railHoverTimer) clearTimeout(this.railHoverTimer);
-    this.railHoverTimer = setTimeout(() => this.railHovering.set(false), 220);
-  }
-
-  /** Mouse enters the peek second tray — cancel any pending close timer. */
-  protected onSecondTrayEnter(): void {
-    if (this.railHoverTimer) clearTimeout(this.railHoverTimer);
-  }
-
-  /** Mouse leaves the peek second tray — close the peek. */
-  protected onSecondTrayLeave(): void {
-    if (!this.sidenavCollapsed() || this.isMobile()) return;
-    this.railHoverTimer = setTimeout(() => this.railHovering.set(false), 220);
+    this.railHoverTimer = setTimeout(() => {
+      this.railHovering.set(false);
+      this.hoveredRailGroup.set(null);
+    }, 220);
   }
 
   /**
@@ -507,12 +531,44 @@ export class App implements OnInit, AfterViewInit {
     window.history.back();
   }
 
+  /**
+   * True when no nav item in any group has an exact route match for `url`.
+   * Used to allow prefix matching only for routes that aren't explicit nav entries.
+   */
+  private hasExactNavMatch(url: string): boolean {
+    return this.navEntries.some((e) => {
+      if (!isNavGroup(e)) return e.route === url;
+      return e.items.some((i) => i.route === url);
+    });
+  }
+
   /** Returns true when any item inside the group matches the current route. */
   protected isGroupActive(entry: NavGroup): boolean {
     const url = this.currentUrl();
-    return entry.items.some(
-      (item) => url === item.route || url.startsWith(item.route + '/'),
-    );
+    return entry.items.some((item) => {
+      if (url === item.route) return true;
+      // Prefix match only when the URL has no dedicated nav entry of its own.
+      if (url.startsWith(item.route + '/')) return !this.hasExactNavMatch(url);
+      return false;
+    });
+  }
+
+  /** Returns true when the nav item matches the current route. */
+  protected isNavItemActive(item: NavItem): boolean {
+    const url = this.currentUrl();
+    if (url === item.route) return true;
+    // Prefix match only when the URL has no dedicated nav entry of its own.
+    if (url.startsWith(item.route + '/')) return !this.hasExactNavMatch(url);
+    return false;
+  }
+
+  /** Selects a group on the rail and ensures the second tray is open. */
+  protected selectRailGroup(entry: NavGroup): void {
+    this.activeRailGroup.set(entry);
+    if (this.sidenavCollapsed() && !this.isMobile()) {
+      this.sidenavCollapsed.set(false);
+      this.railHovering.set(false);
+    }
   }
 
   protected async logout(): Promise<void> {

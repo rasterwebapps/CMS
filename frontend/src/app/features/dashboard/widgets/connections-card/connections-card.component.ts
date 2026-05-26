@@ -1,12 +1,17 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ConnectionItem, SAMPLE_CONNECTIONS } from '../widget.models';
+import { environment } from '../../../../../environments';
 
-/**
- * Colleagues / connections widget. Static sample list for now; will source
- * from `FacultyService.list()` filtered by department in a follow-up.
- */
+interface ConnectionItem {
+  id: number;
+  name: string;
+  initials: string;
+  role: string;
+  online: boolean;
+}
+
 @Component({
   selector: 'cms-connections-card',
   standalone: true,
@@ -15,12 +20,22 @@ import { ConnectionItem, SAMPLE_CONNECTIONS } from '../widget.models';
   styleUrl: './connections-card.component.scss',
   host: { '[style.--ca]': '"#10b981"' },
 })
-export class ConnectionsCardComponent {
-  // ngComponentOutletInputs compatibility
+export class ConnectionsCardComponent implements OnInit {
   @Input() widgetKey?:   string;
   @Input() widgetLabel?: string;
   @Input() widgetIcon?:  string;
   @Input() title = 'Colleagues';
-  @Input() people: ConnectionItem[] = SAMPLE_CONNECTIONS;
-}
 
+  private readonly http = inject(HttpClient);
+
+  protected readonly loading = signal(true);
+  protected readonly error   = signal(false);
+  protected readonly people  = signal<ConnectionItem[]>([]);
+
+  ngOnInit(): void {
+    this.http.get<ConnectionItem[]>(`${environment.apiUrl}/dashboard/data/connections`).subscribe({
+      next:  d  => { this.people.set(d ?? []); this.loading.set(false); },
+      error: () => { this.error.set(true); this.loading.set(false); },
+    });
+  }
+}

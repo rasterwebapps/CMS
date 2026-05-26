@@ -27,40 +27,24 @@
 // Toolbar split: left (stable brand) / right (context)
 // ──────────────────────────────────────────────────
 .toolbar-left {
-  // Rail (68px) + second tray (248px) = total when both visible
-  width: calc(68px + var(--cms-sidenav-width));
+  // Fixed 56px — aligns exactly with the icon rail.
+  // Logo + brand name live in toolbar-right, after this border.
+  width: 56px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px 0 4px;
+  justify-content: center;
+  padding: 0;
   height: 100%;
-  overflow: hidden;
   border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  // Second tray hidden — only rail visible
-  &.sidenav-collapsed {
-    width: 68px;
-    padding: 0;
-    justify-content: center;
-    gap: 0;
-
-    // Hide brand logo and name — only hamburger remains centred
-    .toolbar-brand-icon,
-    .toolbar-brand-fallback,
-    .toolbar-brand-name {
-      display: none;
-    }
-  }
-
-  // ── Mobile: brand area collapses to its content so the right-side
-  //    actions (search, avatar) have room on small screens.
+  // Mobile: no border, auto-width so brand link fits naturally
   &.is-mobile {
     width: auto;
     padding: 0 6px;
     gap: 4px;
     border-right: none;
+    justify-content: flex-start;
   }
 }
 
@@ -93,11 +77,11 @@
 .app-container {
   height: calc(100vh - 62px);
 
-  // Second tray open: content shifts past rail (68px) + second tray (248px)
+  // Second tray open: content shifts past rail (56px) + second tray (248px)
   &.tray-open {
     .mat-sidenav-content,
     .mat-drawer-content {
-      margin-left: calc(68px + var(--cms-sidenav-width)) !important;
+      margin-left: calc(56px + var(--cms-sidenav-width)) !important;
     }
   }
 
@@ -113,7 +97,7 @@
   .mat-drawer-content {
     // CSS fully owns the content margin so Angular Material's ResizeObserver
     // never fires mid-transition and resets the animation.
-    margin-left: 68px !important; // default: rail only
+    margin-left: 56px !important; // default: rail only
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     overflow-y: auto;
     background-color: var(--cms-bg-shell) !important;
@@ -121,26 +105,74 @@
 }
 
 // ──────────────────────────────────────────────────
-// Dark Sidenav — Expanded & Collapsed (Icon Rail)
+// Sidenav — two-column container (rail + second tray)
 // ──────────────────────────────────────────────────
 .app-sidenav {
   display: flex;
   flex-direction: column;
-  // Desktop: always 68px — permanent first tray (icon rail)
-  width: 68px;
+  width: 56px; // default: rail only
   background: var(--cms-sidenav-bg) !important;
   border-right: 1px solid var(--cms-sidenav-border) !important;
   border-radius: 0 !important;
-  overflow: hidden;
+  overflow: hidden; // clips second-tray-column when width = 56px
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s ease;
 
-  // Mobile drawer: full navigation width
+  // Prevent Angular Material's inner scroll container from showing a horizontal bar
+  ::ng-deep .mat-drawer-inner-container {
+    overflow-x: hidden !important;
+  }
+
+  // Second tray permanently open — content has shifted right to make room
+  &.second-tray-open {
+    width: calc(56px + var(--cms-sidenav-width));
+  }
+
+  // Second tray peeks as hover overlay over content
+  &.second-tray-peek {
+    width: calc(56px + var(--cms-sidenav-width));
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
+  }
+
   &.mobile-drawer {
     width: var(--cms-sidenav-width) !important;
   }
+}
 
-  // sidenav-brand-header removed — toggle/expand is handled in the toolbar
+// ── Two-column inner layout (desktop only) ──
+.sidenav-inner {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  // Inner content is always full width; the parent clips it
+  width: calc(56px + var(--cms-sidenav-width));
+}
 
-  // ─── Menu Filter (hidden on desktop, revealed by / keypress; tap-target on mobile) ───
+.rail-column {
+  width: 56px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--cms-sidenav-border);
+  height: 100%;
+}
+
+.second-tray-column {
+  width: var(--cms-sidenav-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cms-sidenav-bg);
+}
+
+// ──────────────────────────────────────────────────
+// Interior styles — nav items, search filter, footer
+// (apply to mobile drawer and desktop second tray column)
+// ──────────────────────────────────────────────────
+.app-sidenav {
+  // ─── Menu Filter ───
   .sidenav-search {
     display: flex;
     align-items: center;
@@ -193,7 +225,7 @@
     }
   }
 
-  // Trigger button shown when the filter is not yet active
+  // Mobile-only filter trigger button
   .sidenav-filter-trigger {
     display: flex;
     align-items: center;
@@ -211,8 +243,6 @@
     &:hover {
       background: var(--cms-sidenav-hover);
       color: var(--cms-sidenav-text);
-
-      .sidenav-filter-kbd { opacity: 1; }
     }
   }
 
@@ -224,11 +254,9 @@
     color: inherit;
   }
 
-
   mat-nav-list {
     padding: 4px 0;
 
-    // ── Kill Angular Material MDC state-layer & ink-ripple ──────────────
     --mat-list-list-item-hover-state-layer-color: transparent;
     --mat-list-list-item-hover-state-layer-opacity: 0;
     --mat-list-list-item-focus-state-layer-color: transparent;
@@ -236,17 +264,9 @@
     --mat-list-active-indicator-color: transparent;
     --mat-list-active-indicator-shape: var(--cms-radius-sm);
 
-    ::ng-deep .mat-ripple-element {
-      display: none !important;
-    }
-
-    // AM 21 MDC list-item internal content spans — force left alignment
-    ::ng-deep .mdc-list-item__content {
-      text-align: left !important;
-    }
-    ::ng-deep .mdc-list-item__primary-text {
-      text-align: left !important;
-    }
+    ::ng-deep .mat-ripple-element { display: none !important; }
+    ::ng-deep .mdc-list-item__content { text-align: left !important; }
+    ::ng-deep .mdc-list-item__primary-text { text-align: left !important; }
 
     a[mat-list-item] {
       border-radius: 10px !important;
@@ -279,13 +299,8 @@
       &:hover {
         background-color: var(--cms-sidenav-hover) !important;
 
-        mat-icon[matListItemIcon] {
-          color: var(--cms-sidenav-text-bright);
-        }
-
-        span[matListItemTitle] {
-          color: var(--cms-sidenav-text-bright);
-        }
+        mat-icon[matListItemIcon] { color: var(--cms-sidenav-text-bright); }
+        span[matListItemTitle]    { color: var(--cms-sidenav-text-bright); }
       }
     }
   }
@@ -295,34 +310,24 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    // Reserve the scrollbar gutter at all times — prevents layout shift
-    // (chevron jump) when content expands and the scrollbar appears.
     scrollbar-gutter: stable;
     padding: 8px 0;
 
-    // Ultra-thin phantom scrollbar — visible only on hover
-    &::-webkit-scrollbar {
-      width: 3px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: transparent;
-      border-radius: 3px;
-      transition: background 0.2s;
-    }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    &:hover::-webkit-scrollbar-thumb {
-      background: var(--cms-sidenav-scrollbar-thumb);
-    }
+    &::-webkit-scrollbar       { width: 3px; }
+    &::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; transition: background 0.2s; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &:hover::-webkit-scrollbar-thumb { background: var(--cms-sidenav-scrollbar-thumb); }
   }
 
-  // ─── Sidenav Footer — OneCMS brand logo ───
+  // ─── Footer — OneCMS brand ───
   .sidenav-footer {
     flex-shrink: 0;
-    padding: 10px 12px;
+    height: 52px;
+    padding: 0 12px;
     border-top: 1px solid var(--cms-sidenav-border);
     background: var(--cms-sidenav-footer-bg);
+    display: flex;
+    align-items: center;
 
     .sidenav-footer-brand {
       display: flex;
@@ -330,30 +335,21 @@
       gap: 10px;
       text-decoration: none;
       border-radius: var(--cms-radius-md);
-      padding: 7px 8px;
+      padding: 6px 8px;
+      width: 100%;
       transition: background 0.12s ease;
 
       &:hover {
         background: var(--cms-sidenav-hover);
-
         .sidenav-footer-product-name { color: var(--cms-sidenav-text-bright); }
-      }
-
-      &--icon-only {
-        justify-content: center;
-        padding: 8px;
       }
     }
 
     .sidenav-footer-product-icon {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       object-fit: contain;
       flex-shrink: 0;
-      // White micro-badge frames the PNG logo on both light and dark sidebars
-      background: #ffffff;
-      border-radius: 5px;
-      padding: 2px;
     }
 
     .sidenav-footer-product-text {
@@ -381,6 +377,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
   }
 }
 
@@ -389,42 +386,34 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-// ──────────────────────────────────────────────────
-// Desktop Second Tray — fixed panel, slides from behind the rail
-// ──────────────────────────────────────────────────
-.second-tray-panel {
-  position: fixed;
-  top: 62px;        // below toolbar
-  left: 68px;       // immediately right of the first-tray rail
-  width: var(--cms-sidenav-width);
-  height: calc(100vh - 62px);
-  z-index: 90;      // above content, below toolbar (z-index 100)
 
+// ── Second tray group header ──────────────────────────────────────────────────
+.second-tray-header {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--cms-sidenav-border);
 
-  background: var(--cms-sidenav-bg) !important;
-  border-right: 1px solid var(--cms-sidenav-border);
-
-  // Hidden: slide behind the rail (translateX -100% = 248px left → behind the 68px rail)
-  transform: translateX(-100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s ease;
-
-  // Permanently open — no shadow, content has shifted to make room
-  &.tray-open {
-    transform: translateX(0);
+  .second-tray-header-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--cms-sidenav-group-text);
+    flex-shrink: 0;
   }
 
-  // Peek (hover overlay) — slides over content with a shadow to indicate float
-  &.tray-peek {
-    transform: translateX(0);
-    box-shadow: 6px 0 24px rgba(0, 0, 0, 0.18);
+  .second-tray-header-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--cms-sidenav-group-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-
-  // Re-use all sidenav interior styles (sidenav-nav, sidenav-footer, nav-group, etc.)
-  // These are already defined at component scope below and apply here automatically.
 }
 
 // ──────────────────────────────────────────────────
@@ -468,34 +457,56 @@
     color: var(--cms-sidenav-text-bright);
   }
 
+  // Active = current URL lives in this group → full primary treatment
   &.rail-active {
     color: var(--cms-sidenav-active-text);
+    background: var(--cms-sidenav-active-bg);
+    border: 1px solid var(--cms-sidenav-active-border, rgba(99, 102, 241, 0.24));
+  }
+
+  // Selected-only = second tray is open but user hasn't navigated here yet → neutral
+  &.rail-selected:not(.rail-active) {
+    background: var(--cms-sidenav-hover);
+    color: var(--cms-sidenav-text-bright);
   }
 }
 
 // Rail footer: Raster icon pinned at the bottom of the rail
 .rail-footer {
   margin-top: auto;
-  padding: 8px 0 10px;
+  height: 52px;
+  padding: 0;
   border-top: 1px solid var(--cms-sidenav-border);
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
 
   .rail-footer-brand {
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
     border-radius: var(--cms-radius-md);
     transition: background 0.12s ease;
 
     &:hover { background: var(--cms-sidenav-hover); }
   }
 
-  .sidenav-footer-product-icon {
+  .rail-r-mark {
     width: 20px;
     height: 20px;
+    object-fit: contain;
+  }
+
+  .sidenav-footer-product-icon {
+    width: 16px !important;
+    height: 16px !important;
+    object-fit: contain;
+    background: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
   }
 }
 

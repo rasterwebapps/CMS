@@ -332,6 +332,12 @@ public class WidgetDataController {
 
     public record TopLineKpi(String key, String label, String value, String helper, String severity) {}
 
+    /** Colleague / connections card item. */
+    public record ConnectionItem(long id, String name, String initials, String role, boolean online) {}
+
+    /** Recent activity feed item. */
+    public record ActivityFeedItem(long id, String action, String actor, Instant timestamp) {}
+
     // ─── Tier-4 exception / alert widgets (May 2026) ────────────────────────
 
     public record AnomalyBannerData(
@@ -1315,6 +1321,50 @@ public class WidgetDataController {
         return ResponseEntity.ok(items);
     }
 
+    /**
+     * Recent system activity feed — last 10 audit events, most recent first.
+     * The action label comes from the audit detail (if short enough) or from
+     * the entity-type + action verb, formatted for display.
+     */
+    @GetMapping("/activity")
+    public ResponseEntity<List<ActivityFeedItem>> getActivity() {
+        List<ActivityFeedItem> items = auditLogRepository.findAll().stream()
+            .filter(a -> a.getOccurredAt() != null)
+            .sorted(Comparator.comparing(AuditLog::getOccurredAt,
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+            .limit(10)
+            .map(a -> new ActivityFeedItem(
+                a.getId() != null ? a.getId() : 0L,
+                buildActivityLabel(a),
+                a.getActor() != null ? a.getActor() : "System",
+                a.getOccurredAt()))
+            .toList();
+        return ResponseEntity.ok(items);
+    }
+
+    /**
+     * Active faculty colleagues for the Connections widget —
+     * up to 6 active faculty members with name, initials and designation.
+     * Online status is always false (no realtime presence tracking).
+     */
+    @GetMapping("/connections")
+    public ResponseEntity<List<ConnectionItem>> getConnections() {
+        List<ConnectionItem> list = facultyRepository.findAll().stream()
+            .filter(f -> f.getStatus() == FacultyStatus.ACTIVE)
+            .limit(6)
+            .map(f -> {
+                String first = f.getFirstName() != null ? f.getFirstName() : "";
+                String last  = f.getLastName()  != null ? f.getLastName()  : "";
+                String name  = (first + " " + last).trim();
+                if (name.isEmpty()) name = "Faculty #" + f.getId();
+                String role = f.getDesignation() != null
+                    ? formatStatus(f.getDesignation().name()) : "Faculty";
+                return new ConnectionItem(f.getId(), name, buildInitials(name), role, false);
+            })
+            .toList();
+        return ResponseEntity.ok(list);
+    }
+
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private long computeGovtLapsedSeats() {
@@ -1470,5 +1520,25 @@ public class WidgetDataController {
             ? LocalDate.now().getYear()
             : LocalDate.now().getYear() - 1;
         return year + "–" + String.valueOf(year + 1).substring(2);
+    }
+
+    private String buildActivityLabel(AuditLog a) {
+        if (a.getDetail() != null && !a.getDetail().isBlank() && a.getDetail().length() <= 80) {
+            return a.getDetail();
+        }
+        String base = formatStatus(a.getAction() != null ? a.getAction() : "Action");
+        if (a.getEntityType() != null && !a.getEntityType().isBlank()) {
+            base = formatStatus(a.getEntityType()) + " " + base.toLowerCase();
+        }
+        return base;
+    }
+
+    private static String buildInitials(String name) {
+        String[] words = name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < Math.min(2, words.length); i++) {
+            if (!words[i].isEmpty()) sb.append(Character.toUpperCase(words[i].charAt(0)));
+        }
+        return sb.length() > 0 ? sb.toString() : "?";
     }
 }

@@ -1,3 +1,5 @@
+@use '../widget-shell' as *;
+
 :host { display: flex; flex-direction: column; flex: 1; }
 
 .connections-card { padding: 20px; }
@@ -45,6 +47,12 @@
 .cn-body  { flex: 1; min-width: 0; }
 .cn-name  { display: block; font-size: 13px; font-weight: 600; color: var(--text-1, #111827); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cn-role  { display: block; font-size: 11px; color: var(--text-muted, #6b7280); }
+
+.empty-hint {
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
 
 .cn-status {
   width: 9px;

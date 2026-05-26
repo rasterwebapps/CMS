@@ -379,6 +379,15 @@ export class EnquiryListComponent implements OnInit {
   protected view(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id]); }
   protected convert(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'convert']); }
 
+  protected handleEmptyAction(): void {
+    if (this.searchValue()) {
+      this.clearFilter();
+      return;
+    }
+
+    void this.router.navigate(['/enquiries/new']);
+  }
+
   protected finalizeFee(item: Enquiry): void {
     void this.router.navigate(['/student-fees/finalize'], { queryParams: { enquiryId: item.id } });
   }

@@ -603,14 +603,21 @@ app-root {
     }
   }
 
-  .mat-mdc-row {
+  .mat-mdc-row,
+  .mat-row {
     transition: var(--cms-transition-fast);
 
     &:hover {
       background-color: var(--cms-bg-hover) !important;
+
+      > .mat-mdc-cell,
+      > .mat-cell {
+        background-color: var(--cms-bg-hover) !important;
+      }
     }
 
-    .mat-mdc-cell {
+    .mat-mdc-cell,
+    .mat-cell {
       color: var(--cms-text-secondary);
       border-bottom-color: var(--cms-border-light) !important;
     }
@@ -1431,11 +1438,57 @@ app-root {
     &:hover {
       background-color: var(--cms-bg-hover);
 
+      td.mat-cell,
+      td.mat-mdc-cell {
+        background-color: var(--cms-bg-hover);
+      }
+
       .row-actions { opacity: 1; }
     }
 
     &:last-child td.mat-cell,
     &:last-child td.mat-mdc-cell { border-bottom: none; }
+  }
+}
+
+// Empty Material tables render a single colspan row.  Without colouring the
+// surrounding flex/card surface, only that row area gets the purple hover tone
+// and the rest of the empty card stays on the default card background.
+.content-card:has(tr.mat-row > td[colspan]),
+.content-card:has(tr.mat-mdc-no-data-row > td[colspan]),
+.table-wrapper:has(tr.mat-row > td[colspan]),
+.table-wrapper:has(tr.mat-mdc-no-data-row > td[colspan]),
+.table-container:has(tr.mat-row > td[colspan]),
+.table-container:has(tr.mat-mdc-no-data-row > td[colspan]) {
+  background: var(--cms-bg-hover);
+}
+
+table.mat-mdc-table:has(tr.mat-row > td[colspan]),
+table.mat-mdc-table:has(tr.mat-mdc-no-data-row > td[colspan]),
+table.mat-table:has(tr.mat-row > td[colspan]),
+table.modern-table:has(tr.mat-row > td[colspan]),
+table.modern-table:has(tr.mat-mdc-no-data-row > td[colspan]) {
+  height: 100%;
+}
+
+tr.mat-row:has(> td[colspan]),
+tr.mat-mdc-no-data-row {
+  background: var(--cms-bg-hover) !important;
+
+  > td.mat-cell,
+  > td.mat-mdc-cell {
+    height: 100%;
+    background: var(--cms-bg-hover) !important;
+    border-bottom: none !important;
+  }
+
+  &:hover {
+    background: var(--cms-bg-hover) !important;
+
+    > td.mat-cell,
+    > td.mat-mdc-cell {
+      background: var(--cms-bg-hover) !important;
+    }
   }
 }
 

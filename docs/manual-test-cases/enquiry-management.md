@@ -115,6 +115,28 @@
 
 ---
 
+## TC-ENQ-UI-LIST-001: Empty enquiry list uses full highlight surface
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_COLLEGE_ADMIN.
+- Navigate to `/enquiries` with filters/date range that return no visible rows.
+
+**Steps:**
+1. Hover over the empty-state area inside the enquiry table card.
+2. Move the pointer across the upper and lower portions of the table card.
+3. Click the empty-state action button when it says `Add Enquiry`.
+4. Return to the list, enter a search term that returns no rows, then click the empty-state action when it says `Clear Search`.
+
+**Expected Result:**
+- The preferred highlighted surface color fills the full empty table/card area; no half-highlight appears.
+- The table card background remains visually consistent in light and dark mode, including the area above the paginator.
+- `Add Enquiry` navigates to the enquiry creation screen.
+- `Clear Search` clears the search input and refreshes the filtered list.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-ENQ-UI-DETAIL-002: Shared design-system enquiry detail alignment
 
 **Preconditions:**

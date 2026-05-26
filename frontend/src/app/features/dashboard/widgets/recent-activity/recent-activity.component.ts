@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { AppDatePipe } from '../../../../shared/pipes/app-date.pipe';
-import { SAMPLE_ACTIVITY } from '../widget.models';
+import { environment } from '../../../../../environments';
 
 interface ActivityRow {
   id: number;
@@ -10,11 +11,6 @@ interface ActivityRow {
   timestamp: string;
 }
 
-/**
- * Recent activity timeline. Backed by `GET /api/dashboard/activity` (TODO);
- * until then the component falls back to a static sample feed so the widget
- * is visible during development.
- */
 @Component({
   selector: 'cms-recent-activity',
   standalone: true,
@@ -22,12 +18,23 @@ interface ActivityRow {
   templateUrl: './recent-activity.component.html',
   styleUrl: './recent-activity.component.scss',
 })
-export class RecentActivityComponent {
-  // ngComponentOutletInputs compatibility — silently accepted, not used for display
+export class RecentActivityComponent implements OnInit {
   @Input() widgetKey?:   string;
   @Input() widgetLabel?: string;
   @Input() widgetIcon?:  string;
-  @Input() items: ActivityRow[] = SAMPLE_ACTIVITY;
+
+  private readonly http = inject(HttpClient);
+
+  protected readonly loading = signal(true);
+  protected readonly error   = signal(false);
+  protected readonly items   = signal<ActivityRow[]>([]);
+
+  ngOnInit(): void {
+    this.http.get<ActivityRow[]>(`${environment.apiUrl}/dashboard/data/activity`).subscribe({
+      next:  d  => { this.items.set(d ?? []); this.loading.set(false); },
+      error: () => { this.error.set(true); this.loading.set(false); },
+    });
+  }
 
   protected iconFor(action: string): string {
     const a = action.toLowerCase();
@@ -47,4 +54,3 @@ export class RecentActivityComponent {
     return 'var(--cms-primary)';
   }
 }
-

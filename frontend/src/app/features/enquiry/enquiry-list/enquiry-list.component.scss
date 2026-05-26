@@ -461,9 +461,15 @@ $ctrl-h: 34px;
 // ── Table wrapper — vertical scroll within the card ─────────────
 
 .table-wrapper {
-  overflow-y: auto;
+  flex: 1;
+  overflow: auto;
   min-height: 0;
 }
+
+.enq-table {
+  height: 100%;
+}
+
 
 // ── Name cell with avatar ───────────────────────────────────────
 

@@ -4,11 +4,25 @@
     <h3 class="widget-title">Recent Activity</h3>
   </div>
   <div class="widget-card__body">
-    @if (items.length === 0) {
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div class="sk-block" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px"></div>
+            <div style="flex:1">
+              <div class="sk-line sk-line--75"></div>
+              <div class="sk-line sk-line--50" style="margin-top:6px"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No data</span></div>
+    } @else if (items().length === 0) {
       <p class="empty-hint">No recent activity.</p>
     } @else {
       <div class="ra-timeline">
-        @for (item of items; track item.id) {
+        @for (item of items(); track item.id) {
           <div class="ra-item">
             <div class="ra-dot" [style.background]="colorFor(item.action)">
               <mat-icon>{{ iconFor(item.action) }}</mat-icon>
@@ -23,4 +37,3 @@
     }
   </div>
 </div>
-

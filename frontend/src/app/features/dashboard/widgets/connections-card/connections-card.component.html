@@ -2,22 +2,41 @@
   <div class="widget-header">
     <div class="widget-icon-wrap"><mat-icon>group</mat-icon></div>
     <h3 class="widget-title">{{ title }}</h3>
-    <span class="cn-badge">{{ people.length }}</span>
+    @if (!loading()) {
+      <span class="cn-badge">{{ people().length }}</span>
+    }
   </div>
   <div class="widget-card__body">
-    <div class="cn-list">
-      @for (p of people; track p.id) {
-        <div class="cn-item">
-          <div class="cn-avatar">{{ p.initials }}</div>
-          <div class="cn-body">
-            <span class="cn-name">{{ p.name }}</span>
-            <span class="cn-role">{{ p.role }}</span>
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div class="sk-block" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div class="sk-line sk-line--75"></div>
+              <div class="sk-line sk-line--50" style="margin-top:6px"></div>
+            </div>
           </div>
-          <div class="cn-status" [class.cn-status--online]="p.online"
-               [matTooltip]="p.online ? 'Online' : 'Offline'"></div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No data</span></div>
+    } @else if (people().length === 0) {
+      <p class="empty-hint">No colleagues found.</p>
+    } @else {
+      <div class="cn-list">
+        @for (p of people(); track p.id) {
+          <div class="cn-item">
+            <div class="cn-avatar">{{ p.initials }}</div>
+            <div class="cn-body">
+              <span class="cn-name">{{ p.name }}</span>
+              <span class="cn-role">{{ p.role }}</span>
+            </div>
+            <div class="cn-status" [class.cn-status--online]="p.online"
+                 [matTooltip]="p.online ? 'Online' : 'Offline'"></div>
+          </div>
+        }
+      </div>
+    }
   </div>
 </div>
-
