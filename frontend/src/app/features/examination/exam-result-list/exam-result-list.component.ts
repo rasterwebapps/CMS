@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ExaminationService } from '../examination.service';
 import { ExamResult, Examination } from '../examination.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -14,7 +15,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent],
+    MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',
 })

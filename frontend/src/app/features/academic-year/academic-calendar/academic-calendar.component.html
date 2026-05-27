@@ -125,10 +125,11 @@
     @if (viewMode() === 'timeline') {
       @if (termInstances().length === 0) {
         <div class="content-card">
-          <div class="empty-state__content">
-            <mat-icon class="empty-state__icon-mat">event_note</mat-icon>
-            <p class="empty-state__text">No terms found for this academic year.</p>
-          </div>
+          <cms-empty-state
+            icon="event_note"
+            title="No terms found"
+            subtitle="Terms for this academic year will appear here once configured."
+          />
         </div>
       } @else {
         <div class="semester-timeline">

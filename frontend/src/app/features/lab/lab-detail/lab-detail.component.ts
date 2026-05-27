@@ -12,6 +12,7 @@ import { LabService } from '../lab.service';
 import { Lab, LabInChargeAssignment, LabInChargeAssignmentRequest, LabInChargeRole } from '../lab.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -27,6 +28,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatChipsModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    CmsEmptyStateComponent,
     PageHeaderComponent],
   templateUrl: './lab-detail.component.html',
   styleUrl: './lab-detail.component.scss',

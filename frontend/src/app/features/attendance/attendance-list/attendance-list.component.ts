@@ -13,6 +13,7 @@ import { AttendanceService } from '../attendance.service';
 import { Attendance } from '../attendance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -29,7 +30,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatTooltipModule],
+    MatTooltipModule,
+    CmsEmptyStateComponent],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
 })

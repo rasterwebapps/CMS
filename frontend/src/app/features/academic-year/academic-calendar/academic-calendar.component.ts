@@ -34,6 +34,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 export type CalendarViewMode = 'timeline' | 'grid';
@@ -90,6 +91,7 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
     MatMenuModule,
     MatTooltipModule,
     PageHeaderComponent,
+    CmsEmptyStateComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',

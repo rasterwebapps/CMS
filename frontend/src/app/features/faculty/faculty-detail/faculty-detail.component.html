@@ -124,12 +124,13 @@
       <mat-tab label="Courses">
         <div class="tab-content">
           <div class="content-card">
-            <div class="empty-state__content">
-              <p class="empty-state__text">Assigned courses will appear here.</p>
-              <a class="btn-secondary" [routerLink]="['/courses']">
-                <mat-icon>menu_book</mat-icon> View Courses
-              </a>
-            </div>
+            <cms-empty-state
+              icon="menu_book"
+              title="No assigned courses yet"
+              subtitle="Assigned courses will appear here once mapped to this faculty member."
+              actionLabel="View Courses"
+              (actionClick)="viewCourses()"
+            />
           </div>
         </div>
       </mat-tab>
@@ -138,12 +139,13 @@
       <mat-tab label="Lab Schedules">
         <div class="tab-content">
           <div class="content-card">
-            <div class="empty-state__content">
-              <p class="empty-state__text">Lab schedule will appear here.</p>
-              <a class="btn-secondary" [routerLink]="['/lab-schedules']">
-                <mat-icon>schedule</mat-icon> View Lab Schedules
-              </a>
-            </div>
+            <cms-empty-state
+              icon="schedule"
+              title="No lab schedules yet"
+              subtitle="Lab schedules will appear here once assigned to this faculty member."
+              actionLabel="View Lab Schedules"
+              (actionClick)="viewLabSchedules()"
+            />
           </div>
         </div>
       </mat-tab>

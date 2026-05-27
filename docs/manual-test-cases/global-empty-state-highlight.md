@@ -40,3 +40,23 @@
 
 **Status:** READY TO TEST
 
+---
+
+## TC-GLOBAL-EMPTY-003: Empty-state content follows shared pattern
+
+**Preconditions:**
+- User is logged in with a role that can access academic, lab, curriculum, examination, user, and role management screens.
+
+**Steps:**
+1. Force empty states on older list screens such as Attendance, Inventory, Examinations, Exam Results, Syllabus, Experiments, CO-PO Mapping, Maintenance, and Lab Schedules.
+2. Open contextual empty panels such as Faculty Detail Courses/Lab Schedules, Lab Detail Staff Assignments, Academic Calendar with no terms, User Management with no matching users, and Role Management with no matching roles.
+3. Compare icon, title, subtitle, action button placement, and highlight surface.
+
+**Expected Result:**
+- Full-screen/table/card empty states use the shared `<cms-empty-state>` pattern.
+- Search empty states use `No {module} found` plus a short search-specific subtitle.
+- True zero-data states use `No {module} yet` plus guidance on when records will appear or how to create one.
+- Existing actions such as Add User, Add Role, Add Assignment, View Courses, and Clear Search still work.
+
+**Status:** READY TO TEST
+

@@ -43,10 +43,13 @@
       @if (loading()) {
         <div class="rm-state-center"><mat-spinner diameter="28"></mat-spinner></div>
       } @else if (filteredRoles().length === 0) {
-        <div class="rm-state-center rm-state-center--empty">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <p>No roles found</p>
-        </div>
+        <cms-empty-state
+          icon="admin_panel_settings"
+          [title]="searchTerm() ? 'No roles found' : 'No roles yet'"
+          [subtitle]="searchTerm() ? 'No roles match your search.' : 'Create the first role to configure permissions.'"
+          [actionLabel]="searchTerm() ? 'Clear Search' : (canCreate() ? 'Add Role' : '')"
+          (actionClick)="handleEmptyAction()"
+        />
       } @else {
         <div class="role-list">
           @for (role of filteredRoles(); track role.id) {
@@ -91,13 +94,11 @@
     <div class="rm-editor-col">
 
       @if (!panelMode()) {
-        <div class="rm-editor-empty">
-          <div class="rm-editor-empty__icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-          </div>
-          <h3 class="rm-editor-empty__title">Select a role to configure</h3>
-          <p class="rm-editor-empty__sub">Click any role in the list on the left to view and edit its permissions.</p>
-        </div>
+        <cms-empty-state
+          icon="verified_user"
+          title="Select a role to configure"
+          subtitle="Click any role in the list on the left to view and edit its permissions."
+        />
 
       } @else if (panelMode() === 'create') {
         <div class="rm-create-wrap">

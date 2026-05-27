@@ -273,28 +273,6 @@
   }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-.rm-editor-empty {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 14px; padding: 60px 40px; text-align: center;
-
-  &__icon {
-    width: 72px; height: 72px; border-radius: 18px;
-    background: rgba(var(--cms-primary-rgb), 0.08);
-    border: 1px solid rgba(var(--cms-primary-rgb), 0.15);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--cms-primary); margin-bottom: 4px;
-  }
-  &__title {
-    margin: 0; font-size: 1.0625rem; font-weight: 700;
-    color: var(--cms-text-primary); letter-spacing: -0.01em;
-  }
-  &__sub {
-    margin: 0; font-size: 0.85rem; color: var(--cms-text-muted);
-    line-height: 1.6; max-width: 340px;
-  }
-}
 
 // ── Create role form ──────────────────────────────────────────────────────────
 .rm-create-wrap { display: flex; flex-direction: column; height: 100%; }

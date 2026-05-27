@@ -101,15 +101,12 @@
           <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No mappings found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No CO-PO mappings available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+              <cms-empty-state
+                icon="account_tree"
+                [title]="searchValue() ? 'No CO-PO mappings found' : 'No CO-PO mappings yet'"
+                [subtitle]="searchValue() ? 'No mappings match your search.' : 'CO-PO mappings will appear here once created.'"
+              />
             </td>
           </tr>
         </table>

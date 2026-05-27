@@ -6,13 +6,14 @@ import { UserRoleService } from '../../core/permissions/user-role.service';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { AppUserResponse, AppRoleResponse, CreateUserRequest, UpdateUserRequest } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
+import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 
 type PanelMode = 'create' | 'edit' | null;
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsEmptyStateComponent],
   templateUrl: './user-management.component.html',
   styleUrl:    './user-management.component.scss',
 })
@@ -66,6 +67,17 @@ export class UserManagementComponent implements OnInit {
   protected openCreate(): void {
     this.createForm = this.emptyCreate();
     this.panelMode.set('create');
+  }
+
+  protected handleEmptyAction(): void {
+    if (this.searchTerm()) {
+      this.searchTerm.set('');
+      return;
+    }
+
+    if (this.canCreate()) {
+      this.openCreate();
+    }
   }
 
   protected openEdit(user: AppUserResponse): void {

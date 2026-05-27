@@ -145,7 +145,13 @@
             </table>
           </div>
         } @else if (!showAssignmentForm()) {
-          <p class="empty-state__text">No staff assigned to this lab yet.</p>
+          <cms-empty-state
+            icon="groups"
+            title="No staff assigned yet"
+            subtitle="Lab staff assignments will appear here once added."
+            [actionLabel]="canManageLabs() ? 'Add Assignment' : ''"
+            (actionClick)="toggleAssignmentForm()"
+          />
         }
       </div>
     </div>

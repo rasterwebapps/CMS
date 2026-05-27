@@ -13,6 +13,7 @@ import { ExaminationService } from '../examination.service';
 import { Examination } from '../examination.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -20,6 +21,7 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     PageHeaderComponent,
+    CmsEmptyStateComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './examination-list.component.html',

@@ -13,6 +13,7 @@ import { CurriculumService } from '../curriculum.service';
 import { Experiment } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -33,6 +34,7 @@ import { EXPERIMENT_LIST_TOUR } from '../../../shared/tour/tours/experiment.tour
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
+    CmsEmptyStateComponent,
     CmsTourButtonComponent],
   templateUrl: './experiment-list.component.html',
   styleUrl: './experiment-list.component.scss',

@@ -8,6 +8,7 @@ import { PermissionService } from '../../core/permissions/permission.service';
 import { AppRoleResponse, AllPermissionsResponse, PermissionGroup, WidgetConfigDto } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { WidgetPickerComponent } from '../../shared/widget-picker/widget-picker.component';
+import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 
 type PanelMode = 'create' | 'edit' | 'widgets' | null;
 
@@ -31,7 +32,7 @@ const ACTION_SUFFIXES = new Set([
 @Component({
   selector: 'app-role-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, MatIconModule, WidgetPickerComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, MatIconModule, WidgetPickerComponent, CmsEmptyStateComponent],
   templateUrl: './role-management.component.html',
   styleUrl: './role-management.component.scss',
 })
@@ -156,6 +157,17 @@ export class RoleManagementComponent implements OnInit {
     this.createForm = { name: '', displayName: '', description: '' };
     this.editTarget.set(null);
     this.panelMode.set('create');
+  }
+
+  protected handleEmptyAction(): void {
+    if (this.searchTerm()) {
+      this.searchTerm.set('');
+      return;
+    }
+
+    if (this.canCreate()) {
+      this.openCreate();
+    }
   }
 
   protected openEdit(role: AppRoleResponse): void {

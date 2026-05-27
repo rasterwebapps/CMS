@@ -131,15 +131,12 @@
           <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" [attr.colspan]="displayedColumns().length">
-              <div class="empty-state__content">
-                <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                @if (searchValue()) {
-                  <p class="empty-state__text">No schedules found matching "{{ searchValue() }}"</p>
-                } @else {
-                  <p class="empty-state__text">No lab schedules available</p>
-                }
-              </div>
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
+              <cms-empty-state
+                icon="event_busy"
+                [title]="searchValue() ? 'No lab schedules found' : 'No lab schedules yet'"
+                [subtitle]="searchValue() ? 'No lab schedules match your search.' : 'Lab schedules will appear here once planned.'"
+              />
             </td>
           </tr>
         </table>

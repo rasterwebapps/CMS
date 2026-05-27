@@ -11,6 +11,7 @@ map $http_host $forwarded_port {
 
 server {
     listen 80;
+    server_tokens off;
 
     # Keycloak JS requires Web Crypto, which browsers expose only in secure
     # contexts. Always move production traffic to HTTPS.
@@ -19,6 +20,9 @@ server {
 
 server {
     listen 443 ssl;
+    server_tokens off;
+    client_max_body_size 10m;
+    autoindex off;
 
     ssl_certificate     /etc/nginx/ssl/self.crt;
     ssl_certificate_key /etc/nginx/ssl/self.key;
@@ -28,10 +32,17 @@ server {
     index index.html;
 
     # ── Security headers ──────────────────────────────────────────────────────
-    add_header X-Content-Type-Options "nosniff"                        always;
-    add_header X-Frame-Options        "SAMEORIGIN"                     always;
-    add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy     "geolocation=(), microphone=(), camera=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff"                              always;
+    add_header X-Frame-Options           "SAMEORIGIN"                           always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin"      always;
+    add_header Permissions-Policy        "geolocation=(), microphone=(), camera=()" always;
+
+    # ── Block Keycloak Admin Console from public access ───────────────────────
+    # Admin must only be reached via SSH tunnel on port 8180 directly.
+    location /admin/ {
+        return 403;
+    }
 
     # ── Keycloak proxy ────────────────────────────────────────────────────────
     # X-Forwarded-Host is ALWAYS canonical (dev.raster.in:212) so JWTs always
@@ -85,16 +96,26 @@ server {
 
     # ── env.js — never cache (content changes per deployment/server) ──────────
     location = /assets/env.js {
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        add_header Pragma        "no-cache" always;
+        add_header Cache-Control                "no-cache, no-store, must-revalidate"          always;
+        add_header Pragma                       "no-cache"                                     always;
+        add_header Strict-Transport-Security    "max-age=31536000; includeSubDomains"          always;
+        add_header X-Content-Type-Options       "nosniff"                                      always;
+        add_header X-Frame-Options              "SAMEORIGIN"                                   always;
+        add_header Referrer-Policy              "strict-origin-when-cross-origin"              always;
+        add_header Permissions-Policy           "geolocation=(), microphone=(), camera=()"     always;
         expires 0;
     }
 
     # ── Angular SPA ───────────────────────────────────────────────────────────
     location / {
         try_files $uri $uri/ /index.html;
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        add_header Pragma "no-cache" always;
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none';" always;
+        add_header Cache-Control                "no-cache, no-store, must-revalidate"          always;
+        add_header Pragma                       "no-cache"                                     always;
+        add_header Strict-Transport-Security    "max-age=31536000; includeSubDomains"          always;
+        add_header X-Content-Type-Options       "nosniff"                                      always;
+        add_header X-Frame-Options              "SAMEORIGIN"                                   always;
+        add_header Referrer-Policy              "strict-origin-when-cross-origin"              always;
+        add_header Permissions-Policy           "geolocation=(), microphone=(), camera=()"     always;
+        add_header Content-Security-Policy      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none';" always;
     }
 }

@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +8,7 @@ import { Faculty, FacultyQualification, DESIGNATION_OPTIONS, FACULTY_QUALIFICATI
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -18,12 +19,12 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
   standalone: true,
   imports: [
     AppDatePipe,
-    RouterLink,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
+    CmsEmptyStateComponent,
     ProfileDocumentsComponent],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
@@ -66,6 +67,14 @@ export class FacultyDetailComponent implements OnInit {
         void this.router.navigate(['/faculty']);
       },
     });
+  }
+
+  protected viewCourses(): void {
+    void this.router.navigate(['/courses']);
+  }
+
+  protected viewLabSchedules(): void {
+    void this.router.navigate(['/lab-schedules']);
   }
 
   protected getDesignationLabel(designation: string): string {
