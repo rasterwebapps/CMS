@@ -115,6 +115,11 @@
   --cms-radius-xl: 16px;
   --cms-radius-full: 9999px;
 
+  // ─── List Filters ───
+  // Matches Submit Documents / Verify Documents compact toolbar controls.
+  --cms-list-filter-height: 32px;
+  --cms-list-filter-radius: 8px;
+
   // ─── Transitions ───
   --cms-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --cms-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1043,16 +1048,16 @@ app-root {
   min-width: 200px;
   max-width: 420px;
   background: var(--cms-bg-card);
-  border-radius: var(--cms-radius-sm);
-  border: 1.5px solid var(--cms-border-default);
-  padding: 0 14px;
-  height: 40px;
+  border-radius: var(--cms-list-filter-radius);
+  border: 1px solid var(--cms-border-default);
+  padding: 0 10px;
+  height: var(--cms-list-filter-height);
   transition: var(--cms-transition);
-  gap: 10px;
+  gap: 6px;
 
   &:focus-within {
     border-color: var(--cms-primary);
-    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+    box-shadow: 0 0 0 2.5px var(--cms-primary-ring);
     background: var(--cms-bg-card);
   }
 
@@ -1143,11 +1148,11 @@ app-root {
 
 // Native select used as a filter pill in list command bars
 .filter-select {
-  height: 36px;
-  padding: 0 var(--cms-space-md);
+  height: var(--cms-list-filter-height);
+  padding: 0 26px 0 11px;
   background: var(--cms-bg-card);
   border: 1.5px solid var(--cms-border);
-  border-radius: var(--cms-radius-sm);
+  border-radius: var(--cms-list-filter-radius);
   color: var(--cms-text-primary);
   font-size: 0.8125rem;
   font-family: inherit;
@@ -1170,11 +1175,11 @@ app-root {
 }
 
 .filter-date-input {
-  height: 36px;
+  height: var(--cms-list-filter-height);
   padding: 0 var(--cms-space-sm);
   background: var(--cms-bg-card);
   border: 1.5px solid var(--cms-border);
-  border-radius: var(--cms-radius-sm);
+  border-radius: var(--cms-list-filter-radius);
   color: var(--cms-text-primary);
   font-size: 0.8125rem;
   font-family: inherit;
@@ -1190,11 +1195,12 @@ app-root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  height: var(--cms-list-filter-height);
+  padding: 0 11px;
   background: transparent;
   color: var(--cms-text-secondary);
   border: 1.5px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-sm);
+  border-radius: var(--cms-list-filter-radius);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
@@ -3340,10 +3346,11 @@ html.dark-theme body::after {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  height: var(--cms-list-filter-height);
+  padding: 0 12px;
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border);
-  border-radius: var(--cms-radius-sm);
+  border-radius: var(--cms-list-filter-radius);
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--cms-text-secondary);
@@ -4006,16 +4013,16 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
 }
 
 .mlp-filter-select {
-  height: 36px;
-  padding: 0 28px 0 12px;
-  font-size: 0.8125rem;
+  height: var(--cms-list-filter-height);
+  padding: 0 26px 0 11px;
+  font-size: 0.775rem;
   font-family: var(--cms-font-ui);
   color: var(--cms-text-primary);
   background: var(--cms-bg-card)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")
     right 10px center no-repeat;
   border: 1px solid var(--cms-border-default);
-  border-radius: 9px;
+  border-radius: var(--cms-list-filter-radius);
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;

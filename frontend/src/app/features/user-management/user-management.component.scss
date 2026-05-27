@@ -110,12 +110,12 @@
 .search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  height: 38px;
+  gap: 6px;
+  padding: 0 10px;
+  height: var(--cms-list-filter-height);
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
-  border-radius: 10px;
+  border-radius: var(--cms-list-filter-radius);
   transition: border-color 0.15s, box-shadow 0.15s;
   flex: 1;
 

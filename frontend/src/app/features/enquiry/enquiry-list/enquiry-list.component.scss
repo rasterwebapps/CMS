@@ -105,7 +105,7 @@
 
 // ── Shared control height ─────────────────────────────────────
 
-$ctrl-h: 34px;
+$ctrl-h: var(--cms-list-filter-height);
 
 .date-range-group {
   display: flex;

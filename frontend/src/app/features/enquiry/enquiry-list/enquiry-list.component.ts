@@ -33,19 +33,6 @@ export const STATUS_LABELS: Record<string, string> = {
   CLOSED:               'Closed',
 };
 
-const STATUS_COLOURS: Record<string, string> = {
-  ENQUIRED:             '#3b82f6',
-  INTERESTED:           'var(--cms-primary)',
-  NOT_INTERESTED:       '#ef4444',
-  FEES_FINALIZED:       '#d97706',
-  FEES_PAID:            '#16a34a',
-  PARTIALLY_PAID:       '#d97706',
-  DOCUMENTS_SUBMITTED:  '#0284c7',
-  DOCUMENTS_VERIFIED:   '#15803d',
-  ADMITTED:             '#15803d',
-  CLOSED:               'var(--cms-text-muted)',
-};
-
 @Component({
   selector: 'app-enquiry-list',
   standalone: true,
@@ -76,6 +63,7 @@ export class EnquiryListComponent implements OnInit {
     }
   }
 
+  private readonly allEnquiries      = signal<Enquiry[]>([]);
   protected readonly dataSource      = new MatTableDataSource<Enquiry>([]);
   protected readonly loading         = signal(false);
   protected readonly searchValue     = signal('');
@@ -84,14 +72,13 @@ export class EnquiryListComponent implements OnInit {
   protected readonly selectedCourseId  = signal<number | null>(null);
   protected readonly computeInitials  = computeInitials;
   protected readonly STATUS_LABELS    = STATUS_LABELS;
-  protected readonly STATUS_COLOURS   = STATUS_COLOURS;
   protected statusMenuOpen  = false;
   protected colMenuOpen     = false;
 
   // ── Unique program/course lists derived from loaded data ──────────────────
   protected readonly programOptions = computed(() => {
     const seen = new Map<number, string>();
-    for (const e of this.dataSource.data) {
+    for (const e of this.allEnquiries()) {
       if (e.programId && e.programName && !seen.has(e.programId)) {
         seen.set(e.programId, e.programName);
       }
@@ -102,7 +89,7 @@ export class EnquiryListComponent implements OnInit {
   protected readonly courseOptions = computed(() => {
     const progId = this.selectedProgramId();
     const seen = new Map<number, string>();
-    for (const e of this.dataSource.data) {
+    for (const e of this.allEnquiries()) {
       if (e.courseId && e.courseName && !seen.has(e.courseId)) {
         if (!progId || e.programId === progId) {
           seen.set(e.courseId, e.courseName);
@@ -134,21 +121,21 @@ export class EnquiryListComponent implements OnInit {
   // ── Per-status counts from full loaded data ───────────────────────────────
   protected readonly statusCounts = computed<Record<string, number>>(() => {
     const map: Record<string, number> = {};
-    for (const row of this.dataSource.data) {
+    for (const row of this.allEnquiries()) {
       map[row.status] = (map[row.status] ?? 0) + 1;
     }
     return map;
   });
 
   // ── Aggregate stats ───────────────────────────────────────────────────────
-  protected readonly totalCount     = computed(() => this.dataSource.data.length);
+  protected readonly totalCount     = computed(() => this.allEnquiries().length);
   protected readonly filteredCount  = computed(() => this.dataSource.filteredData.length);
   protected readonly pipelineCount  = computed(() =>
-    this.dataSource.data.filter(e => !['NOT_INTERESTED', 'CLOSED', 'ADMITTED'].includes(e.status)).length);
+    this.allEnquiries().filter(e => !['NOT_INTERESTED', 'CLOSED', 'ADMITTED'].includes(e.status)).length);
   protected readonly interestedCount = computed(() =>
-    this.dataSource.data.filter(e => e.status === 'INTERESTED').length);
+    this.allEnquiries().filter(e => e.status === 'INTERESTED').length);
   protected readonly admittedCount  = computed(() =>
-    this.dataSource.data.filter(e => e.status === 'ADMITTED').length);
+    this.allEnquiries().filter(e => e.status === 'ADMITTED').length);
 
   // ── Status dropdown label ─────────────────────────────────────────────────
   protected readonly statusFilterLabel = computed(() => {
@@ -343,9 +330,14 @@ export class EnquiryListComponent implements OnInit {
   protected onStatusUpdate(item: Enquiry, newStatus: string): void {
     this.enquiryService.updateStatus(item.id, newStatus).subscribe({
       next: updated => {
-        const data = this.dataSource.data;
+        const data = this.allEnquiries();
         const idx  = data.findIndex(e => e.id === item.id);
-        if (idx >= 0) { data[idx] = { ...data[idx], status: updated.status }; this.dataSource.data = [...data]; }
+        if (idx >= 0) {
+          const nextData = [...data];
+          nextData[idx] = { ...nextData[idx], status: updated.status };
+          this.allEnquiries.set(nextData);
+          this.dataSource.data = nextData;
+        }
         this.toast.success(`Status → ${this.statusLabel(updated.status)}`);
       },
       error: () => this.toast.error('Failed to update status'),
@@ -438,7 +430,7 @@ export class EnquiryListComponent implements OnInit {
     this.loading.set(true);
     // Load all data for the date range; status filtering is done client-side
     this.enquiryService.getEnquiriesByDateRange(this.dateFrom, this.dateTo).subscribe({
-      next:  data => { this.dataSource.data = data; this.loading.set(false); },
+      next:  data => { this.allEnquiries.set(data); this.dataSource.data = data; this.loading.set(false); },
       error: ()   => { this.toast.error('Failed to load'); this.loading.set(false); },
     });
   }

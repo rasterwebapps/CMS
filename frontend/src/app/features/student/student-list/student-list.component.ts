@@ -59,11 +59,12 @@ export class StudentListComponent implements OnInit {
   protected filterProgram  = signal<string>('ALL');
   protected filterStatus   = signal<string>('ALL');
   protected filterSemester = signal<string>('ALL');
+  private readonly allStudents = signal<Student[]>([]);
   protected readonly programs = computed(() =>
-    [...new Set(this.dataSource.data.map(s => s.programName).filter(Boolean))].sort() as string[]
+    [...new Set(this.allStudents().map(s => s.programName).filter(Boolean))].sort() as string[]
   );
   protected readonly semesters = computed(() =>
-    [...new Set(this.dataSource.data.map(s => String(s.yearOfStudy)).filter(Boolean))].sort((a, b) => +a - +b)
+    [...new Set(this.allStudents().map(s => String(s.yearOfStudy)).filter(Boolean))].sort((a, b) => +a - +b)
   );
   protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly hasActiveFilters = computed(() =>
@@ -74,8 +75,8 @@ export class StudentListComponent implements OnInit {
   );
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  protected readonly totalCount  = computed(() => this.dataSource.data.length);
-  protected readonly activeCount = computed(() => this.dataSource.data.filter(s => s.status === 'ACTIVE').length);
+  protected readonly totalCount  = computed(() => this.allStudents().length);
+  protected readonly activeCount = computed(() => this.allStudents().filter(s => s.status === 'ACTIVE').length);
 
   // ── Column visibility ────────────────────────────────────────────────────
   protected readonly ALL_COLS = ['admissionNumber', 'rollNumber', 'fullName', 'programName', 'yearOfStudy', 'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch', 'status', 'actions'];
@@ -210,6 +211,7 @@ export class StudentListComponent implements OnInit {
     this.loading.set(true);
     this.studentService.getAll().subscribe({
       next: (students) => {
+        this.allStudents.set(students);
         this.dataSource.data = students;
         this.loading.set(false);
       },

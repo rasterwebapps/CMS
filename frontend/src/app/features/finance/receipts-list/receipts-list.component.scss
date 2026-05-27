@@ -33,7 +33,7 @@
 
 // Inline date filter inputs in toolbar
 .mlp-filter-date {
-  height: 36px;
+  height: var(--cms-list-filter-height);
   padding: 0 10px;
   background: var(--cms-bg-muted);
   border: 1.5px solid transparent;

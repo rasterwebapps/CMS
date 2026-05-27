@@ -77,15 +77,15 @@
 .search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  min-height: 38px;
-  max-height: 38px;
-  flex: 0 0 38px;   // never grow, never shrink — always exactly 38px tall
+  gap: 6px;
+  height: var(--cms-list-filter-height);
+  min-height: var(--cms-list-filter-height);
+  max-height: var(--cms-list-filter-height);
+  flex: 0 0 var(--cms-list-filter-height);   // never grow, never shrink — always exactly list-filter height
   padding: 0 10px;
   background: var(--cms-bg-card);
-  border: 2px solid var(--cms-line-strong, var(--cms-line));
-  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-list-filter-radius);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);

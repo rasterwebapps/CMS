@@ -112,7 +112,7 @@
 .search-bar {
   display: inline-flex;
   align-items: center;
-  height: 32px;
+  height: var(--cms-list-filter-height);
   gap: 6px;
   padding: 0 10px;
   background: var(--cms-bg-card);
@@ -168,7 +168,7 @@
 }
 
 .filter-sel {
-  height: 32px;
+  height: var(--cms-list-filter-height);
   padding: 0 26px 0 11px;
   font-size: 0.775rem;
   font-family: var(--cms-font-ui);
@@ -201,7 +201,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 32px;
+  height: var(--cms-list-filter-height);
   padding: 0 11px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -238,7 +238,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 32px;
+  height: var(--cms-list-filter-height);
   padding: 0 12px;
   border: 1px solid var(--cms-border-default);
   border-radius: 8px;

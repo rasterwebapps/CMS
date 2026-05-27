@@ -105,7 +105,7 @@
 // ── Filter select ─────────────────────────────────────────────
 
 .adm-filter-select {
-  height: 34px;
+  height: var(--cms-list-filter-height);
   padding: 0 28px 0 10px;
   border: 1px solid var(--cms-border-default);
   border-radius: 8px;
