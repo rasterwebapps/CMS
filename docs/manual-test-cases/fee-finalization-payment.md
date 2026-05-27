@@ -66,11 +66,35 @@
 1. Navigate to `/student-fees/finalize`
 2. Verify the page title shows "Fee Finalization"
 3. Verify the table lists only enquiries with status INTERESTED
-4. Verify columns show: Name, Program, Course, Referral Type, Proposed Fee, Actions
+4. Verify columns show: Name, Program, Course, Quota, Referral, Proposed Fee (₹), Actions
+5. Compare the table density, header styling, hover state, right-aligned amount column, and icon action with other finance list tables
 
 **Expected Result:**
 - Only INTERESTED enquiries are displayed in the table
-- Each row has a "Finalize" button
+- Each row has a standard icon action with a "Finalize fees" tooltip
+- Proposed Fee values use the shared table currency style, with the rupee symbol only in the header
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-106: Fee finalization table matches shared list table styling
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- At least one INTERESTED enquiry exists with proposed fee data
+
+**Steps:**
+1. Navigate to `/student-fees/finalize`
+2. Observe the table in light mode
+3. Switch to dark mode and observe the same table
+4. Verify the table on a narrow/mobile viewport where horizontal table scrolling is required
+
+**Expected Result:**
+- The table uses the same visible header background, rounded card corners, row density, hover state, paginator, and icon action styling as other MLP list screens
+- Proposed Fee is right-aligned and formatted with tabular numeric currency digits
+- The action column uses the standard compact icon button and remains reachable on touch/mobile
+- No horizontal page scroll occurs; only the table wrapper scrolls horizontally when needed
 
 **Status:** NOT TESTED
 

@@ -15,38 +15,38 @@
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 // ── Table ────────────────────────────────────────────────────────────────────
-.table-wrapper { overflow-x: auto; }
-.modern-table  { width: 100%; }
-.cell-name     { font-weight: 700; color: var(--cms-text-primary); }
-.cell-amount   { font-family: var(--cms-font-mono); font-weight: 700; color: var(--cms-primary); }
-.table-row:hover { background: var(--cms-bg-muted); }
-.actions-header { width: 120px; }
-.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+// Most table styling is inherited from the global MLP/modern-table system.
+.fee-finalization-table-card {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--cms-bg-card);
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: 1.5px solid var(--cms-line-strong);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--cms-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--cms-font-ui);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-
-  &--primary {
-    border-color: rgba(var(--cms-primary-rgb), 0.3);
-    color: var(--cms-primary);
-    background: rgba(var(--cms-primary-rgb), 0.05);
-    &:hover { background: rgba(var(--cms-primary-rgb), 0.12); }
+  > .table-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
-.pagination-wrapper { border-top: 1px solid var(--cms-line); }
+.fee-finalization-table {
+  min-width: 900px;
+
+  th.mat-header-cell,
+  th.mat-mdc-header-cell {
+    background: var(--cms-bg-subtle) !important;
+  }
+
+  th.mat-header-cell:first-child,
+  th.mat-mdc-header-cell:first-child {
+    border-top-left-radius: 16px;
+  }
+
+  th.mat-header-cell:last-child,
+  th.mat-mdc-header-cell:last-child {
+    border-top-right-radius: 16px;
+  }
+}
 
 // ── Two-column finalization layout ───────────────────────────────────────────
 .finalize-grid {

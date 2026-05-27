@@ -89,9 +89,9 @@
         (actionClick)="clearFilters()"
       />
     } @else {
-      <div class="content-card mlp-table-card">
+      <div class="content-card mlp-table-card fee-finalization-table-card">
         <div class="table-wrapper">
-          <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-finalization-table">
 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -102,12 +102,12 @@
 
             <ng-container matColumnDef="programName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
-              <td mat-cell *matCellDef="let row">{{ row.programName || '—' }}</td>
+              <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.programName || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="courseName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-              <td mat-cell *matCellDef="let row">{{ row.courseName || '—' }}</td>
+              <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.courseName || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="quota">
@@ -123,14 +123,14 @@
 
             <ng-container matColumnDef="referralTypeName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Referral</th>
-              <td mat-cell *matCellDef="let row">{{ row.referralTypeName || '—' }}</td>
+              <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.referralTypeName || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="finalCalculatedFee">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Proposed Fee</th>
+              <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Proposed Fee (₹)</th>
               <td mat-cell *matCellDef="let row" class="cell-align-right">
-                @if (row.finalCalculatedFee) {
-                  <span class="cell-amount">{{ row.finalCalculatedFee | inr }}</span>
+                @if (row.finalCalculatedFee != null) {
+                  <span class="cell-currency">{{ row.finalCalculatedFee | inr:false:false }}</span>
                 } @else { — }
               </td>
             </ng-container>
@@ -139,9 +139,8 @@
               <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
               <td mat-cell *matCellDef="let row">
                 <div class="row-actions">
-                  <button class="action-btn action-btn--primary" (click)="selectEnquiry(row)" aria-label="Finalize fees">
+                  <button class="action-btn action-btn--primary" matTooltip="Finalize fees" (click)="selectEnquiry(row)" aria-label="Finalize fees">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Finalize
                   </button>
                 </div>
               </td>
