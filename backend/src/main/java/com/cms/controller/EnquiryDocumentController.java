@@ -103,6 +103,24 @@ public class EnquiryDocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Triggers the auto-transition check for an enquiry.
+     * <p>
+     * When a program has no required document types, no individual document
+     * verify calls are ever made, so {@code autoTransitionIfAllVerified} is
+     * never reached from inside {@code verifyDocument}. This endpoint acts as
+     * an explicit "complete verification" trigger: if all conditions are met
+     * (e.g. zero required types or all already verified) the enquiry moves to
+     * DOCUMENTS_VERIFIED immediately.
+     * </p>
+     */
+    @PostMapping("/complete-verification")
+    @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
+    public ResponseEntity<Void> completeVerification(@PathVariable Long enquiryId) {
+        documentService.completeVerification(enquiryId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{id}/verify")
     @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
     public ResponseEntity<EnquiryDocumentResponse> verifyDocument(

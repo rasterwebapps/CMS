@@ -203,6 +203,19 @@ export class EnquiryService {
     );
   }
 
+  /**
+   * Triggers the server-side auto-transition check for the given enquiry.
+   * Used when there are no required document types to verify individually —
+   * in that case verifyDocument is never called and the transition never fires,
+   * so we call this explicitly to unblock the enquiry.
+   */
+  completeDocumentVerification(enquiryId: number): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/${enquiryId}/documents/complete-verification`,
+      {},
+    );
+  }
+
   rejectDocument(enquiryId: number, documentId: number, rejectionComment: string): Observable<EnquiryDocument> {
     return this.http.put<EnquiryDocument>(
       `${this.baseUrl}/${enquiryId}/documents/${documentId}/reject`,

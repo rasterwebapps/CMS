@@ -315,6 +315,22 @@ public class EnquiryDocumentService {
     }
 
     /**
+     * Public entry-point that re-evaluates whether all required documents are verified
+     * and transitions the enquiry to DOCUMENTS_VERIFIED if so.
+     * <p>
+     * Used as a fallback when no individual {@link #verifyDocument} calls are made —
+     * e.g. when the program has no required document types configured, so the
+     * auto-transition inside {@code verifyDocument} is never triggered.
+     * </p>
+     */
+    @Transactional
+    public void completeVerification(Long enquiryId) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
+        autoTransitionIfAllVerified(enquiry, currentUserResolver.resolve());
+    }
+
+    /**
      * Checks whether all program-required documents for the enquiry are VERIFIED.
      * If so, transitions the enquiry status from DOCUMENTS_SUBMITTED to DOCUMENTS_VERIFIED.
      */

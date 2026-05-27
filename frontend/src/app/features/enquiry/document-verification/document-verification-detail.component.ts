@@ -143,6 +143,15 @@ export class DocumentVerificationDetailComponent implements OnInit {
         this.mandatoryTypes.set(new Set(sorted));
         this.rows.set(this.buildRows(documents));
         this.loading.set(false);
+
+        // If the program has no required document types there is nothing for
+        // the admin to verify individually, so verifyDocument() is never called
+        // and autoTransitionIfAllVerified() on the backend never fires.
+        // Explicitly trigger the transition here so the enquiry moves to
+        // DOCUMENTS_VERIFIED and appears in the Complete Admission screen.
+        if (sorted.length === 0) {
+          this.triggerCompletion(enquiryId);
+        }
       },
       error: () => {
         this.toast.error('Failed to load document catalogue');
@@ -250,5 +259,24 @@ export class DocumentVerificationDetailComponent implements OnInit {
 
   protected backToList(): void {
     void this.router.navigate(['/enquiries/document-verification']);
+  }
+
+  /**
+   * Called when the program has zero required document types.
+   * Calls the backend to trigger the DOCUMENTS_SUBMITTED → DOCUMENTS_VERIFIED
+   * transition (which normally fires inside verifyDocument but is never reached
+   * when there is nothing to verify).
+   */
+  private triggerCompletion(enquiryId: number): void {
+    this.enquiryService.completeDocumentVerification(enquiryId).subscribe({
+      next: () => {
+        this.toast.success('No required documents — enquiry marked as Documents Verified');
+        setTimeout(() => void this.router.navigate(['/enquiries/document-verification']), 1800);
+      },
+      error: () => {
+        // Non-fatal: log a warning so the admin knows to check manually
+        this.toast.warning('Could not auto-complete verification — please contact support');
+      },
+    });
   }
 }
