@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5435/cmsdb}
-    username: ${DB_USERNAME:cms}
-    password: ${DB_PASSWORD:cms}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,3 +19,7 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8280/realms/cms}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8280/realms/cms/protocol/openid-connect/certs}
+
+keycloak:
+  admin:
+    password: ${KEYCLOAK_ADMIN_PASSWORD}

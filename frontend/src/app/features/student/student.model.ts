@@ -59,6 +59,7 @@ export interface Student {
   admissionDate: string;
   labBatch?: string;
   status: string;
+  admissionCategory?: string;
   dateOfBirth?: string;
   gender?: string;
   nationality?: string;
@@ -163,6 +164,7 @@ export interface StudentRequest {
   admissionDate: string;
   labBatch?: string;
   status?: string;
+  admissionCategory?: string;
   dateOfBirth?: string;
   gender?: string;
   nationality?: string;

@@ -94,6 +94,28 @@ All four containers (`cms-keycloak`, `cms-backend`, `cms-frontend`) should show 
 
 ---
 
+## Known Migration Notes
+
+### V174 checksum mismatch on 243 (next deploy)
+
+V174 (`fix_installment_due_dates_from_billing_schedule`) was patched to add a
+`sf.due_date` safety-net COALESCE arm that prevents a NOT NULL violation on fresh
+databases with no `term_billing_schedules` seed data.
+
+V174 already ran successfully on 243. Before the next deploy to 243, remove its
+history entry so Flyway re-runs it cleanly:
+
+```sql
+-- Run against the 243 database (cmsdb) before next backend deploy
+DELETE FROM flyway_schema_history WHERE version = '174';
+```
+
+After this, the next deploy will re-run V174 (now safe) and V175+ will proceed normally.
+V176 (`fix_installment_due_date_coalesce_fallback`) is now a harmless no-op since V174
+already includes the same safety net.
+
+---
+
 ## Architecture on the Server
 
 ```

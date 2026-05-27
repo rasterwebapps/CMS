@@ -144,12 +144,12 @@ export class DocumentVerificationDetailComponent implements OnInit {
         this.rows.set(this.buildRows(documents));
         this.loading.set(false);
 
-        // If the program has no required document types there is nothing for
-        // the admin to verify individually, so verifyDocument() is never called
-        // and autoTransitionIfAllVerified() on the backend never fires.
-        // Explicitly trigger the transition here so the enquiry moves to
-        // DOCUMENTS_VERIFIED and appears in the Complete Admission screen.
-        if (sorted.length === 0) {
+        // If all required documents are already VERIFIED (covers two cases):
+        //  1. Program has zero required types → nothing to verify → transition never fired
+        //  2. Documents were previously verified via a path that didn't call
+        //     autoTransitionIfAllVerified (e.g. document-collection verifyMode)
+        // In both cases, explicitly trigger the server-side transition now.
+        if (this.allVerified()) {
           this.triggerCompletion(enquiryId);
         }
       },

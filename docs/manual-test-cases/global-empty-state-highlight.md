@@ -17,7 +17,7 @@
 - No screen shows a half-highlight where only the top or message row is tinted.
 - Header and paginator remain readable and visually separated.
 
-**Status:** NOT TESTED
+**Status:** READY TO TEST
 
 ---
 
@@ -38,5 +38,5 @@
 - The empty-state content remains centered and readable.
 - Existing action buttons still work.
 
-**Status:** NOT TESTED
+**Status:** READY TO TEST
 

@@ -66,6 +66,7 @@ export class StudentFormComponent implements OnInit {
 
   protected readonly statusOptions = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'];
+  protected readonly admissionCategoryOptions = ['MANAGEMENT', 'COUNSELLING'];
 
   // Preview signals
   protected readonly previewFirstName = signal('');
@@ -114,9 +115,10 @@ export class StudentFormComponent implements OnInit {
     yearOfStudy: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
     admissionDate: ['', [Validators.required]],
     labBatch: [''],
-    status: ['ACTIVE'],
+    status: ['ACTIVE', Validators.required],
+    admissionCategory: ['', Validators.required],
     dateOfBirth: [''],
-    gender: [''],
+    gender: ['', Validators.required],
     nationality: [''],
     religion: [''],
     communityCategory: [''],
@@ -197,6 +199,7 @@ export class StudentFormComponent implements OnInit {
       admissionDate: v.admissionDate,
       labBatch: v.labBatch?.trim() || undefined,
       status: v.status || undefined,
+      admissionCategory: v.admissionCategory || undefined,
       dateOfBirth: v.dateOfBirth || undefined,
       gender: v.gender || undefined,
       nationality: v.nationality?.trim() || undefined,
@@ -272,6 +275,9 @@ export class StudentFormComponent implements OnInit {
       programId: 'Program',
       yearOfStudy: 'Year of Study',
       admissionDate: 'Admission Date',
+      status: 'Status',
+      admissionCategory: 'Admission Category',
+      gender: 'Gender',
     };
     return labels[fieldName] || fieldName;
   }
@@ -301,6 +307,7 @@ export class StudentFormComponent implements OnInit {
           admissionDate: student.admissionDate,
           labBatch: student.labBatch || '',
           status: student.status,
+          admissionCategory: student.admissionCategory || '',
           dateOfBirth: student.dateOfBirth || '',
           gender: student.gender || '',
           nationality: student.nationality || '',

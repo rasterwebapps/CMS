@@ -5,6 +5,8 @@
 --   1. Use the target academic year's term billing schedule due_date (if that AY + billing exists).
 --   2. Fall back: take the admission year's billing due_date and shift it forward by
 --      (year_number - 1) full years, preserving the same month and day.
+--   3. Safety net: keep the existing due_date when no billing schedule matches
+--      (prevents NOT NULL violation on fresh DBs with no term_billing_schedules seed data).
 
 UPDATE installment_fees sf
 SET due_date = COALESCE(
@@ -36,6 +38,8 @@ SET due_date = COALESCE(
             ON tbs_admit.academic_year_id = c.admission_academic_year_id
            AND tbs_admit.term_type = CASE WHEN sf.sequence = 1 THEN 'ODD' ELSE 'EVEN' END
         WHERE sfa.id = sf.allocation_id
-    )
+    ),
+    -- 3. Safety net: keep existing due_date if no billing schedule matches
+    sf.due_date
 )
 WHERE sf.due_date IS NOT NULL;

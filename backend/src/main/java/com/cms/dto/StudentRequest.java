@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import java.time.LocalDate;
 
+import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
@@ -54,6 +55,7 @@ public record StudentRequest(
     String labBatch,
 
     StudentStatus status,
+    AdmissionCategory admissionCategory,
 
     // Personal information
     LocalDate dateOfBirth,
@@ -93,7 +95,7 @@ public record StudentRequest(
                           String fatherName, String fatherPhone, String fatherEmail, String motherName,
                           String motherPhone, String motherEmail, String parentMobile, AddressRequest address) {
         this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specializationDepartmentId,
-            yearOfStudy, admissionDate, labBatch, status, dateOfBirth, gender, aadharNumber, nationality,
+            yearOfStudy, admissionDate, labBatch, status, null, dateOfBirth, gender, aadharNumber, nationality,
             religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail,
             motherName, motherPhone, motherEmail, parentMobile, false, null, null, address);
     }

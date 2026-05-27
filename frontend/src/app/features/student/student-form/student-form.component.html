@@ -153,12 +153,32 @@
               </div>
 
               <div class="field-group">
-                <label for="stu-status" class="field-label">Status</label>
-                <select id="stu-status" class="field-select" formControlName="status">
+                <label for="stu-status" class="field-label">Status <span class="required-star">*</span></label>
+                <select id="stu-status" class="field-select" formControlName="status"
+                  [class.field-select--error]="form.get('status')?.invalid && form.get('status')?.touched">
                   @for (s of statusOptions; track s) {
                     <option [value]="s">{{ s }}</option>
                   }
                 </select>
+                @if (form.get('status')?.invalid && form.get('status')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('status') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="stu-admission-category" class="field-label">Admission Category <span class="required-star">*</span></label>
+                <select id="stu-admission-category" class="field-select" formControlName="admissionCategory"
+                  [class.field-select--error]="form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched">
+                  <option value="">— Select —</option>
+                  @for (c of admissionCategoryOptions; track c) {
+                    <option [value]="c">{{ c }}</option>
+                  }
+                </select>
+                @if (form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('admissionCategory') }}</p>
+                }
               </div>
             </div>
 
@@ -173,13 +193,17 @@
               </div>
 
               <div class="field-group">
-                <label for="stu-gender" class="field-label">Gender</label>
-                <select id="stu-gender" class="field-select" formControlName="gender">
+                <label for="stu-gender" class="field-label">Gender <span class="required-star">*</span></label>
+                <select id="stu-gender" class="field-select" formControlName="gender"
+                  [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
                   <option value="">— Select —</option>
                   @for (g of genderOptions; track g) {
                     <option [value]="g">{{ g }}</option>
                   }
                 </select>
+                @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('gender') }}</p>
+                }
               </div>
             </div>
 

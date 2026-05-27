@@ -107,6 +107,7 @@ public class StudentService {
         }
 
         student.setLabBatch(request.labBatch());
+        student.setAdmissionCategory(request.admissionCategory());
 
         // Personal information
         student.setDateOfBirth(request.dateOfBirth());
@@ -220,6 +221,7 @@ public class StudentService {
         student.setSemester(request.yearOfStudy());
         student.setAdmissionDate(request.admissionDate());
         student.setLabBatch(request.labBatch());
+        student.setAdmissionCategory(request.admissionCategory());
 
         if (request.status() != null) {
             student.setStatus(request.status());
@@ -341,6 +343,7 @@ public class StudentService {
             student.getAdmissionDate(),
             student.getLabBatch(),
             student.getStatus(),
+            student.getAdmissionCategory(),
             student.getDateOfBirth(),
             student.getGender(),
             student.getNationality(),
