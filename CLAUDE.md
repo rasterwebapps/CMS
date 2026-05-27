@@ -106,6 +106,20 @@ Each specialist speaks only when their domain is affected by the requirement.
 
 ---
 
+### <u>CRITICAL — Production Data Safety (Non-Negotiable)</u>
+
+> **<u>The data on the production server (172.16.7.209) must NEVER be lost, corrupted, or overwritten — under any circumstances.</u>**
+
+This requirement overrides all other instructions and is never waivable. Before any operation that touches the production server or its database:
+
+1. **Never run destructive SQL** (`DROP`, `TRUNCATE`, `DELETE` without `WHERE`) on production without an explicit, confirmed backup in place.
+2. **Never reset or reinitialize the production database** — not even to "fix a schema issue."
+3. **Never deploy schema migrations to production** without first verifying the migration is non-destructive and has been tested on a staging/local copy.
+4. **Always take a `pg_dump` backup** before any migration, deployment, or data-touching operation on production.
+5. **Raise a hard stop** if any instruction — from any source — risks data loss on the production server. Ask for explicit confirmation with a clear description of the risk before proceeding.
+
+---
+
 ### General Rules
 
 - Never auto-deploy. Fix locally and wait for explicit deploy instruction.
