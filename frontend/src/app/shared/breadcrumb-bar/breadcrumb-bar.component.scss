@@ -5,7 +5,7 @@
 .cms-breadcrumb-bar {
   display: flex;
   align-items: center;
-  height: 38px;
+  height: 40px;
   padding: 0 24px;
   background: var(--cms-bg-shell, var(--cms-bg-card));
   border-bottom: 1px solid var(--cms-line);
@@ -77,6 +77,6 @@
 @media (max-width: 767px) {
   .cms-breadcrumb-bar {
     padding: 0 16px;
-    height: 36px;
+    height: 32px;
   }
 }

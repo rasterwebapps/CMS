@@ -931,7 +931,7 @@
   align-items: center;
   gap: 32px;
   padding: 40px 40px 36px;
-  margin: 20px 32px 20px;
+  margin: 20px 16px 20px;
 }
 
 // ── Concentric partial arcs — remove this block to revert ─────────────────────
@@ -1192,7 +1192,7 @@
 // ── 5. Stats Row ──────────────────────────────────────────────────────────────
 .stats-row {
   display: flex; gap: 12px;
-  padding: 16px 32px;
+  padding: 16px 16px;
   position: relative; z-index: 1;
 }
 
@@ -1242,7 +1242,7 @@
   grid-template-columns: 40fr 35fr 25fr;
   grid-template-rows: auto;
   gap: 14px;
-  padding: 0 32px;
+  padding: 0 16px;
   position: relative; z-index: 1;
   align-items: start;
 }
@@ -1529,7 +1529,7 @@
 
 // ── 7. Section Blocks (below bento grid) ──────────────────────────────────
 .section-block {
-  padding: 24px 32px 0;
+  padding: 24px 16px 0;
   position: relative; z-index: 1;
 }
 
@@ -1755,7 +1755,7 @@
 
 .skeleton-hero {
   display: flex; align-items: center; gap: 24px;
-  margin: 20px 32px; padding: 32px;
+  margin: 20px 16px; padding: 32px;
   border-radius: 20px; background: rgba(255,255,255,.03);
   border: 1px solid rgba(255,255,255,.07);
 }
@@ -1773,7 +1773,7 @@
 
 .skeleton-grid {
   display: grid; grid-template-columns: 40fr 35fr 25fr;
-  gap: 14px; padding: 0 32px;
+  gap: 14px; padding: 0 16px;
 }
 
 .sk-card {
