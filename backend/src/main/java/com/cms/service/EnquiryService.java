@@ -376,10 +376,24 @@ public class EnquiryService {
         return toResponse(saved);
     }
 
+    /** Terminal statuses — enquiries in these states are excluded from the "always visible" pipeline set. */
+    private static final Set<EnquiryStatus> TERMINAL_STATUSES = EnumSet.of(
+            EnquiryStatus.ADMITTED,
+            EnquiryStatus.CLOSED,
+            EnquiryStatus.NOT_INTERESTED);
+
+    /**
+     * Returns all enquiries within the date range PLUS any enquiry that is still
+     * in an active pipeline status (not ADMITTED / CLOSED / NOT_INTERESTED).
+     * This prevents pipeline enquiries from disappearing when the date range
+     * rolls over to a new month.
+     */
     public List<EnquiryResponse> findByDateRange(LocalDate fromDate, LocalDate toDate) {
-        return enquiryRepository.findByEnquiryDateBetween(fromDate, toDate).stream()
-            .map(this::toResponse)
-            .toList();
+        return enquiryRepository
+                .findByDateRangeOrActivePipeline(fromDate, toDate, TERMINAL_STATUSES)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     public List<EnquiryResponse> findByDateRangeAndStatus(LocalDate fromDate, LocalDate toDate, EnquiryStatus status) {

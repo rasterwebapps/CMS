@@ -89,7 +89,11 @@
 - [ ] **2.2** Enable brute-force protection on all realms
   — Realm Settings → Security Defenses → Brute Force Detection → ON
 - [ ] **2.3** Set password policies on all realms (min 8 chars, mixed case, digit required)
-- [ ] **2.4** Set `Require SSL → All requests` in Realm Settings (only after HTTPS is live)
+- [ ] **2.4** Set `Require SSL → External requests` in Realm Settings (only after HTTPS is live)
+  — **Do NOT use "All requests"** — this architecture terminates TLS at Nginx; Keycloak is
+  HTTP-only on port 8180 internally. "All requests" breaks internal tools (deploy script,
+  health checks) that call `http://localhost:8180`. "External requests" correctly enforces
+  HTTPS for browser/public traffic while allowing internal localhost calls to work.
 - [ ] **2.5** Remove `*` from Valid Redirect URIs — replace with exact production URLs only
 - [ ] **2.6** Disable self-registration if not a product feature (`Realm Settings → Login → User registration → OFF`)
 - [ ] **2.7** Set short token lifetimes (Access: 5–15 min, Refresh: 8–24 hours)

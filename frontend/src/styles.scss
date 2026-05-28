@@ -115,6 +115,21 @@
   --cms-radius-xl: 16px;
   --cms-radius-full: 9999px;
 
+  // ─── Spacing scale — 16px base (1rem) ───
+  // All card gaps, grid gaps, and section spacing derive from this scale.
+  // 16px was chosen for a data-dense CMS: tight enough to show more content,
+  // generous enough to separate elements clearly.
+  --cms-space-xs:  4px;
+  --cms-space-sm:  8px;
+  --cms-space-md: 16px;
+  --cms-space-lg: 24px;
+  --cms-space-xl: 32px;
+
+  // ─── Page outer padding ───
+  // Single token for the horizontal (side) padding of every page container.
+  // 16px gives consistent margins on all screens without wasting space.
+  --cms-page-padding: 16px;
+
   // ─── List Filters ───
   // Matches Submit Documents / Verify Documents compact toolbar controls.
   --cms-list-filter-height: 32px;
@@ -135,7 +150,7 @@
   --cms-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   // ─── Sidenav ───
-  --cms-sidenav-width: 248px;
+  --cms-sidenav-width: 240px;
   --cms-sidenav-bg: #ffffff;
   --cms-sidenav-text: #475569;
   --cms-sidenav-text-bright: #1e293b;
@@ -1457,16 +1472,15 @@ app-root {
   }
 }
 
-// Empty Material tables render a single colspan row.  Without colouring the
-// surrounding flex/card surface, only that row area gets the purple hover tone
-// and the rest of the empty card stays on the default card background.
+// Empty Material tables render a single colspan row. Keep the surrounding
+// flex/card surface neutral so the whole empty area uses one uniform tone.
 .content-card:has(tr.mat-row > td[colspan]),
 .content-card:has(tr.mat-mdc-no-data-row > td[colspan]),
 .table-wrapper:has(tr.mat-row > td[colspan]),
 .table-wrapper:has(tr.mat-mdc-no-data-row > td[colspan]),
 .table-container:has(tr.mat-row > td[colspan]),
 .table-container:has(tr.mat-mdc-no-data-row > td[colspan]) {
-  background: var(--cms-bg-hover);
+  background: var(--cms-bg-muted);
 }
 
 table.mat-mdc-table:has(tr.mat-row > td[colspan]),
@@ -1479,21 +1493,21 @@ table.modern-table:has(tr.mat-mdc-no-data-row > td[colspan]) {
 
 tr.mat-row:has(> td[colspan]),
 tr.mat-mdc-no-data-row {
-  background: var(--cms-bg-hover) !important;
+  background: var(--cms-bg-muted) !important;
 
   > td.mat-cell,
   > td.mat-mdc-cell {
     height: 100%;
-    background: var(--cms-bg-hover) !important;
+    background: var(--cms-bg-muted) !important;
     border-bottom: none !important;
   }
 
   &:hover {
-    background: var(--cms-bg-hover) !important;
+    background: var(--cms-bg-muted) !important;
 
     > td.mat-cell,
     > td.mat-mdc-cell {
-      background: var(--cms-bg-hover) !important;
+      background: var(--cms-bg-muted) !important;
     }
   }
 }
@@ -2047,12 +2061,13 @@ tr.mat-mdc-no-data-row {
 
 // ── Page Container ────────────────────────────────
 .entry-form-page {
-  padding: 24px 32px;
+  padding: 20px var(--cms-page-padding);
   display: flex;
   flex-direction: column;
+  min-height: 100%;
 
   @media (max-width: 768px) {
-    padding: 20px 16px;
+    padding: 14px var(--cms-page-padding);
   }
 }
 
@@ -3864,18 +3879,15 @@ html.dark-theme body::after {
 
 // ── Page Container ────────────────────────────────────────────
 .mlp-page {
-  padding: 24px 32px;
+  padding: 20px var(--cms-page-padding);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  // Fill at least the full content area so the table card (flex: 1) can
-  // stretch to the bottom and keep the paginator pinned there.
-  // Breakdown: 56px toolbar + 35px breadcrumb bar (34px + 1px border) = 91px.
-  min-height: calc(100vh - 91px);
+  gap: 16px;
+  min-height: 100%;
 
   @media (max-width: 768px) {
-    padding: 20px 16px;
-    gap: 16px;
+    padding: 14px var(--cms-page-padding);
+    gap: 12px;
   }
 }
 
@@ -4584,3 +4596,138 @@ html.large-text {
 }
 
 
+// ─────────────────────────────────────────────────────────────
+// Admission Management fixed-height list standard
+// main.app-content is the scroll container (flex: 1, overflow-y: auto).
+// These pages set height: 100% + overflow: hidden to OPT OUT of scrolling
+// — the table-wrapper inside handles its own internal scroll.
+// No viewport-unit math needed; the shell flex chain provides the bound.
+// ─────────────────────────────────────────────────────────────
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) {
+  // Fill the flex parent (main.app-content) exactly — no overflow, no scroll.
+  height: 100% !important;
+  min-height: 0 !important;
+  // Keep existing side + top padding; add a symmetrical bottom margin.
+  padding-bottom: 20px !important;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding-bottom: 14px !important;
+  }
+}
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) :is(
+  .content-card,
+  .mlp-table-card,
+  .enq-table-card,
+  .adm-table-card,
+  .doc-table-card,
+  .docv-table-card,
+  .adcomp-table-card,
+  .fee-finalization-table-card
+) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) .table-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+// ── Header & footer (paginator) use the same surface tone for visual parity.
+//    Some screens wrap the paginator in `.table-footer`/`.pagination-wrapper`,
+//    others drop a bare <mat-paginator> directly inside the card — both must
+//    render with the subtle background that matches the sticky table header.
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) :is(.table-footer, .pagination-wrapper, mat-paginator, .mat-mdc-paginator) {
+  flex-shrink: 0;
+  background: var(--cms-bg-subtle) !important;
+  border-top: 1px solid var(--cms-border-light);
+}
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-outer-container,
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-container {
+  background: transparent !important;
+}
+:is(
+  .enq-list-page,
+  .adm-page,
+  .doc-page,
+  .docv-page,
+  .adcomp-page,
+  .sfx-page,
+  .fpl-page,
+  .stu-page,
+  .rna-page,
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+) :is(th.mat-header-cell, th.mat-mdc-header-cell) {
+  background: var(--cms-bg-subtle) !important;
+}

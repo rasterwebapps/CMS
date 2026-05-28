@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 28" fill="none" role="img" aria-label="Raster OneCMS">
+
+  <!--
+    Raster R mark — based on brand guidelines.
+    Bold R with:  thick vertical stem · rounded bowl · punched counter ·
+    diagonal leg kicking lower-right.
+    Rendered via evenodd so the counter is transparent (shows whatever is behind).
+  -->
+  <path
+    fill="#1DB97A"
+    fill-rule="evenodd"
+    d="
+      M 0,27 L 0,1
+      L 13,1
+      C 20.5,1 22.5,4.5 22.5,9
+      C 22.5,13.5 19.5,16 14,16.5
+      L 21.5,27 L 17.5,27
+      L 10,16.5 L 5,16.5
+      L 5,27 Z
+
+      M 5,4.5 L 13,4.5
+      C 17.5,4.5 18.5,6.5 18.5,9
+      C 18.5,11.5 17.5,13 13,13
+      L 5,13 Z
+    "
+  />
+
+  <!-- Registered mark — superscript, brand green -->
+  <text
+    x="23.5" y="8"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="5.5"
+    fill="#1DB97A"
+  >®</text>
+
+  <!-- Product name -->
+  <text
+    x="31" y="20"
+    font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-size="14"
+    font-weight="700"
+    letter-spacing="-0.4"
+    fill="#111827"
+  >OneCMS</text>
+
+  <!-- Trademark — superscript -->
+  <text
+    x="106.5" y="9"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="5.5"
+    fill="#111827"
+  >™</text>
+
+</svg>

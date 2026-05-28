@@ -24,7 +24,7 @@
 
 // ── Form sections ─────────────────────────────────────────────────────────────
 .ayf-section {
-  padding: 24px 28px;
+  padding: 20px var(--cms-page-padding);
 }
 
 .ayf-section__hdr {
@@ -135,10 +135,11 @@
 .seat-allocation-table__head,
 .seat-allocation-table__row {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 150px 150px 120px;
-  gap: 12px;
+  // Course fills remaining space; numeric input columns shrink gracefully.
+  // No min-width — the table must fit inside the form card without scrolling.
+  grid-template-columns: minmax(0, 1fr) 120px 120px 90px;
+  gap: 10px;
   align-items: center;
-  min-width: 680px;
 }
 
 .seat-allocation-table__head {
@@ -150,6 +151,9 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+
+  // Numeric column headers (cols 2–4) right-aligned to match input text-align
+  span:nth-child(n+2) { text-align: right; }
 }
 
 .seat-allocation-table__row {

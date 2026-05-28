@@ -5,7 +5,43 @@
 }
 
 // ── Table ────────────────────────────────────────────────────────────────────
-.table-wrapper    { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admission-list-fixed-page:not(.admission-list-fixed-page--detail) {
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px var(--cms-page-padding) 12px;
+  gap: 8px;
+  box-sizing: border-box;
+
+  .mlp-hdr,
+  .mlp-toolbar {
+    flex-shrink: 0;
+  }
+
+  .mlp-loading-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .mlp-table-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pagination-wrapper {
+    flex-shrink: 0;
+  }
+}
+
+.table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .fee-collection-table { min-width: 980px; }
 .actions-header   { width: 110px; }
 .row-actions      { justify-content: center; opacity: 1; }

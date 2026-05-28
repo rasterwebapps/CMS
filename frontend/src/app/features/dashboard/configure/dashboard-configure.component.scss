@@ -19,7 +19,7 @@
   display:       flex;
   align-items:   center;
   gap:           14px;
-  padding:       16px 24px 15px;
+  padding: 16px var(--cms-page-padding) 15px;
   border-bottom: 1px solid var(--cms-line);
   flex-shrink:   0;
   background:    var(--cms-bg-card);

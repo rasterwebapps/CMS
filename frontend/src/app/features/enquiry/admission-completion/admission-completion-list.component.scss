@@ -4,15 +4,15 @@
 // ─────────────────────────────────────────────────────────────
 
 .adcomp-page {
-  height: calc(100vh - 91px);
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 24px 32px 0;
+  padding: 20px var(--cms-page-padding) 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
   box-sizing: border-box;
 
-  @media (max-width: 768px) { padding: 16px 16px 0; gap: 12px; }
+  @media (max-width: 768px) { padding: 14px var(--cms-page-padding) 0; gap: 12px; }
 }
 
 // ── Hero Header ───────────────────────────────────────────────
@@ -85,25 +85,6 @@
   flex-wrap: wrap;
 }
 
-.btn-clear-filters {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: var(--cms-list-filter-height);
-  padding: 0 11px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 8px;
-  background: var(--cms-bg-card);
-  color: var(--cms-text-muted);
-  font-size: 0.8rem;
-  font-weight: 500;
-  font-family: var(--cms-font-ui);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color 0.15s, color 0.15s;
-
-  &:hover { border-color: var(--cms-danger, #ef4444); color: var(--cms-danger, #ef4444); }
-}
 
 .toolbar-right {
   display: flex;
@@ -199,6 +180,10 @@
 // ── Content card ──────────────────────────────────────────────
 
 .adcomp-table-card {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
 }
 

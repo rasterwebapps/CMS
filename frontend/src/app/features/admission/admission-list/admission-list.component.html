@@ -1,17 +1,17 @@
-<div class="adm-page" (click)="colMenuOpen = false">
+<div class="mlp-page admission-list-fixed-page" (click)="colMenuOpen = false">
 
   <!-- ── Header ────────────────────────────────────────────────── -->
-  <div id="tour-adm-header" class="adm-hdr anim-rise">
-    <div class="adm-hdr-left">
+  <div id="tour-adm-header" class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
       <div class="page-title-row">
-        <h1 class="adm-title">Student <em>Admissions</em></h1>
+        <h1 class="mlp-title">Student <em>Admissions</em></h1>
         <cms-tour-button tourKey="admission-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="adm-sub">Track and manage student admission records</p>
+      <p class="mlp-sub">Track and manage student admission records</p>
       @if (!loading()) {
-        <div class="adm-meta">
-          <span class="adm-stat">
-            <span class="adm-stat-dot adm-stat-dot--blue"></span>
+        <div class="mlp-meta">
+          <span class="mlp-stat">
+            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
             {{ totalCount() }} Total
           </span>
         </div>
@@ -20,7 +20,7 @@
   </div>
 
   <!-- ── Toolbar ────────────────────────────────────────────────── -->
-  <div id="tour-adm-toolbar" class="adm-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
+  <div id="tour-adm-toolbar" class="mlp-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
 
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -60,12 +60,14 @@
       }
     </select>
 
+    @if (hasActiveFilters()) {
+      <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Clear Filters
+      </button>
+    }
+
     <div class="toolbar-right">
-      @if (hasActiveFilters()) {
-        <button class="btn-toolbar btn-toolbar--clear" (click)="clearAllFilters()" aria-label="Clear all filters">
-          Clear Filters
-        </button>
-      }
       @if (!loading()) {
         <span class="row-count">
           {{ dataSource.filteredData.length }}
@@ -114,7 +116,7 @@
   </div>
 
   <!-- ── Content card ───────────────────────────────────────────── -->
-  <div class="content-card adm-table-card">
+  <div class="content-card mlp-table-card">
 
     @if (loading()) {
       <div class="adm-skeleton">
@@ -287,26 +289,24 @@
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">
               <cms-empty-state
                 icon="search_off"
-                [title]="searchTerm() ? 'No admissions match your search' : 'No admissions yet'"
-                [subtitle]="searchTerm() ? 'Try adjusting your search.' : 'Admissions created from the enrolment screen will appear here.'"
-                [actionLabel]="searchTerm() ? 'Clear Search' : ''"
-                (actionClick)="clearSearch()"
+                [title]="hasActiveFilters() ? 'No records match your filters' : 'No admissions available'"
+                [subtitle]="hasActiveFilters() ? 'Try adjusting or clearing your filters.' : 'Completed admissions will appear here automatically.'"
+                [actionLabel]="hasActiveFilters() ? 'Clear Filters' : ''"
+                (actionClick)="clearAllFilters()"
               />
             </td>
           </tr>
         </table>
       </div>
 
-      @if (totalCount() > 0) {
-        <div class="table-footer">
-          <span class="row-count">
-            {{ dataSource.filteredData.length }}
-            @if (dataSource.filteredData.length !== totalCount()) { of {{ totalCount() }} }
-            admissions
-          </span>
-          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
-        </div>
-      }
+      <div class="table-footer">
+        <span class="row-count">
+          {{ dataSource.filteredData.length }}
+          @if (dataSource.filteredData.length !== totalCount()) { of {{ totalCount() }} }
+          admissions
+        </span>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+      </div>
     }
   </div>
 

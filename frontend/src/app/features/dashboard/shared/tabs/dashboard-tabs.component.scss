@@ -1,7 +1,7 @@
 .dash-tabs {
   display: flex;
   gap: 8px;
-  padding: 12px 32px 0;
+  padding: 12px var(--cms-page-padding) 0;
   background: var(--cms-bg-card);
   border-bottom: 1px solid var(--cms-border-default);
   position: sticky;

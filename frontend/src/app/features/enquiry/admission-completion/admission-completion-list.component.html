@@ -251,13 +251,13 @@
                 <cms-empty-state
                   icon="how_to_reg"
                   title="No candidates pending"
-                  subtitle="Enquiries in Documents Verified status will appear here automatically."
+                  subtitle="Candidates with verified documents will appear here automatically."
                 />
               } @else {
                 <cms-empty-state
                   icon="search_off"
-                  title="No candidates match your search"
-                  subtitle="Try adjusting the search term or filters."
+                  title="No records match your filters"
+                  subtitle="Try adjusting or clearing your filters."
                   actionLabel="Clear Filters"
                   (actionClick)="clearFilters()"
                 />
@@ -267,15 +267,13 @@
         </table>
       </div>
 
-      @if (totalCount() > 0) {
-        <div class="table-footer">
-          <span class="row-count">
-            @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
-            @else { {{ totalCount() }} candidates }
-          </span>
-          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
-        </div>
-      }
+      <div class="table-footer">
+        <span class="row-count">
+          @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
+          @else { {{ totalCount() }} candidates }
+        </span>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+      </div>
     }
   </div>
 

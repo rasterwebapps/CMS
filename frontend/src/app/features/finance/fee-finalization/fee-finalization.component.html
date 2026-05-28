@@ -1,4 +1,4 @@
-<div class="mlp-page">
+<div class="mlp-page admission-list-fixed-page" [class.admission-list-fixed-page--detail]="selectedEnquiry()">
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   @if (!selectedEnquiry()) {
@@ -64,7 +64,7 @@
       @if (hasActiveFilters) {
         <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Clear
+          Clear Filters
         </button>
       }
 
@@ -80,18 +80,9 @@
     </div>
 
   } @else if (!selectedEnquiry()) {
-    @if (filteredEnquiries().length === 0) {
-      <cms-empty-state
-        icon="hourglass_empty"
-        [title]="hasActiveFilters ? 'No enquiries match your filters' : 'No enquiries pending fee finalization'"
-        [subtitle]="hasActiveFilters ? 'Try adjusting or clearing your filters.' : 'Enquiries in INTERESTED status will appear here.'"
-        [actionLabel]="hasActiveFilters ? 'Clear Filters' : ''"
-        (actionClick)="clearFilters()"
-      />
-    } @else {
-      <div class="content-card mlp-table-card fee-finalization-table-card">
-        <div class="table-wrapper">
-          <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-finalization-table">
+    <div class="content-card mlp-table-card fee-finalization-table-card">
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-finalization-table">
 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -149,22 +140,23 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
 
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
-                <cms-empty-state
-                  icon="hourglass_empty"
-                  title="No matching enquiries"
-                  subtitle="Try adjusting your filters."
-                />
-              </td>
-            </tr>
-          </table>
-        </div>
-        <div class="pagination-wrapper">
-          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="10" showFirstLastButtons />
-        </div>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="hourglass_empty"
+                [title]="hasActiveFilters ? 'No records match your filters' : 'No candidates pending'"
+                [subtitle]="hasActiveFilters ? 'Try adjusting or clearing your filters.' : 'Interested enquiries will appear here automatically.'"
+                [actionLabel]="hasActiveFilters ? 'Clear Filters' : ''"
+                (actionClick)="clearFilters()"
+              />
+            </td>
+          </tr>
+        </table>
       </div>
-    }
+      <div class="pagination-wrapper">
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="10" showFirstLastButtons />
+      </div>
+    </div>
 
   } @else {
     <!-- ──────────────────── Finalization form ──────────────────── -->

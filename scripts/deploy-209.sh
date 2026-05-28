@@ -3,12 +3,16 @@
 #  CMS Deployment Script — deploys to 172.16.7.209
 #  Public URL: https://cms.nursing.sksh.ac.in
 #
-#  Usage:
-#    DEPLOY209_PASS='ssh/sudo password' ./scripts/deploy-209.sh            → full rebuild
-#    DEPLOY209_PASS='ssh/sudo password' ./scripts/deploy-209.sh frontend   → frontend only
-#    DEPLOY209_PASS='ssh/sudo password' ./scripts/deploy-209.sh backend    → backend only
+#  Usage (key-based SSH — Phase 4.2 hardened):
+#    DEPLOY209_DB_PASS='...' DEPLOY209_KC_PASS='...' ./scripts/deploy-209.sh            → full rebuild
+#    DEPLOY209_DB_PASS='...' DEPLOY209_KC_PASS='...' ./scripts/deploy-209.sh frontend   → frontend only
+#    DEPLOY209_DB_PASS='...' DEPLOY209_KC_PASS='...' ./scripts/deploy-209.sh backend    → backend only
 #
-#  SSH key users may omit DEPLOY209_PASS when passwordless sudo is configured.
+#  Pre-hardening (SSH password auth still enabled):
+#    DEPLOY209_PASS='ssh/sudo password' DEPLOY209_DB_PASS='...' DEPLOY209_KC_PASS='...' ./scripts/deploy-209.sh
+#
+#  DEPLOY209_PASS — SSH/sudo password. Leave unset after Phase 4.2 (key-only SSH).
+#  DEPLOY209_DB_PASS / DEPLOY209_KC_PASS — REQUIRED. No hardcoded defaults (rotated per Phase 0.2).
 # =============================================================================
 
 set -euo pipefail
@@ -19,9 +23,19 @@ PUBLIC_HOST="${DEPLOY209_PUBLIC_HOST:-cms.nursing.sksh.ac.in}"
 PUBLIC_IP="${DEPLOY209_PUBLIC_IP:-137.97.6.147}"
 LOCAL_HOST="${DEPLOY209_LOCAL_HOST:-172.16.7.209}"
 SERVER_USER="${DEPLOY209_USER:-sksadmin}"
-SERVER_PASS="${DEPLOY209_PASS:-ra5terpass@sksh}"
-DB_PASSWORD="${DEPLOY209_DB_PASS:-cms_db_pass_209@sksh}"
-KC_PASS="${DEPLOY209_KC_PASS:-K3yCloak@sksh}"
+# After Phase 4.2 (SSH password auth disabled), leave DEPLOY209_PASS unset —
+# the script will use key-based auth automatically. Only set it if the server
+# still allows password authentication (pre-hardening).
+SERVER_PASS="${DEPLOY209_PASS:-}"
+# DEPLOY209_SUDO_PASS — the sudo password on the server (sksadmin's login password).
+# Required when SSH uses key-based auth (Phase 4.2 done) but sudo still needs a
+# password (Phase 4.5 — NOPASSWD removed). Set this in deploy-209.env.
+SUDO_PASS="${DEPLOY209_SUDO_PASS:-$SERVER_PASS}"
+# After Phase 0.2 (secret rotation), always supply these via env var — do NOT
+# rely on defaults. Hardcoded defaults are removed intentionally.
+DB_PASSWORD="${DEPLOY209_DB_PASS:?DEPLOY209_DB_PASS must be set}"
+BACKEND_DB_PASSWORD="${DEPLOY209_BACKEND_DB_PASS:?DEPLOY209_BACKEND_DB_PASS must be set}"
+KC_PASS="${DEPLOY209_KC_PASS:?DEPLOY209_KC_PASS must be set}"
 TLS_CERT_FILE="${DEPLOY209_TLS_CERT_FILE:-/home/raster/Downloads/Telegram Desktop/Certificate.txt}"
 TLS_INTERMEDIATE_FILE="${DEPLOY209_TLS_INTERMEDIATE_FILE:-/home/raster/Downloads/Telegram Desktop/Intermediate Certificate.txt}"
 TLS_PRIVATE_KEY_FILE="${DEPLOY209_TLS_PRIVATE_KEY_FILE:-/home/raster/Downloads/Telegram Desktop/RSA Private Key.txt}"
@@ -65,13 +79,19 @@ ssh_run() {
   escaped=$(printf '%q' "$command")
 
   if [ -n "$SERVER_PASS" ]; then
-    # Embed the password in the remote command so it reaches sudo -S via pipe.
-    # sshpass -e intercepts SSH stdin, so <<< never reaches sudo -S — the pipe
-    # approach is the only reliable way.
+    # Pre-hardening: SSH password auth still active — sshpass handles SSH login,
+    # same password piped to sudo -S for privilege escalation.
     pass_escaped=$(printf '%q' "$SERVER_PASS")
     SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
       "echo ${pass_escaped} | sudo -S bash -lc ${escaped} 2>&1"
+  elif [ -n "$SUDO_PASS" ]; then
+    # Post-hardening: key-based SSH (no sshpass), but sudo still needs a password.
+    # SUDO_PASS is the sksadmin login password — piped to sudo -S over the SSH session.
+    pass_escaped=$(printf '%q' "$SUDO_PASS")
+    ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
+      "echo ${pass_escaped} | sudo -S bash -lc ${escaped} 2>&1"
   else
+    # Fully passwordless: key-based SSH + NOPASSWD sudo (not recommended for production).
     ssh $SSH_OPTS "$SERVER_USER@$SERVER" "sudo -n bash -lc $escaped 2>&1"
   fi
 }
@@ -217,6 +237,8 @@ PUBLIC_IP=${PUBLIC_IP}
 LOCAL_HOST=${LOCAL_HOST}
 DB_USERNAME=cms_user
 DB_PASSWORD=${DB_PASSWORD}
+BACKEND_DB_USERNAME=cms_app
+BACKEND_DB_PASSWORD=${BACKEND_DB_PASSWORD}
 KEYCLOAK_ADMIN_PASSWORD=${KC_PASS}
 EOF
 
@@ -255,6 +277,16 @@ ssh_run "
       sed -i 's|^LOCAL_HOST=.*|LOCAL_HOST=$LOCAL_HOST|' $REMOTE_DIR/.env
     else
       printf 'LOCAL_HOST=$LOCAL_HOST\n' >> $REMOTE_DIR/.env
+    fi
+    if grep -q '^BACKEND_DB_USERNAME=' $REMOTE_DIR/.env; then
+      sed -i 's|^BACKEND_DB_USERNAME=.*|BACKEND_DB_USERNAME=cms_app|' $REMOTE_DIR/.env
+    else
+      printf 'BACKEND_DB_USERNAME=cms_app\n' >> $REMOTE_DIR/.env
+    fi
+    if grep -q '^BACKEND_DB_PASSWORD=' $REMOTE_DIR/.env; then
+      sed -i 's|^BACKEND_DB_PASSWORD=.*|BACKEND_DB_PASSWORD=$BACKEND_DB_PASSWORD|' $REMOTE_DIR/.env
+    else
+      printf 'BACKEND_DB_PASSWORD=$BACKEND_DB_PASSWORD\n' >> $REMOTE_DIR/.env
     fi
     chmod 600 $REMOTE_DIR/.env
     echo 'Origins set to $PUBLIC_HOST, $PUBLIC_IP, $LOCAL_HOST'

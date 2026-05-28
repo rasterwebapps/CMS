@@ -4,15 +4,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 .docv-page {
-  height: calc(100vh - 91px);
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 20px 28px 0;
+  padding: 20px var(--cms-page-padding) 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
   box-sizing: border-box;
 
-  @media (max-width: 768px) { padding: 14px 16px 0; gap: 10px; }
+  @media (max-width: 768px) { padding: 14px var(--cms-page-padding) 0; gap: 10px; }
 }
 
 .docv-hdr {
@@ -197,28 +197,6 @@
   }
 }
 
-.btn-clear-filters {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: var(--cms-list-filter-height);
-  padding: 0 11px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: rgba(239, 68, 68, 0.07);
-  color: #dc2626;
-  font-size: 0.775rem;
-  font-weight: 600;
-  font-family: var(--cms-font-ui);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: rgba(239, 68, 68, 0.13);
-    border-color: rgba(239, 68, 68, 0.25);
-  }
-}
 
 .toolbar-end {
   display: flex;

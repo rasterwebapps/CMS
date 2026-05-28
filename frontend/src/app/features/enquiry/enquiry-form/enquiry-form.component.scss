@@ -3,12 +3,12 @@
 // ─────────────────────────────────────────────────────────────
 
 .enq-form-page {
-  padding: 24px 32px 40px;
+  padding: 20px var(--cms-page-padding) 40px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 
-  @media (max-width: 768px) { padding: 16px; gap: 14px; }
+  @media (max-width: 768px) { padding: 14px var(--cms-page-padding) 40px; gap: 14px; }
 }
 
 // ── Section micro-label ───────────────────────────────────────

@@ -4,15 +4,15 @@
 // ─────────────────────────────────────────────────────────────
 
 .rna-page {
-  height: calc(100vh - 91px);
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 14px 24px 0;
+  padding: 14px var(--cms-page-padding) 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
   box-sizing: border-box;
 
-  @media (max-width: 900px) { padding: 10px 16px; gap: 6px; }
+  @media (max-width: 900px) { padding: 10px var(--cms-page-padding); gap: 6px; }
 }
 
 // ── Header ────────────────────────────────────────────────────

@@ -4,15 +4,15 @@
 
 // 91px = 56px toolbar + 35px breadcrumb (global layout constants)
 .enq-list-page {
-  height: calc(100vh - 91px);
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 14px 24px 12px;
+  padding: 14px var(--cms-page-padding) 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   box-sizing: border-box;
 
-  @media (max-width: 900px) { padding: 10px 16px; gap: 6px; }
+  @media (max-width: 900px) { padding: 10px var(--cms-page-padding); gap: 6px; }
 }
 
 // ── Page Header — mirrors .dept-pg-hdr exactly ────────────────
@@ -322,8 +322,7 @@ $ctrl-h: var(--cms-list-filter-height);
 // ── Shared button styles ──────────────────────────────────────
 
 .btn-export,
-.btn-toolbar,
-.btn-clear-filters {
+.btn-toolbar {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -345,12 +344,6 @@ $ctrl-h: var(--cms-list-filter-height);
 
 .btn-toolbar--active { border-color: var(--cms-primary); color: var(--cms-primary); }
 
-.btn-clear-filters {
-  background: transparent;
-  color: var(--cms-text-muted);
-
-  &:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.04); }
-}
 
 // ── Column menu ────────────────────────────────────────────────
 

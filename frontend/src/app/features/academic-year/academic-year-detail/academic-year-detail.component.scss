@@ -1,5 +1,5 @@
-// academic-year-detail — component-specific overrides only.
-// Uses global entry-form-* and detail-* classes from styles.scss.
+// academic-year-detail — entry-form-page pattern (matches form screen width).
+// Global primitives: .entry-form-page, .content-card, .profile-stat*, .detail-item/label/value
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 .ayd-skeleton {
@@ -8,12 +8,21 @@
   gap: 16px;
 }
 
+.ayd-skel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+}
+
 .ayd-skel-block {
-  height: 120px;
+  height: 140px;
   background: var(--cms-bg-surface-2);
-  border: 1px solid var(--cms-line);
+  border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-radius-lg);
   animation: skel-pulse 1.4s ease-in-out infinite;
+
+  &--hero { height: 140px; }
 }
 
 @keyframes skel-pulse {
@@ -21,43 +30,140 @@
   50%       { opacity: 0.5; }
 }
 
-// ── Edit button in header ─────────────────────────────────────────────────────
-.ayd-edit-btn {
+// ── Content width constraint (matches form's slender layout) ─────────────────
+.ayd-view-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+}
+
+// ── Back button ───────────────────────────────────────────────────────────────
+.ayd-back-btn {
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  margin-left: auto;
+  border-radius: 10px;
+  background: var(--cms-bg-surface-2);
+  border: 1px solid var(--cms-border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--cms-text-secondary);
+  transition: background 0.18s, border-color 0.18s, transform 0.18s, color 0.18s;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.08);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    color: var(--cms-primary);
+    transform: translateX(-2px);
+  }
+}
+
+// ── Hero card ─────────────────────────────────────────────────────────────────
+.ayd-hero {
+  padding: 24px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  // Overrule content-card's flex: 1 so it doesn't stretch vertically
+  flex: 0 0 auto;
+}
+
+.ayd-hero__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ayd-hero__identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ayd-hero__avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: rgba(var(--cms-primary-rgb), 0.12);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cms-primary);
+}
+
+.ayd-hero__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ayd-hero__name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ayd-hero__name {
+  margin: 0;
+  font-family: var(--cms-font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--cms-text-primary);
+  line-height: 1.1;
+}
+
+.ayd-hero__sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.ayd-hero__edit {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border: 1.5px solid var(--cms-line-strong);
+  border: 1.5px solid var(--cms-border-default);
   border-radius: 9px;
   background: transparent;
   color: var(--cms-text-secondary);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
 
-  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
+  &:hover {
+    background: var(--cms-bg-muted);
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+  }
 }
 
-// ── Detail grid (read-only label + value pairs) ───────────────────────────────
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px 24px;
-
-  &--compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 20px; }
+// Date stat chips (reuse .profile-stat from global styles)
+.ayd-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
 }
 
-.detail-empty {
-  font-size: 12.5px;
-  color: var(--cms-text-muted);
-  font-style: italic;
-  margin: 0;
-}
-
-// ── Terms side-by-side grid ───────────────────────────────────────────────────
+// ── Term cards 2-column grid ──────────────────────────────────────────────────
 .ayd-terms-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -67,39 +173,60 @@
   @media (max-width: 768px) { grid-template-columns: 1fr; }
 }
 
+// ── Term card ─────────────────────────────────────────────────────────────────
+.ayd-term-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  // Colored top-edge accent stripe
+  &::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+    flex-shrink: 0;
+  }
+
+  &--odd::before  { background: #6366f1; }
+  &--even::before { background: #10b981; }
+}
+
+.ayd-term-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.ayd-term-card__head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ayd-term-card__sem {
+  font-size: 11.5px;
+  color: var(--cms-text-muted);
+  font-weight: 400;
+}
+
 // ── Term badge (ODD / EVEN) ───────────────────────────────────────────────────
 .term-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 2px 9px;
   border-radius: 20px;
-  margin-right: 6px;
 
   &--odd  { background: rgba(99,102,241,.10); color: #4f46e5; border: 1px solid rgba(99,102,241,.20); }
   &--even { background: rgba(16,185,129,.10); color: #059669; border: 1px solid rgba(16,185,129,.20); }
-}
-
-// ── Inner card sections ───────────────────────────────────────────────────────
-.ayd-card-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--cms-line);
-}
-
-.ayd-card-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--cms-text-muted);
-  margin-bottom: 12px;
-
-  svg { color: var(--cms-primary); flex-shrink: 0; }
 }
 
 // ── Status stepper ────────────────────────────────────────────────────────────
@@ -107,56 +234,185 @@
   display: flex;
   align-items: center;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--cms-line);
+  border-bottom: 1px solid var(--cms-border-default);
 }
 
 .ayd-step {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 
   &__dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--cms-bg-surface-3);
-    border: 2px solid var(--cms-line-strong);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cms-bg-surface-2);
+    border: 2px solid var(--cms-border-default);
   }
 
   &__lbl {
-    font-size: 9px; font-weight: 600;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--cms-text-muted);
   }
 
   &__line {
-    flex: 1; height: 2px; background: var(--cms-line); margin: 0 6px 14px;
+    flex: 1;
+    height: 2px;
+    background: var(--cms-border-default);
+    margin: 0 6px 14px;
   }
 
-  &.step--done .ayd-step__dot { background: #10b981; border-color: #10b981; }
-  &.step--done .ayd-step__lbl { color: #10b981; }
+  &.step--done .ayd-step__dot  { background: #10b981; border-color: #10b981; }
+  &.step--done .ayd-step__lbl  { color: #10b981; }
+
   &.step--active .ayd-step__dot {
-    background: var(--cms-primary); border-color: var(--cms-primary);
+    background: var(--cms-primary);
+    border-color: var(--cms-primary);
     box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), .18);
   }
   &.step--active .ayd-step__lbl { color: var(--cms-primary); font-weight: 700; }
 }
 
-// ── Operational footer (advance / generate) ───────────────────────────────────
-.ayd-term-footer {
+// ── Term section (Period / Billing) ───────────────────────────────────────────
+.ayd-term-section {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--cms-border-light, var(--cms-border-default));
+  flex: 1;
+}
+
+.ayd-term-section__title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-text-muted);
+  margin: 0 0 10px;
+
+  svg { color: var(--cms-primary); flex-shrink: 0; }
+}
+
+// Compact 2–3 column grid for detail items inside term sections
+.ayd-detail-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px 16px;
+}
+
+// Tighten global detail-item for term sections
+.ayd-term-section .detail-label {
+  font-size: 0.625rem;
+}
+
+.ayd-term-section .detail-value {
+  font-size: 0.8125rem;
+}
+
+// ── Term card footer ──────────────────────────────────────────────────────────
+.ayd-term-card__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 12px 20px;
-  background: var(--cms-bg-subtle);
-  border-top: 1px solid var(--cms-line);
-  border-radius: 0 0 var(--cms-radius-lg) var(--cms-radius-lg);
+  padding: 10px 16px;
+  background: var(--cms-bg-surface-2);
+  border-top: 1px solid var(--cms-border-default);
   flex-wrap: wrap;
 }
 
-.ayd-term-empty {
-  padding: 20px;
+// ── Section head (Cohort card header) ─────────────────────────────────────────
+.ayd-section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.ayd-section-head__ico {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cms-primary);
+}
+
+.ayd-section-head__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  line-height: 1.2;
+}
+
+.ayd-section-head__sub {
+  font-size: 12px;
+  color: var(--cms-text-muted);
+  margin-top: 1px;
+}
+
+// ── Cohort empty state ────────────────────────────────────────────────────────
+.ayd-cohort-empty__body {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+// ── Empty / hint text ─────────────────────────────────────────────────────────
+.ayd-empty-hint {
   font-size: 12.5px;
   color: var(--cms-text-muted);
   font-style: italic;
   margin: 0;
+
+  &--padded { padding: 20px; }
+}
+
+.ayd-table-hint {
+  padding: 12px 20px 16px;
+  font-size: 12px;
+  color: var(--cms-text-muted);
+  margin: 0;
+  border-top: 1px solid var(--cms-border-light, var(--cms-border-default));
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  color: var(--cms-text-secondary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+  text-decoration: none;
+  line-height: 1.4;
+
+  &:hover:not(:disabled) {
+    background: var(--cms-bg-muted);
+    border-color: var(--cms-border-hover, var(--cms-border-default));
+    color: var(--cms-text-primary);
+  }
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 // ── Small button variant ──────────────────────────────────────────────────────
@@ -168,10 +424,14 @@
 
 // ── CSS spinners ──────────────────────────────────────────────────────────────
 .btn-spinner {
-  display: inline-block; width: 12px; height: 12px;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
   border: 2px solid rgba(255,255,255,.35);
-  border-top-color: #fff; border-radius: 50%;
-  animation: btn-spin .7s linear infinite; flex-shrink: 0;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin .7s linear infinite;
+  flex-shrink: 0;
 
   &--dark { border-color: rgba(0,0,0,.15); border-top-color: var(--cms-text-secondary); }
 }
@@ -179,90 +439,48 @@
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 
 // ── Cohort Seat Allocations table ─────────────────────────────────────────────
+// Columns: [text] Course | [text] Batch | [num] Mgmt | [num] Counselling | [num] Total
+// Text columns: left-aligned. Numeric columns: right-aligned (header + value + footer).
 .cohort-seats-table {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 8px;
-  overflow: hidden;
+
+  $cols: 2fr 1.5fr 1fr 1fr 1fr;
 
   &__head {
     display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 160px;
+    grid-template-columns: $cols;
     gap: 12px;
     align-items: center;
-    padding: 10px 16px;
+    padding: 10px 20px;
     background: var(--cms-bg-surface-2);
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--cms-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cms-text-muted);
     text-transform: uppercase;
-    letter-spacing: .04em;
-    border-bottom: 1px solid var(--cms-border-default);
+    letter-spacing: .05em;
+
+    // Numeric column headers: cols 3–5 right-aligned
+    span:nth-child(n+3) { text-align: right; }
   }
 
   &__row {
     display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 160px;
+    grid-template-columns: $cols;
     gap: 12px;
     align-items: center;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--cms-border-light);
+    padding: 10px 20px;
+    border-top: 1px solid var(--cms-border-light, var(--cms-border-default));
+    transition: background 0.12s;
 
-    &:last-child { border-bottom: none; }
     &:hover { background: var(--cms-bg-muted); }
   }
 
-  &__row-total {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--cms-text-primary);
-  }
-
-  &__footer {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 160px;
-    gap: 12px;
-    align-items: center;
-    padding: 10px 16px;
-    background: var(--cms-bg-surface-2);
-    border-top: 2px solid var(--cms-border-default);
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--cms-text-primary);
-  }
-
-  &__footer-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: var(--cms-text-muted);
-    font-weight: 700;
-  }
-
-  &__footer-value {
-    color: var(--cms-text-primary);
-
-    &--total {
-      color: var(--cms-primary);
-    }
-  }
-
+  // Text cells
   &__program {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     font-size: 13px;
+    font-weight: 500;
     color: var(--cms-text-primary);
-  }
-
-  &__code {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--cms-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: .03em;
   }
 
   &__batch {
@@ -270,31 +488,47 @@
     color: var(--cms-text-secondary);
   }
 
-  &__actions {
-    display: flex;
+  // Numeric cells — right-aligned, tabular figures
+  &__value {
+    font-size: 13px;
+    color: var(--cms-text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__row-total {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__footer {
+    display: grid;
+    grid-template-columns: $cols;
+    gap: 12px;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-}
-
-.btn-ghost--danger {
-  color: var(--cms-danger);
-  border-color: transparent;
-
-  &:hover {
-    background: var(--cms-danger-light);
-    border-color: transparent;
-    color: var(--cms-danger);
-    transform: none;
+    padding: 10px 20px;
+    background: var(--cms-bg-surface-2);
+    border-top: 2px solid var(--cms-border-default);
   }
 
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
+  &__footer-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cms-text-muted);
+    font-weight: 700;
+  }
 
-.cohort-seat-input {
-  width: 100%;
-  max-width: 100px;
-  padding: 6px 10px;
-  font-size: 13px;
+  &__footer-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &--total { color: var(--cms-primary); }
+  }
 }

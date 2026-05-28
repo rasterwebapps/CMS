@@ -4,15 +4,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 .docvd-page {
-  height: calc(100vh - 91px);
+  height: 100%; // fills main.app-content — it has overflow-y: auto, so detail scrolls naturally
   overflow-y: auto;
-  padding: 20px 28px 40px;
+  padding: 20px var(--cms-page-padding) 40px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   box-sizing: border-box;
 
-  @media (max-width: 768px) { padding: 14px 16px 32px; }
+  @media (max-width: 768px) { padding: 14px var(--cms-page-padding) 32px; }
 }
 
 // ── Hero ──────────────────────────────────────────────────────────────────

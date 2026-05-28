@@ -372,8 +372,8 @@ export class EnquiryListComponent implements OnInit {
   protected convert(item: Enquiry): void { void this.router.navigate(['/enquiries', item.id, 'convert']); }
 
   protected handleEmptyAction(): void {
-    if (this.searchValue()) {
-      this.clearFilter();
+    if (this.hasActiveFilters) {
+      this.clearAllFilters();
       return;
     }
 

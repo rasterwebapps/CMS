@@ -87,7 +87,7 @@
                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-          Clear
+          Clear Filters
         </button>
       }
     </div>
@@ -280,14 +280,14 @@
               @if (totalCount() === 0) {
                 <cms-empty-state
                   icon="folder_open"
-                  title="No pending submissions"
-                  subtitle="Enquiries in Fees Paid or Partially Paid status will appear here automatically."
+                  title="No candidates pending"
+                  subtitle="Candidates with fees paid or partially paid will appear here automatically."
                 />
               } @else {
                 <cms-empty-state
                   icon="search_off"
-                  title="No candidates match your search"
-                  subtitle="Try adjusting the search term or filters."
+                  title="No records match your filters"
+                  subtitle="Try adjusting or clearing your filters."
                   actionLabel="Clear Filters"
                   (actionClick)="clearFilters()"
                 />
@@ -297,15 +297,13 @@
         </table>
       </div>
 
-      @if (totalCount() > 0) {
-        <div class="table-footer">
-          <span class="row-count">
-            @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
-            @else { {{ totalCount() }} candidates }
-          </span>
-          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
-        </div>
-      }
+      <div class="table-footer">
+        <span class="row-count">
+          @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
+          @else { {{ totalCount() }} candidates }
+        </span>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+      </div>
     }
   </div>
 

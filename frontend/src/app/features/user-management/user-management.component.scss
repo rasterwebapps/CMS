@@ -5,13 +5,13 @@
 
 // ── Page shell ────────────────────────────────────────────────
 .um-page {
-  min-height: calc(100vh - 91px);
-  padding: 24px 32px 40px;
+  min-height: 100%; // fills main.app-content
+  padding: 20px var(--cms-page-padding) 40px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 
-  @media (max-width: 768px) { padding: 16px; gap: 14px; }
+  @media (max-width: 768px) { padding: 14px var(--cms-page-padding) 40px; gap: 14px; }
 }
 
 // ── Header ────────────────────────────────────────────────────

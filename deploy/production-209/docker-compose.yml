@@ -5,8 +5,10 @@
 #   docker compose -p skscms209 -f docker-compose.yml --env-file .env up -d
 #
 # Required variables in /docker_data/skscms209/.env (chmod 600):
-#   DB_USERNAME
-#   DB_PASSWORD
+#   DB_USERNAME              — Postgres superuser / Keycloak DB user (cms_user)
+#   DB_PASSWORD              — Password for DB_USERNAME
+#   BACKEND_DB_USERNAME      — Low-privilege app user for Spring Boot (cms_app)
+#   BACKEND_DB_PASSWORD      — Password for BACKEND_DB_USERNAME
 #   KEYCLOAK_ADMIN_PASSWORD
 #   DEPLOY_HOST=cms.nursing.sksh.ac.in
 #   PUBLIC_IP=137.97.6.147
@@ -64,8 +66,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: 209
       DB_URL: jdbc:postgresql://localhost:5433/cms
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      # Use the dedicated low-privilege app user (Phase 2.10 — security hardening).
+      # cms_app has SELECT/INSERT/UPDATE/DELETE only — not the Postgres superuser.
+      DB_USERNAME: ${BACKEND_DB_USERNAME}
+      DB_PASSWORD: ${BACKEND_DB_PASSWORD}
       # Primary issuer remains for compatibility; SecurityConfig accepts all
       # issuers listed in KEYCLOAK_ALLOWED_ISSUERS below.
       KEYCLOAK_ISSUER_URI: https://${DEPLOY_HOST}/realms/cms

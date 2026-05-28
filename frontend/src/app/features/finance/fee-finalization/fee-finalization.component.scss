@@ -16,6 +16,37 @@
 
 // ── Table ────────────────────────────────────────────────────────────────────
 // Most table styling is inherited from the global MLP/modern-table system.
+.admission-list-fixed-page:not(.admission-list-fixed-page--detail) {
+  height: 100%; // fills main.app-content (the flex scroll container in the shell)
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px var(--cms-page-padding) 12px;
+  gap: 8px;
+  box-sizing: border-box;
+
+  .mlp-hdr,
+  .mlp-toolbar {
+    flex-shrink: 0;
+  }
+
+  .mlp-loading-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .mlp-table-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pagination-wrapper {
+    flex-shrink: 0;
+  }
+}
+
 .fee-finalization-table-card {
   overflow: hidden;
   border-radius: 16px;
