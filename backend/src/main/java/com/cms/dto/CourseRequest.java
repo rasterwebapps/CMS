@@ -16,20 +16,15 @@ public record CourseRequest(
     @Size(max = 255, message = "Specialization must not exceed 255 characters")
     String specialization,
 
-    @Size(max = 2, message = "Roll number code must be exactly 2 characters")
+    @NotBlank(message = "Roll number code is required")
+    @Size(min = 2, max = 2, message = "Roll number code must be exactly 2 characters")
     String rollNumberCode,
 
+    @NotBlank(message = "Admission number code is required")
     @Size(max = 20, message = "Admission number code must not exceed 20 characters")
     String admissionNumberCode,
 
     @NotNull(message = "Program ID is required")
     Long programId
 ) {
-    public CourseRequest(String name, String code, String specialization, String rollNumberCode, Long programId) {
-        this(name, code, specialization, rollNumberCode, null, programId);
-    }
-
-    public CourseRequest(String name, String code, String specialization, Long programId) {
-        this(name, code, specialization, null, null, programId);
-    }
 }

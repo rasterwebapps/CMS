@@ -35,10 +35,10 @@ public class Course {
     @Column(name = "specialization")
     private String specialization;
 
-    @Column(name = "roll_number_code", length = 10)
+    @Column(name = "roll_number_code", nullable = false, length = 2)
     private String rollNumberCode;
 
-    @Column(name = "admission_number_code", length = 20)
+    @Column(name = "admission_number_code", nullable = false, length = 20)
     private String admissionNumberCode;
 
     @ManyToOne(fetch = FetchType.LAZY)

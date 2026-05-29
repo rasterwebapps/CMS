@@ -323,7 +323,7 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-gutter: stable both-edges;
+    scrollbar-gutter: auto;
     padding: 8px 0;
 
     &::-webkit-scrollbar       { width: 3px; }

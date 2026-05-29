@@ -76,7 +76,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("", "BSN", null, null, 1L);
+        CourseRequest request = new CourseRequest("", "BSN", null, "RN", "65", 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -86,7 +86,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, null, 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, "RN", "65", 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -240,7 +240,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentCourse() throws Exception {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, null, 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", "65", 1L);
 
         when(courseService.update(eq(999L), any(CourseRequest.class)))
             .thenThrow(new ResourceNotFoundException("Course not found with id: 999"));
@@ -255,7 +255,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        CourseRequest request = new CourseRequest("", "", null, null, 1L);
+        CourseRequest request = new CourseRequest("", "", null, "RN", "65", 1L);
 
         mockMvc.perform(put("/courses/1")
                 .contentType(MediaType.APPLICATION_JSON)
