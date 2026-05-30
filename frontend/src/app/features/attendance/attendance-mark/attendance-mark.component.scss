@@ -15,7 +15,7 @@
 
 .page-title {
   margin: 0;
-  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
+  font-size: var(--cms-text-xl); font-weight: 700; letter-spacing: -0.03em;
 }
 
 .form-card {
@@ -81,12 +81,12 @@
 }
 
 .student-roll {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
 .student-name {
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   font-weight: 500;
 }
 

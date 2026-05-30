@@ -12,7 +12,7 @@
   border-radius: var(--cms-radius-sm);
   color: var(--cms-text-secondary);
   font-family: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -21,7 +21,7 @@
   line-height: 1.4;
 
   mat-icon {
-    font-size: 16px;
+    font-size: var(--cms-text-md);
     width: 16px;
     height: 16px;
     flex-shrink: 0;
@@ -121,7 +121,7 @@
   border: 1px solid transparent;
 
   mat-icon {
-    font-size: 22px;
+    font-size: 1.375rem;
     width: 22px;
     height: 22px;
     flex-shrink: 0;
@@ -180,7 +180,7 @@
 
 .hero-kpi__label,
 .overview-card__title {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -239,12 +239,12 @@
   border-radius: var(--cms-radius-md);
   text-decoration: none;
   color: var(--cms-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   transition: var(--cms-transition);
 
   mat-icon {
-    font-size: 18px;
+    font-size: var(--cms-text-lg);
     width: 18px;
     height: 18px;
     color: var(--cms-primary);
@@ -258,7 +258,7 @@
 }
 
 .no-data {
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary, #9ca3af);
   font-style: italic;
   padding: 0.5rem 0;
@@ -306,7 +306,7 @@
 
 .acad-enrollment__term,
 .document-row__type {
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
@@ -320,7 +320,7 @@
 }
 
 .acad-year-chip {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   color: var(--cms-text-secondary);
   padding: 2px 8px;
@@ -331,7 +331,7 @@
 }
 
 .acad-enrollment__chevron {
-  font-size: 20px;
+  font-size: 1.25rem;
   width: 20px;
   height: 20px;
   color: var(--cms-text-muted);
@@ -375,7 +375,7 @@
 }
 
 .document-row__meta {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
 }
 
 .document-row__actions {

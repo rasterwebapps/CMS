@@ -62,7 +62,7 @@
 
   &__title {
     font-family: var(--cms-font-display, var(--cms-font-ui));
-    font-size: 1rem;
+    font-size: var(--cms-text-md);
     font-weight: 600;
     color: var(--cms-text-primary);
     line-height: 1.3;
@@ -80,7 +80,7 @@
 
   &__label {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: var(--cms-text-sm);
     font-weight: 500;
     color: var(--cms-text-muted);
     text-transform: uppercase;
@@ -89,7 +89,7 @@
 
   &__value {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     color: var(--cms-text-primary);
     text-align: right;
     word-break: break-word;

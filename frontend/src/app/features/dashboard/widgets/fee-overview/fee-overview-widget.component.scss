@@ -18,7 +18,7 @@ $purple: #A78BFA;
 }
 
 .fee-name {
-  font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,.55);
+  font-size: var(--cms-text-base); font-weight: 500; color: rgba(255,255,255,.55);
   display: flex; align-items: center; gap: 8px;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
 }
@@ -32,7 +32,7 @@ $purple: #A78BFA;
 }
 
 .fee-val {
-  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-size: var(--cms-text-base); font-weight: 600; font-variant-numeric: tabular-nums;
   &--green { color: $green; }
   &--red   { color: $red; }
   &--muted { color: rgba(255,255,255,.4); :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }

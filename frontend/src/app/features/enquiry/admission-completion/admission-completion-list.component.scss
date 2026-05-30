@@ -31,7 +31,7 @@
 .adcomp-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -42,7 +42,7 @@
 
 .adcomp-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -57,7 +57,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -94,7 +94,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
 }
@@ -109,7 +109,7 @@
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -145,7 +145,7 @@
   gap: 8px;
   padding: 7px 9px;
   border-radius: 6px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   cursor: pointer;
   transition: background 0.1s;
@@ -243,7 +243,7 @@
   border-radius: 50%;
   background: rgba(var(--cms-primary-rgb), 0.1);
   color: var(--cms-primary);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -254,11 +254,11 @@
 
 .student-info { display: flex; flex-direction: column; gap: 1px; }
 
-.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
-.cell-sub   { font-size: 0.75rem; color: var(--cms-text-muted); }
-.cell-muted { color: var(--cms-text-muted); font-size: 0.8125rem; }
-.cell-mono  { font-family: var(--cms-font-mono); font-weight: 600; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
-.cell-date  { font-size: 0.8125rem; color: var(--cms-text-secondary); }
+.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
+.cell-sub   { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.cell-muted { color: var(--cms-text-muted); font-size: var(--cms-text-base); }
+.cell-mono  { font-family: var(--cms-font-mono); font-weight: 600; font-size: var(--cms-text-base); font-variant-numeric: tabular-nums; }
+.cell-date  { font-size: var(--cms-text-base); color: var(--cms-text-secondary); }
 
 // ── Docs-submitted badge ──────────────────────────────────────
 
@@ -268,7 +268,7 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   white-space: nowrap;
   background: rgba(var(--cms-primary-rgb), 0.08);
@@ -322,7 +322,7 @@
   border-radius: 7px;
   cursor: pointer;
   color: var(--cms-primary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -350,7 +350,7 @@
   border-radius: 7px;
   cursor: pointer;
   color: var(--cms-success);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -376,13 +376,4 @@
   &:hover { background: rgba(var(--cms-primary-rgb), 0.03); }
 }
 
-// ── Table footer ──────────────────────────────────────────────
-
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px 4px 20px;
-  border-top: 1px solid var(--cms-border-light);
-  flex-shrink: 0;
-}
+// ── Table footer — layout handled globally in styles.scss (.table-footer)

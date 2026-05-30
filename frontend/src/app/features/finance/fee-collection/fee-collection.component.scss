@@ -31,9 +31,6 @@
     flex-direction: column;
   }
 
-  .pagination-wrapper {
-    flex-shrink: 0;
-  }
 }
 
 .table-wrapper {
@@ -45,12 +42,11 @@
 .fee-collection-table { min-width: 980px; }
 .actions-header   { width: 110px; }
 .row-actions      { justify-content: center; opacity: 1; }
-.pagination-wrapper { border-top: 1px solid var(--cms-line); }
 
-.cell-name    { display: block; font-weight: 700; color: var(--cms-text-primary); }
-.cell-sub     { display: block; font-size: 11.5px; color: var(--cms-text-muted); }
-.cell-muted   { color: var(--cms-text-muted); font-size: 13px; }
-.cell-mono    { font-family: var(--cms-font-mono), monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cell-name    { display: block; font-weight: 500; color: var(--cms-text-primary); }
+.cell-sub     { display: block; font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.cell-muted   { color: var(--cms-text-muted); font-size: var(--cms-text-base); }
+.cell-mono    { font-family: var(--cms-font-mono), monospace; font-size: var(--cms-text-base); font-variant-numeric: tabular-nums; }
 .cell-paid    { color: #10B981; }
 .cell-outstanding { color: #EF4444; font-weight: 600; }
 .cell-overdue { color: #EF4444; font-weight: 700; }
@@ -59,7 +55,7 @@
   min-height: 34px;
   padding: 7px 12px;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   box-shadow: none;
 
   &:hover { transform: translateY(-1px); }
@@ -71,8 +67,8 @@
   align-items: center;
   padding: 3px 9px;
   border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
   background: rgba(var(--cms-primary-rgb), 0.10);
   color: var(--cms-primary);
   white-space: nowrap;
@@ -111,11 +107,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  mat-icon { font-size: 32px; width: 32px; height: 32px; color: #10B981; }
+  mat-icon { font-size: 2rem; width: 32px; height: 32px; color: #10B981; }
 }
 
-.receipt-title { font-size: 18px; font-weight: 700; margin: 0; }
-.receipt-sub   { font-size: 13px; color: var(--cms-text-muted); margin: 0; }
+.receipt-title { font-size: var(--cms-text-lg); font-weight: 700; margin: 0; }
+.receipt-sub   { font-size: var(--cms-text-base); color: var(--cms-text-muted); margin: 0; }
 
 .receipt-body {
   width: 100%;
@@ -131,14 +127,14 @@
   align-items: center;
   padding: 9px 14px;
   border-bottom: 1px solid var(--cms-line);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
 
   &:last-child { border-bottom: none; }
 }
 
 .r-label  { color: var(--cms-text-muted); }
 .r-value  { font-weight: 600; }
-.r-amount { font-family: var(--cms-font-mono), monospace; color: var(--cms-primary); font-size: 15px; font-variant-numeric: tabular-nums; }
+.r-amount { font-family: var(--cms-font-mono), monospace; color: var(--cms-primary); font-size: var(--cms-text-md); font-variant-numeric: tabular-nums; }
 
 .receipt-actions { width: 100%; margin-top: 8px; }
 
@@ -156,7 +152,7 @@
   h2 {
     margin: 0;
     font-family: var(--cms-font-display), serif;
-    font-size: 1.65rem;
+    font-size: var(--cms-text-2xl);
     font-weight: 400;
     color: var(--cms-text-primary);
     line-height: 1.1;
@@ -169,7 +165,7 @@
 
   p {
     margin: 4px 0 0;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     color: var(--cms-text-muted);
   }
 }
@@ -199,8 +195,8 @@
   border-radius: 14px;
 }
 
-.panel-name { font-size: 17px; font-weight: 700; color: var(--cms-text-primary); }
-.panel-sub  { font-size: 12.5px; color: var(--cms-text-muted); margin-top: 3px; }
+.panel-name { font-size: 1.0625rem; font-weight: 700; color: var(--cms-text-primary); }
+.panel-sub  { font-size: var(--cms-text-base); color: var(--cms-text-muted); margin-top: 3px; }
 
 // ── Semester table ─────────────────────────────────────────────────────────────
 .sem-table {
@@ -218,7 +214,7 @@
   padding: 8px 14px;
   background: var(--cms-bg-subtle);
   border-bottom: 1px solid var(--cms-line-strong);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -232,7 +228,7 @@
   gap: 0;
   padding: 9px 14px;
   border-bottom: 1px solid var(--cms-line);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   transition: background 0.12s;
   min-width: 760px;
 
@@ -249,7 +245,7 @@
   padding: 9px 14px;
   background: var(--cms-bg-subtle);
   border-top: 2px solid var(--cms-line-strong);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   min-width: 760px;
 }
 
@@ -260,7 +256,7 @@
   width: 22px; height: 22px;
   border-radius: 50%;
   background: var(--cms-bg-muted);
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   color: var(--cms-text-muted);
 
@@ -271,12 +267,12 @@
 }
 
 .sem-label  { display: flex; align-items: center; gap: 6px; font-weight: 500; flex-wrap: wrap; }
-.next-pill  { padding: 1px 7px; border-radius: 20px; background: rgba(var(--cms-primary-rgb),0.12); color: var(--cms-primary); font-size: 10px; font-weight: 700; }
-.overdue-pill { padding: 1px 7px; border-radius: 20px; background: rgba(239,68,68,0.10); color: #EF4444; font-size: 10px; font-weight: 700; }
+.next-pill  { padding: 1px 7px; border-radius: 20px; background: rgba(var(--cms-primary-rgb),0.12); color: var(--cms-primary); font-size: 0.625rem; font-weight: 700; }
+.overdue-pill { padding: 1px 7px; border-radius: 20px; background: rgba(239,68,68,0.10); color: #EF4444; font-size: 0.625rem; font-weight: 700; }
 
 .sem-badge {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
   align-self: center;
@@ -308,14 +304,14 @@
 }
 
 .form-title {
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   color: var(--cms-text-primary);
   margin: 0 0 4px;
 }
 
 .field-group   { display: flex; flex-direction: column; gap: 5px; }
-.field-label   { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); }
+.field-label   { font-size: var(--cms-text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); }
 .field-required { color: #EF4444; }
 
 .field-input, .field-select, .field-textarea {
@@ -323,7 +319,7 @@
   border-radius: 9px;
   padding: 9px 14px;
   font-family: var(--cms-font-ui), sans-serif;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   min-height: 40px;
   color: var(--cms-text-primary);
   background: var(--cms-bg-card);
@@ -336,8 +332,8 @@
   &--error      { border-color: #EF4444; &:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.12); } }
 }
 
-.field-hint  { font-size: 11px; color: var(--cms-text-muted); margin: 0; }
-.field-error { font-size: 11.5px; color: #EF4444; margin: 0; }
+.field-hint  { font-size: var(--cms-text-xs); color: var(--cms-text-muted); margin: 0; }
+.field-error { font-size: var(--cms-text-sm); color: #EF4444; margin: 0; }
 
 .form-row {
   display: grid;
@@ -361,7 +357,7 @@
   background: transparent;
   color: var(--cms-text-secondary);
   font-family: var(--cms-font-ui), sans-serif;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s;
@@ -378,12 +374,12 @@
   background: var(--cms-primary);
   color: #fff;
   font-family: var(--cms-font-ui), sans-serif;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: var(--cms-text-base);
+  font-weight: 600;
   cursor: pointer;
   transition: opacity 0.18s;
   &:disabled { opacity: 0.55; cursor: not-allowed; }
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 }
 
 .btn-spinner { display: inline-block; }
@@ -393,7 +389,7 @@
 }
 
 @media (max-width: 640px) {
-  .payment-topbar__text h2 { font-size: 1.45rem; }
+  .payment-topbar__text h2 { font-size: var(--cms-text-xl); }
 
   .form-row { grid-template-columns: 1fr; }
 

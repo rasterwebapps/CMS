@@ -65,14 +65,14 @@
 }
 
 .rcp-header-title {
-  font-size: 15px;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: #ffffff;
   letter-spacing: 0.01em;
 }
 
 .rcp-header-sub {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: rgba(255, 255, 255, 0.85);
   margin-top: 2px;
 
@@ -135,13 +135,13 @@
 }
 
 .rcp-college-name {
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   color: var(--cms-text-primary, #0f172a);
 }
 
 .rcp-college-addr {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted, #94a3b8);
   margin-top: 2px;
 }
@@ -154,7 +154,7 @@
 }
 
 .rcp-amount-label {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -163,7 +163,7 @@
 }
 
 .rcp-amount-value {
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 800;
   color: #059669;
   font-variant-numeric: tabular-nums;
@@ -172,7 +172,7 @@
 }
 
 .rcp-amount-words {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-secondary, #475569);
   margin-top: 6px;
   font-style: italic;
@@ -198,7 +198,7 @@
 }
 
 .rcp-label {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted, #94a3b8);
   font-weight: 500;
   width: 112px;
@@ -207,7 +207,7 @@
 }
 
 .rcp-value {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary, #0f172a);
   font-weight: 500;
   flex: 1;
@@ -215,8 +215,8 @@
 }
 
 .rcp-code {
-  font-family: 'Roboto Mono', 'Fira Code', 'Courier New', monospace;
-  font-size: 12px;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-sm);
   font-variant-numeric: tabular-nums;
   background: var(--cms-primary-light, #eef2ff);
   color: var(--cms-primary, #6366f1);
@@ -233,7 +233,7 @@
 // Type badge
 .rcp-type-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
@@ -254,7 +254,7 @@
 }
 
 .rcp-breakdown-title {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -275,12 +275,12 @@
 }
 
 .rcp-breakdown-label {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary, #475569);
 }
 
 .rcp-breakdown-amount {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary, #0f172a);
   font-variant-numeric: tabular-nums;
@@ -303,7 +303,7 @@
   gap: 5px;
   padding: 7px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   border: none;

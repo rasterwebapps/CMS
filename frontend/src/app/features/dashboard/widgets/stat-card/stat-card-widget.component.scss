@@ -45,7 +45,7 @@
 
 .sc-badge {
   position: absolute; top: 12px; right: 14px;
-  font-size: 9.5px; font-weight: 700;
+  font-size: 0.625rem; font-weight: 700;
   padding: 2px 8px; border-radius: 20px;
   background: rgba(var(--cms-primary-rgb),.12);
   color: var(--ca, var(--cms-primary));
@@ -62,7 +62,7 @@
   border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, transparent);
   color: var(--ca, var(--cms-primary));
   animation: icon-bubble-pulse 3.5s ease-in-out infinite;
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   :host-context(html:not(.dark-theme)) & {
     animation: icon-bubble-pulse-light 3.5s ease-in-out infinite;
@@ -86,19 +86,19 @@
 }
 
 .sc-val {
-  font-size: 26px; font-weight: 600; color: #fff;
+  font-size: var(--cms-text-2xl); font-weight: 600; color: #fff;
   letter-spacing: -.03em; line-height: 1; margin-bottom: 5px;
   font-variant-numeric: tabular-nums;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
 }
 
 .sc-label {
-  font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500;
+  font-size: var(--cms-text-sm); color: rgba(255,255,255,.6); font-weight: 500;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
 }
 
 .widget-error {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; color: rgba(255,255,255,.3); font-size: 12px;
-  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  gap: 6px; color: rgba(255,255,255,.3); font-size: var(--cms-text-sm);
+  mat-icon { font-size: 1.25rem; width: 20px; height: 20px; }
 }

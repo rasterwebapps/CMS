@@ -22,7 +22,7 @@
 }
 
 .empty-state__icon {
-  font-size: 48px;
+  font-size: 3rem;
   width: 48px;
   height: 48px;
   color: var(--cms-text-muted);
@@ -32,14 +32,14 @@
 
 .empty-state__title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-secondary);
 }
 
 .empty-state__subtitle {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
   max-width: 360px;
 }

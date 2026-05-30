@@ -33,7 +33,7 @@
 .dept-pg-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -47,7 +47,7 @@
 
 .dept-pg-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -62,7 +62,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -183,7 +183,7 @@
   background: rgba(var(--cms-primary-rgb), 0.10);
   border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
   font-family: var(--cms-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   color: var(--cms-primary);
   margin-bottom: 14px;
@@ -191,7 +191,7 @@
 }
 
 .dept-card__name {
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
   margin-bottom: 6px;
@@ -202,7 +202,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-secondary);
 }
 
@@ -222,7 +222,7 @@
 }
 
 .dept-card__desc {
-  font-size: 0.71875rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin: 10px 0 0;
   line-height: 1.5;
@@ -262,7 +262,7 @@
 }
 
 .hod-name {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary);
   font-weight: 500;
 }

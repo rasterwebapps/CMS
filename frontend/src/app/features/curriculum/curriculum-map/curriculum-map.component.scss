@@ -25,13 +25,13 @@
   }
 
   &__title {
-    font-size: 0.9375rem;
+    font-size: var(--cms-text-md);
     font-weight: 600;
     margin: 0;
   }
 
   &__empty {
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     color: var(--text-secondary, #9ca3af);
     font-style: italic;
     padding: 0.25rem 0;
@@ -46,7 +46,7 @@
   background: transparent;
   border: 1px solid var(--border-subtle, #d1d5db);
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--text-secondary, #6b7280);
   cursor: pointer;
   transition: all 0.15s;
@@ -83,13 +83,13 @@
   }
 
   &__code {
-    font-size: 0.75rem;
+    font-size: var(--cms-text-sm);
     font-weight: 600;
     color: var(--color-primary, #6366f1);
   }
 
   &__name {
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -135,7 +135,7 @@
   color: #fff;
   border: none;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   cursor: pointer;
   margin-top: 0.5rem;

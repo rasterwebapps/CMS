@@ -29,7 +29,7 @@
 .sfx-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -40,7 +40,7 @@
 
 .sfx-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -55,7 +55,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -93,7 +93,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
 }
@@ -141,15 +141,7 @@
 .modern-table { width: 100%; }
 .actions-col  { width: 60px; }
 
-// ── Table footer ──────────────────────────────────────────────────────────────
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px 4px 20px;
-  border-top: 1px solid var(--cms-border-light);
-  flex-shrink: 0;
-}
+// ── Table footer — layout handled globally in styles.scss (.table-footer)
 
 // ── Student cell ──────────────────────────────────────────────────────────────
 .student-cell {
@@ -164,7 +156,7 @@
   border-radius: 50%;
   background: rgba(var(--cms-primary-rgb), 0.1);
   color: var(--cms-primary);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -174,13 +166,13 @@
 }
 
 // ── Cell helpers ──────────────────────────────────────────────────────────────
-.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
-.cell-text  { font-size: 0.8125rem; color: var(--cms-text-secondary); }
-.cell-muted { font-size: 0.8125rem; color: var(--cms-text-disabled, #aaa); }
+.cell-name  { font-weight: 500; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
+.cell-text  { font-size: var(--cms-text-base); color: var(--cms-text-secondary); }
+.cell-muted { font-size: var(--cms-text-base); color: var(--cms-text-disabled, #aaa); }
 
 .cell-mono {
   font-family: var(--cms-font-mono), monospace;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
 }

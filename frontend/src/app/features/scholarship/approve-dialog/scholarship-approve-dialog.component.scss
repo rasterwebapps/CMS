@@ -14,7 +14,7 @@
   border-radius: 8px;
   background: var(--mat-sys-surface-container);
   margin-bottom: 1.25rem;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 }
 
 .sad-name {
@@ -25,7 +25,7 @@
 .sad-roll {
   font-variant-numeric: tabular-nums;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
 }
 
 .sad-scholarship {
@@ -35,7 +35,7 @@
 
 .sad-year {
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   margin-left: auto;
 }
 

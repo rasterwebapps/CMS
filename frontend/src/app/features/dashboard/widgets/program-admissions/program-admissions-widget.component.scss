@@ -3,7 +3,7 @@
 :host { --ca: #38BDF8; }
 
 .total-pill {
-  font-size: 11px; font-weight: 700;
+  font-size: var(--cms-text-xs); font-weight: 700;
   padding: 3px 9px; border-radius: 20px;
   color: var(--ca);
   background: color-mix(in srgb, var(--ca) 14%, transparent);
@@ -20,7 +20,7 @@
 
 .pg-name {
   display: inline-flex; align-items: center; gap: 7px;
-  font-size: 11.5px; font-weight: 500;
+  font-size: var(--cms-text-sm); font-weight: 500;
   color: rgba(255,255,255,.65);
   min-width: 0;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
@@ -28,7 +28,7 @@
 }
 
 .pg-code {
-  font-size: 9.5px; font-weight: 800;
+  font-size: 0.625rem; font-weight: 800;
   letter-spacing: .04em; text-transform: uppercase;
   padding: 2px 6px; border-radius: 4px;
   color: var(--ca);
@@ -38,7 +38,7 @@
 }
 
 .pg-count {
-  font-size: 12px; font-weight: 700;
+  font-size: var(--cms-text-sm); font-weight: 700;
   color: rgba(255,255,255,.85);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;

@@ -27,7 +27,7 @@
   margin: 0;
   font-family: var(--cms-font-display);
   font-style: italic;
-  font-size: 1.625rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--cms-text-primary);
@@ -40,7 +40,7 @@
 
 .page-header-subtitle {
   margin: 4px 0 0;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
   line-height: 1.5;
 }

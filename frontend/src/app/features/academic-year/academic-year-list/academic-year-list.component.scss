@@ -1,6 +1,6 @@
 // Academic Year list — card styles with ay-card__* prefix
 .ay-card__name {
-  font-size: 1rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
   margin: 0 0 0.5rem;
@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
   margin-bottom: 0.75rem;
 
@@ -24,7 +24,7 @@
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   letter-spacing: 0.02em;
 

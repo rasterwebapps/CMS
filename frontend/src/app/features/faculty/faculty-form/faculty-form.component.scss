@@ -29,13 +29,13 @@
   }
 
   &__name {
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-text-primary);
   }
 
   &__meta {
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     color: var(--cms-text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -62,7 +62,7 @@
     border: 1px solid var(--cms-border-default);
     background: transparent;
     color: var(--cms-text-secondary);
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;

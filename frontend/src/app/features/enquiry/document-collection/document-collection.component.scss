@@ -106,7 +106,7 @@
   border-radius: 12px;
   background: linear-gradient(135deg, var(--cms-primary), #7c3aed);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: var(--cms-text-base);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -150,7 +150,7 @@
   gap: 3px;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 0.7125rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   white-space: nowrap;
   background: var(--cms-bg-muted);
@@ -188,7 +188,7 @@
 
 .hero-progress__num {
   font-family: var(--cms-font-mono);
-  font-size: 1.5rem;
+  font-size: var(--cms-text-xl);
   font-weight: 800;
   color: var(--cms-primary);
   line-height: 1;
@@ -197,14 +197,14 @@
 }
 
 .hero-progress__of {
-  font-size: 0.9rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-muted);
   font-family: var(--cms-font-mono);
 }
 
 .hero-progress__lbl {
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -213,7 +213,7 @@
 }
 
 .hero-progress__extra {
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
 }
@@ -236,7 +236,7 @@
 }
 
 .kpi-status {
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   color: var(--cms-text-muted);
   display: flex;
@@ -266,7 +266,7 @@
   padding: 10px 16px;
   border-bottom: 1px solid var(--cms-border-light);
   background: var(--cms-bg-subtle);
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -309,7 +309,7 @@
 .doc-section__hint {
   // ...existing code...
   &--verify { color: var(--cms-warning, #d97706); }
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -369,14 +369,14 @@
     gap: 4px;
     padding: 3px 8px;
     border-radius: 20px;
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     font-weight: 600;
     color: var(--cms-success);
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.25);
     white-space: nowrap;
 
-    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    mat-icon { font-size: var(--cms-text-sm); width: 12px; height: 12px; }
   }
 
   &__body {
@@ -410,7 +410,7 @@
     color: var(--cms-text-muted);
     transition: var(--cms-transition);
 
-    mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    mat-icon { font-size: 1.0625rem; width: 17px; height: 17px; }
 
     &--uploaded { background: rgba(var(--cms-primary-rgb), 0.09); border-color: rgba(var(--cms-primary-rgb), 0.22); color: var(--cms-primary); }
     &--verified { background: rgba(16, 185, 129, 0.09); border-color: rgba(16, 185, 129, 0.22); color: var(--cms-success); }
@@ -420,7 +420,7 @@
   &__name-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
   &__name {
-    font-size: 0.845rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-text-primary);
     white-space: nowrap;
@@ -430,7 +430,7 @@
   }
 
   &__required-tag {
-    font-size: 0.6rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -440,7 +440,7 @@
   }
 
   &__optional-tag {
-    font-size: 0.6rem;
+    font-size: var(--cms-text-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -499,13 +499,13 @@
     justify-content: center;
     flex-shrink: 0;
     color: var(--cms-primary);
-    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+    mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
   }
 
   &__text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 
   &__name {
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     font-weight: 500;
     color: var(--cms-text-primary);
     white-space: nowrap;
@@ -515,7 +515,7 @@
   }
 
   &__size {
-    font-size: 0.675rem;
+    font-size: var(--cms-text-xs);
     color: var(--cms-text-muted);
     font-family: var(--cms-font-mono);
   }
@@ -539,7 +539,7 @@
   padding: 0;
   transition: var(--cms-transition-fast);
 
-  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 
   &:hover:not([disabled]) { background: rgba(var(--cms-primary-rgb), 0.08); color: var(--cms-primary); }
   &[disabled] { opacity: 0.35; cursor: not-allowed; }
@@ -563,7 +563,7 @@
   width: 100%;
   box-sizing: border-box;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--cms-primary); opacity: 0.75; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; color: var(--cms-primary); opacity: 0.75; }
 
   &:hover:not([disabled]) {
     background: rgba(var(--cms-primary-rgb), 0.07);
@@ -573,19 +573,19 @@
 
   &[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-  &__text { font-size: 0.8rem; font-weight: 600; color: var(--cms-primary); }
-  &__hint { font-size: 0.7rem; color: var(--cms-text-muted); }
+  &__text { font-size: var(--cms-text-sm); font-weight: 600; color: var(--cms-primary); }
+  &__hint { font-size: var(--cms-text-xs); color: var(--cms-text-muted); }
 
   &--compact {
     gap: 5px;
     padding: 7px 12px;
     width: auto;
-    mat-icon { font-size: 15px; width: 15px; height: 15px; }
-    .upload-zone__text { font-size: 0.775rem; }
+    mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
+    .upload-zone__text { font-size: var(--cms-text-sm); }
   }
 }
 
-.no-file-label { font-size: 0.8rem; color: var(--cms-text-muted); font-family: var(--cms-font-ui); }
+.no-file-label { font-size: var(--cms-text-sm); color: var(--cms-text-muted); font-family: var(--cms-font-ui); }
 
 // ── Status buttons ────────────────────────────────────────────────────────
 
@@ -603,7 +603,7 @@
   padding: 0;
   transition: var(--cms-transition-fast);
 
-  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 
   &:hover:not([disabled]) {
     background: rgba(var(--cms-primary-rgb), 0.06);
@@ -631,7 +631,7 @@
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 0.7875rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-secondary);
   font-family: var(--cms-font-ui);
   outline: none;
@@ -670,7 +670,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.7875rem;
+    font-size: var(--cms-text-sm);
     color: var(--cms-text-muted);
     flex: 1;
     min-width: 0;
@@ -701,7 +701,7 @@
   border-radius: 9px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -743,14 +743,14 @@
   border-radius: 7px;
   background: #fff;
   color: #dc2626;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   font-family: var(--cms-font-ui);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
 
-  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  mat-icon { font-size: var(--cms-text-base); width: 14px; height: 14px; }
 
   &:hover:not([disabled]) {
     background: #dc2626;
@@ -788,7 +788,7 @@
   border: 1.5px solid rgba(239, 68, 68, 0.5);
   border-radius: 7px;
   background: rgba(239, 68, 68, 0.04);
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-primary);
   font-family: var(--cms-font-ui);
   outline: none;
@@ -815,7 +815,7 @@
 
   &__action {
     margin: 0;
-    font-size: 0.775rem;
+    font-size: var(--cms-text-sm);
     color: #b91c1c;
     line-height: 1.4;
     font-style: italic;
@@ -852,21 +852,21 @@
 
   &__title {
     margin: 0;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: #991b1b;
   }
 
   &__reason {
     margin: 0;
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     color: #7f1d1d;
     line-height: 1.5;
   }
 
   &__action {
     margin: 2px 0 0;
-    font-size: 0.775rem;
+    font-size: var(--cms-text-sm);
     color: #b91c1c;
     line-height: 1.4;
     font-style: italic;

@@ -42,9 +42,6 @@
     flex-direction: column;
   }
 
-  .pagination-wrapper {
-    flex-shrink: 0;
-  }
 }
 
 .fee-finalization-table-card {
@@ -112,7 +109,7 @@
 
 .info-row-group-label {
   padding: 4px 14px 2px;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -135,7 +132,7 @@
 }
 
 .info-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -145,7 +142,7 @@
 }
 
 .info-val {
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   text-align: right;
   font-weight: 500;
@@ -184,7 +181,7 @@
   }
 
   &__label {
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -193,14 +190,14 @@
 
   &__val {
     font-family: var(--cms-font-mono);
-    font-size: 13.5px;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-text-primary);
     text-align: right;
 
-    &--red     { color: #EF4444; font-size: 12.5px; }
-    &--primary { color: var(--cms-primary); font-size: 15px; }
-    small { font-size: 10px; font-weight: 500; opacity: 0.7; margin-left: 3px; }
+    &--red     { color: #EF4444; font-size: var(--cms-text-base); }
+    &--primary { color: var(--cms-primary); font-size: var(--cms-text-md); }
+    small { font-size: 0.625rem; font-weight: 500; opacity: 0.7; margin-left: 3px; }
   }
 }
 
@@ -226,10 +223,10 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 13px;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-text-primary);
-    mat-icon { font-size: 17px; width: 17px; height: 17px; color: var(--cms-primary); }
+    mat-icon { font-size: 1.0625rem; width: 17px; height: 17px; color: var(--cms-primary); }
   }
 }
 
@@ -239,7 +236,7 @@
 .year-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   table-layout: fixed;
 
   // Column widths: Year gets remaining space; amount columns are fixed
@@ -251,7 +248,7 @@
   th {
     padding: 9px 14px;
     text-align: left;
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -293,12 +290,12 @@
   border-radius: 7px;
   background: rgba(var(--cms-primary-rgb), 0.10);
   color: var(--cms-primary);
-  font-size: 10px; font-weight: 800;
+  font-size: 0.625rem; font-weight: 800;
   margin-right: 6px;
 }
 
 .year-sem-hint {
-  font-size: 10.5px;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   margin-left: 6px;
   font-style: italic;
@@ -329,7 +326,7 @@
 }
 
 .amount-prefix {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-muted);
   flex-shrink: 0;
@@ -341,7 +338,7 @@
   outline: none;
   background: none;
   font-family: var(--cms-font-mono);
-  font-size: 13.5px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
   text-align: right;
@@ -349,7 +346,7 @@
 
   &--reduced { color: var(--cms-primary); }
   &--error   { color: #EF4444; }
-  &--lg { width: 160px; font-size: 15px; }
+  &--lg { width: 160px; font-size: var(--cms-text-md); }
 }
 
 .year-input-col {
@@ -360,7 +357,7 @@
 }
 
 .input-error-hint {
-  font-size: 10.5px;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   color: #EF4444;
   white-space: nowrap;
@@ -376,12 +373,12 @@
   border-radius: 20px;
   background: rgba(239,68,68,0.08);
   color: #EF4444;
-  font-size: 11.5px;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   font-family: var(--cms-font-mono);
 }
 
-.no-discount { color: var(--cms-text-muted); font-size: 13px; }
+.no-discount { color: var(--cms-text-muted); font-size: var(--cms-text-base); }
 
 // ── Remarks row ───────────────────────────────────────────────────────────────
 .info-row--remarks {
@@ -391,7 +388,7 @@
 }
 
 .info-val--remark {
-  font-size: 11.5px;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-secondary);
   text-align: right;
   font-style: italic;
@@ -403,7 +400,7 @@
 .discount-card .card-section-hdr { align-items: center; }
 
 .discount-hint {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   font-style: italic;
 }
@@ -436,7 +433,7 @@
 
 .discount-pct-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   color: #EF4444;
   background: rgba(239,68,68,0.10);
@@ -452,7 +449,7 @@
   background: rgba(239,68,68,0.08);
   border: 1px solid rgba(239,68,68,0.2);
   border-radius: 8px;
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   color: #EF4444;
   font-weight: 600;
 }
@@ -474,19 +471,19 @@
   background: var(--cms-primary);
   color: #fff;
   font-family: var(--cms-font-ui);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: var(--cms-text-base);
+  font-weight: 600;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(var(--cms-primary-rgb), 0.35);
   transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(var(--cms-primary-rgb), 0.45); }
   &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 }
 
-.btn-sm { padding: 6px 14px; font-size: 12.5px; }
+.btn-sm { padding: 6px 14px; font-size: var(--cms-text-base); }
 
 .btn-ghost {
   display: inline-flex;
@@ -498,12 +495,12 @@
   background: transparent;
   color: var(--cms-text-secondary);
   font-family: var(--cms-font-ui);
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  mat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
 
   &:hover:not(:disabled) { background: rgba(var(--cms-primary-rgb), 0.06); color: var(--cms-primary); border-color: rgba(var(--cms-primary-rgb), 0.25); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -519,7 +516,7 @@
   background: transparent;
   color: var(--cms-text-secondary);
   font-family: var(--cms-font-ui);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
@@ -528,7 +525,7 @@
 
 .field-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .field-label {
-  font-size: 11.5px;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -539,7 +536,7 @@
   border-radius: 9px;
   padding: 9px 14px;
   font-family: var(--cms-font-ui);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary);
   background: var(--cms-bg-card);
   outline: none;

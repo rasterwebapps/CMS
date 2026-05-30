@@ -168,7 +168,7 @@
 }
 
 .no-access-body {
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   line-height: 1.6;
   color: var(--mat-app-on-surface-variant, #49454f);
   margin: 0 0 0.6rem;
@@ -197,7 +197,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--mat-app-on-surface-variant, #49454f);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;

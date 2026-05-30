@@ -302,7 +302,7 @@
           @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
           @else { {{ totalCount() }} candidates }
         </span>
-        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
       </div>
     }
   </div>

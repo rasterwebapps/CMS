@@ -8,7 +8,7 @@
 
 .cn-badge {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -39,17 +39,17 @@
   justify-content: center;
   background: var(--ca, var(--cms-primary));
   color: #fff;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .cn-body  { flex: 1; min-width: 0; }
-.cn-name  { display: block; font-size: 13px; font-weight: 600; color: var(--text-1, #111827); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cn-role  { display: block; font-size: 11px; color: var(--text-muted, #6b7280); }
+.cn-name  { display: block; font-size: var(--cms-text-base); font-weight: 600; color: var(--text-1, #111827); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-role  { display: block; font-size: var(--cms-text-xs); color: var(--text-muted, #6b7280); }
 
 .empty-hint {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--text-muted, #6b7280);
   margin: 0;
 }

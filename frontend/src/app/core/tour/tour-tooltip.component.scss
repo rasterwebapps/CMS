@@ -36,7 +36,7 @@
 }
 
 .tour-counter {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -97,7 +97,7 @@
 
 // ── Content ──────────────────────────────────────
 .tour-title {
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
   margin: 0 0 8px;
@@ -105,7 +105,7 @@
 }
 
 .tour-body {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   line-height: 1.6;
   color: var(--cms-text-secondary);
   margin: 0 0 14px;
@@ -120,7 +120,7 @@
   margin-bottom: 14px;
 
   .demo-label {
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -169,7 +169,7 @@
 // Row type label column
 .demo-col-type {
   padding: 6px 6px 6px 0;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-secondary);
   display: flex;
   align-items: center;
@@ -188,7 +188,7 @@
 
   // Header zone labels
   .demo-guide-row--header & {
-    font-size: 0.6rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -217,21 +217,21 @@
 
 // Font sizes for cell values
 .cell-currency {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--cms-text-primary);
 }
 
 .cell-name {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-primary);
 }
 
 // The "Left-aligned / Centered / Right-aligned" sub-label
 .demo-align-tag {
   display: none;
-  font-size: 0.6rem;
+  font-size: var(--cms-text-xs);
   white-space: nowrap;
   color: var(--cms-text-muted);
 }
@@ -241,7 +241,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-primary);
   margin-bottom: 14px;
   padding: 8px 10px;
@@ -276,7 +276,7 @@
   justify-content: center;
   gap: 5px;
   padding: 9px 16px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   flex: 1;
 
   &:disabled {
@@ -302,14 +302,14 @@
 
 .tour-dismiss-sep {
   color: var(--cms-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
 }
 
 .tour-link-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   cursor: pointer;
   font-family: inherit;
@@ -352,7 +352,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: var(--cms-radius-full);
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   letter-spacing: 0.03em;
   background: var(--cms-badge-green-bg);

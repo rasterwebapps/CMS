@@ -51,7 +51,7 @@
 .dept-form-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -65,7 +65,7 @@
 
 .dept-form-subtitle {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -111,13 +111,13 @@
 }
 
 .dept-fchtit {
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
 
 .dept-fchsub {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin-top: 1px;
 }
@@ -139,7 +139,7 @@
 
 .code-input-wrap .field-input {
   font-family: var(--cms-font-mono);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding-right: 58px;
@@ -175,7 +175,7 @@
 }
 
 .char-count {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-mono);
 }
@@ -261,7 +261,7 @@ select.hod-field-input {
 }
 
 .dept-preview-label {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -283,7 +283,7 @@ select.hod-field-input {
   background: rgba(var(--cms-primary-rgb), 0.10);
   border: 1px solid rgba(var(--cms-primary-rgb), 0.20);
   font-family: var(--cms-font-mono);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   color: var(--cms-primary);
   margin-bottom: 14px;
@@ -291,7 +291,7 @@ select.hod-field-input {
 }
 
 .dept-prev-name {
-  font-size: 1rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
   margin-bottom: 8px;
@@ -301,7 +301,7 @@ select.hod-field-input {
   &--empty {
     color: var(--cms-text-muted);
     font-weight: 400;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
   }
 }
 
@@ -328,12 +328,12 @@ select.hod-field-input {
 }
 
 .dept-prev-hod-name {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
 }
 
 .dept-prev-desc {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin: 12px 0 0;
   line-height: 1.6;
@@ -348,7 +348,7 @@ select.hod-field-input {
 }
 
 .dept-tip-title {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -383,13 +383,13 @@ select.hod-field-input {
 }
 
 .dept-tip-t {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
 
 .dept-tip-s {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   margin-top: 2px;
   line-height: 1.4;

@@ -87,7 +87,7 @@
 }
 
 .widget-title {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: rgba(255,255,255,.85);
   flex: 1;
@@ -105,7 +105,7 @@
   color: var(--ca, var(--cms-primary));
   flex-shrink: 0;
   animation: widget-icon-pulse 3.5s ease-in-out infinite;
-  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  mat-icon { font-size: var(--cms-text-base); width: 14px; height: 14px; }
 }
 
 @keyframes widget-icon-pulse {
@@ -134,7 +134,7 @@
 }
 
 .widget-action {
-  font-size: 11.5px; font-weight: 600;
+  font-size: var(--cms-text-sm); font-weight: 600;
   color: var(--ca, var(--cms-primary));
   text-decoration: none;
   opacity: .8;
@@ -191,10 +191,10 @@
   justify-content: center;
   gap: 8px;
   color: rgba(255,255,255,.3);
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   padding: 16px;
-  mat-icon { font-size: 22px; width: 22px; height: 22px; opacity: .5; }
+  mat-icon { font-size: 1.375rem; width: 22px; height: 22px; opacity: .5; }
 }
 
 // ── Light mode overrides ──────────────────────────────────────────────────────

@@ -1,9 +1,6 @@
-.list-container { padding: 20px var(--cms-page-padding); }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.exam-select { width: 100%; max-width: 400px; margin-bottom: 16px; }
+// Exam Result List — layout handled by mlp-* globals in styles.scss
+
 .table-controls { margin-bottom: 16px; }
-.search-field { width: 100%; max-width: 400px; }
 .loading-container { display: flex; justify-content: center; align-items: center; padding: 48px; }
 .table-container { overflow-x: auto; }
 .data-table { width: 100%; }

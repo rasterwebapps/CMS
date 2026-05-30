@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
   letter-spacing: -0.2px;
@@ -35,7 +35,7 @@
 
 .pcd-title-icon {
   font-family: 'Material Icons';
-  font-size: 18px;
+  font-size: var(--cms-text-lg);
   color: var(--cms-primary, #6366f1);
 }
 
@@ -52,7 +52,7 @@
   cursor: pointer;
   transition: background 150ms, color 150ms;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &:hover {
     background: var(--cms-bg-hover);
@@ -96,9 +96,9 @@
   align-items: center;
   justify-content: center;
   color: var(--cms-text-secondary);
-  font-size: 32px;
+  font-size: 2rem;
 
-  mat-icon { font-size: 32px; width: 32px; height: 32px; }
+  mat-icon { font-size: 2rem; width: 32px; height: 32px; }
 }
 
 // ── SVG overlay mask ──────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   color: var(--cms-text-tertiary);
   letter-spacing: 0.5px;
@@ -154,13 +154,13 @@
   border: none;
   background: transparent;
   color: var(--cms-text-secondary);
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: background 140ms, color 140ms;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &:hover {
     background: var(--cms-bg-hover);
@@ -202,13 +202,13 @@
   padding: 10px 22px;
   border-radius: 12px;
   border: none;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition: background 150ms, box-shadow 150ms, transform 100ms;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &--cancel {
     background: var(--cms-bg-muted);

@@ -41,7 +41,7 @@
 .doc-title {
   margin: 0;
   font-family: var(--cms-font-display);
-  font-size: 1.75rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.03em;
@@ -55,7 +55,7 @@
 
 .doc-sub {
   margin: 0;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
   line-height: 1.4;
@@ -98,7 +98,7 @@
   }
 
   &__lbl {
-    font-size: 0.65rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -150,7 +150,7 @@
 .filter-sel {
   height: var(--cms-list-filter-height);
   padding: 0 26px 0 11px;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-family: var(--cms-font-ui);
   font-weight: 500;
   color: var(--cms-text-secondary);
@@ -186,7 +186,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -215,7 +215,7 @@
     border: none;
     outline: none;
     background: transparent;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-family: var(--cms-font-ui);
     color: var(--cms-text-primary);
     width: 220px;
@@ -253,7 +253,7 @@
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -291,7 +291,7 @@
   gap: 8px;
   padding: 6px 9px;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-secondary);
   cursor: pointer;
   font-family: var(--cms-font-ui);
@@ -400,7 +400,7 @@
   background: rgba(var(--cms-primary-rgb), 0.1);
   border: 1.5px solid rgba(var(--cms-primary-rgb), 0.2);
   color: var(--cms-primary);
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -424,8 +424,8 @@
 }
 
 .cell-name {
-  font-weight: 600;
-  font-size: 0.8375rem;
+  font-weight: 500;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary);
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -434,27 +434,27 @@
 }
 
 .cell-sub {
-  font-size: 0.7125rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
 }
 
 .cell-label {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   font-family: var(--cms-font-ui);
   font-weight: 500;
 }
 
 .cell-muted {
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
 }
 
 .cell-mono {
   font-family: var(--cms-font-mono);
-  font-size: 0.8375rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-secondary);
 
@@ -462,7 +462,7 @@
 }
 
 .cell-date {
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -474,7 +474,7 @@
   display: inline-block;
   padding: 2px 9px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   font-family: var(--cms-font-ui);
   letter-spacing: 0.03em;
@@ -500,7 +500,7 @@
   gap: 5px;
   padding: 3px 9px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   white-space: nowrap;
   font-family: var(--cms-font-ui);
@@ -565,7 +565,7 @@
   border-radius: 7px;
   cursor: pointer;
   color: var(--cms-primary);
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -608,15 +608,7 @@
 .actions-header { width: 108px; }
 
 // ── Table footer ──────────────────────────────────────────────────────────
-
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 3px 8px 3px 18px;
-  border-top: 1px solid var(--cms-border-light);
-  flex-shrink: 0;
-}
+// Layout is handled globally in styles.scss (.table-footer)
 
 // ── Responsive ────────────────────────────────────────────────────────────
 

@@ -14,7 +14,7 @@
   border: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface-container-lowest);
   color: var(--mat-sys-on-surface);
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -22,7 +22,7 @@
 
   &:hover { background: var(--mat-sys-surface-container); }
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 }
 
 // fac-card__* card content styles for Faculty list
@@ -31,13 +31,13 @@
 }
 
 .fac-card__name {
-  font-size: 1.05rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .fac-card__designation {
-  font-size: 0.85rem;
+  font-size: var(--cms-text-base);
   margin-bottom: 10px;
 }
 
@@ -57,8 +57,8 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
@@ -128,7 +128,7 @@
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 6px;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   color: var(--text-muted, #64748b);
   cursor: pointer;

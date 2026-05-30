@@ -1,24 +1,4 @@
-.detail-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px var(--cms-page-padding);
-}
-
-.entry-form-header {
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 4px;
-}
-
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--cms-line, #6b7280);
-  margin: 0;
-}
+// Fee Reports Dashboard — layout handled by mlp-* globals in styles.scss
 
 .tab-content {
   padding: 24px 0;
@@ -66,7 +46,7 @@
 
 .no-data {
   color: var(--cms-line, #6b7280);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   text-align: center;
   padding: 32px;
 }
@@ -96,14 +76,14 @@
 
 .ledger-entry__term {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--cms-text-md);
   font-weight: 600;
 }
 
 .ledger-summary {
   display: flex;
   gap: 20px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
@@ -116,7 +96,7 @@
 }
 
 .no-payments-msg {
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-line, #6b7280);
   padding: 8px 0;
 }

@@ -1,7 +1,7 @@
 // Fee-structure-list card anatomy (layout handled by global mlp-* classes)
 .fs-card {
   &__program {
-    font-size: 1rem;
+    font-size: var(--cms-text-md);
     font-weight: 600;
     color: var(--text-primary, #1e293b);
     margin-bottom: 4px;
@@ -9,7 +9,7 @@
   }
 
   &__course {
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     margin-bottom: 8px;
   }
 
@@ -28,7 +28,7 @@
   }
 
   &__amount {
-    font-size: 1.125rem;
+    font-size: var(--cms-text-lg);
     font-weight: 700;
     color: var(--primary, #6366f1);
     margin-top: auto;
@@ -76,7 +76,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.75rem;
+    font-size: var(--cms-text-sm);
     font-weight: 500;
     white-space: nowrap;
 
@@ -84,7 +84,7 @@
   }
 
   &__fee-amount {
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;

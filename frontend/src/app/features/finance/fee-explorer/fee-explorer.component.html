@@ -192,7 +192,7 @@
             @if (dataSource.filteredData.length !== dataSource.data.length) { of {{ dataSource.data.length }} }
             students
           </span>
-          <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
         </div>
       }
     }

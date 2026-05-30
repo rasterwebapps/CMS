@@ -15,7 +15,7 @@
 
 .form-section-hdr {
   margin: 4px 0 0;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -69,7 +69,7 @@
 .enq-form-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -80,7 +80,7 @@
 
 .enq-form-sub {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -132,9 +132,11 @@
 }
 
 .field-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
 }
 
 .field-required { color: #ef4444; }
@@ -145,7 +147,7 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 9px;
   padding: 9px 12px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   background: var(--cms-bg-muted);
   color: var(--cms-text-primary);
   font-family: var(--cms-font-ui);
@@ -164,8 +166,8 @@
 }
 
 .field-textarea { resize: vertical; min-height: 80px; }
-.field-error { font-size: 0.72rem; color: #ef4444; margin: 0; }
-.field-hint { font-size: 0.72rem; font-weight: 400; color: var(--cms-text-muted); margin-left: 4px; }
+.field-error { font-size: var(--cms-text-sm); color: #ef4444; margin: 0; }
+.field-hint { font-size: var(--cms-text-sm); font-weight: 400; color: var(--cms-text-muted); margin-left: 4px; }
 .field-select--error { border-color: #ef4444; }
 
 // ── Divider ───────────────────────────────────────────────────
@@ -198,7 +200,7 @@
   border: none;
   background: transparent;
   color: var(--cms-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -251,7 +253,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-primary);
 
@@ -260,7 +262,7 @@
 }
 
 .fee-banner-tag {
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   background: rgba(var(--cms-primary-rgb), 0.12);
   border-radius: 20px;
@@ -269,19 +271,19 @@
 
 .fee-banner-val {
   font-size: 1.0625rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--cms-primary);
   letter-spacing: -0.02em;
 }
 
 .fee-banner-empty-msg {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
   font-style: italic;
 }
 
 .fee-banner-not-found-msg {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: #b45309;
   font-weight: 600;
 }
@@ -319,7 +321,7 @@
   border-radius: 9px;
   background: transparent;
   color: var(--cms-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -338,7 +340,7 @@
   border-radius: 9px;
   background: var(--cms-primary);
   color: #fff;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -409,7 +411,7 @@
 }
 
 .person-name {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   color: var(--cms-text-primary);
   flex: 1;
@@ -419,7 +421,7 @@
 }
 
 .person-code {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-mono);
   flex-shrink: 0;

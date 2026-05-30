@@ -39,13 +39,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     color: var(--cms-info-text, #1e40af);
     flex: 1;
   }
 
   &__icon {
-    font-size: 18px;
+    font-size: var(--cms-text-lg);
     width: 18px;
     height: 18px;
     flex-shrink: 0;
@@ -60,14 +60,14 @@
     background: var(--cms-primary, #4f46e5);
     color: #fff;
     border-radius: var(--cms-radius-sm, 6px);
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
     transition: opacity 0.15s;
     flex-shrink: 0;
 
-    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+    mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 
     &:hover { opacity: 0.88; }
   }
@@ -91,11 +91,11 @@
   background: var(--cms-bg-surface, #fff);
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary, #666);
   transition: background 0.15s, color 0.15s;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &--active {
     background: var(--cms-primary, #4f46e5);
@@ -125,14 +125,14 @@
   }
 
   &__label {
-    font-size: 0.7rem;
+    font-size: var(--cms-text-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--cms-text-secondary, #666);
   }
 
   &__value {
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-text-primary, #111);
   }
@@ -140,7 +140,7 @@
 
 // ── Section headings inside the form ──────────────────────────────────────
 .section-heading {
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-secondary, #666);
   text-transform: uppercase;

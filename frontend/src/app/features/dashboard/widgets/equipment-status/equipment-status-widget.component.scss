@@ -9,7 +9,7 @@ $red:    #EF4444;
 .eq-meta { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
 .eq-name {
-  font-size: 12px; font-weight: 500; color: rgba(255,255,255,.6);
+  font-size: var(--cms-text-sm); font-weight: 500; color: rgba(255,255,255,.6);
   display: flex; align-items: center; gap: 7px;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
 }
@@ -22,7 +22,7 @@ $red:    #EF4444;
   &[data-c='red']    { background: $red; }
 }
 
-.eq-count { font-size: 11.5px; color: rgba(255,255,255,.3); font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+.eq-count { font-size: var(--cms-text-sm); color: rgba(255,255,255,.3); font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
 
 .prog { height: 6px; background: rgba(255,255,255,.07); border-radius: 10px; overflow: hidden; :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.07); } }
 

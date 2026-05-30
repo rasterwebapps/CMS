@@ -1,6 +1,6 @@
 .form-container { padding: 20px var(--cms-page-padding); }
 .header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
-.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
+.page-title { margin: 0; font-size: var(--cms-text-xl); font-weight: 700; letter-spacing: -0.03em; }
 .loading-container { display: flex; justify-content: center; padding: 48px; }
 .form-card { max-width: 600px; }
 .form { display: flex; flex-direction: column; gap: 8px; }

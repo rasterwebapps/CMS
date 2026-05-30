@@ -29,7 +29,7 @@
 .docv-title {
   margin: 0;
   font-family: var(--cms-font-display);
-  font-size: 1.75rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.03em;
@@ -43,7 +43,7 @@
 
 .docv-sub {
   margin: 4px 0 0;
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
@@ -78,7 +78,7 @@
   }
 
   &__lbl {
-    font-size: 0.65rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
@@ -133,7 +133,7 @@
     border: none;
     outline: none;
     background: transparent;
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     font-family: var(--cms-font-ui);
     color: var(--cms-text-primary);
     flex: 1;
@@ -170,7 +170,7 @@
 .filter-sel {
   height: var(--cms-list-filter-height);
   padding: 0 26px 0 11px;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-family: var(--cms-font-ui);
   font-weight: 500;
   color: var(--cms-text-secondary);
@@ -206,7 +206,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
   white-space: nowrap;
@@ -222,7 +222,7 @@
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -251,7 +251,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    font-size: 0.78rem;
+    font-size: var(--cms-text-sm);
     border-radius: 6px;
     cursor: pointer;
     color: var(--cms-text-secondary);
@@ -291,14 +291,7 @@
   min-height: 0;
 }
 
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-top: 1px solid var(--cms-border-default);
-  flex-shrink: 0;
-}
+// .table-footer layout is handled globally in styles.scss
 
 // ── Cell helpers ──────────────────────────────────────────────────────────
 .student-cell {
@@ -314,7 +307,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--cms-primary) 15%, transparent);
   color: var(--cms-primary);
-  font-size: 0.65rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -324,11 +317,11 @@
 }
 
 .student-info { display: flex; flex-direction: column; gap: 1px; }
-.cell-name { font-size: 0.82rem; font-weight: 600; color: var(--cms-text-primary); }
-.cell-sub  { font-size: 0.72rem; color: var(--cms-text-muted); }
-.cell-label { font-size: 0.8rem; color: var(--cms-text-primary); font-weight: 500; }
-.cell-muted { font-size: 0.78rem; color: var(--cms-text-muted); }
-.cell-date  { font-size: 0.78rem; color: var(--cms-text-secondary); }
+.cell-name { font-size: var(--cms-text-base); font-weight: 500; color: var(--cms-text-primary); }
+.cell-sub  { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.cell-label { font-size: var(--cms-text-sm); color: var(--cms-text-primary); font-weight: 500; }
+.cell-muted { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.cell-date  { font-size: var(--cms-text-sm); color: var(--cms-text-secondary); }
 
 .col-center { text-align: center !important; }
 .col-center .mat-sort-header-container { justify-content: center; }
@@ -338,7 +331,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 0.68rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   letter-spacing: 0.02em;
 
@@ -385,7 +378,7 @@
   gap: 5px;
   height: 28px;
   padding: 0 10px;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   letter-spacing: 0.01em;
   border-radius: 6px;

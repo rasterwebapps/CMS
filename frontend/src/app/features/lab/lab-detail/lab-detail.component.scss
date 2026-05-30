@@ -17,7 +17,7 @@
     h1 {
       flex: 1;
       margin: 0;
-      font-size: 1.5rem;
+      font-size: var(--cms-text-xl);
       font-weight: 800;
       letter-spacing: -0.03em;
     }
@@ -52,7 +52,7 @@
         padding: 4px 0;
 
         .label {
-          font-size: 0.6875rem;
+          font-size: var(--cms-text-xs);
           color: var(--cms-text-muted);
           font-weight: 600;
           text-transform: uppercase;
@@ -60,7 +60,7 @@
         }
 
         .value {
-          font-size: 0.875rem;
+          font-size: var(--cms-text-base);
           font-weight: 500;
           color: var(--cms-text-primary);
         }
@@ -107,7 +107,7 @@
       text-align: center;
       color: var(--cms-text-muted);
       padding: 20px var(--cms-page-padding);
-      font-size: 0.875rem;
+      font-size: var(--cms-text-base);
     }
   }
 }

@@ -8,7 +8,7 @@
 
 .year-select {
   font-family: var(--cms-font-ui);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   padding: 6px 12px;
   border-radius: var(--cms-radius-md);
@@ -43,7 +43,7 @@
 }
 
 .error-icon {
-  font-size: 48px;
+  font-size: 3rem;
   width: 48px;
   height: 48px;
   color: var(--cms-text-muted);
@@ -82,14 +82,14 @@
 }
 
 .stat-value {
-  font-size: 1.75rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 800;
   color: var(--cms-text-primary);
   line-height: 1;
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -111,7 +111,7 @@
 
 .upcoming-icon {
   color: var(--cms-primary);
-  font-size: 28px;
+  font-size: var(--cms-text-2xl);
   width: 28px;
   height: 28px;
   flex-shrink: 0;
@@ -123,7 +123,7 @@
 
   h4 {
     margin: 0 0 10px;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-primary);
     text-transform: uppercase;
@@ -141,9 +141,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 
-  .ue-icon { font-size: 16px; width: 16px; height: 16px; color: var(--cms-text-muted); }
+  .ue-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; color: var(--cms-text-muted); }
   .ue-title { font-weight: 600; color: var(--cms-text-primary); flex: 1; }
   .ue-date  { color: var(--cms-text-muted); white-space: nowrap; }
 }
@@ -172,14 +172,14 @@
 
 .current-year-title {
   margin: 0 0 4px;
-  font-size: 1.125rem;
+  font-size: var(--cms-text-lg);
   font-weight: 800;
 }
 
 .current-year-dates {
   margin: 0;
   color: var(--cms-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 }
 
 // ─── View Bar ─────────────────────────────────────
@@ -191,7 +191,7 @@
 }
 
 .section-title {
-  font-size: 1.125rem;
+  font-size: var(--cms-text-lg);
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
@@ -208,7 +208,7 @@
     align-items: center;
     gap: 4px;
     padding: 6px 14px;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     background: var(--cms-bg-card);
     color: var(--cms-text-muted);
@@ -216,7 +216,7 @@
     cursor: pointer;
     transition: var(--cms-transition-fast);
 
-    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    mat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
 
     &:not(:last-child) { border-right: 1.5px solid var(--cms-border-default); }
 
@@ -271,7 +271,7 @@
     color: var(--cms-text-muted);
   }
 
-  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  mat-icon { font-size: 1.25rem; width: 20px; height: 20px; }
 }
 
 .marker-line {
@@ -296,12 +296,12 @@
 
 .semester-name {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
 }
 
 .semester-number {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   font-weight: 600;
 }
@@ -318,9 +318,9 @@
   align-items: center;
   gap: 8px;
   color: var(--cms-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 }
 
 // ─── Progress bar ─────────────────────────────────
@@ -346,7 +346,7 @@
 }
 
 .progress-label {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
@@ -361,7 +361,7 @@
 
 .events-subtitle {
   margin: 0 0 8px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cms-text-muted);
@@ -374,14 +374,14 @@
   gap: 8px;
   padding: 6px 0;
   border-bottom: 1px solid var(--cms-border-light);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 
   &:last-child { border-bottom: none; }
 }
 
-.ev-icon { font-size: 16px; width: 16px; height: 16px; color: var(--cms-text-muted); }
+.ev-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; color: var(--cms-text-muted); }
 .ev-title { font-weight: 600; flex: 1; color: var(--cms-text-primary); }
-.ev-date  { color: var(--cms-text-muted); font-size: 0.8125rem; white-space: nowrap; }
+.ev-date  { color: var(--cms-text-muted); font-size: var(--cms-text-base); white-space: nowrap; }
 
 .btn-icon-action.danger:hover {
   color: var(--cms-danger);
@@ -401,7 +401,7 @@
 
 .month-label {
   margin: 0 0 10px;
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
 }
 
@@ -412,7 +412,7 @@
   margin-bottom: 4px;
 
   span {
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     color: var(--cms-text-muted);
     text-transform: uppercase;
@@ -454,7 +454,7 @@
 }
 
 .day-num {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
@@ -482,7 +482,7 @@
   display: flex;
   gap: 10px;
   margin-top: 10px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   flex-wrap: wrap;
 }
@@ -509,7 +509,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -542,7 +542,7 @@
   align-items: center;
   padding: 20px 24px 0;
 
-  h3 { margin: 0; font-size: 1.125rem; font-weight: 700; }
+  h3 { margin: 0; font-size: var(--cms-text-lg); font-weight: 700; }
 }
 
 .dialog-body { padding: 20px 24px; }

@@ -4,7 +4,7 @@ $red:   #EF4444;
 $amber: #F59E0B;
 
 .count-badge {
-  font-size: 10px; font-weight: 800;
+  font-size: 0.625rem; font-weight: 800;
   min-width: 20px; height: 20px; padding: 0 6px;
   border-radius: 20px; display: inline-flex; align-items: center; justify-content: center;
   background: rgba($red,.16); color: $red; border: 1px solid rgba($red,.22);
@@ -26,12 +26,12 @@ $amber: #F59E0B;
 }
 
 .ap-text  { flex: 1; min-width: 0; }
-.ap-title { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.85); :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
-.ap-sub   { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 2px; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+.ap-title { font-size: var(--cms-text-base); font-weight: 600; color: rgba(255,255,255,.85); :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
+.ap-sub   { font-size: var(--cms-text-xs); color: rgba(255,255,255,.35); margin-top: 2px; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
 
 .ap-amt {
   margin-left: 8px; white-space: nowrap;
-  font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-size: var(--cms-text-base); font-weight: 600; font-variant-numeric: tabular-nums;
   &[data-sev='red']    { color: $red; }
   &[data-sev='amber']  { color: $amber; }
   &[data-sev='accent'] { color: var(--cms-primary); }
@@ -39,6 +39,6 @@ $amber: #F59E0B;
 
 .all-clear {
   display: flex; align-items: center; gap: 8px;
-  color: #22C55E; font-size: 12.5px; font-weight: 600; padding: 4px 0;
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  color: #22C55E; font-size: var(--cms-text-base); font-weight: 600; padding: 4px 0;
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 }

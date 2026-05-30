@@ -43,14 +43,14 @@ $red:   #EF4444;
 }
 
 .gauge-pct {
-  font-size: 24px; font-weight: 700; line-height: 1;
+  font-size: var(--cms-text-xl); font-weight: 700; line-height: 1;
   color: var(--ca);
   font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
 }
 
 .gauge-cap {
-  font-size: 9.5px; font-weight: 600;
+  font-size: 0.625rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: .07em;
   color: rgba(255,255,255,.4);
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
@@ -65,7 +65,7 @@ $red:   #EF4444;
 
 .kpi-row {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   gap: 8px;
 }
 
@@ -95,9 +95,9 @@ $red:   #EF4444;
 
 .kpi-val.delta {
   display: inline-flex; align-items: center; gap: 2px;
-  font-size: 11.5px;
+  font-size: var(--cms-text-sm);
   padding: 2px 7px; border-radius: 20px;
-  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+  mat-icon { font-size: var(--cms-text-sm); width: 12px; height: 12px; }
 
   &.pos { color: $green; background: color-mix(in srgb, $green 14%, transparent); }
   &.neg { color: $red;   background: color-mix(in srgb, $red   14%, transparent); }

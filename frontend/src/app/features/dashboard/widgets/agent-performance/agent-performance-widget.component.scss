@@ -10,11 +10,11 @@ $red:    #EF4444;
 
 .lb {
   width: 100%; border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
 
   th, td { padding: 7px 6px; text-align: left; }
   th {
-    font-size: 9.5px; font-weight: 700;
+    font-size: 0.625rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .06em;
     color: rgba(255,255,255,.35);
     border-bottom: 1px solid rgba(255,255,255,.06);
@@ -33,7 +33,7 @@ $red:    #EF4444;
 .rank-medal {
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; border-radius: 50%;
-  font-size: 10px; font-weight: 800;
+  font-size: 0.625rem; font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: #fff;
   &.gold   { background: linear-gradient(135deg, color-mix(in srgb, $gold 80%, white), $gold); box-shadow: 0 0 8px rgba($gold, .35); }
@@ -54,7 +54,7 @@ $red:    #EF4444;
   background: color-mix(in srgb, var(--ca) 18%, transparent);
   color: var(--ca);
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700;
+  font-size: 0.625rem; font-weight: 700;
   letter-spacing: .03em;
 }
 

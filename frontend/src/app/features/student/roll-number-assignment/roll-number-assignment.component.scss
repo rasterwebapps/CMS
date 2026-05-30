@@ -31,7 +31,7 @@
 .rna-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -42,7 +42,7 @@
 
 .rna-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -57,7 +57,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -93,7 +93,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
 }
@@ -108,7 +108,7 @@
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -194,7 +194,7 @@
   border-radius: 50%;
   background: rgba(var(--cms-primary-rgb), 0.1);
   color: var(--cms-primary);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -205,11 +205,11 @@
 
 .student-info { display: flex; flex-direction: column; gap: 1px; }
 
-.cell-name   { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
-.cell-sub    { font-size: 0.75rem; color: var(--cms-text-muted); }
-.cell-text   { font-size: 0.8125rem; color: var(--cms-text-secondary); }
-.cell-date   { font-size: 0.8125rem; color: var(--cms-text-secondary); }
-.cell-number { font-size: 0.875rem; font-variant-numeric: tabular-nums; font-weight: 500; }
+.cell-name   { font-weight: 500; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
+.cell-sub    { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.cell-text   { font-size: var(--cms-text-base); color: var(--cms-text-secondary); }
+.cell-date   { font-size: var(--cms-text-base); color: var(--cms-text-secondary); }
+.cell-number { font-size: var(--cms-text-base); font-variant-numeric: tabular-nums; font-weight: 500; }
 
 // ── Roll number input ─────────────────────────────────────────
 
@@ -221,7 +221,7 @@
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-family: var(--cms-font-mono);
   font-variant-numeric: tabular-nums;
   outline: none;
@@ -247,7 +247,7 @@
   border-radius: 7px;
   cursor: pointer;
   color: var(--cms-primary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   white-space: nowrap;

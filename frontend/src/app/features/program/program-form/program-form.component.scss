@@ -44,14 +44,14 @@
   }
 
   &__label {
-    font-size: 14px;
+    font-size: var(--cms-text-base);
     font-weight: 500;
     color: var(--cms-text-primary);
     margin-bottom: 2px;
   }
 
   &__count {
-    font-size: 12px;
+    font-size: var(--cms-text-sm);
     color: var(--cms-text-secondary);
   }
 
@@ -148,14 +148,14 @@
 }
 
 .doc-panel__title {
-  font-size: 18px;
+  font-size: var(--cms-text-lg);
   font-weight: 600;
   color: var(--cms-text-primary);
   margin: 0 0 2px 0;
 }
 
 .doc-panel__subtitle {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   margin: 0;
 }

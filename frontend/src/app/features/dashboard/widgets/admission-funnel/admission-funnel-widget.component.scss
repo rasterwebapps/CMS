@@ -4,13 +4,13 @@
 
 .overall-conv {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; font-weight: 700;
+  font-size: var(--cms-text-xs); font-weight: 700;
   padding: 3px 9px; border-radius: 20px;
   color: var(--ca);
   background: color-mix(in srgb, var(--ca) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--ca) 22%, transparent);
   font-variant-numeric: tabular-nums;
-  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+  mat-icon { font-size: var(--cms-text-sm); width: 12px; height: 12px; }
 }
 
 .fn-row { margin-bottom: 11px; &:last-child { margin-bottom: 0; } }
@@ -21,12 +21,12 @@
 }
 
 .fn-label {
-  font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,.6);
+  font-size: var(--cms-text-sm); font-weight: 500; color: rgba(255,255,255,.6);
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
 }
 
 .fn-count {
-  font-size: 12px; font-weight: 700; color: rgba(255,255,255,.85);
+  font-size: var(--cms-text-sm); font-weight: 700; color: rgba(255,255,255,.85);
   font-variant-numeric: tabular-nums;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
 }
@@ -56,7 +56,7 @@
 
 .fn-conv {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  font-size: 10.5px; font-weight: 700;
+  font-size: var(--cms-text-xs); font-weight: 700;
   color: #fff;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 2px rgba(0,0,0,.35);

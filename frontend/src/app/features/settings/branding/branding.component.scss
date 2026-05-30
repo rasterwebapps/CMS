@@ -15,7 +15,7 @@
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   color: var(--cms-text-primary);
   text-transform: uppercase;
@@ -24,7 +24,7 @@
 }
 
 .card-sub {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin: 0 0 18px;
   line-height: 1.5;
@@ -71,7 +71,7 @@
   align-items: center;
   gap: 6px;
   color: var(--cms-text-muted);
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
 
   svg { opacity: 0.35; }
 }
@@ -100,7 +100,7 @@
 }
 
 .logo-hint {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
   margin: 0;
 }
@@ -109,7 +109,7 @@
   background: none;
   border: none;
   color: var(--cms-danger);
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   cursor: pointer;
   padding: 0;
@@ -139,7 +139,7 @@
 }
 
 .field-label {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
 }
@@ -150,7 +150,7 @@
   padding: 9px 12px;
   border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-radius-md);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary);
   background: var(--cms-bg-muted);
   font-family: var(--cms-font-ui, inherit);

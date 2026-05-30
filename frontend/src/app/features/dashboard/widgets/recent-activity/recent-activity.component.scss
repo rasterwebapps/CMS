@@ -29,7 +29,7 @@
   flex-shrink: 0;
   color: #fff;
 
-  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+  mat-icon { font-size: var(--cms-text-md); height: 16px; width: 16px; }
 }
 
 .ra-body {
@@ -39,7 +39,7 @@
 }
 
 .ra-text {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--text-1, #111827);
   margin: 0 0 3px;
   line-height: 1.4;
@@ -47,7 +47,7 @@
 }
 
 .ra-meta {
-  font-size: 11px;
+  font-size: var(--cms-text-xs);
   color: var(--text-muted, #6b7280);
   font-variant-numeric: tabular-nums;
 }
@@ -63,7 +63,7 @@
 }
 
 .empty-hint {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--text-muted, #6b7280);
   margin: 0;
 }

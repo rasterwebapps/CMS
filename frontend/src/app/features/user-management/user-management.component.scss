@@ -29,7 +29,7 @@
 .um-title {
   margin: 0 0 3px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -40,7 +40,7 @@
 
 .um-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -55,7 +55,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -100,7 +100,7 @@
 }
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
   flex-shrink: 0;
@@ -130,7 +130,7 @@
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     color: var(--cms-text-primary);
     font-family: var(--cms-font-ui);
     outline: none;
@@ -212,7 +212,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 0.9375rem;
+    font-size: var(--cms-text-md);
     font-weight: 800;
     letter-spacing: 0.03em;
     color: #fff;
@@ -241,7 +241,7 @@
   }
 
   &__name {
-    font-size: 0.9375rem;
+    font-size: var(--cms-text-md);
     font-weight: 700;
     color: var(--cms-text-primary);
     white-space: nowrap;
@@ -250,7 +250,7 @@
   }
 
   &__email {
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     color: var(--cms-text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -258,7 +258,7 @@
   }
 
   &__username {
-    font-size: 0.75rem;
+    font-size: var(--cms-text-sm);
     color: var(--cms-text-muted);
     font-family: var(--cms-font-mono);
     white-space: nowrap;
@@ -290,7 +290,7 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   white-space: nowrap;
   background: rgba(var(--cms-primary-rgb), 0.1);
@@ -304,7 +304,7 @@
 }
 
 .inactive-tag {
-  font-size: 0.65rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 999px;
@@ -386,14 +386,14 @@
 
 .um-panel__title {
   margin: 0 0 2px;
-  font-size: 0.9375rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
 }
 
 .um-panel__sub {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
@@ -416,7 +416,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 800;
   color: #fff;
   background: linear-gradient(135deg, var(--cms-primary), #7c3aed);
@@ -437,7 +437,7 @@
 }
 
 .panel-user-name {
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   color: var(--cms-text-primary);
   white-space: nowrap;
@@ -446,7 +446,7 @@
 }
 
 .panel-user-meta {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -484,7 +484,7 @@
 .field-group { display: flex; flex-direction: column; gap: 5px; }
 
 .field-label {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-secondary);
 }
@@ -493,7 +493,7 @@
 
 .field-hint {
   margin: 2px 0 0;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   line-height: 1.5;
 }
@@ -502,7 +502,7 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 9px;
   padding: 9px 12px;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   background: var(--cms-bg-muted);
   color: var(--cms-text-primary);
   font-family: var(--cms-font-ui);
@@ -551,7 +551,7 @@
   border-radius: 10px;
   background: var(--cms-primary);
   color: #fff;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -572,7 +572,7 @@
   border-radius: 10px;
   background: transparent;
   color: var(--cms-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -583,7 +583,7 @@
 
   &.btn-sm {
     padding: 6px 14px;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
   }
 }
 
@@ -597,7 +597,7 @@
   background: rgba(var(--cms-primary-rgb), 0.06);
   border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
   color: var(--cms-text-secondary);
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   line-height: 1.5;
   margin-bottom: 4px;
 

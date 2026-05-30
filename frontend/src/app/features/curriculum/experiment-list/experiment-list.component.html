@@ -1,13 +1,20 @@
-<div class="list-page">
-  <app-page-header title="Experiments" subtitle="Define lab experiments, durations, and course mappings">
-    <cms-tour-button titleAction tourKey="experiment-list" [iconOnly]="true" iconVariant="info-circle" />
-    <button id="tour-exp-add-btn" actions class="btn-primary" routerLink="/experiments/new" aria-label="Add new experiment">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Experiment
-    </button>
-  </app-page-header>
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="mlp-title">Lab <em>Experiments</em></h1>
+      </div>
+      <p class="mlp-sub">Define lab experiments, durations, and course mappings</p>
+    </div>
+    <div class="mlp-hdr-right">
+      <button id="tour-exp-add-btn" class="btn-primary" routerLink="/experiments/new" aria-label="Add new experiment">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Experiment
+      </button>
+    </div>
+  </div>
 
-  <div class="command-bar">
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="command-bar__left">
       <div id="tour-exp-search" class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -59,7 +66,7 @@
     </div>
   </div>
 
-  <div id="tour-exp-content" class="content-card">
+  <div id="tour-exp-content" class="mlp-table-card anim-rise anim-rise--d2">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading experiments"></mat-spinner>
@@ -141,7 +148,7 @@
       <div class="pagination-wrapper">
         <mat-paginator
           [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="10"
+          [pageSize]="25"
           showFirstLastButtons
         ></mat-paginator>
       </div>

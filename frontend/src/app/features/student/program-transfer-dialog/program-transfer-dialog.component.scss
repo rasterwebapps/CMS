@@ -8,7 +8,7 @@
 }
 
 .step-intro {
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   color: var(--mat-sys-on-surface-variant);
   margin: 0;
   line-height: 1.5;
@@ -29,7 +29,7 @@
 .program-chip {
   padding: 4px 12px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   background: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
@@ -51,10 +51,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--cms-text-base);
     font-weight: 600;
 
-    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
     &--retained { color: var(--mat-sys-tertiary); }
     &--irrelevant { color: var(--mat-sys-secondary); }
@@ -62,7 +62,7 @@
   }
 
   &__note {
-    font-size: 12px;
+    font-size: var(--cms-text-sm);
     color: var(--mat-sys-on-surface-variant);
     margin: 0;
   }
@@ -80,10 +80,10 @@
   gap: 4px;
   padding: 3px 10px 3px 6px;
   border-radius: 16px;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
 
-  &__icon { font-size: 14px; width: 14px; height: 14px; }
+  &__icon { font-size: var(--cms-text-base); width: 14px; height: 14px; }
 
   &--retained {
     background: color-mix(in srgb, var(--mat-sys-tertiary-container) 60%, transparent);
@@ -102,7 +102,7 @@
 }
 
 .no-impact {
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--mat-sys-on-surface-variant);
   font-style: italic;
   margin: 0;
@@ -122,13 +122,13 @@
     display: flex;
     align-items: baseline;
     gap: 12px;
-    font-size: 13px;
+    font-size: var(--cms-text-base);
   }
 
   &__label {
     min-width: 120px;
     color: var(--mat-sys-on-surface-variant);
-    font-size: 12px;
+    font-size: var(--cms-text-sm);
   }
 }
 
@@ -137,11 +137,11 @@
   border-radius: 8px;
   border: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface-container-lowest);
-  font-size: 13px;
+  font-size: var(--cms-text-base);
 }
 
 .notes-label {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: var(--mat-sys-on-surface-variant);
   display: block;
   margin-bottom: 4px;
@@ -152,7 +152,7 @@
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   resize: vertical;

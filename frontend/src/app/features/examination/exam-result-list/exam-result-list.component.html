@@ -1,8 +1,14 @@
-<div class="list-container">
-  <div class="header">
-    <h2 class="page-title">Exam Results</h2>
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="mlp-title">Exam <em>Results</em></h1>
+      </div>
+      <p class="mlp-sub">View and filter results by examination</p>
+    </div>
   </div>
-  <div class="command-bar">
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="command-bar__left">
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} results</span>
@@ -38,7 +44,7 @@
   </div>
 
   @if (selectedExamId()) {
-    <div class="content-card">
+    <div class="mlp-table-card anim-rise anim-rise--d2">
       <div class="table-controls">
         <div class="search-bar" role="search">
           <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -88,7 +94,7 @@
               </tr>
             </table>
           </div>
-          <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons></mat-paginator>
         }
     </div>
   }

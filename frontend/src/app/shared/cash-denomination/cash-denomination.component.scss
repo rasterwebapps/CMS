@@ -13,12 +13,12 @@
   padding: 10px 16px;
   background: var(--cms-bg-muted);
   border-bottom: 1px solid var(--cms-border-default);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
 
   mat-icon {
-    font-size: 16px;
+    font-size: var(--cms-text-md);
     width: 16px;
     height: 16px;
     color: var(--cms-text-secondary);
@@ -34,7 +34,7 @@
 }
 
 .denom-section-label {
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -57,7 +57,7 @@
 }
 
 .denom-value {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
   font-variant-numeric: tabular-nums;
@@ -67,7 +67,7 @@
   padding: 4px 8px;
   border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-radius-sm);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-family: inherit;
   text-align: center;
   background: var(--cms-bg-card);
@@ -89,7 +89,7 @@
 }
 
 .denom-subtotal {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -111,12 +111,12 @@
 }
 
 .denom-summary-label {
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
 }
 
 .denom-summary-value {
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 
@@ -128,14 +128,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   padding: 6px 10px;
   border-radius: var(--cms-radius-sm);
   margin-top: 6px;
 
   mat-icon {
-    font-size: 14px;
+    font-size: var(--cms-text-base);
     width: 14px;
     height: 14px;
     flex-shrink: 0;

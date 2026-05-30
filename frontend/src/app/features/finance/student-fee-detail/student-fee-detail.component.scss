@@ -19,7 +19,7 @@ $amber:  #F59E0B;
 
 .sfd-title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: var(--cms-text-xl);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--cms-text-primary);
@@ -29,7 +29,7 @@ $amber:  #F59E0B;
 
 .sfd-sub {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -44,13 +44,13 @@ $amber:  #F59E0B;
   background: rgba(59,130,246,0.07);
   border: 1px solid rgba(59,130,246,0.2);
   border-radius: 12px;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   line-height: 1.5;
 
   &__icon { color: #3b82f6; flex-shrink: 0; margin-top: 1px; }
 
-  strong { color: var(--cms-text-primary); display: block; margin-bottom: 3px; font-size: 13.5px; }
+  strong { color: var(--cms-text-primary); display: block; margin-bottom: 3px; font-size: var(--cms-text-base); }
   p { margin: 0 0 10px; }
 
   &--error {
@@ -67,7 +67,7 @@ $amber:  #F59E0B;
   border: 1.5px solid var(--cms-line-strong);
   border-radius: 8px; background: var(--cms-bg-card);
   color: var(--cms-text-primary);
-  font-family: var(--cms-font-ui); font-size: 12.5px; font-weight: 600;
+  font-family: var(--cms-font-ui); font-size: var(--cms-text-base); font-weight: 600;
   cursor: pointer;
   transition: background 0.18s;
 
@@ -89,7 +89,7 @@ $amber:  #F59E0B;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-text-primary);
 
@@ -109,13 +109,13 @@ $amber:  #F59E0B;
 
 .student-summary__name {
   margin: 0 0 4px;
-  font-size: 1.1rem; font-weight: 700;
+  font-size: var(--cms-text-lg); font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--cms-text-primary);
 }
 .student-summary__meta {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
@@ -130,8 +130,8 @@ $amber:  #F59E0B;
 
   &--danger { border-color: rgba($red,0.3); background: rgba($red,0.05); }
 
-  &__label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); margin-bottom: 3px; }
-  &__val    { font-size: 14px; font-weight: 700; color: var(--cms-text-primary); }
+  &__label { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); margin-bottom: 3px; }
+  &__val    { font-size: var(--cms-text-base); font-weight: 700; color: var(--cms-text-primary); }
 }
 
 // ── Semester table ────────────────────────────────────────────────────────────
@@ -140,12 +140,12 @@ $amber:  #F59E0B;
 .sem-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
 
   th {
     padding: 9px 14px;
     text-align: left;
-    font-size: 10px; font-weight: 700;
+    font-size: 0.625rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.06em;
     color: var(--cms-text-muted);
     border-bottom: 1px solid var(--cms-line);
@@ -196,7 +196,7 @@ $amber:  #F59E0B;
   border-radius: 50%;
   background: var(--cms-bg-surface-3);
   color: var(--cms-text-muted);
-  font-size: 10.5px; font-weight: 800;
+  font-size: var(--cms-text-xs); font-weight: 800;
   flex-shrink: 0;
 }
 .row--next .seq-badge {
@@ -205,13 +205,13 @@ $amber:  #F59E0B;
 }
 
 .sem-info { display: flex; flex-direction: column; gap: 2px; }
-.sem-label { font-weight: 600; color: var(--cms-text-primary); font-size: 13px; }
+.sem-label { font-weight: 600; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
 
 .next-tag {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10.5px; font-weight: 700;
+  font-size: var(--cms-text-xs); font-weight: 700;
   color: var(--cms-primary);
 
   &__icon { flex-shrink: 0; }
@@ -219,7 +219,7 @@ $amber:  #F59E0B;
 
 .overdue-tag {
   display: inline-block;
-  font-size: 9.5px; font-weight: 800;
+  font-size: 0.625rem; font-weight: 800;
   letter-spacing: 0.07em;
   color: $red;
   background: rgba($red, 0.10);
@@ -252,7 +252,7 @@ $amber:  #F59E0B;
   background: rgba(var(--cms-primary-rgb), 0.05);
   border: 1px solid rgba(var(--cms-primary-rgb), 0.15);
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   line-height: 1.4;
 
@@ -261,7 +261,7 @@ $amber:  #F59E0B;
 
 // ── Receipt history ───────────────────────────────────────────────────────────
 .receipt-count {
-  font-size: 12px; font-weight: 600;
+  font-size: var(--cms-text-sm); font-weight: 600;
   color: var(--cms-text-muted);
   background: var(--cms-bg-surface-2);
   padding: 3px 10px; border-radius: 20px;
@@ -328,39 +328,39 @@ $amber:  #F59E0B;
 
 .receipt-no {
   font-family: var(--cms-font-mono);
-  font-size: 12.5px; font-weight: 700;
+  font-size: var(--cms-text-base); font-weight: 700;
   color: var(--cms-primary);
   letter-spacing: 0.02em;
 }
 
 .receipt-meta {
-  font-size: 11.5px;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
 .receipt-total {
   font-family: var(--cms-font-mono);
-  font-size: 14px; font-weight: 800;
+  font-size: var(--cms-text-base); font-weight: 800;
   color: var(--cms-text-primary);
 }
 
 .receipt-line {
   display: flex; align-items: center; justify-content: space-between;
   padding: 9px 14px;
-  font-size: 13px;
+  font-size: var(--cms-text-base);
   border-bottom: 1px solid var(--cms-line);
 
   &:last-child { border-bottom: none; }
 
   &__sem { color: var(--cms-text-secondary); }
-  &__amt { font-family: var(--cms-font-mono); font-size: 13px; font-weight: 600; color: var(--cms-text-primary); }
+  &__amt { font-family: var(--cms-font-mono); font-size: var(--cms-text-base); font-weight: 600; color: var(--cms-text-primary); }
 }
 
 .empty-receipts {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 40px 20px; color: var(--cms-text-muted);
 
-  p { margin: 0; font-size: 13px; }
+  p { margin: 0; font-size: var(--cms-text-base); }
 }
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
@@ -369,7 +369,7 @@ $amber:  #F59E0B;
 .text-red   { color: $red; }
 .text-muted { color: var(--cms-text-muted); font-weight: 400; }
 .mono       { font-family: var(--cms-font-mono); font-weight: 500; }
-.mono-sm    { font-family: var(--cms-font-mono); font-size: 12px; }
+.mono-sm    { font-family: var(--cms-font-mono); font-size: var(--cms-text-sm); }
 
 // ── Buttons ───────────────────────────────────────────────────────────────────
 .btn-primary {
@@ -377,7 +377,7 @@ $amber:  #F59E0B;
   padding: 10px 20px;
   border: none; border-radius: 10px;
   background: var(--cms-primary); color: #fff;
-  font-family: var(--cms-font-ui); font-size: 13px; font-weight: 700;
+  font-family: var(--cms-font-ui); font-size: var(--cms-text-base); font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(var(--cms-primary-rgb), 0.35);
   transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
@@ -395,7 +395,7 @@ $amber:  #F59E0B;
   border: 1.5px solid var(--cms-line-strong);
   border-radius: 9px; background: transparent;
   color: var(--cms-text-secondary);
-  font-family: var(--cms-font-ui); font-size: 13px; font-weight: 600;
+  font-family: var(--cms-font-ui); font-size: var(--cms-text-base); font-weight: 600;
   text-decoration: none; cursor: pointer;
   transition: background 0.18s, color 0.18s;
 

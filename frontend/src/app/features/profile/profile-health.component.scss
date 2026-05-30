@@ -97,7 +97,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
 
   &:hover { background: rgba(0,0,0,.55); }
   &--del  { color: #fca5a5; &:hover { background: rgba(239,68,68,.5); } }
-  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 }
 
 // Theme picker
@@ -162,7 +162,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   &:hover { background: rgba(0,0,0,.05); }
   &--active { background: rgba(0,0,0,.06); font-weight: 600; }
   .ph-theme-dot { width: 14px; height: 14px; flex-shrink: 0; }
-  mat-icon { font-size: 14px; margin-left: auto; color: var(--pt); }
+  mat-icon { font-size: var(--cms-text-base); margin-left: auto; color: var(--pt); }
 }
 
 // ── Identity row ──────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   opacity:          0;
   transition:       opacity 0.15s;
   color:            #fff;
-  mat-icon { font-size: 22px; }
+  mat-icon { font-size: 1.375rem; }
 }
 
 .ph-avatar-wrap:hover .ph-avatar-camera { opacity: 1; }
@@ -278,7 +278,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   &--primary { background: var(--pt); border-color: var(--pt); color: #fff; }
   &--danger  { color: #ef4444; &:hover { background: #fef2f2; border-color: #fecaca; } }
 
-  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+  mat-icon { font-size: 1.0625rem; width: 17px; height: 17px; }
 }
 
 // ── Summary strip ─────────────────────────────────────────────────────────────
@@ -310,7 +310,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   letter-spacing: -.02em;
   line-height:    1;
 
-  &--sm { font-size: 0.875rem; font-weight: 600; text-align: center; line-height: 1.2; }
+  &--sm { font-size: var(--cms-text-base); font-weight: 600; text-align: center; line-height: 1.2; }
 }
 
 .ph-strip__label {
@@ -404,7 +404,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   color:           var(--pt);
   flex-shrink:     0;
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  mat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
 
   &--colored {
     background: color-mix(in srgb, var(--ic, var(--pt)) 15%, transparent);
@@ -434,11 +434,11 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   overflow:      hidden;
   text-overflow: ellipsis;
 
-  &--bold { font-weight: 600; font-size: 0.9375rem; }
+  &--bold { font-weight: 600; font-size: var(--cms-text-md); }
 }
 
 .ph-row__chevron {
-  font-size: 18px;
+  font-size: var(--cms-text-lg);
   width:     18px;
   height:    18px;
   color:     $light-label;
@@ -522,7 +522,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   font-size:   0.875rem;
   font-weight: 600;
   color:       #34C759;
-  mat-icon { font-size: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); }
 }
 
 .ph-checklist {
@@ -581,7 +581,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   padding:     16px;
   font-size:   0.875rem;
   color:       $light-label;
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 }
 
 .ph-link-btn {
@@ -629,7 +629,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
   color:      $light-label;
 }
 
-.ph-field-hint { font-weight: 400; font-size: 0.68rem; margin-left: 4px; }
+.ph-field-hint { font-weight: 400; font-size: var(--cms-text-xs); margin-left: 4px; }
 
 .ph-input, .ph-textarea {
   width:         100%;
@@ -683,7 +683,7 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
 
   &[disabled] { opacity: 0.45; pointer-events: none; }
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  mat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
   .spin     { animation: ph-spin 1s linear infinite; }
 
   &--cancel { background: $light-card-2; color: $light-text-sec; border: 1px solid $light-sep; &:hover { background: color.adjust($light-card-2, $lightness: -3%); } }

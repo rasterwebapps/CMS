@@ -40,7 +40,7 @@
   transition:      background 0.15s, color 0.15s;
 
   &:hover { background: rgba(var(--cms-primary-rgb), 0.1); color: var(--cms-primary); }
-  mat-icon { font-size: 20px; }
+  mat-icon { font-size: 1.25rem; }
 }
 
 .cfg-hdr__icon {
@@ -53,7 +53,7 @@
   flex-shrink:     0;
   background:      rgba(var(--cms-primary-rgb), 0.12);
   color:           var(--cms-primary);
-  mat-icon { font-size: 20px; }
+  mat-icon { font-size: 1.25rem; }
 }
 
 .cfg-hdr__text { flex: 1; min-width: 0; }
@@ -67,7 +67,7 @@
 
 .cfg-hdr__sub {
   margin:    0;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   color:     var(--cms-text-muted);
   strong { color: var(--cms-text-secondary); font-weight: 600; }
 }
@@ -136,7 +136,7 @@
     background:      rgba(var(--cms-primary-rgb), 0.1);
     color:           var(--cms-primary);
     flex-shrink:     0;
-    mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    mat-icon { font-size: 1.0625rem; width: 17px; height: 17px; }
 
     &--lib {
       background: rgba(99, 102, 241, 0.08);
@@ -159,7 +159,7 @@
   }
 
   &__sub {
-    font-size: 0.6875rem;
+    font-size: var(--cms-text-xs);
     color:     var(--cms-text-muted);
   }
 
@@ -219,15 +219,15 @@
   font-size:      0.8rem;
   pointer-events: none;
 
-  mat-icon { font-size: 42px; width: 42px; height: 42px; opacity: 0.22; }
+  mat-icon { font-size: 2.625rem; width: 42px; height: 42px; opacity: 0.22; }
   p { margin: 0; line-height: 1.6; }
 
   &--inline {
     padding:   2rem 1rem;
     flex:      none;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-style: italic;
-    mat-icon { font-size: 28px; width: 28px; height: 28px; }
+    mat-icon { font-size: var(--cms-text-2xl); width: 28px; height: 28px; }
   }
 }
 
@@ -314,7 +314,7 @@
 
   &:hover { opacity: 1; background: rgba(var(--cms-primary-rgb), 0.08); }
   &:active { cursor: grabbing; }
-  mat-icon { font-size: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); }
 }
 
 // ── Order badge ───────────────────────────────────────────────────────────────
@@ -346,7 +346,7 @@
   color:           var(--wc);
   transition:      background 0.15s;
 
-  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+  mat-icon { font-size: 1.0625rem; width: 17px; height: 17px; }
 }
 
 .cfg-item:hover .cfg-item__tile {
@@ -540,7 +540,7 @@
     opacity:    1;
   }
 
-  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 }
 
 // ── Palette group ─────────────────────────────────────────────────────────────
@@ -612,7 +612,7 @@
     color:           var(--wc);
     transition:      background 0.17s;
 
-    mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    mat-icon { font-size: 1.375rem; width: 22px; height: 22px; }
   }
 
   &:hover &__icon {
@@ -648,7 +648,7 @@
       box-shadow:   0 2px 10px color-mix(in srgb, var(--wc) 35%, transparent);
     }
 
-    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    mat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
   }
 }
 
@@ -672,7 +672,7 @@
     white-space: nowrap;
     overflow:    hidden;
     text-overflow: ellipsis;
-    mat-icon { font-size: 15px !important; width: 15px !important; height: 15px !important; flex-shrink: 0; }
+    mat-icon { font-size: var(--cms-text-md) !important; width: 15px !important; height: 15px !important; flex-shrink: 0; }
   }
 }
 
@@ -694,7 +694,7 @@
 
   &:hover    { background: var(--cms-bg-surface-2); border-color: var(--cms-line-strong); }
   &[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
-  mat-icon   { font-size: 15px !important; width: 15px !important; height: 15px !important; }
+  mat-icon   { font-size: var(--cms-text-md) !important; width: 15px !important; height: 15px !important; }
 }
 
 .btn-primary {
@@ -716,5 +716,5 @@
   &:hover    { filter: brightness(1.07); box-shadow: 0 4px 16px rgba(var(--cms-primary-rgb), 0.36); }
   &[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
   mat-spinner { --mdc-circular-progress-active-indicator-color: #fff; }
-  mat-icon   { font-size: 15px !important; width: 15px !important; height: 15px !important; }
+  mat-icon   { font-size: var(--cms-text-md) !important; width: 15px !important; height: 15px !important; }
 }

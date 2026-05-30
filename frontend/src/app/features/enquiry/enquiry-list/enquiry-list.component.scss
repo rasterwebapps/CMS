@@ -31,7 +31,7 @@
 .enq-pg-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: 1.875rem;
+  font-size: var(--cms-text-2xl);
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -42,7 +42,7 @@
 
 .enq-pg-sub {
   margin: 0 0 10px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -57,7 +57,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   color: var(--cms-text-secondary);
   background: var(--cms-bg-muted);
@@ -125,7 +125,7 @@ $ctrl-h: var(--cms-list-filter-height);
 .date-input {
   border: none;
   background: transparent;
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-primary);
   font-family: var(--cms-font-ui);
   outline: none;
@@ -134,7 +134,7 @@ $ctrl-h: var(--cms-list-filter-height);
   width: 96px;
 }
 
-.date-sep { color: var(--cms-text-muted); font-size: 0.65rem; }
+.date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
 
 // ── Program / Course filter selects ───────────────────────────
 .enq-filter-select {
@@ -144,7 +144,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -182,7 +182,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -208,7 +208,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 9px;
   background: var(--cms-primary);
   color: #fff;
-  font-size: 0.65rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
 }
 
@@ -243,7 +243,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.1s;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
 
   &:hover { background: var(--cms-bg-muted); }
@@ -255,7 +255,7 @@ $ctrl-h: var(--cms-list-filter-height);
   align-items: center;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   white-space: nowrap;
 
@@ -289,7 +289,7 @@ $ctrl-h: var(--cms-list-filter-height);
 .status-drop-label { flex: 1; }
 
 .status-drop-cnt {
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   color: var(--cms-text-muted);
   background: var(--cms-bg-muted);
@@ -307,7 +307,7 @@ $ctrl-h: var(--cms-list-filter-height);
 .status-drop-clear {
   background: none;
   border: none;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   color: var(--cms-text-muted);
   cursor: pointer;
@@ -332,7 +332,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 8px;
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   font-family: var(--cms-font-ui);
   cursor: pointer;
@@ -372,7 +372,7 @@ $ctrl-h: var(--cms-list-filter-height);
   gap: 8px;
   padding: 7px 9px;
   border-radius: 6px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   cursor: pointer;
   transition: background 0.1s;
@@ -478,7 +478,7 @@ $ctrl-h: var(--cms-list-filter-height);
   border-radius: 50%;
   background: rgba(var(--cms-primary-rgb), 0.1);
   color: var(--cms-primary);
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -487,11 +487,11 @@ $ctrl-h: var(--cms-list-filter-height);
   letter-spacing: 0.02em;
 }
 
-.cell-name   { font-weight: 500; color: var(--cms-text-primary); font-size: 0.875rem; }
-.cell-sub    { font-size: 0.75rem; color: var(--cms-text-muted); margin-top: 1px; }
-.cell-mono   { font-family: var(--cms-font-mono); font-size: 0.8125rem; }
-.cell-muted  { color: var(--cms-text-muted); font-size: 0.8125rem; }
-.cell-date   { font-size: 0.8125rem; color: var(--cms-text-secondary); }
+.cell-name   { font-weight: 500; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
+.cell-sub    { font-size: var(--cms-text-sm); color: var(--cms-text-muted); margin-top: 1px; }
+.cell-mono   { font-family: var(--cms-font-mono); font-size: var(--cms-text-base); }
+.cell-muted  { color: var(--cms-text-muted); font-size: var(--cms-text-base); }
+.cell-date   { font-size: var(--cms-text-base); color: var(--cms-text-secondary); }
 
 // ── Type badge ─────────────────────────────────────────────────
 
@@ -499,7 +499,7 @@ $ctrl-h: var(--cms-list-filter-height);
   display: inline-block;
   padding: 3px 9px;
   border-radius: 20px;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   white-space: nowrap;
 
@@ -515,7 +515,7 @@ $ctrl-h: var(--cms-list-filter-height);
   gap: 4px;
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.6875rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   white-space: nowrap;
   border: none;
@@ -562,18 +562,10 @@ $ctrl-h: var(--cms-list-filter-height);
 }
 
 // ── Table footer (pagination — always visible) ──────────────────
-
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px 4px 20px;
-  border-top: 1px solid var(--cms-border-light);
-  flex-shrink: 0;
-}
+// Layout is handled globally in styles.scss (.table-footer)
 
 .row-count {
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
 }

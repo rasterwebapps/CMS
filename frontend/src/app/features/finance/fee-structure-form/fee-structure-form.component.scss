@@ -29,13 +29,13 @@
   }
 
   &__title {
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-text-primary);
   }
 
   &__desc {
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     color: var(--cms-text-secondary);
     line-height: 1.45;
   }
@@ -43,7 +43,7 @@
   &__action {
     flex-shrink: 0;
     padding: 5px 14px;
-    font-size: 0.8125rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-primary);
     border: 1px solid var(--cms-primary);
@@ -100,8 +100,8 @@
 
 .page-title {
   margin: 0;
-  font-size: 1.45rem;
-  font-weight: 800;
+  font-size: var(--cms-text-xl);
+  font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--cms-text-primary);
   line-height: 1.2;
@@ -109,7 +109,7 @@
 
 .page-subtitle {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -124,7 +124,7 @@
 
 .loading-text {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
 }
 
@@ -145,14 +145,14 @@
   padding: 12px 20px;
   background: linear-gradient(135deg, var(--cms-primary-alpha-8) 0%, transparent 100%);
   border-bottom: 1px solid var(--cms-border-light);
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--cms-text-secondary);
 
   mat-icon {
-    font-size: 15px;
+    font-size: var(--cms-text-md);
     width: 15px;
     height: 15px;
     color: var(--cms-text-muted);
@@ -178,7 +178,7 @@
 
 .selection-panel__hint {
   padding: 0 20px 14px;
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   display: flex;
   align-items: center;
@@ -212,14 +212,14 @@
 
 .fee-panel__icon {
   color: var(--cms-text-secondary);
-  font-size: 20px;
+  font-size: 1.25rem;
   width: 20px;
   height: 20px;
 }
 
 .fee-panel__title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
 }
@@ -233,7 +233,7 @@
 
 .fee-panel__hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
 }
 
@@ -251,14 +251,14 @@
     align-items: center;
     gap: 7px;
     padding: 14px 0 8px;
-    font-size: 0.7rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--cms-text-secondary);
 
     mat-icon {
-      font-size: 14px;
+      font-size: var(--cms-text-base);
       width: 14px;
       height: 14px;
     }
@@ -363,14 +363,14 @@
     align-items: center;
     justify-content: flex-end;
     padding: 3px 10px 3px 4px;
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     font-weight: 600;
     color: var(--cms-text-muted);
   }
 
   // Header modifier
   &--hdr {
-    font-size: 0.68rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -381,7 +381,7 @@
 
   // Fee-type header cell (inherits --type + --hdr)
   .fee-grid__row--header &--type {
-    font-size: 0.68rem;
+    font-size: var(--cms-text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -391,12 +391,12 @@
 
   // Total-row label cell
   &--total-label {
-    font-size: 0.84rem;
+    font-size: var(--cms-text-base);
     font-weight: 700;
     color: var(--cms-text-primary);
 
     mat-icon {
-      font-size: 14px;
+      font-size: var(--cms-text-base);
       width: 14px;
       height: 14px;
       color: var(--cms-primary);
@@ -407,7 +407,7 @@
 
   // Total-row year cells
   &--total-value {
-    font-size: 0.84rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-text-secondary);
     justify-content: flex-end;
@@ -418,7 +418,7 @@
 
   // Total-row grand total cell
   &--grand-total {
-    font-size: 0.95rem;
+    font-size: var(--cms-text-md);
     font-weight: 800;
     color: var(--cms-primary);
 
@@ -428,7 +428,7 @@
 
 // Fee-type icon inside the type column
 .g-type-icon {
-  font-size: 15px;
+  font-size: var(--cms-text-md);
   width: 15px;
   height: 15px;
   color: #9ca3af;
@@ -439,7 +439,7 @@
 
 // Fee-type label text
 .g-type-label {
-  font-size: 0.84rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   color: var(--cms-text-secondary);
   flex: 1;
@@ -453,7 +453,7 @@
 .g-total--nonzero {
   color: var(--cms-primary);
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
 }
 
 .g-total--additional {
@@ -469,7 +469,7 @@
   outline: none;
   background: transparent;
   text-align: right;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 500;
   color: var(--cms-text-primary);
   padding: 6px 8px;
@@ -518,7 +518,7 @@
   transition: opacity 0.12s, color 0.12s, background 0.12s;
 
   mat-icon {
-    font-size: 14px;
+    font-size: var(--cms-text-base);
     width: 14px;
     height: 14px;
   }
@@ -550,7 +550,7 @@
 }
 
 .note-row-icon {
-  font-size: 14px;
+  font-size: var(--cms-text-base);
   width: 14px;
   height: 14px;
   color: var(--cms-text-muted);
@@ -562,7 +562,7 @@
   border: none;
   border-bottom: 1.5px solid var(--cms-border-default);
   background: transparent;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-secondary);
   padding: 3px 0;
   outline: none;
@@ -571,7 +571,7 @@
   &::placeholder {
     color: var(--cms-text-muted);
     font-style: italic;
-    font-size: 0.75rem;
+    font-size: var(--cms-text-sm);
   }
 
   &:focus { border-bottom-color: var(--cms-primary); }
@@ -597,14 +597,14 @@
 }
 
 .g-cell--total-label {
-  font-size: 0.85rem;
+  font-size: var(--cms-text-base);
   font-weight: 700;
   color: var(--cms-text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
   &--primary {
     color: var(--cms-primary) !important;
@@ -612,7 +612,7 @@
 }
 
 .g-cell--total-value {
-  font-size: 0.85rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-secondary);
   font-variant-numeric: tabular-nums;
@@ -625,12 +625,12 @@
 }
 
 .g-cell--grand-total {
-  font-size: 0.95rem;
+  font-size: var(--cms-text-md);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 
   &--scholar { color: #059669; }
-  &--primary { color: var(--cms-primary); font-size: 1rem; }
+  &--primary { color: var(--cms-primary); font-size: var(--cms-text-md); }
 }
 
 .g-type-icon--scholar  { color: #10b981 !important; }
@@ -661,7 +661,7 @@
   height: 44px !important;
   padding: 0 28px !important;
   font-weight: 700 !important;
-  font-size: 0.875rem !important;
+  font-size: var(--cms-text-base) !important;
   border-radius: 10px !important;
   box-shadow: var(--cms-shadow-colored) !important;
   transition: box-shadow 0.2s ease, transform 0.15s ease;
@@ -677,7 +677,7 @@
     box-shadow: none !important;
   }
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
   mat-spinner { margin-right: 4px; }
 }
 
@@ -693,13 +693,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     font-weight: 600;
     color: var(--cms-text-secondary);
     margin-bottom: 12px;
 
     mat-icon {
-      font-size: 18px;
+      font-size: var(--cms-text-lg);
       width: 18px;
       height: 18px;
       color: var(--cms-primary);
@@ -726,7 +726,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-primary);
 
   input[type='checkbox'] {
@@ -750,10 +750,10 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.8125rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
 
-  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
 }
 
 .replicate-tags {
@@ -765,7 +765,7 @@
 .replicate-tag {
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 0.775rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
 
   &--new {

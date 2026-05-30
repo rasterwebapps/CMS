@@ -38,7 +38,7 @@ $accent: #38BDF8;
   justify-content: center;
   color: var(--alert);
   background: color-mix(in srgb, var(--alert) 16%, transparent);
-  mat-icon { font-size: 24px; width: 24px; height: 24px; }
+  mat-icon { font-size: var(--cms-text-xl); width: 24px; height: 24px; }
 }
 
 .anomaly-copy {
@@ -48,12 +48,12 @@ $accent: #38BDF8;
   flex-direction: column;
   gap: 4px;
 
-  strong { color: rgba(255,255,255,.9); font-size: 15px; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
-  span { color: rgba(255,255,255,.45); font-size: 11.5px; font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+  strong { color: rgba(255,255,255,.9); font-size: var(--cms-text-md); :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
+  span { color: rgba(255,255,255,.45); font-size: var(--cms-text-sm); font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
 }
 
 .delta {
-  font-size: 18px;
+  font-size: var(--cms-text-lg);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   &[data-sev='green'] { color: $green; }
@@ -69,7 +69,7 @@ $accent: #38BDF8;
   gap: 10px;
 }
 .cap-top {
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   color: rgba(255,255,255,.78);
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
   span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -80,7 +80,7 @@ $accent: #38BDF8;
 }
 .cap-sub {
   margin-top: 3px;
-  font-size: 10.5px;
+  font-size: var(--cms-text-xs);
   color: rgba(255,255,255,.42);
   font-variant-numeric: tabular-nums;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
@@ -118,7 +118,7 @@ $accent: #38BDF8;
   text-align: center;
   padding: 5px 7px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: .04em;
 }
@@ -129,8 +129,8 @@ $accent: #38BDF8;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  strong { color: rgba(255,255,255,.82); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
-  span { color: rgba(255,255,255,.38); font-size: 10.8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+  strong { color: rgba(255,255,255,.82); font-size: var(--cms-text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); } }
+  span { color: rgba(255,255,255,.38); font-size: var(--cms-text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
 }
 
 .audit-dot {
@@ -148,13 +148,13 @@ $accent: #38BDF8;
   min-height: 110px;
   color: rgba(255,255,255,.45);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--cms-text-sm);
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
   mat-icon { color: $green; }
 }
 
 @media (max-width: 480px) {
   .anomaly { align-items: flex-start; }
-  .delta { font-size: 15px; }
+  .delta { font-size: var(--cms-text-md); }
 }
 
