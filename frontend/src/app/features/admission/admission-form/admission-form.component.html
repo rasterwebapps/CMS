@@ -19,7 +19,7 @@
         <!-- ════════════════════════════════════════════════════════
              FROM-ENQUIRY MODE (new admission only)
              ════════════════════════════════════════════════════════ -->
-        @if (!isEdit() && mode() === 'from-enquiry') {
+        @if (!isEdit()) {
 
           <!-- Enquiry selector -->
           <div class="field-group">
@@ -729,7 +729,7 @@
             @if (saving()) {
               <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
             } @else {
-              {{ (!isEdit() && mode() === 'from-enquiry') ? 'Create Admission' : 'Save' }}
+              {{ !isEdit() ? 'Create Admission' : 'Save' }}
             }
           </button>
         </div>
