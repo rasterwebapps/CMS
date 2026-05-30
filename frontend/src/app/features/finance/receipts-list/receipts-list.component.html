@@ -104,6 +104,7 @@
         <mat-spinner diameter="36" aria-label="Loading receipts"></mat-spinner>
       </div>
     } @else {
+      <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
         <ng-container matColumnDef="receiptNumber">
@@ -226,6 +227,7 @@
           </td>
         </tr>
       </table>
+      </div>
       <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
     }
   </div>

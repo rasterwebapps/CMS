@@ -112,6 +112,7 @@
     } @else {
       <!-- Table view -->
       <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
         <!-- Name -->
@@ -178,6 +179,7 @@
           </td>
         </tr>
       </table>
+      </div>
       <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="25" showFirstLastButtons />
     </div>
     }

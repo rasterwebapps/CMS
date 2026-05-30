@@ -119,6 +119,7 @@
   <!-- ── Table view ────────────────────────────────────────────── -->
   @else {
     <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
         <ng-container matColumnDef="name">
@@ -192,6 +193,7 @@
           </td>
         </tr>
       </table>
+      </div>
 
       <mat-paginator
         [pageSizeOptions]="[5, 10, 25, 50]"

@@ -47,6 +47,7 @@
         <mat-spinner diameter="36" aria-label="Loading number sequences"></mat-spinner>
       </div>
     } @else {
+      <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
         <ng-container matColumnDef="seriesName">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Series</th>
@@ -106,6 +107,7 @@
           </td>
         </tr>
       </table>
+      </div>
       <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
     }
   </div>

@@ -232,6 +232,7 @@
     } @else {
       <!-- Table view: flat state list with country column -->
       <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
           <ng-container matColumnDef="name">
@@ -345,6 +346,7 @@
             </td>
           </tr>
         </table>
+        </div>
         <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
       </div>
     }

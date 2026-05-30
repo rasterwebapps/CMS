@@ -4241,20 +4241,15 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
 }
 
 // ── Table Card ────────────────────────────────────────────────
-// Always used alongside .content-card (which already adds flex: 1 and
-// display: flex / flex-direction: column).  The extra flex: 1 here ensures
-// the card grows to fill the remaining height inside .mlp-page, and
-// margin-top: auto on mat-paginator pins it to the bottom of the card so it
-// always appears at the bottom of the visible screen even with few rows.
+// Used alongside .content-card. The fixed-height list standard above
+// (via :has(.mlp-table-card)) makes the page fill the viewport and
+// the table-wrapper scroll internally, so the paginator always sits
+// at the bottom regardless of row count.
 .mlp-table-card {
   padding: 0;
   overflow: hidden;
   border-radius: 16px;
   flex: 1;
-
-  mat-paginator {
-    margin-top: auto;
-  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -4630,12 +4625,18 @@ html.large-text {
 
 
 // ─────────────────────────────────────────────────────────────
-// Admission Management fixed-height list standard
+// Universal fixed-height list standard — ALL table-list screens
 // main.app-content is the scroll container (flex: 1, overflow-y: auto).
-// These pages set height: 100% + overflow: hidden to OPT OUT of scrolling
-// — the table-wrapper inside handles its own internal scroll.
-// No viewport-unit math needed; the shell flex chain provides the bound.
+// Every page that shows a table opts out of page-level scroll here;
+// the table-wrapper handles its own internal scroll instead.
+// Pagination footer is therefore always visible at the viewport bottom —
+// even when there are zero or very few rows.
 // ─────────────────────────────────────────────────────────────
+
+// ── Shorthand: all page root selectors that carry a paginated table ──
+// Legacy dedicated classes + .admission-list-fixed-page + .mlp-page screens
+// (detected via :has(.mlp-table-card)) + department (.dept-list-page) +
+// lab-schedule (.list-page:has(mat-paginator)).
 :is(
   .enq-list-page,
   .adm-page,
@@ -4646,12 +4647,15 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) {
   // Fill the flex parent (main.app-content) exactly — no overflow, no scroll.
   height: 100% !important;
   min-height: 0 !important;
-  // Keep existing side + top padding; add a symmetrical bottom margin.
+  // Keep existing side + top padding; add a symmetrical bottom padding.
   padding-bottom: 20px !important;
   overflow: hidden;
   box-sizing: border-box;
@@ -4670,7 +4674,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) :is(
   .content-card,
   .mlp-table-card,
@@ -4679,6 +4686,7 @@ html.large-text {
   .doc-table-card,
   .docv-table-card,
   .adcomp-table-card,
+  .dept-table-card,
   .fee-finalization-table-card
 ) {
   flex: 1 1 auto;
@@ -4697,7 +4705,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) .table-wrapper {
   flex: 1 1 auto;
   min-height: 0;
@@ -4718,7 +4729,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) :is(.table-footer, .pagination-wrapper, mat-paginator, .mat-mdc-paginator) {
   flex-shrink: 0;
   background: var(--cms-bg-subtle) !important;
@@ -4734,7 +4748,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-outer-container,
 :is(
   .enq-list-page,
@@ -4746,7 +4763,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-container {
   background: transparent !important;
 }
@@ -4760,7 +4780,10 @@ html.large-text {
   .fpl-page,
   .stu-page,
   .rna-page,
-  .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
+  .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
+  .mlp-page:has(.mlp-table-card),
+  .dept-list-page,
+  .list-page:has(mat-paginator)
 ) :is(th.mat-header-cell, th.mat-mdc-header-cell) {
   background: var(--cms-bg-subtle) !important;
 }

@@ -59,7 +59,7 @@
         @if (loading()) {
           <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
         } @else {
-          <div class="table-container">
+          <div class="table-wrapper">
             <table mat-table [dataSource]="dataSource" matSort class="data-table">
               <ng-container matColumnDef="studentRollNumber">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll Number</th>
