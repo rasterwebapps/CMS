@@ -135,6 +135,7 @@ $ctrl-h: var(--cms-list-filter-height);
 }
 
 .date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
+.date-range-label { font-size: var(--cms-text-xs); font-weight: 500; color: var(--cms-text-muted); white-space: nowrap; }
 
 // ── Program / Course filter selects ───────────────────────────
 .enq-filter-select {
