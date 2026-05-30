@@ -9,6 +9,7 @@ import { ProgramService } from '../../program/program.service';
 import { Enquiry, EnquiryDocument } from '../enquiry.model';
 import { DocumentTypeInfo } from '../../program/program.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { MatIconModule } from '@angular/material/icon';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -24,7 +25,7 @@ interface VerificationRow {
 @Component({
   selector: 'app-document-verification-detail',
   standalone: true,
-  imports: [LowerCasePipe, CmsStatusBadgeComponent],
+  imports: [LowerCasePipe, MatIconModule, CmsStatusBadgeComponent],
   templateUrl: './document-verification-detail.component.html',
   styleUrl: './document-verification-detail.component.scss',
 })

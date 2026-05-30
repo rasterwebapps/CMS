@@ -11,7 +11,7 @@
       (keydown)="onKeydown($event, i)"
       [attr.tabindex]="tab.role === activeRole() ? 0 : -1"
     >
-      <span class="dash-tab__icon material-symbols-outlined">{{ tab.icon }}</span>
+      <mat-icon class="dash-tab__icon">{{ tab.icon }}</mat-icon>
       <span class="dash-tab__label">{{ tab.label }}</span>
     </button>
   }

@@ -171,6 +171,22 @@
   --cms-font-display: 'DM Sans', system-ui, sans-serif;
   --cms-font-mono:    'JetBrains Mono', monospace;
 
+  // ─── Font Size Scale ───
+  --cms-text-xs:   0.6875rem;  // 11px — form labels, micro text
+  --cms-text-sm:   0.75rem;    // 12px — badges, table headers
+  --cms-text-base: 0.875rem;   // 14px — body, table rows (default)
+  --cms-text-md:   1rem;       // 16px — card titles, toolbar items
+  --cms-text-lg:   1.125rem;   // 18px — H4, panel headers
+  --cms-text-xl:   1.5rem;     // 24px — H2/H3, section headings
+  --cms-text-2xl:  1.75rem;    // 28px — H1, page titles
+  --cms-text-3xl:  2.25rem;    // 36px — display headings
+
+  // ─── Line Height Scale ───
+  --cms-lh-tight:  1.2;   // headings
+  --cms-lh-snug:   1.4;   // labels, captions
+  --cms-lh-normal: 1.6;   // body (default)
+  --cms-lh-loose:  1.8;   // readable long-form text
+
   // ─── Additional Surface Tokens (from HTML prototype) ───
   --cms-bg-surface-2:   #F0F2FA;
   --cms-bg-surface-3:   #E8EBF5;
@@ -1988,14 +2004,29 @@ tr.mat-mdc-no-data-row {
   }
 }
 
-// ── Pagination ───────────────────────────────────
-.pagination-wrapper {
-  padding: 4px 8px;
-  border-top: 1px solid var(--cms-border-light);
+// ── Pagination footer — global (56 px, zero vertical padding so Material's
+//    min-height: 56px drives the height; border is additive at 1 px on top) ──
+.pagination-wrapper,
+.table-footer {
+  height: 56px;
+  box-sizing: content-box;       // border is outside the 56 px content area
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  background: var(--cms-bg-card);
+  flex-shrink: 0;
+  contain: layout;               // isolates reflow from the rest of the page
+  border-top: 1px solid var(--cms-border-light);
+  background: var(--cms-bg-subtle);
+  padding: 0 8px 0 16px;
+}
+
+.pagination-wrapper { justify-content: flex-end; }
+.table-footer       { justify-content: space-between; }
+
+// mat-paginator fills the remaining horizontal space inside the footer wrapper
+.pagination-wrapper > mat-paginator,
+.table-footer > mat-paginator {
+  flex: 1;
+  min-width: 0;
 }
 
 .mat-mdc-paginator {
@@ -2006,6 +2037,8 @@ tr.mat-mdc-no-data-row {
   .mat-mdc-paginator-page-size-label {
     color: var(--cms-text-secondary) !important;
     font-size: 0.8125rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums; // prevents layout shift when page range digits change
   }
 
   .mat-mdc-select-value {
@@ -4730,4 +4763,263 @@ html.large-text {
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail)
 ) :is(th.mat-header-cell, th.mat-mdc-header-cell) {
   background: var(--cms-bg-subtle) !important;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Self-hosted typefaces — zero external network dependency
+// Served from /assets/fonts/ so the app works identically on closed LAN networks.
+// Font stack and Angular Material typography are unchanged from the original design.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Inter (UI font — --cms-font-ui) ──────────────────────────────────────────
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/assets/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                 U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                 U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/assets/fonts/inter.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+// ── DM Sans (display font — --cms-font-display) ───────────────────────────────
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/assets/fonts/dm-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                 U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                 U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/assets/fonts/dm-sans.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: italic;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/assets/fonts/dm-sans-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+                 U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+                 U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: italic;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/assets/fonts/dm-sans-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+// ── JetBrains Mono (monospace font — --cms-font-mono) ────────────────────────
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/assets/fonts/jetbrains-mono.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+// ── Roboto (Angular Material typography) ─────────────────────────────────────
+// v51 is a variable font — one file covers wght 300, 400, and 500.
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 300 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/assets/fonts/roboto.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                 U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Material Symbols Rounded — Self-hosted variable font
+// Eliminates Google Fonts CDN round-trip; critical for LAN/intranet deployments.
+// @font-face must live in the global stylesheet (not a component) so the browser
+// can resolve the font before Angular renders any mat-icon.
+// ═══════════════════════════════════════════════════════════════════════════════
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/assets/fonts/material-symbols-rounded.woff2') format('woff2');
+}
+
+// ── 1. Base defaults ──────────────────────────────────────────────────────────
+// All mat-icon elements get the font-family and clean variable-font defaults.
+// wght 300 = fine strokes; FILL 0 = outlined; GRAD 0 = neutral contrast.
+// Transition animates the FILL axis flip on active state changes (180ms).
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'opsz' 24, 'wght' 300, 'FILL' 0, 'GRAD' 0;
+  transition: font-variation-settings 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ── 2. Active nav — filled + bolder ──────────────────────────────────────────
+// FILL 1 gives a clear "you are here" signal; wght 500 adds visual weight.
+.active-link .material-symbols-rounded,
+.rail-active .material-symbols-rounded,
+.top-level-active .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' 0;
+}
+
+// ── 3. Hover — weight nudge on interactive icon buttons ──────────────────────
+// Subtle wght shift on approach makes icons feel tactile without a color change.
+.toolbar-action-btn:hover .material-symbols-rounded,
+.rail-group-btn:hover .material-symbols-rounded,
+.toolbar-hamburger-btn:hover .material-symbols-rounded,
+.toolbar-mobile-menu-btn:hover .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
+}
+
+// ── 4. Semantic fills — icon meaning should match visual weight ───────────────
+// Success/completion icons: FILL 1 always — an outlined checkmark feels ambiguous.
+// Danger/warning icons: FILL 1 + wght 500 — urgency demands visual boldness.
+// Applied via type-variant CSS classes on known semantic containers.
+.cms-toast--success .material-symbols-rounded,
+.cms-toast--info    .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' 0;
+}
+
+.cms-toast--error   .material-symbols-rounded,
+.cms-toast--warning .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 600, 'FILL' 1, 'GRAD' 0;
+}
+
+// ── 5. Contextual optical sizing (opsz) ──────────────────────────────────────
+// opsz should match the rendered px size: sharper junctions at small sizes,
+// more refined curves at large. Global default is opsz 24.
+//
+// Small (14–16 px) → opsz 20 ─────────────────────────────────────────────────
+.tip-card__icon .material-symbols-rounded,
+.cms-card__header-icon .material-symbols-rounded {
+  font-variation-settings: 'opsz' 20, 'wght' 300, 'FILL' 0, 'GRAD' 0;
+}
+
+// Direct small-icon classes (applied to mat-icon host element)
+.nav-group-icon.material-symbols-rounded,
+.nav-group-chevron.material-symbols-rounded,
+.second-tray-header-icon.material-symbols-rounded,
+.sidenav-search-icon.material-symbols-rounded,
+.breadcrumb-sep.material-symbols-rounded {
+  font-variation-settings: 'opsz' 20, 'wght' 300, 'FILL' 0, 'GRAD' 0;
+}
+
+// ── 6. Dark mode overrides ────────────────────────────────────────────────────
+// GRAD -25: prevents optical blooming where light strokes on dark bg appear thicker.
+// wght bumped slightly (300→350 default, 500→500 active) to stay readable.
+html.dark-theme .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 350, 'FILL' 0, 'GRAD' -25;
+}
+
+html.dark-theme .active-link .material-symbols-rounded,
+html.dark-theme .rail-active .material-symbols-rounded,
+html.dark-theme .top-level-active .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' -25;
+}
+
+html.dark-theme .toolbar-action-btn:hover .material-symbols-rounded,
+html.dark-theme .rail-group-btn:hover .material-symbols-rounded,
+html.dark-theme .toolbar-hamburger-btn:hover .material-symbols-rounded,
+html.dark-theme .toolbar-mobile-menu-btn:hover .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' -25;
+}
+
+html.dark-theme .cms-toast--success .material-symbols-rounded,
+html.dark-theme .cms-toast--info    .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' -25;
+}
+
+html.dark-theme .cms-toast--error   .material-symbols-rounded,
+html.dark-theme .cms-toast--warning .material-symbols-rounded {
+  font-variation-settings: 'opsz' 24, 'wght' 600, 'FILL' 1, 'GRAD' -25;
+}
+
+html.dark-theme .tip-card__icon .material-symbols-rounded,
+html.dark-theme .cms-card__header-icon .material-symbols-rounded,
+html.dark-theme .nav-group-icon.material-symbols-rounded,
+html.dark-theme .nav-group-chevron.material-symbols-rounded,
+html.dark-theme .second-tray-header-icon.material-symbols-rounded,
+html.dark-theme .sidenav-search-icon.material-symbols-rounded,
+html.dark-theme .breadcrumb-sep.material-symbols-rounded {
+  font-variation-settings: 'opsz' 20, 'wght' 350, 'FILL' 0, 'GRAD' -25;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) .material-symbols-rounded {
+    font-variation-settings: 'opsz' 24, 'wght' 350, 'FILL' 0, 'GRAD' -25;
+  }
+
+  html:not(.light-theme) .active-link .material-symbols-rounded,
+  html:not(.light-theme) .rail-active .material-symbols-rounded,
+  html:not(.light-theme) .top-level-active .material-symbols-rounded {
+    font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' -25;
+  }
+
+  html:not(.light-theme) .toolbar-action-btn:hover .material-symbols-rounded,
+  html:not(.light-theme) .rail-group-btn:hover .material-symbols-rounded,
+  html:not(.light-theme) .toolbar-hamburger-btn:hover .material-symbols-rounded,
+  html:not(.light-theme) .toolbar-mobile-menu-btn:hover .material-symbols-rounded {
+    font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' -25;
+  }
+
+  html:not(.light-theme) .cms-toast--success .material-symbols-rounded,
+  html:not(.light-theme) .cms-toast--info    .material-symbols-rounded {
+    font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' -25;
+  }
+
+  html:not(.light-theme) .cms-toast--error   .material-symbols-rounded,
+  html:not(.light-theme) .cms-toast--warning .material-symbols-rounded {
+    font-variation-settings: 'opsz' 24, 'wght' 600, 'FILL' 1, 'GRAD' -25;
+  }
+
+  html:not(.light-theme) .tip-card__icon .material-symbols-rounded,
+  html:not(.light-theme) .cms-card__header-icon .material-symbols-rounded,
+  html:not(.light-theme) .nav-group-icon.material-symbols-rounded,
+  html:not(.light-theme) .nav-group-chevron.material-symbols-rounded,
+  html:not(.light-theme) .second-tray-header-icon.material-symbols-rounded,
+  html:not(.light-theme) .sidenav-search-icon.material-symbols-rounded,
+  html:not(.light-theme) .breadcrumb-sep.material-symbols-rounded {
+    font-variation-settings: 'opsz' 20, 'wght' 350, 'FILL' 0, 'GRAD' -25;
+  }
 }

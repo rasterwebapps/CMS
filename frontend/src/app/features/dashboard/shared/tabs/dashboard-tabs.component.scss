@@ -18,7 +18,7 @@
   border-radius: 8px 8px 0 0;
   background: transparent;
   color: var(--cms-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -55,16 +55,17 @@
 
     .dash-tab__icon {
       color: var(--tab-color, var(--cms-primary));
+      font-variation-settings: 'opsz' 24, 'wght' 500, 'FILL' 1, 'GRAD' 0;
     }
   }
 }
 
 .dash-tab__icon {
-  font-size: 20px;
+  font-size: 1.25rem;
   width: 20px;
   height: 20px;
-  font-variation-settings: 'FILL' 0;
-  transition: color 0.2s ease;
+  font-variation-settings: 'opsz' 24, 'wght' 300, 'FILL' 0, 'GRAD' 0;
+  transition: color 0.2s ease, font-variation-settings 0.18s ease;
 }
 
 .dash-tab__label {

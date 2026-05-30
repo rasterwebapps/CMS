@@ -109,7 +109,7 @@
                [class.doc-row--saving]="row.saving">
 
             <!-- Icon -->
-            <span class="doc-icon material-symbols-rounded">{{ getDocumentIcon(row.documentType) }}</span>
+            <mat-icon class="doc-icon">{{ getDocumentIcon(row.documentType) }}</mat-icon>
 
             <!-- Info -->
             <div class="doc-info">
@@ -210,7 +210,7 @@
             <div class="doc-row doc-row--optional"
                  [class.doc-row--verified]="row.status === 'VERIFIED'"
                  [class.doc-row--rejected]="row.status === 'REJECTED'">
-              <span class="doc-icon material-symbols-rounded">{{ getDocumentIcon(row.documentType) }}</span>
+              <mat-icon class="doc-icon">{{ getDocumentIcon(row.documentType) }}</mat-icon>
               <div class="doc-info">
                 <span class="doc-label">{{ formatDocType(row.documentType) }}</span>
                 @if (row.document?.fileName) {

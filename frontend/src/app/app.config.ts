@@ -13,6 +13,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 // plain Nginx SPA (no SSR Node.js server). Including it without SSR causes unnecessary
 // hydration passes and can contribute to stale-state change-detection issues.
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
+import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -33,6 +34,10 @@ export const appConfig: ApplicationConfig = {
     {
       provide: MAT_DIALOG_DEFAULT_OPTIONS,
       useValue: { panelClass: 'cms-dialog-panel' },
+    },
+    {
+      provide: MAT_ICON_DEFAULT_OPTIONS,
+      useValue: { fontSet: 'material-symbols-rounded' },
     },
     provideAppInitializer(async () => {
       const authService = inject(AuthService);

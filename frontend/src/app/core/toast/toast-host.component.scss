@@ -54,7 +54,7 @@
 
   &__icon {
     flex-shrink: 0;
-    font-size: 22px;
+    font-size: 1.375rem;
     width: 22px;
     height: 22px;
     line-height: 22px;
@@ -68,7 +68,7 @@
 
   &__message {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: var(--cms-text-base);
     line-height: 1.4;
     word-break: break-word;
   }
@@ -88,7 +88,7 @@
     transition: background 0.15s ease, color 0.15s ease;
 
     mat-icon {
-      font-size: 18px;
+      font-size: var(--cms-text-lg);
       width: 18px;
       height: 18px;
     }

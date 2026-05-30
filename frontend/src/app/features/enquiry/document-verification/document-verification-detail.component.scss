@@ -58,7 +58,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--cms-primary) 15%, transparent);
   color: var(--cms-primary);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -76,7 +76,7 @@
 
 .hero-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--cms-text-lg);
   font-weight: 600;
   color: var(--cms-text-primary);
   line-height: 1.2;
@@ -95,7 +95,7 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   background: color-mix(in srgb, var(--cms-primary) 10%, transparent);
   color: var(--cms-primary);
@@ -123,7 +123,7 @@
 }
 
 .hero-progress__num {
-  font-size: 1.6rem;
+  font-size: var(--cms-text-xl);
   font-weight: 700;
   color: var(--cms-text-primary);
   line-height: 1;
@@ -133,13 +133,13 @@
 }
 
 .hero-progress__of {
-  font-size: 0.85rem;
+  font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
   font-weight: 400;
 }
 
 .hero-progress__lbl {
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   letter-spacing: 0.04em;
 }
@@ -165,7 +165,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.7rem;
+  font-size: var(--cms-text-xs);
   color: #22c55e;
   font-weight: 500;
   white-space: nowrap;
@@ -193,8 +193,8 @@
     gap: 2px;
     flex: 1;
 
-    strong { font-size: 0.85rem; }
-    span   { font-size: 0.75rem; opacity: 0.85; }
+    strong { font-size: var(--cms-text-base); }
+    span   { font-size: var(--cms-text-sm); opacity: 0.85; }
   }
 }
 
@@ -205,7 +205,7 @@
   border: 1px solid color-mix(in srgb, #22c55e 40%, transparent);
   background: none;
   color: #15803d;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -226,19 +226,19 @@
 .section-heading {
   margin: 0;
   padding: 14px 20px 10px;
-  font-size: 0.78rem;
+  font-size: var(--cms-text-sm);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--cms-text-muted);
   border-bottom: 1px solid var(--cms-border-default);
 
-  &--optional { color: var(--cms-text-muted); font-size: 0.73rem; }
+  &--optional { color: var(--cms-text-muted); font-size: var(--cms-text-sm); }
 }
 
 .no-docs-note {
   padding: 14px 20px;
-  font-size: 0.8rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin: 0;
 }
@@ -265,7 +265,7 @@
 
 // ── Document icon ─────────────────────────────────────────────────────────
 .doc-icon {
-  font-size: 20px;
+  font-size: 1.25rem;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -275,7 +275,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings: 'opsz' 20, 'wght' 400, 'FILL' 1, 'GRAD' 0;
+  transition: font-variation-settings 0.18s ease;
 }
 
 // ── Document info ─────────────────────────────────────────────────────────
@@ -288,13 +289,13 @@
 }
 
 .doc-label {
-  font-size: 0.83rem;
+  font-size: var(--cms-text-base);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
 
 .doc-meta {
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -307,7 +308,7 @@
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   color: #ef4444;
   margin-top: 2px;
   line-height: 1.4;
@@ -323,7 +324,7 @@
   align-items: center;
   padding: 2px 9px;
   border-radius: 10px;
-  font-size: 0.68rem;
+  font-size: var(--cms-text-xs);
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -370,7 +371,7 @@
   border: 1px solid var(--cms-border-default);
   background: var(--cms-bg-card);
   color: var(--cms-text-secondary);
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
@@ -388,7 +389,7 @@
   border: none;
   background: color-mix(in srgb, #22c55e 15%, transparent);
   color: #15803d;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.12s;
@@ -407,7 +408,7 @@
   border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
   background: none;
   color: #b91c1c;
-  font-size: 0.72rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s;
@@ -439,7 +440,7 @@
   border-bottom: 1px dashed color-mix(in srgb, #ef4444 25%, transparent);
 
   &__label {
-    font-size: 0.78rem;
+    font-size: var(--cms-text-sm);
     color: var(--cms-text-secondary);
 
     strong { color: var(--cms-text-primary); }
@@ -453,7 +454,7 @@
     border-radius: 8px;
     background: var(--cms-bg-card);
     color: var(--cms-text-primary);
-    font-size: 0.8rem;
+    font-size: var(--cms-text-sm);
     resize: vertical;
     outline: none;
     box-sizing: border-box;
@@ -476,7 +477,7 @@
   border: 1px solid var(--cms-border-default);
   background: var(--cms-bg-card);
   color: var(--cms-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
@@ -491,7 +492,7 @@
   border: none;
   background: color-mix(in srgb, #ef4444 15%, transparent);
   color: #b91c1c;
-  font-size: 0.75rem;
+  font-size: var(--cms-text-sm);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.12s;
