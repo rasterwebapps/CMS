@@ -70,6 +70,11 @@ services:
       # cms_app has SELECT/INSERT/UPDATE/DELETE only — not the Postgres superuser.
       DB_USERNAME: ${BACKEND_DB_USERNAME}
       DB_PASSWORD: ${BACKEND_DB_PASSWORD}
+      # Flyway needs the DB owner role for DDL migrations (ALTER TABLE, CREATE TABLE, etc.).
+      # The application datasource above remains low-privilege after startup.
+      FLYWAY_DB_URL: jdbc:postgresql://localhost:5433/cms
+      FLYWAY_DB_USERNAME: ${DB_USERNAME}
+      FLYWAY_DB_PASSWORD: ${DB_PASSWORD}
       # Primary issuer remains for compatibility; SecurityConfig accepts all
       # issuers listed in KEYCLOAK_ALLOWED_ISSUERS below.
       KEYCLOAK_ISSUER_URI: https://${DEPLOY_HOST}/realms/cms
