@@ -74,6 +74,34 @@
       }
     </select>
 
+    @if (departments().length > 0) {
+      <select class="mlp-filter-select" [value]="filterDepartment()"
+              (change)="filterDepartment.set($any($event.target).value); onFilterChange()" aria-label="Filter by department">
+        <option value="ALL">All Departments</option>
+        @for (d of departments(); track d) {
+          <option [value]="d">{{ d }}</option>
+        }
+      </select>
+    }
+
+    @if (academicYears().length > 0) {
+      <select class="mlp-filter-select" [value]="filterAcademicYear()"
+              (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
+        <option value="ALL">All Batches</option>
+        @for (ay of academicYears(); track ay) {
+          <option [value]="ay">{{ ay }}</option>
+        }
+      </select>
+    }
+
+    <select class="mlp-filter-select" [value]="filterFeeStatus()"
+            (change)="filterFeeStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by fee status">
+      <option value="ALL">All Fee Status</option>
+      @for (fs of FEE_STATUSES; track fs.value) {
+        <option [value]="fs.value">{{ fs.label }}</option>
+      }
+    </select>
+
     <div class="toolbar-right">
       @if (hasActiveFilters()) {
         <button class="btn-toolbar btn-toolbar--clear" (click)="clearAllFilters()" aria-label="Clear all filters">

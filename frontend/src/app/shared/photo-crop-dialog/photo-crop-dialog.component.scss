@@ -34,9 +34,11 @@
 }
 
 .pcd-title-icon {
-  font-family: 'Material Icons';
   font-size: var(--cms-text-lg);
+  width: var(--cms-text-lg);
+  height: var(--cms-text-lg);
   color: var(--cms-primary, #6366f1);
+  vertical-align: middle;
 }
 
 .pcd-close-btn {

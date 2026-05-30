@@ -23,7 +23,7 @@
 
       &:hover { color: var(--mat-sys-primary); }
 
-      .material-icons { font-size: var(--cms-text-md); }
+      mat-icon { font-size: var(--cms-text-md); width: var(--cms-text-md); height: var(--cms-text-md); }
     }
   }
 }

@@ -24,6 +24,7 @@ import { computeInitials } from '../../shared/utils/initials';
 import { AppDatePipe } from '../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../core/toast/toast.service';
 import { DocumentSlotsService } from '../dashboard/services/document-slots.service';
+import { NotificationPreferenceService } from './notification-preference.service';
 import {
   PhotoCropDialogComponent,
   PhotoCropDialogData,
@@ -40,15 +41,16 @@ interface NotifPrefs {
 interface NotifCategory { key: string; label: string; icon: string; desc: string; }
 const NOTIF_STORAGE_KEY = 'cms_notif_prefs';
 const NOTIF_CATEGORIES: NotifCategory[] = [
-  { key: 'feeAlerts',          label: 'Fee Alerts',            icon: 'payments',     desc: 'Due dates and payment confirmations' },
-  { key: 'documentReminders',  label: 'Document Reminders',    icon: 'folder',       desc: 'Upload prompts and verification status' },
-  { key: 'admissionUpdates',   label: 'Admission Updates',     icon: 'how_to_reg',   desc: 'Enquiry and admission status changes' },
-  { key: 'systemAnnouncements',label: 'System Announcements',  icon: 'campaign',     desc: 'App updates and maintenance notices' },
-  { key: 'examSchedule',       label: 'Exam & Schedule',       icon: 'event_note',   desc: 'Exam dates and timetable changes' },
+  { key: 'feeAlerts',           label: 'Fee Alerts',            icon: 'payments',     desc: 'Due dates and payment confirmations' },
+  { key: 'documentReminders',   label: 'Document Reminders',    icon: 'folder',       desc: 'Upload prompts and verification status' },
+  { key: 'admissionUpdates',    label: 'Admission Updates',     icon: 'how_to_reg',   desc: 'Enquiry and admission status changes' },
+  { key: 'systemAnnouncements', label: 'System Announcements',  icon: 'campaign',     desc: 'App updates and maintenance notices' },
+  { key: 'examSchedule',        label: 'Exam & Schedule',       icon: 'event_note',   desc: 'Exam dates and timetable changes' },
+  { key: 'attendanceAlerts',    label: 'Attendance Alerts',     icon: 'checklist',    desc: 'Low attendance warnings and thresholds' },
 ];
 const DEFAULT_NOTIF_PREFS: NotifPrefs = {
   channel: 'in-app',
-  categories: { feeAlerts: true, documentReminders: true, admissionUpdates: true, systemAnnouncements: true, examSchedule: false },
+  categories: { feeAlerts: true, documentReminders: true, admissionUpdates: true, systemAnnouncements: true, examSchedule: false, attendanceAlerts: true },
 };
 
 // ── Permission module label map ───────────────────────────────────────────────
@@ -178,13 +180,34 @@ export class ProfileComponent implements OnInit, OnDestroy {
     } catch { /* ignore */ }
   }
 
-  // ── Notification preferences (localStorage) ───────────────────────────────
+  // ── Notification preferences (backend-persisted) ─────────────────────────
+  private readonly notifService = inject(NotificationPreferenceService);
   protected readonly notifCategories = NOTIF_CATEGORIES;
-  protected readonly notifPrefs      = signal<NotifPrefs>(this.loadNotifPrefs());
+  protected readonly notifPrefs      = signal<NotifPrefs>(this.loadLocalFallback());
+  protected readonly notifSaving     = signal(false);
+
+  private initNotifPrefs(): void {
+    this.notifService.load().subscribe({
+      next: (prefs) => this.applyApiPrefs(prefs),
+      error: () => { /* keep local fallback */ },
+    });
+  }
+
+  private applyApiPrefs(prefs: { categoryKey: string; enabled: boolean; channel: string }[]): void {
+    const cats: Record<string, boolean> = { ...DEFAULT_NOTIF_PREFS.categories };
+    let channel: NotifPrefs['channel'] = 'in-app';
+    for (const p of prefs) {
+      cats[p.categoryKey] = p.enabled;
+      if (prefs.indexOf(p) === 0) {
+        channel = NotificationPreferenceService.toUiChannel(p.channel);
+      }
+    }
+    this.notifPrefs.set({ channel, categories: cats });
+  }
 
   protected setNotifChannel(ch: NotifPrefs['channel']): void {
     this.notifPrefs.update(p => ({ ...p, channel: ch }));
-    this.saveNotifPrefs();
+    this.persistAllPrefs();
   }
 
   protected toggleNotifCategory(key: string): void {
@@ -192,19 +215,40 @@ export class ProfileComponent implements OnInit, OnDestroy {
       ...p,
       categories: { ...p.categories, [key]: !p.categories[key] },
     }));
-    this.saveNotifPrefs();
+    this.persistOneCategory(key);
   }
 
-  private loadNotifPrefs(): NotifPrefs {
+  private persistOneCategory(key: string): void {
+    const prefs = this.notifPrefs();
+    this.notifSaving.set(true);
+    this.notifService.updateOne(
+      key,
+      prefs.categories[key] ?? true,
+      NotificationPreferenceService.toApiChannel(prefs.channel)
+    ).subscribe({ next: () => this.notifSaving.set(false), error: () => this.notifSaving.set(false) });
+  }
+
+  private persistAllPrefs(): void {
+    const prefs = this.notifPrefs();
+    const apiChannel = NotificationPreferenceService.toApiChannel(prefs.channel);
+    const payload = NOTIF_CATEGORIES.map(cat => ({
+      categoryKey: cat.key,
+      enabled: prefs.categories[cat.key] ?? true,
+      channel: apiChannel,
+    }));
+    this.notifSaving.set(true);
+    this.notifService.updateAll(payload).subscribe({
+      next: () => this.notifSaving.set(false),
+      error: () => this.notifSaving.set(false),
+    });
+  }
+
+  private loadLocalFallback(): NotifPrefs {
     try {
       const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
       if (raw) return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(raw) };
     } catch { /* ignore */ }
     return { ...DEFAULT_NOTIF_PREFS, categories: { ...DEFAULT_NOTIF_PREFS.categories } };
-  }
-
-  private saveNotifPrefs(): void {
-    try { localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(this.notifPrefs())); } catch { /* ignore */ }
   }
 
   // ── Role & Permissions ────────────────────────────────────────────────────
@@ -353,6 +397,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Reapply saved accessibility prefs on page load
     document.documentElement.classList.toggle('reduce-motion', this.reduceMotion());
     document.documentElement.classList.toggle('large-text',    this.largeText());
+    // Load notification preferences from backend
+    this.initNotifPrefs();
     // Load blood group master
     this.bloodGroupService.getActiveBloodGroups().subscribe({
       next: groups => this.bloodGroups.set(groups),

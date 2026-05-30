@@ -48,6 +48,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     boolean existsByCohortId(Long cohortId);
 
+    List<Student> findByCohortAdmissionAcademicYearId(Long academicYearId);
+
+    List<Student> findByProgramIdAndStatus(Long programId, StudentStatus status);
+
     long countByGender(Gender gender);
 
     long countByAdmissionCategory(AdmissionCategory admissionCategory);

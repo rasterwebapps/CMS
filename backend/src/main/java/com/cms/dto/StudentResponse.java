@@ -70,6 +70,11 @@ public record StudentResponse(
     String emergencyContactRelationship,
     String emergencyContactPhone,
 
+    // Explorer / filter fields (computed, may be null)
+    Long admissionAcademicYearId,
+    String admissionAcademicYearName,
+    String feeStatus,
+
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -88,6 +93,6 @@ public record StudentResponse(
             admissionDate, labBatch, status, null, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
-            null, null, null, null, createdAt, updatedAt);
+            null, null, null, null, null, null, null, createdAt, updatedAt);
     }
 }

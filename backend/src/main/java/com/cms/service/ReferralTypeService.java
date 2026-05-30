@@ -99,7 +99,12 @@ public class ReferralTypeService {
                 "Commission amount must be greater than zero when commission is enabled");
         }
 
-        referralType.setName(name);
+        if (!isSystemDefined) {
+            referralType.setName(name);
+        } else if (!name.equalsIgnoreCase(referralType.getName())) {
+            throw new IllegalArgumentException(
+                "System-defined referral type names cannot be changed");
+        }
         referralType.setCommissionAmount(request.commissionAmount());
         referralType.setDescription(trim(request.description()));
 

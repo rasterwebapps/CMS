@@ -1,7 +1,10 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +30,8 @@ import com.cms.model.EnquiryDocumentHistory;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.StudentProgramTransfer;
+import com.cms.model.FeeDemand;
+import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.StudentStatus;
@@ -35,6 +40,7 @@ import com.cms.repository.CourseRepository;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.EnquiryDocumentHistoryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
+import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentProgramTransferRepository;
 import com.cms.repository.StudentRepository;
@@ -52,6 +58,7 @@ public class StudentService {
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final EnquiryDocumentHistoryRepository documentHistoryRepository;
     private final StudentProgramTransferRepository transferRepository;
+    private final FeeDemandRepository feeDemandRepository;
     private final CurrentUserResolver currentUserResolver;
 
     public StudentService(StudentRepository studentRepository, ProgramRepository programRepository,
@@ -60,6 +67,7 @@ public class StudentService {
                           EnquiryDocumentRepository enquiryDocumentRepository,
                           EnquiryDocumentHistoryRepository documentHistoryRepository,
                           StudentProgramTransferRepository transferRepository,
+                          FeeDemandRepository feeDemandRepository,
                           CurrentUserResolver currentUserResolver) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
@@ -69,6 +77,7 @@ public class StudentService {
         this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.documentHistoryRepository = documentHistoryRepository;
         this.transferRepository = transferRepository;
+        this.feeDemandRepository = feeDemandRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -144,9 +153,56 @@ public class StudentService {
     }
 
     public List<StudentResponse> findAll() {
-        return studentRepository.findAll().stream()
-            .map(this::toResponse)
+        List<Student> students = studentRepository.findAll();
+        return enrichAndMap(students);
+    }
+
+    /** Explorer: filter by academicYearId and/or feeStatus. Null params = no filter. */
+    public List<StudentResponse> findExplorer(Long academicYearId, String feeStatus) {
+        List<Student> students = academicYearId != null
+            ? studentRepository.findByCohortAdmissionAcademicYearId(academicYearId)
+            : studentRepository.findAll();
+        List<StudentResponse> responses = enrichAndMap(students);
+        if (feeStatus != null && !feeStatus.isBlank()) {
+            responses = responses.stream()
+                .filter(r -> feeStatus.equalsIgnoreCase(r.feeStatus()))
+                .toList();
+        }
+        return responses;
+    }
+
+    /** Load demands for all students in one query, compute fee status, then map to response. */
+    private List<StudentResponse> enrichAndMap(List<Student> students) {
+        if (students.isEmpty()) return List.of();
+        Collection<Long> ids = students.stream().map(Student::getId).toList();
+        Map<Long, String> feeStatusByStudent = computeFeeStatusMap(ids);
+        return students.stream()
+            .map(s -> toResponseWithExtras(s, feeStatusByStudent.getOrDefault(s.getId(), "NOT_ASSIGNED")))
             .toList();
+    }
+
+    /** Bulk compute fee status for a set of student IDs. Returns "PAID", "PARTIAL", "UNPAID", "NOT_ASSIGNED". */
+    private Map<Long, String> computeFeeStatusMap(Collection<Long> studentIds) {
+        List<FeeDemand> demands = feeDemandRepository.findByStudentIdIn(studentIds);
+        Map<Long, List<DemandStatus>> byStudent = new HashMap<>();
+        for (FeeDemand d : demands) {
+            Long sid = d.getStudentTermEnrollment().getStudent().getId();
+            byStudent.computeIfAbsent(sid, k -> new ArrayList<>()).add(d.getStatus());
+        }
+        Map<Long, String> result = new HashMap<>();
+        for (Map.Entry<Long, List<DemandStatus>> entry : byStudent.entrySet()) {
+            result.put(entry.getKey(), aggregateFeeStatus(entry.getValue()));
+        }
+        return result;
+    }
+
+    private String aggregateFeeStatus(List<DemandStatus> statuses) {
+        if (statuses.isEmpty()) return "NOT_ASSIGNED";
+        boolean allPaidOrWaived = statuses.stream().allMatch(s -> s == DemandStatus.PAID || s == DemandStatus.WAIVED);
+        if (allPaidOrWaived) return "PAID";
+        boolean anyPartial = statuses.stream().anyMatch(s -> s == DemandStatus.PARTIAL);
+        if (anyPartial) return "PARTIAL";
+        return "UNPAID";
     }
 
     public StudentResponse findById(Long id) {
@@ -321,7 +377,17 @@ public class StudentService {
     }
 
     private StudentResponse toResponse(Student student) {
+        return toResponseWithExtras(student, null);
+    }
+
+    private StudentResponse toResponseWithExtras(Student student, String feeStatus) {
         Address address = student.getAddress();
+        Long ayId = null;
+        String ayName = null;
+        if (student.getCohort() != null && student.getCohort().getAdmissionAcademicYear() != null) {
+            ayId   = student.getCohort().getAdmissionAcademicYear().getId();
+            ayName = student.getCohort().getAdmissionAcademicYear().getName();
+        }
         return new StudentResponse(
             student.getId(),
             student.getRollNumber(),
@@ -373,6 +439,9 @@ public class StudentService {
             student.getEmergencyContactName(),
             student.getEmergencyContactRelationship(),
             student.getEmergencyContactPhone(),
+            ayId,
+            ayName,
+            feeStatus,
             student.getCreatedAt(),
             student.getUpdatedAt()
         );

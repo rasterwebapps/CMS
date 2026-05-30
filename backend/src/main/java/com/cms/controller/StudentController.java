@@ -54,14 +54,27 @@ public class StudentController {
     public ResponseEntity<List<StudentResponse>> findAll(
             @RequestParam(required = false) Long programId,
             @RequestParam(required = false) StudentStatus status,
-            @RequestParam(required = false) String labBatch) {
+            @RequestParam(required = false) String labBatch,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) String feeStatus,
+            @RequestParam(required = false) Boolean activeOnly) {
         List<StudentResponse> students;
-        if (programId != null) {
+        if (programId != null && status != null) {
+            // Dual filter: program + status
+            students = studentService.findByProgramId(programId).stream()
+                .filter(s -> s.status() == status)
+                .toList();
+        } else if (programId != null) {
             students = studentService.findByProgramId(programId);
         } else if (status != null) {
             students = studentService.findByStatus(status);
         } else if (labBatch != null) {
             students = studentService.findByLabBatch(labBatch);
+        } else if (academicYearId != null || feeStatus != null) {
+            // Explorer mode: supports academicYear + feeStatus filters with enrichment
+            students = studentService.findExplorer(academicYearId, feeStatus);
+        } else if (Boolean.TRUE.equals(activeOnly)) {
+            students = studentService.findByStatus(StudentStatus.ACTIVE);
         } else {
             students = studentService.findAll();
         }

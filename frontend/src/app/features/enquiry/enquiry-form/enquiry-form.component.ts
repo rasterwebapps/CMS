@@ -585,7 +585,7 @@ export class EnquiryFormComponent implements OnInit {
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
       feeGuidelineTotal: this.totalFees() || undefined,
-      referralAdditionalAmount: undefined,
+      referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
       finalCalculatedFee: this.finalCalculatedFee() || undefined,
       studentType: v.studentType || undefined,
       yearWiseFees: this.yearWiseFees() || undefined,

@@ -55,6 +55,13 @@ export interface Student {
   emergencyContactPhone?: string;
   programId: number;
   programName: string;
+  courseId?: number;
+  courseName?: string;
+  specializationDepartmentId?: number;
+  specializationDepartmentName?: string;
+  admissionAcademicYearId?: number;
+  admissionAcademicYearName?: string;
+  feeStatus?: string;
   yearOfStudy: number;
   admissionDate: string;
   labBatch?: string;

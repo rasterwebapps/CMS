@@ -17,6 +17,7 @@
     <cms-empty-state icon="verified" title="No pending applications" subtitle="Scholarship applications awaiting approval will appear here." />
   } @else {
     <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
       <table mat-table [dataSource]="sortedApplications()" matSort (matSortChange)="onSort($event)" class="modern-table">
         <ng-container matColumnDef="studentName">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
@@ -66,6 +67,7 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
       </table>
+      </div>
     </div>
   }
 </div>

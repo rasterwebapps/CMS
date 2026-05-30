@@ -56,9 +56,12 @@ export class StudentListComponent implements OnInit {
   protected readonly computeInitials = computeInitials;
 
   // ── Filters ──────────────────────────────────────────────────────────────
-  protected filterProgram  = signal<string>('ALL');
-  protected filterStatus   = signal<string>('ALL');
-  protected filterSemester = signal<string>('ALL');
+  protected filterProgram     = signal<string>('ALL');
+  protected filterStatus      = signal<string>('ALL');
+  protected filterSemester    = signal<string>('ALL');
+  protected filterDepartment  = signal<string>('ALL');
+  protected filterAcademicYear = signal<string>('ALL');
+  protected filterFeeStatus   = signal<string>('ALL');
   private readonly allStudents = signal<Student[]>([]);
   protected readonly programs = computed(() =>
     [...new Set(this.allStudents().map(s => s.programName).filter(Boolean))].sort() as string[]
@@ -66,12 +69,27 @@ export class StudentListComponent implements OnInit {
   protected readonly semesters = computed(() =>
     [...new Set(this.allStudents().map(s => String(s.yearOfStudy)).filter(Boolean))].sort((a, b) => +a - +b)
   );
+  protected readonly departments = computed(() =>
+    [...new Set(this.allStudents().map(s => s.specializationDepartmentName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly academicYears = computed(() =>
+    [...new Set(this.allStudents().map(s => s.admissionAcademicYearName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly FEE_STATUSES = [
+    { value: 'PAID',         label: 'Paid' },
+    { value: 'PARTIAL',      label: 'Partially Paid' },
+    { value: 'UNPAID',       label: 'Unpaid' },
+    { value: 'NOT_ASSIGNED', label: 'Not Assigned' },
+  ];
   protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly hasActiveFilters = computed(() =>
-    this.searchValue() !== '' ||
-    this.filterProgram()  !== 'ALL' ||
-    this.filterStatus()   !== 'ALL' ||
-    this.filterSemester() !== 'ALL'
+    this.searchValue()        !== '' ||
+    this.filterProgram()      !== 'ALL' ||
+    this.filterStatus()       !== 'ALL' ||
+    this.filterSemester()     !== 'ALL' ||
+    this.filterDepartment()   !== 'ALL' ||
+    this.filterAcademicYear() !== 'ALL' ||
+    this.filterFeeStatus()    !== 'ALL'
   );
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -124,19 +142,28 @@ export class StudentListComponent implements OnInit {
     this.filterProgram.set('ALL');
     this.filterStatus.set('ALL');
     this.filterSemester.set('ALL');
+    this.filterDepartment.set('ALL');
+    this.filterAcademicYear.set('ALL');
+    this.filterFeeStatus.set('ALL');
     this._applyFilters();
   }
 
   private _applyFilters(): void {
-    const term     = this.searchValue().toLowerCase().trim();
-    const program  = this.filterProgram();
-    const status   = this.filterStatus();
-    const semester = this.filterSemester();
+    const term        = this.searchValue().toLowerCase().trim();
+    const program     = this.filterProgram();
+    const status      = this.filterStatus();
+    const semester    = this.filterSemester();
+    const department  = this.filterDepartment();
+    const academicYear = this.filterAcademicYear();
+    const feeStatus   = this.filterFeeStatus();
 
     this.dataSource.filterPredicate = (s) => {
-      if (program  !== 'ALL' && s.programName !== program)          return false;
-      if (status   !== 'ALL' && s.status !== status)                return false;
-      if (semester !== 'ALL' && String(s.yearOfStudy) !== semester)    return false;
+      if (program      !== 'ALL' && s.programName !== program)                                        return false;
+      if (status       !== 'ALL' && s.status !== status)                                              return false;
+      if (semester     !== 'ALL' && String(s.yearOfStudy) !== semester)                               return false;
+      if (department   !== 'ALL' && (s.specializationDepartmentName ?? '') !== department)            return false;
+      if (academicYear !== 'ALL' && (s.admissionAcademicYearName ?? '') !== academicYear)             return false;
+      if (feeStatus    !== 'ALL' && (s.feeStatus ?? 'NOT_ASSIGNED') !== feeStatus)                   return false;
       if (!term) return true;
       return (
         s.fullName.toLowerCase().includes(term) ||
@@ -146,8 +173,10 @@ export class StudentListComponent implements OnInit {
         (s.email ?? '').toLowerCase().includes(term)
       );
     };
-    this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL'
-      ? (term || program || status || semester || '_')
+    const anyFilter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL' ||
+                      department !== 'ALL' || academicYear !== 'ALL' || feeStatus !== 'ALL';
+    this.dataSource.filter = anyFilter
+      ? (term || program || status || semester || department || academicYear || feeStatus || '_')
       : '';
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }

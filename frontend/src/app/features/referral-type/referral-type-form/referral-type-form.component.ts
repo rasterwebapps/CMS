@@ -139,6 +139,7 @@ export class ReferralTypeFormComponent implements OnInit {
             isActive: item.isActive,
           });
           if (item.isSystemDefined) {
+            this.form.get('name')?.disable();
             this.form.get('code')?.disable();
             this.form.get('hasCommission')?.disable();
           }
