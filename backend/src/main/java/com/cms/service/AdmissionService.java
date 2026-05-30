@@ -63,17 +63,10 @@ public class AdmissionService {
 
     @Transactional
     public AdmissionResponse create(AdmissionRequest request) {
-        Student student = studentRepository.findById(request.studentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
-        AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
-            .orElseThrow(() -> new ResourceNotFoundException("Academic year not found: " + request.joiningAcademicYearId()));
-        Admission admission = new Admission(student, joiningYear, request.applicationDate());
-        admission.setDeclarationPlace(request.declarationPlace());
-        admission.setDeclarationDate(request.declarationDate());
-        admission.setParentConsentGiven(request.parentConsentGiven());
-        admission.setApplicantConsentGiven(request.applicantConsentGiven());
-        Admission saved = admissionRepository.save(admission);
-        return toResponse(saved);
+        // Admissions are created atomically via the enquiry conversion flow (convertToStudentWithData).
+        // Direct creation is blocked to enforce the enquiry → admission → student chain.
+        throw new UnsupportedOperationException(
+            "Admissions cannot be created directly. Use the enquiry conversion flow instead.");
     }
 
     public List<AdmissionResponse> findAll() {

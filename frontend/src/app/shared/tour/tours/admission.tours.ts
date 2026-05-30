@@ -55,19 +55,9 @@ export const ADMISSION_FORM_TOUR: TourDefinition = {
       popover: {
         title: '📝 New / Edit Admission',
         description:
-          'Create an admission either from an existing enquiry (recommended) or by entering the details from scratch.',
+          'All admissions flow through the enquiry process. Select a pending enquiry to auto-fill candidate details, complete the form, and create the student record.',
         side: 'over',
         align: 'center',
-      },
-    },
-    {
-      element: '#tour-adm-form-mode',
-      popover: {
-        title: 'Choose a Mode',
-        description:
-          '<strong>From Enquiry</strong> pulls candidate details from a registered enquiry — fastest and most accurate. <strong>Manual</strong> lets you key in everything from scratch.',
-        side: 'bottom',
-        align: 'start',
       },
     },
     {

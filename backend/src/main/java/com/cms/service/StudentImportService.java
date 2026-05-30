@@ -37,6 +37,9 @@ import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.PaymentMode;
+import com.cms.model.Enquiry;
+import com.cms.model.ReferralType;
+import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.QualificationType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.StudentType;
@@ -44,7 +47,9 @@ import com.cms.repository.AcademicQualificationRepository;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -61,6 +66,8 @@ public class StudentImportService {
     private final AcademicQualificationRepository qualificationRepo;
     private final FeeFinalizationService          feeFinalizationService;
     private final PaymentCollectionService        paymentCollectionService;
+    private final EnquiryRepository               enquiryRepo;
+    private final ReferralTypeRepository          referralTypeRepo;
 
     public StudentImportService(StudentRepository studentRepo,
                                  AdmissionRepository admissionRepo,
@@ -69,7 +76,9 @@ public class StudentImportService {
                                  AcademicYearRepository academicYearRepo,
                                  AcademicQualificationRepository qualificationRepo,
                                  FeeFinalizationService feeFinalizationService,
-                                 PaymentCollectionService paymentCollectionService) {
+                                 PaymentCollectionService paymentCollectionService,
+                                 EnquiryRepository enquiryRepo,
+                                 ReferralTypeRepository referralTypeRepo) {
         this.studentRepo             = studentRepo;
         this.admissionRepo           = admissionRepo;
         this.programRepo             = programRepo;
@@ -78,6 +87,8 @@ public class StudentImportService {
         this.qualificationRepo       = qualificationRepo;
         this.feeFinalizationService  = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
+        this.enquiryRepo             = enquiryRepo;
+        this.referralTypeRepo        = referralTypeRepo;
     }
 
     // ── Validate only (no DB writes) ─────────────────────────────────────────
@@ -248,9 +259,32 @@ public class StudentImportService {
     }
 
     private void createAdmission(Student s, StudentRow row, String performedBy) {
+        // Every admission must originate from an enquiry. For imports, create a
+        // synthetic ADMITTED enquiry representing the historical pre-system record.
+        ReferralType walkIn = referralTypeRepo.findByCode("WALK_IN")
+            .orElseThrow(() -> new IllegalStateException(
+                "WALK_IN referral type not found. Ensure seed data is present."));
+
+        LocalDate appDate = row.applicationDate != null ? row.applicationDate : LocalDate.now();
+
+        Enquiry enquiry = new Enquiry();
+        enquiry.setName(s.getFirstName() + " " + s.getLastName());
+        enquiry.setEmail(s.getEmail());
+        enquiry.setPhone(s.getPhone());
+        enquiry.setProgram(s.getProgram());
+        enquiry.setCourse(s.getCourse());
+        enquiry.setEnquiryDate(appDate);
+        enquiry.setStatus(EnquiryStatus.ADMITTED);
+        enquiry.setDateOfBirth(s.getDateOfBirth() != null ? s.getDateOfBirth() : LocalDate.of(2000, 1, 1));
+        enquiry.setGender(s.getGender());
+        enquiry.setReferralType(walkIn);
+        enquiry.setConvertedStudentId(s.getId());
+        enquiry.setRemarks("Auto-created during bulk import");
+        Enquiry savedEnquiry = enquiryRepo.save(enquiry);
+
         AcademicYear ay = row.joiningAcademicYear;
-        Admission adm = new Admission(s, ay,
-            row.applicationDate != null ? row.applicationDate : LocalDate.now());
+        Admission adm = new Admission(s, ay, appDate);
+        adm.setEnquiryId(savedEnquiry.getId());
         admissionRepo.save(adm);
     }
 

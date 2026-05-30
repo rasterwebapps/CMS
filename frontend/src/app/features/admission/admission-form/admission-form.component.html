@@ -12,29 +12,6 @@
     <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
   } @else {
 
-    <!-- Mode toggle — only shown when creating a new admission -->
-    @if (!isEdit()) {
-      <div id="tour-adm-form-mode" class="mode-toggle">
-        <button
-          type="button"
-          class="mode-btn"
-          [class.mode-btn--active]="mode() === 'from-enquiry'"
-          (click)="setMode('from-enquiry')"
-        >
-          <mat-icon>how_to_reg</mat-icon>
-          From Enquiry
-        </button>
-        <button
-          type="button"
-          class="mode-btn"
-          [class.mode-btn--active]="mode() === 'manual'"
-          (click)="setMode('manual')"
-        >
-          <mat-icon>person_add</mat-icon>
-          Existing Student
-        </button>
-      </div>
-    }
 
     <div id="tour-adm-form-body" class="entry-form-card">
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -573,7 +550,7 @@
              MANUAL MODE — new admission for an existing student,
              or editing an existing admission record.
              ════════════════════════════════════════════════════════ -->
-        @if (isEdit() || mode() === 'manual') {
+        @if (isEdit()) {
 
           <!-- Student profile notice — shown in edit mode only -->
           @if (isEdit() && editStudentId()) {

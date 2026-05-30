@@ -778,14 +778,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'admissions/new',
-    canActivate: withPermission('ADMISSION_CREATE'),
-    loadComponent: () =>
-      import('./features/admission/admission-form/admission-form.component').then(
-        (m) => m.AdmissionFormComponent
-      ),
-  },
-  {
     path: 'admissions/:id/edit',
     canActivate: withPermission('ADMISSION_EDIT'),
     loadComponent: () =>

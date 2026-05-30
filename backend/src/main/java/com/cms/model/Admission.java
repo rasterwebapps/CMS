@@ -40,6 +40,9 @@ public class Admission {
     @JoinColumn(name = "joining_academic_year_id", nullable = false)
     private AcademicYear joiningAcademicYear;
 
+    @Column(name = "enquiry_id", nullable = false)
+    private Long enquiryId;
+
     @Column(name = "application_date", nullable = false)
     private LocalDate applicationDate;
 
@@ -101,6 +104,14 @@ public class Admission {
 
     public void setJoiningAcademicYear(AcademicYear joiningAcademicYear) {
         this.joiningAcademicYear = joiningAcademicYear;
+    }
+
+    public Long getEnquiryId() {
+        return enquiryId;
+    }
+
+    public void setEnquiryId(Long enquiryId) {
+        this.enquiryId = enquiryId;
     }
 
     public LocalDate getApplicationDate() {

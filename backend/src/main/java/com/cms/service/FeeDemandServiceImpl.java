@@ -22,6 +22,8 @@ import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
+import com.cms.repository.AdmissionRepository;
+import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
@@ -41,6 +43,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     private final FeeStructureRepository feeStructureRepository;
     private final FeeStructureYearAmountRepository yearAmountRepository;
     private final TermBillingScheduleRepository billingScheduleRepository;
+    private final AdmissionRepository admissionRepository;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
 
     public FeeDemandServiceImpl(FeeDemandRepository feeDemandRepository,
                                  TermInstanceRepository termInstanceRepository,
@@ -48,7 +52,9 @@ public class FeeDemandServiceImpl implements FeeDemandService {
                                  FeeStructureGroupRepository feeStructureGroupRepository,
                                  FeeStructureRepository feeStructureRepository,
                                  FeeStructureYearAmountRepository yearAmountRepository,
-                                 TermBillingScheduleRepository billingScheduleRepository) {
+                                 TermBillingScheduleRepository billingScheduleRepository,
+                                 AdmissionRepository admissionRepository,
+                                 EnquiryPaymentRepository enquiryPaymentRepository) {
         this.feeDemandRepository = feeDemandRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.enrollmentRepository = enrollmentRepository;
@@ -56,6 +62,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         this.feeStructureRepository = feeStructureRepository;
         this.yearAmountRepository = yearAmountRepository;
         this.billingScheduleRepository = billingScheduleRepository;
+        this.admissionRepository = admissionRepository;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
     }
 
     @Override
@@ -110,6 +118,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             demand.setPaidAmount(BigDecimal.ZERO);
             demand.setStatus(DemandStatus.UNPAID);
             feeDemandRepository.save(demand);
+            applyEnquiryCredit(demand, enrollment.getStudent().getId());
             count++;
         }
         return new FeeDemandService.GenerateResult(count, yearlySkipped);
@@ -200,6 +209,27 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         }
 
         return total;
+    }
+
+    // Applies any unapplied enquiry payment credit to the freshly created demand.
+    // Credit = total enquiry payments - sum of paid_amount already on other demands for this student.
+    // Surplus (credit exceeding all demands) is NOT auto-applied — cashier handles manually.
+    private void applyEnquiryCredit(FeeDemand demand, Long studentId) {
+        admissionRepository.findByStudentId(studentId).ifPresent(admission -> {
+            Long enquiryId = admission.getEnquiryId();
+            BigDecimal totalEnquiryPaid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId);
+            if (totalEnquiryPaid.compareTo(BigDecimal.ZERO) <= 0) return;
+
+            BigDecimal alreadyApplied = feeDemandRepository.sumPaidAmountByStudentId(studentId);
+            BigDecimal remaining = totalEnquiryPaid.subtract(alreadyApplied).max(BigDecimal.ZERO);
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) return;
+
+            BigDecimal toApply = remaining.min(demand.getTotalAmount());
+            demand.setPaidAmount(toApply);
+            demand.setStatus(toApply.compareTo(demand.getTotalAmount()) >= 0
+                ? DemandStatus.PAID : DemandStatus.PARTIAL);
+            feeDemandRepository.save(demand);
+        });
     }
 
     private FeeDemandDto toDto(FeeDemand d) {

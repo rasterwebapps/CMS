@@ -31,7 +31,6 @@ import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours'
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
-type Mode = 'from-enquiry' | 'manual';
 
 @Component({
   selector: 'app-admission-form',
@@ -78,7 +77,6 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEdit = signal(false);
-  protected readonly mode = signal<Mode>('from-enquiry');
   protected readonly editStudentId = signal<number | null>(null);
 
   protected readonly qualificationTypes = QUALIFICATION_TYPES;
@@ -91,11 +89,7 @@ export class AdmissionFormComponent implements OnInit {
     'fatherName', 'fatherPhone', 'fatherEmail',
     'motherName', 'motherPhone', 'motherEmail', 'parentMobile',
     'address.postalAddress', 'address.street', 'address.city', 'address.pincode',
-  ];
-  private static readonly MANUAL_CONTROLS: ReadonlyArray<string> = ['studentId'];
-  private static readonly MODE_TOGGLED_CONTROLS: ReadonlyArray<string> = [
-    ...AdmissionFormComponent.FROM_ENQUIRY_CONTROLS,
-    ...AdmissionFormComponent.MANUAL_CONTROLS,
+    'studentId',
   ];
 
   protected readonly qualColumns = ['qualificationType', 'schoolName', 'percentage', 'monthAndYearOfPassing', 'actions'];
@@ -189,7 +183,7 @@ export class AdmissionFormComponent implements OnInit {
       this.isEdit.set(true);
       this.loading.set(true);
       this.studentService.getAll().subscribe({ next: (s) => this.students.set(s) });
-      this.updateValidators('manual');
+      this.updateValidators('edit');
       this.admissionService.getById(id).subscribe({
         next: (a) => {
           this.selectedAcademicYearId.set(a.joiningAcademicYearId);
@@ -203,12 +197,11 @@ export class AdmissionFormComponent implements OnInit {
         },
       });
     } else {
-      this.updateValidators('from-enquiry');
+      this.updateValidators('create');
       this.enquiryService.getAdmissionPending().subscribe({
         next: (list) => this.pendingEnquiries.set(list),
         error: () => this.toast.error('Failed to load pending enquiries'),
       });
-      this.studentService.getAll().subscribe({ next: (s) => this.students.set(s) });
     }
   }
 
@@ -216,15 +209,6 @@ export class AdmissionFormComponent implements OnInit {
     const id = Number((event.target as HTMLSelectElement).value);
     this.selectedAcademicYearId.set(id);
     this.form.patchValue({ joiningAcademicYearId: id });
-  }
-
-  protected setMode(m: Mode): void {
-    this.mode.set(m);
-    this.updateValidators(m);
-    // Reset mode-specific selection state when switching modes.
-    this.selectedEnquiry.set(null);
-    this.prefill.set(null);
-    this.form.patchValue({ enquiryId: null, studentId: null });
   }
 
   protected onEnquiryChange(event: Event): void {
@@ -277,17 +261,17 @@ export class AdmissionFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     this.saving.set(true);
-    if (!this.isEdit() && this.mode() === 'from-enquiry') {
-      this.submitFromEnquiry();
-    } else {
+    if (this.isEdit()) {
       this.submitManual();
+    } else {
+      this.submitFromEnquiry();
     }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
-  private updateValidators(m: Mode): void {
-    if (m === 'from-enquiry') {
+  private updateValidators(mode: 'create' | 'edit'): void {
+    if (mode === 'create') {
       this.form.get('enquiryId')?.setValidators([Validators.required]);
       this.form.get('firstName')?.setValidators([Validators.required]);
       this.form.get('lastName')?.setValidators([Validators.required]);
@@ -316,35 +300,12 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('address.pincode')?.setValidators([Validators.required]);
       this.form.get('studentId')?.clearValidators();
     } else {
-      this.form.get('enquiryId')?.clearValidators();
-      this.form.get('firstName')?.clearValidators();
-      this.form.get('lastName')?.clearValidators();
-      this.form.get('email')?.clearValidators();
-      this.form.get('phone')?.clearValidators();
-      this.form.get('yearOfStudy')?.clearValidators();
-      this.form.get('admissionDate')?.clearValidators();
-      this.form.get('dateOfBirth')?.clearValidators();
-      this.form.get('gender')?.clearValidators();
-      this.form.get('aadharNumber')?.clearValidators();
-      this.form.get('nationality')?.clearValidators();
-      this.form.get('religion')?.clearValidators();
-      this.form.get('communityCategory')?.clearValidators();
-      this.form.get('caste')?.clearValidators();
-      this.form.get('bloodGroup')?.clearValidators();
-      this.form.get('fatherName')?.clearValidators();
-      this.form.get('fatherPhone')?.clearValidators();
-      this.form.get('fatherEmail')?.clearValidators();
-      this.form.get('motherName')?.clearValidators();
-      this.form.get('motherPhone')?.clearValidators();
-      this.form.get('motherEmail')?.clearValidators();
-      this.form.get('parentMobile')?.clearValidators();
-      this.form.get('address.postalAddress')?.clearValidators();
-      this.form.get('address.street')?.clearValidators();
-      this.form.get('address.city')?.clearValidators();
-      this.form.get('address.pincode')?.clearValidators();
+      AdmissionFormComponent.FROM_ENQUIRY_CONTROLS.forEach((ctrl) => {
+        this.form.get(ctrl)?.clearValidators();
+      });
       this.form.get('studentId')?.setValidators([Validators.required]);
     }
-    AdmissionFormComponent.MODE_TOGGLED_CONTROLS.forEach((ctrl) => {
+    AdmissionFormComponent.FROM_ENQUIRY_CONTROLS.forEach((ctrl) => {
       this.form.get(ctrl)?.updateValueAndValidity({ emitEvent: false });
     });
   }
@@ -379,27 +340,10 @@ export class AdmissionFormComponent implements OnInit {
     };
     const qualifications = v['qualifications'] as unknown[] ?? [];
 
-    const save$ = this.isEdit()
-      ? this.admissionService.update(id, admissionData)
-      : this.admissionService.create(admissionData);
-
-    save$.subscribe({
-      next: (admission) => {
-        const quals: unknown[] = qualifications;
-        if (!this.isEdit() && quals.length > 0) {
-          let remaining = quals.length;
-          quals.forEach((q) => {
-            this.admissionService.addQualification(admission.id, q as Parameters<AdmissionService['addQualification']>[1]).subscribe({
-              next: () => { if (--remaining === 0) this.finish(); },
-              error: () => { if (--remaining === 0) this.finish(); },
-            });
-          });
-        } else {
-          this.finish();
-        }
-      },
-      error: () => {
-        this.toast.error('Failed to save admission');
+    this.admissionService.update(id, admissionData).subscribe({
+      next: () => this.finish(),
+      error: (error: HttpErrorResponse) => {
+        this.toast.error(this.getErrorMessage(error, 'Failed to update admission'));
         this.saving.set(false);
       },
     });

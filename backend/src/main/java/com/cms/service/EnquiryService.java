@@ -546,6 +546,7 @@ public class EnquiryService {
         validateAgeRestriction(program, effectiveDob, joiningYear.getStartYear());
 
         Admission admission = new Admission(savedStudent, joiningYear, request.applicationDate());
+        admission.setEnquiryId(enquiryId);
         admission.setParentConsentGiven(request.parentConsentGiven());
         admission.setApplicantConsentGiven(request.applicantConsentGiven());
         admission.setDeclarationPlace(request.declarationPlace());

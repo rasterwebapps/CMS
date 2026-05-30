@@ -11,6 +11,7 @@ public interface AdmissionRepository extends JpaRepository<Admission, Long> {
 
     Optional<Admission> findByStudentId(Long studentId);
 
+    Optional<Admission> findByEnquiryId(Long enquiryId);
 
     List<Admission> findByJoiningAcademicYearId(Long joiningAcademicYearId);
 
