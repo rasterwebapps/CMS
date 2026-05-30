@@ -27,6 +27,19 @@
         </div>
       }
     </div>
+
+    @if (result.surplusAmount > 0) {
+      <div class="surplus-alert">
+        <mat-icon>warning</mat-icon>
+        <div class="surplus-alert__body">
+          <span class="surplus-alert__title">Surplus Payment: {{ result.surplusAmount | inr }}</span>
+          <span class="surplus-alert__desc">
+            This amount exceeds all pending installments and was not applied to any fee.
+            Return the surplus to the student or record it separately.
+          </span>
+        </div>
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

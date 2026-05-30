@@ -21,5 +21,7 @@ public record CollectPaymentResponse(
     List<SemesterPaymentDetail> installmentBreakdown,
     /** TUITION_ONLY | TUITION_AND_HOSTEL */
     String feeCategory,
-    Instant createdAt
+    Instant createdAt,
+    /** Amount paid that exceeded all pending installments — zero when fully allocated */
+    BigDecimal surplusAmount
 ) {}

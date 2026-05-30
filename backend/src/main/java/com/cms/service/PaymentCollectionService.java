@@ -149,7 +149,8 @@ public class PaymentCollectionService {
             String.join("; ", allocationDetails),
             installmentBreakdown,
             feeCategory,
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            remaining.max(BigDecimal.ZERO)
         );
     }
 

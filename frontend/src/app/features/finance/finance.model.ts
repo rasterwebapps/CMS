@@ -193,6 +193,7 @@ export interface CollectPaymentResponse {
   installmentBreakdown: InstallmentPaymentDetail[];
   feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   createdAt: string;
+  surplusAmount: number;
 }
 
 export interface PenaltyResponse {

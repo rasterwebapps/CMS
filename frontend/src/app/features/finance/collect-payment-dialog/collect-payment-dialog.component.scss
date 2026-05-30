@@ -117,4 +117,51 @@
   }
 }
 
+// ── Surplus / overpayment alert ──────────────────────────────────────────────
+.surplus-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 10px;
+
+  mat-icon {
+    font-size: 1.2rem;
+    width: 20px;
+    height: 20px;
+    color: #ca8a04;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: var(--cms-text-base);
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  &__desc {
+    font-size: var(--cms-text-sm);
+    color: var(--cms-text-secondary);
+    line-height: 1.45;
+  }
+}
+
+:host-context(.dark-mode) .surplus-alert {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.3);
+
+  mat-icon { color: #fbbf24; }
+  &__title { color: #fde68a; }
+}
+
 .btn-spinner { margin: 0 auto; }
