@@ -36,7 +36,8 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly termInstances    = signal<TermInstance[]>([]);
   protected readonly billingSchedules = signal<TermBillingSchedule[]>([]);
   protected readonly cohorts             = signal<CohortSummary[]>([]);
-  protected readonly initializingCohorts = signal(false);
+  protected readonly initializingCohorts    = signal(false);
+  protected readonly togglingCounsellingId  = signal<number | null>(null);
 
   protected readonly oddTermInstance  = computed(() => this.termInstances().find(t => t.termType === 'ODD')  ?? null);
   protected readonly evenTermInstance = computed(() => this.termInstances().find(t => t.termType === 'EVEN') ?? null);
@@ -137,6 +138,22 @@ export class AcademicYearDetailComponent implements OnInit {
     if (si < ci) return 'step--done';
     if (si === ci) return 'step--active';
     return 'step--pending';
+  }
+
+  protected toggleCounsellingStatus(cohort: import('../academic-year.model').CohortSummary): void {
+    this.togglingCounsellingId.set(cohort.id);
+    const closing = !cohort.counsellingClosed;
+    this.academicYearService.setCounsellingStatus(cohort.id, closing).subscribe({
+      next: (updated) => {
+        this.cohorts.update(list => list.map(c => c.id === updated.id ? updated : c));
+        this.togglingCounsellingId.set(null);
+        this.toast.success(closing ? 'Counselling closed — seats are now lapsed' : 'Counselling reopened');
+      },
+      error: () => {
+        this.toast.error('Failed to update counselling status');
+        this.togglingCounsellingId.set(null);
+      },
+    });
   }
 
   protected lateFeeLabel(type: string, amount: number): string {

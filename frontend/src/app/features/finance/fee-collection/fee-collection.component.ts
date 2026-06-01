@@ -30,6 +30,7 @@ export interface FeeEntry {
   type: PersonType;
   id: number;
   name: string;
+  rollNumber: string | null;
   programName: string;
   courseName: string | null;
   totalFee: number;
@@ -94,7 +95,13 @@ export class FeeCollectionComponent implements OnInit {
     const today  = new Date();
 
     return this.feeEntries().filter(e => {
-      if (term && !e.name.toLowerCase().includes(term)) return false;
+      if (term) {
+        const matchesName    = e.name.toLowerCase().includes(term);
+        const matchesRoll    = !!e.rollNumber && e.rollNumber.toLowerCase().includes(term);
+        const matchesProgram = e.programName.toLowerCase().includes(term);
+        const matchesCourse  = !!e.courseName && e.courseName.toLowerCase().includes(term);
+        if (!matchesName && !matchesRoll && !matchesProgram && !matchesCourse) return false;
+      }
       if (type !== 'ALL' && e.type !== type) return false;
       if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
       return status !== 'OUTSTANDING' || e.totalOutstanding > 0;
@@ -220,7 +227,9 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   private canCollectEnquiryBalance(enquiry: Enquiry): boolean {
-    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'ADMITTED', 'CONVERTED'];
+    // CONVERTED = student record + fee allocation exist; collection moves to the student side.
+    // ADMITTED  = student record created but fee allocation may not exist yet; keep on enquiry side.
+    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'CONVERTED'];
     return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
       !blockedStatuses.includes(enquiry.status);
   }
@@ -230,6 +239,7 @@ export class FeeCollectionComponent implements OnInit {
     const totalPaid = e.totalPaidAmount ?? 0;
     return {
       type: 'ENQUIRY', id: e.id, name: e.name,
+      rollNumber: null,
       programName: e.programName ?? '—', courseName: e.courseName,
       totalFee, totalPaid,
       totalOutstanding: Math.max(0, totalFee - totalPaid),
@@ -240,6 +250,7 @@ export class FeeCollectionComponent implements OnInit {
   private studentToEntry(s: StudentFeeSummary): FeeEntry {
     return {
       type: 'STUDENT', id: s.studentId, name: s.studentName,
+      rollNumber: s.rollNumber ?? null,
       programName: s.programName ?? '—', courseName: null,
       totalFee: s.totalFee, totalPaid: s.totalPaid, totalOutstanding: s.totalPending,
       nextDueDate: null, nextDueLabel: null,

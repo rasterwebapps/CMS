@@ -12,6 +12,8 @@ import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
@@ -27,17 +29,23 @@ public class FeeExplorerService {
     private final SemesterFeeRepository semesterFeeRepository;
     private final FeeInstallmentRepository installmentRepository;
     private final PenaltyRepository penaltyRepository;
+    private final EnquiryRepository enquiryRepository;
+    private final EnquiryPaymentRepository enquiryPaymentRepository;
 
     public FeeExplorerService(StudentRepository studentRepository,
                                StudentFeeAllocationRepository allocationRepository,
                                SemesterFeeRepository semesterFeeRepository,
                                FeeInstallmentRepository installmentRepository,
-                               PenaltyRepository penaltyRepository) {
+                               PenaltyRepository penaltyRepository,
+                               EnquiryRepository enquiryRepository,
+                               EnquiryPaymentRepository enquiryPaymentRepository) {
         this.studentRepository = studentRepository;
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
         this.penaltyRepository = penaltyRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.enquiryPaymentRepository = enquiryPaymentRepository;
     }
 
     public FeeExplorerResponse search(String query) {
@@ -64,7 +72,15 @@ public class FeeExplorerService {
                     );
                 }
 
-                BigDecimal totalPending = allocation.getNetFee().subtract(totalPaid).max(BigDecimal.ZERO);
+                // Enquiry pre-payments act as credit and reduce the true outstanding balance
+                BigDecimal enquiryCredit = enquiryRepository.findByConvertedStudentId(student.getId())
+                    .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+                    .orElse(BigDecimal.ZERO);
+
+                BigDecimal totalPending = allocation.getNetFee()
+                    .subtract(totalPaid)
+                    .subtract(enquiryCredit)
+                    .max(BigDecimal.ZERO);
 
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),

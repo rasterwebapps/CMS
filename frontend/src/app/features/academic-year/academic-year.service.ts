@@ -81,6 +81,13 @@ export class AcademicYearService {
     return this.http.delete<void>(`${environment.apiUrl}/cohorts/${cohortId}`);
   }
 
+  setCounsellingStatus(cohortId: number, closed: boolean): Observable<CohortSummary> {
+    return this.http.patch<CohortSummary>(
+      `${environment.apiUrl}/cohorts/${cohortId}/counselling-status`,
+      { closed },
+    );
+  }
+
   // Calendar Event methods
   getCalendarEventsByAcademicYear(
     academicYearId: number,

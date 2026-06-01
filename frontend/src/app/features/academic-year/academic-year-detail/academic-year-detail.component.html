@@ -239,13 +239,14 @@
           </div>
         </div>
 
-        <div class="cohort-seats-table">
+        <div class="cohort-seats-table" [class.cohort-seats-table--with-status]="canEdit()">
           <div class="cohort-seats-table__head">
             <span>Course</span>
             <span>Batch</span>
             <span>Management Seats</span>
             <span>Counselling Seats</span>
             <span>Total Seats</span>
+            @if (canEdit()) { <span>Counselling Status</span> }
           </div>
           @for (cohort of cohorts(); track cohort.id) {
             <div class="cohort-seats-table__row">
@@ -256,6 +257,31 @@
               <span class="cohort-seats-table__row-total">
                 {{ (cohort.managementSeats ?? 0) + (cohort.counsellingSeats ?? 0) }}
               </span>
+              @if (canEdit()) {
+                <span class="cohort-seats-table__status-cell">
+                  @if (cohort.counsellingClosed) {
+                    <span class="cms-badge cms-badge--soft-danger">
+                      Closed · {{ cohort.counsellingClosedDate | appDate }}
+                    </span>
+                    <button class="btn-secondary btn-xs cohort-seats-table__status-btn"
+                            (click)="toggleCounsellingStatus(cohort)"
+                            [disabled]="togglingCounsellingId() === cohort.id">
+                      @if (togglingCounsellingId() === cohort.id) {
+                        <span class="btn-spinner btn-spinner--dark"></span>
+                      } @else { Reopen }
+                    </button>
+                  } @else {
+                    <span class="cms-badge cms-badge--soft-success">Open</span>
+                    <button class="btn-secondary btn-xs cohort-seats-table__status-btn cohort-seats-table__status-btn--close"
+                            (click)="toggleCounsellingStatus(cohort)"
+                            [disabled]="togglingCounsellingId() === cohort.id">
+                      @if (togglingCounsellingId() === cohort.id) {
+                        <span class="btn-spinner btn-spinner--dark"></span>
+                      } @else { Close Counselling }
+                    </button>
+                  }
+                </span>
+              }
             </div>
           }
           <div class="cohort-seats-table__footer">
@@ -264,12 +290,13 @@
             <span class="cohort-seats-table__footer-value">{{ grandTotals().management }}</span>
             <span class="cohort-seats-table__footer-value">{{ grandTotals().counselling }}</span>
             <span class="cohort-seats-table__footer-value cohort-seats-table__footer-value--total">{{ grandTotals().total }}</span>
+            @if (canEdit()) { <span></span> }
           </div>
         </div>
 
         <p class="ayd-table-hint">
-          Total seats per cohort = Management + Counselling. Government Lapsed Seats on the dashboard =
-          sum of Counselling Seats across all cohorts minus students admitted via counselling.
+          Total seats per cohort = Management + Counselling. Govt. Lapsed Seats on the dashboard counts
+          unfilled counselling seats only for cohorts where counselling is marked Closed.
         </p>
 
       </div>

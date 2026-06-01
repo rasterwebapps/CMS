@@ -1,6 +1,7 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -60,6 +61,12 @@ public class Cohort {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CohortStatus status = CohortStatus.ACTIVE;
+
+    @Column(name = "counselling_closed", nullable = false)
+    private boolean counsellingClosed = false;
+
+    @Column(name = "counselling_closed_date")
+    private LocalDate counsellingClosedDate;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -129,6 +136,12 @@ public class Cohort {
     public void setManagementSeats(Integer managementSeats) { this.managementSeats = managementSeats; }
     public Integer getCounsellingSeats() { return counsellingSeats; }
     public void setCounsellingSeats(Integer counsellingSeats) { this.counsellingSeats = counsellingSeats; }
+
+    public boolean isCounsellingClosed() { return counsellingClosed; }
+    public void setCounsellingClosed(boolean counsellingClosed) { this.counsellingClosed = counsellingClosed; }
+
+    public LocalDate getCounsellingClosedDate() { return counsellingClosedDate; }
+    public void setCounsellingClosedDate(LocalDate counsellingClosedDate) { this.counsellingClosedDate = counsellingClosedDate; }
 
     public CohortStatus getStatus() {
         return status;

@@ -36,7 +36,7 @@
           class="search-bar__input"
           [value]="searchTerm()"
           (input)="onSearch($event)"
-          placeholder="Search by name"
+          placeholder="Search by name, roll number, or program"
           type="text"
           aria-label="Search fee entries"
         />
@@ -97,9 +97,10 @@
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
               <td mat-cell *matCellDef="let row">
                 <span class="cell-name">{{ row.name }}</span>
-                @if (row.courseName) {
-                  <span class="cell-sub">{{ row.courseName }}</span>
-                }
+                <span class="cell-sub">
+                  @if (row.rollNumber) { {{ row.rollNumber }} }
+                  @else if (row.courseName) { {{ row.courseName }} }
+                </span>
               </td>
             </ng-container>
 

@@ -17,6 +17,8 @@ export interface CohortSummary {
   managementSeats: number | null;
   counsellingSeats: number | null;
   hasStudents: boolean;
+  counsellingClosed: boolean;
+  counsellingClosedDate: string | null;
 }
 
 export interface CohortSeatsRequest {

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.CohortCounsellingStatusRequest;
 import com.cms.dto.CohortSeatsRequest;
 import com.cms.dto.CohortSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -103,6 +104,18 @@ public class CohortController {
         return ResponseEntity.ok(toResponse(cohortRepository.save(cohort)));
     }
 
+    @PatchMapping("/{id}/counselling-status")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    public ResponseEntity<CohortSummaryResponse> updateCounsellingStatus(
+            @PathVariable Long id,
+            @RequestBody CohortCounsellingStatusRequest request) {
+        Cohort cohort = cohortRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
+        cohort.setCounsellingClosed(request.closed());
+        cohort.setCounsellingClosedDate(request.closed() ? java.time.LocalDate.now() : null);
+        return ResponseEntity.ok(toResponse(cohortRepository.save(cohort)));
+    }
+
     private CohortSummaryResponse toResponse(Cohort c) {
         String courseName = c.getCourse() != null ? c.getCourse().getName() : "—";
         String courseCode = c.getCourse() != null ? c.getCourse().getCode() : "—";
@@ -110,7 +123,8 @@ public class CohortController {
             c.getId(), c.getCohortCode(), c.getDisplayName(),
             courseName, courseCode,
             c.getManagementSeats(), c.getCounsellingSeats(),
-            studentRepository.existsByCohortId(c.getId())
+            studentRepository.existsByCohortId(c.getId()),
+            c.isCounsellingClosed(), c.getCounsellingClosedDate()
         );
     }
 }

@@ -22,7 +22,9 @@ const ACCENT: Record<string, string> = {
   'stat-female-students':    '#EC4899',
   'stat-management-quota':   '#8B5CF6',
   'stat-counselling-quota':  '#10B981',
-  'stat-govt-lapsed-seats':  '#F59E0B',
+  'stat-govt-lapsed-seats':          '#F59E0B',
+  'stat-counselling-seats-fill':     '#10B981',
+  'stat-management-seats-fill':      '#8B5CF6',
 };
 
 const ICONS: Record<string, string> = {
@@ -40,7 +42,9 @@ const ICONS: Record<string, string> = {
   'stat-female-students':    'person_outline',
   'stat-management-quota':   'business_center',
   'stat-counselling-quota':  'groups',
-  'stat-govt-lapsed-seats':  'event_seat',
+  'stat-govt-lapsed-seats':          'event_seat',
+  'stat-counselling-seats-fill':     'how_to_reg',
+  'stat-management-seats-fill':      'business_center',
 };
 
 @Component({

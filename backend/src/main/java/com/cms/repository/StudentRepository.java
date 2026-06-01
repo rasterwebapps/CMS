@@ -55,4 +55,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     long countByGender(Gender gender);
 
     long countByAdmissionCategory(AdmissionCategory admissionCategory);
+    long countByCohortIdAndAdmissionCategory(Long cohortId, AdmissionCategory admissionCategory);
+    long countByCohortAdmissionAcademicYearIdAndAdmissionCategory(Long academicYearId, AdmissionCategory admissionCategory);
+    long countByCohortAdmissionAcademicYearId(Long academicYearId);
 }

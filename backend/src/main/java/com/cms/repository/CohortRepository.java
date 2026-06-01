@@ -13,4 +13,5 @@ public interface CohortRepository extends JpaRepository<Cohort, Long> {
     List<Cohort> findByStatus(CohortStatus status);
     Optional<Cohort> findByCohortCode(String cohortCode);
     List<Cohort> findByAdmissionAcademicYearId(Long academicYearId);
+    List<Cohort> findByAdmissionAcademicYearIdAndCounsellingClosedTrue(Long academicYearId);
 }

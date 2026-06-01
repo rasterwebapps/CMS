@@ -48,6 +48,7 @@ import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.PaymentStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CohortRepository;
@@ -103,6 +104,7 @@ public class WidgetDataController {
     private final ComplianceDocumentRepository      complianceDocumentRepository;
     private final AuditLogRepository                auditLogRepository;
     private final CohortRepository                  cohortRepository;
+    private final AcademicYearRepository             academicYearRepository;
 
     public WidgetDataController(DashboardService dashboardService,
                                 AppUserRepository appUserRepository,
@@ -123,7 +125,8 @@ public class WidgetDataController {
                                 PaymentReceiptRepository paymentReceiptRepository,
                                 ComplianceDocumentRepository complianceDocumentRepository,
                                 AuditLogRepository auditLogRepository,
-                                CohortRepository cohortRepository) {
+                                CohortRepository cohortRepository,
+                                AcademicYearRepository academicYearRepository) {
         this.dashboardService    = dashboardService;
         this.appUserRepository   = appUserRepository;
         this.admissionRepository = admissionRepository;
@@ -144,6 +147,7 @@ public class WidgetDataController {
         this.complianceDocumentRepository     = complianceDocumentRepository;
         this.auditLogRepository               = auditLogRepository;
         this.cohortRepository                 = cohortRepository;
+        this.academicYearRepository           = academicYearRepository;
     }
 
     // ─── Response records ────────────────────────────────────────────────────
@@ -440,6 +444,14 @@ public class WidgetDataController {
                 String.valueOf(studentRepository.countByAdmissionCategory(AdmissionCategory.COUNSELLING)), "Admitted", null);
             case "govt-lapsed-seats" -> new StatCardData(key,
                 String.valueOf(computeGovtLapsedSeats()), "Seats lapsed", null);
+            case "counselling-seats-fill" -> {
+                SeatFillData sf = computeSeatFill(AdmissionCategory.COUNSELLING);
+                yield new StatCardData(key, String.valueOf(sf.filled()), "of " + sf.total() + " total", null);
+            }
+            case "management-seats-fill" -> {
+                SeatFillData sf = computeSeatFill(AdmissionCategory.MANAGEMENT);
+                yield new StatCardData(key, String.valueOf(sf.filled()), "of " + sf.total() + " total", null);
+            }
             default -> throw new ResourceNotFoundException("Unknown stat key: " + key);
         };
 
@@ -1367,14 +1379,40 @@ public class WidgetDataController {
 
     // ─── Private helpers ─────────────────────────────────────────────────────
 
+    private record SeatFillData(long filled, long total) {}
+
     private long computeGovtLapsedSeats() {
-        long counsellingSeatsTotal = cohortRepository.findAll().stream()
-            .filter(c -> c.getCounsellingSeats() != null && c.getCounsellingSeats() > 0)
-            .mapToLong(com.cms.model.Cohort::getCounsellingSeats)
-            .sum();
-        long counsellingAdmitted = studentRepository.countByAdmissionCategory(AdmissionCategory.COUNSELLING);
-        long lapsed = counsellingSeatsTotal - counsellingAdmitted;
-        return lapsed > 0 ? lapsed : 0;
+        return academicYearRepository.findByIsCurrentTrue().map(ay -> {
+            List<com.cms.model.Cohort> closed =
+                cohortRepository.findByAdmissionAcademicYearIdAndCounsellingClosedTrue(ay.getId());
+            if (closed.isEmpty()) return 0L;
+            long total = closed.stream()
+                .filter(c -> c.getCounsellingSeats() != null)
+                .mapToLong(com.cms.model.Cohort::getCounsellingSeats)
+                .sum();
+            long filled = closed.stream()
+                .mapToLong(c -> studentRepository.countByCohortIdAndAdmissionCategory(
+                    c.getId(), AdmissionCategory.COUNSELLING))
+                .sum();
+            return Math.max(0L, total - filled);
+        }).orElse(0L);
+    }
+
+    private SeatFillData computeSeatFill(AdmissionCategory category) {
+        return academicYearRepository.findByIsCurrentTrue().map(ay -> {
+            List<com.cms.model.Cohort> cohorts =
+                cohortRepository.findByAdmissionAcademicYearId(ay.getId());
+            long total = cohorts.stream()
+                .mapToLong(c -> {
+                    Integer seats = category == AdmissionCategory.COUNSELLING
+                        ? c.getCounsellingSeats() : c.getManagementSeats();
+                    return seats != null ? seats : 0L;
+                })
+                .sum();
+            long filled = studentRepository
+                .countByCohortAdmissionAcademicYearIdAndAdmissionCategory(ay.getId(), category);
+            return new SeatFillData(filled, total);
+        }).orElse(new SeatFillData(0L, 0L));
     }
 
     private static BigDecimal orZero(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

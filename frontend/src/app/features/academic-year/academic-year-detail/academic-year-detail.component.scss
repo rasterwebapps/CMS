@@ -439,13 +439,14 @@
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 
 // ── Cohort Seat Allocations table ─────────────────────────────────────────────
-// Columns: [text] Course | [text] Batch | [num] Mgmt | [num] Counselling | [num] Total
-// Text columns: left-aligned. Numeric columns: right-aligned (header + value + footer).
+// Base columns: [text] Course | [text] Batch | [num] Mgmt | [num] Counselling | [num] Total
+// With-status variant adds a 6th column for counselling status + toggle.
 .cohort-seats-table {
   display: flex;
   flex-direction: column;
 
   $cols: 2fr 1.5fr 1fr 1fr 1fr;
+  $cols-with-status: 2fr 1.5fr 1fr 1fr 1fr 1.8fr;
 
   &__head {
     display: grid;
@@ -460,8 +461,8 @@
     text-transform: uppercase;
     letter-spacing: .05em;
 
-    // Numeric column headers: cols 3–5 right-aligned
-    span:nth-child(n+3) { text-align: right; }
+    // Numeric column headers: cols 3–5 right-aligned; col 6 (status) left-aligned
+    span:nth-child(n+3):not(:last-child) { text-align: right; }
   }
 
   &__row {
@@ -474,6 +475,29 @@
     transition: background 0.12s;
 
     &:hover { background: var(--cms-bg-muted); }
+  }
+
+  // 6-column variant when canEdit() is true
+  &--with-status &__head,
+  &--with-status &__row,
+  &--with-status &__footer {
+    grid-template-columns: $cols-with-status;
+  }
+
+  &__status-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__status-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    height: 24px;
+    line-height: 1;
+
+    &--close { color: var(--cms-error, #EF4444); border-color: var(--cms-error, #EF4444); }
   }
 
   // Text cells
