@@ -38,9 +38,6 @@ public class Course {
     @Column(name = "roll_number_code", nullable = false, length = 2)
     private String rollNumberCode;
 
-    @Column(name = "admission_number_code", nullable = false, length = 20)
-    private String admissionNumberCode;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
@@ -109,14 +106,6 @@ public class Course {
 
     public void setRollNumberCode(String rollNumberCode) {
         this.rollNumberCode = rollNumberCode;
-    }
-
-    public String getAdmissionNumberCode() {
-        return admissionNumberCode;
-    }
-
-    public void setAdmissionNumberCode(String admissionNumberCode) {
-        this.admissionNumberCode = admissionNumberCode;
     }
 
     public Instant getCreatedAt() {

@@ -63,16 +63,17 @@
               </div>
 
               <div class="field-group">
-                <label for="course-admission-number-code" class="field-label">Admission Number Code</label>
-                <input id="course-admission-number-code" class="field-input" formControlName="admissionNumberCode"
-                  placeholder="e.g., 65" autocomplete="off" maxlength="20"
-                  (input)="onAdmissionNumberCodeInput($event)"
-                  [class.field-input--error]="form.get('admissionNumberCode')?.invalid && form.get('admissionNumberCode')?.touched" />
-                <p class="field-hint">Used when generating admission numbers</p>
-                @if (form.get('admissionNumberCode')?.invalid && form.get('admissionNumberCode')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('admissionNumberCode') }}</p>
+                <label for="course-roll-number-code" class="field-label">Roll Number Code <span class="required-star">*</span></label>
+                <input id="course-roll-number-code" class="field-input" formControlName="rollNumberCode"
+                  placeholder="e.g., GN" autocomplete="off" maxlength="2"
+                  (input)="onRollNumberCodeInput($event)"
+                  [class.field-input--error]="form.get('rollNumberCode')?.invalid && form.get('rollNumberCode')?.touched" />
+                <p class="field-hint">Exactly 2 characters — used in roll numbers and admission numbers</p>
+                @if (form.get('rollNumberCode')?.invalid && form.get('rollNumberCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('rollNumberCode') }}</p>
                 }
               </div>
+
             </div>
 
             <div class="field-group">

@@ -20,10 +20,6 @@ public record CourseRequest(
     @Size(min = 2, max = 2, message = "Roll number code must be exactly 2 characters")
     String rollNumberCode,
 
-    @NotBlank(message = "Admission number code is required")
-    @Size(max = 20, message = "Admission number code must not exceed 20 characters")
-    String admissionNumberCode,
-
     @NotNull(message = "Program ID is required")
     Long programId
 ) {

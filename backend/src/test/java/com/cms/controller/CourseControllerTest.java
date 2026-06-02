@@ -47,14 +47,14 @@ class CourseControllerTest {
     @Test
     void shouldCreateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing", "BSN", "General", null, "65", 1L
+            "B.Sc. Nursing", "BSN", "General", null, 1L
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, "65", progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
         );
 
         when(courseService.create(any(CourseRequest.class))).thenReturn(response);
@@ -67,7 +67,6 @@ class CourseControllerTest {
             .andExpect(jsonPath("$.name").value("B.Sc. Nursing"))
             .andExpect(jsonPath("$.code").value("BSN"))
             .andExpect(jsonPath("$.specialization").value("General"))
-            .andExpect(jsonPath("$.admissionNumberCode").value("65"))
             .andExpect(jsonPath("$.program.id").value(1))
             .andExpect(jsonPath("$.program.durationYears").value(4));
 
@@ -76,7 +75,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("", "BSN", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("", "BSN", null, "RN", 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -86,7 +85,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, "RN", 1L);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -151,7 +150,7 @@ class CourseControllerTest {
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, "65", progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
         );
 
         when(courseService.findById(1L)).thenReturn(response);
@@ -161,7 +160,7 @@ class CourseControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("B.Sc. Nursing"))
             .andExpect(jsonPath("$.code").value("BSN"))
-            .andExpect(jsonPath("$.admissionNumberCode").value("65"));
+            .andExpect(jsonPath("$.rollNumberCode").value(org.hamcrest.Matchers.nullValue()));
 
         verify(courseService).findById(1L);
     }
@@ -214,14 +213,14 @@ class CourseControllerTest {
     @Test
     void shouldUpdateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, "66", 1L
+            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, 1L
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, "66", progResponse, now, now
+            1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, progResponse, now, now
         );
 
         when(courseService.update(eq(1L), any(CourseRequest.class))).thenReturn(response);
@@ -233,14 +232,14 @@ class CourseControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("B.Sc. Nursing Updated"))
             .andExpect(jsonPath("$.code").value("BSNU"))
-            .andExpect(jsonPath("$.admissionNumberCode").value("66"));
+            .andExpect(jsonPath("$.rollNumberCode").value(org.hamcrest.Matchers.nullValue()));
 
         verify(courseService).update(eq(1L), any(CourseRequest.class));
     }
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentCourse() throws Exception {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L);
 
         when(courseService.update(eq(999L), any(CourseRequest.class)))
             .thenThrow(new ResourceNotFoundException("Course not found with id: 999"));
@@ -255,7 +254,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        CourseRequest request = new CourseRequest("", "", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("", "", null, "RN", 1L);
 
         mockMvc.perform(put("/courses/1")
                 .contentType(MediaType.APPLICATION_JSON)

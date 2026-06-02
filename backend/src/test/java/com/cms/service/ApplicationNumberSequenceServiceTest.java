@@ -120,7 +120,7 @@ class ApplicationNumberSequenceServiceTest {
 
         assertThatThrownBy(() -> service.nextAdmissionNumber(academicYear, course))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("admission_number_code");
+            .hasMessageContaining("roll_number_code");
     }
 
     @Test

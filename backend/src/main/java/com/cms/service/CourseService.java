@@ -57,7 +57,6 @@ public class CourseService {
             program
         );
         course.setRollNumberCode(trim(request.rollNumberCode()));
-        course.setAdmissionNumberCode(trim(request.admissionNumberCode()));
         Course saved = courseRepository.save(course);
         return toResponse(saved);
     }
@@ -106,7 +105,6 @@ public class CourseService {
         course.setCode(code);
         course.setSpecialization(trim(request.specialization()));
         course.setRollNumberCode(trim(request.rollNumberCode()));
-        course.setAdmissionNumberCode(trim(request.admissionNumberCode()));
         course.setProgram(program);
 
         Course updated = courseRepository.save(course);
@@ -151,7 +149,6 @@ public class CourseService {
             course.getCode(),
             course.getSpecialization(),
             course.getRollNumberCode(),
-            course.getAdmissionNumberCode(),
             programResponse,
             course.getCreatedAt(),
             course.getUpdatedAt()

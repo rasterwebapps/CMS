@@ -64,13 +64,11 @@ class CourseServiceTest {
             "BSN",
             "General",
             "RN",
-            "65",
             1L
         );
 
         Course savedCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
         savedCourse.setRollNumberCode("RN");
-        savedCourse.setAdmissionNumberCode("65");
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
         when(courseRepository.save(any(Course.class))).thenReturn(savedCourse);
@@ -82,7 +80,6 @@ class CourseServiceTest {
         assertThat(response.code()).isEqualTo("BSN");
         assertThat(response.specialization()).isEqualTo("General");
         assertThat(response.rollNumberCode()).isEqualTo("RN");
-        assertThat(response.admissionNumberCode()).isEqualTo("65");
         assertThat(response.program().id()).isEqualTo(1L);
         assertThat(response.program().durationYears()).isEqualTo(4);
 
@@ -92,7 +89,6 @@ class CourseServiceTest {
         assertThat(captured.getName()).isEqualTo("B.Sc. Nursing");
         assertThat(captured.getCode()).isEqualTo("BSN");
         assertThat(captured.getRollNumberCode()).isEqualTo("RN");
-        assertThat(captured.getAdmissionNumberCode()).isEqualTo("65");
     }
 
     @Test
@@ -102,7 +98,6 @@ class CourseServiceTest {
             "BSN",
             null,
             null,
-            "65",
             999L
         );
 
@@ -214,13 +209,11 @@ class CourseServiceTest {
             "MSN",
             "Obs Gyn",
             "MN",
-            "66",
             2L
         );
 
         Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
         updatedCourse.setRollNumberCode("MN");
-        updatedCourse.setAdmissionNumberCode("66");
 
         Instant now = Instant.now();
         ProgramResponse newProgResponse = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), now, now);
@@ -238,7 +231,6 @@ class CourseServiceTest {
         assertThat(response.code()).isEqualTo("MSN");
         assertThat(response.specialization()).isEqualTo("Obs Gyn");
         assertThat(response.rollNumberCode()).isEqualTo("MN");
-        assertThat(response.admissionNumberCode()).isEqualTo("66");
         assertThat(response.program().id()).isEqualTo(2L);
         assertThat(response.program().durationYears()).isEqualTo(2);
 
@@ -246,13 +238,12 @@ class CourseServiceTest {
         ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
         verify(courseRepository).save(captor.capture());
         assertThat(captor.getValue().getRollNumberCode()).isEqualTo("MN");
-        assertThat(captor.getValue().getAdmissionNumberCode()).isEqualTo("66");
     }
 
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateName() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, "RN", 1L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -269,7 +260,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateCode() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, "RN", 1L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -286,7 +277,7 @@ class CourseServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentCourse() {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", "65", 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -302,7 +293,7 @@ class CourseServiceTest {
     void shouldThrowExceptionWhenUpdatingWithNonExistentProgram() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", "65", 999L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 999L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(999L)).thenReturn(Optional.empty());

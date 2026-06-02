@@ -66,10 +66,10 @@ export class CourseFormComponent implements OnInit {
   });
 
   protected readonly TIPS: CmsTip[] = [
-    { icon: 'tag',     title: 'Course Code',    subtitle: 'Use a short uppercase identifier unique within the parent program.' },
-    { icon: 'confirmation_number', title: 'Admission Number Code', subtitle: 'Configure this before confirming admissions so admission numbers can be generated.' },
-    { icon: 'school',  title: 'Parent Program', subtitle: 'Every course must belong to one program (e.g., Bachelor, Master).' },
-    { icon: 'science', title: 'Specialization', subtitle: 'Optional — name the focus area for general programs (e.g., Cardiac, Pediatric).' },
+    { icon: 'tag',     title: 'Course Code',      subtitle: 'Use a short uppercase identifier unique within the parent program.' },
+    { icon: 'confirmation_number', title: 'Roll Number Code', subtitle: 'Exactly 2 characters — embedded in every student roll number and admission number for this course.' },
+    { icon: 'school',  title: 'Parent Program',   subtitle: 'Every course must belong to one program (e.g., Bachelor, Master).' },
+    { icon: 'science', title: 'Specialization',   subtitle: 'Optional — name the focus area for general programs (e.g., Cardiac, Pediatric).' },
   ];
 
   private courseId: number | null = null;
@@ -77,7 +77,7 @@ export class CourseFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
     code: ['', [Validators.required, Validators.maxLength(20), noInternalSpaces()]],
-    admissionNumberCode: ['', [Validators.maxLength(20), noInternalSpaces()]],
+    rollNumberCode: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2), noInternalSpaces()]],
     specialization: [''],
     programId: [null as number | null, [Validators.required]],
   });
@@ -101,11 +101,11 @@ export class CourseFormComponent implements OnInit {
     }
   }
 
-  protected onAdmissionNumberCodeInput(event: Event): void {
+  protected onRollNumberCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const upper = stripSpaces(input.value).toUpperCase();
     if (upper !== input.value) {
-      this.form.get('admissionNumberCode')?.setValue(upper, { emitEvent: true });
+      this.form.get('rollNumberCode')?.setValue(upper, { emitEvent: true });
     }
   }
 
@@ -149,8 +149,8 @@ export class CourseFormComponent implements OnInit {
     const request: CourseRequest = {
       name: (this.form.value.name ?? '').trim(),
       code: (this.form.value.code ?? '').trim(),
+      rollNumberCode: stripSpaces(this.form.value.rollNumberCode ?? '').toUpperCase(),
       specialization: this.form.value.specialization?.trim() || null,
-      admissionNumberCode: this.form.value.admissionNumberCode?.trim() || null,
       programId: this.form.value.programId,
     };
 
@@ -180,7 +180,7 @@ export class CourseFormComponent implements OnInit {
   private static readonly FIELD_LABELS: Record<string, string> = {
     name: 'Course Name',
     code: 'Code',
-    admissionNumberCode: 'Admission Number Code',
+    rollNumberCode: 'Roll Number Code',
     specialization: 'Specialization',
   };
 
@@ -208,7 +208,7 @@ export class CourseFormComponent implements OnInit {
         this.form.patchValue({
           name: course.name,
           code: course.code,
-          admissionNumberCode: course.admissionNumberCode,
+          rollNumberCode: course.rollNumberCode,
           specialization: course.specialization,
           programId: course.program?.id,
         });

@@ -6,7 +6,6 @@ export interface Course {
   code: string;
   specialization: string | null;
   rollNumberCode: string | null;
-  admissionNumberCode: string | null;
   program: Program;
   createdAt: string;
   updatedAt: string;
@@ -16,6 +15,6 @@ export interface CourseRequest {
   name: string;
   code: string;
   specialization: string | null;
-  admissionNumberCode: string | null;
+  rollNumberCode: string;
   programId: number;
 }

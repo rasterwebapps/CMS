@@ -37,12 +37,12 @@ public class ApplicationNumberSequenceService {
      */
     @Transactional
     public String nextAdmissionNumber(AcademicYear academicYear, Course course) {
-        if (course == null || course.getAdmissionNumberCode() == null || course.getAdmissionNumberCode().isBlank()) {
+        if (course == null || course.getRollNumberCode() == null || course.getRollNumberCode().isBlank()) {
             throw new IllegalStateException(
-                "Course must have an admission_number_code configured before an admission number can be generated");
+                "Course must have a roll_number_code configured before an admission number can be generated");
         }
         int year = academicYear.getStartYear();
-        String courseCode = course.getAdmissionNumberCode();
+        String courseCode = course.getRollNumberCode();
         String scopeKey = year + courseCode;
         String prefix = scopeKey;
         return doNextNumber(
