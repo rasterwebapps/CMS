@@ -6,11 +6,11 @@
   padding: 20px var(--cms-page-padding);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 
   @media (max-width: 768px) {
-    padding: 20px 16px;
-    gap: 16px;
+    padding: 14px 16px;
+    gap: 12px;
   }
 }
 
@@ -33,7 +33,7 @@
 .dept-pg-title {
   margin: 0 0 4px;
   font-family: var(--cms-font-display);
-  font-size: var(--cms-text-2xl);
+  font-size: 1.875rem;
   font-weight: 400;
   color: var(--cms-text-primary);
   letter-spacing: -0.025em;
@@ -47,7 +47,7 @@
 
 .dept-pg-sub {
   margin: 0 0 10px;
-  font-size: var(--cms-text-base);
+  font-size: 0.8125rem;
   color: var(--cms-text-muted);
 }
 

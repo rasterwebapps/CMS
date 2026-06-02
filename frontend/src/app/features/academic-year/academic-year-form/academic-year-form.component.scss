@@ -135,9 +135,7 @@
 .seat-allocation-table__head,
 .seat-allocation-table__row {
   display: grid;
-  // Course fills remaining space; numeric input columns shrink gracefully.
-  // No min-width — the table must fit inside the form card without scrolling.
-  grid-template-columns: minmax(0, 1fr) 120px 120px 90px;
+  grid-template-columns: minmax(0, 1fr) 90px 140px 130px 130px;
   gap: 10px;
   align-items: center;
 }
@@ -152,7 +150,6 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 
-  // Numeric column headers (cols 2–4) right-aligned to match input text-align
   span:nth-child(n+2) { text-align: right; }
 }
 
@@ -194,12 +191,23 @@
   font-variant-numeric: tabular-nums;
 }
 
-.seat-allocation-table__total {
-  justify-self: end;
-  color: var(--cms-text-primary);
-  font-size: var(--cms-text-base);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+.seat-allocation-table__pct-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.seat-allocation-table__pct-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+
+.seat-allocation-table__pct-hint {
+  font-size: 10px;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
 }
 
 .seat-allocation-empty {
@@ -360,7 +368,7 @@ input:checked + .toggle-track {
   }
 
   .seat-allocation-table__row > span[role="cell"]:nth-child(2)::before {
-    content: 'Management Seats';
+    content: 'Total Seats';
     color: var(--cms-text-muted);
     font-size: var(--cms-text-xs);
     font-weight: 800;
@@ -369,7 +377,7 @@ input:checked + .toggle-track {
   }
 
   .seat-allocation-table__row > span[role="cell"]:nth-child(3)::before {
-    content: 'Counselling Seats';
+    content: 'Management %';
     color: var(--cms-text-muted);
     font-size: var(--cms-text-xs);
     font-weight: 800;
@@ -377,19 +385,149 @@ input:checked + .toggle-track {
     text-transform: uppercase;
   }
 
-  .seat-allocation-table__total {
-    justify-self: stretch;
-    display: flex;
-    justify-content: space-between;
-    padding-top: 4px;
+  .seat-allocation-table__row > span[role="cell"]:nth-child(4)::before {
+    content: 'Management Seats';
+    color: var(--cms-text-muted);
+    font-size: var(--cms-text-xs);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
 
-    &::before {
-      content: 'Total Seats';
-      color: var(--cms-text-muted);
-      font-size: var(--cms-text-xs);
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+  .seat-allocation-table__row > span[role="cell"]:nth-child(5)::before {
+    content: 'Counselling Seats';
+    color: var(--cms-text-muted);
+    font-size: var(--cms-text-xs);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+
+// ── View-mode read-only value display ─────────────────────────────────────────
+.ayf-view-value {
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-primary);
+  font-weight: 500;
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.seat-allocation-table__view-num {
+  display: block;
+  text-align: right;
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  font-variant-numeric: tabular-nums;
+  padding-right: 4px;
+}
+
+// ── Seat cell with inline lock button ─────────────────────────────────────────
+.seat-allocation-table__seat-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+// Inline lock icon button
+.ayf-lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  border: 1.5px solid var(--cms-border-default);
+  background: transparent;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover:not(:disabled) {
+    color: var(--cms-primary);
+    border-color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.06);
+  }
+
+  &--locked {
+    color: var(--cms-error, #EF4444);
+    border-color: var(--cms-error, #EF4444);
+    background: rgba(239, 68, 68, 0.06);
+
+    &:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.12);
     }
   }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.ayf-lock-spinner {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+// ── Term status row (badge + stepper inline) ──────────────────────────────────
+.ayf-term-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ayf-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.ayf-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+
+  &__dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cms-border-default);
+    border: 2px solid var(--cms-border-default);
+  }
+
+  &__lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    white-space: nowrap;
+  }
+
+  &__line {
+    width: 20px; height: 2px;
+    background: var(--cms-border-default);
+    margin-bottom: 11px;
+    flex-shrink: 0;
+  }
+
+  &.step--done  .ayf-step__dot { background: var(--cms-primary); border-color: var(--cms-primary); }
+  &.step--active .ayf-step__dot { background: #fff; border-color: var(--cms-primary); box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb),.2); }
+  &.step--done  .ayf-step__lbl,
+  &.step--active .ayf-step__lbl { color: var(--cms-primary); }
+}
+
+// ── Term action buttons row ───────────────────────────────────────────────────
+.ayf-term-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }

@@ -127,8 +127,8 @@ export const routes: Routes = [
     path: 'academic-years/:id/detail',
     canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
-      import('./features/academic-year/academic-year-detail/academic-year-detail.component').then(
-        (m) => m.AcademicYearDetailComponent
+      import('./features/academic-year/academic-year-form/academic-year-form.component').then(
+        (m) => m.AcademicYearFormComponent
       ),
   },
   {

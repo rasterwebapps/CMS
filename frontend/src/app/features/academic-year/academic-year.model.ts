@@ -14,20 +14,51 @@ export interface CohortSummary {
   displayName: string;
   courseName: string;
   courseCode: string;
+  totalSeats: number | null;
+  managementPercentage: number | null;
   managementSeats: number | null;
   counsellingSeats: number | null;
   hasStudents: boolean;
   counsellingClosed: boolean;
   counsellingClosedDate: string | null;
+  managementClosed: boolean;
+  managementClosedDate: string | null;
 }
 
 export interface CohortSeatsRequest {
-  managementSeats: number | null;
-  counsellingSeats: number | null;
+  totalSeats: number | null;
+  managementPercentage: number | null;
 }
 
 export interface CohortSeatAllocationRequest extends CohortSeatsRequest {
   courseId: number;
+}
+
+export interface SeatAvailabilityResponse {
+  available: boolean;
+  filled: number;
+  total: number | null;
+  full: boolean;
+  closed: boolean;
+  overManagementQuota: boolean;
+}
+
+export interface CohortLapsedRow {
+  cohortId: number;
+  courseName: string;
+  courseCode: string;
+  counsellingSeats: number;
+  filledCounselling: number;
+  lapsedSeats: number;
+  counsellingClosed: boolean;
+}
+
+export interface CohortLapsedSummary {
+  cohorts: CohortLapsedRow[];
+  totalCounsellingSeats: number;
+  totalFilledCounselling: number;
+  totalLapsedSeats: number;
+  lapsedPercentage: number;
 }
 
 export interface AcademicYearRequest {

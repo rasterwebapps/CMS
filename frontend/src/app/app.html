@@ -163,12 +163,12 @@
               <mat-nav-list dense>
                 @for (item of entry.items; track item.route) {
                   <a mat-list-item [routerLink]="item.route"
-                     [class.active-link]="isNavItemActive(item)"
-                     [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
-                     [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
-                     matBadgeColor="warn" matBadgeSize="small">
+                     [class.active-link]="isNavItemActive(item)">
                     <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
+                    @if ((navBadgeCounts()[item.route] ?? 0) > 0) {
+                      <span matListItemMeta class="nav-enquiry-badge">{{ navBadgeCounts()[item.route] }}</span>
+                    }
                   </a>
                 }
               </mat-nav-list>
@@ -238,12 +238,12 @@
             <mat-nav-list dense class="sidenav-nav">
               @for (item of group.items; track item.route) {
                 <a mat-list-item [routerLink]="item.route"
-                   [class.active-link]="isNavItemActive(item)"
-                   [matBadge]="item.route === '/enquiries' && enquiryBadgeCount() > 0 ? enquiryBadgeCount() : null"
-                   [matBadgeHidden]="item.route !== '/enquiries' || enquiryBadgeCount() === 0"
-                   matBadgeColor="warn" matBadgeSize="small">
+                   [class.active-link]="isNavItemActive(item)">
                   <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                   <span matListItemTitle>{{ item.label }}</span>
+                  @if ((navBadgeCounts()[item.route] ?? 0) > 0) {
+                    <span matListItemMeta class="nav-enquiry-badge">{{ navBadgeCounts()[item.route] }}</span>
+                  }
                 </a>
               }
             </mat-nav-list>

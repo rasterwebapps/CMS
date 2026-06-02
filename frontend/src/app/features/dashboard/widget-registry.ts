@@ -24,6 +24,7 @@ import { ScholarshipBurnWidgetComponent }      from './widgets/scholarship-burn/
 import { DocVerificationBacklogWidgetComponent } from './widgets/doc-verification-backlog/doc-verification-backlog-widget.component';
 import { Tier3StrategicWidgetComponent }       from './widgets/tier3-strategic/tier3-strategic-widget.component';
 import { Tier4AlertWidgetComponent }           from './widgets/tier4-alert/tier4-alert-widget.component';
+import { GovtLapsedSeatsWidgetComponent }      from './widgets/govt-lapsed-seats/govt-lapsed-seats-widget.component';
 
 const PH = WidgetPlaceholderComponent;
 
@@ -57,7 +58,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { key: 'stat-female-students',    label: 'Female Students',     description: 'Total female enrolled student count',                     icon: 'person_outline',   category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
   { key: 'stat-management-quota',   label: 'Management Quota',    description: 'Students admitted via management quota',                  icon: 'business_center',  category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
   { key: 'stat-counselling-quota',  label: 'Counselling Quota',   description: 'Students admitted via government counselling',            icon: 'groups',           category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
-  { key: 'stat-govt-lapsed-seats',      label: 'Govt. Lapsed Seats',      description: 'Unfilled counselling seats in closed cohorts (current year)',    icon: 'event_seat',      category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
+  { key: 'stat-govt-lapsed-seats',      label: 'Govt. Lapsed Seats',      description: 'Unfilled counselling seats per cohort with grand total (current year)', icon: 'event_seat', category: 'stats', component: GovtLapsedSeatsWidgetComponent, defaultColSpan: 2, defaultRowSpan: 1 },
   { key: 'stat-counselling-seats-fill', label: 'Counselling Seats Filled', description: 'Counselling seats filled vs total (current academic year)',        icon: 'how_to_reg',      category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
   { key: 'stat-management-seats-fill',  label: 'Management Seats Filled',  description: 'Management seats filled vs total (current academic year)',         icon: 'business_center', category: 'stats', component: StatCardWidgetComponent, defaultColSpan: 1, defaultRowSpan: 1 },
   // ── Charts ────────────────────────────────────────────────────────────────

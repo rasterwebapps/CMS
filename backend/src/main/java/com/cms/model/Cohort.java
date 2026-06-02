@@ -8,6 +8,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.CohortStatus;
+import java.math.BigDecimal;
+
 import jakarta.persistence.Transient;
 
 import jakarta.persistence.Column;
@@ -52,6 +54,12 @@ public class Cohort {
     @Column(name = "display_name", nullable = false, length = 200)
     private String displayName;
 
+    @Column(name = "total_seats")
+    private Integer totalSeats;
+
+    @Column(name = "management_percentage", precision = 5, scale = 2)
+    private BigDecimal managementPercentage;
+
     @Column(name = "management_seats")
     private Integer managementSeats;
 
@@ -67,6 +75,12 @@ public class Cohort {
 
     @Column(name = "counselling_closed_date")
     private LocalDate counsellingClosedDate;
+
+    @Column(name = "management_closed", nullable = false)
+    private boolean managementClosed = false;
+
+    @Column(name = "management_closed_date")
+    private LocalDate managementClosedDate;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -132,6 +146,10 @@ public class Cohort {
         this.displayName = displayName;
     }
 
+    public Integer getTotalSeats() { return totalSeats; }
+    public void setTotalSeats(Integer totalSeats) { this.totalSeats = totalSeats; }
+    public BigDecimal getManagementPercentage() { return managementPercentage; }
+    public void setManagementPercentage(BigDecimal managementPercentage) { this.managementPercentage = managementPercentage; }
     public Integer getManagementSeats() { return managementSeats; }
     public void setManagementSeats(Integer managementSeats) { this.managementSeats = managementSeats; }
     public Integer getCounsellingSeats() { return counsellingSeats; }
@@ -142,6 +160,12 @@ public class Cohort {
 
     public LocalDate getCounsellingClosedDate() { return counsellingClosedDate; }
     public void setCounsellingClosedDate(LocalDate counsellingClosedDate) { this.counsellingClosedDate = counsellingClosedDate; }
+
+    public boolean isManagementClosed() { return managementClosed; }
+    public void setManagementClosed(boolean managementClosed) { this.managementClosed = managementClosed; }
+
+    public LocalDate getManagementClosedDate() { return managementClosedDate; }
+    public void setManagementClosedDate(LocalDate managementClosedDate) { this.managementClosedDate = managementClosedDate; }
 
     public CohortStatus getStatus() {
         return status;

@@ -45,12 +45,13 @@ export class AcademicYearDetailComponent implements OnInit {
   protected readonly evenBilling      = computed(() => this.billingSchedules().find(b => b.termType === 'EVEN') ?? null);
 
   protected readonly grandTotals = computed(() => {
-    let management = 0, counselling = 0;
+    let management = 0, counselling = 0, total = 0;
     for (const c of this.cohorts()) {
       management  += (c.managementSeats  ?? 0);
       counselling += (c.counsellingSeats ?? 0);
+      total       += (c.totalSeats ?? (c.managementSeats ?? 0) + (c.counsellingSeats ?? 0));
     }
-    return { management, counselling, total: management + counselling };
+    return { management, counselling, total };
   });
 
   protected academicYearId!: number;
@@ -143,8 +144,8 @@ export class AcademicYearDetailComponent implements OnInit {
   protected toggleCounsellingStatus(cohort: import('../academic-year.model').CohortSummary): void {
     this.togglingCounsellingId.set(cohort.id);
     const closing = !cohort.counsellingClosed;
-    this.academicYearService.setCounsellingStatus(cohort.id, closing).subscribe({
-      next: (updated) => {
+    this.academicYearService.setQuotaStatus(cohort.id, 'COUNSELLING', closing).subscribe({
+      next: (updated: import('../academic-year.model').CohortSummary) => {
         this.cohorts.update(list => list.map(c => c.id === updated.id ? updated : c));
         this.togglingCounsellingId.set(null);
         this.toast.success(closing ? 'Counselling closed — seats are now lapsed' : 'Counselling reopened');

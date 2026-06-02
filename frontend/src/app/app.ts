@@ -108,7 +108,7 @@ export class App implements OnInit, AfterViewInit {
   protected readonly menuSearch = signal('');
   protected readonly toolbarLogoError = signal(false);
   protected readonly notificationCount = signal(0);
-  protected readonly enquiryBadgeCount = signal(0);
+  protected readonly navBadgeCounts = signal<Record<string, number>>({});
   protected readonly isNavGroup = isNavGroup;
 
   /** True when the sidenav is collapsed to the 68px icon rail on desktop. */
@@ -399,15 +399,27 @@ export class App implements OnInit, AfterViewInit {
       }
     });
 
-    // Fetch enquiry badge count for users who can view enquiry workflows.
+    // Fetch admission funnel badge counts for users who can view enquiry workflows.
     if (isPlatformBrowser(this.platformId) && this.permissionService.has('ENQUIRY_VIEW')) {
       this.http
         .get<{ enquiryFunnel?: Record<string, number> }>(`${environment.apiUrl}/dashboard/summary`)
         .subscribe({
           next: (data) => {
-            const enquired = data.enquiryFunnel?.['ENQUIRED'] ?? 0;
-            const interested = data.enquiryFunnel?.['INTERESTED'] ?? 0;
-            this.enquiryBadgeCount.set(enquired + interested);
+            const f = data.enquiryFunnel ?? {};
+            const enquired      = (f['ENQUIRED']           ?? 0) + (f['INTERESTED']         ?? 0);
+            const finalizeFee   = f['INTERESTED']          ?? 0;
+            const collectPayment= f['FEES_FINALIZED']      ?? 0;
+            const docSubmit     = (f['FEES_PAID']          ?? 0) + (f['PARTIALLY_PAID']     ?? 0);
+            const docVerify     = f['DOCUMENTS_SUBMITTED'] ?? 0;
+            const admComplete   = f['DOCUMENTS_VERIFIED']  ?? 0;
+            this.navBadgeCounts.set({
+              '/enquiries':                       enquired,
+              '/student-fees/finalize':           finalizeFee,
+              '/fee-collection':                  collectPayment,
+              '/enquiries/document-submission':   docSubmit,
+              '/enquiries/document-verification': docVerify,
+              '/enquiries/admission-completion':  admComplete,
+            });
           },
           error: () => { /* silently ignore badge fetch errors */ },
         });

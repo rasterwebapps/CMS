@@ -1,6 +1,8 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
+
 public record CohortSeatsRequest(
-    Integer managementSeats,
-    Integer counsellingSeats
+    Integer    totalSeats,
+    BigDecimal managementPercentage
 ) {}

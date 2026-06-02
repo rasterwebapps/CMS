@@ -243,20 +243,20 @@
           <div class="cohort-seats-table__head">
             <span>Course</span>
             <span>Batch</span>
-            <span>Management Seats</span>
-            <span>Counselling Seats</span>
-            <span>Total Seats</span>
+            <span>Total</span>
+            <span>Mgmt %</span>
+            <span>Management</span>
+            <span>Counselling</span>
             @if (canEdit()) { <span>Counselling Status</span> }
           </div>
           @for (cohort of cohorts(); track cohort.id) {
             <div class="cohort-seats-table__row">
               <span class="cohort-seats-table__program">{{ cohort.courseName }}</span>
               <span class="cohort-seats-table__batch">{{ cohort.displayName }}</span>
+              <span class="cohort-seats-table__row-total">{{ cohort.totalSeats ?? (cohort.managementSeats ?? 0) + (cohort.counsellingSeats ?? 0) }}</span>
+              <span class="cohort-seats-table__value">{{ cohort.managementPercentage != null ? (cohort.managementPercentage + '%') : '—' }}</span>
               <span class="cohort-seats-table__value">{{ cohort.managementSeats ?? 0 }}</span>
               <span class="cohort-seats-table__value">{{ cohort.counsellingSeats ?? 0 }}</span>
-              <span class="cohort-seats-table__row-total">
-                {{ (cohort.managementSeats ?? 0) + (cohort.counsellingSeats ?? 0) }}
-              </span>
               @if (canEdit()) {
                 <span class="cohort-seats-table__status-cell">
                   @if (cohort.counsellingClosed) {
@@ -287,9 +287,10 @@
           <div class="cohort-seats-table__footer">
             <span class="cohort-seats-table__footer-label">Grand Total</span>
             <span></span>
+            <span class="cohort-seats-table__footer-value cohort-seats-table__footer-value--total">{{ grandTotals().total }}</span>
+            <span></span>
             <span class="cohort-seats-table__footer-value">{{ grandTotals().management }}</span>
             <span class="cohort-seats-table__footer-value">{{ grandTotals().counselling }}</span>
-            <span class="cohort-seats-table__footer-value cohort-seats-table__footer-value--total">{{ grandTotals().total }}</span>
             @if (canEdit()) { <span></span> }
           </div>
         </div>

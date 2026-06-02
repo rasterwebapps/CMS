@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   AbstractControl,
@@ -19,7 +19,10 @@ import {
   CohortSeatAllocationRequest,
   CohortSummary,
   LateFeeType,
+  TermBillingSchedule,
   TermBillingScheduleRequest,
+  TermInstance,
+  TermInstanceStatus,
 } from '../academic-year.model';
 import { Course } from '../../course/course.model';
 import { CourseService } from '../../course/course.service';
@@ -42,19 +45,36 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
   styleUrl: './academic-year-form.component.scss',
 })
 export class AcademicYearFormComponent implements OnInit {
-  private readonly fb                 = inject(FormBuilder);
-  private readonly route              = inject(ActivatedRoute);
-  private readonly router             = inject(Router);
+  private readonly fb                  = inject(FormBuilder);
+  protected readonly route             = inject(ActivatedRoute);
+  private readonly router              = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly courseService      = inject(CourseService);
-  private readonly toast              = inject(ToastService);
-  private readonly tourService        = inject(TourService);
-  private readonly destroyRef         = inject(DestroyRef);
-  private readonly http               = inject(HttpClient);
+  private readonly courseService       = inject(CourseService);
+  private readonly toast               = inject(ToastService);
+  private readonly tourService         = inject(TourService);
+  private readonly destroyRef          = inject(DestroyRef);
+  private readonly http                = inject(HttpClient);
 
-  protected readonly loading  = signal(false);
-  protected readonly saving   = signal(false);
+  protected readonly loading    = signal(false);
+  protected readonly saving     = signal(false);
   protected readonly isEditMode = signal(false);
+  protected readonly isViewMode = signal(false);
+
+  protected readonly isCreateMode = computed(() => !this.isEditMode() && !this.isViewMode());
+
+  // Term instances (loaded in edit + view mode)
+  protected readonly termInstances    = signal<TermInstance[]>([]);
+  protected readonly billingSchedules = signal<TermBillingSchedule[]>([]);
+  protected readonly advancingOdd     = signal(false);
+  protected readonly advancingEven    = signal(false);
+  protected readonly generatingOdd    = signal(false);
+  protected readonly generatingEven   = signal(false);
+
+  protected readonly oddTermInstance  = computed(() => this.termInstances().find(t => t.termType === 'ODD')  ?? null);
+  protected readonly evenTermInstance = computed(() => this.termInstances().find(t => t.termType === 'EVEN') ?? null);
+
+  // Counselling toggle
+  protected readonly togglingCounsellingId = signal<number | null>(null);
 
   // Live preview signals
   protected readonly previewName  = signal('');
@@ -72,33 +92,26 @@ export class AcademicYearFormComponent implements OnInit {
   private academicYearId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    // ── Academic Year ─────────────────────────────────────────────────────────
     name:      ['', [Validators.required, Validators.maxLength(100)]],
     startDate: ['', Validators.required],
     endDate:   ['', Validators.required],
     isCurrent: [false],
 
-    // ── ODD Term ──────────────────────────────────────────────────────────────
     oddStartDate: ['', Validators.required],
     oddEndDate:   ['', Validators.required],
-
-    // ── EVEN Term ─────────────────────────────────────────────────────────────
     evenStartDate: ['', Validators.required],
     evenEndDate:   ['', Validators.required],
 
-    // ── ODD Billing ───────────────────────────────────────────────────────────
-    oddDueDate:      ['', Validators.required],
-    oddLateFeeType:  ['FLAT' as LateFeeType, Validators.required],
+    oddDueDate:       ['', Validators.required],
+    oddLateFeeType:   ['FLAT' as LateFeeType, Validators.required],
     oddLateFeeAmount: [0,  [Validators.required, Validators.min(0)]],
-    oddGraceDays:    [0,  [Validators.required, Validators.min(0)]],
+    oddGraceDays:     [0,  [Validators.required, Validators.min(0)]],
 
-    // ── EVEN Billing ──────────────────────────────────────────────────────────
-    evenDueDate:      ['', Validators.required],
-    evenLateFeeType:  ['FLAT' as LateFeeType, Validators.required],
+    evenDueDate:       ['', Validators.required],
+    evenLateFeeType:   ['FLAT' as LateFeeType, Validators.required],
     evenLateFeeAmount: [0,  [Validators.required, Validators.min(0)]],
-    evenGraceDays:    [0,  [Validators.required, Validators.min(0)]],
+    evenGraceDays:     [0,  [Validators.required, Validators.min(0)]],
 
-    // ── Cohort Seats ──────────────────────────────────────────────────────────
     seatAllocations: this.fb.array([]),
   });
 
@@ -114,11 +127,19 @@ export class AcademicYearFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('academic-year-form', ACADEMIC_YEAR_FORM_TOUR);
-    const idParam = this.route.snapshot.paramMap.get('id');
+    const idParam  = this.route.snapshot.paramMap.get('id');
+    const urlSegs  = this.route.snapshot.url.map(s => s.path);
+    const isDetail = urlSegs.includes('detail');
+
     if (idParam) {
       this.academicYearId = Number(idParam);
-      this.isEditMode.set(true);
-      this.loadActiveProgramsForEdit();
+      if (isDetail) {
+        this.isViewMode.set(true);
+        this.form.disable();
+      } else {
+        this.isEditMode.set(true);
+      }
+      this.loadForEditOrView();
     } else {
       this.loadActiveProgramsForCreate();
     }
@@ -176,7 +197,6 @@ export class AcademicYearFormComponent implements OnInit {
               }),
               switchMap(() => {
                 if (!this.isEditMode()) return of([]);
-                // Ensure cohorts exist for all active programs (idempotent), then update seats
                 return this.academicYearService.initializeCohorts(this.academicYearId!).pipe(
                   switchMap(allCohorts => {
                     const rows = this.seatAllocationControls();
@@ -186,8 +206,8 @@ export class AcademicYearFormComponent implements OnInit {
                         const cohort = allCohorts.find(c => c.courseCode === code);
                         if (!cohort) return null;
                         return this.academicYearService.updateCohortSeats(cohort.id, {
-                          managementSeats:  this.toSeatCount(row.get('managementSeats')?.value),
-                          counsellingSeats: this.toSeatCount(row.get('counsellingSeats')?.value),
+                          totalSeats:           this.toSeatCount(row.get('totalSeats')?.value),
+                          managementPercentage: this.toPercentage(row.get('managementPercentage')?.value),
                         });
                       })
                       .filter((u): u is NonNullable<typeof u> => u !== null);
@@ -211,6 +231,86 @@ export class AcademicYearFormComponent implements OnInit {
     });
   }
 
+  // ── Term status operations ────────────────────────────────────────────────────
+
+  protected advanceTermStatus(termType: 'ODD' | 'EVEN'): void {
+    const term = termType === 'ODD' ? this.oddTermInstance() : this.evenTermInstance();
+    const next = term ? this.getNextStatus(term.status) : null;
+    if (!term || !next) return;
+    const advancing = termType === 'ODD' ? this.advancingOdd : this.advancingEven;
+    advancing.set(true);
+    this.academicYearService.updateTermInstance(term.id, { status: next }).subscribe({
+      next: () => {
+        this.toast.success(`Term advanced to ${next}`);
+        this.reloadTermInstances();
+        advancing.set(false);
+      },
+      error: () => { this.toast.error('Failed to advance term status'); advancing.set(false); },
+    });
+  }
+
+  protected generateEnrollments(termType: 'ODD' | 'EVEN'): void {
+    const term = termType === 'ODD' ? this.oddTermInstance() : this.evenTermInstance();
+    if (!term) return;
+    const generating = termType === 'ODD' ? this.generatingOdd : this.generatingEven;
+    generating.set(true);
+    this.academicYearService.generateEnrollments(term.id).subscribe({
+      next: (res) => { this.toast.success(`Generated ${res.enrollmentsCreated} enrollment(s)`); generating.set(false); },
+      error: () => { this.toast.error('Failed to generate enrollments'); generating.set(false); },
+    });
+  }
+
+  protected getNextStatus(current: TermInstanceStatus): TermInstanceStatus | null {
+    if (current === 'PLANNED') return 'OPEN';
+    if (current === 'OPEN')    return 'LOCKED';
+    return null;
+  }
+
+  protected getStatusStepClass(current: TermInstanceStatus, step: TermInstanceStatus): string {
+    const order: TermInstanceStatus[] = ['PLANNED', 'OPEN', 'LOCKED'];
+    const ci = order.indexOf(current), si = order.indexOf(step);
+    if (si < ci) return 'step--done';
+    if (si === ci) return 'step--active';
+    return 'step--pending';
+  }
+
+  // ── Counselling toggle ────────────────────────────────────────────────────────
+
+  protected toggleQuotaStatus(row: FormGroup, quota: 'MANAGEMENT' | 'COUNSELLING'): void {
+    const cohortId = row.get('cohortId')?.value as number | null;
+    if (!cohortId) return;
+    this.togglingCounsellingId.set(cohortId * (quota === 'MANAGEMENT' ? -1 : 1));
+    const closedField = quota === 'MANAGEMENT' ? 'managementClosed' : 'counsellingClosed';
+    const dateField   = quota === 'MANAGEMENT' ? 'managementClosedDate' : 'counsellingClosedDate';
+    const closing = !row.get(closedField)?.value;
+    this.academicYearService.setQuotaStatus(cohortId, quota, closing).subscribe({
+      next: (updated) => {
+        row.patchValue({
+          counsellingClosed:     updated.counsellingClosed,
+          counsellingClosedDate: updated.counsellingClosedDate,
+          managementClosed:      updated.managementClosed,
+          managementClosedDate:  updated.managementClosedDate,
+        });
+        this.togglingCounsellingId.set(null);
+        const label = quota === 'MANAGEMENT' ? 'Management' : 'Counselling';
+        this.toast.success(closing ? `${label} seats locked` : `${label} seats reopened`);
+      },
+      error: () => {
+        this.toast.error('Failed to update quota status');
+        this.togglingCounsellingId.set(null);
+      },
+    });
+  }
+
+  protected isToggling(row: FormGroup, quota: 'MANAGEMENT' | 'COUNSELLING'): boolean {
+    const cohortId = row.get('cohortId')?.value as number | null;
+    if (!cohortId) return false;
+    const key = cohortId * (quota === 'MANAGEMENT' ? -1 : 1);
+    return this.togglingCounsellingId() === key;
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+
   protected getError(field: string): string {
     const ctrl = this.form.get(field);
     if (!ctrl?.errors || !ctrl.touched) return '';
@@ -231,10 +331,29 @@ export class AcademicYearFormComponent implements OnInit {
   }
 
   protected getSeatTotal(row: AbstractControl): number {
-    const management = Number(row.get('managementSeats')?.value ?? 0) || 0;
-    const counselling = Number(row.get('counsellingSeats')?.value ?? 0) || 0;
-    return management + counselling;
+    return Number(row.get('totalSeats')?.value ?? 0) || 0;
   }
+
+  protected getDerivedManagementSeats(row: AbstractControl): number {
+    const total = Number(row.get('totalSeats')?.value ?? 0) || 0;
+    const pct   = Number(row.get('managementPercentage')?.value ?? 0) || 0;
+    return Math.round(total * pct / 100);
+  }
+
+  protected getDerivedCounsellingSeats(row: AbstractControl): number {
+    return this.getSeatTotal(row) - this.getDerivedManagementSeats(row);
+  }
+
+  protected getDerivedCounsellingPercentage(row: AbstractControl): number {
+    const pct = Number(row.get('managementPercentage')?.value ?? 0) || 0;
+    return Math.max(0, 100 - pct);
+  }
+
+  protected lateFeeLabel(type: string, amount: number): string {
+    return type === 'FLAT' ? `₹${amount} flat` : `₹${amount}/day`;
+  }
+
+  // ── Private ───────────────────────────────────────────────────────────────────
 
   private get seatAllocationArray(): FormArray {
     return this.form.get('seatAllocations') as FormArray;
@@ -255,36 +374,7 @@ export class AcademicYearFormComponent implements OnInit {
     });
   }
 
-  private setSeatAllocationRows(courses: Course[], cohorts: CohortSummary[] = []): void {
-    this.seatAllocationArray.clear();
-    for (const course of courses) {
-      const cohort = cohorts.find(c => c.courseCode === course.code);
-      this.seatAllocationArray.push(this.fb.group({
-        cohortId:        [cohort?.id ?? null],
-        courseId:        [course.id, Validators.required],
-        courseCode:      [course.code],
-        courseName:      [course.name],
-        managementSeats: [cohort?.managementSeats ?? 0, [Validators.min(0)]],
-        counsellingSeats:[cohort?.counsellingSeats ?? 0, [Validators.min(0)]],
-      }));
-    }
-  }
-
-  private buildSeatAllocations(): CohortSeatAllocationRequest[] {
-    return this.seatAllocationArray.controls.map(row => ({
-      courseId:        Number(row.get('courseId')?.value),
-      managementSeats: this.toSeatCount(row.get('managementSeats')?.value),
-      counsellingSeats:this.toSeatCount(row.get('counsellingSeats')?.value),
-    }));
-  }
-
-  private toSeatCount(value: unknown): number {
-    if (value === '' || value == null) return 0;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  private loadActiveProgramsForEdit(): void {
+  private loadForEditOrView(): void {
     if (!this.academicYearId) return;
     this.loading.set(true);
 
@@ -317,6 +407,9 @@ export class AcademicYearFormComponent implements OnInit {
           evenGraceDays:     evenBilling?.graceDays     ?? 0,
         });
 
+        this.termInstances.set(terms);
+        this.billingSchedules.set(schedules);
+
         const sorted = courses.slice().sort((a, b) => a.name.localeCompare(b.name));
         this.setSeatAllocationRows(sorted, cohorts);
         this.loading.set(false);
@@ -326,5 +419,52 @@ export class AcademicYearFormComponent implements OnInit {
         void this.router.navigate(['/academic-years']);
       },
     });
+  }
+
+  private reloadTermInstances(): void {
+    if (!this.academicYearId) return;
+    this.academicYearService.getTermInstancesByAcademicYear(this.academicYearId).subscribe({
+      next: (terms) => this.termInstances.set(terms),
+    });
+  }
+
+  private setSeatAllocationRows(courses: Course[], cohorts: CohortSummary[] = []): void {
+    this.seatAllocationArray.clear();
+    for (const course of courses) {
+      const cohort = cohorts.find(c => c.courseCode === course.code);
+      this.seatAllocationArray.push(this.fb.group({
+        cohortId:              [cohort?.id ?? null],
+        courseId:              [course.id, Validators.required],
+        courseCode:            [course.code],
+        courseName:            [course.name],
+        totalSeats:            [cohort?.totalSeats ?? 0, [Validators.min(0)]],
+        managementPercentage:  [cohort?.managementPercentage ?? 35, [Validators.min(0), Validators.max(100)]],
+        counsellingClosed:     [cohort?.counsellingClosed     ?? false],
+        counsellingClosedDate: [cohort?.counsellingClosedDate ?? null],
+        managementClosed:      [cohort?.managementClosed      ?? false],
+        managementClosedDate:  [cohort?.managementClosedDate  ?? null],
+      }));
+    }
+  }
+
+  private buildSeatAllocations(): CohortSeatAllocationRequest[] {
+    return this.seatAllocationArray.controls.map(row => ({
+      courseId:             Number(row.get('courseId')?.value),
+      totalSeats:           this.toSeatCount(row.get('totalSeats')?.value),
+      managementPercentage: this.toPercentage(row.get('managementPercentage')?.value),
+    }));
+  }
+
+  private toSeatCount(value: unknown): number {
+    if (value === '' || value == null) return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private toPercentage(value: unknown): number {
+    if (value === '' || value == null) return 0;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.min(100, parsed));
   }
 }

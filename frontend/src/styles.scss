@@ -165,6 +165,7 @@
   --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.02);
   --cms-sidenav-footer-text: #94a3b8;
   --cms-sidenav-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --cms-nav-badge-inactive-bg: #6b7280;
 
   // ─── Typography ───
   --cms-font-ui:      'Inter', system-ui, sans-serif;
@@ -323,6 +324,7 @@ html {
     --cms-sidenav-footer-bg: rgba(0, 0, 0, 0.12);
     --cms-sidenav-footer-text: rgba(255, 255, 255, 0.28);
     --cms-sidenav-scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    --cms-nav-badge-inactive-bg: #4b5563;
     --cms-success-light: rgba(16, 185, 129, 0.12);
     --cms-warning-light: rgba(245, 158, 11, 0.12);
     --cms-danger-light: rgba(239, 68, 68, 0.12);

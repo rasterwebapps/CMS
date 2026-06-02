@@ -445,8 +445,8 @@
   display: flex;
   flex-direction: column;
 
-  $cols: 2fr 1.5fr 1fr 1fr 1fr;
-  $cols-with-status: 2fr 1.5fr 1fr 1fr 1fr 1.8fr;
+  $cols: 2fr 1.5fr 80px 70px 1fr 1fr;
+  $cols-with-status: 2fr 1.5fr 80px 70px 1fr 1fr 1.8fr;
 
   &__head {
     display: grid;
@@ -461,7 +461,7 @@
     text-transform: uppercase;
     letter-spacing: .05em;
 
-    // Numeric column headers: cols 3–5 right-aligned; col 6 (status) left-aligned
+    // Numeric column headers: cols 3–7 right-aligned; last (status) left-aligned
     span:nth-child(n+3):not(:last-child) { text-align: right; }
   }
 
@@ -477,7 +477,7 @@
     &:hover { background: var(--cms-bg-muted); }
   }
 
-  // 6-column variant when canEdit() is true
+  // 7-column variant when canEdit() is true
   &--with-status &__head,
   &--with-status &__row,
   &--with-status &__footer {

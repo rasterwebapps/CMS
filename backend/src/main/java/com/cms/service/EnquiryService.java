@@ -60,6 +60,7 @@ import com.cms.repository.FeeStateRepository;
 import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -94,6 +95,7 @@ public class EnquiryService {
     private final EnquiryDocumentService enquiryDocumentService;
     private final ApplicationNumberSequenceService numberSequenceService;
     private final LocationCountryRepository countryRepository;
+    private final CohortRepository cohortRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -111,7 +113,8 @@ public class EnquiryService {
                            FeeStateRepository feeStateRepository,
                            EnquiryDocumentService enquiryDocumentService,
                            ApplicationNumberSequenceService numberSequenceService,
-                           LocationCountryRepository countryRepository) {
+                           LocationCountryRepository countryRepository,
+                           CohortRepository cohortRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -129,6 +132,7 @@ public class EnquiryService {
         this.enquiryDocumentService = enquiryDocumentService;
         this.numberSequenceService = numberSequenceService;
         this.countryRepository = countryRepository;
+        this.cohortRepository = cohortRepository;
     }
 
     @Transactional
@@ -472,6 +476,7 @@ public class EnquiryService {
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
         validateAdmissionReadiness(enquiry);
+        validateSeatAvailability(enquiry, request.joiningAcademicYearId());
 
         if (studentRepository.existsByEmail(request.email())) {
             throw new IllegalStateException("A student with this email already exists: " + request.email());
@@ -594,6 +599,52 @@ public class EnquiryService {
                 "All mandatory documents must be verified before completing admission." + unverified
             );
         }
+    }
+
+    private void validateSeatAvailability(Enquiry enquiry, Long joiningAcademicYearId) {
+        if (enquiry.getCourse() == null || enquiry.getAdmissionQuota() == null) return;
+        cohortRepository.findByCourseIdAndAdmissionAcademicYearId(
+                enquiry.getCourse().getId(), joiningAcademicYearId)
+            .ifPresent(cohort -> {
+                AdmissionCategory cat = AdmissionCategory.valueOf(enquiry.getAdmissionQuota().name());
+
+                if (enquiry.getAdmissionQuota() == AdmissionQuota.MANAGEMENT) {
+                    if (cohort.isManagementClosed()) {
+                        throw new IllegalStateException(
+                            "Management quota is closed for " + cohort.getDisplayName()
+                            + ". Contact admin to reopen before completing this admission.");
+                    }
+                    Integer totalSeats = cohort.getTotalSeats();
+                    if (totalSeats != null && totalSeats > 0) {
+                        long filledMgmt = studentRepository.countByCohortIdAndAdmissionCategory(
+                            cohort.getId(), AdmissionCategory.MANAGEMENT);
+                        long filledCounselling = studentRepository.countByCohortIdAndAdmissionCategory(
+                            cohort.getId(), AdmissionCategory.COUNSELLING);
+                        if (filledMgmt + filledCounselling >= totalSeats) {
+                            throw new IllegalStateException(
+                                "Total seats are exhausted for " + cohort.getDisplayName()
+                                + " (" + (filledMgmt + filledCounselling) + "/" + totalSeats
+                                + "). Contact admin to increase the seat allocation.");
+                        }
+                    }
+                    // Management quota overflow (filledMgmt >= managementSeats) is allowed — soft warning only in UI.
+                } else {
+                    if (cohort.isCounsellingClosed()) {
+                        throw new IllegalStateException(
+                            "Counselling (Govt.) quota is closed for " + cohort.getDisplayName()
+                            + ". Contact admin to reopen before completing this admission.");
+                    }
+                    Integer total = cohort.getCounsellingSeats();
+                    if (total != null && total > 0) {
+                        long filled = studentRepository.countByCohortIdAndAdmissionCategory(cohort.getId(), cat);
+                        if (filled >= total) {
+                            throw new IllegalStateException(
+                                "Counselling (Govt.) seats are full for " + cohort.getDisplayName()
+                                + " (" + filled + "/" + total + "). Contact admin to increase seat allocation.");
+                        }
+                    }
+                }
+            });
     }
 
     public EnquiryConversionPrefillResponse getConversionPrefill(Long enquiryId) {

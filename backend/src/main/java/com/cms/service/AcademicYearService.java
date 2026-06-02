@@ -1,5 +1,7 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -195,8 +197,15 @@ public class AcademicYearService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
             CohortSeatAllocationRequest allocation = allocationsByCourseId.get(courseId);
             Cohort cohort = buildCohort(course, academicYear);
-            cohort.setManagementSeats(defaultSeats(allocation.managementSeats()));
-            cohort.setCounsellingSeats(defaultSeats(allocation.counsellingSeats()));
+            int total = allocation.totalSeats() != null ? allocation.totalSeats() : 0;
+            BigDecimal pct = allocation.managementPercentage() != null
+                ? allocation.managementPercentage() : BigDecimal.ZERO;
+            int mgmt = pct.multiply(BigDecimal.valueOf(total))
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).intValue();
+            cohort.setTotalSeats(total);
+            cohort.setManagementPercentage(pct);
+            cohort.setManagementSeats(mgmt);
+            cohort.setCounsellingSeats(total - mgmt);
             cohortRepository.save(cohort);
         }
     }
@@ -215,10 +224,6 @@ public class AcademicYearService {
         cohort.setDisplayName(course.getName() + " (" + startYear + "-" + endYear + ")");
         cohort.setStatus(CohortStatus.ACTIVE);
         return cohort;
-    }
-
-    private static Integer defaultSeats(Integer seats) {
-        return seats != null ? seats : 0;
     }
 
     public boolean nameExists(String name, Long excludeId) {

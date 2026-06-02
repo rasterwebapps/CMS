@@ -1,0 +1,66 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon"><mat-icon>event_seat</mat-icon></div>
+    <span class="widget-title">Govt. Lapsed Seats</span>
+    @if (!loading() && !error() && data()) {
+      <span class="total-pill lapsed-pill"
+            [class.lapsed-pill--warn]="hasLapsed()">
+        {{ data()!.totalLapsedSeats }}&thinsp;/&thinsp;{{ data()!.totalCounsellingSeats }} lapsed
+      </span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3,4]; track n) {
+          <div class="ls-skel-row">
+            <div class="sk-line" [style.width.%]="50 + n * 6"></div>
+            <div class="sk-line sk-line--short"></div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>event_seat</mat-icon><span>Could not load lapsed seat data</span></div>
+    } @else if (data(); as d) {
+
+      <!-- Per-cohort rows -->
+      @for (row of d.cohorts; track row.cohortId) {
+        <div class="ls-row" [class.ls-row--lapsed]="row.lapsedSeats > 0">
+          <div class="ls-meta">
+            <span class="ls-code">{{ row.courseCode }}</span>
+            <span class="ls-name" [title]="row.courseName">{{ row.courseName }}</span>
+          </div>
+          <div class="ls-counts">
+            <span class="ls-filled">{{ row.filledCounselling }}&thinsp;/&thinsp;{{ row.counsellingSeats }}</span>
+            @if (row.lapsedSeats > 0) {
+              <span class="ls-lapsed-badge">{{ row.lapsedSeats }} lapsed</span>
+            } @else if (row.counsellingClosed) {
+              <span class="ls-closed-badge">Closed · Full</span>
+            } @else {
+              <span class="ls-open-badge">Open</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Grand total row -->
+      <div class="ls-total-row">
+        <span class="ls-total-label">Total Counselling</span>
+        <div class="ls-total-right">
+          <span class="ls-total-counts">
+            {{ d.totalFilledCounselling }}&thinsp;/&thinsp;{{ d.totalCounsellingSeats }} filled
+          </span>
+          @if (d.totalLapsedSeats > 0) {
+            <span class="ls-total-lapsed">
+              {{ d.totalLapsedSeats }} lapsed ({{ d.lapsedPercentage | number:'1.1-1' }}%)
+            </span>
+          } @else {
+            <span class="ls-total-ok">No seats lapsed</span>
+          }
+        </div>
+      </div>
+
+    }
+  </div>
+</div>

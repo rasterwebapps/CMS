@@ -8,6 +8,7 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  CohortLapsedSummary,
   CohortSeatsRequest,
   CohortSummary,
   CourseOffering,
@@ -19,6 +20,7 @@ import {
   GenerateDemandsResponse,
   GenerateEnrollmentsResponse,
   DemandStatus,
+  SeatAvailabilityResponse,
   StudentTermEnrollment,
   TermFeePayment,
   TermFeePaymentRequest,
@@ -81,11 +83,23 @@ export class AcademicYearService {
     return this.http.delete<void>(`${environment.apiUrl}/cohorts/${cohortId}`);
   }
 
-  setCounsellingStatus(cohortId: number, closed: boolean): Observable<CohortSummary> {
+  setQuotaStatus(cohortId: number, quota: 'MANAGEMENT' | 'COUNSELLING', closed: boolean): Observable<CohortSummary> {
     return this.http.patch<CohortSummary>(
-      `${environment.apiUrl}/cohorts/${cohortId}/counselling-status`,
-      { closed },
+      `${environment.apiUrl}/cohorts/${cohortId}/quota-status`,
+      { quota, closed },
     );
+  }
+
+  getSeatAvailability(courseId: number, academicYearId: number, quota: 'MANAGEMENT' | 'COUNSELLING'): Observable<SeatAvailabilityResponse> {
+    return this.http.get<SeatAvailabilityResponse>(
+      `${environment.apiUrl}/cohorts/seat-availability`,
+      { params: { courseId: courseId.toString(), academicYearId: academicYearId.toString(), quota } },
+    );
+  }
+
+  getLapsedSummary(academicYearId?: number): Observable<CohortLapsedSummary> {
+    const params = academicYearId ? new HttpParams().set('academicYearId', academicYearId.toString()) : undefined;
+    return this.http.get<CohortLapsedSummary>(`${environment.apiUrl}/cohorts/lapsed-summary`, { params });
   }
 
   // Calendar Event methods

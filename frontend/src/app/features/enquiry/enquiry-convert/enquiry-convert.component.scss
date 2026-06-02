@@ -620,3 +620,39 @@
   color: var(--cms-text-muted);
   font-family: var(--cms-font-mono);
 }
+
+// ── Seat warning banner ───────────────────────────────────────────────────────
+.seat-warn-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--cms-radius-md);
+  background: rgba(239, 68, 68, 0.06);
+  border: 1.5px solid rgba(239, 68, 68, 0.30);
+  color: #b91c1c;
+  margin-bottom: 4px;
+  grid-column: 1 / -1;
+
+  svg { flex-shrink: 0; margin-top: 1px; }
+
+  &__body { display: flex; flex-direction: column; gap: 2px; }
+
+  &__title {
+    font-size: var(--cms-text-sm);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  &__msg {
+    font-size: var(--cms-text-sm);
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+
+  &--advisory {
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #92400e;
+  }
+}

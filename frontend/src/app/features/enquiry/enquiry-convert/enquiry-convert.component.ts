@@ -77,6 +77,8 @@ export class EnquiryConvertComponent implements OnInit {
   protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
   protected readonly admissionChecklist    = signal<Record<string, string>>({});
   protected readonly printReady            = signal(false);
+  protected readonly seatWarning           = signal<string | null>(null);
+  protected readonly seatWarningSoft       = signal(false);
 
   private readonly collegeLogo      = signal<string | null>(null);
   private readonly collegeName      = signal<string | null>(null);
@@ -216,6 +218,7 @@ export class EnquiryConvertComponent implements OnInit {
             academicYearFrom: new Date(match.startDate).getFullYear(),
             academicYearTo:   new Date(match.endDate).getFullYear(),
           });
+          this.checkSeatAvailability(match.id);
         }
 
         this.form.patchValue({
@@ -252,6 +255,35 @@ export class EnquiryConvertComponent implements OnInit {
     this.form.patchValue({
       academicYearFrom: new Date(year.startDate).getFullYear(),
       academicYearTo:   new Date(year.endDate).getFullYear(),
+    });
+    this.checkSeatAvailability(id);
+  }
+
+  private checkSeatAvailability(academicYearId: number): void {
+    const enquiry = this.enquiry();
+    if (!enquiry?.courseId || !enquiry?.admissionQuota) return;
+    this.academicYearSvc.getSeatAvailability(enquiry.courseId, academicYearId, enquiry.admissionQuota).subscribe({
+      next: (status) => {
+        if (status.closed) {
+          const label = enquiry.admissionQuota === 'MANAGEMENT' ? 'Management' : 'Counselling (Govt.)';
+          this.seatWarning.set(`${label} quota is closed for this cohort. Contact admin to reopen before completing this admission.`);
+          this.seatWarningSoft.set(false);
+        } else if (status.full) {
+          const label = enquiry.admissionQuota === 'MANAGEMENT' ? 'Management' : 'Counselling (Govt.)';
+          this.seatWarning.set(`${label} seats are exhausted (${status.filled}/${status.total}). Contact admin to increase the seat allocation.`);
+          this.seatWarningSoft.set(false);
+        } else if (enquiry.admissionQuota === 'MANAGEMENT' && status.overManagementQuota) {
+          this.seatWarning.set(
+            `Management allocation exceeded (${status.filled}/${status.total ?? '∞'} seats). ` +
+            `This admission is beyond the management quota limit — proceed only if authorised.`
+          );
+          this.seatWarningSoft.set(true);
+        } else {
+          this.seatWarning.set(null);
+          this.seatWarningSoft.set(false);
+        }
+      },
+      error: () => { /* non-blocking — backend will hard-stop on submit */ },
     });
   }
 
