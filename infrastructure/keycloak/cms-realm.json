@@ -88,5 +88,17 @@
     }
   ],
   "loginTheme": "cms",
-  "displayName": "College Management System"
+  "displayName": "College Management System",
+
+  "resetPasswordAllowed": true,
+  "actionTokenGeneratedByUserLifespan": 1800,
+
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200
 }

@@ -2,6 +2,8 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import com.cms.repository.StudentRepository;
 @Service
 @Transactional(readOnly = true)
 public class AppUserService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppUserService.class);
 
     private final AppUserRepository appUserRepository;
     private final AppRoleRepository appRoleRepository;
@@ -128,6 +132,11 @@ public class AppUserService {
         if (request.email() != null) {
             changes.append("email='").append(request.email()).append("' ");
             user.setEmail(request.email());
+            if (user.getKeycloakUserId() != null) {
+                keycloakAdminService.updateUserEmail(user.getKeycloakUserId(), request.email());
+            } else {
+                log.warn("User {} has no keycloakUserId — email change not synced to Keycloak", user.getKeycloakUsername());
+            }
         }
         if (request.roleName() != null) {
             AppRole newRole = resolveRole(request.roleName());

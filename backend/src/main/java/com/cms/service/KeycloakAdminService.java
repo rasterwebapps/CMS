@@ -111,14 +111,33 @@ public class KeycloakAdminService {
      * @param keycloakUserId the UUID stored in app_users.keycloak_user_id
      * @param newEmail       the new email address
      */
+    @SuppressWarnings("unchecked")
     public void updateUserEmail(String keycloakUserId, String newEmail) {
         try {
-            String token = getAdminToken();
+            String token   = getAdminToken();
+            String userUri = adminUsersUri() + "/" + keycloakUserId;
+
+            // Fetch full representation first — Keycloak PUT replaces the entire user,
+            // so sending only the email field would wipe username, firstName, lastName, etc.
+            Map<String, Object> current = restClient.get()
+                .uri(userUri)
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .body(Map.class);
+
+            if (current == null) {
+                log.warn("Keycloak user {} not found — email not synced", keycloakUserId);
+                return;
+            }
+
+            current.put("email", newEmail);
+            current.put("emailVerified", true);
+
             restClient.put()
-                .uri(adminUsersUri() + "/" + keycloakUserId)
+                .uri(userUri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("email", newEmail, "emailVerified", true))
+                .body(current)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (req, res) ->
                     log.error("Keycloak email update failed for user {}: HTTP {}", keycloakUserId, res.getStatusCode()))
