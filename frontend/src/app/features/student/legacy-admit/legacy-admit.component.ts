@@ -163,7 +163,7 @@ export class LegacyAdmitComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      programs:     this.programSvc.getPrograms(),
+      programs:     this.programSvc.getAll(),
       years:        this.academicYearSvc.getAllAcademicYears(),
       communities:  this.communitySvc.getActiveCommunities(),
       bloodGroups:  this.bloodGroupSvc.getActiveBloodGroups(),
@@ -171,7 +171,7 @@ export class LegacyAdmitComponent implements OnInit {
       agents:       this.agentSvc.getActiveAgents(),
     }).subscribe({
       next: ({ programs, years, communities, bloodGroups, referrals, agents }) => {
-        this.programs.set(programs.filter(p => p.status === 'ACTIVE'));
+        this.programs.set(programs.filter((p: Program) => p.status === 'ACTIVE'));
         this.academicYears.set([...years].sort((a, b) => b.name.localeCompare(a.name)));
         this.communities.set(communities);
         this.bloodGroups.set(bloodGroups);

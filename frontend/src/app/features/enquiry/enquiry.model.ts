@@ -48,6 +48,7 @@ export interface Enquiry {
   feeStateId?: number | null;
   feeStateName?: string | null;
   admissionNumber?: string | null;
+  admissionSource?: 'ENQUIRY_FLOW' | 'DIRECT_ADMIT' | null;
 }
 
 export interface EnquiryRequest {

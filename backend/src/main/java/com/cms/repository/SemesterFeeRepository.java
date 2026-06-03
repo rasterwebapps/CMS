@@ -1,6 +1,7 @@
 package com.cms.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,7 @@ public interface SemesterFeeRepository extends JpaRepository<SemesterFee, Long> 
     @Query("SELECT sf FROM SemesterFee sf WHERE sf.allocation.student.id = :studentId " +
            "ORDER BY sf.yearNumber ASC, sf.semesterSequence ASC")
     List<SemesterFee> findByStudentIdOrderByYearNumberAndSemesterSequence(@Param("studentId") Long studentId);
+
+    Optional<SemesterFee> findByAllocationIdAndYearNumberAndSemesterSequence(
+            Long allocationId, Integer yearNumber, Integer semesterSequence);
 }

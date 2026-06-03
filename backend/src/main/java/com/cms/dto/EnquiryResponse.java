@@ -58,5 +58,6 @@ public record EnquiryResponse(
     AdmissionQuota admissionQuota,
     Long feeStateId,
     String feeStateName,
-    String admissionNumber
+    String admissionNumber,
+    String admissionSource
 ) {}

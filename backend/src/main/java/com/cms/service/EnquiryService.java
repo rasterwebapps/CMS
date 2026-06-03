@@ -872,7 +872,8 @@ public class EnquiryService {
             e.getAdmissionQuota(),
             e.getFeeState() != null ? e.getFeeState().getId() : null,
             e.getFeeState() != null ? e.getFeeState().getName() : null,
-            admissionNumber
+            admissionNumber,
+            e.getAdmissionSource()
         );
     }
 

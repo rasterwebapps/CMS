@@ -236,6 +236,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'students/legacy-admit',
+    canActivate: withPermission('LEGACY_ADMIT'),
+    loadComponent: () =>
+      import('./features/student/legacy-admit/legacy-admit.component').then(
+        (m) => m.LegacyAdmitComponent
+      ),
+  },
+  {
     path: 'students/:id',
     canActivate: withPermission('STUDENT_VIEW', 'STUDENT_EDIT'),
     loadComponent: () =>

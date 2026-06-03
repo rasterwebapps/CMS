@@ -169,6 +169,9 @@ public class Enquiry {
     @Column(name = "converted_student_id")
     private Long convertedStudentId;
 
+    @Column(name = "admission_source", length = 20, nullable = false)
+    private String admissionSource = "ENQUIRY_FLOW";
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -437,6 +440,14 @@ public class Enquiry {
 
     public void setConvertedStudentId(Long convertedStudentId) {
         this.convertedStudentId = convertedStudentId;
+    }
+
+    public String getAdmissionSource() {
+        return admissionSource;
+    }
+
+    public void setAdmissionSource(String admissionSource) {
+        this.admissionSource = admissionSource != null ? admissionSource : "ENQUIRY_FLOW";
     }
 
     public Instant getCreatedAt() {
