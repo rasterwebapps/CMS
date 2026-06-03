@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { map, Observable, of, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,8 +25,8 @@ import {
   MARITAL_STATUS_OPTIONS,
   BANK_ACCOUNT_TYPE_OPTIONS,
 } from '../faculty.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
+import { SpecialityService } from '../../speciality/speciality.service';
+import { Speciality } from '../../speciality/speciality.model';
 import { BloodGroupService } from '../../blood-group/blood-group.service';
 import { BloodGroup } from '../../blood-group/blood-group.model';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -57,7 +58,7 @@ export class FacultyFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly facultyService = inject(FacultyService);
-  private readonly departmentService = inject(DepartmentService);
+  private readonly specialityService = inject(SpecialityService);
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
@@ -67,7 +68,7 @@ export class FacultyFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Faculty');
-  protected readonly departments = signal<Department[]>([]);
+  protected readonly specialities = signal<Speciality[]>([]);
   protected readonly bloodGroups = signal<BloodGroup[]>([]);
 
   protected readonly designationOptions = DESIGNATION_OPTIONS;
@@ -90,16 +91,16 @@ export class FacultyFormComponent implements OnInit {
   protected readonly previewEmail = signal('');
   protected readonly previewPhone = signal('');
   protected readonly previewDesignation = signal<string | null>(null);
-  protected readonly previewDeptId  = signal<number | null>(null);
+  protected readonly previewSpecialityId  = signal<number | null>(null);
   protected readonly previewFacultyType = signal<string | null>(null);
   protected readonly previewBlood = signal('');
 
   protected readonly previewFullName = computed(() => `${this.previewFirst()} ${this.previewLast()}`.trim());
   protected readonly previewInitials = computed(() => ((this.previewFirst()[0] ?? '') + (this.previewLast()[0] ?? '')).toUpperCase());
-  protected readonly previewDeptName = computed(() => {
-    const id = this.previewDeptId();
+  protected readonly previewSpecialityName = computed(() => {
+    const id = this.previewSpecialityId();
     if (!id) return '';
-    return this.departments().find(d => d.id === id)?.name ?? '';
+    return this.specialities().find(d => d.id === id)?.name ?? '';
   });
   protected readonly previewDesignationLabel = computed(() => {
     const v = this.previewDesignation();
@@ -115,7 +116,7 @@ export class FacultyFormComponent implements OnInit {
   protected readonly TIPS: CmsTip[] = [
     { icon: 'badge',     title: 'Employee Code', subtitle: 'Use a unique identifier per faculty (e.g., EMP001) — it cannot be changed later.' },
     { icon: 'mail',      title: 'Email',         subtitle: 'Used for login and notifications. Must be unique across all faculty.' },
-    { icon: 'school',    title: 'Department',    subtitle: 'Assign to one academic department for course allocation and reports.' },
+    { icon: 'school',    title: 'Speciality',    subtitle: 'Assign to one academic speciality for course allocation and reports.' },
     { icon: 'cloud_upload', title: 'Documents',  subtitle: 'After saving, upload PAN, Aadhaar, degrees, appointment letter, and signed photo.' },
   ];
 
@@ -128,10 +129,11 @@ export class FacultyFormComponent implements OnInit {
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(255)]],
     phone: ['', [Validators.maxLength(20)]],
-    departmentId: [null as number | null, [Validators.required]],
+    specialityId: [null as number | null, [Validators.required]],
     designation: [null as Designation | null, [Validators.required]],
     facultyType: [null as string | null],
     highestQualification: [null as FacultyQualification | null],
+    nrtsNumber: ['', [Validators.maxLength(50)]],
     specialization: ['', [Validators.maxLength(255)]],
     labExpertise: ['', [Validators.maxLength(1000)]],
     joiningDate: ['', [Validators.required]],
@@ -183,7 +185,7 @@ export class FacultyFormComponent implements OnInit {
         this.previewEmail.set((v.email ?? '').trim());
         this.previewPhone.set((v.phone ?? '').trim());
         this.previewDesignation.set(v.designation ?? null);
-        this.previewDeptId.set(v.departmentId ?? null);
+        this.previewSpecialityId.set(v.specialityId ?? null);
         this.previewFacultyType.set(v.facultyType ?? null);
         this.previewBlood.set(v.bloodGroup ?? '');
       });
@@ -191,7 +193,7 @@ export class FacultyFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('faculty-form', FACULTY_FORM_TOUR);
-    this.loadDepartments();
+    this.loadSpecialities();
     this.loadBloodGroups();
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -202,6 +204,21 @@ export class FacultyFormComponent implements OnInit {
       this.loadFaculty();
       this.loadDocuments();
     }
+
+    this.form.get('nrtsNumber')!.addAsyncValidators(this.nrtsUniqueValidator());
+  }
+
+  private nrtsUniqueValidator(): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const trimmed = (control.value ?? '').trim();
+      if (!trimmed) return of(null);
+      return timer(400).pipe(
+        switchMap(() =>
+          this.facultyService.nrtsNumberExists(trimmed, this.facultyId ?? undefined),
+        ),
+        map(exists => (exists ? { nrtsTaken: true } : null)),
+      );
+    };
   }
 
   protected onSubmit(): void {
@@ -217,7 +234,7 @@ export class FacultyFormComponent implements OnInit {
       lastName: (v.lastName ?? '').trim(),
       email: (v.email ?? '').trim(),
       phone: v.phone?.trim() || undefined,
-      departmentId: v.departmentId,
+      specialityId: v.specialityId,
       designation: v.designation,
       specialization: v.specialization?.trim() || undefined,
       labExpertise: v.labExpertise?.trim() || undefined,
@@ -225,6 +242,7 @@ export class FacultyFormComponent implements OnInit {
       status: v.status || undefined,
       facultyType: v.facultyType || undefined,
       highestQualification: (v.highestQualification as FacultyQualification) || undefined,
+      nrtsNumber: v.nrtsNumber?.trim()?.toUpperCase() || undefined,
       panNumber: v.panNumber?.trim()?.toUpperCase() || undefined,
       aadhaarNumber: v.aadhaarNumber?.trim() || undefined,
       dateOfBirth: v.dateOfBirth || undefined,
@@ -387,6 +405,7 @@ export class FacultyFormComponent implements OnInit {
     if (!control || !control.errors) return '';
     if (control.errors['required']) return `${this.getFieldLabel(fieldName)} is required`;
     if (control.errors['email']) return 'Please enter a valid email address';
+    if (control.errors['nrtsTaken']) return 'This NRTS number is already assigned to another faculty member';
     if (control.errors['maxlength']) {
       const maxLength = control.errors['maxlength'].requiredLength;
       return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
@@ -401,12 +420,13 @@ export class FacultyFormComponent implements OnInit {
       lastName: 'Last Name',
       email: 'Email',
       phone: 'Phone',
-      departmentId: 'Department',
+      specialityId: 'Speciality',
       designation: 'Designation',
       specialization: 'Specialization',
       labExpertise: 'Lab Expertise',
       joiningDate: 'Joining Date',
       status: 'Status',
+      nrtsNumber: 'NRTS Number',
       panNumber: 'PAN Number',
       aadhaarNumber: 'Aadhaar Number',
     };
@@ -419,10 +439,10 @@ export class FacultyFormComponent implements OnInit {
     return isNaN(n) ? undefined : n;
   }
 
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => this.departments.set(departments),
-      error: () => this.toast.error('Failed to load departments'),
+  private loadSpecialities(): void {
+    this.specialityService.getAll().subscribe({
+      next: (specialities) => this.specialities.set(specialities),
+      error: () => this.toast.error('Failed to load specialities'),
     });
   }
 
@@ -445,7 +465,7 @@ export class FacultyFormComponent implements OnInit {
           lastName: faculty.lastName,
           email: faculty.email,
           phone: faculty.phone || '',
-          departmentId: faculty.departmentId,
+          specialityId: faculty.specialityId,
           designation: faculty.designation,
           facultyType: faculty.facultyType ?? null,
           highestQualification: faculty.highestQualification ?? null,
@@ -459,6 +479,7 @@ export class FacultyFormComponent implements OnInit {
           nationality: faculty.nationality || '',
           religion: faculty.religion || '',
           bloodGroup: faculty.bloodGroup || '',
+          nrtsNumber: faculty.nrtsNumber || '',
           panNumber: faculty.panNumber || '',
           aadhaarNumber: faculty.aadhaarNumber || '',
           bankAccountHolder: faculty.bankAccountHolder || '',

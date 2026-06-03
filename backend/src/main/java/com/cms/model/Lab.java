@@ -39,8 +39,8 @@ public class Lab {
     private LabType labType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+    @JoinColumn(name = "speciality_id", nullable = false)
+    private Speciality speciality;
 
     private String building;
 
@@ -64,11 +64,11 @@ public class Lab {
     public Lab() {
     }
 
-    public Lab(String name, LabType labType, Department department, String building,
+    public Lab(String name, LabType labType, Speciality speciality, String building,
                String roomNumber, Integer capacity, LabStatus status) {
         this.name = name;
         this.labType = labType;
-        this.department = department;
+        this.speciality = speciality;
         this.building = building;
         this.roomNumber = roomNumber;
         this.capacity = capacity;
@@ -99,12 +99,12 @@ public class Lab {
         this.labType = labType;
     }
 
-    public Department getDepartment() {
-        return department;
+    public Speciality getSpeciality() {
+        return speciality;
     }
 
-    public void setDepartment(Department department) {
-        this.department = department;
+    public void setSpeciality(Speciality speciality) {
+        this.speciality = speciality;
     }
 
     public String getBuilding() {

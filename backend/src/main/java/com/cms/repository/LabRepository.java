@@ -8,11 +8,11 @@ import com.cms.model.Lab;
 
 public interface LabRepository extends JpaRepository<Lab, Long> {
 
-    List<Lab> findByDepartmentId(Long departmentId);
+    List<Lab> findBySpecialityId(Long specialityId);
 
-    boolean existsByNameAndDepartmentId(String name, Long departmentId);
+    boolean existsByNameAndSpecialityId(String name, Long specialityId);
 
-    boolean existsByNameIgnoreCaseAndDepartmentId(String name, Long departmentId);
+    boolean existsByNameIgnoreCaseAndSpecialityId(String name, Long specialityId);
 
-    boolean existsByNameIgnoreCaseAndDepartmentIdAndIdNot(String name, Long departmentId, Long id);
+    boolean existsByNameIgnoreCaseAndSpecialityIdAndIdNot(String name, Long specialityId, Long id);
 }

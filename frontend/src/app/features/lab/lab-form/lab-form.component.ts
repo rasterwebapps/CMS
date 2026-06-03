@@ -8,8 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LabService } from '../lab.service';
 import { LabRequest, LAB_TYPES, LAB_STATUSES } from '../lab.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
+import { SpecialityService } from '../../speciality/speciality.service';
+import { Speciality } from '../../speciality/speciality.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
@@ -36,7 +36,7 @@ export class LabFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly labService = inject(LabService);
-  private readonly departmentService = inject(DepartmentService);
+  private readonly specialityService = inject(SpecialityService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -44,7 +44,7 @@ export class LabFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Lab');
-  protected readonly departments = signal<Department[]>([]);
+  protected readonly specialities = signal<Speciality[]>([]);
 
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
@@ -52,7 +52,7 @@ export class LabFormComponent implements OnInit {
   // Preview signals
   protected readonly previewName     = signal('');
   protected readonly previewType     = signal<string>('');
-  protected readonly previewDeptId   = signal<number | null>(null);
+  protected readonly previewSpecialityId = signal<number | null>(null);
   protected readonly previewBuilding = signal('');
   protected readonly previewRoom     = signal('');
   protected readonly previewCapacity = signal<number | null>(null);
@@ -64,10 +64,10 @@ export class LabFormComponent implements OnInit {
     return b || (r ? `Room ${r}` : '');
   });
   protected readonly previewTypeLabel = computed(() => LAB_TYPES.find(t => t.value === this.previewType())?.label ?? '');
-  protected readonly previewDeptName = computed(() => {
-    const id = this.previewDeptId();
+  protected readonly previewSpecialityName = computed(() => {
+    const id = this.previewSpecialityId();
     if (!id) return '';
-    return this.departments().find(d => d.id === id)?.name ?? '';
+    return this.specialities().find(d => d.id === id)?.name ?? '';
   });
   protected readonly previewStatusLabel = computed(() => LAB_STATUSES.find(s => s.value === this.previewStatus())?.label ?? '');
 
@@ -82,7 +82,7 @@ export class LabFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
     labType: ['', [Validators.required]],
-    departmentId: ['', [Validators.required]],
+    specialityId: ['', [Validators.required]],
     building: ['', [Validators.maxLength(100)]],
     roomNumber: ['', [Validators.maxLength(50)]],
     capacity: [1, [Validators.required, Validators.min(1), Validators.max(500)]],
@@ -95,7 +95,7 @@ export class LabFormComponent implements OnInit {
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
         this.previewType.set(v.labType ?? '');
-        this.previewDeptId.set(v.departmentId ? Number(v.departmentId) : null);
+        this.previewSpecialityId.set(v.specialityId ? Number(v.specialityId) : null);
         this.previewBuilding.set((v.building ?? '').trim());
         this.previewRoom.set((v.roomNumber ?? '').trim());
         this.previewCapacity.set(v.capacity ? Number(v.capacity) : null);
@@ -104,7 +104,7 @@ export class LabFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadDepartments();
+    this.loadSpecialities();
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -124,7 +124,7 @@ export class LabFormComponent implements OnInit {
     const request: LabRequest = {
       name: (this.form.value.name ?? '').trim(),
       labType: this.form.value.labType,
-      departmentId: Number(this.form.value.departmentId),
+      specialityId: Number(this.form.value.specialityId),
       building: this.form.value.building?.trim() || undefined,
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
       capacity: Number(this.form.value.capacity),
@@ -157,7 +157,7 @@ export class LabFormComponent implements OnInit {
     roomNumber: 'Room Number',
     capacity: 'Capacity',
     labType: 'Lab Type',
-    departmentId: 'Department',
+    specialityId: 'Speciality',
     status: 'Status',
   };
 
@@ -165,13 +165,13 @@ export class LabFormComponent implements OnInit {
     return cmsFieldError(this.form.get(fieldName), LabFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
   }
 
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => {
-        this.departments.set(departments);
+  private loadSpecialities(): void {
+    this.specialityService.getAll().subscribe({
+      next: (specialities) => {
+        this.specialities.set(specialities);
       },
       error: () => {
-        this.toast.error('Failed to load departments');
+        this.toast.error('Failed to load specialities');
       },
     });
   }
@@ -185,7 +185,7 @@ export class LabFormComponent implements OnInit {
         this.form.patchValue({
           name: lab.name,
           labType: lab.labType,
-          departmentId: lab.department.id,
+          specialityId: lab.speciality.id,
           building: lab.building || '',
           roomNumber: lab.roomNumber || '',
           capacity: lab.capacity,

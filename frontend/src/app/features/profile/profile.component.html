@@ -84,7 +84,7 @@
           <div class="hero__roles">
             <span class="role-chip role-chip--primary">{{ f.designation | titlecase }}</span>
             <span class="role-sep">·</span>
-            <span class="role-text">{{ f.departmentName }}</span>
+            <span class="role-text">{{ f.specialityName }}</span>
             @if (f.highestQualification) {
               <span class="role-sep">·</span>
               <span class="role-chip role-chip--soft">{{ qualificationLabel(f.highestQualification) }}</span>
@@ -186,7 +186,7 @@
           @if (f || s) {
             <div class="tag-cloud">
               @if (f) {
-                <span class="tag">{{ f.departmentName }}</span>
+                <span class="tag">{{ f.specialityName }}</span>
                 @if (f.designation) { <span class="tag">{{ f.designation | titlecase }}</span> }
                 @if (f.highestQualification) { <span class="tag">{{ qualificationLabel(f.highestQualification) }}</span> }
               }
@@ -267,7 +267,7 @@
               <h3>Contact &amp; Emergency</h3>
             </div>
             @let contactItems = contactInfoItems();
-            @let hasData = contactItems.some(i => i.value && i.value !== '—');
+            @let hasData = hasContactData(contactItems);
             @if (hasData) {
               <div class="info-list">
                 @for (item of contactItems; track item.label) {

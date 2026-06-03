@@ -19,5 +19,5 @@ public interface SubjectRepository extends JpaRepository<Subject, Long> {
 
     List<Subject> findByCourseId(Long courseId);
 
-    List<Subject> findByDepartmentId(Long departmentId);
+    List<Subject> findBySpecialityId(Long specialityId);
 }

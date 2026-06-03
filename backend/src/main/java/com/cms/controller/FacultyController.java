@@ -41,11 +41,11 @@ public class FacultyController {
 
     @GetMapping
     public ResponseEntity<List<FacultyResponse>> findAll(
-            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long specialityId,
             @RequestParam(required = false) FacultyStatus status) {
         List<FacultyResponse> facultyList;
-        if (departmentId != null) {
-            facultyList = facultyService.findByDepartmentId(departmentId);
+        if (specialityId != null) {
+            facultyList = facultyService.findBySpecialityId(specialityId);
         } else if (status != null) {
             facultyList = facultyService.findByStatus(status);
         } else {
@@ -74,6 +74,13 @@ public class FacultyController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facultyService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/nrts-exists")
+    public ResponseEntity<Boolean> nrtsExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(facultyService.nrtsNumberExists(value, excludeId));
     }
 
 }

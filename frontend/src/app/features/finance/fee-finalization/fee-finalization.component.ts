@@ -200,15 +200,7 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   private initYearRows(enquiry: Enquiry): void {
-    // 1. Best case: yearWiseFees already stored on the enquiry (set at creation time)
-    if (enquiry.yearWiseFees) {
-      try {
-        const parsed: { yearNumber: number; amount: number }[] = JSON.parse(enquiry.yearWiseFees);
-        if (parsed.length > 0) { this.applyYearRows(parsed); return; }
-      } catch { /* fall through */ }
-    }
-
-    // 2. Fallback: re-fetch from the guideline endpoint if all 4 dimensions are available
+    // 1. Prefer guideline fetch so finalization always reflects current authoritative fee filtering.
     if (enquiry.programId && enquiry.admissionQuota && enquiry.feeStateId &&
         enquiry.gender && enquiry.studentType) {
       const params = new URLSearchParams({
@@ -224,12 +216,8 @@ export class FeeFinalizationComponent implements OnInit {
         `${environment.apiUrl}/fee-structures/guideline?${params.toString()}`
       ).subscribe({
         next: (data) => {
-          const studentType = enquiry.studentType;
-          const filteredItems = studentType === 'DAY_SCHOLAR'
-            ? data.items.filter((i: { feeType: string }) => i.feeType !== 'HOSTEL_FEE')
-            : data.items;
           const yearMap = new Map<number, number>();
-          for (const item of filteredItems) {
+          for (const item of data.items) {
             for (const ya of item.yearAmounts ?? []) {
               yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
             }
@@ -240,15 +228,26 @@ export class FeeFinalizationComponent implements OnInit {
               .map(([yearNumber, amount]) => ({ yearNumber, amount: this.paiseToAmount(amount) }));
             this.applyYearRows(sorted);
           } else {
-            this.applyEqualSplitFallback(enquiry);
+            this.applyStoredYearRowsFallback(enquiry);
           }
         },
-        error: () => this.applyEqualSplitFallback(enquiry),
+        error: () => this.applyStoredYearRowsFallback(enquiry),
       });
       return;
     }
 
-    // 3. Last resort: equal split across 4 years
+    // 2. Fallback to stored rows for older enquiries.
+    this.applyStoredYearRowsFallback(enquiry);
+  }
+
+  private applyStoredYearRowsFallback(enquiry: Enquiry): void {
+    if (enquiry.yearWiseFees) {
+      try {
+        const parsed: { yearNumber: number; amount: number }[] = JSON.parse(enquiry.yearWiseFees);
+        if (parsed.length > 0) { this.applyYearRows(parsed); return; }
+      } catch { /* fall through */ }
+    }
+
     this.applyEqualSplitFallback(enquiry);
   }
 

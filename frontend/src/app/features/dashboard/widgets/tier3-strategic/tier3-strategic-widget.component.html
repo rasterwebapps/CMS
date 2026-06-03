@@ -110,9 +110,9 @@
         }
 
         @case ('student-faculty-ratio') {
-          @for (row of ratioRows(); track row.departmentCode) {
+          @for (row of ratioRows(); track row.specialityCode) {
             <div class="ratio-row">
-              <div class="ratio-top"><span>{{ row.departmentCode }} · {{ row.departmentName }}</span><strong [attr.data-sev]="row.severity">{{ row.ratio }}:1</strong></div>
+              <div class="ratio-top"><span>{{ row.specialityCode }} · {{ row.specialityName }}</span><strong [attr.data-sev]="row.severity">{{ row.ratio }}:1</strong></div>
               <div class="ratio-sub"><span>{{ row.students }} students</span><span>{{ row.faculty }} faculty</span></div>
               <div class="threshold"><span class="threshold-line"></span><span class="ratio-fill" [attr.data-sev]="row.severity" [style.width.%]="Math.min(100, row.ratio * 2.5)"></span></div>
             </div>

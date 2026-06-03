@@ -230,7 +230,7 @@ export class App implements OnInit, AfterViewInit {
       label: 'Preferences',
       icon: 'tune',
       items: [
-        { label: 'Departments',        icon: 'business',         route: '/departments',             permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
+        { label: 'Specialities',       icon: 'business',         route: '/specialities',            permissions: ['DEPT_VIEW', 'DEPT_MANAGE'] },
         { label: 'Programs',           icon: 'local_library',    route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_MANAGE'] },
         { label: 'Courses',            icon: 'menu_book',        route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
         { label: 'Academic Years',     icon: 'calendar_month',   route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'] },

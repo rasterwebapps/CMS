@@ -24,8 +24,8 @@ export class LabService {
     return this.http.get<Lab>(`${this.baseUrl}/${id}`);
   }
 
-  getByDepartment(departmentId: number): Observable<Lab[]> {
-    return this.http.get<Lab[]>(`${this.baseUrl}/department/${departmentId}`);
+  getBySpeciality(specialityId: number): Observable<Lab[]> {
+    return this.http.get<Lab[]>(`${this.baseUrl}/speciality/${specialityId}`);
   }
 
   create(request: LabRequest): Observable<Lab> {

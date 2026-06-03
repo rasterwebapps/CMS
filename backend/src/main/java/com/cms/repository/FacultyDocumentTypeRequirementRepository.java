@@ -21,11 +21,11 @@ public interface FacultyDocumentTypeRequirementRepository
             SELECT DISTINCT document_type
             FROM faculty_document_type_requirements
             WHERE (designation   IS NOT NULL AND designation   = :designation)
-               OR (department_id IS NOT NULL AND department_id = :departmentId)
+               OR (speciality_id IS NOT NULL AND speciality_id = :specialityId)
                OR (qualification IS NOT NULL AND qualification = :qualification)
             """, nativeQuery = true)
     List<String> findMatchingDocumentTypeNames(
             @Param("designation") String designation,
-            @Param("departmentId") Long departmentId,
+            @Param("specialityId") Long specialityId,
             @Param("qualification") String qualification);
 }

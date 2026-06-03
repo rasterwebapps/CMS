@@ -166,20 +166,18 @@
               </div>
             </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <label for="stu-admission-category" class="field-label">Admission Category <span class="required-star">*</span></label>
-                <select id="stu-admission-category" class="field-select" formControlName="admissionCategory"
-                  [class.field-select--error]="form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched">
-                  <option value="">— Select —</option>
-                  @for (c of admissionCategoryOptions; track c) {
-                    <option [value]="c">{{ c }}</option>
-                  }
-                </select>
-                @if (form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('admissionCategory') }}</p>
+            <div class="field-group">
+              <label for="stu-admission-category" class="field-label">Admission Category <span class="required-star">*</span></label>
+              <select id="stu-admission-category" class="field-select" formControlName="admissionCategory"
+                [class.field-select--error]="form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched">
+                <option value="">— Select —</option>
+                @for (c of admissionCategoryOptions; track c) {
+                  <option [value]="c">{{ c }}</option>
                 }
-              </div>
+              </select>
+              @if (form.get('admissionCategory')?.invalid && form.get('admissionCategory')?.touched) {
+                <p class="field-error">{{ getErrorMessage('admissionCategory') }}</p>
+              }
             </div>
 
             <!-- ── Personal Details ────────────────────────────── -->
@@ -248,6 +246,7 @@
               </div>
 
               <div class="field-group">
+                <span class="field-label" aria-hidden="true">&nbsp;</span>
                 <label class="field-check">
                   <input type="checkbox" formControlName="physicalDisability" />
                   Physical Disability
@@ -260,7 +259,7 @@
             <p id="tour-stu-family" class="form-section-title">Family Details</p>
 
             <!-- Father -->
-            <div class="field-row">
+            <div class="field-row field-row--3col">
               <div class="field-group">
                 <label for="stu-father" class="field-label">Father's Name</label>
                 <input id="stu-father" class="field-input" formControlName="fatherName" autocomplete="off" />
@@ -279,7 +278,7 @@
             </div>
 
             <!-- Mother -->
-            <div class="field-row">
+            <div class="field-row field-row--3col">
               <div class="field-group">
                 <label for="stu-mother" class="field-label">Mother's Name</label>
                 <input id="stu-mother" class="field-input" formControlName="motherName" autocomplete="off" />
@@ -295,12 +294,6 @@
                   <span class="field-error">Enter a valid email</span>
                 }
               </div>
-            </div>
-
-            <div class="field-group">
-              <label for="stu-parent-mobile" class="field-label">Primary Parent Mobile</label>
-              <input id="stu-parent-mobile" class="field-input field-input--narrow"
-                formControlName="parentMobile" type="tel" inputmode="tel" autocomplete="off" />
             </div>
 
             <!-- ── Scholarship Eligibility ─────────────────────── -->
@@ -332,9 +325,9 @@
             <p class="form-section-title">Address</p>
 
             <div class="field-group">
-              <label for="stu-postal" class="field-label">Postal Address</label>
-              <textarea id="stu-postal" class="field-textarea" formControlName="postalAddress"
-                rows="2" placeholder="Door/Flat No., Building Name"></textarea>
+              <label for="stu-postal" class="field-label">Door No. / Flat / Building</label>
+              <input id="stu-postal" class="field-input" formControlName="postalAddress"
+                placeholder="e.g. 12B, 3rd floor, Green Towers" autocomplete="address-line1" />
             </div>
 
             <div class="field-row">
@@ -349,15 +342,7 @@
               </div>
             </div>
 
-            <div class="field-row">
-              <cms-country-state-district-selector [parentForm]="form" />
-            </div>
-
-            <div class="field-group" style="margin-bottom: 0;">
-              <label for="stu-pincode" class="field-label">Pincode</label>
-              <input id="stu-pincode" class="field-input field-input--narrow"
-                formControlName="pincode" autocomplete="postal-code" />
-            </div>
+            <cms-country-state-district-selector [parentForm]="form" [showPincode]="true" />
           </div>
 
           <div id="tour-stu-submit" class="entry-form-card__footer">

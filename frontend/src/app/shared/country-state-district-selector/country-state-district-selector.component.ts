@@ -50,6 +50,9 @@ export class CmsCountryStateDistrictSelectorComponent implements OnInit {
   readonly districtRequired = input<boolean>(false);
   /** When false the country field is hidden; parent is responsible for rendering and pre-selecting country. */
   readonly showCountry = input<boolean>(true);
+  /** When true renders a Pincode input as the 4th column alongside Country/State/District. */
+  readonly showPincode = input<boolean>(false);
+  readonly pincodeControlName = input<string>('pincode');
   /** If set and no state is already selected, auto-selects this state after states load. */
   readonly defaultStateName = input<string>('');
   /** If set and no district is already selected, auto-selects this district after districts load. */

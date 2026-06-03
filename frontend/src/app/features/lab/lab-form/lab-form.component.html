@@ -61,16 +61,16 @@
               </div>
 
               <div class="field-group">
-                <label for="lab-dept" class="field-label">Department <span class="required-star">*</span></label>
-                <select id="lab-dept" class="field-select" formControlName="departmentId"
-                  [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
-                  <option value="" disabled>Select department</option>
-                  @for (dept of departments(); track dept.id) {
-                    <option [value]="dept.id">{{ dept.name }}</option>
+                <label for="lab-dept" class="field-label">Speciality <span class="required-star">*</span></label>
+                <select id="lab-dept" class="field-select" formControlName="specialityId"
+                  [class.field-select--error]="form.get('specialityId')?.invalid && form.get('specialityId')?.touched">
+                  <option value="" disabled>Select speciality</option>
+                  @for (speciality of specialities(); track speciality.id) {
+                    <option [value]="speciality.id">{{ speciality.name }}</option>
                   }
                 </select>
-                @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
+                @if (form.get('specialityId')?.invalid && form.get('specialityId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('specialityId') }}</p>
                 }
               </div>
             </div>
@@ -140,8 +140,8 @@
             @if (previewTypeLabel()) {
               <span class="prev-pill prev-pill--primary">{{ previewTypeLabel() }}</span>
             }
-            @if (previewDeptName()) {
-              <span class="prev-pill">{{ previewDeptName() }}</span>
+            @if (previewSpecialityName()) {
+              <span class="prev-pill">{{ previewSpecialityName() }}</span>
             }
             @if (previewCapacity()) {
               <span class="prev-pill">{{ previewCapacity() }} seats</span>

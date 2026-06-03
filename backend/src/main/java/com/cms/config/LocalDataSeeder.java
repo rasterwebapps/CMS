@@ -31,7 +31,7 @@ public class LocalDataSeeder {
     @Bean
     @Transactional
     CommandLineRunner seedData(
-            DepartmentRepository departmentRepo,
+            SpecialityRepository specialityRepo,
             ProgramRepository programRepo,
             CourseRepository courseRepo,
             SubjectRepository subjectRepo,
@@ -56,7 +56,7 @@ public class LocalDataSeeder {
             SystemConfigurationRepository sysConfigRepo) {
         
         return args -> {
-            if (departmentRepo.count() > 0) {
+            if (specialityRepo.count() > 0) {
                 log.info("Database already seeded, skipping...");
                 return;
             }
@@ -64,23 +64,23 @@ public class LocalDataSeeder {
             log.info("🌱 Seeding demo data for SKS College Of Nursing...");
 
             // ═══════════════════════════════════════════════════════════════
-            // 1. DEPARTMENTS
+            // 1. SPECIALITIES
             // ═══════════════════════════════════════════════════════════════
-            Department deptMSN = departmentRepo.save(new Department("Medical-Surgical Nursing", "MSN",
-                "Department of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.", null, "Dr. S. Tamilarasi"));
-            Department deptCHN = departmentRepo.save(new Department("Community Health Nursing", "CHN",
-                "Department of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.", null, "Dr. K. Vasanthi"));
-            Department deptCHD = departmentRepo.save(new Department("Child Health (Paediatric) Nursing", "CHD",
-                "Department of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.", null, "Dr. R. Meenakshi"));
-            Department deptOBG = departmentRepo.save(new Department("Obstetrics & Gynaecological Nursing", "OBG",
-                "Department of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.", null, "Dr. P. Selvarani"));
-            Department deptMHN = departmentRepo.save(new Department("Mental Health (Psychiatric) Nursing", "MHN",
-                "Department of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.", null, "Dr. M. Kavitha"));
-            Department deptNFD = departmentRepo.save(new Department("Nursing Foundation", "NFD",
-                "Department of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.", null, "Mrs. L. Jayalakshmi"));
-            Department deptNEA = departmentRepo.save(new Department("Nursing Education & Administration", "NEA",
-                "Department of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.", null, "Dr. A. Padmavathi"));
-            log.info("✓ Created 7 departments");
+            Speciality deptMSN = specialityRepo.save(new Speciality("Medical-Surgical Nursing", "MSN",
+                "Speciality of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.", null, "Dr. S. Tamilarasi"));
+            Speciality deptCHN = specialityRepo.save(new Speciality("Community Health Nursing", "CHN",
+                "Speciality of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.", null, "Dr. K. Vasanthi"));
+            Speciality deptCHD = specialityRepo.save(new Speciality("Child Health (Paediatric) Nursing", "CHD",
+                "Speciality of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.", null, "Dr. R. Meenakshi"));
+            Speciality deptOBG = specialityRepo.save(new Speciality("Obstetrics & Gynaecological Nursing", "OBG",
+                "Speciality of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.", null, "Dr. P. Selvarani"));
+            Speciality deptMHN = specialityRepo.save(new Speciality("Mental Health (Psychiatric) Nursing", "MHN",
+                "Speciality of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.", null, "Dr. M. Kavitha"));
+            Speciality deptNFD = specialityRepo.save(new Speciality("Nursing Foundation", "NFD",
+                "Speciality of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.", null, "Mrs. L. Jayalakshmi"));
+            Speciality deptNEA = specialityRepo.save(new Speciality("Nursing Education & Administration", "NEA",
+                "Speciality of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.", null, "Dr. A. Padmavathi"));
+            log.info("✓ Created 7 specialities");
 
             // ═══════════════════════════════════════════════════════════════
             // 2. PROGRAMS
@@ -366,7 +366,7 @@ public class LocalDataSeeder {
         return c;
     }
 
-    private Subject createSubject(String name, String code, int credits, int theory, int lab, Course course, Department dept, int semester) {
+    private Subject createSubject(String name, String code, int credits, int theory, int lab, Course course, Speciality speciality, int semester) {
         Subject s = new Subject();
         s.setName(name);
         s.setCode(code);
@@ -374,19 +374,19 @@ public class LocalDataSeeder {
         s.setTheoryCredits(theory);
         s.setLabCredits(lab);
         s.setCourse(course);
-        s.setDepartment(dept);
+        s.setSpeciality(speciality);
         s.setSemester(semester);
         return s;
     }
 
-    private Faculty createFaculty(String firstName, String lastName, String email, String phone, String empCode, Department dept, Designation designation, String specialization) {
+    private Faculty createFaculty(String firstName, String lastName, String email, String phone, String empCode, Speciality speciality, Designation designation, String specialization) {
         Faculty f = new Faculty();
         f.setFirstName(firstName);
         f.setLastName(lastName);
         f.setEmail(email);
         f.setPhone(phone);
         f.setEmployeeCode(empCode);
-        f.setDepartment(dept);
+        f.setSpeciality(speciality);
         f.setDesignation(designation);
         f.setSpecialization(specialization);
         f.setJoiningDate(LocalDate.of(2020, 6, 1));
@@ -410,14 +410,14 @@ public class LocalDataSeeder {
         return s;
     }
 
-    private Lab createLab(String name, LabType labType, String building, String roomNumber, int capacity, Department dept) {
+    private Lab createLab(String name, LabType labType, String building, String roomNumber, int capacity, Speciality speciality) {
         Lab l = new Lab();
         l.setName(name);
         l.setLabType(labType);
         l.setBuilding(building);
         l.setRoomNumber(roomNumber);
         l.setCapacity(capacity);
-        l.setDepartment(dept);
+        l.setSpeciality(speciality);
         l.setStatus(LabStatus.AVAILABLE);
         return l;
     }

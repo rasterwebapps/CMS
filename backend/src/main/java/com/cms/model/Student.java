@@ -78,8 +78,8 @@ public class Student {
     private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "specialization_department_id")
-    private Department specializationDepartment;
+    @JoinColumn(name = "speciality_id")
+    private Speciality speciality;
 
     @Column(name = "year_of_study", nullable = false)
     private Integer semester;
@@ -292,12 +292,12 @@ public class Student {
         this.course = course;
     }
 
-    public Department getSpecializationDepartment() {
-        return specializationDepartment;
+    public Speciality getSpeciality() {
+        return speciality;
     }
 
-    public void setSpecializationDepartment(Department specializationDepartment) {
-        this.specializationDepartment = specializationDepartment;
+    public void setSpeciality(Speciality speciality) {
+        this.speciality = speciality;
     }
 
     public Integer getSemester() {

@@ -34,8 +34,8 @@ public class SafetyGuideline {
     private Lab lab;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "speciality_id")
+    private Speciality speciality;
 
     @Column(nullable = false, length = 255)
     private String title;
@@ -76,7 +76,7 @@ public class SafetyGuideline {
 
     public SafetyGuideline(String title, String description, SafetyGuidelineCategory category,
             SafetyPriority priority, LocalDate effectiveDate, LocalDate reviewDate,
-            String createdBy, Lab lab, Department department) {
+            String createdBy, Lab lab, Speciality speciality) {
         this.title = title;
         this.description = description;
         this.category = category;
@@ -85,7 +85,7 @@ public class SafetyGuideline {
         this.reviewDate = reviewDate;
         this.createdBy = createdBy;
         this.lab = lab;
-        this.department = department;
+        this.speciality = speciality;
     }
 
     public Long getId() { return id; }
@@ -94,8 +94,8 @@ public class SafetyGuideline {
     public Lab getLab() { return lab; }
     public void setLab(Lab lab) { this.lab = lab; }
 
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
+    public Speciality getSpeciality() { return speciality; }
+    public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

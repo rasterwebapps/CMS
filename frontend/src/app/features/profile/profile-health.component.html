@@ -80,7 +80,7 @@
       <div class="ph-identity__text">
         <h1 class="ph-name">{{ id.displayName }}</h1>
         @if (f) {
-          <p class="ph-role">{{ f.designation | titlecase }} · {{ f.departmentName }}</p>
+          <p class="ph-role">{{ f.designation | titlecase }} · {{ f.specialityName }}</p>
         }
         @if (s) {
           <p class="ph-role">{{ s.programName }} · Year {{ s.yearOfStudy }}</p>
@@ -125,8 +125,8 @@
           </div>
           <div class="ph-strip__div"></div>
           <div class="ph-strip__cell">
-            <span class="ph-strip__val ph-strip__val--sm">{{ f.departmentName }}</span>
-            <span class="ph-strip__label">Department</span>
+            <span class="ph-strip__val ph-strip__val--sm">{{ f.specialityName }}</span>
+            <span class="ph-strip__label">Speciality</span>
           </div>
         }
         @if (s) {

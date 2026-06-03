@@ -10,7 +10,7 @@
       <h1 class="page-title">Faculty Document Requirements</h1>
       <p class="page-subtitle">
         Define which documents are required from faculty based on their designation,
-        department, or highest qualification. A document becomes required when
+        speciality, or highest qualification. A document becomes required when
         <strong>any</strong> matching rule applies.
       </p>
     </div>
@@ -20,7 +20,7 @@
   <div class="card add-rule-card">
     <h2 class="section-title">Add Requirement Rule</h2>
     <p class="section-hint">
-      Select a document type and at least one criterion (designation, department, or qualification).
+      Select a document type and at least one criterion (designation, speciality, or qualification).
     </p>
 
     <div class="add-rule-form">
@@ -44,11 +44,11 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Department (optional)</mat-label>
-        <mat-select [(ngModel)]="newDepartmentId" name="departmentId">
+        <mat-label>Speciality (optional)</mat-label>
+        <mat-select [(ngModel)]="newSpecialityId" name="specialityId">
           <mat-option [value]="null">— Any —</mat-option>
-          @for (dept of departments(); track dept.id) {
-            <mat-option [value]="dept.id">{{ dept.name }}</mat-option>
+          @for (speciality of specialities(); track speciality.id) {
+            <mat-option [value]="speciality.id">{{ speciality.name }}</mat-option>
           }
         </mat-select>
       </mat-form-field>

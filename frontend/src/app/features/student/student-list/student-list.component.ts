@@ -59,7 +59,7 @@ export class StudentListComponent implements OnInit {
   protected filterProgram     = signal<string>('ALL');
   protected filterStatus      = signal<string>('ALL');
   protected filterSemester    = signal<string>('ALL');
-  protected filterDepartment  = signal<string>('ALL');
+  protected filterSpeciality  = signal<string>('ALL');
   protected filterAcademicYear = signal<string>('ALL');
   protected filterFeeStatus   = signal<string>('ALL');
   private readonly allStudents = signal<Student[]>([]);
@@ -69,8 +69,8 @@ export class StudentListComponent implements OnInit {
   protected readonly semesters = computed(() =>
     [...new Set(this.allStudents().map(s => String(s.yearOfStudy)).filter(Boolean))].sort((a, b) => +a - +b)
   );
-  protected readonly departments = computed(() =>
-    [...new Set(this.allStudents().map(s => s.specializationDepartmentName).filter(Boolean))].sort() as string[]
+  protected readonly specialities = computed(() =>
+    [...new Set(this.allStudents().map(s => s.specialityName).filter(Boolean))].sort() as string[]
   );
   protected readonly academicYears = computed(() =>
     [...new Set(this.allStudents().map(s => s.admissionAcademicYearName).filter(Boolean))].sort() as string[]
@@ -87,7 +87,7 @@ export class StudentListComponent implements OnInit {
     this.filterProgram()      !== 'ALL' ||
     this.filterStatus()       !== 'ALL' ||
     this.filterSemester()     !== 'ALL' ||
-    this.filterDepartment()   !== 'ALL' ||
+    this.filterSpeciality()   !== 'ALL' ||
     this.filterAcademicYear() !== 'ALL' ||
     this.filterFeeStatus()    !== 'ALL'
   );
@@ -142,7 +142,7 @@ export class StudentListComponent implements OnInit {
     this.filterProgram.set('ALL');
     this.filterStatus.set('ALL');
     this.filterSemester.set('ALL');
-    this.filterDepartment.set('ALL');
+    this.filterSpeciality.set('ALL');
     this.filterAcademicYear.set('ALL');
     this.filterFeeStatus.set('ALL');
     this._applyFilters();
@@ -153,7 +153,7 @@ export class StudentListComponent implements OnInit {
     const program     = this.filterProgram();
     const status      = this.filterStatus();
     const semester    = this.filterSemester();
-    const department  = this.filterDepartment();
+    const speciality  = this.filterSpeciality();
     const academicYear = this.filterAcademicYear();
     const feeStatus   = this.filterFeeStatus();
 
@@ -161,7 +161,7 @@ export class StudentListComponent implements OnInit {
       if (program      !== 'ALL' && s.programName !== program)                                        return false;
       if (status       !== 'ALL' && s.status !== status)                                              return false;
       if (semester     !== 'ALL' && String(s.yearOfStudy) !== semester)                               return false;
-      if (department   !== 'ALL' && (s.specializationDepartmentName ?? '') !== department)            return false;
+      if (speciality   !== 'ALL' && (s.specialityName ?? '') !== speciality)                          return false;
       if (academicYear !== 'ALL' && (s.admissionAcademicYearName ?? '') !== academicYear)             return false;
       if (feeStatus    !== 'ALL' && (s.feeStatus ?? 'NOT_ASSIGNED') !== feeStatus)                   return false;
       if (!term) return true;
@@ -174,9 +174,9 @@ export class StudentListComponent implements OnInit {
       );
     };
     const anyFilter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL' ||
-                      department !== 'ALL' || academicYear !== 'ALL' || feeStatus !== 'ALL';
+                      speciality !== 'ALL' || academicYear !== 'ALL' || feeStatus !== 'ALL';
     this.dataSource.filter = anyFilter
-      ? (term || program || status || semester || department || academicYear || feeStatus || '_')
+      ? (term || program || status || semester || speciality || academicYear || feeStatus || '_')
       : '';
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }

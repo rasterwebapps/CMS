@@ -1,14 +1,2 @@
 package com.cms.dto;
-
-import java.time.Instant;
-
-public record DepartmentResponse(
-    Long id,
-    String name,
-    String code,
-    String description,
-    Long hodFacultyId,
-    String hodName,
-    Instant createdAt,
-    Instant updatedAt
-) {}
+// Renamed to SpecialityResponse — see SpecialityResponse.java

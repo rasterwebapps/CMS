@@ -24,7 +24,7 @@ import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
 import com.cms.model.Course;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.EnquiryDocument;
 import com.cms.model.EnquiryDocumentHistory;
 import com.cms.model.Program;
@@ -37,7 +37,7 @@ import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.CourseRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryDocumentHistoryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.FeeDemandRepository;
@@ -55,7 +55,7 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final ProgramRepository programRepository;
     private final CourseRepository courseRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final AdmissionRepository admissionRepository;
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final EnquiryDocumentHistoryRepository documentHistoryRepository;
@@ -68,7 +68,7 @@ public class StudentService {
         List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
 
     public StudentService(StudentRepository studentRepository, ProgramRepository programRepository,
-                          CourseRepository courseRepository, DepartmentRepository departmentRepository,
+                          CourseRepository courseRepository, SpecialityRepository specialityRepository,
                           AdmissionRepository admissionRepository,
                           EnquiryDocumentRepository enquiryDocumentRepository,
                           EnquiryDocumentHistoryRepository documentHistoryRepository,
@@ -79,7 +79,7 @@ public class StudentService {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.admissionRepository = admissionRepository;
         this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.documentHistoryRepository = documentHistoryRepository;
@@ -117,10 +117,10 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
             student.setCourse(course);
         }
-        if (request.specializationDepartmentId() != null) {
-            Department department = departmentRepository.findById(request.specializationDepartmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.specializationDepartmentId()));
-            student.setSpecializationDepartment(department);
+        if (request.specialityId() != null) {
+            Speciality speciality = specialityRepository.findById(request.specialityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
+            student.setSpeciality(speciality);
         }
 
         student.setLabBatch(request.labBatch());
@@ -274,12 +274,12 @@ public class StudentService {
         } else {
             student.setCourse(null);
         }
-        if (request.specializationDepartmentId() != null) {
-            Department department = departmentRepository.findById(request.specializationDepartmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.specializationDepartmentId()));
-            student.setSpecializationDepartment(department);
+        if (request.specialityId() != null) {
+            Speciality speciality = specialityRepository.findById(request.specialityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
+            student.setSpeciality(speciality);
         } else {
-            student.setSpecializationDepartment(null);
+            student.setSpeciality(null);
         }
 
         student.setSemester(request.yearOfStudy());
@@ -425,8 +425,8 @@ public class StudentService {
             student.getProgram().getName(),
             student.getCourse() != null ? student.getCourse().getId() : null,
             student.getCourse() != null ? student.getCourse().getName() : null,
-            student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getId() : null,
-            student.getSpecializationDepartment() != null ? student.getSpecializationDepartment().getName() : null,
+            student.getSpeciality() != null ? student.getSpeciality().getId() : null,
+            student.getSpeciality() != null ? student.getSpeciality().getName() : null,
             student.getYearOfStudy(),
             student.getAdmissionDate(),
             student.getLabBatch(),

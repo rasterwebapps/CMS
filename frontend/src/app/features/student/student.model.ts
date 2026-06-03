@@ -57,8 +57,8 @@ export interface Student {
   programName: string;
   courseId?: number;
   courseName?: string;
-  specializationDepartmentId?: number;
-  specializationDepartmentName?: string;
+  specialityId?: number;
+  specialityName?: string;
   admissionAcademicYearId?: number;
   admissionAcademicYearName?: string;
   feeStatus?: string;

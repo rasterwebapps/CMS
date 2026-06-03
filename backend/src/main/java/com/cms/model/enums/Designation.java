@@ -10,5 +10,6 @@ public enum Designation {
     TEACHING_ASSISTANT,
     GUEST_FACULTY,
     VISITING_FACULTY,
+    NURSING_TUTOR,
     HOD
 }

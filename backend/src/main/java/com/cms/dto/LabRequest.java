@@ -16,8 +16,8 @@ public record LabRequest(
     @NotNull(message = "Lab type is required")
     LabType labType,
 
-    @NotNull(message = "Department ID is required")
-    Long departmentId,
+    @NotNull(message = "Speciality ID is required")
+    Long specialityId,
 
     @Size(max = 255, message = "Building must not exceed 255 characters")
     String building,

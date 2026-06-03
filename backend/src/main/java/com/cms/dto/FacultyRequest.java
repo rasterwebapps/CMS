@@ -37,8 +37,8 @@ public record FacultyRequest(
     @Size(max = 20, message = "Phone must not exceed 20 characters")
     String phone,
 
-    @NotNull(message = "Department ID is required")
-    Long departmentId,
+    @NotNull(message = "Speciality ID is required")
+    Long specialityId,
 
     @NotNull(message = "Designation is required")
     Designation designation,
@@ -58,6 +58,9 @@ public record FacultyRequest(
     FacultyType facultyType,
 
     FacultyQualification highestQualification,
+
+    @Size(max = 50)
+    String nrtsNumber,
 
     @Size(max = 20)
     String panNumber,

@@ -5,16 +5,16 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityResponse;
 import com.cms.dto.LabInChargeAssignmentRequest;
 import com.cms.dto.LabInChargeAssignmentResponse;
 import com.cms.dto.LabRequest;
 import com.cms.dto.LabResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Lab;
 import com.cms.model.LabInChargeAssignment;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
 
@@ -23,32 +23,32 @@ import com.cms.repository.LabRepository;
 public class LabService {
 
     private final LabRepository labRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final LabInChargeAssignmentRepository assignmentRepository;
 
-    public LabService(LabRepository labRepository, DepartmentRepository departmentRepository,
+    public LabService(LabRepository labRepository, SpecialityRepository specialityRepository,
                       LabInChargeAssignmentRepository assignmentRepository) {
         this.labRepository = labRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.assignmentRepository = assignmentRepository;
     }
 
     @Transactional
     public LabResponse create(LabRequest request) {
-        Department department = departmentRepository.findById(request.departmentId())
+        Speciality speciality = specialityRepository.findById(request.specialityId())
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Department not found with id: " + request.departmentId()));
+                "Speciality not found with id: " + request.specialityId()));
         String name = requireTrimmed(request.name(), "Lab name is required");
 
-        if (labRepository.existsByNameIgnoreCaseAndDepartmentId(name, request.departmentId())) {
+        if (labRepository.existsByNameIgnoreCaseAndSpecialityId(name, request.specialityId())) {
             throw new IllegalArgumentException(
-                "A lab with the name '" + name + "' already exists in this department");
+                "A lab with the name '" + name + "' already exists in this speciality");
         }
 
         Lab lab = new Lab(
             name,
             request.labType(),
-            department,
+            speciality,
             trim(request.building()),
             trim(request.roomNumber()),
             request.capacity(),
@@ -70,11 +70,11 @@ public class LabService {
         return toResponse(lab);
     }
 
-    public List<LabResponse> findByDepartmentId(Long departmentId) {
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new ResourceNotFoundException("Department not found with id: " + departmentId);
+    public List<LabResponse> findBySpecialityId(Long specialityId) {
+        if (!specialityRepository.existsById(specialityId)) {
+            throw new ResourceNotFoundException("Speciality not found with id: " + specialityId);
         }
-        return labRepository.findByDepartmentId(departmentId).stream()
+        return labRepository.findBySpecialityId(specialityId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -84,21 +84,21 @@ public class LabService {
         Lab lab = labRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + id));
 
-        Department department = departmentRepository.findById(request.departmentId())
+        Speciality speciality = specialityRepository.findById(request.specialityId())
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Department not found with id: " + request.departmentId()));
+                "Speciality not found with id: " + request.specialityId()));
         String name = requireTrimmed(request.name(), "Lab name is required");
 
-        if (labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot(
-                name, request.departmentId(), id)) {
+        if (labRepository.existsByNameIgnoreCaseAndSpecialityIdAndIdNot(
+                name, request.specialityId(), id)) {
             throw new IllegalArgumentException(
                 "A lab with the name '" + name
-                + "' already exists in this department");
+                + "' already exists in this speciality");
         }
 
         lab.setName(name);
         lab.setLabType(request.labType());
-        lab.setDepartment(department);
+        lab.setSpeciality(speciality);
         lab.setBuilding(trim(request.building()));
         lab.setRoomNumber(trim(request.roomNumber()));
         lab.setCapacity(request.capacity());
@@ -159,23 +159,23 @@ public class LabService {
     }
 
     private LabResponse toResponse(Lab lab) {
-        Department department = lab.getDepartment();
-        DepartmentResponse departmentResponse = new DepartmentResponse(
-            department.getId(),
-            department.getName(),
-            department.getCode(),
-            department.getDescription(),
-            department.getHodFacultyId(),
-            department.getHodName(),
-            department.getCreatedAt(),
-            department.getUpdatedAt()
+        Speciality speciality = lab.getSpeciality();
+        SpecialityResponse specialityResponse = new SpecialityResponse(
+            speciality.getId(),
+            speciality.getName(),
+            speciality.getCode(),
+            speciality.getDescription(),
+            speciality.getHodFacultyId(),
+            speciality.getHodName(),
+            speciality.getCreatedAt(),
+            speciality.getUpdatedAt()
         );
 
         return new LabResponse(
             lab.getId(),
             lab.getName(),
             lab.getLabType(),
-            departmentResponse,
+            specialityResponse,
             lab.getBuilding(),
             lab.getRoomNumber(),
             lab.getCapacity(),

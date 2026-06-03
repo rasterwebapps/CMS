@@ -64,7 +64,7 @@ const MODULE_LABELS: Record<string, { label: string; icon: string }> = {
   ENQUIRY:    { label: 'Enquiries',          icon: 'contact_mail' },
   LAB:        { label: 'Labs & Equipment',   icon: 'science' },
   EXAM:       { label: 'Examinations',       icon: 'quiz' },
-  DEPARTMENT: { label: 'Departments',        icon: 'business' },
+  DEPARTMENT: { label: 'Specialities',        icon: 'business' },
   PROGRAM:    { label: 'Programs',           icon: 'menu_book' },
   ATTENDANCE: { label: 'Attendance',         icon: 'checklist' },
   DASHBOARD:  { label: 'Dashboard',         icon: 'dashboard' },
@@ -332,7 +332,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       { icon: 'person',         label: 'Full Name',     value: f.fullName },
       { icon: 'email',          label: 'Email',         value: f.email },
       { icon: 'phone',          label: 'Phone',         value: f.phone ?? '' },
-      { icon: 'business',       label: 'Department',    value: f.departmentName },
+      { icon: 'business',       label: 'Speciality',    value: f.specialityName },
       { icon: 'work',           label: 'Designation',   value: f.designation.replace(/_/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()) },
       { icon: 'school',         label: 'Qualification', value: f.highestQualification ? this.qualificationLabel(f.highestQualification) : '' },
       { icon: 'badge',          label: 'Employee Code', value: f.employeeCode },
@@ -380,6 +380,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
       ];
     }
     return [];
+  }
+
+  protected hasContactData(items: InfoItem[]): boolean {
+    return items.some(item => !!item.value && item.value !== '—');
   }
 
   protected formatFacultyAddress(f: Faculty): string {

@@ -11,8 +11,8 @@ public record FacultyDocumentTypeRequirementResponse(
     DocumentType documentType,
     String documentTypeLabel,
     Designation designation,
-    Long departmentId,
-    String departmentName,
+    Long specialityId,
+    String specialityName,
     FacultyQualification qualification,
     String qualificationLabel,
     Instant createdAt

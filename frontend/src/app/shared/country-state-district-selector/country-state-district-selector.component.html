@@ -1,4 +1,8 @@
-<div class="state-district-row" [class.state-district-row--2col]="!showCountry()" [formGroup]="parentForm()">
+<div class="state-district-row"
+  [class.state-district-row--2col]="!showCountry() && !showPincode()"
+  [class.state-district-row--4col]="showCountry() && showPincode()"
+  [class.state-district-row--3col]="!showCountry() && showPincode()"
+  [formGroup]="parentForm()">
 
   <!-- Country -->
   @if (showCountry()) {
@@ -99,6 +103,22 @@
       <span class="field-error">District is required</span>
     }
   </div>
+
+  <!-- Pincode (optional 4th column) -->
+  @if (showPincode()) {
+  <div class="field-group">
+    <label class="field-label" [for]="pincodeControlName() + '-input'">Pincode</label>
+    <input
+      class="field-input"
+      type="text"
+      inputmode="numeric"
+      [id]="pincodeControlName() + '-input'"
+      [formControlName]="pincodeControlName()"
+      autocomplete="postal-code"
+      maxlength="10"
+    />
+  </div>
+  }
 
 </div>
 

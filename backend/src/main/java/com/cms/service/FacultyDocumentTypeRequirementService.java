@@ -10,11 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.FacultyDocumentTypeRequirementRequest;
 import com.cms.dto.FacultyDocumentTypeRequirementResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocumentTypeRequirement;
 import com.cms.model.enums.DocumentType;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.FacultyDocumentTypeRequirementRepository;
 import com.cms.repository.FacultyRepository;
 
@@ -24,15 +24,15 @@ public class FacultyDocumentTypeRequirementService {
 
     private final FacultyDocumentTypeRequirementRepository requirementRepository;
     private final FacultyRepository facultyRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
 
     public FacultyDocumentTypeRequirementService(
             FacultyDocumentTypeRequirementRepository requirementRepository,
             FacultyRepository facultyRepository,
-            DepartmentRepository departmentRepository) {
+            SpecialityRepository specialityRepository) {
         this.requirementRepository = requirementRepository;
         this.facultyRepository = facultyRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
     }
 
     public List<FacultyDocumentTypeRequirementResponse> findAll() {
@@ -43,22 +43,22 @@ public class FacultyDocumentTypeRequirementService {
 
     @Transactional
     public FacultyDocumentTypeRequirementResponse create(FacultyDocumentTypeRequirementRequest request) {
-        if (request.designation() == null && request.departmentId() == null && request.qualification() == null) {
+        if (request.designation() == null && request.specialityId() == null && request.qualification() == null) {
             throw new IllegalArgumentException(
-                    "At least one criterion (designation, department, or qualification) must be specified");
+                    "At least one criterion (designation, speciality, or qualification) must be specified");
         }
 
-        Department department = null;
-        if (request.departmentId() != null) {
-            department = departmentRepository.findById(request.departmentId())
+        Speciality speciality = null;
+        if (request.specialityId() != null) {
+            speciality = specialityRepository.findById(request.specialityId())
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Department not found with id: " + request.departmentId()));
+                            "Speciality not found with id: " + request.specialityId()));
         }
 
         FacultyDocumentTypeRequirement rule = new FacultyDocumentTypeRequirement();
         rule.setDocumentType(request.documentType());
         rule.setDesignation(request.designation());
-        rule.setDepartment(department);
+        rule.setSpeciality(speciality);
         rule.setQualification(request.qualification());
 
         return toResponse(requirementRepository.save(rule));
@@ -77,12 +77,12 @@ public class FacultyDocumentTypeRequirementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
 
         String designation = faculty.getDesignation() != null ? faculty.getDesignation().name() : null;
-        Long departmentId = faculty.getDepartment() != null ? faculty.getDepartment().getId() : null;
+        Long specialityId = faculty.getSpeciality() != null ? faculty.getSpeciality().getId() : null;
         String qualification = faculty.getHighestQualification() != null
                 ? faculty.getHighestQualification().name() : null;
 
         return requirementRepository
-                .findMatchingDocumentTypeNames(designation, departmentId, qualification)
+                .findMatchingDocumentTypeNames(designation, specialityId, qualification)
                 .stream()
                 .collect(Collectors.toSet());
     }
@@ -94,8 +94,8 @@ public class FacultyDocumentTypeRequirementService {
                 dt,
                 dt != null ? dt.getDisplayName() : null,
                 rule.getDesignation(),
-                rule.getDepartment() != null ? rule.getDepartment().getId() : null,
-                rule.getDepartment() != null ? rule.getDepartment().getName() : null,
+                rule.getSpeciality() != null ? rule.getSpeciality().getId() : null,
+                rule.getSpeciality() != null ? rule.getSpeciality().getName() : null,
                 rule.getQualification(),
                 rule.getQualification() != null ? rule.getQualification().getDisplayName() : null,
                 rule.getCreatedAt()

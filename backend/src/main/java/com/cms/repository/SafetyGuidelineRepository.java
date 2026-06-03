@@ -11,7 +11,7 @@ public interface SafetyGuidelineRepository extends JpaRepository<SafetyGuideline
 
     List<SafetyGuideline> findByLabId(Long labId);
 
-    List<SafetyGuideline> findByDepartmentId(Long departmentId);
+    List<SafetyGuideline> findBySpecialityId(Long specialityId);
 
     List<SafetyGuideline> findByCategory(SafetyGuidelineCategory category);
 

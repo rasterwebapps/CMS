@@ -29,6 +29,7 @@ import com.cms.model.Program;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.FeeType;
 import com.cms.model.enums.Gender;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.FeePaymentRepository;
@@ -407,6 +408,16 @@ public class FeeStructureService {
             .toList();
 
         return Optional.of(items);
+    }
+
+    public Optional<List<FeeStructureResponse>> findForEnquiry(
+            Long programId, Long courseId,
+            AdmissionQuota quota, Long feeStateId, Gender gender,
+            StudentType studentType) {
+        return findForEnquiry(programId, courseId, quota, feeStateId, gender)
+            .map(items -> items.stream()
+                .filter(item -> studentType != StudentType.DAY_SCHOLAR || item.feeType() != FeeType.HOSTEL_FEE)
+                .toList());
     }
 
     // ── Internal helpers ─────────────────────────────────────────────────────

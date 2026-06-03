@@ -17,8 +17,8 @@ import {
   DESIGNATION_OPTIONS,
   FACULTY_QUALIFICATION_OPTIONS,
 } from '../faculty.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
+import { SpecialityService } from '../../speciality/speciality.service';
+import { Speciality } from '../../speciality/speciality.model';
 import { ProgramService } from '../../program/program.service';
 import { DocumentTypeInfo } from '../../program/program.model';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -46,7 +46,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 })
 export class FacultyDocConfigComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
-  private readonly departmentService = inject(DepartmentService);
+  private readonly specialityService = inject(SpecialityService);
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -55,7 +55,7 @@ export class FacultyDocConfigComponent implements OnInit {
   protected readonly saving = signal(false);
 
   protected readonly rules = signal<FacultyDocumentTypeRequirement[]>([]);
-  protected readonly departments = signal<Department[]>([]);
+  protected readonly specialities = signal<Speciality[]>([]);
   protected readonly allDocumentTypes = signal<DocumentTypeInfo[]>([]);
 
   protected readonly displayedColumns = [
@@ -82,13 +82,13 @@ export class FacultyDocConfigComponent implements OnInit {
 
   protected newDocumentType = '';
   protected newDesignation = '';
-  protected newDepartmentId: number | null = null;
+  protected newSpecialityId: number | null = null;
   protected newQualification: FacultyQualification | '' = '';
 
   protected get canAddRule(): boolean {
     return (
       !!this.newDocumentType &&
-      (!!this.newDesignation || !!this.newDepartmentId || !!this.newQualification)
+      (!!this.newDesignation || !!this.newSpecialityId || !!this.newQualification)
     );
   }
 
@@ -115,9 +115,9 @@ export class FacultyDocConfigComponent implements OnInit {
       },
     });
 
-    this.departmentService.getAll().subscribe({
-      next: (depts) => {
-        this.departments.set(depts);
+    this.specialityService.getAll().subscribe({
+      next: (specialities) => {
+        this.specialities.set(specialities);
         done();
       },
       error: () => done(),
@@ -138,7 +138,7 @@ export class FacultyDocConfigComponent implements OnInit {
     const request: FacultyDocumentTypeRequirementRequest = {
       documentType: this.newDocumentType,
       designation: this.newDesignation || undefined,
-      departmentId: this.newDepartmentId ?? undefined,
+      specialityId: this.newSpecialityId ?? undefined,
       qualification: (this.newQualification as FacultyQualification) || undefined,
     };
 
@@ -185,14 +185,14 @@ export class FacultyDocConfigComponent implements OnInit {
 
   protected criterionLabel(rule: FacultyDocumentTypeRequirement): string {
     if (rule.designation) return 'Designation';
-    if (rule.departmentId) return 'Department';
+    if (rule.specialityId) return 'Speciality';
     if (rule.qualification) return 'Qualification';
     return '—';
   }
 
   protected criterionValue(rule: FacultyDocumentTypeRequirement): string {
     if (rule.designation) return this.formatDesignation(rule.designation);
-    if (rule.departmentId) return rule.departmentName ?? '—';
+    if (rule.specialityId) return rule.specialityName ?? '—';
     if (rule.qualification) return rule.qualificationLabel ?? rule.qualification;
     return '—';
   }
@@ -207,7 +207,7 @@ export class FacultyDocConfigComponent implements OnInit {
   private resetForm(): void {
     this.newDocumentType = '';
     this.newDesignation = '';
-    this.newDepartmentId = null;
+    this.newSpecialityId = null;
     this.newQualification = '';
   }
 }

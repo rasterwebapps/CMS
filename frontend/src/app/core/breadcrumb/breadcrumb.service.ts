@@ -11,7 +11,7 @@ export interface Breadcrumb {
 /** Human-readable labels for URL path segments used in breadcrumbs */
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
-  departments: 'Departments',
+  specialities: 'Specialities',
   programs: 'Programs',
   courses: 'Courses',
   'academic-years': 'Academic Years',

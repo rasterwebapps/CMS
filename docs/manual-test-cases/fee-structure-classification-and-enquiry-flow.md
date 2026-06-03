@@ -118,6 +118,30 @@ Covers: fee type classification (Generic / Additional) on the fee structure scre
 
 ---
 
+## TC-FSCLS-109: Day scholar total remains consistent between enquiry and fee finalization
+
+**Preconditions:**
+- Fee structure exists for Management / Tamil Nadu / Female with fee items summing to:
+  - Course + transport total = ₹7,90,000
+  - Hostel fee surcharge = ₹1,20,000
+- User can create enquiry and access fee finalization
+
+**Steps:**
+1. Create an enquiry with Program/Course configured above, Quota = Management, State = Tamil Nadu, Gender = Female, Student Type = Day Scholar
+2. Confirm enquiry form shows total ₹7,90,000 and save
+3. Move enquiry to INTERESTED and open Fee Finalization for the same enquiry
+4. Observe total/year rows on finalization screen
+5. Finalize without discount and reopen the enquiry/finalization details
+
+**Expected Result:**
+- Enquiry `finalCalculatedFee` is ₹7,90,000 (hostel fee excluded)
+- Fee Finalization opens with ₹7,90,000, not ₹9,10,000
+- Finalized total remains ₹7,90,000 and year-wise distribution excludes hostel component
+
+**Status:** NOT TESTED
+
+---
+
 ---
 
 ## TC-FSCLS-001: Fee structure screen splits fee types into Generic and Additional sections

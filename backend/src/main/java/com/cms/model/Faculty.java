@@ -64,8 +64,8 @@ public class Faculty {
     private String emergencyContactPhone;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+    @JoinColumn(name = "speciality_id", nullable = false)
+    private Speciality speciality;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -92,6 +92,9 @@ public class Faculty {
     private FacultyQualification highestQualification;
 
     // ── Identity & demographics ────────────────────────────────
+    @Column(name = "nrts_number", unique = true)
+    private String nrtsNumber;
+
     @Column(name = "pan_number")
     private String panNumber;
 
@@ -169,7 +172,7 @@ public class Faculty {
     }
 
     public Faculty(String employeeCode, String firstName, String lastName, String email,
-                   String phone, Department department, Designation designation,
+                   String phone, Speciality speciality, Designation designation,
                    String specialization, String labExpertise, LocalDate joiningDate,
                    FacultyStatus status) {
         this.employeeCode = employeeCode;
@@ -177,7 +180,7 @@ public class Faculty {
         this.lastName = lastName;
         this.email = email;
         this.phone = phone;
-        this.department = department;
+        this.speciality = speciality;
         this.designation = designation;
         this.specialization = specialization;
         this.labExpertise = labExpertise;
@@ -213,8 +216,8 @@ public class Faculty {
     public String getEmergencyContactPhone()        { return emergencyContactPhone; }
     public void setEmergencyContactPhone(String v)  { this.emergencyContactPhone = v; }
 
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
+    public Speciality getSpeciality() { return speciality; }
+    public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
 
     public Designation getDesignation() { return designation; }
     public void setDesignation(Designation designation) { this.designation = designation; }
@@ -236,6 +239,9 @@ public class Faculty {
 
     public FacultyQualification getHighestQualification() { return highestQualification; }
     public void setHighestQualification(FacultyQualification highestQualification) { this.highestQualification = highestQualification; }
+
+    public String getNrtsNumber() { return nrtsNumber; }
+    public void setNrtsNumber(String nrtsNumber) { this.nrtsNumber = nrtsNumber; }
 
     public String getPanNumber() { return panNumber; }
     public void setPanNumber(String panNumber) { this.panNumber = panNumber; }

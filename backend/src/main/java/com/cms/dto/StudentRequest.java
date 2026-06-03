@@ -43,7 +43,7 @@ public record StudentRequest(
 
     Long courseId,
 
-    Long specializationDepartmentId,
+    Long specialityId,
 
     @NotNull(message = "Year of study is required")
     @Positive(message = "Year of study must be positive")
@@ -88,13 +88,13 @@ public record StudentRequest(
     AddressRequest address
 ) {
     public StudentRequest(String rollNumber, String firstName, String lastName, String email,
-                          String phone, Long programId, Long courseId, Long specializationDepartmentId,
+                          String phone, Long programId, Long courseId, Long specialityId,
                           Integer yearOfStudy, LocalDate admissionDate, String labBatch, StudentStatus status,
                           LocalDate dateOfBirth, Gender gender, String aadharNumber, String nationality,
                           String religion, String communityCategory, String caste, String bloodGroup,
                           String fatherName, String fatherPhone, String fatherEmail, String motherName,
                           String motherPhone, String motherEmail, String parentMobile, AddressRequest address) {
-        this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specializationDepartmentId,
+        this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specialityId,
             yearOfStudy, admissionDate, labBatch, status, null, dateOfBirth, gender, aadharNumber, nationality,
             religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail,
             motherName, motherPhone, motherEmail, parentMobile, false, null, null, address);

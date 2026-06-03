@@ -40,8 +40,8 @@ public class FacultyDocumentTypeRequirement {
     private Designation designation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "speciality_id")
+    private Speciality speciality;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
@@ -62,8 +62,8 @@ public class FacultyDocumentTypeRequirement {
     public Designation getDesignation() { return designation; }
     public void setDesignation(Designation designation) { this.designation = designation; }
 
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
+    public Speciality getSpeciality() { return speciality; }
+    public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
 
     public FacultyQualification getQualification() { return qualification; }
     public void setQualification(FacultyQualification qualification) { this.qualification = qualification; }

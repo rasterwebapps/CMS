@@ -6,17 +6,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CourseResponse;
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityResponse;
 import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Program;
 import com.cms.model.Subject;
 import com.cms.repository.CourseRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.SubjectRepository;
 
 @Service
@@ -25,15 +25,15 @@ public class SubjectService {
 
     private final SubjectRepository subjectRepository;
     private final CourseRepository courseRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final ProgramService programService;
 
     public SubjectService(SubjectRepository subjectRepository, CourseRepository courseRepository,
-                          DepartmentRepository departmentRepository,
+                          SpecialityRepository specialityRepository,
                           ProgramService programService) {
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.programService = programService;
     }
 
@@ -42,10 +42,10 @@ public class SubjectService {
         Course course = courseRepository.findById(request.courseId())
             .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
 
-        Department department = null;
-        if (request.departmentId() != null) {
-            department = departmentRepository.findById(request.departmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        Speciality speciality = null;
+        if (request.specialityId() != null) {
+            speciality = specialityRepository.findById(request.specialityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
         }
 
         Subject subject = new Subject(
@@ -55,7 +55,7 @@ public class SubjectService {
             request.theoryCredits(),
             request.labCredits(),
             course,
-            department,
+            speciality,
             request.termNumber()
         );
         Subject saved = subjectRepository.save(subject);
@@ -83,11 +83,11 @@ public class SubjectService {
             .toList();
     }
 
-    public List<SubjectResponse> findByDepartmentId(Long departmentId) {
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new ResourceNotFoundException("Department not found with id: " + departmentId);
+    public List<SubjectResponse> findBySpecialityId(Long specialityId) {
+        if (!specialityRepository.existsById(specialityId)) {
+            throw new ResourceNotFoundException("Speciality not found with id: " + specialityId);
         }
-        return subjectRepository.findByDepartmentId(departmentId).stream()
+        return subjectRepository.findBySpecialityId(specialityId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -100,10 +100,10 @@ public class SubjectService {
         Course course = courseRepository.findById(request.courseId())
             .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
 
-        Department department = null;
-        if (request.departmentId() != null) {
-            department = departmentRepository.findById(request.departmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        Speciality speciality = null;
+        if (request.specialityId() != null) {
+            speciality = specialityRepository.findById(request.specialityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
         }
 
         if (subjectRepository.existsByNameAndIdNot(request.name(), id)) {
@@ -121,7 +121,7 @@ public class SubjectService {
         subject.setTheoryCredits(request.theoryCredits());
         subject.setLabCredits(request.labCredits());
         subject.setCourse(course);
-        subject.setDepartment(department);
+        subject.setSpeciality(speciality);
         subject.setSemester(request.termNumber());
 
         Subject updated = subjectRepository.save(subject);
@@ -150,13 +150,13 @@ public class SubjectService {
             course.getCreatedAt(), course.getUpdatedAt()
         );
 
-        DepartmentResponse departmentResponse = null;
-        Department dept = subject.getDepartment();
-        if (dept != null) {
-            departmentResponse = new DepartmentResponse(
-                dept.getId(), dept.getName(), dept.getCode(),
-                dept.getDescription(), dept.getHodFacultyId(), dept.getHodName(),
-                dept.getCreatedAt(), dept.getUpdatedAt()
+        SpecialityResponse specialityResponse = null;
+        Speciality speciality = subject.getSpeciality();
+        if (speciality != null) {
+            specialityResponse = new SpecialityResponse(
+                speciality.getId(), speciality.getName(), speciality.getCode(),
+                speciality.getDescription(), speciality.getHodFacultyId(), speciality.getHodName(),
+                speciality.getCreatedAt(), speciality.getUpdatedAt()
             );
         }
 
@@ -168,7 +168,7 @@ public class SubjectService {
             subject.getTheoryCredits(),
             subject.getLabCredits(),
             courseResponse,
-            departmentResponse,
+            specialityResponse,
             subject.getTermNumber(),
             subject.getCreatedAt(),
             subject.getUpdatedAt()

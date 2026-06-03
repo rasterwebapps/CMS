@@ -27,7 +27,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.model.AuditLog;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.FeeDemand;
 import com.cms.model.FeePayment;
 import com.cms.model.Faculty;
@@ -55,7 +55,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.AuditLogRepository;
 import com.cms.repository.ComplianceDocumentRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
@@ -96,7 +96,7 @@ public class WidgetDataController {
     private final StudentFeeAllocationRepository    studentFeeAllocationRepository;
     private final EnquiryDocumentRepository         enquiryDocumentRepository;
     private final FeePaymentRepository              feePaymentRepository;
-    private final DepartmentRepository              departmentRepository;
+    private final SpecialityRepository              specialityRepository;
     private final FacultyRepository                 facultyRepository;
     private final LabScheduleRepository             labScheduleRepository;
     private final StudentTermEnrollmentRepository   studentTermEnrollmentRepository;
@@ -118,7 +118,7 @@ public class WidgetDataController {
                                 StudentFeeAllocationRepository studentFeeAllocationRepository,
                                 EnquiryDocumentRepository enquiryDocumentRepository,
                                 FeePaymentRepository feePaymentRepository,
-                                DepartmentRepository departmentRepository,
+                                SpecialityRepository specialityRepository,
                                 FacultyRepository facultyRepository,
                                 LabScheduleRepository labScheduleRepository,
                                 StudentTermEnrollmentRepository studentTermEnrollmentRepository,
@@ -139,7 +139,7 @@ public class WidgetDataController {
         this.studentFeeAllocationRepository   = studentFeeAllocationRepository;
         this.enquiryDocumentRepository        = enquiryDocumentRepository;
         this.feePaymentRepository             = feePaymentRepository;
-        this.departmentRepository             = departmentRepository;
+        this.specialityRepository             = specialityRepository;
         this.facultyRepository                = facultyRepository;
         this.labScheduleRepository            = labScheduleRepository;
         this.studentTermEnrollmentRepository  = studentTermEnrollmentRepository;
@@ -308,8 +308,8 @@ public class WidgetDataController {
     ) {}
 
     public record StudentFacultyRatioRow(
-        String departmentName,
-        String departmentCode,
+        String specialityName,
+        String specialityCode,
         long   students,
         long   faculty,
         double ratio,
@@ -428,8 +428,8 @@ public class WidgetDataController {
                 String.valueOf(countEnquiriesThisMonth(now)), "This month", null);
             case "admissions"   -> new StatCardData(key,
                 String.valueOf(countAdmissionsThisMonth(now)), "This month", null);
-            case "departments"  -> new StatCardData(key,
-                String.valueOf(s.totalDepartments()), "Active", null);
+            case "specialities"  -> new StatCardData(key,
+                String.valueOf(s.totalSpecialities()), "Active", null);
             case "programs"     -> new StatCardData(key,
                 String.valueOf(s.totalPrograms()), "Running", null);
             case "equipment"         -> new StatCardData(key,
@@ -1097,19 +1097,19 @@ public class WidgetDataController {
     @GetMapping("/student-faculty-ratio")
     @PreAuthorize("@perm.hasAny('STUDENT_VIEW','FACULTY_VIEW','REPORT_VIEW')")
     public ResponseEntity<List<StudentFacultyRatioRow>> getStudentFacultyRatio() {
-        Map<Long, Department> departments = new HashMap<>();
-        departmentRepository.findAll().forEach(d -> departments.put(d.getId(), d));
+        Map<Long, Speciality> departments = new HashMap<>();
+        specialityRepository.findAll().forEach(d -> departments.put(d.getId(), d));
 
         Map<Long, Long> studentCounts = new HashMap<>();
         for (Student s : studentRepository.findAll()) {
-            if (s.getStatus() != StudentStatus.ACTIVE || s.getSpecializationDepartment() == null) continue;
-            studentCounts.merge(s.getSpecializationDepartment().getId(), 1L, Long::sum);
+            if (s.getStatus() != StudentStatus.ACTIVE || s.getSpeciality() == null) continue;
+            studentCounts.merge(s.getSpeciality().getId(), 1L, Long::sum);
         }
 
         Map<Long, Long> facultyCounts = new HashMap<>();
         for (Faculty f : facultyRepository.findAll()) {
-            if (f.getStatus() != FacultyStatus.ACTIVE || f.getDepartment() == null) continue;
-            facultyCounts.merge(f.getDepartment().getId(), 1L, Long::sum);
+            if (f.getStatus() != FacultyStatus.ACTIVE || f.getSpeciality() == null) continue;
+            facultyCounts.merge(f.getSpeciality().getId(), 1L, Long::sum);
         }
 
         List<StudentFacultyRatioRow> rows = departments.values().stream()
@@ -1496,7 +1496,7 @@ public class WidgetDataController {
             return List.of(
                 new QuickStat("Enquiries",   String.valueOf(newEnq)),
                 new QuickStat("Admission Explorer", String.valueOf(s.totalStudents())),
-                new QuickStat("Departments", String.valueOf(s.totalDepartments()))
+                new QuickStat("Departments", String.valueOf(s.totalSpecialities()))
             );
         }
         // Faculty and Student hero stats are built by their own widget components

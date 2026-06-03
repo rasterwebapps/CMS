@@ -28,27 +28,27 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'departments',
+    path: 'specialities',
     canActivate: withPermission('DEPT_VIEW', 'DEPT_MANAGE'),
     loadComponent: () =>
-      import('./features/department/department-list/department-list.component').then(
-        (m) => m.DepartmentListComponent
+      import('./features/speciality/speciality-list/speciality-list.component').then(
+        (m) => m.SpecialityListComponent
       ),
   },
   {
-    path: 'departments/new',
+    path: 'specialities/new',
     canActivate: withPermission('DEPT_MANAGE'),
     loadComponent: () =>
-      import('./features/department/department-form/department-form.component').then(
-        (m) => m.DepartmentFormComponent
+      import('./features/speciality/speciality-form/speciality-form.component').then(
+        (m) => m.SpecialityFormComponent
       ),
   },
   {
-    path: 'departments/:id/edit',
+    path: 'specialities/:id/edit',
     canActivate: withPermission('DEPT_MANAGE'),
     loadComponent: () =>
-      import('./features/department/department-form/department-form.component').then(
-        (m) => m.DepartmentFormComponent
+      import('./features/speciality/speciality-form/speciality-form.component').then(
+        (m) => m.SpecialityFormComponent
       ),
   },
   {

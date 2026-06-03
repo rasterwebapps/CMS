@@ -17,8 +17,8 @@ import {
   FacultyDocumentReviewSummary,
   FacultyStatus,
 } from '../faculty.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
+import { SpecialityService } from '../../speciality/speciality.service';
+import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -47,7 +47,7 @@ import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
 })
 export class FacultyListComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
-  private readonly departmentService = inject(DepartmentService);
+  private readonly specialityService = inject(SpecialityService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -62,15 +62,15 @@ export class FacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'departmentName', 'designation', 'status', 'documentReview', 'actions'];
+  protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'specialityName', 'designation', 'status', 'documentReview', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
   private readonly allFaculty = signal<Faculty[]>([]);
-  protected readonly departments = signal<Department[]>([]);
-  protected readonly selectedDepartmentId = signal<number | null>(null);
+  protected readonly specialities = signal<Speciality[]>([]);
+  protected readonly selectedSpecialityId = signal<number | null>(null);
   protected readonly selectedStatus = signal<FacultyStatus | null>(null);
   protected readonly selectedDocumentReview = signal<FacultyDocumentReviewFilter>('ALL');
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
@@ -78,21 +78,21 @@ export class FacultyListComponent implements OnInit {
 
   protected readonly filteredFaculty = computed(() => {
     const q = this.searchValue().trim().toLowerCase();
-    const deptId = this.selectedDepartmentId();
+    const deptId = this.selectedSpecialityId();
     const status = this.selectedStatus();
     const deptName = deptId
-      ? (this.departments().find(d => d.id === deptId)?.name ?? '')
+      ? (this.specialities().find(d => d.id === deptId)?.name ?? '')
       : '';
 
     return this.allFaculty().filter(item => {
-      if (deptName && !item.departmentName.toLowerCase().includes(deptName.toLowerCase())) return false;
+      if (deptName && !item.specialityName.toLowerCase().includes(deptName.toLowerCase())) return false;
       if (status && item.status !== status) return false;
       if (!this.matchesDocumentReview(item)) return false;
       if (q && !(
         item.fullName.toLowerCase().includes(q) ||
         item.employeeCode.toLowerCase().includes(q) ||
         (item.email ?? '').toLowerCase().includes(q) ||
-        item.departmentName.toLowerCase().includes(q)
+        item.specialityName.toLowerCase().includes(q)
       )) return false;
       return true;
     });
@@ -102,7 +102,7 @@ export class FacultyListComponent implements OnInit {
   protected readonly activeCount = computed(() => this.allFaculty().filter(f => f.status === 'ACTIVE').length);
 
   protected readonly hasActiveFilters = computed(() =>
-    this.selectedDepartmentId() !== null ||
+    this.selectedSpecialityId() !== null ||
     this.selectedStatus() !== null ||
     this.selectedDocumentReview() !== 'ALL' ||
     this.searchValue().length > 0,
@@ -114,7 +114,7 @@ export class FacultyListComponent implements OnInit {
       if (property === 'documentReview') return this.documentReviewSortValue(item);
       return String((item as unknown as Record<string, unknown>)[property] ?? '').toLowerCase();
     };
-    this.loadDepartments();
+    this.loadSpecialities();
     this.loadFaculty();
   }
 
@@ -129,8 +129,8 @@ export class FacultyListComponent implements OnInit {
     this.syncTableData();
   }
 
-  protected onDepartmentChange(departmentId: number | null): void {
-    this.selectedDepartmentId.set(departmentId);
+  protected onSpecialityChange(specialityId: number | null): void {
+    this.selectedSpecialityId.set(specialityId);
     this.syncTableData();
   }
 
@@ -145,7 +145,7 @@ export class FacultyListComponent implements OnInit {
   }
 
   protected clearFilters(): void {
-    this.selectedDepartmentId.set(null);
+    this.selectedSpecialityId.set(null);
     this.selectedStatus.set(null);
     this.selectedDocumentReview.set('ALL');
     this.clearFilter();
@@ -260,10 +260,10 @@ export class FacultyListComponent implements OnInit {
     });
   }
 
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => { this.departments.set(departments); },
-      error: () => { this.toast.error('Failed to load departments'); },
+  private loadSpecialities(): void {
+    this.specialityService.getAll().subscribe({
+      next: (specialities) => { this.specialities.set(specialities); },
+      error: () => { this.toast.error('Failed to load specialities'); },
     });
   }
 

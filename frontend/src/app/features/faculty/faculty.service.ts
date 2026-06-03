@@ -27,8 +27,8 @@ export class FacultyService {
     return this.http.get<Faculty>(`${this.baseUrl}/${id}`);
   }
 
-  getByDepartmentId(departmentId: number): Observable<Faculty[]> {
-    const params = new HttpParams().set('departmentId', departmentId.toString());
+  getBySpecialityId(specialityId: number): Observable<Faculty[]> {
+    const params = new HttpParams().set('specialityId', specialityId.toString());
     return this.http.get<Faculty[]>(this.baseUrl, { params });
   }
 
@@ -47,6 +47,12 @@ export class FacultyService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  nrtsNumberExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${this.baseUrl}/nrts-exists`, { params });
   }
 
   // ── Faculty Document Type Requirements (config) ───────────────

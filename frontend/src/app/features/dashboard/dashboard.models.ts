@@ -1,7 +1,7 @@
 export interface DashboardSummary {
   totalStudents: number;
   totalFaculty: number;
-  totalDepartments: number;
+  totalSpecialities: number;
   totalSubjects: number;
   totalPrograms: number;
   totalLabs: number;

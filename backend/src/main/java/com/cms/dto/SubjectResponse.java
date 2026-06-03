@@ -10,7 +10,7 @@ public record SubjectResponse(
     Integer theoryCredits,
     Integer labCredits,
     CourseResponse course,
-    DepartmentResponse department,
+    SpecialityResponse speciality,
     Integer termNumber,
     Instant createdAt,
     Instant updatedAt

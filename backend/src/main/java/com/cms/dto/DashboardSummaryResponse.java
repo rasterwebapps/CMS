@@ -9,7 +9,7 @@ import java.util.Map;
 public record DashboardSummaryResponse(
     long totalStudents,
     long totalFaculty,
-    long totalDepartments,
+    long totalSpecialities,
     long totalSubjects,
     long totalPrograms,
     long totalLabs,

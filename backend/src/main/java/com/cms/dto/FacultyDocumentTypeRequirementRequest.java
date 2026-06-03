@@ -13,7 +13,7 @@ public record FacultyDocumentTypeRequirementRequest(
 
     Designation designation,
 
-    Long departmentId,
+    Long specialityId,
 
     FacultyQualification qualification
 ) {}

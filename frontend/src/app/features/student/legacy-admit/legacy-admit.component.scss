@@ -35,6 +35,14 @@
   @media (max-width: 480px) { grid-template-columns: 1fr !important; }
 }
 
+/* ── 4-column field row (address location fields) ─────────────── */
+.la-field-row--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+
+  @media (max-width: 1024px) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  @media (max-width: 480px) { grid-template-columns: 1fr !important; }
+}
+
 /* ── Fee grid ────────────────────────────────────────────────── */
 .la-fee-grid {
   display: grid;

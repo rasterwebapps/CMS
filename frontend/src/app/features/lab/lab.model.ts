@@ -1,4 +1,4 @@
-import { Department } from '../department/department.model';
+import { Speciality } from '../speciality/speciality.model';
 
 export type LabType =
   | 'COMPUTER'
@@ -18,7 +18,7 @@ export interface Lab {
   id: number;
   name: string;
   labType: LabType;
-  department: Department;
+  speciality: Speciality;
   building?: string;
   roomNumber?: string;
   capacity: number;
@@ -30,7 +30,7 @@ export interface Lab {
 export interface LabRequest {
   name: string;
   labType: LabType;
-  departmentId: number;
+  specialityId: number;
   building?: string;
   roomNumber?: string;
   capacity: number;

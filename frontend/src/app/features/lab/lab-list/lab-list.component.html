@@ -7,7 +7,7 @@
         <h1 class="mlp-title">Lab <em>Facilities</em></h1>
         <cms-tour-button tourKey="lab-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">Manage laboratory facilities, types, and departmental assignments</p>
+      <p class="mlp-sub">Manage laboratory facilities, types, and speciality assignments</p>
       <div class="mlp-meta">
         <span class="mlp-stat">
           <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
@@ -46,13 +46,13 @@
 
     <select
       class="mlp-filter-select"
-      [value]="selectedDepartment() ?? ''"
-      (change)="onDepartmentChange(+$any($event.target).value || null)"
-      aria-label="Filter by department"
+      [value]="selectedSpeciality() ?? ''"
+      (change)="onSpecialityChange(+$any($event.target).value || null)"
+      aria-label="Filter by speciality"
     >
-      <option value="">All Departments</option>
-      @for (dept of departments(); track dept.id) {
-        <option [value]="dept.id">{{ dept.name }}</option>
+      <option value="">All Specialities</option>
+      @for (speciality of specialities(); track speciality.id) {
+        <option [value]="speciality.id">{{ speciality.name }}</option>
       }
     </select>
 
@@ -80,7 +80,7 @@
       }
     </select>
 
-    @if (selectedDepartment() || selectedType() || selectedStatus() || searchValue()) {
+    @if (selectedSpeciality() || selectedType() || selectedStatus() || searchValue()) {
       <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Clear
@@ -121,9 +121,9 @@
     <!-- ── Empty state ─────────────────────────────────────────────────── -->
     <cms-empty-state
       icon="science"
-      [title]="(searchValue() || selectedDepartment() || selectedType() || selectedStatus()) ? 'No labs match your filters' : 'No labs yet'"
-      [subtitle]="(searchValue() || selectedDepartment() || selectedType() || selectedStatus()) ? 'Try adjusting or clearing your filters.' : 'Get started by adding your first lab facility.'"
-      [actionLabel]="(!searchValue() && !selectedDepartment() && !selectedType() && !selectedStatus()) ? 'Add Lab' : ''"
+      [title]="(searchValue() || selectedSpeciality() || selectedType() || selectedStatus()) ? 'No labs match your filters' : 'No labs yet'"
+      [subtitle]="(searchValue() || selectedSpeciality() || selectedType() || selectedStatus()) ? 'Try adjusting or clearing your filters.' : 'Get started by adding your first lab facility.'"
+      [actionLabel]="(!searchValue() && !selectedSpeciality() && !selectedType() && !selectedStatus()) ? 'Add Lab' : ''"
       (actionClick)="handleEmptyAction()"
     ></cms-empty-state>
 
@@ -171,7 +171,7 @@
             <span class="status-badge" [ngClass]="getStatusColor(lab.status)">{{ getStatusLabel(lab.status) }}</span>
           </div>
 
-          <div class="lab-card__dept cell-muted">{{ lab.department.name }}</div>
+          <div class="lab-card__dept cell-muted">{{ lab.speciality.name }}</div>
         </div>
       }
     </div>
@@ -215,9 +215,9 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="department">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
-            <td mat-cell *matCellDef="let lab" class="cell-muted">{{ lab.department.name }}</td>
+          <ng-container matColumnDef="speciality">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Speciality</th>
+            <td mat-cell *matCellDef="let lab" class="cell-muted">{{ lab.speciality.name }}</td>
           </ng-container>
 
           <ng-container matColumnDef="actions">

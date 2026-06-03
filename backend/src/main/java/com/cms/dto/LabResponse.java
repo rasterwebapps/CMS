@@ -9,7 +9,7 @@ public record LabResponse(
     Long id,
     String name,
     LabType labType,
-    DepartmentResponse department,
+    SpecialityResponse speciality,
     String building,
     String roomNumber,
     Integer capacity,

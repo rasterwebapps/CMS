@@ -55,9 +55,9 @@ public class SubjectController {
         return ResponseEntity.ok(subjects);
     }
 
-    @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<SubjectResponse>> findByDepartmentId(@PathVariable Long departmentId) {
-        List<SubjectResponse> subjects = subjectService.findByDepartmentId(departmentId);
+    @GetMapping("/speciality/{specialityId}")
+    public ResponseEntity<List<SubjectResponse>> findBySpecialityId(@PathVariable Long specialityId) {
+        List<SubjectResponse> subjects = subjectService.findBySpecialityId(specialityId);
         return ResponseEntity.ok(subjects);
     }
 

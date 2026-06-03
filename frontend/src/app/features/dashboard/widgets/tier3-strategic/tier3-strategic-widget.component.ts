@@ -18,7 +18,7 @@ interface RefundCancellationData {
 }
 interface PaymentModeSlice { mode: string; count: number; amount: number; sharePct: number; }
 interface StudentFacultyRatioRow {
-  departmentName: string; departmentCode: string; students: number; faculty: number; ratio: number; severity: Severity;
+  specialityName: string; specialityCode: string; students: number; faculty: number; ratio: number; severity: Severity;
 }
 interface UtilizationHeatCell { day: string; slot: string; bookings: number; intensityPct: number; }
 interface LabUtilizationData { days: string[]; slots: string[]; cells: UtilizationHeatCell[]; totalScheduledSessions: number; }

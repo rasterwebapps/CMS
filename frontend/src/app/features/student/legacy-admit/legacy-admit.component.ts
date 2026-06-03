@@ -123,7 +123,6 @@ export class LegacyAdmitComponent implements OnInit {
     motherName:   [''],
     motherPhone:  [''],
     motherEmail:  [''],
-    parentMobile: [''],
 
     // Address
     address: this.fb.group({
@@ -300,7 +299,6 @@ export class LegacyAdmitComponent implements OnInit {
       bloodGroup: v.bloodGroup, physicalDisability: v.physicalDisability,
       fatherName: v.fatherName, fatherPhone: v.fatherPhone, fatherEmail: v.fatherEmail || null,
       motherName: v.motherName, motherPhone: v.motherPhone, motherEmail: v.motherEmail || null,
-      parentMobile: v.parentMobile,
       address: v.address,
       declarationPlace: v.declarationPlace || null,
       declarationDate: v.declarationDate || null,

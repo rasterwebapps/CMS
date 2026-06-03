@@ -3015,6 +3015,18 @@ html.dark-theme {
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
+
+  &--3col {
+    grid-template-columns: 1fr 1fr 1fr;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
 }
 
 // ── Section divider inside a form card ───────────

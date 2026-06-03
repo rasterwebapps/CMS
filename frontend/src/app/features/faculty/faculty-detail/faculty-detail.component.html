@@ -21,7 +21,7 @@
         <div class="profile-hero__meta">
           <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
           <span class="cms-badge cms-badge--blue">{{ getDesignationLabel(faculty()!.designation) }}</span>
-          <span class="cms-badge cms-badge--gray">{{ faculty()!.departmentName }}</span>
+          <span class="cms-badge cms-badge--gray">{{ faculty()!.specialityName }}</span>
         </div>
         <div class="profile-hero__stats">
           <div class="profile-stat">
@@ -29,8 +29,8 @@
             <span class="profile-stat__label">Employee Code</span>
           </div>
           <div class="profile-stat">
-            <span class="profile-stat__value">{{ faculty()!.departmentName }}</span>
-            <span class="profile-stat__label">Department</span>
+            <span class="profile-stat__value">{{ faculty()!.specialityName }}</span>
+            <span class="profile-stat__label">Speciality</span>
           </div>
           <div class="profile-stat">
             <span class="profile-stat__value">{{ faculty()!.joiningDate | appDate }}</span>
@@ -62,6 +62,12 @@
                 <span class="detail-label">Employee Code</span>
                 <span class="detail-value code-value">{{ faculty()!.employeeCode }}</span>
               </div>
+              @if (faculty()!.nrtsNumber) {
+                <div class="detail-item">
+                  <span class="detail-label">NRTS Number</span>
+                  <span class="detail-value code-value">{{ faculty()!.nrtsNumber }}</span>
+                </div>
+              }
               <div class="detail-item">
                 <span class="detail-label">Email</span>
                 <span class="detail-value">{{ faculty()!.email }}</span>
@@ -71,8 +77,8 @@
                 <span class="detail-value">{{ faculty()!.phone || '—' }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Department</span>
-                <span class="detail-value">{{ faculty()!.departmentName }}</span>
+                <span class="detail-label">Speciality</span>
+                <span class="detail-value">{{ faculty()!.specialityName }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Designation</span>

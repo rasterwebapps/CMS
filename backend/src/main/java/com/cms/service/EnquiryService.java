@@ -1,5 +1,6 @@
  package com.cms.service;
 
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -40,13 +41,11 @@ import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.Student;
-import com.cms.model.FeeState;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
-import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
@@ -316,7 +315,7 @@ public class EnquiryService {
             );
         }
 
-        BigDecimal authoritativeTotal = normalizeAmount(originalCalculatedFee);
+        BigDecimal authoritativeTotal = resolveAuthoritativeFinalizationTotal(enquiry);
         BigDecimal discount = normalizeAmount(request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO);
         if (discount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Discount amount cannot be negative");
@@ -726,7 +725,7 @@ public class EnquiryService {
         var feeItems = feeStructureService.findForEnquiry(
             request.programId(), request.courseId(),
             request.admissionQuota(), request.feeStateId(),
-            request.gender()
+            request.gender(), request.studentType()
         );
 
         if (feeItems.isEmpty()) {
@@ -750,6 +749,33 @@ public class EnquiryService {
         enquiry.setFeeDiscussedAmount(total);
         enquiry.setFinalCalculatedFee(total);
         enquiry.setYearWiseFees(buildYearWiseFeesJson(items));
+    }
+
+    private BigDecimal resolveAuthoritativeFinalizationTotal(Enquiry enquiry) {
+        if (enquiry.getProgram() == null || enquiry.getAdmissionQuota() == null || enquiry.getFeeState() == null
+                || enquiry.getGender() == null) {
+            return normalizeAmount(enquiry.getFinalCalculatedFee());
+        }
+
+        Long courseId = enquiry.getCourse() != null ? enquiry.getCourse().getId() : null;
+        var feeItems = feeStructureService.findForEnquiry(
+            enquiry.getProgram().getId(), courseId,
+            enquiry.getAdmissionQuota(), enquiry.getFeeState().getId(),
+            enquiry.getGender(), enquiry.getStudentType()
+        );
+        if (feeItems.isEmpty()) {
+            return normalizeAmount(enquiry.getFinalCalculatedFee());
+        }
+
+        BigDecimal guidelineTotal = feeItems.get().stream()
+            .map(FeeStructureResponse::amount)
+            .map(this::normalizeAmount)
+            .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
+        if (guidelineTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return normalizeAmount(enquiry.getFinalCalculatedFee());
+        }
+
+        return guidelineTotal;
     }
 
     private String buildYearWiseFeesJson(List<FeeStructureResponse> feeStructures) {

@@ -74,12 +74,12 @@
       }
     </select>
 
-    @if (departments().length > 0) {
-      <select class="mlp-filter-select" [value]="filterDepartment()"
-              (change)="filterDepartment.set($any($event.target).value); onFilterChange()" aria-label="Filter by department">
-        <option value="ALL">All Departments</option>
-        @for (d of departments(); track d) {
-          <option [value]="d">{{ d }}</option>
+    @if (specialities().length > 0) {
+      <select class="mlp-filter-select" [value]="filterSpeciality()"
+              (change)="filterSpeciality.set($any($event.target).value); onFilterChange()" aria-label="Filter by speciality">
+        <option value="ALL">All Specialities</option>
+        @for (speciality of specialities(); track speciality) {
+          <option [value]="speciality">{{ speciality }}</option>
         }
       </select>
     }

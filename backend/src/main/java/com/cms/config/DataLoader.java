@@ -21,7 +21,7 @@ import com.cms.model.Admission;
 import com.cms.model.Agent;
 import com.cms.model.AgentCommissionGuideline;
 import com.cms.model.Course;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Enquiry;
 import com.cms.model.Equipment;
 import com.cms.model.Examination;
@@ -78,7 +78,7 @@ import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.AgentRepository;
 import com.cms.repository.CourseRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
@@ -111,7 +111,7 @@ public class DataLoader implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataLoader.class);
 
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
     private final TermInstanceRepository termInstanceRepository;
@@ -142,7 +142,7 @@ public class DataLoader implements CommandLineRunner {
     private final CommunityRepository communityRepository;
     private final BloodGroupRepository bloodGroupRepository;
 
-    public DataLoader(DepartmentRepository departmentRepository,
+    public DataLoader(SpecialityRepository specialityRepository,
                       ProgramRepository programRepository,
                       AcademicYearRepository academicYearRepository,
                       TermInstanceRepository termInstanceRepository,
@@ -172,7 +172,7 @@ public class DataLoader implements CommandLineRunner {
                       SemesterFeeRepository semesterFeeRepository,
                       CommunityRepository communityRepository,
                       BloodGroupRepository bloodGroupRepository) {
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
         this.termInstanceRepository = termInstanceRepository;
@@ -207,7 +207,7 @@ public class DataLoader implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (departmentRepository.count() > 0) {
+        if (specialityRepository.count() > 0) {
             log.info("Seed data already present — skipping DataLoader.");
             return;
         }
@@ -222,12 +222,12 @@ public class DataLoader implements CommandLineRunner {
         seedReferralTypes();
 
         // ── 2. Departments ───────────────────────────────────────────────────
-        List<Department> depts = seedDepartments();
-        Department gnDept    = depts.get(0);
-        Department moDept    = depts.get(1);
-        Department chnDept   = depts.get(2);
-        Department msnDept   = depts.get(3);
-        Department pnDept    = depts.get(4);
+        List<Speciality> depts = seedSpecialities();
+        Speciality gnDept    = depts.get(0);
+        Speciality moDept    = depts.get(1);
+        Speciality chnDept   = depts.get(2);
+        Speciality msnDept   = depts.get(3);
+        Speciality pnDept    = depts.get(4);
 
         // ── 3. Programs ──────────────────────────────────────────────────────
         Program bachelorProgram = seedProgram("Bachelor",    "BACHELOR",    4);
@@ -555,12 +555,12 @@ public class DataLoader implements CommandLineRunner {
         referralTypeRepository.save(new ReferralType("Advertisement",  "ADVERTISEMENT", new BigDecimal("0"),     false, "Through advertisement",          true));
     }
 
-    private List<Department> seedDepartments() {
-        Department gn  = departmentRepository.save(new Department("General Nursing",            "GN",  "Core clinical nursing education and practice", null, "Dr. Priya Sharma"));
-        Department mo  = departmentRepository.save(new Department("Midwifery & Obstetrics",     "MO",  "Maternal and newborn care education",           null, "Dr. Lakshmi Devi"));
-        Department chn = departmentRepository.save(new Department("Community Health Nursing",   "CHN", "Public health and community nursing",           null, "Dr. Anitha Rao"));
-        Department msn = departmentRepository.save(new Department("Medical-Surgical Nursing",   "MSN", "Clinical nursing in medical and surgical wards", null, "Dr. Rajesh Kumar"));
-        Department pn  = departmentRepository.save(new Department("Pediatric Nursing",          "PN",  "Child health nursing and neonatal care",         null, "Dr. Meena Pillai"));
+    private List<Speciality> seedSpecialities() {
+        Speciality gn  = specialityRepository.save(new Speciality("General Nursing",            "GN",  "Core clinical nursing education and practice", null, "Dr. Priya Sharma"));
+        Speciality mo  = specialityRepository.save(new Speciality("Midwifery & Obstetrics",     "MO",  "Maternal and newborn care education",           null, "Dr. Lakshmi Devi"));
+        Speciality chn = specialityRepository.save(new Speciality("Community Health Nursing",   "CHN", "Public health and community nursing",           null, "Dr. Anitha Rao"));
+        Speciality msn = specialityRepository.save(new Speciality("Medical-Surgical Nursing",   "MSN", "Clinical nursing in medical and surgical wards", null, "Dr. Rajesh Kumar"));
+        Speciality pn  = specialityRepository.save(new Speciality("Pediatric Nursing",          "PN",  "Child health nursing and neonatal care",         null, "Dr. Meena Pillai"));
         return List.of(gn, mo, chn, msn, pn);
     }
 

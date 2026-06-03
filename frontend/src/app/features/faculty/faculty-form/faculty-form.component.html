@@ -30,7 +30,7 @@
             </div>
             <div>
               <div class="entry-form-card__hdr-title">Identity &amp; Role</div>
-              <div class="entry-form-card__hdr-sub">Employee code, name, contact, department, designation</div>
+              <div class="entry-form-card__hdr-sub">Employee code, name, contact, speciality, designation</div>
             </div>
           </div>
 
@@ -46,12 +46,16 @@
                 }
               </div>
               <div class="field-group">
-                <label for="fac-email" class="field-label">Email <span class="required-star">*</span></label>
-                <input id="fac-email" type="email" class="field-input" formControlName="email"
-                  placeholder="faculty@college.edu" autocomplete="off"
-                  [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
-                @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('email') }}</p>
+                <label for="fac-nrts" class="field-label">NRTS Number</label>
+                <input id="fac-nrts" class="field-input" formControlName="nrtsNumber"
+                  placeholder="e.g., NRTS123456" autocomplete="off"
+                  style="text-transform: uppercase;"
+                  [class.field-input--error]="form.get('nrtsNumber')?.invalid && form.get('nrtsNumber')?.touched" />
+                @if (form.get('nrtsNumber')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                }
+                @if (form.get('nrtsNumber')?.invalid && form.get('nrtsNumber')?.touched && !form.get('nrtsNumber')?.pending) {
+                  <p class="field-error">{{ getErrorMessage('nrtsNumber') }}</p>
                 }
               </div>
             </div>
@@ -79,26 +83,35 @@
 
             <div class="field-row">
               <div class="field-group">
+                <label for="fac-email" class="field-label">Email <span class="required-star">*</span></label>
+                <input id="fac-email" type="email" class="field-input" formControlName="email"
+                  placeholder="faculty@college.edu" autocomplete="off"
+                  [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+                @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('email') }}</p>
+                }
+              </div>
+              <div class="field-group">
                 <label for="fac-phone" class="field-label">Phone</label>
                 <input id="fac-phone" class="field-input" formControlName="phone"
                   placeholder="+91 9876543210" autocomplete="tel" />
               </div>
-              <div class="field-group">
-                <label for="fac-dept" class="field-label">Department <span class="required-star">*</span></label>
-                <select id="fac-dept" class="field-select" formControlName="departmentId"
-                  [class.field-select--error]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
-                  <option [ngValue]="null" disabled>Select department</option>
-                  @for (dept of departments(); track dept.id) {
-                    <option [ngValue]="dept.id">{{ dept.name }}</option>
-                  }
-                </select>
-                @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('departmentId') }}</p>
-                }
-              </div>
             </div>
 
             <div class="field-row">
+              <div class="field-group">
+                <label for="fac-dept" class="field-label">Speciality <span class="required-star">*</span></label>
+                <select id="fac-dept" class="field-select" formControlName="specialityId"
+                  [class.field-select--error]="form.get('specialityId')?.invalid && form.get('specialityId')?.touched">
+                  <option [ngValue]="null" disabled>Select speciality</option>
+                  @for (dept of specialities(); track dept.id) {
+                    <option [ngValue]="dept.id">{{ dept.name }}</option>
+                  }
+                </select>
+                @if (form.get('specialityId')?.invalid && form.get('specialityId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('specialityId') }}</p>
+                }
+              </div>
               <div class="field-group">
                 <label for="fac-designation" class="field-label">Designation <span class="required-star">*</span></label>
                 <select id="fac-designation" class="field-select" formControlName="designation"
@@ -112,6 +125,9 @@
                   <p class="field-error">{{ getErrorMessage('designation') }}</p>
                 }
               </div>
+            </div>
+
+            <div class="field-row">
               <div class="field-group">
                 <label for="fac-fac-type" class="field-label">Faculty Type</label>
                 <select id="fac-fac-type" class="field-select" formControlName="facultyType">
@@ -265,7 +281,7 @@
 
           <div class="entry-form-card__body">
             <p class="form-section-title">Teaching</p>
-            <div class="field-row">
+            <div class="field-row field-row--3col">
               <div class="field-group">
                 <label for="fac-tea-ug" class="field-label">UG (years)</label>
                 <input id="fac-tea-ug" type="number" min="0" step="0.5" class="field-input"
@@ -284,7 +300,7 @@
             </div>
 
             <p class="form-section-title" style="margin-top: 8px;">Clinical</p>
-            <div class="field-row" style="margin-bottom: 0;">
+            <div class="field-row field-row--3col" style="margin-bottom: 0;">
               <div class="field-group">
                 <label for="fac-cli-ug" class="field-label">UG (years)</label>
                 <input id="fac-cli-ug" type="number" min="0" step="0.5" class="field-input"
@@ -371,15 +387,15 @@
             </div>
             <div>
               <div class="entry-form-card__hdr-title">Address</div>
-              <div class="entry-form-card__hdr-sub">Communication / postal address</div>
+              <div class="entry-form-card__hdr-sub">Residential address details</div>
             </div>
           </div>
 
           <div class="entry-form-card__body">
             <div class="field-group">
-              <label for="fac-addr" class="field-label">Postal Address</label>
-              <textarea id="fac-addr" class="field-textarea" formControlName="postalAddress"
-                placeholder="Door no., flat, building" rows="2"></textarea>
+              <label for="fac-addr" class="field-label">Door No. / Flat / Building</label>
+              <input id="fac-addr" class="field-input" formControlName="postalAddress"
+                placeholder="e.g. 12B, 3rd floor, Green Towers" autocomplete="address-line1" />
             </div>
 
             <div class="field-row">
@@ -393,15 +409,7 @@
               </div>
             </div>
 
-            <div class="field-row">
-              <cms-country-state-district-selector [parentForm]="form" />
-            </div>
-
-            <div class="field-group" style="margin-bottom: 0;">
-              <label for="fac-pincode" class="field-label">Pincode</label>
-              <input id="fac-pincode" class="field-input field-input--narrow"
-                formControlName="pincode" autocomplete="postal-code" maxlength="10" />
-            </div>
+            <cms-country-state-district-selector [parentForm]="form" [showPincode]="true" />
           </div>
         </section>
 
@@ -496,8 +504,8 @@
             @if (previewDesignationLabel()) {
               <span class="prev-pill prev-pill--primary">{{ previewDesignationLabel() }}</span>
             }
-            @if (previewDeptName()) {
-              <span class="prev-pill">{{ previewDeptName() }}</span>
+            @if (previewSpecialityName()) {
+              <span class="prev-pill">{{ previewSpecialityName() }}</span>
             }
             @if (previewFacultyTypeLabel()) {
               <span class="prev-pill">{{ previewFacultyTypeLabel() }}</span>

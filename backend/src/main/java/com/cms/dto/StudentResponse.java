@@ -22,8 +22,8 @@ public record StudentResponse(
     String programName,
     Long courseId,
     String courseName,
-    Long specializationDepartmentId,
-    String specializationDepartmentName,
+    Long specialityId,
+    String specialityName,
     Integer yearOfStudy,
     LocalDate admissionDate,
     String labBatch,
@@ -80,7 +80,7 @@ public record StudentResponse(
 ) {
     public StudentResponse(Long id, String rollNumber, String firstName, String lastName, String fullName,
                            String email, String phone, Long programId, String programName, Long courseId,
-                           String courseName, Long specializationDepartmentId, String specializationDepartmentName,
+                           String courseName, Long specialityId, String specialityName,
                            Integer yearOfStudy, LocalDate admissionDate, String labBatch, StudentStatus status,
                            LocalDate dateOfBirth, Gender gender, String nationality, String religion,
                            String communityCategory, String caste, String bloodGroup, String fatherName,
@@ -89,7 +89,7 @@ public record StudentResponse(
                            String street, String city, String district, String state, String pincode,
                            Instant createdAt, Instant updatedAt) {
         this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
-            courseId, courseName, specializationDepartmentId, specializationDepartmentName, yearOfStudy,
+            courseId, courseName, specialityId, specialityName, yearOfStudy,
             admissionDate, labBatch, status, null, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,

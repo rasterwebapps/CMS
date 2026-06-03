@@ -15,13 +15,13 @@ import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
 
@@ -30,24 +30,24 @@ import com.cms.repository.FacultyRepository;
 public class FacultyService {
 
     private final FacultyRepository facultyRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final FacultyDocumentRepository facultyDocumentRepository;
     private final FacultyDocumentTypeRequirementService requirementService;
 
     public FacultyService(FacultyRepository facultyRepository,
-                          DepartmentRepository departmentRepository,
+                          SpecialityRepository specialityRepository,
                           FacultyDocumentRepository facultyDocumentRepository,
                           FacultyDocumentTypeRequirementService requirementService) {
         this.facultyRepository = facultyRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.facultyDocumentRepository = facultyDocumentRepository;
         this.requirementService = requirementService;
     }
 
     @Transactional
     public FacultyResponse create(FacultyRequest request) {
-        Department department = departmentRepository.findById(request.departmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        Speciality speciality = specialityRepository.findById(request.specialityId())
+            .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
         String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
         String email = requireTrimmed(request.email(), "Faculty email is required");
 
@@ -59,6 +59,11 @@ public class FacultyService {
             throw new IllegalArgumentException(
                 "A faculty with email '" + email + "' already exists");
         }
+        String nrtsNumber = trim(request.nrtsNumber());
+        if (nrtsNumber != null && facultyRepository.existsByNrtsNumberIgnoreCase(nrtsNumber)) {
+            throw new IllegalArgumentException(
+                "A faculty with NRTS number '" + nrtsNumber + "' already exists");
+        }
 
         FacultyStatus status = request.status() != null ? request.status() : FacultyStatus.ACTIVE;
 
@@ -68,7 +73,7 @@ public class FacultyService {
             trim(request.lastName()),
             email,
             trim(request.phone()),
-            department,
+            speciality,
             request.designation(),
             trim(request.specialization()),
             trim(request.labExpertise()),
@@ -94,11 +99,11 @@ public class FacultyService {
         return toResponse(faculty);
     }
 
-    public List<FacultyResponse> findByDepartmentId(Long departmentId) {
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new ResourceNotFoundException("Department not found with id: " + departmentId);
+    public List<FacultyResponse> findBySpecialityId(Long specialityId) {
+        if (!specialityRepository.existsById(specialityId)) {
+            throw new ResourceNotFoundException("Speciality not found with id: " + specialityId);
         }
-        return facultyRepository.findByDepartmentId(departmentId).stream()
+        return facultyRepository.findBySpecialityId(specialityId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -114,8 +119,8 @@ public class FacultyService {
         Faculty faculty = facultyRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + id));
 
-        Department department = departmentRepository.findById(request.departmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.departmentId()));
+        Speciality speciality = specialityRepository.findById(request.specialityId())
+            .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
         String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
         String email = requireTrimmed(request.email(), "Faculty email is required");
 
@@ -127,13 +132,18 @@ public class FacultyService {
             throw new IllegalArgumentException(
                 "A faculty with email '" + email + "' already exists");
         }
+        String nrtsNumber = trim(request.nrtsNumber());
+        if (nrtsNumber != null && facultyRepository.existsByNrtsNumberIgnoreCaseAndIdNot(nrtsNumber, id)) {
+            throw new IllegalArgumentException(
+                "A faculty with NRTS number '" + nrtsNumber + "' already exists");
+        }
 
         faculty.setEmployeeCode(employeeCode);
         faculty.setFirstName(trim(request.firstName()));
         faculty.setLastName(trim(request.lastName()));
         faculty.setEmail(email);
         faculty.setPhone(trim(request.phone()));
-        faculty.setDepartment(department);
+        faculty.setSpeciality(speciality);
         faculty.setDesignation(request.designation());
         faculty.setSpecialization(trim(request.specialization()));
         faculty.setLabExpertise(trim(request.labExpertise()));
@@ -149,6 +159,13 @@ public class FacultyService {
         return toResponse(updated);
     }
 
+    public boolean nrtsNumberExists(String nrtsNumber, Long excludeId) {
+        String value = trim(nrtsNumber);
+        if (value == null) return false;
+        if (excludeId != null) return facultyRepository.existsByNrtsNumberIgnoreCaseAndIdNot(value, excludeId);
+        return facultyRepository.existsByNrtsNumberIgnoreCase(value);
+    }
+
     @Transactional
     public void delete(Long id) {
         if (!facultyRepository.existsById(id)) {
@@ -160,6 +177,7 @@ public class FacultyService {
     private void applyExtendedFields(Faculty faculty, FacultyRequest r) {
         faculty.setFacultyType(r.facultyType());
         faculty.setHighestQualification(r.highestQualification());
+        faculty.setNrtsNumber(trim(r.nrtsNumber()));
         faculty.setPanNumber(trim(r.panNumber()));
         faculty.setAadhaarNumber(trim(r.aadhaarNumber()));
         faculty.setDateOfBirth(r.dateOfBirth());
@@ -232,8 +250,8 @@ public class FacultyService {
             faculty.getFullName(),
             faculty.getEmail(),
             faculty.getPhone(),
-            faculty.getDepartment().getId(),
-            faculty.getDepartment().getName(),
+            faculty.getSpeciality().getId(),
+            faculty.getSpeciality().getName(),
             faculty.getDesignation(),
             faculty.getSpecialization(),
             faculty.getLabExpertise(),
@@ -241,6 +259,7 @@ public class FacultyService {
             faculty.getStatus(),
             faculty.getFacultyType(),
             faculty.getHighestQualification(),
+            faculty.getNrtsNumber(),
             faculty.getPanNumber(),
             faculty.getAadhaarNumber(),
             faculty.getDateOfBirth(),

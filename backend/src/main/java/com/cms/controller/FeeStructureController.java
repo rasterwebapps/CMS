@@ -23,6 +23,7 @@ import com.cms.dto.FeeStructureResponse;
 import com.cms.dto.GroupedFeeStructureResponse;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.Gender;
+import com.cms.model.enums.StudentType;
 import com.cms.service.FeeStructureService;
 
 import jakarta.validation.Valid;
@@ -63,8 +64,9 @@ public class FeeStructureController {
             @RequestParam(required = false) Long courseId,
             @RequestParam AdmissionQuota quota,
             @RequestParam Long feeStateId,
-            @RequestParam Gender gender) {
-        return feeStructureService.findForEnquiry(programId, courseId, quota, feeStateId, gender)
+            @RequestParam Gender gender,
+            @RequestParam(required = false) StudentType studentType) {
+        return feeStructureService.findForEnquiry(programId, courseId, quota, feeStateId, gender, studentType)
             .map(items -> {
                 BigDecimal total = items.stream()
                     .map(FeeStructureResponse::amount)

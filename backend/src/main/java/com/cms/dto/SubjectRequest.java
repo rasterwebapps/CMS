@@ -33,7 +33,7 @@ public record SubjectRequest(
     @NotNull(message = "Course ID is required")
     Long courseId,
 
-    Long departmentId,
+    Long specialityId,
 
     @NotNull(message = "Semester is required")
     @Min(value = 1, message = "Semester must be at least 1")

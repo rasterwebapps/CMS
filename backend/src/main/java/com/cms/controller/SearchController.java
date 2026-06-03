@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.SearchResponse;
 import com.cms.dto.SearchResultItem;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentRepository;
@@ -30,16 +30,16 @@ public class SearchController {
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
     private final EnquiryRepository enquiryRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
 
     public SearchController(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
                             EnquiryRepository enquiryRepository,
-                            DepartmentRepository departmentRepository) {
+                            SpecialityRepository specialityRepository) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.enquiryRepository = enquiryRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
     }
 
     @GetMapping
@@ -76,7 +76,7 @@ public class SearchController {
                 "FACULTY",
                 f.getId(),
                 f.getFirstName() + " " + f.getLastName(),
-                f.getDepartment() != null ? f.getDepartment().getName() : "",
+                f.getSpeciality() != null ? f.getSpeciality().getName() : "",
                 "/faculty/" + f.getId()))
             .forEach(results::add);
 
@@ -94,14 +94,14 @@ public class SearchController {
                 "/enquiries/" + e.getId()))
             .forEach(results::add);
 
-        departmentRepository.findAll().stream()
+        specialityRepository.findAll().stream()
             .filter(d -> d.getName().toLowerCase(Locale.ROOT).contains(term))
             .map(d -> new SearchResultItem(
                 "DEPARTMENT",
                 d.getId(),
                 d.getName(),
                 "",
-                "/departments/" + d.getId()))
+                "/specialities/" + d.getId()))
             .forEach(results::add);
 
         List<SearchResultItem> limited = results.size() > effectiveLimit

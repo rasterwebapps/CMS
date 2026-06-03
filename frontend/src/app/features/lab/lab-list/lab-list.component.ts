@@ -9,8 +9,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabService } from '../lab.service';
 import { Lab, LabType, LabStatus, LAB_TYPES, LAB_STATUSES } from '../lab.model';
-import { DepartmentService } from '../../department/department.service';
-import { Department } from '../../department/department.model';
+import { SpecialityService } from '../../speciality/speciality.service';
+import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -33,7 +33,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 })
 export class LabListComponent implements OnInit {
   private readonly labService = inject(LabService);
-  private readonly departmentService = inject(DepartmentService);
+  private readonly specialityService = inject(SpecialityService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -47,34 +47,34 @@ export class LabListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['name', 'labType', 'location', 'capacity', 'status', 'department', 'actions'];
+  protected readonly displayedColumns = ['name', 'labType', 'location', 'capacity', 'status', 'speciality', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Lab>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
-  protected readonly departments = signal<Department[]>([]);
+  protected readonly specialities = signal<Speciality[]>([]);
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
 
-  protected readonly selectedDepartment = signal<number | null>(null);
+  protected readonly selectedSpeciality = signal<number | null>(null);
   protected readonly selectedType = signal<LabType | null>(null);
   protected readonly selectedStatus = signal<LabStatus | null>(null);
 
   private readonly allLabs = signal<Lab[]>([]);
 
   protected readonly filteredLabs = computed(() => {
-    const deptId = this.selectedDepartment();
+    const specialityId = this.selectedSpeciality();
     const type = this.selectedType();
     const status = this.selectedStatus();
     const search = this.searchValue().trim().toLowerCase();
 
     return this.allLabs().filter(lab => {
-      if (deptId !== null && lab.department.id !== deptId) return false;
+      if (specialityId !== null && lab.speciality.id !== specialityId) return false;
       if (type !== null && lab.labType !== type) return false;
       if (status !== null && lab.status !== status) return false;
       if (search) {
-        const haystack = [lab.name, lab.building, lab.roomNumber, lab.department.name]
+        const haystack = [lab.name, lab.building, lab.roomNumber, lab.speciality.name]
           .filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(search)) return false;
       }
@@ -95,7 +95,7 @@ export class LabListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadDepartments();
+    this.loadSpecialities();
     this.loadLabs();
   }
 
@@ -112,8 +112,8 @@ export class LabListComponent implements OnInit {
     this.searchValue.set('');
   }
 
-  protected onDepartmentChange(departmentId: number | null): void {
-    this.selectedDepartment.set(departmentId);
+  protected onSpecialityChange(specialityId: number | null): void {
+    this.selectedSpeciality.set(specialityId);
   }
 
   protected onTypeChange(type: LabType | null): void {
@@ -126,7 +126,7 @@ export class LabListComponent implements OnInit {
 
   protected clearAllFilters(): void {
     this.searchValue.set('');
-    this.selectedDepartment.set(null);
+    this.selectedSpeciality.set(null);
     this.selectedType.set(null);
     this.selectedStatus.set(null);
   }
@@ -200,10 +200,10 @@ export class LabListComponent implements OnInit {
     });
   }
 
-  private loadDepartments(): void {
-    this.departmentService.getAll().subscribe({
-      next: (departments) => this.departments.set(departments),
-      error: () => this.toast.error('Failed to load departments'),
+  private loadSpecialities(): void {
+    this.specialityService.getAll().subscribe({
+      next: (specialities) => this.specialities.set(specialities),
+      error: () => this.toast.error('Failed to load specialities'),
     });
   }
 

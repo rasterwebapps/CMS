@@ -29,7 +29,7 @@ import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
@@ -51,7 +51,7 @@ public class DashboardService {
 
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final SubjectRepository subjectRepository;
     private final ProgramRepository programRepository;
     private final LabRepository labRepository;
@@ -66,7 +66,7 @@ public class DashboardService {
 
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
-                            DepartmentRepository departmentRepository,
+                            SpecialityRepository specialityRepository,
                             SubjectRepository subjectRepository,
                             ProgramRepository programRepository,
                             LabRepository labRepository,
@@ -80,7 +80,7 @@ public class DashboardService {
                             AdmissionRepository admissionRepository) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
         this.subjectRepository = subjectRepository;
         this.programRepository = programRepository;
         this.labRepository = labRepository;
@@ -100,7 +100,7 @@ public class DashboardService {
     public DashboardSummaryResponse getSummary() {
         long totalStudents = studentRepository.count();
         long totalFaculty = facultyRepository.count();
-        long totalDepartments = departmentRepository.count();
+        long totalSpecialities = specialityRepository.count();
         long totalSubjects = subjectRepository.count();
         long totalPrograms = programRepository.count();
         long totalLabs = labRepository.count();
@@ -119,7 +119,7 @@ public class DashboardService {
         BigDecimal feeOutstanding = computeFeeOutstanding();
 
         return new DashboardSummaryResponse(
-            totalStudents, totalFaculty, totalDepartments, totalSubjects,
+            totalStudents, totalFaculty, totalSpecialities, totalSubjects,
             totalPrograms, totalLabs, totalEquipment, totalExaminations,
             totalFeePayments, totalMaintenanceRequests, totalAttendanceRecords,
             equipmentByStatus, maintenanceByStatus, studentsByStatus, attendanceByStatus,

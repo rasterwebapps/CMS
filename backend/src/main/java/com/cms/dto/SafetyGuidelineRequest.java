@@ -12,7 +12,7 @@ public record SafetyGuidelineRequest(
     @NotBlank String title,
     String description,
     Long labId,
-    Long departmentId,
+    Long specialityId,
     @NotNull SafetyGuidelineCategory category,
     @NotNull SafetyPriority priority,
     @NotNull LocalDate effectiveDate,

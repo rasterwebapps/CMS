@@ -51,9 +51,9 @@ public class LabController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<LabResponse>> findByDepartmentId(@PathVariable Long departmentId) {
-        List<LabResponse> labs = labService.findByDepartmentId(departmentId);
+    @GetMapping("/speciality/{specialityId}")
+    public ResponseEntity<List<LabResponse>> findBySpecialityId(@PathVariable Long specialityId) {
+        List<LabResponse> labs = labService.findBySpecialityId(specialityId);
         return ResponseEntity.ok(labs);
     }
 
