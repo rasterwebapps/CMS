@@ -54,7 +54,7 @@ public class LibraryBook {
     @Column(length = 30)
     private String isbn;
 
-    @Column(length = 200)
+    @Column(name = "book_collation", length = 200)
     private String collation;
 
     @Column(length = 200)

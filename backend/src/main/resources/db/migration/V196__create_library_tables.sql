@@ -20,7 +20,7 @@ CREATE TABLE library_books (
     year_of_publication VARCHAR(20),
     edition             VARCHAR(100),
     isbn                VARCHAR(30),
-    collation           VARCHAR(200),
+    book_collation      VARCHAR(200),
     series              VARCHAR(200),
     call_number         VARCHAR(50),
     shelf_location      VARCHAR(20),
