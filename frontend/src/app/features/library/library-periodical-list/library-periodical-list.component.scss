@@ -1,0 +1,53 @@
+.journal-name {
+  display: block;
+  font-weight: 500;
+  max-width: 280px;
+}
+
+.journal-org {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.type-tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &--national      { background: #dbeafe; color: #1d4ed8; }
+  &--international { background: #ede9fe; color: #7c3aed; }
+}
+
+.vol-info {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.cell-center { text-align: center; }
+
+.sub-status {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  &--active  { background: #dcfce7; color: #15803d; }
+  &--expired { background: #f3f4f6; color: #6b7280; }
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.mlp-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--color-text-secondary);
+}

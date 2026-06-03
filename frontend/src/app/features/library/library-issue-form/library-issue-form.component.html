@@ -1,0 +1,113 @@
+<div class="form-page">
+  <div class="form-page__header">
+    <a routerLink="/library/issues" class="back-link">
+      <mat-icon>arrow_back</mat-icon> Issue Register
+    </a>
+    <h1 class="form-page__title">Issue Book</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate class="issue-form">
+
+    <!-- Section: Book Lookup -->
+    <section class="form-section">
+      <h2 class="form-section__title">Book</h2>
+      <div class="form-grid form-grid--2">
+        <div class="form-field">
+          <label class="form-label required" for="accessionNumber">Accession Number</label>
+          <div class="input-action-row">
+            <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
+              placeholder="e.g. 42 or 2026-3002" />
+            <button type="button" class="btn-secondary" (click)="lookupBook()" [disabled]="loadingBook()">
+              @if (loadingBook()) { Looking up... } @else { Look Up }
+            </button>
+          </div>
+          @if (bookError()) {
+            <span class="form-error">{{ bookError() }}</span>
+          }
+        </div>
+      </div>
+
+      @if (foundBook(); as book) {
+        <div class="book-preview">
+          <div class="book-preview__check">✓</div>
+          <div class="book-preview__info">
+            <strong>{{ book.title }}</strong>
+            <span>{{ book.authors }}</span>
+            @if (book.publisher) { <span>{{ book.publisher }}{{ book.edition ? ' · ' + book.edition : '' }}</span> }
+            <div class="book-preview__meta">
+              @if (book.callNumber) { <span class="meta-chip">{{ book.callNumber }}</span> }
+              @if (book.shelfLocation) { <span class="meta-chip">{{ book.shelfLocation }}</span> }
+              <span class="meta-chip meta-chip--available">Available</span>
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Section: Member -->
+    <section class="form-section">
+      <h2 class="form-section__title">Borrower</h2>
+      <div class="form-grid form-grid--3">
+        <div class="form-field">
+          <label class="form-label">Member Type</label>
+          <div class="toggle-group">
+            <label class="toggle-option" [class.active]="memberType() === 'STUDENT'">
+              <input type="radio" formControlName="memberType" value="STUDENT" />
+              Student
+            </label>
+            <label class="toggle-option" [class.active]="memberType() === 'FACULTY'">
+              <input type="radio" formControlName="memberType" value="FACULTY" />
+              Faculty
+            </label>
+          </div>
+        </div>
+
+        @if (memberType() === 'STUDENT') {
+          <div class="form-field">
+            <label class="form-label required" for="studentId">Student</label>
+            <select id="studentId" formControlName="studentId" class="form-select">
+              <option [value]="null">— Select Student —</option>
+              @for (s of students(); track s.id) {
+                <option [value]="s.id">{{ s.firstName }} {{ s.lastName }} ({{ s.rollNumber ?? s.admissionNumber }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (memberType() === 'FACULTY') {
+          <div class="form-field">
+            <label class="form-label required" for="facultyId">Faculty Member</label>
+            <select id="facultyId" formControlName="facultyId" class="form-select">
+              <option [value]="null">— Select Faculty —</option>
+              @for (f of faculty(); track f.id) {
+                <option [value]="f.id">{{ f.firstName }} {{ f.lastName }} ({{ f.employeeCode }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        <div class="form-field">
+          <label class="form-label required" for="issuedDate">Issue Date</label>
+          <input id="issuedDate" type="date" formControlName="issuedDate" class="form-input" [max]="today" />
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--1">
+        <div class="form-field">
+          <label class="form-label" for="remarks">Remarks</label>
+          <input id="remarks" formControlName="remarks" class="form-input" placeholder="Optional note" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Sticky footer -->
+    <div class="form-footer form-footer--sticky">
+      <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+      <button type="submit" class="btn-primary"
+        [disabled]="saving() || form.invalid || !foundBook()">
+        @if (saving()) { Issuing... } @else { Issue Book }
+      </button>
+    </div>
+
+  </form>
+</div>

@@ -1,0 +1,157 @@
+<div class="portal-page">
+
+  <div class="portal-header">
+    <div>
+      <h1 class="portal-title">My Library</h1>
+      <p class="portal-sub">View your borrowed books, history, and search the catalogue.</p>
+    </div>
+    @if (hasOverdue()) {
+      <div class="overdue-alert">
+        <mat-icon>warning</mat-icon>
+        You have <strong>{{ activeIssues().filter(i => i.status === 'OVERDUE').length }}</strong> overdue book(s). Please return them immediately to avoid additional fines.
+      </div>
+    }
+  </div>
+
+  <!-- Tabs -->
+  <div class="portal-tabs">
+    <button class="portal-tab" [class.active]="activeTab() === 'active'"  (click)="selectTab('active')">
+      <mat-icon>book_online</mat-icon>
+      Currently Borrowed
+      @if (activeIssues().length > 0) {
+        <span class="tab-badge" [class.tab-badge--overdue]="hasOverdue()">{{ activeIssues().length }}</span>
+      }
+    </button>
+    <button class="portal-tab" [class.active]="activeTab() === 'history'" (click)="selectTab('history')">
+      <mat-icon>history</mat-icon> Borrow History
+    </button>
+    <button class="portal-tab" [class.active]="activeTab() === 'search'"  (click)="selectTab('search')">
+      <mat-icon>search</mat-icon> Search Catalogue
+    </button>
+  </div>
+
+  @if (issuesLoading()) { <div class="portal-loading">Loading your library account...</div> }
+
+  <!-- Currently Borrowed -->
+  @if (!issuesLoading() && activeTab() === 'active') {
+    @if (activeIssues().length === 0) {
+      <div class="portal-empty">
+        <mat-icon>book</mat-icon>
+        <p>You have no books currently borrowed.</p>
+        <button class="btn-secondary" (click)="selectTab('search')">Browse Catalogue</button>
+      </div>
+    } @else {
+      <div class="issue-cards">
+        @for (issue of activeIssues(); track issue.id) {
+          <div class="issue-card" [class.issue-card--overdue]="issue.status === 'OVERDUE'">
+            <div class="issue-card__status">
+              <span class="status-dot" [class.status-dot--overdue]="issue.status === 'OVERDUE'"></span>
+              {{ statusLabel(issue.status) }}
+            </div>
+            <h3 class="issue-card__title">{{ issue.bookTitle }}</h3>
+            <p class="issue-card__authors">{{ issue.bookAuthors }}</p>
+            <div class="issue-card__meta">
+              <span>Acc. No: <strong>{{ issue.accessionNumber }}</strong></span>
+              @if (issue.callNumber) { <span>{{ issue.callNumber }}</span> }
+              @if (issue.shelfLocation) { <span>Shelf: {{ issue.shelfLocation }}</span> }
+            </div>
+            <div class="issue-card__dates">
+              <div class="date-item">
+                <span class="date-label">Issued</span>
+                <span>{{ issue.issuedDate | date:'dd MMM yyyy' }}</span>
+              </div>
+              <div class="date-item" [class.date-item--overdue]="issue.status === 'OVERDUE'">
+                <span class="date-label">Due</span>
+                <span>{{ issue.dueDate | date:'dd MMM yyyy' }}</span>
+              </div>
+              @if (issue.renewalCount > 0) {
+                <div class="date-item">
+                  <span class="date-label">Renewals</span>
+                  <span>{{ issue.renewalCount }}</span>
+                </div>
+              }
+            </div>
+            @if (issue.status === 'OVERDUE' && issue.fine) {
+              <div class="fine-notice">
+                <mat-icon>currency_rupee</mat-icon>
+                Overdue fine: <strong>₹{{ issue.fine.totalFine }}</strong> ({{ issue.fine.overdueDays }} days)
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Borrow History -->
+  @if (!issuesLoading() && activeTab() === 'history') {
+    @if (historyIssues().length === 0) {
+      <div class="portal-empty">
+        <mat-icon>history</mat-icon>
+        <p>No borrowing history yet.</p>
+      </div>
+    } @else {
+      <table class="portal-table">
+        <thead>
+          <tr><th>Book</th><th>Acc. No.</th><th>Issued</th><th>Returned</th><th>Fine</th></tr>
+        </thead>
+        <tbody>
+          @for (issue of historyIssues(); track issue.id) {
+            <tr>
+              <td>
+                <span class="hist-title">{{ issue.bookTitle }}</span>
+                <span class="hist-author">{{ issue.bookAuthors }}</span>
+              </td>
+              <td class="mono">{{ issue.accessionNumber }}</td>
+              <td>{{ issue.issuedDate   | date:'dd MMM yyyy' }}</td>
+              <td>{{ issue.returnedDate | date:'dd MMM yyyy' }}</td>
+              <td>{{ issue.fine ? ('₹' + issue.fine.totalFine) : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+
+  <!-- Catalogue Search -->
+  @if (activeTab() === 'search') {
+    <div class="catalogue-search-bar">
+      <mat-icon>search</mat-icon>
+      <input class="catalogue-input" [(ngModel)]="catalogueSearch" [ngModelOptions]="{standalone: true}"
+        placeholder="Search by title, author, call number..." />
+      <select class="cat-filter" [(ngModel)]="categoryFilter" [ngModelOptions]="{standalone: true}">
+        <option value="">All Subjects</option>
+        @for (cat of categoryOptions; track cat) {
+          <option [value]="cat">{{ cat }}</option>
+        }
+      </select>
+    </div>
+
+    @if (catalogueLoading()) { <div class="portal-loading">Loading catalogue...</div> }
+    @else {
+      <p class="catalogue-count">{{ filteredBooks().length }} books available</p>
+      <div class="catalogue-grid">
+        @for (book of filteredBooks(); track book.id) {
+          <div class="catalogue-card">
+            <div class="catalogue-card__acc">{{ book.accessionNumber }}</div>
+            <h3 class="catalogue-card__title">{{ book.title }}</h3>
+            <p class="catalogue-card__author">{{ book.authors }}</p>
+            @if (book.publisher) { <p class="catalogue-card__pub">{{ book.publisher }}{{ book.edition ? ' · ' + book.edition : '' }}</p> }
+            <div class="catalogue-card__footer">
+              @if (book.callNumber)    { <span class="tag">{{ book.callNumber }}</span> }
+              @if (book.shelfLocation) { <span class="tag">{{ book.shelfLocation }}</span> }
+              <span class="tag tag--available">Available</span>
+            </div>
+          </div>
+        }
+        @if (filteredBooks().length === 0) {
+          <div class="portal-empty" style="grid-column: 1/-1">
+            <mat-icon>search_off</mat-icon>
+            <p>No available books match your search.</p>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>

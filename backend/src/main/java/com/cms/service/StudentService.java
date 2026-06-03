@@ -42,9 +42,11 @@ import com.cms.repository.EnquiryDocumentHistoryRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.StudentProgramTransferRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.util.CurrentUserResolver;
+import com.cms.model.enums.IssueStatus;
 
 @Service
 @Transactional(readOnly = true)
@@ -59,7 +61,11 @@ public class StudentService {
     private final EnquiryDocumentHistoryRepository documentHistoryRepository;
     private final StudentProgramTransferRepository transferRepository;
     private final FeeDemandRepository feeDemandRepository;
+    private final LibraryIssueRepository libraryIssueRepository;
     private final CurrentUserResolver currentUserResolver;
+
+    private static final List<IssueStatus> ACTIVE_ISSUE_STATUSES =
+        List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
 
     public StudentService(StudentRepository studentRepository, ProgramRepository programRepository,
                           CourseRepository courseRepository, DepartmentRepository departmentRepository,
@@ -68,6 +74,7 @@ public class StudentService {
                           EnquiryDocumentHistoryRepository documentHistoryRepository,
                           StudentProgramTransferRepository transferRepository,
                           FeeDemandRepository feeDemandRepository,
+                          LibraryIssueRepository libraryIssueRepository,
                           CurrentUserResolver currentUserResolver) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
@@ -78,6 +85,7 @@ public class StudentService {
         this.documentHistoryRepository = documentHistoryRepository;
         this.transferRepository = transferRepository;
         this.feeDemandRepository = feeDemandRepository;
+        this.libraryIssueRepository = libraryIssueRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -280,7 +288,16 @@ public class StudentService {
         student.setAdmissionCategory(request.admissionCategory());
 
         if (request.status() != null) {
-            student.setStatus(request.status());
+            StudentStatus newStatus = request.status();
+            if (newStatus != StudentStatus.ACTIVE && newStatus != StudentStatus.ON_LEAVE) {
+                long activeIssues = libraryIssueRepository.countByStudentIdAndStatusIn(id, ACTIVE_ISSUE_STATUSES);
+                if (activeIssues > 0) {
+                    throw new IllegalStateException(
+                        "Cannot change student status to " + newStatus + " — they have " + activeIssues +
+                        " library book(s) currently issued. Please return all books first.");
+                }
+            }
+            student.setStatus(newStatus);
         }
 
         // Personal information
@@ -321,6 +338,11 @@ public class StudentService {
     public void delete(Long id) {
         if (!studentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student not found with id: " + id);
+        }
+        long activeIssues = libraryIssueRepository.countByStudentIdAndStatusIn(id, ACTIVE_ISSUE_STATUSES);
+        if (activeIssues > 0) {
+            throw new IllegalStateException(
+                "Cannot delete student — they have " + activeIssues + " library book(s) currently issued. Please return all books before deleting.");
         }
         studentRepository.deleteById(id);
     }

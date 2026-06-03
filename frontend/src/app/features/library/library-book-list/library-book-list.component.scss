@@ -1,0 +1,60 @@
+.acc-no {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.book-title {
+  font-weight: 500;
+  max-width: 280px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.call-no {
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.shelf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-surface-raised);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--color-border);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.status--available  { background: #dcfce7; color: #15803d; }
+  &.status--issued     { background: #fef9c3; color: #a16207; }
+  &.status--lost       { background: #fee2e2; color: #b91c1c; }
+  &.status--damaged    { background: #ffedd5; color: #c2410c; }
+  &.status--withdrawn  { background: #f3f4f6; color: #6b7280; }
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.mlp-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--color-text-secondary);
+}

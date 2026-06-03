@@ -1,0 +1,18 @@
+package com.cms.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.cms.model.LibraryFine;
+import com.cms.model.enums.FineStatus;
+
+public interface LibraryFineRepository extends JpaRepository<LibraryFine, Long> {
+
+    Optional<LibraryFine> findByIssueId(Long issueId);
+
+    boolean existsByIssueId(Long issueId);
+
+    List<LibraryFine> findByStatus(FineStatus status);
+}

@@ -1,0 +1,247 @@
+.reports-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// ── Tab bar ──────────────────────────────────────────────────
+
+.report-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.report-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.12s, border-color 0.12s;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover { color: var(--color-primary); }
+  &.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 700; }
+}
+
+// ── Report sections ───────────────────────────────────────────
+
+.report-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.report-section__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.report-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.toolbar-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: var(--color-surface);
+}
+
+.report-loading { padding: 40px; text-align: center; color: var(--color-text-secondary); }
+
+.report-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+
+  mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.4; }
+}
+
+.report-count { font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 12px; }
+
+// ── Tables ────────────────────────────────────────────────────
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    background: var(--color-surface-raised);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--color-surface-raised); }
+}
+
+.mono        { font-family: monospace; font-size: 0.82rem; }
+.book-title  { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overdue-date { color: #b91c1c; font-weight: 600; }
+.overdue-days { color: #b91c1c; font-weight: 700; text-align: center; }
+.fine-amt    { font-weight: 600; }
+
+.fine-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &--pending   { background: #fee2e2; color: #b91c1c; }
+  &--waived    { background: #f3f4f6; color: #6b7280; }
+  &--collected { background: #dcfce7; color: #15803d; }
+}
+
+.status-sm {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.73rem;
+  font-weight: 600;
+
+  &--issued   { background: #dbeafe; color: #1d4ed8; }
+  &--returned { background: #dcfce7; color: #15803d; }
+  &--overdue  { background: #fee2e2; color: #b91c1c; }
+  &--lost     { background: #f3f4f6; color: #6b7280; }
+}
+
+.member-badge {
+  font-size: 0.73rem; font-weight: 600; padding: 2px 7px; border-radius: 8px;
+  &.badge--student { background: #dbeafe; color: #1d4ed8; }
+  &.badge--faculty { background: #ede9fe; color: #7c3aed; }
+}
+
+// ── Fine summary cards ────────────────────────────────────────
+
+.fine-summary-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.fine-card {
+  flex: 1;
+  min-width: 160px;
+  padding: 20px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__label { font-size: 0.78rem; color: var(--color-text-secondary); font-weight: 600; }
+  &__value { font-size: 1.5rem; font-weight: 800; }
+  &__sub   { font-size: 0.75rem; color: var(--color-text-secondary); }
+
+  &--pending   { border-color: #fca5a5; background: #fff5f5; }
+  &--collected { border-color: #86efac; background: #f0fdf4; }
+}
+
+// ── Print styles ──────────────────────────────────────────────
+
+.print-only { display: none; }
+
+@media print {
+  .no-print  { display: none !important; }
+  .print-only { display: block !important; }
+
+  .print-register {
+    padding: 0;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+  }
+
+  .print-header {
+    text-align: center;
+    margin-bottom: 12pt;
+
+    h1 { font-size: 14pt; margin: 0; }
+    h2 { font-size: 12pt; margin: 4pt 0; }
+    p  { font-size: 9pt; margin: 2pt 0; color: #555; }
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+    page-break-inside: auto;
+
+    th, td {
+      border: 1px solid #000;
+      padding: 3pt 4pt;
+      vertical-align: top;
+    }
+
+    th {
+      background: #e8e8e8;
+      font-weight: bold;
+      text-align: center;
+      font-size: 7pt;
+    }
+
+    tr { page-break-inside: avoid; }
+  }
+
+  .print-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32pt;
+    padding: 0 16pt;
+  }
+
+  .print-sig {
+    text-align: center;
+    font-size: 9pt;
+
+    &__line {
+      border-top: 1px solid #000;
+      width: 160pt;
+      margin: 0 auto 4pt;
+    }
+  }
+}

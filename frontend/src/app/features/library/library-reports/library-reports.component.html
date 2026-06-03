@@ -1,0 +1,272 @@
+<div class="reports-page no-print">
+
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Library <em>Reports</em></h1>
+      <p class="mlp-sub">Overdue books, fines, issue history and accession register</p>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="report-tabs">
+    <button class="report-tab" [class.active]="activeTab() === 'overdue'"   (click)="selectTab('overdue')">
+      <mat-icon>warning</mat-icon> Overdue Books
+    </button>
+    <button class="report-tab" [class.active]="activeTab() === 'fines'"     (click)="selectTab('fines')">
+      <mat-icon>currency_rupee</mat-icon> Fine Summary
+    </button>
+    <button class="report-tab" [class.active]="activeTab() === 'history'"   (click)="selectTab('history')">
+      <mat-icon>history</mat-icon> Issue History
+    </button>
+    <button class="report-tab" [class.active]="activeTab() === 'accession'" (click)="selectTab('accession')">
+      <mat-icon>menu_book</mat-icon> Accession Register
+    </button>
+  </div>
+
+  <!-- ══ OVERDUE REPORT ══ -->
+  @if (activeTab() === 'overdue') {
+    <div class="report-section">
+      <div class="report-section__toolbar">
+        <h2 class="report-section__title">Overdue Books ({{ overdueIssues().length }})</h2>
+        <button class="btn-secondary btn-sm" (click)="loadOverdue()">
+          <mat-icon>refresh</mat-icon> Refresh
+        </button>
+      </div>
+
+      @if (overdueLoading()) { <div class="report-loading">Loading...</div> }
+      @else if (overdueIssues().length === 0) {
+        <div class="report-empty">
+          <mat-icon>check_circle</mat-icon>
+          <p>No overdue books — all issues are within their due dates.</p>
+        </div>
+      } @else {
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Acc. No.</th><th>Title</th><th>Borrower</th>
+              <th>Due Date</th><th>Days Overdue</th><th>Est. Fine (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of overdueIssues(); track i.id) {
+              <tr>
+                <td class="mono">{{ i.accessionNumber }}</td>
+                <td class="book-title">{{ i.bookTitle }}</td>
+                <td>{{ memberName(i) }}</td>
+                <td class="overdue-date">{{ i.dueDate | date:'dd MMM yyyy' }}</td>
+                <td class="overdue-days">{{ i.fine?.overdueDays ?? '—' }}</td>
+                <td class="fine-amt">{{ i.fine ? ('₹' + i.fine.totalFine) : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ══ FINE SUMMARY ══ -->
+  @if (activeTab() === 'fines') {
+    <div class="report-section">
+      <div class="report-section__toolbar">
+        <h2 class="report-section__title">Fine Summary</h2>
+        <button class="btn-secondary btn-sm" (click)="loadFines()">
+          <mat-icon>refresh</mat-icon> Refresh
+        </button>
+      </div>
+
+      <div class="fine-summary-cards">
+        <div class="fine-card">
+          <span class="fine-card__label">Total Fines Raised</span>
+          <span class="fine-card__value">₹{{ fineTotal() | number:'1.2-2' }}</span>
+          <span class="fine-card__sub">{{ fineIssues().length }} records</span>
+        </div>
+        <div class="fine-card fine-card--pending">
+          <span class="fine-card__label">Pending Collection</span>
+          <span class="fine-card__value">₹{{ finePending() | number:'1.2-2' }}</span>
+          <span class="fine-card__sub">{{ fineIssues().filter(i => i.fine?.status === 'PENDING').length }} pending</span>
+        </div>
+        <div class="fine-card fine-card--collected">
+          <span class="fine-card__label">Collected</span>
+          <span class="fine-card__value">₹{{ (fineTotal() - finePending()) | number:'1.2-2' }}</span>
+          <span class="fine-card__sub">{{ fineIssues().filter(i => i.fine?.status === 'COLLECTED').length }} collected</span>
+        </div>
+      </div>
+
+      @if (finesLoading()) { <div class="report-loading">Loading...</div> }
+      @else if (fineIssues().length === 0) {
+        <div class="report-empty"><mat-icon>check_circle</mat-icon><p>No fines on record.</p></div>
+      } @else {
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Acc. No.</th><th>Title</th><th>Borrower</th>
+              <th>Returned</th><th>Overdue Days</th><th>Fine (₹)</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of fineIssues(); track i.id) {
+              <tr>
+                <td class="mono">{{ i.accessionNumber }}</td>
+                <td class="book-title">{{ i.bookTitle }}</td>
+                <td>{{ memberName(i) }}</td>
+                <td>{{ i.returnedDate | date:'dd MMM yyyy' }}</td>
+                <td>{{ i.fine?.overdueDays }}</td>
+                <td class="fine-amt">₹{{ i.fine?.totalFine }}</td>
+                <td>
+                  <span class="fine-status" [class]="'fine-status--' + (i.fine?.status?.toLowerCase() ?? '')">
+                    {{ i.fine?.status }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ══ ISSUE HISTORY ══ -->
+  @if (activeTab() === 'history') {
+    <div class="report-section">
+      <div class="report-section__toolbar">
+        <h2 class="report-section__title">Issue History</h2>
+        <div class="toolbar-filters">
+          <input class="search-bar__input filter-input" [value]="historySearchValue()"
+            (input)="historySearchValue.set($any($event.target).value)"
+            placeholder="Search..." />
+          <select class="mlp-filter-select"
+            [value]="historyStatusFilter()"
+            (change)="historyStatusFilter.set($any($event.target).value); applyHistoryFilters()">
+            <option value="">All Statuses</option>
+            @for (opt of statusOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+          <select class="mlp-filter-select"
+            [value]="historyMemberFilter()"
+            (change)="historyMemberFilter.set($any($event.target).value); applyHistoryFilters()">
+            <option value="">All Members</option>
+            <option value="STUDENT">Students</option>
+            <option value="FACULTY">Faculty</option>
+          </select>
+        </div>
+      </div>
+
+      @if (historyLoading()) { <div class="report-loading">Loading...</div> }
+      @else {
+        <p class="report-count">{{ filteredHistory().length }} records</p>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Acc. No.</th><th>Title</th><th>Borrower</th><th>Type</th>
+              <th>Issued</th><th>Due</th><th>Returned</th><th>Status</th><th>Fine</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of filteredHistory(); track i.id) {
+              <tr>
+                <td class="mono">{{ i.accessionNumber }}</td>
+                <td class="book-title">{{ i.bookTitle }}</td>
+                <td>{{ memberName(i) }}</td>
+                <td><span class="member-badge" [class.badge--student]="i.memberType==='STUDENT'"
+                  [class.badge--faculty]="i.memberType==='FACULTY'">{{ i.memberType }}</span></td>
+                <td>{{ i.issuedDate | date:'dd MMM yy' }}</td>
+                <td>{{ i.dueDate   | date:'dd MMM yy' }}</td>
+                <td>{{ i.returnedDate ? (i.returnedDate | date:'dd MMM yy') : '—' }}</td>
+                <td><span class="status-sm status-sm--{{ i.status.toLowerCase() }}">{{ i.status }}</span></td>
+                <td>{{ i.fine ? ('₹' + i.fine.totalFine) : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ══ ACCESSION REGISTER (SCREEN VIEW) ══ -->
+  @if (activeTab() === 'accession') {
+    <div class="report-section">
+      <div class="report-section__toolbar">
+        <h2 class="report-section__title">Accession Register ({{ accessionBooks().length }} books)</h2>
+        <div class="toolbar-filters">
+          <select class="mlp-filter-select"
+            [value]="accessionCategory()"
+            (change)="accessionCategory.set($any($event.target).value); applyAccessionFilter()">
+            <option value="">All Subjects</option>
+            @for (cat of categoryOptions; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+          <button class="btn-primary btn-sm" (click)="printAccessionRegister()">
+            <mat-icon>print</mat-icon> Print Register
+          </button>
+        </div>
+      </div>
+      @if (accessionLoading()) { <div class="report-loading">Loading...</div> }
+    </div>
+  }
+
+</div>
+
+<!-- ══ PRINT-ONLY ACCESSION REGISTER ══ -->
+@if (activeTab() === 'accession' && !accessionLoading() && accessionBooks().length > 0) {
+  <div class="print-register print-only">
+    <div class="print-header">
+      <h1>SKS College of Nursing</h1>
+      <h2>Library Accession Register</h2>
+      @if (accessionCategory()) { <p>Subject: {{ accessionCategory() }}</p> }
+      <p>Printed on: {{ today() }}</p>
+    </div>
+
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Acc. No.</th>
+          <th>Author(s) / Editor(s)</th>
+          <th>Title of the Book</th>
+          <th>Publisher</th>
+          <th>Year &amp; Edition</th>
+          <th>Collation</th>
+          <th>Source / Vendor</th>
+          <th>Bill No. &amp; Date</th>
+          <th>Series</th>
+          <th>Price (₹)</th>
+          <th>Call No.</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (b of accessionBooks(); track b.id) {
+          <tr>
+            <td>{{ b.entryDate ? (b.entryDate | date:'dd/MM/yy') : '' }}</td>
+            <td>{{ b.accessionNumber }}</td>
+            <td>{{ b.authors }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.publisher ?? '' }}</td>
+            <td>{{ b.yearOfPublication ?? '' }}{{ b.edition ? ' / ' + b.edition : '' }}</td>
+            <td>{{ b.collation ?? '' }}</td>
+            <td>{{ b.vendorDonorName ?? '' }}</td>
+            <td>{{ b.billNumber ?? '' }}{{ b.billDate ? ' / ' + (b.billDate | date:'dd/MM/yy') : '' }}</td>
+            <td>{{ b.series ?? '' }}</td>
+            <td>{{ b.priceRs ?? '' }}</td>
+            <td>{{ b.callNumber ?? '' }}</td>
+            <td>{{ b.remarks ?? '' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="print-signatures">
+      <div class="print-sig">
+        <div class="print-sig__line"></div>
+        <div>Signature of the Librarian</div>
+      </div>
+      <div class="print-sig">
+        <div class="print-sig__line"></div>
+        <div>Signature of the Principal</div>
+      </div>
+    </div>
+  </div>
+}

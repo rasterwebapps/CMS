@@ -956,6 +956,103 @@ export const routes: Routes = [
         (m) => m.IndiaDistrictFormComponent
       ),
   },
+  // ── Library ──────────────────────────────────────────────────────────────
+  {
+    path: 'library/books',
+    canActivate: withPermission('LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-book-list/library-book-list.component').then(
+        (m) => m.LibraryBookListComponent
+      ),
+  },
+  {
+    path: 'library/books/new',
+    canActivate: withPermission('LIBRARY_CATALOGUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-book-form/library-book-form.component').then(
+        (m) => m.LibraryBookFormComponent
+      ),
+  },
+  {
+    path: 'library/books/import',
+    canActivate: withPermission('LIBRARY_IMPORT'),
+    loadComponent: () =>
+      import('./features/library/library-book-import/library-book-import.component').then(
+        (m) => m.LibraryBookImportComponent
+      ),
+  },
+  {
+    path: 'library/books/:id/edit',
+    canActivate: withPermission('LIBRARY_CATALOGUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-book-form/library-book-form.component').then(
+        (m) => m.LibraryBookFormComponent
+      ),
+  },
+  {
+    path: 'library/issues',
+    canActivate: withPermission('LIBRARY_ISSUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-issue-list/library-issue-list.component').then(
+        (m) => m.LibraryIssueListComponent
+      ),
+  },
+  {
+    path: 'library/issues/new',
+    canActivate: withPermission('LIBRARY_ISSUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-issue-form/library-issue-form.component').then(
+        (m) => m.LibraryIssueFormComponent
+      ),
+  },
+  {
+    path: 'library/periodicals',
+    canActivate: withPermission('LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-periodical-list/library-periodical-list.component').then(
+        (m) => m.LibraryPeriodicalListComponent
+      ),
+  },
+  {
+    path: 'library/periodicals/new',
+    canActivate: withPermission('LIBRARY_PERIODICAL_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-periodical-form/library-periodical-form.component').then(
+        (m) => m.LibraryPeriodicalFormComponent
+      ),
+  },
+  {
+    path: 'library/periodicals/:id/edit',
+    canActivate: withPermission('LIBRARY_PERIODICAL_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-periodical-form/library-periodical-form.component').then(
+        (m) => m.LibraryPeriodicalFormComponent
+      ),
+  },
+  {
+    path: 'library/settings',
+    canActivate: withPermission('LIBRARY_SETTINGS_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-settings/library-settings.component').then(
+        (m) => m.LibrarySettingsComponent
+      ),
+  },
+  {
+    path: 'library/reports',
+    canActivate: withPermission('LIBRARY_REPORT_VIEW'),
+    loadComponent: () =>
+      import('./features/library/library-reports/library-reports.component').then(
+        (m) => m.LibraryReportsComponent
+      ),
+  },
+  {
+    path: 'library/my-issues',
+    canActivate: withPermission('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-my-issues/library-my-issues.component').then(
+        (m) => m.LibraryMyIssuesComponent
+      ),
+  },
   // ── Administration: User & Role Management ───────────────────────────────
   {
     path: 'user-management',

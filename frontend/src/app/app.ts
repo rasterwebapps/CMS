@@ -191,7 +191,22 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Exam Results',        icon: 'grade',              route: '/exam-results',        permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE'] },
       ],
     },
-    // 6. Infrastructure
+    // 6. Library
+    {
+      label: 'Library',
+      icon: 'local_library',
+      items: [
+        { label: 'Book Catalogue',  icon: 'menu_book',           route: '/library/books',            permissions: ['LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_MANAGE'] },
+        { label: 'Issue Desk',      icon: 'book_online',         route: '/library/issues',           permissions: ['LIBRARY_ISSUE_MANAGE'] },
+        { label: 'Issue Book',      icon: 'add_circle_outline',  route: '/library/issues/new',       permissions: ['LIBRARY_ISSUE_MANAGE'] },
+        { label: 'My Library',      icon: 'person',              route: '/library/my-issues',        permissions: ['LIBRARY_ISSUE_VIEW'] },
+        { label: 'Journals',        icon: 'newspaper',           route: '/library/periodicals',      permissions: ['LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE'] },
+        { label: 'Reports',         icon: 'assessment',          route: '/library/reports',          permissions: ['LIBRARY_REPORT_VIEW'] },
+        { label: 'Import Books',    icon: 'upload',              route: '/library/books/import',     permissions: ['LIBRARY_IMPORT'] },
+        { label: 'Library Settings', icon: 'settings',           route: '/library/settings',         permissions: ['LIBRARY_SETTINGS_MANAGE'] },
+      ],
+    },
+    // 7. Infrastructure (was 6)
     {
       label: 'Infrastructure',
       icon: 'construction',

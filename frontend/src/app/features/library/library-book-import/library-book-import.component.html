@@ -1,0 +1,163 @@
+<div class="import-page">
+  <div class="import-page__header">
+    <a routerLink="/library/books" class="back-link">
+      <mat-icon>arrow_back</mat-icon> Book Catalogue
+    </a>
+    <h1 class="import-page__title">Import Books</h1>
+    <p class="import-page__sub">Bulk-import book records from an Excel file into the Accession Register</p>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="step-bar">
+    <div class="step-bar__item" [class.active]="activeStep() === 'template'" [class.done]="activeStep() !== 'template'">
+      <span class="step-bar__num">1</span> Download Template
+    </div>
+    <div class="step-bar__sep"></div>
+    <div class="step-bar__item" [class.active]="activeStep() === 'upload'">
+      <span class="step-bar__num">2</span> Upload &amp; Validate
+    </div>
+    <div class="step-bar__sep"></div>
+    <div class="step-bar__item" [class.active]="activeStep() === 'result'">
+      <span class="step-bar__num">3</span> Review &amp; Import
+    </div>
+  </div>
+
+  <!-- Step 1: Template -->
+  @if (activeStep() === 'template') {
+    <div class="import-card">
+      <h2 class="import-card__title">Step 1 — Download the Template</h2>
+      <p>Download the Excel template, fill in your book records, then return here to upload.</p>
+      <ul class="sheet-list">
+        <li><strong>Books</strong> — One row per book copy. Accession No. is auto-generated if left blank.</li>
+        <li><strong>Reference</strong> — Valid values for the Source of Supply field (read-only).</li>
+      </ul>
+      <div class="import-card__actions">
+        <button class="btn-primary" (click)="downloadTemplate()">
+          <mat-icon>download</mat-icon> Download Template
+        </button>
+      </div>
+      <p class="import-hint">
+        Already have a filled template?
+        <button class="link-btn" (click)="activeStep.set('upload')">Skip to Upload</button>
+      </p>
+    </div>
+  }
+
+  <!-- Step 2: Upload & Validate -->
+  @if (activeStep() === 'upload') {
+    <div class="import-card">
+      <h2 class="import-card__title">Step 2 — Upload &amp; Validate</h2>
+
+      <div class="file-drop-zone">
+        <input type="file" id="fileInput" accept=".xlsx" (change)="onFileSelected($event)" hidden />
+        <label for="fileInput" class="file-drop-zone__label">
+          <mat-icon>upload_file</mat-icon>
+          @if (selectedFile()) {
+            <span>{{ selectedFile()!.name }}</span>
+          } @else {
+            <span>Click to select XLSX file</span>
+          }
+        </label>
+      </div>
+
+      <div class="import-options">
+        <label class="checkbox-label">
+          <input type="checkbox" [checked]="skipErroredRows()" (change)="skipErroredRows.set($any($event.target).checked)" />
+          Skip rows with errors and import valid rows only
+        </label>
+      </div>
+
+      <div class="import-card__actions">
+        <button class="btn-secondary" (click)="activeStep.set('template')">Back</button>
+        <button class="btn-primary" [disabled]="!selectedFile() || phase() === 'validating'" (click)="validate()">
+          @if (phase() === 'validating') { Validating... } @else { Validate File }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 3: Review & Import -->
+  @if (activeStep() === 'result') {
+    <div class="import-card">
+      <h2 class="import-card__title">Step 3 — Review &amp; Import</h2>
+
+      @if (validationResult(); as vr) {
+        <div class="validation-summary">
+          <div class="vs-stat vs-stat--total">
+            <span class="vs-num">{{ vr.totalRows }}</span>
+            <span class="vs-label">Total Rows</span>
+          </div>
+          <div class="vs-stat vs-stat--valid">
+            <span class="vs-num">{{ vr.validRows }}</span>
+            <span class="vs-label">Valid</span>
+          </div>
+          <div class="vs-stat vs-stat--invalid">
+            <span class="vs-num">{{ vr.invalidRows }}</span>
+            <span class="vs-label">Invalid</span>
+          </div>
+          <div class="vs-stat vs-stat--warning">
+            <span class="vs-num">{{ vr.warnings.length }}</span>
+            <span class="vs-label">Warnings</span>
+          </div>
+        </div>
+
+        @if (errorRows(vr.errors).length > 0) {
+          <div class="error-table-wrap">
+            <h3 class="error-table__title error-table__title--error">
+              <mat-icon>error</mat-icon> Errors ({{ errorRows(vr.errors).length }})
+            </h3>
+            <table class="error-table">
+              <thead>
+                <tr><th>Row</th><th>Column</th><th>Issue</th></tr>
+              </thead>
+              <tbody>
+                @for (e of errorRows(vr.errors); track $index) {
+                  <tr><td>{{ e.rowNumber }}</td><td>{{ e.column }}</td><td>{{ e.message }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (warningRows(vr.errors).length > 0 || vr.warnings.length > 0) {
+          <div class="error-table-wrap">
+            <h3 class="error-table__title error-table__title--warning">
+              <mat-icon>warning</mat-icon> Warnings ({{ vr.warnings.length }})
+            </h3>
+            <table class="error-table">
+              <thead>
+                <tr><th>Row</th><th>Column</th><th>Issue</th></tr>
+              </thead>
+              <tbody>
+                @for (w of vr.warnings; track $index) {
+                  <tr><td>{{ w.rowNumber }}</td><td>{{ w.column }}</td><td>{{ w.message }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @if (executeResult(); as er) {
+        <div class="execute-summary">
+          <mat-icon class="execute-summary__icon">check_circle</mat-icon>
+          <p><strong>{{ er.booksImported }}</strong> books imported · <strong>{{ er.booksSkipped }}</strong> skipped</p>
+        </div>
+      }
+
+      <div class="import-card__actions">
+        @if (phase() !== 'done') {
+          <button class="btn-secondary" (click)="activeStep.set('upload')">Back</button>
+          <button class="btn-primary"
+            [disabled]="phase() === 'importing' || (validationResult() !== null && validationResult()!.validRows === 0 && !skipErroredRows())"
+            (click)="execute()">
+            @if (phase() === 'importing') { Importing... } @else { Import Books }
+          </button>
+        } @else {
+          <button class="btn-secondary" (click)="reset()">Import Another File</button>
+          <button class="btn-primary" (click)="goToCatalogue()">View Catalogue</button>
+        }
+      </div>
+    </div>
+  }
+</div>

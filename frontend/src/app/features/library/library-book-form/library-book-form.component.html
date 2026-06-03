@@ -1,0 +1,190 @@
+<div class="form-page">
+  <div class="form-page__header">
+    <a routerLink="/library/books" class="back-link">
+      <mat-icon>arrow_back</mat-icon> Book Catalogue
+    </a>
+    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="form-loading">Loading book details...</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="book-form">
+
+      <!-- Section: Identification -->
+      <section class="form-section">
+        <h2 class="form-section__title">Identification</h2>
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="accessionNumber">
+              Accession No.
+              <span class="form-hint">Leave blank to auto-generate</span>
+            </label>
+            <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
+              placeholder="e.g. 2026-3002 or 42" />
+            @if (f['accessionNumber'].pending) {
+              <span class="form-hint">Checking...</span>
+            }
+            @if (f['accessionNumber'].errors?.['accessionNumberExists']) {
+              <span class="form-error">This accession number is already in use</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="entryDate">Date of Entry</label>
+            <input id="entryDate" type="date" formControlName="entryDate" class="form-input" />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="status">Status</label>
+            <select id="status" formControlName="status" class="form-select">
+              @for (opt of statusOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Book Details -->
+      <section class="form-section">
+        <h2 class="form-section__title">Book Details</h2>
+        <div class="form-grid form-grid--1">
+          <div class="form-field">
+            <label class="form-label required" for="title">Title</label>
+            <input id="title" formControlName="title" class="form-input"
+              placeholder="Full title of the book" />
+            @if (f['title'].touched && f['title'].errors?.['required']) {
+              <span class="form-error">Title is required</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--1">
+          <div class="form-field">
+            <label class="form-label required" for="authors">Author(s) / Editor(s)</label>
+            <input id="authors" formControlName="authors" class="form-input"
+              placeholder="e.g. Vander Sherman Luciano" />
+            @if (f['authors'].touched && f['authors'].errors?.['required']) {
+              <span class="form-error">Author(s) is required</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="publisher">Publisher</label>
+            <input id="publisher" formControlName="publisher" class="form-input" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="yearOfPublication">Year of Publication</label>
+            <input id="yearOfPublication" formControlName="yearOfPublication" class="form-input"
+              placeholder="e.g. 2020" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="edition">Edition</label>
+            <input id="edition" formControlName="edition" class="form-input"
+              placeholder="e.g. 5th Edition" />
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="isbn">ISBN</label>
+            <input id="isbn" formControlName="isbn" class="form-input" placeholder="978..." />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="collation">Collation</label>
+            <input id="collation" formControlName="collation" class="form-input"
+              placeholder="e.g. 800 pages, illustrated" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="series">Series</label>
+            <input id="series" formControlName="series" class="form-input" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Classification & Location -->
+      <section class="form-section">
+        <h2 class="form-section__title">Classification &amp; Location</h2>
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="callNumber">Call No.</label>
+            <input id="callNumber" formControlName="callNumber" class="form-input"
+              placeholder="e.g. 612 VAN/H" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="shelfLocation">Shelf Location</label>
+            <input id="shelfLocation" formControlName="shelfLocation" class="form-input"
+              placeholder="e.g. C1-R2" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="subjectCategory">Subject Category</label>
+            <select id="subjectCategory" formControlName="subjectCategory" class="form-select">
+              <option value="">— Select —</option>
+              @for (cat of categoryOptions; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Acquisition -->
+      <section class="form-section">
+        <h2 class="form-section__title">Acquisition Details</h2>
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="sourceOfSupply">Source of Supply</label>
+            <select id="sourceOfSupply" formControlName="sourceOfSupply" class="form-select">
+              <option value="">— Select —</option>
+              @for (opt of sourceOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="vendorDonorName">Vendor / Donor Name</label>
+            <input id="vendorDonorName" formControlName="vendorDonorName" class="form-input" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="priceRs">Price (₹)</label>
+            <input id="priceRs" type="number" min="0" step="0.01" formControlName="priceRs" class="form-input" />
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="billNumber">Bill No.</label>
+            <input id="billNumber" formControlName="billNumber" class="form-input" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="billDate">Bill Date</label>
+            <input id="billDate" type="date" formControlName="billDate" class="form-input" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Remarks -->
+      <section class="form-section">
+        <h2 class="form-section__title">Remarks</h2>
+        <div class="form-grid form-grid--1">
+          <div class="form-field">
+            <textarea id="remarks" formControlName="remarks" class="form-input form-textarea"
+              rows="3" placeholder="Any additional notes..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sticky Footer -->
+      <div class="form-footer form-footer--sticky">
+        <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid || form.pending">
+          @if (saving()) { Saving... } @else { {{ isEditMode() ? 'Update Book' : 'Add Book' }} }
+        </button>
+      </div>
+
+    </form>
+  }
+</div>

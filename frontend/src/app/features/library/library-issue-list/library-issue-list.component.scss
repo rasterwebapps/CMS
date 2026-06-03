@@ -1,0 +1,99 @@
+.acc-no {
+  font-family: monospace;
+  font-size: 0.84rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.book-title {
+  display: block;
+  font-weight: 500;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-author {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.member-name { display: block; font-weight: 500; }
+.member-code { display: block; font-size: 0.78rem; color: var(--color-text-secondary); }
+
+.member-type-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-top: 2px;
+
+  &.tag--student { background: #dbeafe; color: #1d4ed8; }
+  &.tag--faculty { background: #ede9fe; color: #7c3aed; }
+}
+
+.issue-status-pill {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  &.issue-status--issued   { background: #dbeafe; color: #1d4ed8; }
+  &.issue-status--returned { background: #dcfce7; color: #15803d; }
+  &.issue-status--overdue  { background: #fee2e2; color: #b91c1c; }
+  &.issue-status--lost     { background: #f3f4f6; color: #6b7280; }
+}
+
+.renewal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #fef9c3;
+  color: #92400e;
+  margin-left: 4px;
+  cursor: default;
+}
+
+.fine-badge {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #6b7280;
+
+  &.fine-badge--pending { color: #b91c1c; }
+}
+
+.overdue-date {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.row--overdue { background: #fff5f5; }
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mlp-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--color-text-secondary);
+}

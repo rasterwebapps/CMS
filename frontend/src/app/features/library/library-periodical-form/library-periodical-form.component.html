@@ -1,0 +1,133 @@
+<div class="form-page">
+  <div class="form-page__header">
+    <a routerLink="/library/periodicals" class="back-link">
+      <mat-icon>arrow_back</mat-icon> Journals &amp; Periodicals
+    </a>
+    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="form-loading">Loading...</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="periodical-form">
+
+      <!-- Section: Journal Identity -->
+      <section class="form-section">
+        <h2 class="form-section__title">Journal Identity</h2>
+        <div class="form-grid form-grid--1">
+          <div class="form-field">
+            <label class="form-label required" for="journalName">Journal Name</label>
+            <input id="journalName" formControlName="journalName" class="form-input"
+              placeholder="e.g. TNNMC Journal of Paediatric Nursing" />
+            @if (f['journalName'].touched && f['journalName'].errors?.['required']) {
+              <span class="form-error">Journal name is required</span>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="journalType">Type</label>
+            <select id="journalType" formControlName="journalType" class="form-select">
+              @for (opt of journalTypeOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="organization">Organization / Publisher</label>
+            <input id="organization" formControlName="organization" class="form-input"
+              placeholder="e.g. TNNMC, TNAI" />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="subscriptionStatus">Subscription Status</label>
+            <select id="subscriptionStatus" formControlName="subscriptionStatus" class="form-select">
+              @for (opt of statusOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Volume / Issue Details -->
+      <section class="form-section">
+        <h2 class="form-section__title">Volume &amp; Issue Details</h2>
+        <div class="form-grid form-grid--4">
+          <div class="form-field">
+            <label class="form-label" for="volumeNumber">Volume No.</label>
+            <input id="volumeNumber" formControlName="volumeNumber" class="form-input" placeholder="e.g. VIII" />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="issueNumber">Issue No.</label>
+            <input id="issueNumber" formControlName="issueNumber" class="form-input" placeholder="e.g. 2" />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="monthRange">Month Range</label>
+            <select id="monthRange" formControlName="monthRange" class="form-select">
+              <option value="">— Select —</option>
+              @for (opt of monthRangeOptions; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="year">Year</label>
+            <select id="year" formControlName="year" class="form-select">
+              @for (y of yearOptions; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Receipt -->
+      <section class="form-section">
+        <h2 class="form-section__title">Receipt Details</h2>
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="copiesCount">No. of Copies</label>
+            <input id="copiesCount" type="number" min="1" formControlName="copiesCount" class="form-input" />
+            @if (f['copiesCount'].touched && f['copiesCount'].errors?.['min']) {
+              <span class="form-error">Copies must be at least 1</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="receivedDate">Date Received</label>
+            <input id="receivedDate" type="date" formControlName="receivedDate" class="form-input" />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="receivedBy">Received By</label>
+            <input id="receivedBy" formControlName="receivedBy" class="form-input"
+              placeholder="Librarian's name or username" />
+          </div>
+        </div>
+
+        <div class="form-grid form-grid--1">
+          <div class="form-field">
+            <label class="form-label" for="remarks">Remarks</label>
+            <textarea id="remarks" formControlName="remarks" class="form-input form-textarea"
+              rows="2" placeholder="Any additional notes..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sticky Footer -->
+      <div class="form-footer form-footer--sticky">
+        <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+          @if (saving()) { Saving... } @else { {{ isEditMode() ? 'Update Entry' : 'Add Entry' }} }
+        </button>
+      </div>
+
+    </form>
+  }
+</div>

@@ -1,0 +1,90 @@
+<div class="form-page settings-page">
+
+  <div class="form-page__header">
+    <h1 class="form-page__title">Library <em>Settings</em></h1>
+    <p class="settings-sub">Configure loan periods, borrowing limits, fine rates and renewal rules.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="form-loading">Loading settings...</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+      <div class="settings-grid">
+
+        <!-- Loan Periods -->
+        <div class="settings-card">
+          <div class="settings-card__icon"><mat-icon>schedule</mat-icon></div>
+          <h2 class="settings-card__title">Loan Periods</h2>
+          <p class="settings-card__desc">How many days a borrower may keep a book before it is due.</p>
+          <div class="settings-fields">
+            <div class="form-field">
+              <label class="form-label" for="student_loan_days">Students (days)</label>
+              <input id="student_loan_days" type="number" min="1" max="365"
+                formControlName="student_loan_days" class="form-input settings-input" />
+              @if (f['student_loan_days'].touched && f['student_loan_days'].errors?.['min']) {
+                <span class="form-error">Must be at least 1 day</span>
+              }
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="faculty_loan_days">Faculty (days)</label>
+              <input id="faculty_loan_days" type="number" min="1" max="365"
+                formControlName="faculty_loan_days" class="form-input settings-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Max Books -->
+        <div class="settings-card">
+          <div class="settings-card__icon"><mat-icon>library_books</mat-icon></div>
+          <h2 class="settings-card__title">Borrowing Limits</h2>
+          <p class="settings-card__desc">Maximum number of books that can be issued at one time.</p>
+          <div class="settings-fields">
+            <div class="form-field">
+              <label class="form-label" for="student_max_books">Students (books)</label>
+              <input id="student_max_books" type="number" min="1" max="20"
+                formControlName="student_max_books" class="form-input settings-input" />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="faculty_max_books">Faculty (books)</label>
+              <input id="faculty_max_books" type="number" min="1" max="20"
+                formControlName="faculty_max_books" class="form-input settings-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Fine & Renewals -->
+        <div class="settings-card">
+          <div class="settings-card__icon"><mat-icon>currency_rupee</mat-icon></div>
+          <h2 class="settings-card__title">Fine &amp; Renewals</h2>
+          <p class="settings-card__desc">Overdue fine rate and renewal limits per issue.</p>
+          <div class="settings-fields">
+            <div class="form-field">
+              <label class="form-label" for="fine_per_day">Fine per overdue day (₹)</label>
+              <input id="fine_per_day" type="number" min="0" step="0.50"
+                formControlName="fine_per_day" class="form-input settings-input" />
+              @if (f['fine_per_day'].touched && f['fine_per_day'].errors?.['min']) {
+                <span class="form-error">Fine cannot be negative</span>
+              }
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="max_renewals">Max renewals per issue</label>
+              <input id="max_renewals" type="number" min="0" max="10"
+                formControlName="max_renewals" class="form-input settings-input" />
+              <span class="form-hint">Set 0 to disable renewals entirely</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="settings-footer">
+        <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+          @if (saving()) { Saving... } @else { Save Settings }
+        </button>
+      </div>
+
+    </form>
+  }
+
+</div>
