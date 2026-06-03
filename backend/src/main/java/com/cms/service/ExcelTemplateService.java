@@ -11,10 +11,14 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFComment;
 import org.apache.poi.xssf.usermodel.XSSFDataValidation;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationConstraint;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -47,56 +51,144 @@ public class ExcelTemplateService {
     public byte[] generateTemplate() throws IOException {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
 
+            // Pre-load master data once — shared by reference sheet and sample rows
+            List<Program>      programs = programRepository.findAll();
+            List<Course>       courses  = courseRepository.findAll();
+            List<AcademicYear> years    = academicYearRepository.findAll();
+
             XSSFSheet ref   = wb.createSheet("Reference");
             XSSFSheet stud  = wb.createSheet("Students");
             XSSFSheet qual  = wb.createSheet("Qualifications");
             XSSFSheet fees  = wb.createSheet("Fee History");
 
-            XSSFCellStyle reqStyle  = reqHeaderStyle(wb);
-            XSSFCellStyle optStyle  = optHeaderStyle(wb);
-            XSSFCellStyle typeStyle = typeRowStyle(wb);
+            XSSFCellStyle reqStyle    = reqHeaderStyle(wb);
+            XSSFCellStyle optStyle    = optHeaderStyle(wb);
+            XSSFCellStyle typeStyle   = typeRowStyle(wb);
+            XSSFCellStyle sampleStyle = sampleDataStyle(wb);
 
             // ── Reference sheet ──────────────────────────────────────────
-            populateReferenceSheet(wb, ref);
+            populateReferenceSheet(wb, ref, programs, courses, years);
 
             // ── Students sheet ───────────────────────────────────────────
+            // Col indices 0-25: existing fields
+            // Col indices 26-43: new fields added for full legacy data migration
             String[] studHeaders = {
+                // ── Core identity (required) ──────────────────────────────
                 "first_name","last_name","email","phone",
+                // ── Academic programme ────────────────────────────────────
                 "program_code","course_code","joining_academic_year",
                 "application_date","student_type",
+                // ── Personal / demographics ───────────────────────────────
                 "date_of_birth","gender","aadhar_number",
                 "nationality","religion","community_category","caste","blood_group",
+                // ── Family (basic) ────────────────────────────────────────
                 "father_name","mother_name","parent_mobile",
-                "postal_address","street","city","district","state","pincode"
+                // ── Address ───────────────────────────────────────────────
+                "postal_address","street","city","district","state","pincode",
+                // ── Registration numbers ──────────────────────────────────
+                "admission_number","roll_number",
+                "university_registration_number","umis_number",
+                // ── Admission classification ──────────────────────────────
+                "admission_category",
+                // ── Extended family contacts ──────────────────────────────
+                "father_phone","father_email",
+                "mother_phone","mother_email",
+                // ── Scholarship / socioeconomic ───────────────────────────
+                "is_first_graduate",
+                "father_education","mother_education",
+                // ── Medical / disability ──────────────────────────────────
+                "physical_disability",
+                // ── Emergency contact ─────────────────────────────────────
+                "emergency_contact_name","emergency_contact_relationship",
+                "emergency_contact_phone",
+                // ── Academic placement ────────────────────────────────────
+                "lab_batch",
+                // ── Profile ───────────────────────────────────────────────
+                "bio"
             };
             boolean[] studReq = {
+                // first_name, last_name, email, phone
                 true,true,true,false,
-                true,false,false,
-                false,false,
+                // program_code, course_code, joining_academic_year, application_date, student_type
+                true,false,false,false,false,
+                // date_of_birth, gender, aadhar_number
                 false,false,false,
+                // nationality, religion, community_category, caste, blood_group
                 false,false,false,false,false,
+                // father_name, mother_name, parent_mobile
                 false,false,false,
-                false,false,false,false,false,false
+                // postal_address, street, city, district, state, pincode
+                false,false,false,false,false,false,
+                // admission_number, roll_number, university_registration_number, umis_number
+                false,false,false,false,
+                // admission_category
+                false,
+                // father_phone, father_email, mother_phone, mother_email
+                false,false,false,false,
+                // is_first_graduate
+                false,
+                // father_education, mother_education
+                false,false,
+                // physical_disability
+                false,
+                // emergency_contact_name, emergency_contact_relationship, emergency_contact_phone
+                false,false,false,
+                // lab_batch
+                false,
+                // bio
+                false
             };
             String[] studTypes = {
+                // first_name, last_name, email, phone
                 "Text","Text","Email","Text",
+                // program_code, course_code, joining_academic_year, application_date, student_type
                 "Code (see Reference)","Code (see Reference)","Text e.g. 2024-25",
                 "Date DD-MM-YYYY","Enum (see Reference)",
+                // date_of_birth, gender, aadhar_number
                 "Date DD-MM-YYYY","Enum (see Reference)","Text 12 digits",
+                // nationality, religion, community_category, caste, blood_group
                 "Text","Text","Enum (see Reference)","Text","Enum (see Reference)",
+                // father_name, mother_name, parent_mobile
                 "Text","Text","Text",
-                "Text","Text","Text","Text","Text","Text"
+                // postal_address, street, city, district, state, pincode
+                "Text","Text","Text","Text","Text","Text",
+                // admission_number, roll_number, university_registration_number, umis_number
+                "Text (from old system)","Text (from old system)",
+                "Text (university-issued)","Text (UMIS-issued)",
+                // admission_category
+                "Enum (see Reference)",
+                // father_phone, father_email, mother_phone, mother_email
+                "Text","Email","Text","Email",
+                // is_first_graduate
+                "TRUE or FALSE",
+                // father_education, mother_education
+                "Enum (see Reference)","Enum (see Reference)",
+                // physical_disability
+                "TRUE or FALSE",
+                // emergency_contact_name, emergency_contact_relationship, emergency_contact_phone
+                "Text","Text e.g. Father / Guardian","Text",
+                // lab_batch
+                "Text e.g. Batch-A",
+                // bio (max 500 chars)
+                "Text max 500 chars"
             };
             buildSheet(wb, stud, studHeaders, studReq, studTypes, reqStyle, optStyle, typeStyle);
-            // Reference col layout: A=prog display, B=year display, C=prog code, D=year name,
+            // Reference col layout:
+            //   A=prog display, B=year display, C=prog code, D=year name,
             //   E=course display, F=course code, G=student_type, H=gender,
-            //   I=community, J=blood_group, K=qual_type, L=payment_mode
-            addDropdownValidation(wb, stud, 4,  "Reference!$C$2:$C$200");  // program_code (code-only)
-            addDropdownValidation(wb, stud, 5,  "Reference!$F$2:$F$200");  // course_code (code-only)
+            //   I=community, J=blood_group, K=qual_type, L=payment_mode,
+            //   M=admission_category, N=education_level, O=boolean_values
+            addDropdownValidation(wb, stud, 4,  "Reference!$C$2:$C$200");  // program_code
+            addDropdownValidation(wb, stud, 5,  "Reference!$F$2:$F$200");  // course_code
             addDropdownValidation(wb, stud, 8,  "Reference!$G$2:$G$5");    // student_type
             addDropdownValidation(wb, stud, 10, "Reference!$H$2:$H$5");    // gender
             addDropdownValidation(wb, stud, 14, "Reference!$I$2:$I$10");   // community_category
             addDropdownValidation(wb, stud, 16, "Reference!$J$2:$J$10");   // blood_group
+            addDropdownValidation(wb, stud, 30, "Reference!$M$2:$M$3");    // admission_category
+            addDropdownValidation(wb, stud, 35, "Reference!$O$2:$O$3");    // is_first_graduate
+            addDropdownValidation(wb, stud, 36, "Reference!$N$2:$N$9");    // father_education
+            addDropdownValidation(wb, stud, 37, "Reference!$N$2:$N$9");    // mother_education
+            addDropdownValidation(wb, stud, 38, "Reference!$O$2:$O$3");    // physical_disability
 
             // ── Qualifications sheet ─────────────────────────────────────
             String[] qualHeaders = {
@@ -114,27 +206,43 @@ public class ExcelTemplateService {
             addDropdownValidation(wb, qual, 1, "Reference!$K$2:$K$10");   // qualification_type
 
             // ── Fee History sheet ────────────────────────────────────────
+            // One row per payment. First row per student also sets the fee allocation.
+            // year_1_fee..year_6_fee: if provided, used as exact year-wise breakdown.
+            // If all blank, net_fee is split evenly across programme duration years.
             String[] feeHeaders = {
                 "student_email","total_fee","discount_amount","discount_reason",
                 "net_fee","amount_paid","payment_date","payment_mode",
-                "receipt_number","remarks"
+                "receipt_number","remarks",
+                "year_1_fee","year_2_fee","year_3_fee",
+                "year_4_fee","year_5_fee","year_6_fee"
             };
-            boolean[] feeReq = { true, true, false, false, false, false, false, false, false, false };
+            boolean[] feeReq = {
+                true, true, false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false
+            };
             String[] feeTypes = {
                 "Email (must match Students sheet)",
                 "Decimal e.g. 450000","Decimal","Text",
                 "Decimal (auto-computed if blank)",
-                "Decimal (historical payment amount)",
+                "Decimal (this payment amount)",
                 "Date DD-MM-YYYY","Enum (see Reference)",
-                "Text (from old system)","Text"
+                "Text (from old system)","Text",
+                "Decimal — Year 1 fee","Decimal — Year 2 fee","Decimal — Year 3 fee",
+                "Decimal — Year 4 fee","Decimal — Year 5 fee","Decimal — Year 6 fee"
             };
             buildSheet(wb, fees, feeHeaders, feeReq, feeTypes, reqStyle, optStyle, typeStyle);
             addDropdownValidation(wb, fees, 7, "Reference!$L$2:$L$12");   // payment_mode
 
+            // ── Sample data rows (green — delete before importing real data) ──
+            addStudentSampleRows(stud, programs, courses, years, sampleStyle);
+            addQualificationSampleRows(qual, sampleStyle);
+            addFeeHistorySampleRows(fees, sampleStyle);
+
             // Auto-size columns on all user-facing sheets
-            for (XSSFSheet sh : new XSSFSheet[]{stud, qual, fees}) {
-                for (int i = 0; i < 30; i++) sh.autoSizeColumn(i);
-            }
+            // Students: 44 cols (0-43), Qualifications: 8 cols, Fee History: 16 cols
+            for (int i = 0; i < 44; i++) stud.autoSizeColumn(i);
+            for (int i = 0; i < 8;  i++) qual.autoSizeColumn(i);
+            for (int i = 0; i < 16; i++) fees.autoSizeColumn(i);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
@@ -144,13 +252,11 @@ public class ExcelTemplateService {
 
     // ── Reference sheet population ───────────────────────────────────────────
 
-    private void populateReferenceSheet(XSSFWorkbook wb, XSSFSheet ref) {
+    private void populateReferenceSheet(XSSFWorkbook wb, XSSFSheet ref,
+                                         List<Program> programs,
+                                         List<Course> courses,
+                                         List<AcademicYear> years) {
         XSSFCellStyle hdr = refHeaderStyle(wb);
-
-        List<Program>     programs = programRepository.findAll();
-        List<Course>      courses  = courseRepository.findAll();
-        List<AcademicYear> years   = academicYearRepository.findAll();
-
         int r;
 
         // ── Col A (0): Program — display "CODE — Name" ─────────────────
@@ -215,7 +321,177 @@ public class ExcelTemplateService {
         String[] pm = {"CASH","UPI","BANK_TRANSFER","CARD","CHEQUE","DEMAND_DRAFT","SCHOLARSHIP"};
         for (int i = 0; i < pm.length; i++) setCell(ref, i + 1, 11, pm[i], null);
 
-        for (int c = 0; c < 12; c++) ref.autoSizeColumn(c);
+        // ── Col M (12): admission_category ────────────────────────────
+        setCell(ref, 0, 12, "admission_category", hdr);
+        setCell(ref, 1, 12, "MANAGEMENT", null);
+        setCell(ref, 2, 12, "COUNSELLING", null);
+
+        // ── Col N (13): education_level (father / mother) ──────────────
+        setCell(ref, 0, 13, "education_level", hdr);
+        String[] edu = {"ILLITERATE","PRIMARY","SECONDARY","HSC","UG","PG","DOCTORATE"};
+        for (int i = 0; i < edu.length; i++) setCell(ref, i + 1, 13, edu[i], null);
+
+        // ── Col O (14): boolean_values ────────────────────────────────
+        setCell(ref, 0, 14, "boolean_values", hdr);
+        setCell(ref, 1, 14, "TRUE", null);
+        setCell(ref, 2, 14, "FALSE", null);
+
+        for (int c = 0; c < 15; c++) ref.autoSizeColumn(c);
+    }
+
+    // ── Sample data rows ──────────────────────────────────────────────────────
+
+    private void addStudentSampleRows(XSSFSheet stud,
+                                       List<Program> programs,
+                                       List<Course> courses,
+                                       List<AcademicYear> years,
+                                       XSSFCellStyle style) {
+        // Use first real codes so dropdown validation passes on the sample rows
+        String prog = programs.isEmpty() ? "PROG-CODE" : programs.get(0).getCode();
+        String crs  = courses.isEmpty()  ? "COURSE-01" : courses.get(0).getCode();
+        String ay   = years.isEmpty()    ? "2023-24"   : years.get(0).getName();
+
+        // Student 1 — complete record (all fields filled)
+        // Col order matches studHeaders array exactly (44 columns, 0-43)
+        String[] s1 = {
+            // 0-3  core identity
+            "Priya", "Sharma", "priya.sharma@sample.com", "9876543210",
+            // 4-8  academic
+            prog, crs, ay, "15-06-2023", "DAY_SCHOLAR",
+            // 9-11 personal
+            "12-03-2005", "FEMALE", "123456789012",
+            // 12-16 demographics
+            "Indian", "Hindu", "BC", "Nadar", "B_POSITIVE",
+            // 17-19 family basic
+            "Ramesh Sharma", "Lakshmi Sharma", "9876543211",
+            // 20-25 address
+            "45 Gandhi Nagar", "Main Road", "Coimbatore", "Coimbatore", "Tamil Nadu", "641001",
+            // 26-29 registration numbers
+            "ADM-2023-001", "GNM-2023-001", "TN/2023/BSN/001", "UMIS2023001",
+            // 30 admission category
+            "MANAGEMENT",
+            // 31-34 extended family
+            "9876543212", "ramesh.sharma@sample.com", "9876543213", "lakshmi.sharma@sample.com",
+            // 35 first graduate
+            "FALSE",
+            // 36-37 parent education
+            "HSC", "PRIMARY",
+            // 38 disability
+            "FALSE",
+            // 39-41 emergency contact
+            "Ramesh Sharma", "Father", "9876543212",
+            // 42-43 placement / profile
+            "Batch-A", "Dedicated nursing student from Coimbatore."
+        };
+
+        // Student 2 — minimal record (required fields + common optionals; several fields left blank)
+        String[] s2 = {
+            // 0-3  core identity
+            "Kavitha", "Murugan", "kavitha.murugan@sample.com", "9123456789",
+            // 4-8  academic
+            prog, crs, ay, "20-06-2023", "HOSTELER",
+            // 9-11 personal
+            "25-07-2004", "FEMALE", "234567890123",
+            // 12-16 demographics
+            "Indian", "Christian", "SC", "Paraiyar", "O_POSITIVE",
+            // 17-19 family basic
+            "Murugan V", "Selvi Murugan", "9123456790",
+            // 20-25 address
+            "12 Anna Street", "Cross Road", "Chennai", "Chennai", "Tamil Nadu", "600001",
+            // 26-29 registration numbers (URN and UMIS left blank — not yet assigned)
+            "ADM-2023-002", "GNM-2023-002", "", "",
+            // 30 admission category
+            "COUNSELLING",
+            // 31-34 extended family (emails not available)
+            "9123456791", "", "9123456792", "",
+            // 35 first graduate
+            "TRUE",
+            // 36-37 parent education
+            "SECONDARY", "ILLITERATE",
+            // 38 disability
+            "FALSE",
+            // 39-41 emergency contact
+            "Selvi Murugan", "Mother", "9123456792",
+            // 42-43 placement / profile (bio left blank)
+            "Batch-B", ""
+        };
+
+        XSSFRow r1 = writeSampleRow(stud, 2, s1, style);
+        writeSampleRow(stud, 3, s2, style);
+
+        // Add a visible comment on the first cell of the first sample row
+        XSSFDrawing drawing = stud.createDrawingPatriarch();
+        XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 0, 2, 4, 5);
+        XSSFComment comment = drawing.createCellComment(anchor);
+        comment.setString(new XSSFRichTextString(
+            "SAMPLE DATA\n" +
+            "These two rows are examples — delete them before\n" +
+            "importing your actual student records.\n\n" +
+            "Green rows = sample  |  Pink header = required  |  Blue header = optional"));
+        comment.setAuthor("CMS Import Template");
+        r1.getCell(0).setCellComment(comment);
+    }
+
+    private void addQualificationSampleRows(XSSFSheet qual, XSSFCellStyle style) {
+        // Two qualifications per sample student = 4 rows total
+        String[][] rows = {
+            // Priya Sharma — SSLC
+            {"priya.sharma@sample.com", "SSLC",
+             "St. Mary's Higher Secondary School", "General",
+             "500", "87.60", "March 2021", "Tamil Nadu State Board"},
+            // Priya Sharma — HSC
+            {"priya.sharma@sample.com", "HSC",
+             "St. Mary's Higher Secondary School", "Biology",
+             "600", "91.33", "March 2023", "Tamil Nadu State Board"},
+            // Kavitha Murugan — SSLC
+            {"kavitha.murugan@sample.com", "SSLC",
+             "Government High School", "General",
+             "500", "79.20", "March 2020", "Tamil Nadu State Board"},
+            // Kavitha Murugan — HSC
+            {"kavitha.murugan@sample.com", "HSC",
+             "Government Higher Secondary School", "Biology",
+             "600", "82.50", "March 2022", "Tamil Nadu State Board"},
+        };
+        for (int i = 0; i < rows.length; i++) writeSampleRow(qual, i + 2, rows[i], style);
+    }
+
+    private void addFeeHistorySampleRows(XSSFSheet fees, XSSFCellStyle style) {
+        // Each student gets their fee allocation set on the first row.
+        // Priya paid in two instalments; Kavitha paid in full with a discount.
+        // year_1..year_3 show exact year-wise breakdown; year_4..year_6 are blank (3-yr programme).
+        String[][] rows = {
+            // Priya — row 1: fee allocation + first instalment
+            {"priya.sharma@sample.com",
+             "150000", "", "", "150000",                          // total, disc, reason, net
+             "75000", "20-06-2023", "CASH", "RCT-2023-001",      // paid, date, mode, receipt
+             "First instalment",                                   // remarks
+             "50000", "50000", "50000", "", "", ""},              // year_1..year_6
+
+            // Priya — row 2: second instalment (year_* blank — allocation already created)
+            {"priya.sharma@sample.com",
+             "150000", "", "", "",
+             "75000", "15-12-2023", "UPI", "RCT-2023-002",
+             "Second instalment",
+             "", "", "", "", "", ""},
+
+            // Kavitha — row 1: fee allocation + full payment (SC concession discount)
+            {"kavitha.murugan@sample.com",
+             "180000", "10000", "SC Category Concession", "170000",
+             "170000", "25-06-2023", "BANK_TRANSFER", "RCT-2023-003",
+             "Full payment",
+             "60000", "60000", "50000", "", "", ""},
+        };
+        for (int i = 0; i < rows.length; i++) writeSampleRow(fees, i + 2, rows[i], style);
+    }
+
+    private XSSFRow writeSampleRow(XSSFSheet sheet, int rowIndex, String[] values, XSSFCellStyle style) {
+        XSSFRow row = sheet.createRow(rowIndex);
+        for (int i = 0; i < values.length; i++) {
+            XSSFCell cell = row.createCell(i);
+            cell.setCellValue(values[i]);
+            cell.setCellStyle(style);
+        }
+        return row;
     }
 
     // ── Sheet builder ─────────────────────────────────────────────────────────
@@ -263,6 +539,19 @@ public class ExcelTemplateService {
         XSSFCell c = r.createCell(col);
         c.setCellValue(value);
         if (style != null) c.setCellStyle(style);
+    }
+
+    private XSSFCellStyle sampleDataStyle(XSSFWorkbook wb) {
+        XSSFCellStyle s = wb.createCellStyle();
+        s.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+        s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        s.setAlignment(HorizontalAlignment.LEFT);
+        setBorder(s);
+        XSSFFont f = wb.createFont();
+        f.setItalic(true);
+        f.setFontHeightInPoints((short) 10);
+        s.setFont(f);
+        return s;
     }
 
     private XSSFCellStyle reqHeaderStyle(XSSFWorkbook wb) {

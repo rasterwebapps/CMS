@@ -37,6 +37,7 @@
 - [BR-27: Permanent Admission Number Generation](#br-27-permanent-admission-number-generation)
 - [BR-29: UI Validation & Form Behaviour Standards](#br-29-ui-validation--form-behaviour-standards)
 - [BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type)
+- [BR-31: Student Data Import — Legacy Migration](#br-31-student-data-import--legacy-migration)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1375,6 +1376,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-06-03 | BR-31 | **Student Data Import — Legacy Migration:** Added full BR for bulk student migration. Documents 9-item pre-conditions checklist (programs, courses, academic years, cohorts + seat allocations, fee structures, fee states, WALK_IN referral type, country seed); 44-column Students sheet with all personal/demographic/family/address/registration/classification fields; Qualifications sheet (8 fields); Fee History sheet (16 fields including `year_1_fee`..`year_6_fee` for exact year-wise fee preservation across different academic-year fee slabs); Step 2 defaults panel including `admission_category`; cohort assignment logic (error if cohort missing for course+AY); fee state inference from address state (mirrors BR-30 live-enquiry logic); boolean strict-format rule (`TRUE`/`FALSE` only); unique number conflict check for `admission_number`, `roll_number`, `university_registration_number`, `umis_number`; 3-pass import execution flow; post-import state; and permissions (`IMPORT_DATA`). | — |
 | 2026-05-25 | BR-10 | Admission/student document screens now prioritize missing required documents at the top, allow uploading newly required documents for existing admissions, and preserve previously collected documents that were later removed from program requirements as "not currently required" records. | — |
 | 2026-05-25 | BR-10 | Admission printable template updated for one-page A4 print preview: Academic Qualifications are excluded from official View/Print/Download output, print text readability is improved, the document checklist remains two-column, and the submitted `PASSPORT_PHOTO` document is the source for the admission-form passport photo. | — |
 | 2026-05-25 | BR-10 | Admission form view/print/download standardized on one printable template; document checklist now renders in two balanced columns using `ceil(document count / 2)` rows (20→10, 23→12, 31→16), and the download action generates PDF instead of HTML. | — |
@@ -1553,6 +1555,336 @@ If `yearWiseFees` is absent (old data), the system re-fetches via the guideline 
 - Existing fee structure rows were cleared; fee structures must be re-entered via the admin UI.
 - Existing enquiries retain null `admissionQuota` and `feeStateId`; they are not affected by BR-30.
 - New enquiries require all 4 dimensions to be filled.
+
+---
+
+---
+
+## BR-31: Student Data Import — Legacy Migration
+
+### Business Rule
+
+Administrators must be able to bulk-migrate existing students from paper records or a legacy system into the CMS without going through the enquiry → fee finalization → admission flow. The import is a **one-time or occasional administrative operation** that creates fully-formed Student, Admission, and fee records from a structured Excel file.
+
+Every imported student receives a synthetic `ADMITTED` enquiry (tagged WALK_IN) so the system's referential integrity constraint (every admission must originate from an enquiry) is satisfied without polluting the live enquiry pipeline.
+
+---
+
+### Pre-Conditions Checklist
+
+All of the following masters **must exist in the system before running any import**. Missing any of these will cause import rows to fail.
+
+| # | Master | Where to Create | Why Required |
+|---|--------|-----------------|--------------|
+| 1 | **Programs** | Masters → Programs | Every student row requires a valid `program_code`. Import errors the row if the program is not found. |
+| 2 | **Courses** | Masters → Courses | Required for cohort resolution. Each course must be linked to its program and have a unique `course_code`. |
+| 3 | **Academic Years** | Masters → Academic Years | At least one academic year must exist for every admission year present in the import file. One must be flagged `isCurrent = true` as the system default. |
+| 4 | **Cohorts** | Masters → Cohorts → Initialize | One cohort per `(course × admission academic year)` combination. **Import errors the row if no cohort is found.** Cohorts must be created before import — use the "Initialize Cohorts" action after creating an academic year. |
+| 5 | **Cohort Seat Allocations** | Masters → Cohorts → Edit Seats | Set `total_seats` and `management_percentage` on each cohort. Without this, seat tracking reports will show 0 capacity against actual enrolment. |
+| 6 | **Fee Structures** | Masters → Fee Structures | Create fee structure groups for every `(program × academic year × course × quota × fee state × gender)` combination present in old student data. Required for fee structure reporting; not used to auto-fill import amounts (amounts are always provided explicitly in the file). |
+| 7 | **Fee States** | Already seeded | Tamil Nadu and Other State are seeded by default. The import infers fee state from each student's address state — no manual action needed unless additional fee state segments are required. |
+| 8 | **Referral Type: WALK_IN** | Masters → Referral Types | Must exist with `code = WALK_IN`. The import hard-codes this referral type for all synthetic enquiries. If missing, the import throws an exception and aborts. |
+| 9 | **Country with ID = 1** | Seed data | Address records are created with `country_id = 1` (India). Must be present in the `countries` table. Normally present from initial seed data. |
+
+---
+
+### Import Template Structure
+
+The template is downloaded from **Student Management → Data Import → Step 1 (Download Template)**. It is generated live from your system's current master data (programs, courses, academic years are auto-populated in the Reference sheet).
+
+The workbook contains four sheets:
+
+| Sheet | Purpose |
+|-------|---------|
+| **Students** | One row per student — all personal, demographic, academic, family, address, registration, and classification fields (44 columns) |
+| **Qualifications** | Academic history — one or more rows per student, linked by `student_email` |
+| **Fee History** | Fee allocation and historical payment records — one or more rows per student, linked by `student_email` |
+| **Reference** | Auto-populated valid codes and enum values (read-only — used for dropdown validation only) |
+
+Header colour coding: **Pink = Required**, **Blue = Optional**, **Yellow row = data type hint**.
+
+---
+
+### Students Sheet — All 44 Fields
+
+#### Core Identity (Required)
+
+| Column | Required | Format | Notes |
+|--------|----------|--------|-------|
+| `first_name` | Yes | Text | |
+| `last_name` | Yes | Text | |
+| `email` | Yes | Email | Must be unique across the entire system |
+| `phone` | No | Text | |
+
+#### Academic Programme
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `program_code` | Yes | Code (see Reference) | — | Must match an existing program |
+| `course_code` | No | Code (see Reference) | — | Must match an existing course; required for cohort assignment |
+| `joining_academic_year` | No | Text e.g. `2024-25` | Current academic year | Must match an existing academic year name exactly |
+| `application_date` | No | Date `DD-MM-YYYY` | Today | Original application/admission date from old records |
+| `student_type` | No | Enum (see Reference) | Step 2 default | `DAY_SCHOLAR` or `HOSTELER` |
+
+#### Personal / Demographics
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `date_of_birth` | No | Date `DD-MM-YYYY` | — | |
+| `gender` | No | Enum (see Reference) | — | `MALE`, `FEMALE`, `OTHER` |
+| `aadhar_number` | No | Text (12 digits) | — | |
+| `nationality` | No | Text | Step 2 default (`Indian`) | |
+| `religion` | No | Text | — | |
+| `community_category` | No | Enum (see Reference) | — | `SC`, `ST`, `BC`, `MBC`, `DNC`, `OC`, `OTHERS` |
+| `caste` | No | Text | — | |
+| `blood_group` | No | Enum (see Reference) | — | `A_POSITIVE`, `A_NEGATIVE`, `B_POSITIVE`, `B_NEGATIVE`, `O_POSITIVE`, `O_NEGATIVE`, `AB_POSITIVE`, `AB_NEGATIVE` |
+
+#### Family (Basic)
+
+| Column | Required | Format | Default |
+|--------|----------|--------|---------|
+| `father_name` | No | Text | — |
+| `mother_name` | No | Text | — |
+| `parent_mobile` | No | Text | — |
+
+#### Address
+
+| Column | Required | Format | Default |
+|--------|----------|--------|---------|
+| `postal_address` | No | Text | — |
+| `street` | No | Text | — |
+| `city` | No | Text | — |
+| `district` | No | Text | — |
+| `state` | No | Text | Step 2 default | Used to infer fee state — see Fee State Inference below |
+| `pincode` | No | Text | — |
+
+#### Registration Numbers (Unique — Conflict Check Applied)
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `admission_number` | No | Text (from old system) | Auto-generated | If provided and already exists in DB → **error the row** |
+| `roll_number` | No | Text (from old system) | Auto-generated | If provided and already exists in DB → **error the row** |
+| `university_registration_number` | No | Text (university-issued) | — | If provided and already exists in DB → **error the row** |
+| `umis_number` | No | Text (UMIS-issued) | — | If provided and already exists in DB → **error the row** |
+
+#### Admission Classification
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `admission_category` | No | Enum (see Reference) | Step 2 default (`MANAGEMENT`) | `MANAGEMENT` or `COUNSELLING` — used for quota seat tracking |
+
+#### Extended Family Contacts
+
+| Column | Required | Format |
+|--------|----------|--------|
+| `father_phone` | No | Text |
+| `father_email` | No | Email |
+| `mother_phone` | No | Text |
+| `mother_email` | No | Email |
+
+#### Scholarship / Socioeconomic
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `is_first_graduate` | No | `TRUE` or `FALSE` | `FALSE` | Strict format only — any other value triggers a warning and defaults to `FALSE` |
+| `father_education` | No | Enum (see Reference) | — | `ILLITERATE`, `PRIMARY`, `SECONDARY`, `HSC`, `UG`, `PG`, `DOCTORATE` |
+| `mother_education` | No | Enum (see Reference) | — | Same values as father_education |
+
+#### Medical / Disability
+
+| Column | Required | Format | Default | Notes |
+|--------|----------|--------|---------|-------|
+| `physical_disability` | No | `TRUE` or `FALSE` | `FALSE` | Strict format only — any other value triggers a warning and defaults to `FALSE` |
+
+#### Emergency Contact
+
+| Column | Required | Format |
+|--------|----------|--------|
+| `emergency_contact_name` | No | Text |
+| `emergency_contact_relationship` | No | Text e.g. `Father`, `Guardian` |
+| `emergency_contact_phone` | No | Text |
+
+#### Academic Placement / Profile
+
+| Column | Required | Format | Notes |
+|--------|----------|--------|-------|
+| `lab_batch` | No | Text e.g. `Batch-A` | |
+| `bio` | No | Text max 500 chars | Silently truncated if longer |
+
+---
+
+### Qualifications Sheet — All 8 Fields
+
+| Column | Required | Format | Notes |
+|--------|----------|--------|-------|
+| `student_email` | Yes | Email | Must match a row in the Students sheet |
+| `qualification_type` | Yes | Enum (see Reference) | `SSLC`, `HSC`, `DIPLOMA`, `UG`, `PG`, `OTHER` |
+| `school_name` | No | Text | |
+| `major_subject` | No | Text | |
+| `total_marks` | No | Number | |
+| `percentage` | No | Decimal e.g. `88.50` | |
+| `month_year_of_passing` | No | Text e.g. `March 2022` | |
+| `university_or_board` | No | Text | |
+
+Multiple rows per student are allowed (one per qualification level).
+
+---
+
+### Fee History Sheet — All 16 Fields
+
+One row = one payment transaction. The **first row per student** also creates the fee allocation (total fee + discount structure). Subsequent rows for the same student only add payment records.
+
+| Column | Required | Format | Notes |
+|--------|----------|--------|-------|
+| `student_email` | Yes | Email | Must match a row in the Students sheet |
+| `total_fee` | Yes | Decimal e.g. `450000` | Gross fee before discount |
+| `discount_amount` | No | Decimal | Discount applied (if any) |
+| `discount_reason` | No | Text | Reason for discount |
+| `net_fee` | No | Decimal | Auto-computed if blank: `total_fee − discount_amount` |
+| `amount_paid` | No | Decimal | Amount collected in this payment transaction |
+| `payment_date` | No | Date `DD-MM-YYYY` | Date the payment was collected |
+| `payment_mode` | No | Enum (see Reference) | `CASH`, `UPI`, `BANK_TRANSFER`, `CARD`, `CHEQUE`, `DEMAND_DRAFT`, `SCHOLARSHIP` |
+| `receipt_number` | No | Text (from old system) | Original receipt number from legacy records |
+| `remarks` | No | Text | |
+| `year_1_fee` | No | Decimal | Exact fee for Year 1 |
+| `year_2_fee` | No | Decimal | Exact fee for Year 2 |
+| `year_3_fee` | No | Decimal | Exact fee for Year 3 |
+| `year_4_fee` | No | Decimal | Exact fee for Year 4 |
+| `year_5_fee` | No | Decimal | Exact fee for Year 5 |
+| `year_6_fee` | No | Decimal | Exact fee for Year 6 |
+
+#### Year-wise Fee Rules
+
+- If **any** of `year_1_fee` through `year_6_fee` has a value > 0, those exact amounts are used for the student's fee allocation year breakdown. This supports students from different admission batches who paid different amounts per year under different fee slabs.
+- If **all** year columns are blank, the net fee is split evenly across the programme's `durationYears` (e.g. ₹4,50,000 for a 3-year programme → ₹1,50,000 per year).
+- A **warning** (not an error) is issued if the sum of provided year fees does not equal `net_fee`. The import proceeds — the admin is notified to verify.
+
+---
+
+### Step 2 — Default Values
+
+Before uploading the file, admins set system-wide defaults that fill in blank cells. Values explicitly provided in the spreadsheet always override these defaults.
+
+| Default | Options | System Default |
+|---------|---------|----------------|
+| Joining Academic Year | Any existing academic year | Current academic year |
+| Student Type | DAY_SCHOLAR, HOSTELER | DAY_SCHOLAR |
+| Admission Category | MANAGEMENT, COUNSELLING | MANAGEMENT |
+| Nationality | Free text | Indian |
+| State | Free text | (blank) |
+| Starting Year of Study | 1–12 | 1 |
+| Skip errored rows | On / Off | On — valid rows import even if some rows fail |
+
+---
+
+### Cohort Assignment Logic
+
+Every student must be assigned to a cohort. The cohort is resolved automatically using the student's `course_code` and `joining_academic_year`.
+
+| Scenario | Result |
+|----------|--------|
+| `course_code` provided AND cohort exists for `(course, academic year)` | Student assigned to cohort ✅ |
+| `course_code` provided BUT no cohort found for `(course, academic year)` | **Row errored** — "No cohort found for course X in AY Y. Create the cohort first." |
+| `course_code` NOT provided | **Warning issued** — student imported with `cohort = null`. Cohort must be assigned manually from the student detail screen. |
+
+---
+
+### Fee State Inference Logic
+
+The fee state is automatically inferred from the student's `state` address field and set on the synthetic enquiry. This ensures the student is correctly bucketed for fee structure group reporting without requiring any additional column.
+
+| Student's `state` field | Fee State Assigned |
+|-------------------------|--------------------|
+| `Tamil Nadu` (case-insensitive match against FeeState names) | Tamil Nadu fee state |
+| Anything else, or blank | Fallback fee state (Other State) |
+
+This mirrors the live enquiry form behaviour described in BR-30.
+
+---
+
+### Validation Behaviour
+
+| Condition | Behaviour |
+|-----------|-----------|
+| `first_name`, `last_name`, `email`, `program_code` blank | **Error** — row rejected |
+| Email already exists in DB | **Error** — row rejected |
+| `admission_number` / `roll_number` / `university_registration_number` / `umis_number` provided and already in DB | **Error** — row rejected |
+| Program code not found | **Error** — row rejected |
+| Academic year not found | **Error** — row rejected; if blank, Step 2 default is used |
+| Course code not found | **Warning** — import continues; course set to null |
+| Cohort not found for `(course, academic year)` | **Error** — row rejected |
+| `is_first_graduate` or `physical_disability` has unrecognised value | **Warning** — field defaults to `FALSE`; row not rejected |
+| `admission_category` has unrecognised value | **Warning** — defaults to `MANAGEMENT`; row not rejected |
+| Year-wise fee sum ≠ net fee | **Warning** — import proceeds; admin is notified |
+| `amount_paid` > `total_fee` | **Error** — fee row rejected |
+| `bio` field > 500 characters | Silently truncated to 500 characters |
+
+---
+
+### Import Execution Flow
+
+The import runs in **three sequential passes** within a single database transaction (unless "Skip errored rows" is enabled, in which case failed rows are skipped without aborting the transaction).
+
+```
+Pass 1 — Students + Admissions
+  For each valid student row:
+    1. Resolve Program, Course, Academic Year, Cohort
+    2. Check unique number conflicts (admission_number, roll_number, URN, UMIS)
+    3. Create Student record (44 fields)
+    4. Create synthetic ADMITTED Enquiry (WALK_IN referral, fee state inferred)
+    5. Create Admission record linked to Student + Academic Year + Enquiry
+
+Pass 2 — Academic Qualifications
+  For each qualification row:
+    1. Resolve student by email
+    2. Resolve student's Admission record
+    3. Create AcademicQualification linked to Admission
+
+Pass 3 — Fee Allocation + Payment History
+  For each fee row:
+    1. Resolve student by email
+    2. First row per student → create StudentFeeAllocation
+       (uses year_1_fee..year_6_fee if provided, otherwise even split)
+    3. Each row with amount_paid > 0 → record historical payment
+       (date, mode, receipt number, remarks preserved from old records)
+```
+
+---
+
+### Post-Import State
+
+After a successful import, each migrated student will have:
+
+- A complete `Student` record with all provided fields populated
+- An `Admission` record linked to their academic year
+- A synthetic `ADMITTED` `Enquiry` (tagged WALK_IN, status = ADMITTED)
+- `cohort_id` set on the student (if `course_code` was provided and cohort existed)
+- `admissionCategory` (MANAGEMENT / COUNSELLING) set for quota seat tracking
+- `feeState` set on the synthetic enquiry for fee structure reporting
+- Academic qualifications linked to their admission
+- `StudentFeeAllocation` with year-wise fee breakdown
+- Historical payment records with original dates, modes, and receipt numbers
+
+Students with `cohort = null` (due to missing `course_code`) must be manually assigned to a cohort from the Student Management → Student detail screen.
+
+---
+
+### Permissions
+
+- `IMPORT_DATA` — required to access the Data Import screen, download the template, validate, and execute the import
+
+---
+
+### Entities Created per Imported Student
+
+| Entity | Count per Student |
+|--------|------------------|
+| `Student` | 1 |
+| `Enquiry` (synthetic) | 1 |
+| `Admission` | 1 |
+| `AcademicQualification` | 0..N (one per qualification row) |
+| `StudentFeeAllocation` | 0 or 1 (if Fee History row exists) |
+| `PaymentRecord` | 0..N (one per fee row with `amount_paid > 0`) |
 
 ---
 

@@ -52,16 +52,17 @@ public class ImportController {
     public ResponseEntity<ImportValidationResult> validate(
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) Long defaultJoiningAcademicYearId,
-            @RequestParam(required = false, defaultValue = "DAY_SCHOLAR") String defaultStudentType,
-            @RequestParam(required = false, defaultValue = "Indian")   String defaultNationality,
-            @RequestParam(required = false) String defaultState,
-            @RequestParam(required = false, defaultValue = "1") Integer defaultSemester,
-            @RequestParam(required = false, defaultValue = "false") Boolean skipErroredRows)
+            @RequestParam(required = false, defaultValue = "DAY_SCHOLAR")  String defaultStudentType,
+            @RequestParam(required = false, defaultValue = "Indian")       String defaultNationality,
+            @RequestParam(required = false)                                String defaultState,
+            @RequestParam(required = false, defaultValue = "1")            Integer defaultSemester,
+            @RequestParam(required = false, defaultValue = "MANAGEMENT")   String defaultAdmissionCategory,
+            @RequestParam(required = false, defaultValue = "false")        Boolean skipErroredRows)
             throws Exception {
         ImportDefaultsRequest defaults = new ImportDefaultsRequest(
             defaultJoiningAcademicYearId,
             defaultStudentType, defaultNationality, defaultState,
-            defaultSemester, skipErroredRows);
+            defaultSemester, defaultAdmissionCategory, skipErroredRows);
         return ResponseEntity.ok(importService.validate(file, defaults));
     }
 
@@ -70,17 +71,18 @@ public class ImportController {
     public ResponseEntity<ImportExecuteResult> execute(
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) Long defaultJoiningAcademicYearId,
-            @RequestParam(required = false, defaultValue = "DAY_SCHOLAR") String defaultStudentType,
-            @RequestParam(required = false, defaultValue = "Indian")   String defaultNationality,
-            @RequestParam(required = false) String defaultState,
-            @RequestParam(required = false, defaultValue = "1") Integer defaultSemester,
-            @RequestParam(required = false, defaultValue = "false") Boolean skipErroredRows,
+            @RequestParam(required = false, defaultValue = "DAY_SCHOLAR")  String defaultStudentType,
+            @RequestParam(required = false, defaultValue = "Indian")       String defaultNationality,
+            @RequestParam(required = false)                                String defaultState,
+            @RequestParam(required = false, defaultValue = "1")            Integer defaultSemester,
+            @RequestParam(required = false, defaultValue = "MANAGEMENT")   String defaultAdmissionCategory,
+            @RequestParam(required = false, defaultValue = "false")        Boolean skipErroredRows,
             @AuthenticationPrincipal Jwt jwt) throws Exception {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "import";
         ImportDefaultsRequest defaults = new ImportDefaultsRequest(
             defaultJoiningAcademicYearId,
             defaultStudentType, defaultNationality, defaultState,
-            defaultSemester, skipErroredRows);
+            defaultSemester, defaultAdmissionCategory, skipErroredRows);
         return ResponseEntity.ok(importService.execute(file, defaults, username));
     }
 }

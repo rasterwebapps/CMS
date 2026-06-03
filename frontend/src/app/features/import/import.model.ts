@@ -4,6 +4,7 @@ export interface ImportDefaults {
   defaultNationality: string;
   defaultState: string;
   defaultSemester: number;
+  defaultAdmissionCategory: string;
   skipErroredRows: boolean;
 }
 

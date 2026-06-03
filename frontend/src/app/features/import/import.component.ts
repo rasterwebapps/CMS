@@ -31,7 +31,8 @@ export class ImportComponent implements OnInit {
   protected readonly executeResult    = signal<ImportExecuteResult | null>(null);
   protected readonly activeStep       = signal<Step>('template');
 
-  protected readonly STUDENT_TYPES = ['DAY_SCHOLAR','HOSTELER'];
+  protected readonly STUDENT_TYPES        = ['DAY_SCHOLAR', 'HOSTELER'];
+  protected readonly ADMISSION_CATEGORIES = ['MANAGEMENT', 'COUNSELLING'];
   protected readonly SHEET_INFO = [
     { name: 'Students',       desc: 'One row per student — personal, demographic and address details' },
     { name: 'Qualifications', desc: 'Academic history — link by student email, multiple rows allowed' },
@@ -45,6 +46,7 @@ export class ImportComponent implements OnInit {
     defaultNationality: 'Indian',
     defaultState: '',
     defaultSemester: 1,
+    defaultAdmissionCategory: 'MANAGEMENT',
     skipErroredRows: true,
   };
 

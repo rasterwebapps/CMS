@@ -35,6 +35,10 @@ import com.cms.model.Address;
 import com.cms.model.Course;
 import com.cms.model.Program;
 import com.cms.model.Student;
+import com.cms.model.Cohort;
+import com.cms.model.FeeState;
+import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.Enquiry;
@@ -46,8 +50,10 @@ import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicQualificationRepository;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.FeeStateRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
 import com.cms.repository.StudentRepository;
@@ -68,6 +74,8 @@ public class StudentImportService {
     private final PaymentCollectionService        paymentCollectionService;
     private final EnquiryRepository               enquiryRepo;
     private final ReferralTypeRepository          referralTypeRepo;
+    private final CohortRepository                cohortRepo;
+    private final FeeStateRepository              feeStateRepo;
 
     public StudentImportService(StudentRepository studentRepo,
                                  AdmissionRepository admissionRepo,
@@ -78,7 +86,9 @@ public class StudentImportService {
                                  FeeFinalizationService feeFinalizationService,
                                  PaymentCollectionService paymentCollectionService,
                                  EnquiryRepository enquiryRepo,
-                                 ReferralTypeRepository referralTypeRepo) {
+                                 ReferralTypeRepository referralTypeRepo,
+                                 CohortRepository cohortRepo,
+                                 FeeStateRepository feeStateRepo) {
         this.studentRepo             = studentRepo;
         this.admissionRepo           = admissionRepo;
         this.programRepo             = programRepo;
@@ -89,6 +99,8 @@ public class StudentImportService {
         this.paymentCollectionService = paymentCollectionService;
         this.enquiryRepo             = enquiryRepo;
         this.referralTypeRepo        = referralTypeRepo;
+        this.cohortRepo              = cohortRepo;
+        this.feeStateRepo            = feeStateRepo;
     }
 
     // ── Validate only (no DB writes) ─────────────────────────────────────────
@@ -229,18 +241,36 @@ public class StudentImportService {
 
     private Student createStudent(StudentRow row) {
         Student s = new Student(
-            null,
+            row.rollNumber,
             row.firstName, row.lastName, row.email,
             row.program,
             row.semester != null ? row.semester : 1,
             row.applicationDate != null ? row.applicationDate : LocalDate.now(),
             StudentStatus.ACTIVE
         );
+        // Registration numbers
+        s.setAdmissionNumber(row.admissionNumber);
+        s.setUniversityRegistrationNumber(row.universityRegistrationNumber);
+        s.setUmisNumber(row.umisNumber);
+
+        // Contact
         s.setPhone(row.phone);
+
+        // Academic
         s.setCourse(row.course);
+        s.setCohort(row.cohort);
+        s.setLabBatch(row.labBatch);
+
+        // Admission classification
+        if (!blank(row.admissionCategory)) {
+            try { s.setAdmissionCategory(AdmissionCategory.valueOf(row.admissionCategory.trim().toUpperCase())); }
+            catch (Exception ignored) {}
+        }
+
+        // Personal
         s.setDateOfBirth(row.dateOfBirth);
-        if (row.gender != null) {
-            try { s.setGender(Gender.valueOf(row.gender)); } catch (Exception ignored) {}
+        if (!blank(row.gender)) {
+            try { s.setGender(Gender.valueOf(row.gender.trim().toUpperCase())); } catch (Exception ignored) {}
         }
         s.setAadharNumber(row.aadharNumber);
         s.setNationality(row.nationality);
@@ -248,9 +278,31 @@ public class StudentImportService {
         s.setCommunityCategory(row.communityCategory);
         s.setCaste(row.caste);
         s.setBloodGroup(row.bloodGroup);
+        s.setPhysicalDisability(Boolean.TRUE.equals(row.physicalDisability));
+
+        // Family
         s.setFatherName(row.fatherName);
+        s.setFatherPhone(row.fatherPhone);
+        s.setFatherEmail(row.fatherEmail);
         s.setMotherName(row.motherName);
+        s.setMotherPhone(row.motherPhone);
+        s.setMotherEmail(row.motherEmail);
         s.setParentMobile(row.parentMobile);
+        s.setFirstGraduate(Boolean.TRUE.equals(row.isFirstGraduate));
+        s.setFatherEducation(row.fatherEducation);
+        s.setMotherEducation(row.motherEducation);
+
+        // Emergency contact
+        s.setEmergencyContactName(row.emergencyContactName);
+        s.setEmergencyContactRelationship(row.emergencyContactRelationship);
+        s.setEmergencyContactPhone(row.emergencyContactPhone);
+
+        // Bio (truncate to 500 chars silently)
+        if (!blank(row.bio)) {
+            s.setBio(row.bio.length() > 500 ? row.bio.substring(0, 500) : row.bio);
+        }
+
+        // Address
         if (hasAnyAddress(row)) {
             s.setAddress(new Address(1L, row.postalAddress, row.street, row.city,
                                       row.district, row.state, row.pincode));
@@ -279,6 +331,17 @@ public class StudentImportService {
         enquiry.setGender(s.getGender());
         enquiry.setReferralType(walkIn);
         enquiry.setConvertedStudentId(s.getId());
+        if (!blank(row.admissionCategory)) {
+            try { enquiry.setAdmissionQuota(AdmissionQuota.valueOf(row.admissionCategory.trim().toUpperCase())); }
+            catch (Exception ignored) {}
+        }
+        // Infer fee state from student's home state: Tamil Nadu → TN slab; anything else → fallback slab.
+        // This ensures the enquiry is correctly bucketed for fee structure group reporting.
+        String addressState = s.getAddress() != null ? s.getAddress().getState() : null;
+        FeeState feeState = resolveFeeState(addressState);
+        if (feeState != null) {
+            enquiry.setFeeState(feeState);
+        }
         enquiry.setRemarks("Auto-created during bulk import");
         Enquiry savedEnquiry = enquiryRepo.save(enquiry);
 
@@ -296,18 +359,50 @@ public class StudentImportService {
 
         BigDecimal totalFee = row.totalFee;
         BigDecimal discount = row.discountAmount != null ? row.discountAmount : BigDecimal.ZERO;
-        BigDecimal perYear  = totalFee.subtract(discount)
-            .divide(BigDecimal.valueOf(durationYears), 2, java.math.RoundingMode.HALF_UP);
 
-        List<StudentFeeAllocationRequest.YearFee> yearFees = new ArrayList<>();
-        for (int y = 1; y <= durationYears; y++) {
-            yearFees.add(new StudentFeeAllocationRequest.YearFee(y, perYear));
-        }
+        List<StudentFeeAllocationRequest.YearFee> yearFees = buildYearFees(row, durationYears);
 
         feeFinalizationService.finalize(
             new StudentFeeAllocationRequest(s.getId(), totalFee, discount,
                 row.discountReason, BigDecimal.ZERO, yearFees),
             performedBy);
+    }
+
+    private List<StudentFeeAllocationRequest.YearFee> buildYearFees(FeeRow row, int durationYears) {
+        BigDecimal[] provided = {
+            row.year1Fee, row.year2Fee, row.year3Fee,
+            row.year4Fee, row.year5Fee, row.year6Fee
+        };
+
+        // Check if the admin supplied at least one year-wise amount
+        boolean hasYearFees = false;
+        for (BigDecimal amt : provided) {
+            if (amt != null && amt.compareTo(BigDecimal.ZERO) > 0) { hasYearFees = true; break; }
+        }
+
+        List<StudentFeeAllocationRequest.YearFee> yearFees = new ArrayList<>();
+
+        if (hasYearFees) {
+            // Use the exact amounts provided; include each year that has a value > 0.
+            // This intentionally supports students whose per-year fee differed across
+            // academic years (e.g. 2020-21 batch vs 2023-24 batch different fee slabs).
+            for (int i = 0; i < provided.length; i++) {
+                if (provided[i] != null && provided[i].compareTo(BigDecimal.ZERO) > 0) {
+                    yearFees.add(new StudentFeeAllocationRequest.YearFee(i + 1, provided[i]));
+                }
+            }
+        } else {
+            // Fallback: split net fee evenly across programme duration
+            BigDecimal netFee  = row.totalFee.subtract(
+                row.discountAmount != null ? row.discountAmount : BigDecimal.ZERO);
+            BigDecimal perYear = netFee.divide(
+                BigDecimal.valueOf(durationYears), 2, java.math.RoundingMode.HALF_UP);
+            for (int y = 1; y <= durationYears; y++) {
+                yearFees.add(new StudentFeeAllocationRequest.YearFee(y, perYear));
+            }
+        }
+
+        return yearFees;
     }
 
     // ── Sheet parsers ─────────────────────────────────────────────────────────
@@ -382,6 +477,28 @@ public class StudentImportService {
                 sr.hasError = true;
             }
 
+            // ── Cohort lookup — requires course + academic year ───────────
+            // Cohort must already exist before import (create via Masters → Cohorts).
+            if (resolveRefs && !sr.hasError && sr.joiningAcademicYear != null) {
+                if (sr.course != null) {
+                    Optional<Cohort> cohort = cohortRepo.findByCourseIdAndAdmissionAcademicYearId(
+                        sr.course.getId(), sr.joiningAcademicYear.getId());
+                    if (cohort.isEmpty()) {
+                        error(errors, "Students", sr.rowNum, "course_code",
+                            "No cohort found for course '" + sr.course.getCode()
+                            + "' in academic year '" + sr.joiningAcademicYear.getName()
+                            + "'. Create the cohort first under Masters → Cohorts, then re-import.");
+                        sr.hasError = true;
+                    } else {
+                        sr.cohort = cohort.get();
+                    }
+                } else {
+                    // Course not provided — cohort cannot be resolved
+                    warn(errors, "Students", sr.rowNum, "course_code",
+                        "No course_code provided — cohort cannot be assigned. Student will have cohort = null.");
+                }
+            }
+
             sr.applicationDate   = date(r, header, "application_date");
             sr.studentType       = coalesce(str(r, header, "student_type"),     def.defaultStudentType());
             sr.semester          = intVal(r, header, "semester", def.defaultSemester() != null ? def.defaultSemester() : 1);
@@ -402,6 +519,71 @@ public class StudentImportService {
             sr.district          = str(r, header, "district");
             sr.state             = coalesce(str(r, header, "state"), def.defaultState());
             sr.pincode           = str(r, header, "pincode");
+
+            // ── Registration numbers (unique conflict checks against DB) ──
+            sr.admissionNumber              = str(r, header, "admission_number");
+            sr.rollNumber                   = str(r, header, "roll_number");
+            sr.universityRegistrationNumber = str(r, header, "university_registration_number");
+            sr.umisNumber                   = str(r, header, "umis_number");
+
+            if (resolveRefs) {
+                if (!blank(sr.admissionNumber) && studentRepo.existsByAdmissionNumber(sr.admissionNumber)) {
+                    error(errors, "Students", sr.rowNum, "admission_number",
+                        "Admission number already exists: " + sr.admissionNumber);
+                    sr.hasError = true;
+                }
+                if (!blank(sr.rollNumber) && studentRepo.existsByRollNumber(sr.rollNumber)) {
+                    error(errors, "Students", sr.rowNum, "roll_number",
+                        "Roll number already exists: " + sr.rollNumber);
+                    sr.hasError = true;
+                }
+                if (!blank(sr.universityRegistrationNumber)
+                        && studentRepo.existsByUniversityRegistrationNumber(sr.universityRegistrationNumber)) {
+                    error(errors, "Students", sr.rowNum, "university_registration_number",
+                        "University registration number already exists: " + sr.universityRegistrationNumber);
+                    sr.hasError = true;
+                }
+                if (!blank(sr.umisNumber) && studentRepo.existsByUmisNumber(sr.umisNumber)) {
+                    error(errors, "Students", sr.rowNum, "umis_number",
+                        "UMIS number already exists: " + sr.umisNumber);
+                    sr.hasError = true;
+                }
+            }
+
+            // ── Admission category (default from Step 2) ──────────────────
+            sr.admissionCategory = coalesce(str(r, header, "admission_category"),
+                def.defaultAdmissionCategory(), "MANAGEMENT");
+            if (!blank(sr.admissionCategory)) {
+                try { AdmissionCategory.valueOf(sr.admissionCategory.trim().toUpperCase()); }
+                catch (Exception e) {
+                    warn(errors, "Students", sr.rowNum, "admission_category",
+                        "Invalid admission_category '" + sr.admissionCategory + "', defaulting to MANAGEMENT");
+                    sr.admissionCategory = "MANAGEMENT";
+                }
+            }
+
+            // ── Extended family contacts ───────────────────────────────────
+            sr.fatherPhone = str(r, header, "father_phone");
+            sr.fatherEmail = str(r, header, "father_email");
+            sr.motherPhone = str(r, header, "mother_phone");
+            sr.motherEmail = str(r, header, "mother_email");
+
+            // ── Scholarship / socioeconomic ───────────────────────────────
+            sr.isFirstGraduate  = strictBoolean(r, header, "is_first_graduate",  errors, "Students", sr.rowNum);
+            sr.fatherEducation  = str(r, header, "father_education");
+            sr.motherEducation  = str(r, header, "mother_education");
+
+            // ── Medical ───────────────────────────────────────────────────
+            sr.physicalDisability = strictBoolean(r, header, "physical_disability", errors, "Students", sr.rowNum);
+
+            // ── Emergency contact ─────────────────────────────────────────
+            sr.emergencyContactName         = str(r, header, "emergency_contact_name");
+            sr.emergencyContactRelationship = str(r, header, "emergency_contact_relationship");
+            sr.emergencyContactPhone        = str(r, header, "emergency_contact_phone");
+
+            // ── Academic placement / profile ──────────────────────────────
+            sr.labBatch = str(r, header, "lab_batch");
+            sr.bio      = str(r, header, "bio");
 
             rows.add(sr);
             if (!sr.hasError) valid++;
@@ -476,6 +658,13 @@ public class StudentImportService {
             fr.paymentMode     = str(r, header, "payment_mode");
             fr.receiptNumber   = str(r, header, "receipt_number");
             fr.remarks         = str(r, header, "remarks");
+            // Year-wise fee breakdown (optional — all blank = even split)
+            fr.year1Fee = decimal(r, header, "year_1_fee");
+            fr.year2Fee = decimal(r, header, "year_2_fee");
+            fr.year3Fee = decimal(r, header, "year_3_fee");
+            fr.year4Fee = decimal(r, header, "year_4_fee");
+            fr.year5Fee = decimal(r, header, "year_5_fee");
+            fr.year6Fee = decimal(r, header, "year_6_fee");
 
             if (blank(fr.studentEmail)) { error(errors, "Fee History", fr.rowNum, "student_email", "Email required"); fr.hasError = true; }
             if (fr.totalFee == null) { error(errors, "Fee History", fr.rowNum, "total_fee", "Total fee required"); fr.hasError = true; }
@@ -484,6 +673,30 @@ public class StudentImportService {
                     && fr.amountPaid.compareTo(fr.totalFee) > 0) {
                 error(errors, "Fee History", fr.rowNum, "amount_paid", "Amount paid exceeds total fee");
                 fr.hasError = true;
+            }
+
+            // Warn if year-wise fees are provided but their sum doesn't match net fee
+            if (!fr.hasError && fr.totalFee != null) {
+                BigDecimal[] yf = { fr.year1Fee, fr.year2Fee, fr.year3Fee,
+                                    fr.year4Fee, fr.year5Fee, fr.year6Fee };
+                BigDecimal yearSum = BigDecimal.ZERO;
+                boolean hasAny = false;
+                for (BigDecimal v : yf) {
+                    if (v != null && v.compareTo(BigDecimal.ZERO) > 0) {
+                        yearSum = yearSum.add(v);
+                        hasAny = true;
+                    }
+                }
+                if (hasAny) {
+                    BigDecimal netFee = fr.totalFee.subtract(
+                        fr.discountAmount != null ? fr.discountAmount : BigDecimal.ZERO);
+                    if (yearSum.compareTo(netFee) != 0) {
+                        warn(errors, "Fee History", fr.rowNum, "year_fees",
+                            "Year-wise fee sum " + yearSum + " does not equal net fee " + netFee
+                            + " (total " + fr.totalFee + " - discount "
+                            + (fr.discountAmount != null ? fr.discountAmount : BigDecimal.ZERO) + ")");
+                    }
+                }
             }
 
             rows.add(fr);
@@ -597,6 +810,43 @@ public class StudentImportService {
         return dash > 0 ? value.substring(0, dash).trim() : value.trim();
     }
 
+    /**
+     * Parses a boolean cell strictly — only "TRUE" or "FALSE" (case-insensitive) are accepted.
+     * Returns null (not an error) when the cell is blank.
+     * Adds a WARNING (not an error) when a non-blank unrecognised value is found so the
+     * student row is not rejected but the admin is notified.
+     */
+    private Boolean strictBoolean(Row row, Map<String, Integer> header, String col,
+                                   List<ImportRowError> errors, String sheet, int rowNum) {
+        String val = str(row, header, col);
+        if (val == null) return null;
+        String upper = val.trim().toUpperCase();
+        if ("TRUE".equals(upper))  return Boolean.TRUE;
+        if ("FALSE".equals(upper)) return Boolean.FALSE;
+        warn(errors, sheet, rowNum, col,
+            "Invalid boolean value '" + val + "' for " + col + " — expected TRUE or FALSE. Defaulting to FALSE.");
+        return Boolean.FALSE;
+    }
+
+    /**
+     * Infers a FeeState from the student's address state string.
+     * Matches by name (case-insensitive, exact). Falls back to the fee state
+     * flagged isFallback=true (e.g. "Other State") when no name match is found.
+     * Returns null only when the fee_states table is empty.
+     */
+    private FeeState resolveFeeState(String addressState) {
+        List<FeeState> all = feeStateRepo.findByIsActiveTrueOrderBySortOrderAsc();
+        if (!blank(addressState)) {
+            String normalized = addressState.trim().toLowerCase();
+            for (FeeState fs : all) {
+                if (!fs.isFallback() && fs.getName().trim().toLowerCase().equals(normalized)) {
+                    return fs;
+                }
+            }
+        }
+        return all.stream().filter(FeeState::isFallback).findFirst().orElse(null);
+    }
+
     private boolean blank(String s) { return s == null || s.isBlank(); }
 
     private String coalesce(String... vals) {
@@ -621,13 +871,45 @@ public class StudentImportService {
 
     private static class StudentRow {
         int rowNum; boolean hasError;
+
+        // Core
         String firstName, lastName, email, phone;
-        Program program; Course course; AcademicYear joiningAcademicYear;
+
+        // Academic
+        Program program; Course course; AcademicYear joiningAcademicYear; Cohort cohort;
         LocalDate applicationDate; String studentType; Integer semester;
+
+        // Personal / demographics
         LocalDate dateOfBirth; String gender; String aadharNumber;
         String nationality, religion, communityCategory, caste, bloodGroup;
+
+        // Family (basic)
         String fatherName, motherName, parentMobile;
+
+        // Address
         String postalAddress, street, city, district, state, pincode;
+
+        // Registration numbers
+        String admissionNumber, rollNumber, universityRegistrationNumber, umisNumber;
+
+        // Admission classification
+        String admissionCategory;
+
+        // Extended family contacts
+        String fatherPhone, fatherEmail, motherPhone, motherEmail;
+
+        // Scholarship / socioeconomic
+        Boolean isFirstGraduate;
+        String fatherEducation, motherEducation;
+
+        // Medical
+        Boolean physicalDisability;
+
+        // Emergency contact
+        String emergencyContactName, emergencyContactRelationship, emergencyContactPhone;
+
+        // Placement / profile
+        String labBatch, bio;
     }
 
     private static class QualRow {
@@ -642,6 +924,8 @@ public class StudentImportService {
         String studentEmail; BigDecimal totalFee, discountAmount;
         String discountReason; BigDecimal amountPaid;
         LocalDate paymentDate; String paymentMode, receiptNumber, remarks;
+        // Year-wise fee breakdown — if provided, used instead of even split
+        BigDecimal year1Fee, year2Fee, year3Fee, year4Fee, year5Fee, year6Fee;
     }
 
     private record ParseResult<T>(List<T> rows, int total, int valid) {}

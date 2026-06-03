@@ -22,6 +22,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     boolean existsByAdmissionNumber(String admissionNumber);
 
+    boolean existsByUniversityRegistrationNumber(String universityRegistrationNumber);
+
+    boolean existsByUmisNumber(String umisNumber);
+
     boolean existsByEmail(String email);
 
     List<Student> findByProgramId(Long programId);

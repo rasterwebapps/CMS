@@ -104,6 +104,16 @@
         </div>
 
         <div class="field-group">
+          <label class="field-label">Admission Category</label>
+          <select class="field-input" [(ngModel)]="defaults.defaultAdmissionCategory">
+            @for (c of ADMISSION_CATEGORIES; track c) {
+              <option [value]="c">{{ c === 'MANAGEMENT' ? 'Management' : 'Counselling' }}</option>
+            }
+          </select>
+          <p class="field-hint">Used when admission_category column is blank.</p>
+        </div>
+
+        <div class="field-group">
           <label class="field-label">Nationality</label>
           <input class="field-input" type="text" [(ngModel)]="defaults.defaultNationality" placeholder="e.g. Indian" />
         </div>
