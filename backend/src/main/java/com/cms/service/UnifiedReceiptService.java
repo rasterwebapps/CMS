@@ -32,7 +32,11 @@ public class UnifiedReceiptService {
      */
     @Transactional
     public String generateReceiptNumber() {
-        int year = LocalDate.now().getYear();
+        return generateReceiptNumber(LocalDate.now().getYear());
+    }
+
+    @Transactional
+    public String generateReceiptNumber(int year) {
         return numberSequenceService.nextReceiptNumber(year);
     }
 

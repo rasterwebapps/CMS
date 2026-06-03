@@ -83,8 +83,10 @@ public class PaymentCollectionService {
         BigDecimal remaining = request.amount();
         List<String> allocationDetails = new ArrayList<>();
         List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
-        // One receipt number for the entire payment regardless of how many installments it covers
-        String receiptNumber = unifiedReceiptService.generateReceiptNumber();
+        // Use caller-supplied receipt number (import migration) or auto-generate using the payment date's year
+        String receiptNumber = (request.receiptNumber() != null && !request.receiptNumber().isBlank())
+            ? request.receiptNumber()
+            : unifiedReceiptService.generateReceiptNumber(request.paymentDate().getYear());
 
         for (SemesterFee sf : semesterFees) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {

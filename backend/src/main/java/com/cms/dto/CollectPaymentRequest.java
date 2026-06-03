@@ -23,5 +23,8 @@ public record CollectPaymentRequest(
 
     String transactionReference,
 
-    String remarks
+    String remarks,
+
+    /** Explicit receipt number to use. Null = auto-generate from the payment date's year sequence. */
+    String receiptNumber
 ) {}

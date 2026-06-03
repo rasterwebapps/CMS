@@ -217,8 +217,10 @@ public class StudentImportService {
                             new CollectPaymentRequest(row.amountPaid,
                                 row.paymentDate != null ? row.paymentDate : LocalDate.now(),
                                 mode,
-                                row.receiptNumber,
-                                row.remarks));
+                                null,               // transactionReference
+                                row.remarks,
+                                row.receiptNumber   // explicit receipt number; null = auto-generate by payment year
+                            ));
                         paymentsImported++;
                     }
                 } catch (Exception ex) {
