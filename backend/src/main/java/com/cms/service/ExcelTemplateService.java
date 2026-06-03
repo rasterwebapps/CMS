@@ -456,32 +456,57 @@ public class ExcelTemplateService {
     }
 
     private void addFeeHistorySampleRows(XSSFSheet fees, XSSFCellStyle style) {
-        // Each student gets their fee allocation set on the first row.
-        // Priya paid in two instalments; Kavitha paid in full with a discount.
-        // year_1..year_3 show exact year-wise breakdown; year_4..year_6 are blank (3-yr programme).
+        // HOW MULTIPLE ROWS WORK:
+        //   First row per student  → sets the fee allocation (total_fee, discount, year_* breakdown)
+        //                            AND records the first payment if amount_paid is filled.
+        //   Subsequent rows        → record additional payment receipts only.
+        //                            total_fee / year_* are IGNORED on rows 2, 3, etc.
+        //
+        // year_1_fee..year_6_fee = how the TOTAL fee is split across programme years
+        //   (e.g. Year 1: ₹50k, Year 2: ₹50k, Year 3: ₹50k for a 3-year course).
+        //   Leave blank to split evenly. These are NOT per-payment amounts.
+        //
+        // Priya paid in two separate receipts; Kavitha paid in full (one receipt).
         String[][] rows = {
-            // Priya — row 1: fee allocation + first instalment
+            // Priya row 1 — sets fee allocation AND records first payment
             {"priya.sharma@sample.com",
              "150000", "", "", "150000",                          // total, disc, reason, net
              "75000", "20-06-2023", "CASH", "RCT-2023-001",      // paid, date, mode, receipt
              "First instalment",                                   // remarks
-             "50000", "50000", "50000", "", "", ""},              // year_1..year_6
+             "50000", "50000", "50000", "", "", ""},              // year_1..year_3 (yr4-6 blank = 3-yr course)
 
-            // Priya — row 2: second instalment (year_* blank — allocation already created)
+            // Priya row 2 — second payment only; fee allocation already created from row 1
+            //   total_fee / year_* are left blank intentionally — they are ignored here
             {"priya.sharma@sample.com",
-             "150000", "", "", "",
+             "", "", "", "",
              "75000", "15-12-2023", "UPI", "RCT-2023-002",
              "Second instalment",
              "", "", "", "", "", ""},
 
-            // Kavitha — row 1: fee allocation + full payment (SC concession discount)
+            // Kavitha row 1 — fee allocation (with discount) AND single full payment
             {"kavitha.murugan@sample.com",
              "180000", "10000", "SC Category Concession", "170000",
              "170000", "25-06-2023", "BANK_TRANSFER", "RCT-2023-003",
-             "Full payment",
+             "Full payment in one receipt",
              "60000", "60000", "50000", "", "", ""},
         };
-        for (int i = 0; i < rows.length; i++) writeSampleRow(fees, i + 2, rows[i], style);
+        XSSFRow firstRow = writeSampleRow(fees, 2, rows[0], style);
+        for (int i = 1; i < rows.length; i++) writeSampleRow(fees, i + 2, rows[i], style);
+
+        // Cell comment on A3 explaining the sheet structure
+        XSSFDrawing drawing = fees.createDrawingPatriarch();
+        XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 0, 2, 6, 8);
+        XSSFComment comment = drawing.createCellComment(anchor);
+        comment.setString(new XSSFRichTextString(
+            "SAMPLE DATA — delete before importing real data\n\n" +
+            "Each row = one payment receipt.\n" +
+            "Multiple rows for the same student = multiple receipts (e.g. Priya paid in 2 instalments).\n\n" +
+            "FIRST ROW per student: fill total_fee + year_1_fee..year_6_fee to set the fee structure.\n" +
+            "SUBSEQUENT ROWS: leave total_fee / year_* blank — only payment columns are used.\n\n" +
+            "year_1_fee..year_6_fee = how total fee is split across programme years, NOT per-payment amounts.\n" +
+            "Leave all year_* blank to split evenly across the programme duration."));
+        comment.setAuthor("CMS Import Template");
+        firstRow.getCell(0).setCellComment(comment);
     }
 
     private XSSFRow writeSampleRow(XSSFSheet sheet, int rowIndex, String[] values, XSSFCellStyle style) {

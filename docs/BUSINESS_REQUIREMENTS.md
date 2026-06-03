@@ -1376,7 +1376,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
-| 2026-06-03 | BR-31 | **Student Data Import — Legacy Migration:** Added full BR for bulk student migration. Documents 9-item pre-conditions checklist (programs, courses, academic years, cohorts + seat allocations, fee structures, fee states, WALK_IN referral type, country seed); 44-column Students sheet with all personal/demographic/family/address/registration/classification fields; Qualifications sheet (8 fields); Fee History sheet (16 fields including `year_1_fee`..`year_6_fee` for exact year-wise fee preservation across different academic-year fee slabs); Step 2 defaults panel including `admission_category`; cohort assignment logic (error if cohort missing for course+AY); fee state inference from address state (mirrors BR-30 live-enquiry logic); boolean strict-format rule (`TRUE`/`FALSE` only); unique number conflict check for `admission_number`, `roll_number`, `university_registration_number`, `umis_number`; 3-pass import execution flow; post-import state; and permissions (`IMPORT_DATA`). | — |
+| 2026-06-03 | BR-31 | **Student Data Import — Legacy Migration:** Added full BR for bulk student migration. Documents 9-item pre-conditions checklist (programs, courses, academic years, cohorts + seat allocations, fee structures, fee states, WALK_IN referral type, country seed); recommended course-wise import strategy with step-by-step workflow and rationale (error isolation, cohort verification, fee structure uniformity per course); fee history multi-payment row explanation (`year_1_fee`..`year_6_fee` = annual fee split per programme year, not per-payment; subsequent rows per student leave fee structure columns blank); 44-column Students sheet with all personal/demographic/family/address/registration/classification fields; Qualifications sheet (8 fields); Fee History sheet (16 fields); Step 2 defaults panel including `admission_category`; cohort assignment logic (error if cohort missing for course+AY); fee state inference from address state; boolean strict-format rule (`TRUE`/`FALSE` only); unique number conflict check for 4 registration numbers; 3-pass import execution flow; post-import state; and permissions (`IMPORT_DATA`). | — |
 | 2026-05-25 | BR-10 | Admission/student document screens now prioritize missing required documents at the top, allow uploading newly required documents for existing admissions, and preserve previously collected documents that were later removed from program requirements as "not currently required" records. | — |
 | 2026-05-25 | BR-10 | Admission printable template updated for one-page A4 print preview: Academic Qualifications are excluded from official View/Print/Download output, print text readability is improved, the document checklist remains two-column, and the submitted `PASSPORT_PHOTO` document is the source for the admission-form passport photo. | — |
 | 2026-05-25 | BR-10 | Admission form view/print/download standardized on one printable template; document checklist now renders in two balanced columns using `ceil(document count / 2)` rows (20→10, 23→12, 31→16), and the download action generates PDF instead of HTML. | — |
@@ -1585,6 +1585,68 @@ All of the following masters **must exist in the system before running any impor
 | 7 | **Fee States** | Already seeded | Tamil Nadu and Other State are seeded by default. The import infers fee state from each student's address state — no manual action needed unless additional fee state segments are required. |
 | 8 | **Referral Type: WALK_IN** | Masters → Referral Types | Must exist with `code = WALK_IN`. The import hard-codes this referral type for all synthetic enquiries. If missing, the import throws an exception and aborts. |
 | 9 | **Country with ID = 1** | Seed data | Address records are created with `country_id = 1` (India). Must be present in the `countries` table. Normally present from initial seed data. |
+
+---
+
+### Recommended Import Strategy — Course-Wise Approach
+
+Although the import template accepts students from **any number of courses in a single file**, the recommended approach is to **import one course at a time**. This is a firm operational guideline, not a technical limitation.
+
+#### Why Course-Wise Is Recommended
+
+| Reason | Detail |
+|--------|--------|
+| **Fee structures differ per course** | BSc Nursing (4 years) has different annual fee slabs than GNM (3 years). Mixing courses in one file means `year_1_fee`…`year_6_fee` vary row-by-row, increasing the chance of data entry errors. |
+| **Programme duration varies** | A 3-year course uses `year_1`…`year_3`; a 4-year course uses `year_1`…`year_4`. Per-course files have a uniform column structure. |
+| **Cohort pre-conditions are per course** | Before importing, the admin must verify cohorts exist for every `(course × admission academic year)` in the file. Verifying one course at a time is far easier than cross-checking all cohorts for all courses before a combined import. |
+| **Error isolation** | If one course's data has a problem mid-import, it doesn't block or partially corrupt another course's records. |
+| **Easier post-import audit** | After importing BSc Nursing, the admin can spot-check a few students in the UI before moving to the next course. |
+
+#### Recommended Workflow Per Course
+
+```
+For each course (BSc Nursing → GNM → ANM → … ):
+
+  Preparation
+  ───────────
+  1. Verify all pre-conditions exist for this course:
+     - Program and Course master records
+     - Academic year records for every admission batch in this course
+     - Cohorts initialized for every (course × academic year) combination
+     - Seat allocations set on each cohort
+     - Fee structures created for this course's (program × AY × quota × fee state × gender)
+
+  Data Entry
+  ──────────
+  2. Download the template from Student Management → Data Import → Step 1
+  3. Fill the Students sheet with only this course's students (all admission batches)
+  4. Fill the Qualifications sheet for these students
+  5. Fill the Fee History sheet:
+       - First row per student: total_fee + year_1_fee…year_N_fee (N = programme duration)
+         AND the first payment if one exists
+       - Subsequent rows per student: leave total_fee / year_* blank; fill payment columns only
+         (one row per additional receipt)
+
+  Import
+  ──────
+  6. Step 2 — Set defaults: select the programme, choose the appropriate academic year
+  7. Click "Validate" — review all warnings and errors; fix the Excel file if needed
+  8. Click "Execute" once validation passes with no errors
+  9. Spot-check 2–3 students in Student Management to confirm data, fees, and receipts
+
+  Repeat for the next course.
+```
+
+#### Fee History Sheet — Multi-Payment Rows Explained
+
+Each row in the Fee History sheet represents **one payment receipt**, not one academic year.
+
+| Row | Role | Which columns to fill |
+|-----|------|-----------------------|
+| First row per student | Sets fee allocation **and** records first payment | All columns: `total_fee`, `discount_*`, `net_fee`, `year_1_fee`…`year_N_fee`, `amount_paid`, `payment_date`, `payment_mode`, `receipt_number` |
+| Subsequent rows per student | Records additional payment receipts only | Only: `student_email`, `amount_paid`, `payment_date`, `payment_mode`, `receipt_number`, `remarks` — leave all other columns blank |
+
+The `year_1_fee`…`year_6_fee` columns represent **how the programme total fee is split per year of study** (e.g., Year 1: ₹50,000 / Year 2: ₹50,000 / Year 3: ₹50,000 for a 3-year course). They are **not** per-payment amounts. Leave them blank to split evenly across the programme duration.
 
 ---
 
