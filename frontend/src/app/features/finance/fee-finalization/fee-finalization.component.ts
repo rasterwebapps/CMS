@@ -58,6 +58,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly selectedEnquiry  = signal<Enquiry | null>(null);
   protected readonly yearRows         = signal<YearFeeRow[]>([]);
   protected readonly globalDiscount   = signal<number>(0);
+  protected readonly authoritativeProposedFeeByEnquiryId = signal<Record<number, number>>({});
 
   // ── List filters ────────────────────────────────────────────────────────────
   protected readonly searchValue        = signal('');
@@ -163,9 +164,52 @@ export class FeeFinalizationComponent implements OnInit {
   private loadList(): void {
     this.loading.set(true);
     this.enquiryService.getByStatus('INTERESTED').subscribe({
-      next: (data) => { this.allEnquiries.set(data); this.loading.set(false); },
+      next: (data) => {
+        this.allEnquiries.set(data);
+        this.hydrateAuthoritativeProposedFees(data);
+        this.loading.set(false);
+      },
       error: () => { this.toast.error('Failed to load enquiries'); this.loading.set(false); },
     });
+  }
+
+  protected getProposedFee(enquiry: Enquiry): number | null {
+    const authoritative = this.authoritativeProposedFeeByEnquiryId()[enquiry.id];
+    if (authoritative != null) {
+      return authoritative;
+    }
+    return enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? null;
+  }
+
+  private hydrateAuthoritativeProposedFees(enquiries: Enquiry[]): void {
+    for (const enquiry of enquiries) {
+      if (!enquiry.programId || !enquiry.admissionQuota || !enquiry.feeStateId || !enquiry.gender) {
+        continue;
+      }
+
+      const params = new URLSearchParams({
+        programId: enquiry.programId.toString(),
+        quota: enquiry.admissionQuota,
+        feeStateId: enquiry.feeStateId.toString(),
+        gender: enquiry.gender,
+      });
+      if (enquiry.courseId) params.set('courseId', enquiry.courseId.toString());
+      if (enquiry.studentType) params.set('studentType', enquiry.studentType);
+
+      this.http.get<{ totalFee: number }>(`${environment.apiUrl}/fee-structures/guideline?${params.toString()}`).subscribe({
+        next: (response) => this.setAuthoritativeProposedFee(enquiry.id, response.totalFee),
+        error: () => {
+          // Keep existing row value if authoritative hydration fails.
+        },
+      });
+    }
+  }
+
+  private setAuthoritativeProposedFee(enquiryId: number, amount: number): void {
+    this.authoritativeProposedFeeByEnquiryId.update(current => ({
+      ...current,
+      [enquiryId]: amount,
+    }));
   }
 
   protected applySearch(event: Event): void {
@@ -216,6 +260,7 @@ export class FeeFinalizationComponent implements OnInit {
         `${environment.apiUrl}/fee-structures/guideline?${params.toString()}`
       ).subscribe({
         next: (data) => {
+          this.setAuthoritativeProposedFee(enquiry.id, data.totalFee);
           const yearMap = new Map<number, number>();
           for (const item of data.items) {
             for (const ya of item.yearAmounts ?? []) {
