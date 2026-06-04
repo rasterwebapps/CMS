@@ -183,7 +183,7 @@ export class FeeFinalizationComponent implements OnInit {
 
   private hydrateAuthoritativeProposedFees(enquiries: Enquiry[]): void {
     for (const enquiry of enquiries) {
-      if (!enquiry.programId || !enquiry.admissionQuota || !enquiry.feeStateId || !enquiry.gender) {
+      if (!enquiry.programId || !enquiry.admissionQuota || !enquiry.feeStateId || !enquiry.gender || !enquiry.studentType) {
         continue;
       }
 

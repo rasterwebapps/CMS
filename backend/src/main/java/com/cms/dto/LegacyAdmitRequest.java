@@ -20,6 +20,9 @@ public record LegacyAdmitRequest(
     @NotBlank String lastName,
     @Email @NotBlank String email,
     String phone,
+    @NotBlank String rollNumber,
+    @NotBlank String universityRegistrationNumber,
+    String umisNumber,
 
     // ── Admission context ────────────────────────────────────────────────
     @NotNull Long programId,

@@ -27,7 +27,7 @@
   letter-spacing: 0;
 }
 
-/* ── 3-column field row (family section) ─────────────────────── */
+/* ── 3-column field row ───────────────────────────────────────── */
 .la-field-row--3 {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 
@@ -35,52 +35,154 @@
   @media (max-width: 480px) { grid-template-columns: 1fr !important; }
 }
 
-/* ── 4-column field row (address location fields) ─────────────── */
-.la-field-row--4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+/* ── Address sub-section top margin ──────────────────────────── */
+.la-address-section { margin-top: 20px; }
 
-  @media (max-width: 1024px) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  @media (max-width: 480px) { grid-template-columns: 1fr !important; }
-}
-
-/* ── Fee grid ────────────────────────────────────────────────── */
-.la-fee-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 200px));
-  gap: 14px;
-
-  @media (max-width: 640px) { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── Payment history table ───────────────────────────────────── */
-.la-payments-wrap {
+/* ── Fee table ───────────────────────────────────────────────── */
+.la-fee-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-radius-md);
-  margin-bottom: 14px;
 }
 
-.la-payments-table { width: 100%; min-width: 680px; }
+.la-fee-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 
-.la-inline-select,
-.la-inline-input {
+  thead tr { background: var(--cms-bg-muted); }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--cms-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 14px;
+    border-top: 1px solid var(--cms-border-default);
+    vertical-align: middle;
+  }
+}
+
+.la-fee-year-label {
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.la-fee-input {
+  width: 130px;
   padding: 5px 8px;
   border-radius: var(--cms-radius-sm);
   border: 1.5px solid var(--cms-border-default);
   background: var(--cms-bg-card);
   color: var(--cms-text-primary);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-family: inherit;
   outline: none;
 
   &:focus { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
 }
 
-.la-inline-input--num     { width: 110px; }
-.la-inline-input--receipt { width: 140px; }
-.la-col-hint              { font-size: 0.68rem; font-weight: 400; color: var(--cms-text-muted); }
-.la-remove-btn            { color: var(--cms-danger) !important; }
-.la-add-payment-row       { padding-top: 4px; }
+.la-fee-computed {
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  white-space: nowrap;
+}
+
+.la-fee-collected {
+  font-weight: 600;
+  color: var(--cms-success, #16a34a);
+  white-space: nowrap;
+}
+
+.la-fee-spinner {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Payment cards ───────────────────────────────────────────── */
+.la-payment-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.la-payment-card {
+  position: relative;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  padding: 16px 52px 16px 16px;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 900px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 640px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 420px) { grid-template-columns: 1fr; }
+  }
+}
+
+.la-remove-btn {
+  position: absolute !important;
+  top: 8px;
+  right: 8px;
+  color: var(--cms-danger) !important;
+}
+
+.la-add-payment-row { padding-top: 4px; }
+
+/* ── Consent ─────────────────────────────────────────────────── */
+.la-consent-row {
+  margin-bottom: 14px;
+}
+
+.la-consent-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--cms-text-primary);
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cms-primary);
+    flex-shrink: 0;
+  }
+}
+
+.la-consent-error {
+  margin: 4px 0 0 26px;
+  font-size: 0.78rem;
+  color: var(--cms-danger);
+}
+
+/* ── Small hints ─────────────────────────────────────────────── */
+.la-hint {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--cms-text-muted);
+  margin-left: 4px;
+}
+
+.la-col-hint {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--cms-text-muted);
+}
 
 /* ── Error banner ────────────────────────────────────────────── */
 .la-error-banner {

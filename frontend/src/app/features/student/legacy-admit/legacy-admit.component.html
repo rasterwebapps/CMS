@@ -71,12 +71,10 @@
       <!-- ── Section 1: Admission Context ────────────────────────── -->
       <section class="entry-form-card entry-form-card--sectioned">
         <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <mat-icon>how_to_reg</mat-icon>
-          </div>
+          <div class="entry-form-card__hdr-ico"><mat-icon>how_to_reg</mat-icon></div>
           <div>
             <div class="entry-form-card__hdr-title">Admission Context</div>
-            <div class="entry-form-card__hdr-sub">Programme, year, dates and admission category</div>
+            <div class="entry-form-card__hdr-sub">Programme, year, dates, quota and fee state</div>
           </div>
         </div>
         <div class="entry-form-card__body">
@@ -145,6 +143,16 @@
                 <option value="HOSTELER">Hosteler</option>
               </select>
             </div>
+
+            <div class="field-group">
+              <label class="field-label">Fee State <span class="la-hint">(for fee auto-fill)</span></label>
+              <select class="field-input" formControlName="feeStateId">
+                <option [value]="null">— Select fee state —</option>
+                @for (fs of feeStates(); track fs.id) {
+                  <option [value]="fs.id">{{ fs.name }}</option>
+                }
+              </select>
+            </div>
           </div>
         </div>
       </section>
@@ -152,9 +160,7 @@
       <!-- ── Section 2: Student Details ──────────────────────────── -->
       <section class="entry-form-card entry-form-card--sectioned">
         <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <mat-icon>person</mat-icon>
-          </div>
+          <div class="entry-form-card__hdr-ico"><mat-icon>person</mat-icon></div>
           <div>
             <div class="entry-form-card__hdr-title">Student Details</div>
             <div class="entry-form-card__hdr-sub">Personal information, demographics and identity</div>
@@ -179,6 +185,18 @@
               <input type="tel" class="field-input" formControlName="phone" placeholder="+91 XXXXX XXXXX" />
             </div>
             <div class="field-group">
+              <label class="field-label">Roll Number <span class="required-star">*</span></label>
+              <input type="text" class="field-input" formControlName="rollNumber" placeholder="e.g. 2021NURS001" maxlength="50" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">University Reg. Number <span class="required-star">*</span></label>
+              <input type="text" class="field-input" formControlName="universityRegistrationNumber" placeholder="e.g. 21UN123456" maxlength="50" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">UMIS Number</label>
+              <input type="text" class="field-input" formControlName="umisNumber" placeholder="If available" maxlength="50" />
+            </div>
+            <div class="field-group">
               <label class="field-label">Date of Birth <span class="required-star">*</span></label>
               <input type="date" class="field-input" formControlName="dateOfBirth" />
             </div>
@@ -191,34 +209,34 @@
               </select>
             </div>
             <div class="field-group">
-              <label class="field-label">Aadhaar Number</label>
+              <label class="field-label">Aadhaar Number <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="aadharNumber" maxlength="12" placeholder="12-digit number" />
             </div>
             <div class="field-group">
-              <label class="field-label">Nationality</label>
+              <label class="field-label">Nationality <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="nationality" />
             </div>
             <div class="field-group">
-              <label class="field-label">Religion</label>
+              <label class="field-label">Religion <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="religion" />
             </div>
             <div class="field-group">
-              <label class="field-label">Community</label>
+              <label class="field-label">Community <span class="required-star">*</span></label>
               <select class="field-input" formControlName="communityCategory">
-                <option value="">— None —</option>
+                <option value="">— Select —</option>
                 @for (c of communities(); track c.id) {
                   <option [value]="c.name">{{ c.name }}</option>
                 }
               </select>
             </div>
             <div class="field-group">
-              <label class="field-label">Caste</label>
+              <label class="field-label">Caste <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="caste" />
             </div>
             <div class="field-group">
-              <label class="field-label">Blood Group</label>
+              <label class="field-label">Blood Group <span class="required-star">*</span></label>
               <select class="field-input" formControlName="bloodGroup">
-                <option value="">— None —</option>
+                <option value="">— Select —</option>
                 @for (bg of bloodGroups(); track bg.id) {
                   <option [value]="bg.name">{{ bg.name }}</option>
                 }
@@ -238,78 +256,111 @@
       <!-- ── Section 3: Family & Address ─────────────────────────── -->
       <section class="entry-form-card entry-form-card--sectioned">
         <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <mat-icon>family_restroom</mat-icon>
-          </div>
+          <div class="entry-form-card__hdr-ico"><mat-icon>family_restroom</mat-icon></div>
           <div>
-            <div class="entry-form-card__hdr-title">
-              Family &amp; Address
-              <span class="la-optional-badge">Optional</span>
-            </div>
+            <div class="entry-form-card__hdr-title">Family &amp; Address</div>
             <div class="entry-form-card__hdr-sub">Parent contact information and residential address</div>
           </div>
         </div>
         <div class="entry-form-card__body">
           <div class="field-row la-field-row--3">
             <div class="field-group">
-              <label class="field-label">Father's Name</label>
+              <label class="field-label">Father's Name <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="fatherName" />
             </div>
             <div class="field-group">
-              <label class="field-label">Father's Phone</label>
+              <label class="field-label">Father's Phone <span class="required-star">*</span></label>
               <input type="tel" class="field-input" formControlName="fatherPhone" />
             </div>
             <div class="field-group">
-              <label class="field-label">Father's Email</label>
+              <label class="field-label">Father's Email <span class="required-star">*</span></label>
               <input type="email" class="field-input" formControlName="fatherEmail" />
             </div>
             <div class="field-group">
-              <label class="field-label">Mother's Name</label>
+              <label class="field-label">Mother's Name <span class="required-star">*</span></label>
               <input type="text" class="field-input" formControlName="motherName" />
             </div>
             <div class="field-group">
-              <label class="field-label">Mother's Phone</label>
+              <label class="field-label">Mother's Phone <span class="required-star">*</span></label>
               <input type="tel" class="field-input" formControlName="motherPhone" />
             </div>
             <div class="field-group">
-              <label class="field-label">Mother's Email</label>
+              <label class="field-label">Mother's Email <span class="required-star">*</span></label>
               <input type="email" class="field-input" formControlName="motherEmail" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Parent Mobile <span class="required-star">*</span></label>
+              <input type="tel" class="field-input" formControlName="parentMobile" />
             </div>
           </div>
 
-          <div formGroupName="address">
-            <div class="field-group">
-              <label class="field-label">Door No. / Flat / Building</label>
-              <input type="text" class="field-input" formControlName="postalAddress" autocomplete="address-line1" />
-            </div>
-            <div class="field-row la-field-row--4">
+          <div [formGroup]="addressGroup" class="la-address-section">
+            <div class="field-row la-field-row--3">
               <div class="field-group">
-                <label class="field-label">City</label>
+                <label class="field-label">Door No. / Flat / Building <span class="required-star">*</span></label>
+                <input type="text" class="field-input" formControlName="postalAddress" autocomplete="address-line1" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Street <span class="required-star">*</span></label>
+                <input type="text" class="field-input" formControlName="street" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">City <span class="required-star">*</span></label>
                 <input type="text" class="field-input" formControlName="city" />
               </div>
-              <div class="field-group">
-                <label class="field-label">District</label>
-                <input type="text" class="field-input" formControlName="district" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">State</label>
-                <input type="text" class="field-input" formControlName="state" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Pincode</label>
-                <input type="text" class="field-input" formControlName="pincode" maxlength="6" />
-              </div>
+            </div>
+            <cms-country-state-district-selector [parentForm]="addressGroup" [showPincode]="true" pincodeControlName="pincode" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 4: Consent & Declaration ───────────────────── -->
+      <section class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico"><mat-icon>verified_user</mat-icon></div>
+          <div>
+            <div class="entry-form-card__hdr-title">Consent &amp; Declaration</div>
+            <div class="entry-form-card__hdr-sub">Confirm parental and student consent for this historical admission</div>
+          </div>
+        </div>
+        <div class="entry-form-card__body">
+          <div class="la-consent-row">
+            <label class="la-consent-label">
+              <input type="checkbox" formControlName="parentConsentGiven" />
+              <span>Parent / guardian has given consent for admission</span>
+              <span class="required-star">*</span>
+            </label>
+            @if (form.get('parentConsentGiven')?.invalid && form.get('parentConsentGiven')?.touched) {
+              <p class="la-consent-error">Parent consent is required</p>
+            }
+          </div>
+          <div class="la-consent-row">
+            <label class="la-consent-label">
+              <input type="checkbox" formControlName="applicantConsentGiven" />
+              <span>Student / applicant has given consent for admission</span>
+              <span class="required-star">*</span>
+            </label>
+            @if (form.get('applicantConsentGiven')?.invalid && form.get('applicantConsentGiven')?.touched) {
+              <p class="la-consent-error">Applicant consent is required</p>
+            }
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Declaration Place</label>
+              <input type="text" class="field-input" formControlName="declarationPlace" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Declaration Date</label>
+              <input type="date" class="field-input" formControlName="declarationDate" />
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ── Section 4: Referral ──────────────────────────────────── -->
+      <!-- ── Section 5: Referral ──────────────────────────────────── -->
       <section class="entry-form-card entry-form-card--sectioned">
         <div class="entry-form-card__hdr">
-          <div class="entry-form-card__hdr-ico">
-            <mat-icon>share</mat-icon>
-          </div>
+          <div class="entry-form-card__hdr-ico"><mat-icon>share</mat-icon></div>
           <div>
             <div class="entry-form-card__hdr-title">
               Referral
@@ -376,39 +427,60 @@
         </div>
       </section>
 
-      <!-- ── Section 5 & 6: Fee Structure + Payment History ─────── -->
+      <!-- ── Section 6 & 7: Fee Structure + Payment History ─────── -->
       @if (yearCount() > 0) {
+
         <section class="entry-form-card entry-form-card--sectioned">
           <div class="entry-form-card__hdr">
-            <div class="entry-form-card__hdr-ico">
-              <mat-icon>payments</mat-icon>
-            </div>
+            <div class="entry-form-card__hdr-ico"><mat-icon>payments</mat-icon></div>
             <div>
               <div class="entry-form-card__hdr-title">
                 Fee Structure
                 <span class="la-optional-badge">Optional</span>
+                @if (feeGuidelineLoading()) {
+                  <mat-spinner diameter="14" class="la-fee-spinner"></mat-spinner>
+                }
               </div>
-              <div class="entry-form-card__hdr-sub">Enter the total annual fee for each year of study</div>
+              <div class="entry-form-card__hdr-sub">Year-wise fees. Select Fee State above to auto-load from master.</div>
             </div>
           </div>
           <div class="entry-form-card__body">
-            <div class="la-fee-grid" formArrayName="yearFees">
-              @for (ctrl of yearFeesArray.controls; track $index) {
-                <div class="field-group" [formGroupName]="$index">
-                  <label class="field-label">Year {{ $index + 1 }}</label>
-                  <input type="number" class="field-input" formControlName="totalFee"
-                         placeholder="₹ 0" min="0" step="0.01" />
-                </div>
-              }
+            <div class="la-fee-table-wrap" formArrayName="yearFees">
+              <table class="la-fee-table">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Master Fee (₹)</th>
+                    <th>Discount (₹)</th>
+                    <th>Net Fee (₹)</th>
+                    <th>Collected (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ctrl of yearFeesArray.controls; track $index) {
+                    <tr [formGroupName]="$index">
+                      <td class="la-fee-year-label">Year {{ $index + 1 }}</td>
+                      <td>
+                        <input type="number" class="la-fee-input" formControlName="masterFee"
+                               placeholder="0" min="0" step="0.01" />
+                      </td>
+                      <td>
+                        <input type="number" class="la-fee-input" formControlName="discount"
+                               placeholder="0" min="0" step="0.01" />
+                      </td>
+                      <td class="la-fee-computed">{{ finalFeeForYear($index) | inr }}</td>
+                      <td class="la-fee-collected">{{ collectedForYear($index + 1) | inr }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
         <section class="entry-form-card entry-form-card--sectioned">
           <div class="entry-form-card__hdr">
-            <div class="entry-form-card__hdr-ico">
-              <mat-icon>receipt_long</mat-icon>
-            </div>
+            <div class="entry-form-card__hdr-ico"><mat-icon>receipt_long</mat-icon></div>
             <div>
               <div class="entry-form-card__hdr-title">
                 Payment History
@@ -418,72 +490,64 @@
             </div>
           </div>
           <div class="entry-form-card__body">
-            @if (paymentsArray.length > 0) {
-              <div class="la-payments-wrap">
-                <table mat-table [dataSource]="paymentsArray.controls" class="la-payments-table">
-
-                  <ng-container matColumnDef="yearNumber">
-                    <th mat-header-cell *matHeaderCellDef>Year</th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                      <select class="la-inline-select" formControlName="yearNumber">
-                        @for (y of yearOptions(); track y) { <option [value]="y">{{ y }}</option> }
-                      </select>
-                    </td>
-                  </ng-container>
-
-                  @if (!isYearly()) {
-                    <ng-container matColumnDef="semesterSequence">
-                      <th mat-header-cell *matHeaderCellDef>Sem</th>
-                      <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                        <select class="la-inline-select" formControlName="semesterSequence">
-                          <option [value]="1">1</option><option [value]="2">2</option>
+            @if (paymentRows().length > 0) {
+              <div class="la-payment-cards" formArrayName="payments">
+                @for (pg of paymentRows(); track $index) {
+                  <div class="la-payment-card" [formGroup]="pg">
+                    <div class="la-payment-card__grid">
+                      <div class="field-group">
+                        <label class="field-label">Year <span class="required-star">*</span></label>
+                        <select class="field-input" formControlName="yearNumber">
+                          @for (y of yearOptions(); track y) {
+                            <option [value]="y">Year {{ y }}</option>
+                          }
                         </select>
-                      </td>
-                    </ng-container>
-                  }
-
-                  <ng-container matColumnDef="paymentDate">
-                    <th mat-header-cell *matHeaderCellDef>Date</th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                      <input type="date" class="la-inline-input" formControlName="paymentDate" />
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="amount">
-                    <th mat-header-cell *matHeaderCellDef>Amount (₹)</th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                      <input type="number" class="la-inline-input la-inline-input--num" formControlName="amount" min="0.01" step="0.01" />
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="paymentMode">
-                    <th mat-header-cell *matHeaderCellDef>Mode</th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                      <select class="la-inline-select" formControlName="paymentMode">
-                        @for (m of PAYMENT_MODES; track m) { <option [value]="m">{{ m }}</option> }
-                      </select>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="receiptNumber">
-                    <th mat-header-cell *matHeaderCellDef>Receipt # <span class="la-col-hint">(blank = auto)</span></th>
-                    <td mat-cell *matCellDef="let row; let i = index" [formGroup]="getPaymentGroup(i)">
-                      <input type="text" class="la-inline-input la-inline-input--receipt" formControlName="receiptNumber" placeholder="auto" />
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let row; let i = index">
-                      <button mat-icon-button type="button" class="la-remove-btn" (click)="removePayment(i)">
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                    </td>
-                  </ng-container>
-
-                  <tr mat-header-row *matHeaderRowDef="isYearly() ? ['yearNumber','paymentDate','amount','paymentMode','receiptNumber','actions'] : paymentColumns; sticky: true"></tr>
-                  <tr mat-row *matRowDef="let row; columns: isYearly() ? ['yearNumber','paymentDate','amount','paymentMode','receiptNumber','actions'] : paymentColumns"></tr>
-                </table>
+                      </div>
+                      @if (!isYearly()) {
+                        <div class="field-group">
+                          <label class="field-label">Semester <span class="required-star">*</span></label>
+                          <select class="field-input" formControlName="semesterSequence">
+                            <option [value]="1">Semester 1</option>
+                            <option [value]="2">Semester 2</option>
+                          </select>
+                        </div>
+                      }
+                      <div class="field-group">
+                        <label class="field-label">Payment Date <span class="required-star">*</span></label>
+                        <input type="date" class="field-input" formControlName="paymentDate" />
+                      </div>
+                      <div class="field-group">
+                        <label class="field-label">Amount (₹) <span class="required-star">*</span></label>
+                        <input type="number" class="field-input" formControlName="amount"
+                               min="0.01" step="0.01" placeholder="0.00" />
+                      </div>
+                      <div class="field-group">
+                        <label class="field-label">Payment Mode <span class="required-star">*</span></label>
+                        <select class="field-input" formControlName="paymentMode">
+                          @for (m of PAYMENT_MODES; track m) {
+                            <option [value]="m">{{ m }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="field-group">
+                        <label class="field-label">Receipt # <span class="la-col-hint">(blank = auto)</span></label>
+                        <input type="text" class="field-input" formControlName="receiptNumber" placeholder="auto" />
+                      </div>
+                      <div class="field-group">
+                        <label class="field-label">Transaction Reference</label>
+                        <input type="text" class="field-input" formControlName="transactionReference" />
+                      </div>
+                      <div class="field-group">
+                        <label class="field-label">Remarks</label>
+                        <input type="text" class="field-input" formControlName="remarks" />
+                      </div>
+                    </div>
+                    <button mat-icon-button type="button" class="la-remove-btn"
+                            (click)="removePayment($index)" aria-label="Remove payment">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                }
               </div>
             }
             <div class="la-add-payment-row">

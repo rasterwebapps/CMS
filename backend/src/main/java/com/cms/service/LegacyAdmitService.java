@@ -157,6 +157,11 @@ public class LegacyAdmitService {
         student.setMotherPhone(request.motherPhone());
         student.setMotherEmail(request.motherEmail());
         student.setParentMobile(request.parentMobile());
+        student.setRollNumber(request.rollNumber());
+        student.setUniversityRegistrationNumber(request.universityRegistrationNumber());
+        if (request.umisNumber() != null && !request.umisNumber().isBlank()) {
+            student.setUmisNumber(request.umisNumber());
+        }
 
         if (request.address() != null) {
             AddressRequest addr = request.address();

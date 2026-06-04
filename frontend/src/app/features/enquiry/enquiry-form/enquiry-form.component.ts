@@ -102,7 +102,6 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly feeNotFound   = signal(false);
   protected readonly feeStates     = signal<FeeState[]>([]);
   private readonly yearWiseFees = signal<string>('');
-  private _cachedFeeItems: FeeStructureItem[] = [];
 
   protected readonly quotaOptions = [
     { value: 'MANAGEMENT',  label: 'Management Quota' },
@@ -313,8 +312,7 @@ export class EnquiryFormComponent implements OnInit {
   }
 
   protected onStudentTypeChange(): void {
-    // No new API call needed — re-filter already-cached items by the new student type
-    this._applyFeeItems(this._cachedFeeItems);
+    this.tryLoadFeeGuideline();
   }
 
   protected onDimensionChange(): void {
@@ -335,39 +333,35 @@ export class EnquiryFormComponent implements OnInit {
   private tryLoadFeeGuideline(): void {
     const v = this.form.getRawValue();
     const feeStateId = this.resolveFeeStateId();
-    // studentType is still required so we know which total to display after loading
     if (!v.programId || !v.admissionQuota || !feeStateId || !v.gender || !v.studentType) {
-      this._cachedFeeItems = [];
       this.totalFees.set(0);
       this.feeNotFound.set(false);
       return;
     }
     if (this.courses().length > 0 && !v.courseId) {
       // Program has courses but none selected yet — don't show a misleading "not found"
-      this._cachedFeeItems = [];
       this.totalFees.set(0);
       this.feeNotFound.set(false);
       return;
     }
     const params = new URLSearchParams({
-      programId:  v.programId.toString(),
-      quota:      v.admissionQuota,
-      feeStateId: feeStateId.toString(),
-      gender:     v.gender,
+      programId:   v.programId.toString(),
+      quota:       v.admissionQuota,
+      feeStateId:  feeStateId.toString(),
+      gender:      v.gender,
+      studentType: v.studentType,
     });
     if (v.courseId) params.set('courseId', v.courseId.toString());
 
-    this._cachedFeeItems = [];
     this.feeLoading.set(true);
     this.feeNotFound.set(false);
     this.http.get<FeeGuidelineResponse>(`${environment.apiUrl}/fee-structures/guideline?${params.toString()}`).subscribe({
       next: (data) => {
-        this._cachedFeeItems = data.items;
         this.feeLoading.set(false);
+        this.totalFees.set(data.totalFee);
         this._applyFeeItems(data.items);
       },
       error: (err) => {
-        this._cachedFeeItems = [];
         this.feeLoading.set(false);
         if (err.status === 404) {
           this.feeNotFound.set(true);
@@ -379,24 +373,14 @@ export class EnquiryFormComponent implements OnInit {
     });
   }
 
-  /** Filters items by student type and sets totalFees + yearWiseFees signals. */
+  /** Builds yearWiseFees from backend-filtered items (backend handles student-type filtering). */
   private _applyFeeItems(items: FeeStructureItem[]): void {
     if (!items.length) {
-      this.totalFees.set(0);
       this.yearWiseFees.set('');
       return;
     }
-    const studentType = this.form.get('studentType')?.value as string;
-    const filtered = studentType === 'HOSTELER'
-      ? items                                                // hosteler: all fees (transport + hostel + course)
-      : items.filter(i => i.feeType !== 'HOSTEL_FEE');      // day scholar: no hostel
-
-    this.totalFees.set(this.paiseToAmount(
-      filtered.reduce((s, item) => s + this.amountToPaise(item.amount), 0)
-    ));
-
     const yearMap = new Map<number, number>();
-    for (const item of filtered) {
+    for (const item of items) {
       for (const ya of item.yearAmounts ?? []) {
         yearMap.set(ya.yearNumber, (yearMap.get(ya.yearNumber) ?? 0) + this.amountToPaise(ya.amount));
       }
