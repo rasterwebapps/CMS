@@ -244,11 +244,56 @@ export class DocumentVerificationDetailComponent implements OnInit {
     this.enquiryService.rejectDocument(enquiryId, row.document.id, comment).subscribe({
       next: saved => {
         this.updateRow(row.documentType, { document: saved, status: saved.status, saving: false });
-        this.toast.warning(`${this.formatDocType(row.documentType)} rejected — student must re-upload`);
+        this.toast.warning(`${this.formatDocType(row.documentType)} rejected — use "Replace File" to upload a corrected copy`);
       },
       error: () => {
         this.updateRow(row.documentType, { saving: false });
         this.toast.error(`Failed to reject ${this.formatDocType(row.documentType)}`);
+      },
+    });
+  }
+
+  // ── Replace rejected file ─────────────────────────────────────────────────
+
+  /**
+   * Opens the native file picker for a REJECTED document row so the verifier
+   * can immediately upload a corrected file without leaving the screen.
+   */
+  protected onReplaceFile(row: VerificationRow, input: HTMLInputElement): void {
+    if (row.saving || !this.canVerify()) return;
+    input.value = '';
+    input.click();
+  }
+
+  /**
+   * Handles the chosen replacement file. Calls the upload endpoint (which
+   * upserts by document type and resets status to UPLOADED), then updates the
+   * row so the Verify button becomes available immediately.
+   */
+  protected onFileSelected(row: VerificationRow, event: Event): void {
+    const enquiryId = this.enquiry()?.id;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = ''; // allow re-selecting the same file
+    if (!enquiryId || !file || !this.canVerify()) return;
+
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      this.toast.warning('File exceeds the 10 MB upload limit');
+      return;
+    }
+
+    this.updateRow(row.documentType, { saving: true });
+    this.enquiryService.uploadDocumentFile(enquiryId, row.documentType, file).subscribe({
+      next: saved => {
+        this.updateRow(row.documentType, { document: saved, status: saved.status, saving: false });
+        this.toast.success(`${this.formatDocType(row.documentType)} replaced — click Verify to approve`);
+      },
+      error: err => {
+        this.updateRow(row.documentType, { saving: false });
+        const message = (err?.error?.message as string | undefined) ??
+          `Failed to upload ${this.formatDocType(row.documentType)}`;
+        this.toast.error(message);
       },
     });
   }

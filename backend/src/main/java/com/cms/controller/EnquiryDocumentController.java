@@ -93,7 +93,7 @@ public class EnquiryDocumentController {
      * replaces the previously stored file.
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE')")
+    @PreAuthorize("@perm.has('DOCUMENT_SUBMISSION_MANAGE') or @perm.has('DOCUMENT_VERIFICATION_MANAGE')")
     public ResponseEntity<EnquiryDocumentResponse> uploadDocument(
             @PathVariable Long enquiryId,
             @RequestParam("documentType") DocumentType documentType,

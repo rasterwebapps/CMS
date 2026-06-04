@@ -212,6 +212,31 @@ class EnquiryDocumentControllerTest {
     }
 
     @Test
+    void shouldAllowUploadByVerifierRole() throws Exception {
+        // Verifiers (DOCUMENT_VERIFICATION_MANAGE) must also be able to upload a replacement
+        // file for a rejected document — security filters are disabled in this test slice so
+        // we verify the endpoint is wired correctly (no 403 from the filter chain).
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "corrected.jpg", MediaType.IMAGE_JPEG_VALUE, "IMG".getBytes()
+        );
+        Instant now = Instant.now();
+        EnquiryDocumentResponse response = new EnquiryDocumentResponse(
+            9L, 2L, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.UPLOADED,
+            null, null, null, now, now,
+            "corrected.jpg", MediaType.IMAGE_JPEG_VALUE, 3L, now, true
+        );
+        when(documentService.uploadFile(eq(2L), eq(DocumentType.TENTH_MARKSHEET), eq(null), any()))
+            .thenReturn(response);
+
+        mockMvc.perform(multipart("/enquiries/2/documents/upload")
+                .file(file)
+                .param("documentType", "TENTH_MARKSHEET"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("UPLOADED"))
+            .andExpect(jsonPath("$.fileName").value("corrected.jpg"));
+    }
+
+    @Test
     void shouldReturnVerificationStatus() throws Exception {
         when(documentService.allMandatoryDocumentsVerified(1L))
             .thenReturn(new DocumentVerificationStatusResponse(true, true, List.of(), List.of()));

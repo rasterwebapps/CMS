@@ -227,9 +227,10 @@ public class EnquiryDocumentService {
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
-        if (remarks != null) {
-            document.setRemarks(remarks);
-        }
+        // Always overwrite remarks so a previous rejection reason is cleared
+        // from the active record. The old value is preserved in history via
+        // the recordHistory call below.
+        document.setRemarks(remarks);
 
         EnquiryDocument saved = documentRepository.save(document);
         recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);

@@ -108,6 +108,15 @@
                [class.doc-row--rejected]="row.status === 'REJECTED'"
                [class.doc-row--saving]="row.saving">
 
+            <!-- Hidden file input for replacement (verifier role) -->
+            <input
+              #replaceInput
+              type="file"
+              style="display:none"
+              (change)="onFileSelected(row, $event)"
+              [attr.aria-label]="'Replace file for ' + formatDocType(row.documentType)"
+            />
+
             <!-- Icon -->
             <mat-icon class="doc-icon">{{ getDocumentIcon(row.documentType) }}</mat-icon>
 
@@ -159,7 +168,19 @@
                   </button>
                 }
 
-                @if (canVerify() && row.status !== 'VERIFIED' && row.document?.hasFile) {
+                @if (canVerify() && row.status === 'REJECTED') {
+                  <button class="btn-replace" type="button" (click)="onReplaceFile(row, replaceInput)" [disabled]="row.saving"
+                          title="Upload a corrected file to replace the rejected document">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                      <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                    Replace File
+                  </button>
+                }
+
+                @if (canVerify() && row.status !== 'VERIFIED' && row.document?.hasFile && row.status !== 'REJECTED') {
                   <button class="btn-verify" type="button" (click)="verify(row)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -169,7 +190,7 @@
                   </button>
                 }
 
-                @if (canVerify() && row.status !== 'REJECTED' && row.document?.hasFile && row.status !== 'VERIFIED') {
+                @if (canVerify() && row.status === 'UPLOADED') {
                   <button class="btn-reject" type="button" (click)="startReject(row)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
