@@ -212,6 +212,17 @@
   --cms-toolbar-search-text: var(--cms-text-primary);
   --cms-toolbar-search-placeholder: var(--cms-text-muted);
   --cms-toolbar-search-icon: var(--cms-text-muted);
+
+  // ─── Library module alias tokens ───
+  // Library components use --color-* shorthand; map to the canonical --cms-* tokens
+  // so they automatically follow light/dark theme changes.
+  --color-primary:        var(--cms-primary);
+  --color-primary-light:  var(--cms-primary-light);
+  --color-surface:        var(--cms-bg-card);
+  --color-surface-raised: var(--cms-bg-muted);
+  --color-border:         var(--cms-border-default);
+  --color-text:           var(--cms-text-primary);
+  --color-text-secondary: var(--cms-text-secondary);
 }
 
 html {
@@ -4059,6 +4070,7 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   &--green  { background: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.6); }
   &--blue   { background: #3b82f6; box-shadow: 0 0 5px rgba(59, 130, 246, 0.6); }
   &--amber  { background: #f59e0b; box-shadow: 0 0 5px rgba(245, 158, 11, 0.6); }
+  &--orange { background: #f97316; box-shadow: 0 0 5px rgba(249, 115, 22, 0.6); }
   &--red    { background: #ef4444; box-shadow: 0 0 5px rgba(239, 68, 68, 0.6); }
   &--accent { background: var(--cms-primary); box-shadow: 0 0 5px rgba(var(--cms-primary-rgb), 0.5); }
 }
@@ -5059,4 +5071,469 @@ html.dark-theme .breadcrumb-sep.material-symbols-rounded {
   html:not(.light-theme) .breadcrumb-sep.material-symbols-rounded {
     font-variation-settings: 'opsz' 20, 'wght' 350, 'FILL' 0, 'GRAD' -25;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 📚  LIBRARY MODULE — Shared UI System
+//     Provides the form, table, and utility classes consumed by
+//     all library feature components.  All colours use --cms-*
+//     tokens so they adapt automatically to light / dark theme.
+// ══════════════════════════════════════════════════════════════
+
+// ── Secondary Button ──────────────────────────────────────────
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  white-space: nowrap;
+  text-decoration: none;
+
+  svg { flex-shrink: 0; }
+
+  &:hover:not(:disabled) {
+    background: var(--cms-bg-hover);
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// ── Small button size modifier ────────────────────────────────
+.btn-sm {
+  padding: 5px 12px !important;
+  font-size: 0.8125rem !important;
+  gap: 5px !important;
+
+  mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
+}
+
+// ── Header Actions ────────────────────────────────────────────
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+// ── Back Link ─────────────────────────────────────────────────
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-secondary);
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: color 0.15s ease;
+
+  mat-icon {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  &:hover { color: var(--cms-primary); }
+}
+
+// ── Spinner ───────────────────────────────────────────────────
+.mlp-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--cms-border-default);
+  border-top-color: var(--cms-primary);
+  border-radius: 50%;
+  animation: lib-spin 0.7s linear infinite;
+}
+
+@keyframes lib-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Table wrapper ─────────────────────────────────────────────
+.mlp-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+
+  // Clip mat-paginator border from the table card edge
+  + mat-paginator {
+    border-top: 1px solid var(--cms-border-default);
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+// ── Material table overrides (library list screens) ───────────
+.mlp-table {
+  width: 100%;
+
+  // Header row
+  th.mat-mdc-header-cell {
+    background: var(--cms-bg-muted) !important;
+    color: var(--cms-text-table-header) !important;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--cms-border-default) !important;
+    white-space: nowrap;
+  }
+
+  // Data cells
+  td.mat-mdc-cell {
+    padding: 10px 16px !important;
+    font-size: 0.8625rem;
+    color: var(--cms-text-primary);
+    border-bottom-color: var(--cms-border-light) !important;
+    vertical-align: middle;
+  }
+
+  // Empty-state row — no border
+  tr.mat-mdc-no-data-row td {
+    border-bottom: none !important;
+    padding: 0 !important;
+  }
+}
+
+// ── Table row hover ───────────────────────────────────────────
+tr.mlp-row {
+  &:hover td.mat-mdc-cell {
+    background: var(--cms-bg-hover);
+  }
+
+  &.row--overdue td.mat-mdc-cell {
+    background: rgba(239, 68, 68, 0.05);
+  }
+}
+
+// ══ Library Form System ═══════════════════════════════════════
+
+// ── Page container ────────────────────────────────────────────
+.form-page {
+  padding: 20px var(--cms-page-padding);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+
+  &__header {
+    margin-bottom: 24px;
+
+    .back-link { margin-bottom: 6px; }
+  }
+
+  &__title {
+    font-family: var(--cms-font-display);
+    font-size: 1.875rem;
+    font-weight: 400;
+    color: var(--cms-text-primary);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin: 6px 0 0;
+
+    em {
+      font-style: italic;
+      color: var(--cms-primary);
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 14px var(--cms-page-padding);
+  }
+}
+
+// ── Section card ──────────────────────────────────────────────
+.form-section {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+
+  &:last-of-type { margin-bottom: 0; }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--cms-border-light);
+  }
+
+  @media (max-width: 640px) {
+    padding: 18px 16px;
+  }
+}
+
+// ── Grid layouts ──────────────────────────────────────────────
+.form-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+
+  &--1 { grid-template-columns: 1fr; }
+  &--2 { grid-template-columns: repeat(2, 1fr); }
+  &--3 { grid-template-columns: repeat(3, 1fr); }
+
+  @media (max-width: 900px) {
+    &--3 { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 640px) {
+    &--2,
+    &--3 { grid-template-columns: 1fr; }
+  }
+}
+
+// ── Field wrapper ─────────────────────────────────────────────
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+// ── Label ─────────────────────────────────────────────────────
+.form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  line-height: 1;
+
+  &.required::after {
+    content: ' *';
+    color: var(--cms-danger, #ef4444);
+  }
+
+  // Inline hint placed inside the label element
+  .form-hint {
+    font-weight: 400;
+    color: var(--cms-text-muted);
+    font-size: 0.75rem;
+    margin-left: 6px;
+  }
+}
+
+// ── Input / Select base ───────────────────────────────────────
+.form-input,
+.form-select {
+  height: 38px;
+  padding: 0 12px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md);
+  font-size: 0.875rem;
+  color: var(--cms-text-primary);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  &::placeholder { color: var(--cms-text-muted); }
+  &:hover:not(:disabled) { border-color: var(--cms-border-hover); }
+  &:focus {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 3px var(--cms-primary-ring);
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; background: var(--cms-bg-muted); }
+}
+
+.form-select {
+  padding-right: 28px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-color: var(--cms-bg-card);
+  cursor: pointer;
+}
+
+.form-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 9px 12px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+// ── Validation messages ───────────────────────────────────────
+.form-error {
+  font-size: 0.78rem;
+  color: var(--cms-danger, #ef4444);
+  display: block;
+  margin-top: 2px;
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--cms-text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+// ── Loading state ─────────────────────────────────────────────
+.form-loading {
+  padding: 60px;
+  text-align: center;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+}
+
+// ── Sticky footer override ────────────────────────────────────
+// .form-footer already exists for the compact variant.
+// .form-footer--sticky overrides it to float above content.
+.form-footer--sticky {
+  position: sticky;
+  bottom: 16px;
+  z-index: 10;
+  margin-top: 24px;
+  border-top: none;
+  padding: 14px 20px;
+  justify-content: flex-end;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+  backdrop-filter: saturate(140%) blur(6px);
+
+  @media (max-width: 640px) {
+    bottom: 8px;
+    padding: 10px 14px;
+  }
+}
+
+// ── Library-specific dark-mode overrides ──────────────────────
+// The component SCSS files use hardcoded light-palette hex values for
+// status colours.  These overrides restore readability in dark mode.
+@mixin lib-dark-overrides {
+  // Overdue row background
+  tr.mlp-row.row--overdue td.mat-mdc-cell {
+    background: rgba(239, 68, 68, 0.08);
+  }
+
+  // Book preview card (issue-form)
+  .book-preview {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border-color: rgba(16, 185, 129, 0.20) !important;
+  }
+
+  // Issue card overdue variant (my-issues)
+  .issue-card--overdue {
+    background: rgba(239, 68, 68, 0.07) !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+  }
+
+  // Fine notice block
+  .fine-notice {
+    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.20) !important;
+  }
+
+  // Overdue alert banner (my-issues header)
+  .overdue-alert {
+    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.20) !important;
+  }
+
+  // Execute-success banner (book-import)
+  .execute-summary { background: rgba(16, 185, 129, 0.10) !important; }
+
+  // Validation summary stats
+  .vs-stat--valid   { background: rgba(16, 185, 129, 0.12) !important; }
+  .vs-stat--invalid { background: rgba(239, 68, 68, 0.12) !important; }
+  .vs-stat--warning { background: rgba(245, 158, 11, 0.12) !important; }
+  .vs-stat--total   { background: var(--cms-bg-muted) !important; }
+
+  // Fine summary cards (reports)
+  .fine-card--pending   { background: rgba(239, 68, 68, 0.07) !important; border-color: rgba(239, 68, 68, 0.20) !important; }
+  .fine-card--collected { background: rgba(16, 185, 129, 0.07) !important; border-color: rgba(16, 185, 129, 0.20) !important; }
+
+  // Form select arrow — lighter on dark background
+  .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-color: var(--cms-bg-card) !important;
+  }
+
+  // Status pills
+  .status-pill.status--available  { background: rgba(21, 128, 61, 0.18);   color: #4ade80; }
+  .status-pill.status--issued     { background: rgba(161, 98, 7, 0.20);    color: #fcd34d; }
+  .status-pill.status--lost       { background: rgba(185, 28, 28, 0.18);   color: #f87171; }
+  .status-pill.status--damaged    { background: rgba(194, 65, 12, 0.18);   color: #fb923c; }
+  .status-pill.status--withdrawn  { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+
+  .issue-status-pill.issue-status--issued   { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
+  .issue-status-pill.issue-status--returned { background: rgba(21, 128, 61, 0.18);  color: #4ade80; }
+  .issue-status-pill.issue-status--overdue  { background: rgba(185, 28, 28, 0.18);  color: #f87171; }
+  .issue-status-pill.issue-status--lost     { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+
+  .sub-status--active  { background: rgba(21, 128, 61, 0.18);   color: #4ade80; }
+  .sub-status--expired { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+
+  .member-type-tag.tag--student { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
+  .member-type-tag.tag--faculty { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
+
+  .type-tag--national      { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
+  .type-tag--international { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
+
+  .member-badge.badge--student { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
+  .member-badge.badge--faculty { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
+
+  .fine-status--pending   { background: rgba(185, 28, 28, 0.18);   color: #f87171; }
+  .fine-status--collected { background: rgba(21, 128, 61, 0.18);   color: #4ade80; }
+  .fine-status--waived    { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+
+  .status-sm--issued   { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
+  .status-sm--returned { background: rgba(21, 128, 61, 0.18);  color: #4ade80; }
+  .status-sm--overdue  { background: rgba(185, 28, 28, 0.18);  color: #f87171; }
+  .status-sm--lost     { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+
+  .tag--available       { background: rgba(21, 128, 61, 0.18); color: #4ade80; border-color: rgba(21, 128, 61, 0.25); }
+  .meta-chip--available { background: rgba(21, 128, 61, 0.18); color: #4ade80; border-color: rgba(21, 128, 61, 0.25); }
+
+  .renewal-badge     { background: rgba(146, 64, 14, 0.20); color: #fcd34d; }
+  .tab-badge         { background: var(--cms-primary); }
+  .tab-badge--overdue { background: #b91c1c; }
+
+  // Form inputs sit on a card background that shares the same token.
+  // Use the raised surface so empty inputs are clearly distinct from the card.
+  .form-input,
+  .form-select {
+    background: var(--cms-bg-surface-2) !important;
+    background-color: var(--cms-bg-surface-2) !important;
+  }
+
+  // Section background one step darker than card so sections read as panels
+  .form-section {
+    background: var(--cms-bg-muted) !important;
+  }
+}
+
+html.dark-theme { @include lib-dark-overrides; }
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) { @include lib-dark-overrides; }
 }
