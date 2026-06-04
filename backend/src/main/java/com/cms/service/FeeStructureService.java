@@ -372,27 +372,36 @@ public class FeeStructureService {
     // ── Fee lookup for enquiry (authoritative with fallback) ─────────────────
 
     /**
-     * Looks up the fee structure items for the given 4-dimension combination.
-     * Falls back to the fee state marked as {@code isFallback=true} if no
-     * exact match exists. Returns empty if neither match is found.
+     * Looks up the fee structure items for the given combination.
+     * When {@code academicYearId} is null, falls back to the current academic year.
+     * Falls back to the fallback fee state if no exact match exists.
+     * Returns empty if neither match is found.
      */
     public Optional<List<FeeStructureResponse>> findForEnquiry(
             Long programId, Long courseId,
-            AdmissionQuota quota, Long feeStateId, Gender gender) {
+            AdmissionQuota quota, Long feeStateId, Gender gender,
+            Long academicYearId) {
 
-        AcademicYear currentYear = academicYearRepository.findByIsCurrentTrue()
-            .orElseThrow(() -> new ResourceNotFoundException("No current academic year found"));
+        AcademicYear year;
+        if (academicYearId != null) {
+            Optional<AcademicYear> found = academicYearRepository.findById(academicYearId);
+            if (found.isEmpty()) return Optional.empty();
+            year = found.get();
+        } else {
+            year = academicYearRepository.findByIsCurrentTrue()
+                .orElseThrow(() -> new ResourceNotFoundException("No current academic year found"));
+        }
 
         // Try exact match
         Optional<FeeStructureGroup> group = groupRepository.findExact(
-            programId, currentYear.getId(), courseId, quota, feeStateId, gender);
+            programId, year.getId(), courseId, quota, feeStateId, gender);
 
         // Fall back to the fallback fee state if no exact match
         if (group.isEmpty()) {
             Optional<FeeState> fallbackState = feeStateRepository.findByIsFallbackTrue();
             if (fallbackState.isPresent() && !fallbackState.get().getId().equals(feeStateId)) {
                 group = groupRepository.findExact(
-                    programId, currentYear.getId(), courseId, quota,
+                    programId, year.getId(), courseId, quota,
                     fallbackState.get().getId(), gender);
             }
         }
@@ -412,9 +421,25 @@ public class FeeStructureService {
 
     public Optional<List<FeeStructureResponse>> findForEnquiry(
             Long programId, Long courseId,
+            AdmissionQuota quota, Long feeStateId, Gender gender) {
+        return findForEnquiry(programId, courseId, quota, feeStateId, gender, (Long) null);
+    }
+
+    public Optional<List<FeeStructureResponse>> findForEnquiry(
+            Long programId, Long courseId,
             AdmissionQuota quota, Long feeStateId, Gender gender,
             StudentType studentType) {
-        return findForEnquiry(programId, courseId, quota, feeStateId, gender)
+        return findForEnquiry(programId, courseId, quota, feeStateId, gender, (Long) null)
+            .map(items -> items.stream()
+                .filter(item -> studentType != StudentType.DAY_SCHOLAR || item.feeType() != FeeType.HOSTEL_FEE)
+                .toList());
+    }
+
+    public Optional<List<FeeStructureResponse>> findForEnquiry(
+            Long programId, Long courseId,
+            AdmissionQuota quota, Long feeStateId, Gender gender,
+            StudentType studentType, Long academicYearId) {
+        return findForEnquiry(programId, courseId, quota, feeStateId, gender, academicYearId)
             .map(items -> items.stream()
                 .filter(item -> studentType != StudentType.DAY_SCHOLAR || item.feeType() != FeeType.HOSTEL_FEE)
                 .toList());

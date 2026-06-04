@@ -145,7 +145,12 @@
             </div>
 
             <div class="field-group">
-              <label class="field-label">Fee State <span class="la-hint">(for fee auto-fill)</span></label>
+              <label class="field-label">
+                Fee State <span class="la-hint">(for fee auto-fill)</span>
+                @if (form.get('admissionQuota')?.value === 'COUNSELLING') {
+                  <span class="la-hint la-hint--lock">&#128274; Tamil Nadu (Counselling)</span>
+                }
+              </label>
               <select class="field-input" formControlName="feeStateId">
                 <option [value]="null">— Select fee state —</option>
                 @for (fs of feeStates(); track fs.id) {
@@ -441,7 +446,7 @@
                   <mat-spinner diameter="14" class="la-fee-spinner"></mat-spinner>
                 }
               </div>
-              <div class="entry-form-card__hdr-sub">Year-wise fees. Select Fee State above to auto-load from master.</div>
+              <div class="entry-form-card__hdr-sub">Auto-loaded from the fee master for the selected joining year. Adjust master fee and discount to reflect what was actually finalised.</div>
             </div>
           </div>
           <div class="entry-form-card__body">

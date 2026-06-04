@@ -318,12 +318,17 @@ export class EnquiryFormComponent implements OnInit {
     this.tryLoadFeeGuideline();
   }
 
-  /** Resolve the fee state ID from the address state text field.
-   *  Tries an exact name match first; falls back to the state marked isFallback. */
+  /** Resolve the fee state ID.
+   *  Counselling quota is always Tamil Nadu. Management resolves from address state text. */
   private resolveFeeStateId(): number | null {
-    const stateText = (this.form.get('state')?.value as string ?? '').trim().toLowerCase();
     const states = this.feeStates();
     if (!states.length) return null;
+    const quota = this.form.get('admissionQuota')?.value as string;
+    if (quota === 'COUNSELLING') {
+      return states.find(s => s.name.toLowerCase() === 'tamil nadu')?.id
+        ?? states.find(s => s.isFallback)?.id ?? null;
+    }
+    const stateText = (this.form.get('state')?.value as string ?? '').trim().toLowerCase();
     const exact = states.find(s => s.name.toLowerCase() === stateText);
     if (exact) return exact.id;
     return states.find(s => s.isFallback)?.id ?? null;

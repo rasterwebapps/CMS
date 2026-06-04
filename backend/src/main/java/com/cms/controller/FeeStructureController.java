@@ -65,8 +65,9 @@ public class FeeStructureController {
             @RequestParam AdmissionQuota quota,
             @RequestParam Long feeStateId,
             @RequestParam Gender gender,
-            @RequestParam(required = false) StudentType studentType) {
-        return feeStructureService.findForEnquiry(programId, courseId, quota, feeStateId, gender, studentType)
+            @RequestParam(required = false) StudentType studentType,
+            @RequestParam(required = false) Long academicYearId) {
+        return feeStructureService.findForEnquiry(programId, courseId, quota, feeStateId, gender, studentType, academicYearId)
             .map(items -> {
                 BigDecimal total = items.stream()
                     .map(FeeStructureResponse::amount)

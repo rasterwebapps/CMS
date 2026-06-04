@@ -176,6 +176,11 @@
   font-weight: 400;
   color: var(--cms-text-muted);
   margin-left: 4px;
+
+  &--lock {
+    color: var(--cms-warning, #f59e0b);
+    font-weight: 500;
+  }
 }
 
 .la-col-hint {

@@ -8,7 +8,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
-import { FeeStructure, GroupedFeeStructure } from '../finance.model';
+import { FeeState, FeeStructure, GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { environment } from '../../../../environments';
@@ -71,29 +71,33 @@ export class FeeStructureListComponent implements OnInit {
   protected readonly programs      = signal<Program[]>([]);
   protected readonly courses       = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
+  protected readonly feeStates     = signal<FeeState[]>([]);
 
   protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly selectedProgramId      = signal<number | null>(null);
   protected readonly selectedCourseId       = signal<number | null>(null);
-  protected readonly selectedQuota  = signal<Quota>(null);
-  protected readonly selectedGender = signal<Gender>(null);
+  protected readonly selectedQuota     = signal<Quota>(null);
+  protected readonly selectedGender    = signal<Gender>(null);
+  protected readonly selectedFeeStateId = signal<number | null>(null);
 
   private readonly allFeeStructures = signal<GroupedFeeStructure[]>([]);
 
   protected readonly filteredFeeStructures = computed(() => {
-    const ayId      = this.selectedAcademicYearId();
-    const progId    = this.selectedProgramId();
-    const courseId  = this.selectedCourseId();
-    const quota  = this.selectedQuota();
-    const gender = this.selectedGender();
-    const search = this.searchValue().trim().toLowerCase();
+    const ayId        = this.selectedAcademicYearId();
+    const progId      = this.selectedProgramId();
+    const courseId    = this.selectedCourseId();
+    const quota       = this.selectedQuota();
+    const gender      = this.selectedGender();
+    const feeStateId  = this.selectedFeeStateId();
+    const search      = this.searchValue().trim().toLowerCase();
 
     return this.allFeeStructures().filter(fs => {
-      if (ayId     !== null && fs.academicYearId !== ayId) return false;
-      if (progId   !== null && fs.programId !== progId)    return false;
-      if (courseId !== null && fs.courseId !== courseId)   return false;
-      if (quota    !== null && fs.quota !== quota)         return false;
-      if (gender   !== null && fs.gender !== gender)       return false;
+      if (ayId       !== null && fs.academicYearId !== ayId)  return false;
+      if (progId     !== null && fs.programId !== progId)     return false;
+      if (courseId   !== null && fs.courseId !== courseId)    return false;
+      if (quota      !== null && fs.quota !== quota)          return false;
+      if (gender     !== null && fs.gender !== gender)        return false;
+      if (feeStateId !== null && fs.feeStateId !== feeStateId) return false;
       if (search) {
         const haystack = [
           fs.programName, fs.courseName, fs.academicYearName,
@@ -112,7 +116,8 @@ export class FeeStructureListComponent implements OnInit {
 
   protected readonly hasActiveFilters = computed(() =>
     !!this.searchValue() || !!this.selectedAcademicYearId() || !!this.selectedProgramId() ||
-    !!this.selectedCourseId() || !!this.selectedQuota() || !!this.selectedGender()
+    !!this.selectedCourseId() || !!this.selectedQuota() || !!this.selectedGender() ||
+    !!this.selectedFeeStateId()
   );
 
   // ── Fee-split helpers ─────────────────────────────────────────────────────
@@ -160,6 +165,7 @@ export class FeeStructureListComponent implements OnInit {
     this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({ next: d => this.programs.set(d) });
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: d => this.academicYears.set(d) });
+    this.financeService.getFeeStates().subscribe({ next: d => this.feeStates.set(d) });
     this.load();
   }
 
@@ -184,8 +190,9 @@ export class FeeStructureListComponent implements OnInit {
   }
 
   protected onCourseChange(id: number | null): void     { this.selectedCourseId.set(id); }
-  protected onQuotaChange(v: string | null): void  { this.selectedQuota.set((v || null) as Quota); }
-  protected onGenderChange(v: string | null): void { this.selectedGender.set((v || null) as Gender); }
+  protected onQuotaChange(v: string | null): void     { this.selectedQuota.set((v || null) as Quota); }
+  protected onGenderChange(v: string | null): void    { this.selectedGender.set((v || null) as Gender); }
+  protected onFeeStateChange(id: number | null): void { this.selectedFeeStateId.set(id); }
 
   protected clearFilters(): void {
     this.selectedAcademicYearId.set(null);
@@ -193,6 +200,7 @@ export class FeeStructureListComponent implements OnInit {
     this.selectedCourseId.set(null);
     this.selectedQuota.set(null);
     this.selectedGender.set(null);
+    this.selectedFeeStateId.set(null);
     this.searchValue.set('');
     this.courses.set([]);
   }

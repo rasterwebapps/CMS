@@ -77,7 +77,6 @@ export class LegacyAdmitComponent implements OnInit {
   protected readonly saveError           = signal<string | null>(null);
   protected readonly successState        = signal<LegacyAdmitResponse | null>(null);
   protected readonly feeGuidelineLoading = signal(false);
-
   protected readonly programs      = signal<Program[]>([]);
   protected readonly courses       = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
@@ -194,12 +193,20 @@ export class LegacyAdmitComponent implements OnInit {
         this.referralTypes.set(referrals);
         this.agents.set(agents);
         this.feeStates.set(feeStates);
+        this.enforceCounsellingState(feeStates, this.form.get('admissionQuota')?.value);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
 
-    const feeParamControls = ['admissionQuota', 'gender', 'studentType', 'feeStateId', 'joiningAcademicYearId', 'courseId'];
+    this.form.get('admissionQuota')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(quota => {
+        this.enforceCounsellingState(this.feeStates(), quota);
+        this.tryLoadFeeGuideline();
+      });
+
+    const feeParamControls = ['gender', 'studentType', 'feeStateId', 'joiningAcademicYearId', 'courseId'];
     feeParamControls.forEach(name => {
       this.form.get(name)?.valueChanges
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -209,6 +216,18 @@ export class LegacyAdmitComponent implements OnInit {
     this.paymentsArray.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(vals => this.updatePaymentSummary(vals as { yearNumber: number; amount: number | null }[]));
+  }
+
+  private enforceCounsellingState(states: { id: number; name: string }[], quota: string | null): void {
+    const ctrl = this.form.get('feeStateId');
+    if (!ctrl) return;
+    if (quota === 'COUNSELLING') {
+      const tn = states.find(s => s.name.toLowerCase() === 'tamil nadu');
+      if (tn) ctrl.setValue(tn.id);
+      ctrl.disable({ emitEvent: false });
+    } else {
+      ctrl.enable({ emitEvent: false });
+    }
   }
 
   protected onProgramChange(programId: number | null): void {
@@ -247,14 +266,15 @@ export class LegacyAdmitComponent implements OnInit {
   private tryLoadFeeGuideline(): void {
     if (this.yearFeesArray.length === 0) return;
     const v = this.form.value;
-    if (!v.programId || !v.admissionQuota || !v.gender || !v.feeStateId) return;
+    if (!v.programId || !v.admissionQuota || !v.gender || !v.feeStateId || !v.joiningAcademicYearId) return;
 
     this.feeGuidelineLoading.set(true);
     const params = new URLSearchParams({
-      programId:  v.programId.toString(),
-      quota:      v.admissionQuota,
-      feeStateId: v.feeStateId.toString(),
-      gender:     v.gender,
+      programId:      v.programId.toString(),
+      quota:          v.admissionQuota,
+      feeStateId:     v.feeStateId.toString(),
+      gender:         v.gender,
+      academicYearId: v.joiningAcademicYearId.toString(),
     });
     if (v.courseId)    params.set('courseId', v.courseId.toString());
     if (v.studentType) params.set('studentType', v.studentType);
@@ -283,7 +303,13 @@ export class LegacyAdmitComponent implements OnInit {
         }
         this.feeGuidelineLoading.set(false);
       },
-      error: () => this.feeGuidelineLoading.set(false),
+      error: () => {
+        const arr = this.yearFeesArray;
+        for (let i = 0; i < arr.length; i++) {
+          (arr.at(i) as FormGroup).get('masterFee')?.setValue(null, { emitEvent: false });
+        }
+        this.feeGuidelineLoading.set(false);
+      },
     });
   }
 
