@@ -125,7 +125,6 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
   protected readonly ageRestrictionError = signal<string | null>(null);
   protected readonly totalFees = signal(0);
-  protected readonly finalCalculatedFee = computed(() => this.totalFees());
   private itemId: number | null = null;
   protected readonly form: FormGroup = this.fb.group({
     name:           ['', [Validators.required, Validators.maxLength(255)]],
@@ -568,9 +567,7 @@ export class EnquiryFormComponent implements OnInit {
       enquiryDate: v.enquiryDate, referralTypeId: v.referralTypeId,
       status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
-      feeGuidelineTotal: this.totalFees() || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
-      finalCalculatedFee: this.finalCalculatedFee() || undefined,
       studentType: v.studentType || undefined,
       yearWiseFees: this.yearWiseFees() || undefined,
       countryId: v.country || undefined,

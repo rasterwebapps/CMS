@@ -237,11 +237,11 @@
               </span>
             </div>
           }
-          @if (selectedEnquiry()!.feeGuidelineTotal) {
+          @if (selectedEnquiry()!.finalCalculatedFee) {
             <div class="info-row info-row--highlight">
               <span class="info-label">Guideline Total</span>
               <span class="info-val info-val--strong info-val--amount">
-                {{ selectedEnquiry()!.feeGuidelineTotal | inr }}
+                {{ selectedEnquiry()!.finalCalculatedFee | inr }}
               </span>
             </div>
           }

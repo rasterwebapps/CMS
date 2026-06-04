@@ -178,7 +178,7 @@ export class FeeFinalizationComponent implements OnInit {
     if (authoritative != null) {
       return authoritative;
     }
-    return enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? null;
+    return enquiry.finalCalculatedFee ?? null;
   }
 
   private hydrateAuthoritativeProposedFees(enquiries: Enquiry[]): void {
@@ -306,7 +306,7 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   private applyEqualSplitFallback(enquiry: Enquiry): void {
-    const totalPaise = this.amountToPaise(enquiry.finalCalculatedFee ?? enquiry.feeGuidelineTotal ?? 0);
+    const totalPaise = this.amountToPaise(enquiry.finalCalculatedFee ?? 0);
     // Use the program's actual duration years; fall back to 4 (typical nursing program)
     const program = this.programs().find(p => p.id === enquiry.programId);
     const n = program?.durationYears ?? 4;

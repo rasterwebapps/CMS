@@ -298,24 +298,24 @@ public class EnquiryService {
             );
         }
 
-        // Validate that fee cannot be increased - only discounts are allowed
-        BigDecimal originalCalculatedFee = enquiry.getFinalCalculatedFee();
-        if (originalCalculatedFee == null) {
+        if (enquiry.getFinalCalculatedFee() == null) {
             throw new IllegalStateException(
                 "Cannot finalize fees: no calculated fee found for this enquiry. Please ensure the fee is calculated first."
             );
         }
 
+        // Always use current fee structure as the ceiling — fee structure may have been updated
+        // since the enquiry was created, so validating against the stored originalCalculatedFee
+        // would incorrectly block finalization at the current guideline amount.
+        BigDecimal authoritativeTotal = resolveAuthoritativeFinalizationTotal(enquiry);
         BigDecimal requestedTotal = normalizeAmount(request.totalFee());
-        if (requestedTotal.compareTo(originalCalculatedFee) > 0) {
+        if (requestedTotal.compareTo(authoritativeTotal) > 0) {
             throw new IllegalArgumentException(
                 "Fee increase is not allowed. Requested fee ₹" + requestedTotal +
-                " exceeds the original calculated fee ₹" + originalCalculatedFee +
+                " exceeds the current fee structure guideline ₹" + authoritativeTotal +
                 ". Only discounts can be applied during finalization."
             );
         }
-
-        BigDecimal authoritativeTotal = resolveAuthoritativeFinalizationTotal(enquiry);
         BigDecimal discount = normalizeAmount(request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO);
         if (discount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Discount amount cannot be negative");
