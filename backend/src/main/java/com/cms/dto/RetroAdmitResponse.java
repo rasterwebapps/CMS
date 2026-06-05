@@ -2,7 +2,7 @@ package com.cms.dto;
 
 import java.math.BigDecimal;
 
-public record LegacyAdmitResponse(
+public record RetroAdmitResponse(
     Long studentId,
     String admissionNumber,
     String studentName,

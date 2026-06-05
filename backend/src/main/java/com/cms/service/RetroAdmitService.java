@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AddressRequest;
-import com.cms.dto.LegacyAdmitRequest;
-import com.cms.dto.LegacyAdmitResponse;
+import com.cms.dto.RetroAdmitRequest;
+import com.cms.dto.RetroAdmitResponse;
 import com.cms.dto.LegacyPaymentEntry;
 import com.cms.dto.LegacyYearFeeEntry;
 import com.cms.exception.ResourceNotFoundException;
@@ -53,7 +53,7 @@ import com.cms.repository.StudentRepository;
 import com.cms.repository.TermBillingScheduleRepository;
 
 @Service
-public class LegacyAdmitService {
+public class RetroAdmitService {
 
     private static final String[] ORDINALS = {
         "First", "Second", "Third", "Fourth", "Fifth", "Sixth",
@@ -75,7 +75,7 @@ public class LegacyAdmitService {
     private final ApplicationNumberSequenceService numberSequenceService;
     private final UnifiedReceiptService unifiedReceiptService;
 
-    public LegacyAdmitService(StudentRepository studentRepository,
+    public RetroAdmitService(StudentRepository studentRepository,
                                AdmissionRepository admissionRepository,
                                EnquiryRepository enquiryRepository,
                                ProgramRepository programRepository,
@@ -106,7 +106,7 @@ public class LegacyAdmitService {
     }
 
     @Transactional
-    public LegacyAdmitResponse admit(LegacyAdmitRequest request, String performedBy) {
+    public RetroAdmitResponse admit(RetroAdmitRequest request, String performedBy) {
 
         // ── Step 1: Resolve master entities ───────────────────────────────
         Program program = programRepository.findById(request.programId())
@@ -376,7 +376,7 @@ public class LegacyAdmitService {
             }
         }
 
-        return new LegacyAdmitResponse(
+        return new RetroAdmitResponse(
                 saved.getId(),
                 saved.getAdmissionNumber(),
                 saved.getFullName(),

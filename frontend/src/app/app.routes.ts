@@ -260,11 +260,11 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'students/legacy-admit',
-    canActivate: withPermission('LEGACY_ADMIT'),
+    path: 'students/retro-admit',
+    canActivate: withPermission('RETRO_ADMIT'),
     loadComponent: () =>
-      import('./features/student/legacy-admit/legacy-admit.component').then(
-        (m) => m.LegacyAdmitComponent
+      import('./features/student/retro-admit/retro-admit.component').then(
+        (m) => m.RetroAdmitComponent
       ),
   },
   {

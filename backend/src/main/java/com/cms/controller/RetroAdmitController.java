@@ -10,29 +10,29 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cms.dto.LegacyAdmitRequest;
-import com.cms.dto.LegacyAdmitResponse;
-import com.cms.service.LegacyAdmitService;
+import com.cms.dto.RetroAdmitRequest;
+import com.cms.dto.RetroAdmitResponse;
+import com.cms.service.RetroAdmitService;
 
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/students/legacy-admit")
-public class LegacyAdmitController {
+@RequestMapping("/students/retro-admit")
+public class RetroAdmitController {
 
-    private final LegacyAdmitService legacyAdmitService;
+    private final RetroAdmitService retroAdmitService;
 
-    public LegacyAdmitController(LegacyAdmitService legacyAdmitService) {
-        this.legacyAdmitService = legacyAdmitService;
+    public RetroAdmitController(RetroAdmitService retroAdmitService) {
+        this.retroAdmitService = retroAdmitService;
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('LEGACY_ADMIT')")
-    public ResponseEntity<LegacyAdmitResponse> admit(
-            @Valid @RequestBody LegacyAdmitRequest request,
+    @PreAuthorize("@perm.has('RETRO_ADMIT')")
+    public ResponseEntity<RetroAdmitResponse> admit(
+            @Valid @RequestBody RetroAdmitRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String user = jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
-        LegacyAdmitResponse response = legacyAdmitService.admit(request, user);
+        RetroAdmitResponse response = retroAdmitService.admit(request, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

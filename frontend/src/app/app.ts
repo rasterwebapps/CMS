@@ -154,7 +154,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Verify Documents',   icon: 'verified',              route: '/enquiries/document-verification',permissions: ['DOCUMENT_VERIFICATION_MANAGE'] },
         { label: 'Complete Admission', icon: 'assignment_turned_in', route: '/enquiries/admission-completion', permissions: ['ADMISSION_CREATE'] },
         { label: 'Admission Explorer', icon: 'assignment_ind', route: '/admissions',                    permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT'] },
-        { label: 'Legacy Direct Admit', icon: 'history_edu',   route: '/students/legacy-admit',          permissions: ['LEGACY_ADMIT'] },
+        { label: 'Retro Admit',         icon: 'history_edu',   route: '/students/retro-admit',           permissions: ['RETRO_ADMIT'] },
       ],
     },
     // 3. Student Management

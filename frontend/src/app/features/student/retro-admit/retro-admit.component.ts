@@ -33,7 +33,7 @@ import { FeeState } from '../../finance/finance.model';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
-interface LegacyAdmitResponse {
+interface RetroAdmitResponse {
   studentId: number;
   admissionNumber: string;
   studentName: string;
@@ -45,17 +45,17 @@ interface LegacyAdmitResponse {
 }
 
 @Component({
-  selector: 'app-legacy-admit',
+  selector: 'app-retro-admit',
   standalone: true,
   imports: [
     ReactiveFormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     InrPipe, CmsCountryStateDistrictSelectorComponent,
   ],
-  templateUrl: './legacy-admit.component.html',
-  styleUrl: './legacy-admit.component.scss',
+  templateUrl: './retro-admit.component.html',
+  styleUrl: './retro-admit.component.scss',
 })
-export class LegacyAdmitComponent implements OnInit {
+export class RetroAdmitComponent implements OnInit {
 
   private readonly fb              = inject(FormBuilder);
   private readonly router          = inject(Router);
@@ -75,7 +75,7 @@ export class LegacyAdmitComponent implements OnInit {
   protected readonly loading             = signal(true);
   protected readonly saving              = signal(false);
   protected readonly saveError           = signal<string | null>(null);
-  protected readonly successState        = signal<LegacyAdmitResponse | null>(null);
+  protected readonly successState        = signal<RetroAdmitResponse | null>(null);
   protected readonly feeGuidelineLoading  = signal(false);
   protected readonly feeGuidelineEmpty   = signal(false);
   protected readonly programs      = signal<Program[]>([]);
@@ -597,7 +597,7 @@ export class LegacyAdmitComponent implements OnInit {
       payments,
     };
 
-    this.http.post<LegacyAdmitResponse>(`${environment.apiUrl}/students/legacy-admit`, body)
+    this.http.post<RetroAdmitResponse>(`${environment.apiUrl}/students/retro-admit`, body)
       .subscribe({
         next: res => {
           this.saving.set(false);

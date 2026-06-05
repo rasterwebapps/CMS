@@ -13,7 +13,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record LegacyAdmitRequest(
+public record RetroAdmitRequest(
 
     // ── Student identity ─────────────────────────────────────────────────
     @NotBlank String firstName,
