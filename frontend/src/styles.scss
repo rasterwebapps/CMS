@@ -883,6 +883,48 @@ app-root {
   margin-bottom: 24px;
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 22px 26px;
+  background:
+    radial-gradient(ellipse 70% 120% at 5% 50%,
+      rgba(var(--cms-primary-rgb), .07) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 90% at 95% 80%,
+      rgba(var(--cms-primary-rgb), .04) 0%, transparent 60%),
+    var(--cms-bg-card);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 14%, var(--cms-border-default));
+  box-shadow: 0 2px 16px color-mix(in srgb, var(--cms-primary) 7%, rgba(0,0,0,.05));
+  transition: box-shadow 0.2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary) 0%,
+      color-mix(in srgb, var(--cms-primary) 30%, transparent) 100%
+    );
+    pointer-events: none;
+  }
+
+  html.dark-theme & {
+    background:
+      radial-gradient(ellipse 70% 120% at 5% 50%,
+        color-mix(in srgb, var(--cms-primary) 18%, transparent) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 90% at 95% 80%,
+        rgba(245,158,11,.08) 0%, transparent 60%),
+      rgba(255,255,255,.03);
+    border-color: color-mix(in srgb, var(--cms-primary) 18%, rgba(255,255,255,.07));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.06),
+      0 0 32px color-mix(in srgb, var(--cms-primary) 8%, transparent),
+      0 12px 28px rgba(0,0,0,.20);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    &::after { box-shadow: 0 0 10px color-mix(in srgb, var(--cms-primary) 45%, transparent); }
+  }
 
   &__left {
     display: flex;
@@ -948,7 +990,7 @@ app-root {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: var(--cms-primary);
+  background: var(--cms-gradient-brand, linear-gradient(135deg, var(--cms-primary) 0%, color-mix(in srgb, var(--cms-primary) 70%, #818cf8) 100%));
   color: #fff;
   border: none;
   border-radius: var(--cms-radius-sm);
@@ -957,9 +999,9 @@ app-root {
   cursor: pointer;
   transition: var(--cms-transition);
   box-shadow:
-    var(--cms-shadow-sm),
-    0 4px 24px rgba(var(--cms-primary-rgb), 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 2px 8px rgba(var(--cms-primary-rgb), 0.30),
+    0 4px 20px rgba(var(--cms-primary-rgb), 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   white-space: nowrap;
   letter-spacing: -0.01em;
   text-decoration: none;
@@ -1272,12 +1314,40 @@ app-root {
 .content-card {
   background: var(--cms-bg-card);
   border-radius: var(--cms-radius-lg);
-  box-shadow: var(--cms-shadow-sm);
-  border: 1px solid var(--cms-border-default);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 10%, var(--cms-border-default));
   overflow: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,.04),
+    0 4px 16px color-mix(in srgb, var(--cms-primary) 8%, rgba(0,0,0,.04)),
+    0 8px 32px color-mix(in srgb, var(--cms-primary) 4%, transparent);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary),
+      color-mix(in srgb, var(--cms-primary) 25%, transparent)
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--cms-primary) 22%, var(--cms-border-default));
+    box-shadow:
+      0 1px 3px rgba(0,0,0,.04),
+      0 8px 24px color-mix(in srgb, var(--cms-primary) 14%, rgba(0,0,0,.06)),
+      0 16px 48px color-mix(in srgb, var(--cms-primary) 8%, transparent);
+    transform: translateY(-2px);
+  }
 }
 
 // Dashboard widget cards (legacy style) — accent top bar + shimmer to match .widget-shell
@@ -1448,23 +1518,27 @@ app-root {
   border-collapse: separate;
   border-spacing: 0;
 
-  // ── Header — Change 1: 11px → 12px · Change 2: reduced tracking ─────────
-  // Change 2: sticky: true is set per-template; CSS makes it work correctly.
+  // ── Header ───────────────────────────────────────────────────────────────
   th.mat-header-cell,
   th.mat-mdc-header-cell {
-    font-size:      0.75rem;           // was 0.6875rem (11px) — now 12px
-    font-weight:    600;
+    font-size:      0.75rem;
+    font-weight:    700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;            // was 0.06em — less stretched
+    letter-spacing: 0.04em;
     color:          var(--cms-text-table-header);
-    background:     var(--cms-bg-subtle);
-    border-bottom:  1px solid var(--cms-border-default);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--cms-primary) 4%, var(--cms-bg-subtle)) 0%,
+        var(--cms-bg-subtle) 100%
+      );
+    border-bottom:  1px solid color-mix(in srgb, var(--cms-primary) 10%, var(--cms-border-default));
     padding:        13px 20px;
     white-space:    nowrap;
-    // Required for sticky: true to work — keeps header above scrolling rows
     position:       sticky;
     top:            0;
     z-index:        2;
+    transition:     background 0.15s;
 
     .mat-sort-header-container { width: 100%; }
   }
@@ -1479,12 +1553,10 @@ app-root {
     vertical-align: middle;
   }
 
-  // ── Row hover + Change 3: row actions always visible at low opacity ───────
+  // ── Row hover ────────────────────────────────────────────────────────────
   tr.table-row {
     transition: var(--cms-transition);
 
-    // Row actions are always present at reduced opacity so they're
-    // discoverable on touch devices and by new users.
     .row-actions {
       opacity:        0.45;
       pointer-events: auto;
@@ -1492,11 +1564,16 @@ app-root {
     }
 
     &:hover {
-      background-color: var(--cms-bg-hover);
+      background-color: color-mix(in srgb, var(--cms-primary) 4%, var(--cms-bg-hover));
 
       td.mat-cell,
       td.mat-mdc-cell {
-        background-color: var(--cms-bg-hover);
+        background-color: color-mix(in srgb, var(--cms-primary) 4%, var(--cms-bg-hover));
+      }
+
+      td.mat-cell:first-child,
+      td.mat-mdc-cell:first-child {
+        box-shadow: inset 3px 0 0 var(--cms-primary);
       }
 
       .row-actions { opacity: 1; }
@@ -2131,6 +2208,43 @@ tr.mat-mdc-no-data-row {
   align-items: flex-start;
   gap: 14px;
   margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 20px 24px;
+  background:
+    radial-gradient(ellipse 65% 120% at 4% 60%,
+      rgba(var(--cms-primary-rgb), .06) 0%, transparent 65%),
+    var(--cms-bg-card);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 12%, var(--cms-border-default));
+  box-shadow: 0 2px 14px color-mix(in srgb, var(--cms-primary) 6%, rgba(0,0,0,.04));
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary) 0%,
+      color-mix(in srgb, var(--cms-primary) 20%, transparent) 100%
+    );
+    pointer-events: none;
+  }
+
+  html.dark-theme & {
+    background:
+      radial-gradient(ellipse 65% 120% at 4% 60%,
+        color-mix(in srgb, var(--cms-primary) 16%, transparent) 0%, transparent 65%),
+      rgba(255,255,255,.03);
+    border-color: color-mix(in srgb, var(--cms-primary) 16%, rgba(255,255,255,.07));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.05),
+      0 0 28px color-mix(in srgb, var(--cms-primary) 7%, transparent),
+      0 10px 24px rgba(0,0,0,.18);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    &::after { box-shadow: 0 0 8px color-mix(in srgb, var(--cms-primary) 40%, transparent); }
+  }
 
   // Legacy mat-icon-button back-btn support (keeps older forms working)
   .back-btn {
@@ -2196,13 +2310,40 @@ tr.mat-mdc-no-data-row {
 
 .entry-form-hdr-text { flex: 1; min-width: 0; }
 
-// ── Flat Form Card (no shadow, whisper-thin border) ─
+// ── Form Card ────────────────────────────────────────
 .entry-form-card {
   background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 10%, var(--cms-border-default));
   border-radius: var(--cms-radius-lg);
   padding: 28px 32px;
   max-width: 640px;
+  position: relative;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,.04),
+    0 4px 16px color-mix(in srgb, var(--cms-primary) 7%, rgba(0,0,0,.04));
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary),
+      color-mix(in srgb, var(--cms-primary) 20%, transparent)
+    );
+    border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+    pointer-events: none;
+  }
+
+  html.dark-theme & {
+    background: color-mix(in srgb, var(--cms-primary) 3%, var(--cms-bg-card));
+    border-color: color-mix(in srgb, var(--cms-primary) 12%, rgba(255,255,255,.06));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.05),
+      0 0 20px color-mix(in srgb, var(--cms-primary) 6%, transparent),
+      0 12px 28px rgba(0,0,0,.20);
+    &::before { box-shadow: 0 0 8px color-mix(in srgb, var(--cms-primary) 35%, transparent); }
+  }
 
   @media (max-width: 640px) {
     padding: 20px 16px;
@@ -3058,11 +3199,25 @@ html.dark-theme {
 // ── Section heading inside a form card ───────────
 .form-section-title {
   margin: 0 0 20px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--cms-text-muted);
+  color: var(--cms-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 12px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--cms-primary), color-mix(in srgb, var(--cms-primary) 40%, transparent));
+  }
 }
 
 // ── Ambient Glow Blobs — dark mode only ──────────────
@@ -3199,11 +3354,35 @@ html.dark-theme body::after {
   animation: cms-rise-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-// Content card hover improvements using Phase 1 tokens
-.content-card {
-  &:hover {
-    border-color: var(--cms-line-strong);
+// Dark-mode content-card: glassmorphism + glow (overrides light-mode shadow)
+@mixin content-card-dark {
+  background: color-mix(in srgb, var(--cms-primary) 4%, var(--cms-bg-card));
+  border-color: color-mix(in srgb, var(--cms-primary) 12%, rgba(255,255,255,.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 0 24px color-mix(in srgb, var(--cms-primary) 6%, transparent),
+    0 16px 32px rgba(0,0,0,.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  &::before {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--cms-primary) 40%, transparent);
   }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--cms-primary) 24%, rgba(255,255,255,.10));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.08),
+      0 0 40px color-mix(in srgb, var(--cms-primary) 10%, transparent),
+      0 24px 48px rgba(0,0,0,.28);
+    transform: translateY(-2px);
+  }
+}
+
+html.dark-theme .content-card { @include content-card-dark; }
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) .content-card { @include content-card-dark; }
 }
 
 // ── Phase 5: Form/Data Entry Screen Enhancements ──────
@@ -3964,11 +4143,128 @@ html.dark-theme body::after {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 22px 26px;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(ellipse 65% 120% at 4% 60%,
+      rgba(var(--cms-primary-rgb), .07) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 90% at 96% 80%,
+      rgba(var(--cms-primary-rgb), .04) 0%, transparent 60%),
+    var(--cms-bg-card);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 14%, var(--cms-border-default));
+  box-shadow: 0 2px 16px color-mix(in srgb, var(--cms-primary) 7%, rgba(0,0,0,.05));
+  transition: box-shadow 0.2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary) 0%,
+      color-mix(in srgb, var(--cms-primary) 25%, transparent) 100%
+    );
+    pointer-events: none;
+  }
+
+  html.dark-theme & {
+    background:
+      radial-gradient(ellipse 65% 120% at 4% 60%,
+        color-mix(in srgb, var(--cms-primary) 18%, transparent) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 90% at 96% 80%,
+        rgba(245,158,11,.07) 0%, transparent 60%),
+      rgba(255,255,255,.03);
+    border-color: color-mix(in srgb, var(--cms-primary) 18%, rgba(255,255,255,.07));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.06),
+      0 0 32px color-mix(in srgb, var(--cms-primary) 8%, transparent),
+      0 12px 28px rgba(0,0,0,.20);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    &::after { box-shadow: 0 0 10px color-mix(in srgb, var(--cms-primary) 40%, transparent); }
+  }
 }
 
 .mlp-hdr-left {
   display: flex;
   flex-direction: column;
+}
+
+// ── Universal page-header gradient band ───────────────────────────────────
+// Covers all module-specific page header classes that aren't .mlp-hdr.
+// These classes only define layout in their component SCSS; adding background
+// + border + padding here is additive with no specificity conflicts.
+:is(
+  .dept-pg-hdr, .enq-pg-hdr, .fpl-hdr, .sfx-hdr, .sfd-hdr,
+  .rna-hdr, .docv-hdr, .um-hdr, .rm-hdr, .imp-hdr,
+  .adcomp-hdr, .conv-hdr, .stu-hdr
+) {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 22px 26px;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(ellipse 65% 120% at 4% 60%,
+      rgba(var(--cms-primary-rgb), .07) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 90% at 96% 80%,
+      rgba(var(--cms-primary-rgb), .04) 0%, transparent 60%),
+    var(--cms-bg-card);
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 14%, var(--cms-border-default));
+  box-shadow: 0 2px 16px color-mix(in srgb, var(--cms-primary) 7%, rgba(0,0,0,.05));
+  transition: box-shadow 0.2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cms-primary) 0%,
+      color-mix(in srgb, var(--cms-primary) 25%, transparent) 100%
+    );
+    pointer-events: none;
+  }
+}
+
+html.dark-theme :is(
+  .dept-pg-hdr, .enq-pg-hdr, .fpl-hdr, .sfx-hdr, .sfd-hdr,
+  .rna-hdr, .docv-hdr, .um-hdr, .rm-hdr, .imp-hdr,
+  .adcomp-hdr, .conv-hdr, .stu-hdr
+) {
+  background:
+    radial-gradient(ellipse 65% 120% at 4% 60%,
+      color-mix(in srgb, var(--cms-primary) 18%, transparent) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 90% at 96% 80%,
+      rgba(245,158,11,.07) 0%, transparent 60%),
+    rgba(255,255,255,.03);
+  border-color: color-mix(in srgb, var(--cms-primary) 18%, rgba(255,255,255,.07));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 0 32px color-mix(in srgb, var(--cms-primary) 8%, transparent),
+    0 12px 28px rgba(0,0,0,.20);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  &::after {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--cms-primary) 40%, transparent);
+  }
+}
+
+// ── Stat pills inside gradient header bands ─────────────────────
+// Make mlp-stat and mlp-stat-dot richer inside the gradient band
+.mlp-hdr .mlp-stat {
+  background: rgba(var(--cms-primary-rgb), .08);
+  border-color: color-mix(in srgb, var(--cms-primary) 18%, transparent);
+  color: var(--cms-text-secondary);
+  html.dark-theme & {
+    background: rgba(var(--cms-primary-rgb), .14);
+    border-color: color-mix(in srgb, var(--cms-primary) 24%, rgba(255,255,255,.06));
+    color: rgba(255,255,255,.75);
+  }
 }
 
 // ── Page title row: h1 + inline circle-i help icon ────────────
