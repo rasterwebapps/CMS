@@ -222,6 +222,10 @@ public class LegacyAdmitService {
         // ── Step 5: Create Admission ───────────────────────────────────────
         Admission admission = new Admission(saved, joiningYear, request.applicationDate());
         admission.setEnquiryId(savedEnquiry.getId());
+        admission.setDeclarationPlace(request.declarationPlace());
+        admission.setDeclarationDate(request.declarationDate());
+        admission.setParentConsentGiven(true);
+        admission.setApplicantConsentGiven(true);
         admissionRepository.save(admission);
 
         // ── Step 6: Fee allocation + semester rows ─────────────────────────
