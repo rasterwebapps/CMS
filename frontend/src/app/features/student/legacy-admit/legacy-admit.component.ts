@@ -76,7 +76,8 @@ export class LegacyAdmitComponent implements OnInit {
   protected readonly saving              = signal(false);
   protected readonly saveError           = signal<string | null>(null);
   protected readonly successState        = signal<LegacyAdmitResponse | null>(null);
-  protected readonly feeGuidelineLoading = signal(false);
+  protected readonly feeGuidelineLoading  = signal(false);
+  protected readonly feeGuidelineEmpty   = signal(false);
   protected readonly programs      = signal<Program[]>([]);
   protected readonly courses       = signal<Course[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
@@ -88,12 +89,40 @@ export class LegacyAdmitComponent implements OnInit {
   protected readonly allFaculty    = signal<Faculty[]>([]);
   protected readonly feeStates     = signal<FeeState[]>([]);
 
+  protected readonly referralCategory = signal<'AGENT' | 'STUDENT' | 'ALUMNI' | 'FACULTY' | 'NONE'>('NONE');
+  protected readonly agentSearchTerm  = signal('');
+  protected readonly agentSearchOpen  = signal(false);
+
   protected readonly selectedProgram = signal<Program | null>(null);
   protected readonly isYearly        = computed(() => this.selectedProgram()?.assessmentPattern === 'YEARLY');
   protected readonly yearCount       = computed(() => this.selectedProgram()?.durationYears ?? 0);
 
-  protected readonly paymentRows    = signal<FormGroup[]>([]);
-  protected readonly paymentSummary = signal<Map<number, number>>(new Map());
+  protected readonly filteredAgents = computed(() => {
+    const term = this.agentSearchTerm().trim().toLowerCase();
+    if (!term) return this.agents().slice(0, 20);
+    return this.agents()
+      .filter(a => a.name.toLowerCase().includes(term) || (a.phone ?? '').toLowerCase().includes(term))
+      .slice(0, 20);
+  });
+
+  protected get today(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  private get currentAcademicStartYear(): number {
+    const now = new Date();
+    return now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  }
+
+  protected readonly pastAcademicYears = computed(() =>
+    this.academicYears().filter(y => {
+      const startYear = parseInt(y.name.substring(0, 4), 10);
+      return isNaN(startYear) || startYear < this.currentAcademicStartYear;
+    })
+  );
+
+  protected readonly paymentRows       = signal<FormGroup[]>([]);
+  protected readonly fifoCollected     = signal<Map<number, number>>(new Map());
 
   protected readonly PAYMENT_MODES = ['CASH', 'DD', 'CHEQUE', 'BANK_TRANSFER', 'UPI', 'ONLINE'];
 
@@ -136,7 +165,6 @@ export class LegacyAdmitComponent implements OnInit {
     motherName:   ['', Validators.required],
     motherPhone:  ['', Validators.required],
     motherEmail:  ['', [Validators.required, Validators.email]],
-    parentMobile: ['', Validators.required],
 
     // Address
     address: this.fb.group({
@@ -215,7 +243,28 @@ export class LegacyAdmitComponent implements OnInit {
 
     this.paymentsArray.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(vals => this.updatePaymentSummary(vals as { yearNumber: number; amount: number | null }[]));
+      .subscribe(() => this.recomputeFifo());
+
+    this.form.get('joiningAcademicYearId')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(id => {
+        this.form.get('yearOfStudy')?.setValue(this.computeYearOfStudy(id), { emitEvent: false });
+      });
+
+    this.yearFeesArray.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.recomputeFifo());
+  }
+
+  private computeYearOfStudy(joiningAcademicYearId: number | null): number {
+    if (!joiningAcademicYearId) return 1;
+    const year = this.academicYears().find(y => y.id === joiningAcademicYearId);
+    if (!year) return 1;
+    const joinStart = parseInt(year.name.substring(0, 4), 10);
+    if (isNaN(joinStart)) return 1;
+    const now = new Date();
+    const currentAcademicStart = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+    return Math.max(1, currentAcademicStart - joinStart + 1);
   }
 
   private enforceCounsellingState(states: { id: number; name: string }[], quota: string | null): void {
@@ -257,7 +306,7 @@ export class LegacyAdmitComponent implements OnInit {
       arr.push(this.fb.group({
         yearNumber: [i],
         masterFee:  [null as number | null],
-        discount:   [null as number | null],
+        actualFee:  [null as number | null],
       }));
     }
     this.tryLoadFeeGuideline();
@@ -265,10 +314,11 @@ export class LegacyAdmitComponent implements OnInit {
 
   private tryLoadFeeGuideline(): void {
     if (this.yearFeesArray.length === 0) return;
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     if (!v.programId || !v.admissionQuota || !v.gender || !v.feeStateId || !v.joiningAcademicYearId) return;
 
     this.feeGuidelineLoading.set(true);
+    this.feeGuidelineEmpty.set(false);
     const params = new URLSearchParams({
       programId:      v.programId.toString(),
       quota:          v.admissionQuota,
@@ -302,6 +352,7 @@ export class LegacyAdmitComponent implements OnInit {
           g.get('masterFee')?.setValue(totals.get(yr) ?? null, { emitEvent: false });
         }
         this.feeGuidelineLoading.set(false);
+        this.feeGuidelineEmpty.set(totals.size === 0);
       },
       error: () => {
         const arr = this.yearFeesArray;
@@ -309,23 +360,55 @@ export class LegacyAdmitComponent implements OnInit {
           (arr.at(i) as FormGroup).get('masterFee')?.setValue(null, { emitEvent: false });
         }
         this.feeGuidelineLoading.set(false);
+        this.feeGuidelineEmpty.set(true);
       },
     });
   }
 
-  private updatePaymentSummary(vals: { yearNumber: number; amount: number | null }[]): void {
-    const map = new Map<number, number>();
-    for (const p of vals) {
-      const yr = +p.yearNumber;
-      map.set(yr, (map.get(yr) ?? 0) + (+(p.amount || 0)));
+  private recomputeFifo(): void {
+    const payments = (this.paymentsArray.value as { amount: number | null }[])
+      .map(p => +(p.amount || 0))
+      .filter(a => a > 0);
+
+    const yearCount = this.yearCount();
+    const isYearly  = this.isYearly();
+    const semsPerYear = isYearly ? 1 : 2;
+
+    // Build ordered semester slots from yearFees
+    const slots: { yearNumber: number; semSequence: number; fee: number }[] = [];
+    for (let y = 1; y <= yearCount; y++) {
+      const g = this.yearFeesArray.at(y - 1) as FormGroup;
+      const fee = +(g?.get('actualFee')?.value || g?.get('masterFee')?.value || 0);
+      const feePerSem = semsPerYear > 1 ? fee / semsPerYear : fee;
+      for (let s = 1; s <= semsPerYear; s++) {
+        slots.push({ yearNumber: y, semSequence: s, fee: feePerSem });
+      }
     }
-    this.paymentSummary.set(map);
+
+    // FIFO allocation
+    const collected = new Map<number, number>();
+    let slotIdx = 0;
+    let slotRemaining = slots[0]?.fee ?? 0;
+
+    for (const pmt of payments) {
+      let remaining = pmt;
+      while (remaining > 0 && slotIdx < slots.length) {
+        const slot = slots[slotIdx];
+        const apply = Math.min(remaining, slotRemaining);
+        remaining   -= apply;
+        slotRemaining -= apply;
+        collected.set(slot.yearNumber, (collected.get(slot.yearNumber) ?? 0) + apply);
+        if (slotRemaining <= 0) {
+          slotIdx++;
+          slotRemaining = slots[slotIdx]?.fee ?? 0;
+        }
+      }
+    }
+    this.fifoCollected.set(collected);
   }
 
   protected addPayment(): void {
     const g = this.fb.group({
-      yearNumber:           [1, Validators.required],
-      semesterSequence:     [1, Validators.required],
       paymentDate:          ['', Validators.required],
       amount:               [null as number | null, [Validators.required, Validators.min(0.01)]],
       paymentMode:          ['CASH', Validators.required],
@@ -340,42 +423,105 @@ export class LegacyAdmitComponent implements OnInit {
   protected removePayment(i: number): void {
     this.paymentsArray.removeAt(i);
     this.paymentRows.update(rows => rows.filter((_, idx) => idx !== i));
-    this.updatePaymentSummary(this.paymentsArray.value as { yearNumber: number; amount: number | null }[]);
+    this.recomputeFifo();
   }
 
   protected onReferralTypeChange(referralTypeId: number | null): void {
     this.form.patchValue({ agentId: null, commissionAmount: null, referredStudentId: null, referredFacultyId: null });
-    if (!referralTypeId) return;
+    this.agentSearchTerm.set('');
+    this.agentSearchOpen.set(false);
+    if (!referralTypeId) {
+      this.referralCategory.set('NONE');
+      return;
+    }
     const rt = this.referralTypes().find(r => r.id === referralTypeId);
-    if (rt?.code === 'STUDENT' || rt?.code === 'ALUMNI') {
+    const commission = rt?.hasCommission ? (rt.commissionAmount ?? null) : null;
+    if (commission !== null) {
+      this.form.patchValue({ commissionAmount: commission });
+    }
+    const code = rt?.code ?? '';
+    if (code === 'AGENT_REFERRAL') {
+      this.referralCategory.set('AGENT');
+    } else if (code === 'STUDENT') {
+      this.referralCategory.set('STUDENT');
       if (this.allStudents().length === 0) {
         this.studentSvc.getAll().subscribe({ next: s => this.allStudents.set(s) });
       }
-    } else if (rt?.code === 'FACULTY') {
+    } else if (code === 'ALUMNI') {
+      this.referralCategory.set('ALUMNI');
+      if (this.allStudents().length === 0) {
+        this.studentSvc.getAll().subscribe({ next: s => this.allStudents.set(s) });
+      }
+    } else if (code === 'FACULTY') {
+      this.referralCategory.set('FACULTY');
       if (this.allFaculty().length === 0) {
         this.facultySvc.getAll().subscribe({ next: f => this.allFaculty.set(f) });
       }
+    } else {
+      this.referralCategory.set('NONE');
     }
   }
 
-  protected referralCode(): string | null {
+  private selectedReferralType() {
     const id = this.form.get('referralTypeId')?.value;
-    if (!id) return null;
-    return this.referralTypes().find(r => r.id === id)?.code ?? null;
+    if (!id) return undefined;
+    return this.referralTypes().find(r => r.id === id);
   }
 
-  protected finalFeeForYear(i: number): number {
+  protected selectAgent(id: number, name: string): void {
+    this.form.patchValue({ agentId: id });
+    this.agentSearchTerm.set(name);
+    this.agentSearchOpen.set(false);
+    this.onAgentChange(id);
+  }
+
+  protected clearAgent(): void {
+    this.form.patchValue({ agentId: null });
+    this.agentSearchTerm.set('');
+    this.onAgentChange(null);
+  }
+
+  protected onAgentSearchInput(event: Event): void {
+    this.agentSearchTerm.set((event.target as HTMLInputElement).value);
+    this.agentSearchOpen.set(true);
+    this.form.patchValue({ agentId: null }, { emitEvent: false });
+  }
+
+  protected onAgentChange(agentId: number | null): void {
+    const rt = this.selectedReferralType();
+    if (!rt) return;
+    if (agentId === null || agentId === undefined) {
+      this.form.patchValue({ commissionAmount: rt.hasCommission ? (rt.commissionAmount ?? null) : null });
+      return;
+    }
+    const agent = this.agents().find(a => a.id === agentId);
+    const commission = agent?.commissionAmount != null && Number(agent.commissionAmount) > 0
+      ? Number(agent.commissionAmount)
+      : (rt.hasCommission ? (rt.commissionAmount ?? null) : null);
+    this.form.patchValue({ commissionAmount: commission });
+  }
+
+  protected discountForYear(i: number): number {
     const g = this.yearFeesArray.at(i) as FormGroup;
-    return Math.max(0, (+(g.get('masterFee')?.value || 0)) - (+(g.get('discount')?.value || 0)));
+    const guide  = +(g.get('masterFee')?.value || 0);
+    const actual = +(g.get('actualFee')?.value  || 0);
+    return actual > 0 ? Math.max(0, guide - actual) : 0;
   }
 
   protected collectedForYear(yearNumber: number): number {
-    return this.paymentSummary().get(yearNumber) ?? 0;
+    return this.fifoCollected().get(yearNumber) ?? 0;
   }
 
   protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      setTimeout(() => {
+        const firstInvalid = document.querySelector<HTMLElement>(
+          'input.ng-invalid, select.ng-invalid, textarea.ng-invalid'
+        );
+        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalid?.focus({ preventScroll: true });
+      }, 50);
       return;
     }
     this.saving.set(true);
@@ -383,20 +529,17 @@ export class LegacyAdmitComponent implements OnInit {
 
     const v = this.form.value;
 
-    const yearFees = (v.yearFees as { yearNumber: number; masterFee: number | null; discount: number | null }[])
-      .filter(yf => (yf.masterFee ?? 0) > 0)
+    const yearFees = (v.yearFees as { yearNumber: number; masterFee: number | null; actualFee: number | null }[])
+      .filter(yf => (yf.actualFee ?? yf.masterFee ?? 0) > 0)
       .map(yf => ({
         yearNumber: yf.yearNumber,
-        totalFee: Math.max(0, (yf.masterFee ?? 0) - (yf.discount ?? 0)),
+        totalFee:   yf.actualFee ?? yf.masterFee ?? 0,
       }));
 
     const payments = (v.payments as {
-      yearNumber: number; semesterSequence: number; paymentDate: string;
-      amount: number; paymentMode: string; receiptNumber: string;
-      transactionReference: string; remarks: string;
+      paymentDate: string; amount: number; paymentMode: string;
+      receiptNumber: string; transactionReference: string; remarks: string;
     }[]).map(p => ({
-      yearNumber:           p.yearNumber,
-      semesterSequence:     this.isYearly() ? 1 : p.semesterSequence,
       paymentDate:          p.paymentDate,
       amount:               p.amount,
       paymentMode:          p.paymentMode,
@@ -434,7 +577,6 @@ export class LegacyAdmitComponent implements OnInit {
       motherName:            v.motherName,
       motherPhone:           v.motherPhone,
       motherEmail:           v.motherEmail || null,
-      parentMobile:          v.parentMobile || null,
       address: {
         countryId:     v.address.country ?? 1,
         postalAddress: v.address.postalAddress,
@@ -479,7 +621,8 @@ export class LegacyAdmitComponent implements OnInit {
     this.selectedProgram.set(null);
     this.rebuildYearFees(0);
     this.paymentRows.set([]);
-    this.paymentSummary.set(new Map());
+    this.fifoCollected.set(new Map());
+    this.feeGuidelineEmpty.set(false);
     while (this.paymentsArray.length > 0) this.paymentsArray.removeAt(0);
   }
 

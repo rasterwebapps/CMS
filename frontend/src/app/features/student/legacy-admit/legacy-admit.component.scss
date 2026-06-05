@@ -1,6 +1,12 @@
 // Component-unique styles only.
 // entry-form-*, field-*, btn-* classes come from global styles.scss.
 
+/* ── Card width: moderately wider than the 640px global default ── */
+.entry-form-card {
+  max-width: 860px;
+  width: 100%;
+}
+
 /* ── Loading ─────────────────────────────────────────────────── */
 .la-loading {
   display: flex;
@@ -27,23 +33,25 @@
   letter-spacing: 0;
 }
 
-/* ── 3-column field row ───────────────────────────────────────── */
-.la-field-row--3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-
-  @media (max-width: 768px) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  @media (max-width: 480px) { grid-template-columns: 1fr !important; }
+/* ── Table scroll wrapper — enables horizontal scroll on small screens ── */
+.la-table-scroll {
+  width: 100%;
+  @media (max-width: 600px) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
-/* ── Address sub-section top margin ──────────────────────────── */
-.la-address-section { margin-top: 20px; }
+/* ── Address sub-section top margin + inner spacing ──────────── */
+.la-address-section {
+  margin-top: 20px;
+
+  .field-group,
+  .field-row { margin-bottom: 12px; }
+
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+}
 
 /* ── Fee table ───────────────────────────────────────────────── */
-.la-fee-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-md);
-}
 
 .la-fee-table {
   width: 100%;
@@ -74,6 +82,12 @@
   font-weight: 600;
   color: var(--cms-text-secondary);
   white-space: nowrap;
+}
+
+.la-fee-guideline {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--cms-text-secondary);
 }
 
 .la-fee-input {
@@ -108,44 +122,97 @@
   vertical-align: middle;
 }
 
-/* ── Payment cards ───────────────────────────────────────────── */
-.la-payment-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 14px;
-}
+/* ── Payment table (single row per entry, no scroll) ────────── */
+.la-pt-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-bottom: 12px;
 
-.la-payment-card {
-  position: relative;
-  background: var(--cms-bg-muted);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-md);
-  padding: 16px 52px 16px 16px;
+  // Column widths sized for 860px card (inner ~812px)
+  .la-col-yr   { width: 56px; }
+  .la-col-sem  { width: 48px; }
+  .la-col-date { width: 120px; }
+  .la-col-amt  { width: 90px; }
+  .la-col-mode { width: 100px; }
+  .la-col-ref  { width: 90px; }
+  .la-col-txn  { width: 100px; }
+  .la-col-rem  { width: auto; }
+  .la-col-del  { width: 32px; }
 
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-
-    @media (max-width: 900px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    @media (max-width: 640px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    @media (max-width: 420px) { grid-template-columns: 1fr; }
+  th {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--cms-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 0 3px 6px;
+    border-bottom: 1px solid var(--cms-border-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+
+  td {
+    padding: 4px 3px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--cms-border-default);
+
+    &:last-child { padding-right: 0; }
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
 }
 
-.la-remove-btn {
-  position: absolute !important;
-  top: 8px;
-  right: 8px;
+.la-pt-input {
+  width: 100%;
+  height: 28px;
+  font-size: 0.8rem;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  padding: 0 4px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-primary);
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+  min-width: 0;
+
+  &:focus { border-color: var(--cms-primary); }
+  &--right { text-align: right; }
+}
+
+.la-pt-del {
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
   color: var(--cms-danger) !important;
+  padding: 0 !important;
+}
+
+/* ── Fee guideline empty hint ────────────────────────────────── */
+.la-fee-empty-hint {
+  font-size: 0.78rem;
+  color: var(--cms-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--cms-radius-sm);
+  padding: 7px 12px;
+  margin-bottom: 12px;
 }
 
 .la-add-payment-row { padding-top: 4px; }
 
 /* ── Consent ─────────────────────────────────────────────────── */
+.la-consent-inline {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .la-consent-row {
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .la-consent-label {
@@ -254,3 +321,57 @@
     justify-content: center;
   }
 }
+
+.field-required { color: #ef4444; margin-left: 2px; }
+.field-hint { font-size: var(--cms-text-sm); font-weight: 400; color: var(--cms-text-muted); margin-left: 4px; }
+
+.person-search-wrap { position: relative; }
+
+.person-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  &:hover { color: var(--cms-text-primary); }
+}
+
+.person-search-dropdown {
+  position: absolute;
+  z-index: 200;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.person-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 7px;
+  text-align: left;
+  gap: 8px;
+  &:hover { background: rgba(var(--cms-primary-rgb), 0.07); }
+}
+
+.person-name { font-size: var(--cms-text-base); font-weight: 500; color: var(--cms-text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-code { font-size: var(--cms-text-xs); color: var(--cms-text-muted); font-family: var(--cms-font-mono); flex-shrink: 0; }
