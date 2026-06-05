@@ -8,16 +8,21 @@
     @if (loading()) {
       <div class="qa-grid">
         @for (n of [1,2,3,4]; track n) {
-          <div class="sk-block" style="height:52px;border-radius:12px"></div>
+          <div class="sk-block" style="height:80px;border-radius:14px"></div>
         }
       </div>
     } @else if (error() || actions().length === 0) {
       <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No actions</span></div>
     } @else {
       <div class="qa-grid">
-        @for (action of actions(); track action.route) {
-          <a class="qa-tile" [routerLink]="action.route" [title]="action.description">
-            <div class="qa-tile__icon"><mat-icon>{{ action.icon }}</mat-icon></div>
+        @for (action of coloredActions(); track action.route; let i = $index) {
+          <a class="qa-tile" [routerLink]="action.route" [title]="action.description"
+             [style.--tile-bg]="action.color.bg"
+             [style.--tile-glow]="action.color.glow"
+             [style.animation-delay]="(i * 60) + 'ms'">
+            <div class="qa-tile__icon">
+              <mat-icon>{{ action.icon }}</mat-icon>
+            </div>
             <span class="qa-tile__label">{{ action.label }}</span>
           </a>
         }

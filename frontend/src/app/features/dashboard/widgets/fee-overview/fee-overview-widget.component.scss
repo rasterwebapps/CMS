@@ -1,41 +1,84 @@
 @use '../widget-shell' as *;
 
-$green:  #22C55E;
-$red:    #EF4444;
-$purple: #A78BFA;
+.fo-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+}
 
-.fee-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 12px; border-radius: 10px;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
-  margin-bottom: 8px; transition: background .15s;
-  &:last-child { margin-bottom: 0; }
-  &:hover { background: rgba(255,255,255,.07); }
-  :host-context(html:not(.dark-theme)) & {
-    background: rgba(0,0,0,.02); border-color: rgba(0,0,0,.06);
-    &:hover { background: rgba(0,0,0,.04); }
+.fo-donut {
+  flex-shrink: 0;
+  ::ng-deep .apexcharts-tooltip {
+    border-radius: 8px !important;
+    font-family: var(--cms-font-ui, Inter, sans-serif) !important;
+    font-size: 12px !important;
+  }
+  ::ng-deep .apexcharts-datalabel-label,
+  ::ng-deep .apexcharts-datalabel-value {
+    fill: #f59e0b !important;
+  }
+  :host-context(html:not(.dark-theme)) ::ng-deep .apexcharts-datalabel-label {
+    fill: var(--cms-text-secondary) !important;
   }
 }
 
-.fee-name {
-  font-size: var(--cms-text-base); font-weight: 500; color: rgba(255,255,255,.55);
-  display: flex; align-items: center; gap: 8px;
+.fo-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.fo-stat {
+  display: flex; align-items: flex-start; gap: 8px;
+
+  &__dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+  }
+  &__body { display: flex; flex-direction: column; gap: 1px; }
+  &__label {
+    font-size: 0.6875rem; font-weight: 500; color: rgba(255,255,255,.45);
+    :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+  }
+  &__val {
+    font-size: var(--cms-text-base); font-weight: 700; font-variant-numeric: tabular-nums;
+    :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
+  }
+
+  &--green {
+    .fo-stat__dot { background: #22C55E; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+    .fo-stat__val { color: #22C55E; }
+  }
+  &--red {
+    .fo-stat__dot { background: #EF4444; box-shadow: 0 0 6px rgba(239,68,68,.5); }
+    .fo-stat__val { color: #EF4444; }
+  }
+}
+
+.fo-divider {
+  height: 1px;
+  background: rgba(255,255,255,.07);
+  margin: 2px 0;
+  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.07); }
+}
+
+.fo-meta-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fo-meta-label {
+  font-size: 0.6875rem; color: rgba(255,255,255,.4);
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
+}
+.fo-meta-val {
+  font-size: 0.6875rem; font-weight: 700; color: rgba(255,255,255,.7);
+  font-variant-numeric: tabular-nums;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
 }
 
-.fee-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  &--green  { background: $green; }
-  &--red    { background: $red; }
-  &--muted  { background: rgba(255,255,255,.3); }
-  &--accent { background: var(--cms-primary); }
+.fo-skel-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
 }
-
-.fee-val {
-  font-size: var(--cms-text-base); font-weight: 600; font-variant-numeric: tabular-nums;
-  &--green { color: $green; }
-  &--red   { color: $red; }
-  &--muted { color: rgba(255,255,255,.4); :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
-}
-
-.fee-item-skel { display: flex; justify-content: space-between; margin-bottom: 9px; }

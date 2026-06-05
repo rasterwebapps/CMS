@@ -2,6 +2,16 @@
 
 :host { --ca: #A78BFA; }
 
+.apex-wrap {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  apx-chart, ::ng-deep .apexcharts-canvas { flex: 1; width: 100% !important; }
+  ::ng-deep .apexcharts-tooltip {
+    border-radius: 8px !important;
+    font-family: var(--cms-font-ui, Inter, sans-serif) !important;
+    font-size: 12px !important;
+  }
+}
+
 .overall-conv {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--cms-text-xs); font-weight: 700;

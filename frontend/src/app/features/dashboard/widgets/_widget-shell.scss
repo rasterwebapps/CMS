@@ -202,10 +202,13 @@
   .widget-shell {
     backdrop-filter: none; -webkit-backdrop-filter: none;
     background: #fff;
-    border-color: rgba(0,0,0,.07);
-    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 12%, rgba(0,0,0,.06));
+    box-shadow:
+      0 1px 3px rgba(0,0,0,.04),
+      0 4px 16px color-mix(in srgb, var(--ca, var(--cms-primary)) 10%, rgba(0,0,0,.04)),
+      0 8px 32px color-mix(in srgb, var(--ca, var(--cms-primary)) 6%, transparent);
 
-    // Clean bar without glow in light mode
+    // Accent bar visible but no glow in light mode
     &::before { box-shadow: none; }
 
     // Light-mode shimmer uses a primary tint instead of white
@@ -213,14 +216,18 @@
       background: linear-gradient(
         90deg,
         transparent,
-        rgba(var(--cms-primary-rgb),.06),
+        rgba(var(--cms-primary-rgb),.05),
         transparent
       );
     }
 
     &:hover {
-      border-color: rgba(var(--cms-primary-rgb),.2);
-      box-shadow: 0 6px 22px rgba(0,0,0,.09);
+      border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 28%, rgba(0,0,0,.06));
+      box-shadow:
+        0 1px 3px rgba(0,0,0,.04),
+        0 8px 28px color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, rgba(0,0,0,.06)),
+        0 16px 48px color-mix(in srgb, var(--ca, var(--cms-primary)) 10%, transparent);
+      transform: translateY(-3px);
     }
   }
   .widget-header   { border-bottom-color: rgba(0,0,0,.07); }

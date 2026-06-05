@@ -11,61 +11,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pg-row { margin-bottom: 10px; &:last-child { margin-bottom: 0; } }
-
-.pg-meta {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; margin-bottom: 4px;
-}
-
-.pg-name {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: var(--cms-text-sm); font-weight: 500;
-  color: rgba(255,255,255,.65);
-  min-width: 0;
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
-}
-
-.pg-code {
-  font-size: 0.625rem; font-weight: 800;
-  letter-spacing: .04em; text-transform: uppercase;
-  padding: 2px 6px; border-radius: 4px;
-  color: var(--ca);
-  background: color-mix(in srgb, var(--ca) 14%, transparent);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.pg-count {
-  font-size: var(--cms-text-sm); font-weight: 700;
-  color: rgba(255,255,255,.85);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
-}
-
-.pg-track {
-  height: 7px; border-radius: 6px; overflow: hidden;
-  background: rgba(255,255,255,.05);
-  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.04); }
-}
-
-.pg-fill {
-  height: 100%; border-radius: 6px;
-  width: var(--w, 0%);
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--ca) 50%, transparent),
-    var(--ca)
-  );
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ca) 30%, transparent);
-  animation: pg-grow .6s cubic-bezier(.4,0,.2,1) both;
-  animation-delay: calc(.05s + var(--i, 0) * .06s);
-}
-
-@keyframes pg-grow {
-  from { width: 0 !important; }
-  to   { width: var(--w, 0%); }
+.apex-wrap {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  apx-chart, ::ng-deep .apexcharts-canvas { flex: 1; width: 100% !important; }
+  ::ng-deep .apexcharts-tooltip {
+    border-radius: 8px !important;
+    font-family: var(--cms-font-ui, Inter, sans-serif) !important;
+    font-size: 12px !important;
+  }
 }
 

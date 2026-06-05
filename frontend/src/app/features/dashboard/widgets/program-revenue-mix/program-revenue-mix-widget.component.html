@@ -7,21 +7,26 @@
   <div class="widget-body">
     @if (loading()) {
       <div class="widget-loading" style="align-items:center;">
-        <div class="sk-block" style="width:100px; height:100px; border-radius:50%;"></div>
-        <div class="sk-line sk-line--75" style="margin-top: 8px;"></div>
+        <div class="sk-block" style="width:130px; height:130px; border-radius:50%; margin: 0 auto 12px;"></div>
+        <div class="sk-line sk-line--75"></div>
         <div class="sk-line sk-line--55"></div>
       </div>
     } @else if (error() || slices().length === 0) {
       <div class="widget-error"><mat-icon>pie_chart_outline</mat-icon><span>No revenue data</span></div>
     } @else {
       <div class="mix-wrap">
-        <div class="donut" [style.background]="donutGradient()">
-          <div class="donut-hole">
-            <span class="donut-total">{{ grandTotal() | inr }}</span>
-            <span class="donut-cap">Net</span>
-          </div>
+        <div class="mix-donut">
+          <apx-chart
+            [series]="chartSeries()"
+            [chart]="apexChart"
+            [labels]="chartLabels()"
+            [plotOptions]="apexPlotOptions"
+            [dataLabels]="apexDataLabels"
+            [legend]="apexLegend"
+            [tooltip]="apexTooltip"
+            [colors]="['#A78BFA','#22C55E','#38BDF8','#F59E0B','#EC4899','#06B6D4']"
+          ></apx-chart>
         </div>
-
         <ul class="legend">
           @for (sl of legend(); track sl.programCode) {
             <li class="legend-item">
@@ -36,4 +41,3 @@
     }
   </div>
 </div>
-

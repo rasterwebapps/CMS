@@ -37,35 +37,55 @@
 
   :host-context(html:not(.dark-theme)) & {
     background: #fff;
-    border-color: rgba(0,0,0,.07);
-    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 14%, rgba(0,0,0,.05));
+    box-shadow:
+      0 1px 3px rgba(0,0,0,.04),
+      0 4px 16px color-mix(in srgb, var(--ca, var(--cms-primary)) 12%, rgba(0,0,0,.04)),
+      0 8px 32px color-mix(in srgb, var(--ca, var(--cms-primary)) 7%, transparent);
     &::before { box-shadow: none; }
   }
 }
 
+
+.sc-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 0;
+}
+
 .sc-badge {
-  position: absolute; top: 12px; right: 14px;
   font-size: 0.625rem; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
+  padding: 3px 9px; border-radius: 20px;
   background: rgba(var(--cms-primary-rgb),.12);
   color: var(--ca, var(--cms-primary));
   border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 20%, transparent);
+  align-self: center;
+  :host-context(html:not(.dark-theme)) & {
+    background: color-mix(in srgb, var(--ca, var(--cms-primary)) 10%, transparent);
+  }
 }
 
-.widget-body { justify-content: center; }
+.widget-body { justify-content: flex-end; padding-top: 8px; }
+
+.sc-loading-row {
+  display: flex; align-items: center;
+}
 
 .sc-icon-bubble {
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 14px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ca, var(--cms-primary)) 22%, transparent) 0%, transparent 70%);
-  border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 18%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--ca, var(--cms-primary)) 24%, transparent) 0%, transparent 70%);
+  border: 1px solid color-mix(in srgb, var(--ca, var(--cms-primary)) 20%, transparent);
   color: var(--ca, var(--cms-primary));
   animation: icon-bubble-pulse 3.5s ease-in-out infinite;
-  mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
+  flex-shrink: 0;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
   :host-context(html:not(.dark-theme)) & {
     animation: icon-bubble-pulse-light 3.5s ease-in-out infinite;
+    background: color-mix(in srgb, var(--ca, var(--cms-primary)) 10%, transparent);
+    border-color: color-mix(in srgb, var(--ca, var(--cms-primary)) 20%, transparent);
   }
 }
 
@@ -76,29 +96,53 @@
   }
   50% {
     transform: scale(1.09);
-    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ca, var(--cms-primary)) 70%, transparent));
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--ca, var(--cms-primary)) 70%, transparent));
   }
 }
 
 @keyframes icon-bubble-pulse-light {
   0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.07); }
+  50%       { transform: scale(1.08); }
 }
 
 .sc-val {
-  font-size: var(--cms-text-2xl); font-weight: 600; color: #fff;
-  letter-spacing: -.03em; line-height: 1; margin-bottom: 5px;
+  font-size: 2.25rem; font-weight: 700; color: #fff;
+  letter-spacing: -.04em; line-height: 1; margin-bottom: 4px;
   font-variant-numeric: tabular-nums;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
 }
 
 .sc-label {
-  font-size: var(--cms-text-sm); color: rgba(255,255,255,.6); font-weight: 500;
+  font-size: var(--cms-text-sm); color: rgba(255,255,255,.55); font-weight: 500;
+  margin-bottom: 10px;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
+
+.sc-delta {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.6875rem; font-weight: 600;
+  padding: 3px 8px; border-radius: 20px;
+  width: fit-content;
+
+  mat-icon { font-size: 13px; width: 13px; height: 13px; }
+
+  &--up {
+    color: #22C55E;
+    background: rgba(34,197,94,.12);
+    border: 1px solid rgba(34,197,94,.20);
+    :host-context(html:not(.dark-theme)) & { background: rgba(34,197,94,.10); }
+  }
+  &--down {
+    color: #EF4444;
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.20);
+    :host-context(html:not(.dark-theme)) & { background: rgba(239,68,68,.10); }
+  }
 }
 
 .widget-error {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; color: rgba(255,255,255,.3); font-size: var(--cms-text-sm);
   mat-icon { font-size: 1.25rem; width: 20px; height: 20px; }
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
 }

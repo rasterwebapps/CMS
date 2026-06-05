@@ -2,11 +2,15 @@
   @if (loading()) {
     <div class="widget-body">
       <div class="widget-loading">
-        <div class="sk-block" style="width:40px;height:40px;border-radius:12px"></div>
-        <div style="margin-top:14px">
-          <div class="sk-line sk-line--55" style="height:30px;border-radius:8px"></div>
-          <div class="sk-line sk-line--75" style="height:11px;margin-top:10px"></div>
+        <div class="sc-loading-row">
+          <div class="sk-block" style="width:40px;height:40px;border-radius:12px;flex-shrink:0"></div>
+          <div class="sk-block" style="width:56px;height:12px;border-radius:6px;margin-left:auto"></div>
         </div>
+        <div style="margin-top:18px">
+          <div class="sk-line sk-line--55" style="height:36px;border-radius:8px"></div>
+          <div class="sk-line sk-line--75" style="height:11px;margin-top:12px"></div>
+        </div>
+        <div class="sk-line sk-line--40" style="height:10px;margin-top:14px;border-radius:5px"></div>
       </div>
     </div>
   } @else if (error()) {
@@ -15,11 +19,13 @@
       <span>No data</span>
     </div>
   } @else {
-    <div class="sc-badge">{{ data()?.badge }}</div>
-    <div class="widget-body">
+    <div class="sc-top-row">
       <div class="sc-icon-bubble">
         <mat-icon>{{ iconName }}</mat-icon>
       </div>
+      <div class="sc-badge">{{ data()?.badge }}</div>
+    </div>
+    <div class="widget-body">
       <div class="sc-val">
         @if (isNumeric()) {
           {{ animatedValue() | number }}
@@ -28,6 +34,12 @@
         }
       </div>
       <div class="sc-label">{{ widgetLabel || data()?.key }}</div>
+      @if (data()?.trendDelta !== null && data()?.trendDelta !== undefined) {
+        <div class="sc-delta" [class.sc-delta--up]="data()!.trendDelta! >= 0" [class.sc-delta--down]="data()!.trendDelta! < 0">
+          <mat-icon>{{ data()!.trendDelta! >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+          <span>{{ data()!.trendDelta! >= 0 ? '+' : '' }}{{ data()!.trendDelta }}% vs last month</span>
+        </div>
+      }
     </div>
   }
 </div>

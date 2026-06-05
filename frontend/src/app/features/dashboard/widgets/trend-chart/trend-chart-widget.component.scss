@@ -1,34 +1,33 @@
 @use '../widget-shell' as *;
 
+.apex-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  apx-chart, ::ng-deep .apexcharts-canvas {
+    flex: 1;
+    width: 100% !important;
+  }
+
+  ::ng-deep .apexcharts-tooltip {
+    border-radius: 8px !important;
+    font-family: var(--cms-font-ui, Inter, sans-serif) !important;
+    font-size: 12px !important;
+  }
+
+  ::ng-deep .apexcharts-gridline {
+    stroke-dasharray: 4;
+  }
+}
+
+// Loading skeleton bars
 .chart-area {
   display: flex; align-items: flex-end; gap: 6px;
   flex: 1;
   min-height: 80px;
   &--loading { gap: 6px; }
-}
-
-.bar-grp {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; gap: 4px; height: 100%; justify-content: flex-end;
-  &:hover .bar-val { opacity: 1; }
-}
-
-.bar-val {
-  font-size: 0.5625rem; font-weight: 700; color: rgba(255,255,255,.35);
-  opacity: 0; transition: opacity .15s;
-  &--hi { color: var(--ca, var(--cms-primary)); }
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
-}
-
-.bar {
-  width: 100%; border-radius: 5px 5px 0 0;
-  height: var(--bh, 50%);
-  animation: bar-grow .5s cubic-bezier(.4,0,.2,1) both;
-  animation-delay: calc(.1s + var(--bi, 0) * .04s);
-  cursor: pointer; transition: filter .15s;
-  &:hover { filter: brightness(1.25); }
-  &.hi { background: linear-gradient(to top, color-mix(in srgb, var(--ca, var(--cms-primary)) 35%, transparent), var(--ca, var(--cms-primary))); box-shadow: 0 0 14px color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent); }
-  &.lo { background: linear-gradient(to top, rgba(255,255,255,.04), rgba(255,255,255,.10)); }
 }
 
 .sk-bar {
@@ -41,15 +40,4 @@
   );
   background-size: 200% 100%;
   animation: wsk-shimmer 1.5s ease-in-out infinite;
-}
-
-.chart-axis {
-  display: flex; gap: 6px; margin-top: 9px;
-  span { flex: 1; text-align: center; font-size: 0.625rem; color: rgba(255,255,255,.3); letter-spacing: .02em; }
-  :host-context(html:not(.dark-theme)) span { color: var(--cms-text-muted); }
-}
-
-@keyframes bar-grow {
-  from { transform: scaleY(0); transform-origin: bottom; }
-  to   { transform: scaleY(1); transform-origin: bottom; }
 }

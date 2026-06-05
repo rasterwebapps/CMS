@@ -3,8 +3,8 @@
     <div class="widget-icon"><mat-icon>filter_alt</mat-icon></div>
     <span class="widget-title">Admission Funnel</span>
     @if (!loading() && !error() && data()) {
-      <span class="overall-conv" title="End-to-end conversion">
-        <mat-icon>trending_up</mat-icon>{{ data()!.overallConversionPct }}%
+      <span class="overall-conv">
+        <mat-icon>trending_up</mat-icon>{{ data()!.overallConversionPct }}% overall
       </span>
     }
   </div>
@@ -13,32 +13,29 @@
     @if (loading()) {
       <div class="widget-loading">
         @for (n of [1,2,3,4,5]; track n) {
-          <div style="margin-bottom: 9px;">
+          <div style="margin-bottom: 10px;">
             <div class="sk-line sk-line--55" style="margin-bottom: 5px;"></div>
-            <div class="sk-block" [style.width.%]="100 - n*12" style="height: 22px; border-radius: 6px;"></div>
+            <div class="sk-block" [style.width.%]="100 - n*12" style="height: 20px; border-radius: 5px;"></div>
           </div>
         }
       </div>
-    } @else if (error() || rows().length === 0) {
+    } @else if (error() || !data() || data()!.stages.length === 0) {
       <div class="widget-error"><mat-icon>filter_alt_off</mat-icon><span>No funnel data</span></div>
     } @else {
-      @for (row of rows(); track row.key) {
-        <div class="fn-row">
-          <div class="fn-meta">
-            <span class="fn-label">{{ row.label }}</span>
-            <span class="fn-count">{{ row.count }}</span>
-          </div>
-          <div class="fn-bar-track">
-            <div class="fn-bar"
-                 [style.--w]="row.widthPct + '%'"
-                 [style.--i]="row.index"></div>
-            @if (row.conversionPct !== null) {
-              <span class="fn-conv">{{ row.conversionPct }}%</span>
-            }
-          </div>
-        </div>
-      }
+      <div class="apex-wrap">
+        <apx-chart
+          [series]="chartSeries()"
+          [chart]="apexChart"
+          [xaxis]="apexXAxis"
+          [yaxis]="apexYAxis"
+          [plotOptions]="apexPlotOptions"
+          [dataLabels]="apexDataLabels"
+          [fill]="apexFill"
+          [grid]="apexGrid"
+          [tooltip]="apexTooltip"
+          [colors]="['var(--cms-primary)']"
+        ></apx-chart>
+      </div>
     }
   </div>
 </div>
-

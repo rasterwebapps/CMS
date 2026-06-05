@@ -15,61 +15,15 @@ $green: #22C55E;
   font-variant-numeric: tabular-nums;
 }
 
-.ag-row { margin-bottom: 11px; &:last-child { margin-bottom: 0; } }
-
-.ag-meta {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: baseline; gap: 8px;
-  margin-bottom: 4px;
-}
-
-.ag-label {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: var(--cms-text-sm); font-weight: 500;
-  color: rgba(255,255,255,.6);
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
-}
-
-.ag-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  &[data-sev='amber'] { background: $amber; }
-  &[data-sev='red']   { background: $red; }
-}
-
-.ag-count {
-  font-size: var(--cms-text-xs); color: rgba(255,255,255,.35);
-  font-variant-numeric: tabular-nums;
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
-}
-
-.ag-amt {
-  font-size: var(--cms-text-sm); font-weight: 700;
-  color: rgba(255,255,255,.85);
-  font-variant-numeric: tabular-nums;
-  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-primary); }
-}
-
-.ag-track {
-  height: 8px; border-radius: 6px; overflow: hidden;
-  background: rgba(255,255,255,.05);
-  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.04); }
-}
-
-.ag-fill {
-  height: 100%; border-radius: 6px;
-  width: var(--w, 0%);
-  animation: ag-grow .6s cubic-bezier(.4,0,.2,1) both;
-  animation-delay: calc(.08s + var(--i, 0) * .08s);
-
-  &[data-sev='amber'] {
-    background: linear-gradient(90deg, color-mix(in srgb, $amber 55%, transparent), $amber);
-    box-shadow: 0 0 8px color-mix(in srgb, $amber 30%, transparent);
+.apex-wrap {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  apx-chart, ::ng-deep .apexcharts-canvas { flex: 1; width: 100% !important; }
+  ::ng-deep .apexcharts-tooltip {
+    border-radius: 8px !important;
+    font-family: var(--cms-font-ui, Inter, sans-serif) !important;
+    font-size: 12px !important;
   }
-  &[data-sev='red'] {
-    background: linear-gradient(90deg, color-mix(in srgb, $red 55%, transparent), $red);
-    box-shadow: 0 0 8px color-mix(in srgb, $red 30%, transparent);
-  }
+  ::ng-deep .apexcharts-legend { display: none !important; }
 }
 
 .all-clear {
@@ -79,9 +33,3 @@ $green: #22C55E;
   font-size: var(--cms-text-base); font-weight: 600;
   mat-icon { font-size: var(--cms-text-2xl); width: 28px; height: 28px; }
 }
-
-@keyframes ag-grow {
-  from { width: 0 !important; }
-  to   { width: var(--w, 0%); }
-}
-

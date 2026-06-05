@@ -29,10 +29,13 @@ $red:   #EF4444;
 .gauge-fill {
   fill: none;
   stroke: var(--ca);
-  stroke-width: 10;
+  stroke-width: 11;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ca) 40%, transparent));
-  transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ca) 65%, transparent));
+  transition: stroke-dashoffset .9s cubic-bezier(.4,0,.2,1);
+  :host-context(html:not(.dark-theme)) & {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ca) 40%, transparent));
+  }
 }
 
 .gauge-center {
@@ -43,10 +46,12 @@ $red:   #EF4444;
 }
 
 .gauge-pct {
-  font-size: var(--cms-text-xl); font-weight: 700; line-height: 1;
+  font-size: 1.5rem; font-weight: 800; line-height: 1;
   color: var(--ca);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.02em;
+  letter-spacing: -.03em;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ca) 50%, transparent));
+  :host-context(html:not(.dark-theme)) & { filter: none; }
 }
 
 .gauge-cap {

@@ -22,20 +22,42 @@ $red:    #EF4444;
   &[data-c='red']    { background: $red; }
 }
 
-.eq-count { font-size: var(--cms-text-sm); color: rgba(255,255,255,.3); font-variant-numeric: tabular-nums; :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); } }
+.eq-count {
+  font-size: var(--cms-text-sm); font-weight: 700; color: rgba(255,255,255,.6);
+  font-variant-numeric: tabular-nums;
+  :host-context(html:not(.dark-theme)) & { color: var(--cms-text-secondary); }
+}
 
-.prog { height: 6px; background: rgba(255,255,255,.07); border-radius: 10px; overflow: hidden; :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.07); } }
+.prog {
+  height: 8px; background: rgba(255,255,255,.07); border-radius: 10px; overflow: visible;
+  position: relative;
+  :host-context(html:not(.dark-theme)) & { background: rgba(0,0,0,.06); }
+}
 
 .prog-f {
   height: 100%; border-radius: 10px;
   width: var(--pw, 0%);
   animation: prog-grow .7s cubic-bezier(.4,0,.2,1) both;
-  animation-delay: calc(.1s + var(--pi, 0) * .06s);
+  animation-delay: calc(.1s + var(--pi, 0) * .08s);
+  position: relative;
 
-  &[data-c='green']  { background: linear-gradient(90deg, rgba($green,.6), $green); }
-  &[data-c='accent'] { background: linear-gradient(90deg, rgba(var(--cms-primary-rgb),.6), var(--cms-primary)); }
-  &[data-c='amber']  { background: linear-gradient(90deg, rgba($amber,.6), $amber); }
-  &[data-c='red']    { background: linear-gradient(90deg, rgba($red,.6), $red); }
+  &[data-c='green'] {
+    background: linear-gradient(90deg, rgba($green,.5), $green);
+    box-shadow: 0 0 10px rgba(34,197,94,.45);
+  }
+  &[data-c='accent'] {
+    background: linear-gradient(90deg, rgba(var(--cms-primary-rgb),.5), var(--cms-primary));
+    box-shadow: 0 0 10px rgba(var(--cms-primary-rgb),.45);
+  }
+  &[data-c='amber'] {
+    background: linear-gradient(90deg, rgba($amber,.5), $amber);
+    box-shadow: 0 0 10px rgba(245,158,11,.45);
+  }
+  &[data-c='red'] {
+    background: linear-gradient(90deg, rgba($red,.5), $red);
+    box-shadow: 0 0 10px rgba(239,68,68,.45);
+  }
+  :host-context(html:not(.dark-theme)) & { box-shadow: none; }
 }
 
 @keyframes prog-grow {

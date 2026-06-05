@@ -13,7 +13,7 @@
         @for (n of [1,2,3,4]; track n) {
           <div style="margin-bottom: 10px;">
             <div class="sk-line sk-line--40" style="margin-bottom: 5px;"></div>
-            <div class="sk-block" style="height: 8px; border-radius: 6px;"></div>
+            <div class="sk-block" style="height: 18px; border-radius: 4px;"></div>
           </div>
         }
       </div>
@@ -25,25 +25,20 @@
         <span>No overdue fees — all caught up.</span>
       </div>
     } @else {
-      @for (row of rows(); track row.label) {
-        <div class="ag-row">
-          <div class="ag-meta">
-            <span class="ag-label">
-              <span class="ag-dot" [attr.data-sev]="row.severity"></span>
-              {{ row.label }}
-            </span>
-            <span class="ag-count">{{ row.demandCount }} demand{{ row.demandCount === 1 ? '' : 's' }}</span>
-            <span class="ag-amt">{{ row.amount | inr }}</span>
-          </div>
-          <div class="ag-track">
-            <div class="ag-fill"
-                 [attr.data-sev]="row.severity"
-                 [style.--w]="row.widthPct + '%'"
-                 [style.--i]="row.index"></div>
-          </div>
-        </div>
-      }
+      <div class="apex-wrap">
+        <apx-chart
+          [series]="chartSeries()"
+          [chart]="apexChart"
+          [xaxis]="apexXAxis"
+          [yaxis]="apexYAxis"
+          [plotOptions]="apexPlotOptions"
+          [dataLabels]="apexDataLabels"
+          [fill]="apexFill"
+          [grid]="apexGrid"
+          [tooltip]="apexTooltip"
+          [colors]="chartColors()"
+        ></apx-chart>
+      </div>
     }
   </div>
 </div>
-
