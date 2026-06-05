@@ -6,16 +6,16 @@ import java.time.Instant;
 
 import org.junit.jupiter.api.Test;
 
-class DepartmentResponseTest {
+class SpecialityResponseTest {
 
     @Test
-    void shouldCreateDepartmentResponse() {
+    void shouldCreateSpecialityResponse() {
         Instant now = Instant.now();
-        DepartmentResponse response = new DepartmentResponse(
+        SpecialityResponse response = new SpecialityResponse(
             1L,
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             10L,
             "Dr. John Doe",
             now,
@@ -25,7 +25,7 @@ class DepartmentResponseTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Computer Science");
         assertThat(response.code()).isEqualTo("CS");
-        assertThat(response.description()).isEqualTo("Department of Computer Science");
+        assertThat(response.description()).isEqualTo("Speciality of Computer Science");
         assertThat(response.hodFacultyId()).isEqualTo(10L);
         assertThat(response.hodName()).isEqualTo("Dr. John Doe");
         assertThat(response.createdAt()).isEqualTo(now);
@@ -33,8 +33,8 @@ class DepartmentResponseTest {
     }
 
     @Test
-    void shouldCreateDepartmentResponseWithNullValues() {
-        DepartmentResponse response = new DepartmentResponse(
+    void shouldCreateSpecialityResponseWithNullValues() {
+        SpecialityResponse response = new SpecialityResponse(
             1L, "Mathematics", "MATH", null, null, null, null, null
         );
 
@@ -51,10 +51,10 @@ class DepartmentResponseTest {
     @Test
     void shouldBeEqualWhenSameValues() {
         Instant now = Instant.now();
-        DepartmentResponse response1 = new DepartmentResponse(
+        SpecialityResponse response1 = new SpecialityResponse(
             1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
-        DepartmentResponse response2 = new DepartmentResponse(
+        SpecialityResponse response2 = new SpecialityResponse(
             1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
 
@@ -65,10 +65,10 @@ class DepartmentResponseTest {
     @Test
     void shouldNotBeEqualWhenDifferentValues() {
         Instant now = Instant.now();
-        DepartmentResponse response1 = new DepartmentResponse(
+        SpecialityResponse response1 = new SpecialityResponse(
             1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
-        DepartmentResponse response2 = new DepartmentResponse(
+        SpecialityResponse response2 = new SpecialityResponse(
             2L, "Math", "MATH", "Desc", null, "Dr. Smith", now, now
         );
 
@@ -78,13 +78,13 @@ class DepartmentResponseTest {
     @Test
     void shouldHaveToStringMethod() {
         Instant now = Instant.now();
-        DepartmentResponse response = new DepartmentResponse(
+        SpecialityResponse response = new SpecialityResponse(
             1L, "CS", "CS", "Desc", null, "Dr. Doe", now, now
         );
 
         String toString = response.toString();
 
-        assertThat(toString).contains("DepartmentResponse");
+        assertThat(toString).contains("SpecialityResponse");
         assertThat(toString).contains("CS");
     }
 }

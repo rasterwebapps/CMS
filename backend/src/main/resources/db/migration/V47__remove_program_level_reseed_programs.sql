@@ -59,8 +59,8 @@ BEGIN
     END IF;
 END $$;
 
--- Step 4: Remove program_departments entries for old domain-specific programs
-DELETE FROM program_departments WHERE program_id IN (
+-- Step 4: Remove program_specialities entries for old domain-specific programs
+DELETE FROM program_specialities WHERE program_id IN (
     SELECT id FROM programs WHERE code IN ('BSC_NURS', 'MSC_NURS', 'GNM')
 );
 

@@ -1,7 +1,7 @@
 CREATE TABLE safety_guidelines (
     id                BIGSERIAL PRIMARY KEY,
     lab_id            BIGINT REFERENCES labs(id),
-    department_id     BIGINT REFERENCES departments(id),
+    speciality_id     BIGINT REFERENCES specialities(id),
     title             VARCHAR(255)  NOT NULL,
     description       TEXT,
     category          VARCHAR(50)   NOT NULL,

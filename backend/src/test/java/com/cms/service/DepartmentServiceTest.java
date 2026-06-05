@@ -18,131 +18,131 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.cms.dto.DepartmentRequest;
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityRequest;
+import com.cms.dto.SpecialityResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
-import com.cms.repository.DepartmentRepository;
+import com.cms.model.Speciality;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.FacultyRepository;
 
 @ExtendWith(MockitoExtension.class)
-class DepartmentServiceTest {
+class SpecialityServiceTest {
 
     @Mock
-    private DepartmentRepository departmentRepository;
+    private SpecialityRepository specialityRepository;
 
     @Mock
     private FacultyRepository facultyRepository;
 
-    private DepartmentService departmentService;
+    private SpecialityService specialityService;
 
     @BeforeEach
     void setUp() {
-        departmentService = new DepartmentService(departmentRepository, facultyRepository);
+        specialityService = new SpecialityService(specialityRepository, facultyRepository);
     }
 
     @Test
-    void shouldCreateDepartment() {
-        DepartmentRequest request = new DepartmentRequest(
+    void shouldCreateSpeciality() {
+        SpecialityRequest request = new SpecialityRequest(
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             null
         );
 
-        Department savedDepartment = createDepartment(1L, "Computer Science", "CS",
-            "Department of Computer Science", null);
+        Speciality savedSpeciality = createSpeciality(1L, "Computer Science", "CS",
+            "Speciality of Computer Science", null);
 
-        when(departmentRepository.save(any(Department.class))).thenReturn(savedDepartment);
+        when(specialityRepository.save(any(Speciality.class))).thenReturn(savedSpeciality);
 
-        DepartmentResponse response = departmentService.create(request);
+        SpecialityResponse response = specialityService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Computer Science");
         assertThat(response.code()).isEqualTo("CS");
-        assertThat(response.description()).isEqualTo("Department of Computer Science");
+        assertThat(response.description()).isEqualTo("Speciality of Computer Science");
         assertThat(response.hodFacultyId()).isNull();
         assertThat(response.hodName()).isNull();
 
-        ArgumentCaptor<Department> captor = ArgumentCaptor.forClass(Department.class);
-        verify(departmentRepository).save(captor.capture());
-        Department captured = captor.getValue();
+        ArgumentCaptor<Speciality> captor = ArgumentCaptor.forClass(Speciality.class);
+        verify(specialityRepository).save(captor.capture());
+        Speciality captured = captor.getValue();
         assertThat(captured.getName()).isEqualTo("Computer Science");
         assertThat(captured.getCode()).isEqualTo("CS");
     }
 
     @Test
-    void shouldFindAllDepartments() {
-        Department dept1 = createDepartment(1L, "Computer Science", "CS", "CS Dept", null);
-        Department dept2 = createDepartment(2L, "Mathematics", "MATH", "Math Dept", null);
+    void shouldFindAllSpecialities() {
+        Speciality dept1 = createSpeciality(1L, "Computer Science", "CS", "CS Dept", null);
+        Speciality dept2 = createSpeciality(2L, "Mathematics", "MATH", "Math Dept", null);
 
-        when(departmentRepository.findAll()).thenReturn(List.of(dept1, dept2));
+        when(specialityRepository.findAll()).thenReturn(List.of(dept1, dept2));
 
-        List<DepartmentResponse> responses = departmentService.findAll();
+        List<SpecialityResponse> responses = specialityService.findAll();
 
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).name()).isEqualTo("Computer Science");
         assertThat(responses.get(1).name()).isEqualTo("Mathematics");
-        verify(departmentRepository).findAll();
+        verify(specialityRepository).findAll();
     }
 
     @Test
-    void shouldReturnEmptyListWhenNoDepartments() {
-        when(departmentRepository.findAll()).thenReturn(List.of());
+    void shouldReturnEmptyListWhenNoSpecialities() {
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
-        List<DepartmentResponse> responses = departmentService.findAll();
+        List<SpecialityResponse> responses = specialityService.findAll();
 
         assertThat(responses).isEmpty();
-        verify(departmentRepository).findAll();
+        verify(specialityRepository).findAll();
     }
 
     @Test
-    void shouldFindDepartmentById() {
-        Department department = createDepartment(1L, "Computer Science", "CS",
-            "Department of Computer Science", null);
+    void shouldFindSpecialityById() {
+        Speciality speciality = createSpeciality(1L, "Computer Science", "CS",
+            "Speciality of Computer Science", null);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
 
-        DepartmentResponse response = departmentService.findById(1L);
+        SpecialityResponse response = specialityService.findById(1L);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Computer Science");
         assertThat(response.code()).isEqualTo("CS");
-        verify(departmentRepository).findById(1L);
+        verify(specialityRepository).findById(1L);
     }
 
     @Test
-    void shouldThrowExceptionWhenDepartmentNotFoundById() {
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+    void shouldThrowExceptionWhenSpecialityNotFoundById() {
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> departmentService.findById(999L))
+        assertThatThrownBy(() -> specialityService.findById(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
-        verify(departmentRepository).findById(999L);
+        verify(specialityRepository).findById(999L);
     }
 
     @Test
-    void shouldUpdateDepartment() {
-        Department existingDepartment = createDepartment(1L, "Computer Science", "CS",
+    void shouldUpdateSpeciality() {
+        Speciality existingSpeciality = createSpeciality(1L, "Computer Science", "CS",
             "Old Description", null);
 
-        DepartmentRequest updateRequest = new DepartmentRequest(
+        SpecialityRequest updateRequest = new SpecialityRequest(
             "Computer Science Updated",
             "CSU",
             "New Description",
             null
         );
 
-        Department updatedDepartment = createDepartment(1L, "Computer Science Updated", "CSU",
+        Speciality updatedSpeciality = createSpeciality(1L, "Computer Science Updated", "CSU",
             "New Description", null);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(existingDepartment));
-        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
-        when(departmentRepository.existsByCodeIgnoreCaseAndIdNot("CSU", 1L)).thenReturn(false);
-        when(departmentRepository.save(any(Department.class))).thenReturn(updatedDepartment);
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(existingSpeciality));
+        when(specialityRepository.existsByNameIgnoreCaseAndIdNot("Computer Science Updated", 1L)).thenReturn(false);
+        when(specialityRepository.existsByCodeIgnoreCaseAndIdNot("CSU", 1L)).thenReturn(false);
+        when(specialityRepository.save(any(Speciality.class))).thenReturn(updatedSpeciality);
 
-        DepartmentResponse response = departmentService.update(1L, updateRequest);
+        SpecialityResponse response = specialityService.update(1L, updateRequest);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("Computer Science Updated");
@@ -150,86 +150,86 @@ class DepartmentServiceTest {
         assertThat(response.description()).isEqualTo("New Description");
         assertThat(response.hodFacultyId()).isNull();
 
-        verify(departmentRepository).findById(1L);
-        verify(departmentRepository).save(any(Department.class));
+        verify(specialityRepository).findById(1L);
+        verify(specialityRepository).save(any(Speciality.class));
     }
 
     @Test
-    void shouldThrowWhenUpdatingDepartmentWithDuplicateName() {
-        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", null);
-        DepartmentRequest request = new DepartmentRequest("Mathematics", "CS", "Desc", null);
+    void shouldThrowWhenUpdatingSpecialityWithDuplicateName() {
+        Speciality existing = createSpeciality(1L, "Computer Science", "CS", "Desc", null);
+        SpecialityRequest request = new SpecialityRequest("Mathematics", "CS", "Desc", null);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Mathematics", 1L)).thenReturn(true);
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(specialityRepository.existsByNameIgnoreCaseAndIdNot("Mathematics", 1L)).thenReturn(true);
 
-        assertThatThrownBy(() -> departmentService.update(1L, request))
+        assertThatThrownBy(() -> specialityService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Mathematics")
             .hasMessageContaining("already exists");
 
-        verify(departmentRepository, never()).save(any(Department.class));
+        verify(specialityRepository, never()).save(any(Speciality.class));
     }
 
     @Test
-    void shouldThrowWhenUpdatingDepartmentWithDuplicateCode() {
-        Department existing = createDepartment(1L, "Computer Science", "CS", "Desc", null);
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "MATH", "Desc", null);
+    void shouldThrowWhenUpdatingSpecialityWithDuplicateCode() {
+        Speciality existing = createSpeciality(1L, "Computer Science", "CS", "Desc", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "MATH", "Desc", null);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(departmentRepository.existsByNameIgnoreCaseAndIdNot("Computer Science", 1L)).thenReturn(false);
-        when(departmentRepository.existsByCodeIgnoreCaseAndIdNot("MATH", 1L)).thenReturn(true);
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(specialityRepository.existsByNameIgnoreCaseAndIdNot("Computer Science", 1L)).thenReturn(false);
+        when(specialityRepository.existsByCodeIgnoreCaseAndIdNot("MATH", 1L)).thenReturn(true);
 
-        assertThatThrownBy(() -> departmentService.update(1L, request))
+        assertThatThrownBy(() -> specialityService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("MATH")
             .hasMessageContaining("already exists");
 
-        verify(departmentRepository, never()).save(any(Department.class));
+        verify(specialityRepository, never()).save(any(Speciality.class));
     }
 
     @Test
-    void shouldThrowExceptionWhenUpdatingNonExistentDepartment() {
-        DepartmentRequest request = new DepartmentRequest("Name", "CODE", "Desc", null);
+    void shouldThrowExceptionWhenUpdatingNonExistentSpeciality() {
+        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Desc", null);
 
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> departmentService.update(999L, request))
+        assertThatThrownBy(() -> specialityService.update(999L, request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
-        verify(departmentRepository).findById(999L);
-        verify(departmentRepository, never()).save(any(Department.class));
+        verify(specialityRepository).findById(999L);
+        verify(specialityRepository, never()).save(any(Speciality.class));
     }
 
     @Test
-    void shouldDeleteDepartment() {
-        when(departmentRepository.existsById(1L)).thenReturn(true);
+    void shouldDeleteSpeciality() {
+        when(specialityRepository.existsById(1L)).thenReturn(true);
 
-        departmentService.delete(1L);
+        specialityService.delete(1L);
 
-        verify(departmentRepository).existsById(1L);
-        verify(departmentRepository).deleteById(1L);
+        verify(specialityRepository).existsById(1L);
+        verify(specialityRepository).deleteById(1L);
     }
 
     @Test
-    void shouldThrowExceptionWhenDeletingNonExistentDepartment() {
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+    void shouldThrowExceptionWhenDeletingNonExistentSpeciality() {
+        when(specialityRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> departmentService.delete(999L))
+        assertThatThrownBy(() -> specialityService.delete(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
-        verify(departmentRepository).existsById(999L);
-        verify(departmentRepository, never()).deleteById(any());
+        verify(specialityRepository).existsById(999L);
+        verify(specialityRepository, never()).deleteById(any());
     }
 
-    private Department createDepartment(Long id, String name, String code,
+    private Speciality createSpeciality(Long id, String name, String code,
                                         String description, String hodName) {
-        Department department = new Department(name, code, description, null, hodName);
-        department.setId(id);
+        Speciality speciality = new Speciality(name, code, description, null, hodName);
+        speciality.setId(id);
         Instant now = Instant.now();
-        department.setCreatedAt(now);
-        department.setUpdatedAt(now);
-        return department;
+        speciality.setCreatedAt(now);
+        speciality.setUpdatedAt(now);
+        return speciality;
     }
 }

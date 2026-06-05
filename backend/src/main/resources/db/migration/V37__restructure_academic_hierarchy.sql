@@ -1,22 +1,22 @@
 -- V37: Restructure academic hierarchy for nursing college three-level architecture
--- Program (academic tier) ↔ Department (many-to-many shared hubs)
+-- Program (academic tier) ↔ Speciality (many-to-many shared hubs)
 -- Course (degree offering) under Program
--- Subject (individual paper) under Course + Department
+-- Subject (individual paper) under Course + Speciality
 
--- Step 1: Add program_level to programs and drop department_id
+-- Step 1: Add program_level to programs and drop speciality_id
 ALTER TABLE programs ADD COLUMN program_level VARCHAR(255) NOT NULL DEFAULT 'UNDERGRADUATE';
 ALTER TABLE programs ALTER COLUMN program_level DROP DEFAULT;
-ALTER TABLE programs DROP COLUMN department_id;
+ALTER TABLE programs DROP COLUMN speciality_id;
 
 -- Step 2: Remove degree_type and duration_years from programs (moved to courses)
 ALTER TABLE programs DROP COLUMN degree_type;
 ALTER TABLE programs DROP COLUMN duration_years;
 
--- Step 3: Create program_departments join table (many-to-many)
-CREATE TABLE program_departments (
+-- Step 3: Create program_specialities join table (many-to-many)
+CREATE TABLE program_specialities (
     program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-    department_id BIGINT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
-    PRIMARY KEY (program_id, department_id)
+    speciality_id BIGINT NOT NULL REFERENCES specialities(id) ON DELETE CASCADE,
+    PRIMARY KEY (program_id, speciality_id)
 );
 
 -- Step 4: Rename courses table to subjects
@@ -40,12 +40,12 @@ CREATE TABLE courses (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
--- Step 7: Add department_id to subjects (which department teaches this subject)
-ALTER TABLE subjects ADD COLUMN department_id BIGINT REFERENCES departments(id);
+-- Step 7: Add speciality_id to subjects (which speciality teaches this subject)
+ALTER TABLE subjects ADD COLUMN speciality_id BIGINT REFERENCES specialities(id);
 
 -- Step 8: Rename program_id to course_id in subjects (subjects belong to a course/degree, not a program)
 ALTER TABLE subjects RENAME COLUMN program_id TO course_id;
 
--- Step 9: Add course_id and specialization_department_id to students
+-- Step 9: Add course_id and specialization_speciality_id to students
 ALTER TABLE students ADD COLUMN course_id BIGINT REFERENCES courses(id);
-ALTER TABLE students ADD COLUMN specialization_department_id BIGINT REFERENCES departments(id);
+ALTER TABLE students ADD COLUMN specialization_speciality_id BIGINT REFERENCES specialities(id);

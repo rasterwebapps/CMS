@@ -24,15 +24,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.dto.DepartmentRequest;
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityRequest;
+import com.cms.dto.SpecialityResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.service.DepartmentService;
+import com.cms.service.SpecialityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@WebMvcTest(controllers = DepartmentController.class)
+@WebMvcTest(controllers = SpecialityController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class DepartmentControllerTest {
+class SpecialityControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,38 +41,38 @@ class DepartmentControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private DepartmentService departmentService;
+    private SpecialityService specialityService;
 
     @Test
-    void shouldCreateDepartment() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
-            "Computer Science", "CS", "Department of Computer Science", null
+    void shouldCreateSpeciality() throws Exception {
+        SpecialityRequest request = new SpecialityRequest(
+            "Computer Science", "CS", "Speciality of Computer Science", null
         );
 
         Instant now = Instant.now();
-        DepartmentResponse response = new DepartmentResponse(
-            1L, "Computer Science", "CS", "Department of Computer Science", null, null, now, now
+        SpecialityResponse response = new SpecialityResponse(
+            1L, "Computer Science", "CS", "Speciality of Computer Science", null, null, now, now
         );
 
-        when(departmentService.create(any(DepartmentRequest.class))).thenReturn(response);
+        when(specialityService.create(any(SpecialityRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/departments")
+        mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Computer Science"))
             .andExpect(jsonPath("$.code").value("CS"))
-            .andExpect(jsonPath("$.description").value("Department of Computer Science"));
+            .andExpect(jsonPath("$.description").value("Speciality of Computer Science"));
 
-        verify(departmentService).create(any(DepartmentRequest.class));
+        verify(specialityService).create(any(SpecialityRequest.class));
     }
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        DepartmentRequest request = new DepartmentRequest("", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null);
 
-        mockMvc.perform(post("/departments")
+        mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
@@ -80,9 +80,9 @@ class DepartmentControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null);
 
-        mockMvc.perform(post("/departments")
+        mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
@@ -97,25 +97,25 @@ class DepartmentControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/departments")
+        mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
             .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shouldFindAllDepartments() throws Exception {
+    void shouldFindAllSpecialities() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse dept1 = new DepartmentResponse(
+        SpecialityResponse dept1 = new SpecialityResponse(
             1L, "Computer Science", "CS", "CS Dept", null, null, now, now
         );
-        DepartmentResponse dept2 = new DepartmentResponse(
+        SpecialityResponse dept2 = new SpecialityResponse(
             2L, "Mathematics", "MATH", "Math Dept", null, null, now, now
         );
 
-        when(departmentService.findAll()).thenReturn(List.of(dept1, dept2));
+        when(specialityService.findAll()).thenReturn(List.of(dept1, dept2));
 
-        mockMvc.perform(get("/departments"))
+        mockMvc.perform(get("/specialities"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].id").value(1))
@@ -123,63 +123,63 @@ class DepartmentControllerTest {
             .andExpect(jsonPath("$[1].id").value(2))
             .andExpect(jsonPath("$[1].name").value("Mathematics"));
 
-        verify(departmentService).findAll();
+        verify(specialityService).findAll();
     }
 
     @Test
-    void shouldReturnEmptyListWhenNoDepartments() throws Exception {
-        when(departmentService.findAll()).thenReturn(List.of());
+    void shouldReturnEmptyListWhenNoSpecialities() throws Exception {
+        when(specialityService.findAll()).thenReturn(List.of());
 
-        mockMvc.perform(get("/departments"))
+        mockMvc.perform(get("/specialities"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(0));
 
-        verify(departmentService).findAll();
+        verify(specialityService).findAll();
     }
 
     @Test
-    void shouldFindDepartmentById() throws Exception {
+    void shouldFindSpecialityById() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse response = new DepartmentResponse(
-            1L, "Computer Science", "CS", "Department of Computer Science", null, null, now, now
+        SpecialityResponse response = new SpecialityResponse(
+            1L, "Computer Science", "CS", "Speciality of Computer Science", null, null, now, now
         );
 
-        when(departmentService.findById(1L)).thenReturn(response);
+        when(specialityService.findById(1L)).thenReturn(response);
 
-        mockMvc.perform(get("/departments/1"))
+        mockMvc.perform(get("/specialities/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Computer Science"))
             .andExpect(jsonPath("$.code").value("CS"));
 
-        verify(departmentService).findById(1L);
+        verify(specialityService).findById(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenDepartmentNotExists() throws Exception {
-        when(departmentService.findById(999L))
-            .thenThrow(new ResourceNotFoundException("Department not found with id: 999"));
+    void shouldReturnNotFoundWhenSpecialityNotExists() throws Exception {
+        when(specialityService.findById(999L))
+            .thenThrow(new ResourceNotFoundException("Speciality not found with id: 999"));
 
-        mockMvc.perform(get("/departments/999"))
+        mockMvc.perform(get("/specialities/999"))
             .andExpect(status().isNotFound());
 
-        verify(departmentService).findById(999L);
+        verify(specialityService).findById(999L);
     }
 
     @Test
-    void shouldUpdateDepartment() throws Exception {
-        DepartmentRequest request = new DepartmentRequest(
+    void shouldUpdateSpeciality() throws Exception {
+        SpecialityRequest request = new SpecialityRequest(
             "Computer Science Updated", "CSU", "Updated Description", null
         );
 
         Instant now = Instant.now();
-        DepartmentResponse response = new DepartmentResponse(
+        SpecialityResponse response = new SpecialityResponse(
             1L, "Computer Science Updated", "CSU", "Updated Description", null, null, now, now
         );
 
-        when(departmentService.update(eq(1L), any(DepartmentRequest.class))).thenReturn(response);
+        when(specialityService.update(eq(1L), any(SpecialityRequest.class))).thenReturn(response);
 
-        mockMvc.perform(put("/departments/1")
+        mockMvc.perform(put("/specialities/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -187,52 +187,52 @@ class DepartmentControllerTest {
             .andExpect(jsonPath("$.name").value("Computer Science Updated"))
             .andExpect(jsonPath("$.code").value("CSU"));
 
-        verify(departmentService).update(eq(1L), any(DepartmentRequest.class));
+        verify(specialityService).update(eq(1L), any(SpecialityRequest.class));
     }
 
     @Test
-    void shouldReturnNotFoundWhenUpdatingNonExistentDepartment() throws Exception {
-        DepartmentRequest request = new DepartmentRequest("Name", "CODE", "Description", null);
+    void shouldReturnNotFoundWhenUpdatingNonExistentSpeciality() throws Exception {
+        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Description", null);
 
-        when(departmentService.update(eq(999L), any(DepartmentRequest.class)))
-            .thenThrow(new ResourceNotFoundException("Department not found with id: 999"));
+        when(specialityService.update(eq(999L), any(SpecialityRequest.class)))
+            .thenThrow(new ResourceNotFoundException("Speciality not found with id: 999"));
 
-        mockMvc.perform(put("/departments/999")
+        mockMvc.perform(put("/specialities/999")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isNotFound());
 
-        verify(departmentService).update(eq(999L), any(DepartmentRequest.class));
+        verify(specialityService).update(eq(999L), any(SpecialityRequest.class));
     }
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        DepartmentRequest request = new DepartmentRequest("", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "", "Description", null);
 
-        mockMvc.perform(put("/departments/1")
+        mockMvc.perform(put("/specialities/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shouldDeleteDepartment() throws Exception {
-        doNothing().when(departmentService).delete(1L);
+    void shouldDeleteSpeciality() throws Exception {
+        doNothing().when(specialityService).delete(1L);
 
-        mockMvc.perform(delete("/departments/1"))
+        mockMvc.perform(delete("/specialities/1"))
             .andExpect(status().isNoContent());
 
-        verify(departmentService).delete(1L);
+        verify(specialityService).delete(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenDeletingNonExistentDepartment() throws Exception {
-        doThrow(new ResourceNotFoundException("Department not found with id: 999"))
-            .when(departmentService).delete(999L);
+    void shouldReturnNotFoundWhenDeletingNonExistentSpeciality() throws Exception {
+        doThrow(new ResourceNotFoundException("Speciality not found with id: 999"))
+            .when(specialityService).delete(999L);
 
-        mockMvc.perform(delete("/departments/999"))
+        mockMvc.perform(delete("/specialities/999"))
             .andExpect(status().isNotFound());
 
-        verify(departmentService).delete(999L);
+        verify(specialityService).delete(999L);
     }
 }

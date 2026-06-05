@@ -6,91 +6,91 @@ import java.time.Instant;
 
 import org.junit.jupiter.api.Test;
 
-class DepartmentTest {
+class SpecialityTest {
 
     @Test
-    void shouldCreateDepartmentWithNoArgConstructor() {
-        Department department = new Department();
+    void shouldCreateSpecialityWithNoArgConstructor() {
+        Speciality speciality = new Speciality();
 
-        assertThat(department.getId()).isNull();
-        assertThat(department.getName()).isNull();
-        assertThat(department.getCode()).isNull();
-        assertThat(department.getDescription()).isNull();
-        assertThat(department.getHodName()).isNull();
-        assertThat(department.getCreatedAt()).isNull();
-        assertThat(department.getUpdatedAt()).isNull();
+        assertThat(speciality.getId()).isNull();
+        assertThat(speciality.getName()).isNull();
+        assertThat(speciality.getCode()).isNull();
+        assertThat(speciality.getDescription()).isNull();
+        assertThat(speciality.getHodName()).isNull();
+        assertThat(speciality.getCreatedAt()).isNull();
+        assertThat(speciality.getUpdatedAt()).isNull();
     }
 
     @Test
-    void shouldCreateDepartmentWithAllArgsConstructor() {
-        Department department = new Department(
+    void shouldCreateSpecialityWithAllArgsConstructor() {
+        Speciality speciality = new Speciality(
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             "Dr. John Doe"
         );
 
-        assertThat(department.getName()).isEqualTo("Computer Science");
-        assertThat(department.getCode()).isEqualTo("CS");
-        assertThat(department.getDescription()).isEqualTo("Department of Computer Science");
-        assertThat(department.getHodName()).isEqualTo("Dr. John Doe");
+        assertThat(speciality.getName()).isEqualTo("Computer Science");
+        assertThat(speciality.getCode()).isEqualTo("CS");
+        assertThat(speciality.getDescription()).isEqualTo("Speciality of Computer Science");
+        assertThat(speciality.getHodName()).isEqualTo("Dr. John Doe");
     }
 
     @Test
     void shouldSetAndGetId() {
-        Department department = new Department();
-        department.setId(1L);
+        Speciality speciality = new Speciality();
+        speciality.setId(1L);
 
-        assertThat(department.getId()).isEqualTo(1L);
+        assertThat(speciality.getId()).isEqualTo(1L);
     }
 
     @Test
     void shouldSetAndGetName() {
-        Department department = new Department();
-        department.setName("Mathematics");
+        Speciality speciality = new Speciality();
+        speciality.setName("Mathematics");
 
-        assertThat(department.getName()).isEqualTo("Mathematics");
+        assertThat(speciality.getName()).isEqualTo("Mathematics");
     }
 
     @Test
     void shouldSetAndGetCode() {
-        Department department = new Department();
-        department.setCode("MATH");
+        Speciality speciality = new Speciality();
+        speciality.setCode("MATH");
 
-        assertThat(department.getCode()).isEqualTo("MATH");
+        assertThat(speciality.getCode()).isEqualTo("MATH");
     }
 
     @Test
     void shouldSetAndGetDescription() {
-        Department department = new Department();
-        department.setDescription("Department of Mathematics");
+        Speciality speciality = new Speciality();
+        speciality.setDescription("Speciality of Mathematics");
 
-        assertThat(department.getDescription()).isEqualTo("Department of Mathematics");
+        assertThat(speciality.getDescription()).isEqualTo("Speciality of Mathematics");
     }
 
     @Test
     void shouldSetAndGetHodName() {
-        Department department = new Department();
-        department.setHodName("Dr. Jane Smith");
+        Speciality speciality = new Speciality();
+        speciality.setHodName("Dr. Jane Smith");
 
-        assertThat(department.getHodName()).isEqualTo("Dr. Jane Smith");
+        assertThat(speciality.getHodName()).isEqualTo("Dr. Jane Smith");
     }
 
     @Test
     void shouldSetAndGetCreatedAt() {
-        Department department = new Department();
+        Speciality speciality = new Speciality();
         Instant now = Instant.now();
-        department.setCreatedAt(now);
+        speciality.setCreatedAt(now);
 
-        assertThat(department.getCreatedAt()).isEqualTo(now);
+        assertThat(speciality.getCreatedAt()).isEqualTo(now);
     }
 
     @Test
     void shouldSetAndGetUpdatedAt() {
-        Department department = new Department();
+        Speciality speciality = new Speciality();
         Instant now = Instant.now();
-        department.setUpdatedAt(now);
+        speciality.setUpdatedAt(now);
 
-        assertThat(department.getUpdatedAt()).isEqualTo(now);
+        assertThat(speciality.getUpdatedAt()).isEqualTo(now);
     }
 }

@@ -1,9 +1,9 @@
 -- V45: Insert comprehensive seed data for all screens
--- Idempotent: skips if departments already exist
+-- Idempotent: skips if specialities already exist
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM departments LIMIT 1) THEN
+    IF EXISTS (SELECT 1 FROM specialities LIMIT 1) THEN
         RAISE NOTICE 'Seed data already present – skipping V45.';
         RETURN;
     END IF;
@@ -21,8 +21,8 @@ BEGIN
         ('Advertisement',  'ADVERTISEMENT', 0,    FALSE, 'Through advertisement',       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     ON CONFLICT (code) DO NOTHING;
 
-    -- ── 2. Departments ───────────────────────────────────────────────────────
-    INSERT INTO departments (name, code, description, hod_name, created_at, updated_at) VALUES
+    -- ── 2. Specialities ───────────────────────────────────────────────────────
+    INSERT INTO specialities (name, code, description, hod_name, created_at, updated_at) VALUES
         ('General Nursing',          'GN',  'Core clinical nursing education and practice',       'Dr. Priya Sharma',   CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Midwifery & Obstetrics',   'MO',  'Maternal and newborn care education',                'Dr. Lakshmi Devi',   CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Community Health Nursing', 'CHN', 'Public health and community nursing',                'Dr. Anitha Rao',     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -35,9 +35,9 @@ BEGIN
         ('M.Sc Nursing',                   'MSC_NURS', 'POSTGRADUATE',  2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('General Nursing & Midwifery',    'GNM',      'DIPLOMA',       3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
-    -- ── 4. Program-Department Mappings ──────────────────────────────────────
-    INSERT INTO program_departments (program_id, department_id)
-    SELECT p.id, d.id FROM programs p, departments d
+    -- ── 4. Program-Speciality Mappings ──────────────────────────────────────
+    INSERT INTO program_specialities (program_id, speciality_id)
+    SELECT p.id, d.id FROM programs p, specialities d
     WHERE (p.code = 'BSC_NURS' AND d.code IN ('GN', 'MSN', 'PN'))
        OR (p.code = 'MSC_NURS' AND d.code IN ('GN', 'MSN'))
        OR (p.code = 'GNM'      AND d.code IN ('GN', 'MO'));
@@ -76,54 +76,54 @@ BEGIN
     ALTER TABLE subjects ADD CONSTRAINT subjects_course_id_fkey
         FOREIGN KEY (course_id) REFERENCES courses(id);
 
-    INSERT INTO subjects (name, code, credits, theory_credits, lab_credits, course_id, department_id, semester, created_at, updated_at)
+    INSERT INTO subjects (name, code, credits, theory_credits, lab_credits, course_id, speciality_id, semester, created_at, updated_at)
     SELECT 'Anatomy & Physiology',       'BSC-SUB-001', 4, 3, 1, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
     UNION ALL
     SELECT 'Biochemistry',               'BSC-SUB-002', 3, 2, 1, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
     UNION ALL
     SELECT 'Nursing Foundations Theory', 'BSC-SUB-003', 4, 4, 0, c.id, d.id, 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
     UNION ALL
     SELECT 'Nursing Foundations Lab',    'BSC-SUB-004', 2, 0, 2, c.id, d.id, 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'GN'
     UNION ALL
     SELECT 'Microbiology & Parasitology','BSC-SUB-005', 3, 2, 1, c.id, d.id, 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
     UNION ALL
     SELECT 'Medical-Surgical Nursing I', 'BSC-SUB-006', 4, 3, 1, c.id, d.id, 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'MSN'
     UNION ALL
     SELECT 'Community Health Nursing',   'BSC-SUB-007', 3, 2, 1, c.id, d.id, 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'CHN'
+    FROM courses c, specialities d WHERE c.code = 'BSC-NURS-GEN' AND d.code = 'CHN'
     UNION ALL
     SELECT 'Advanced Nursing Practice',  'MSC-SUB-001', 4, 3, 1, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'MSC-AHN' AND d.code = 'GN'
+    FROM courses c, specialities d WHERE c.code = 'MSC-AHN' AND d.code = 'GN'
     UNION ALL
     SELECT 'Research Methodology',       'MSC-SUB-002', 3, 3, 0, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'MSC-AHN' AND d.code = 'MSN'
+    FROM courses c, specialities d WHERE c.code = 'MSC-AHN' AND d.code = 'MSN'
     UNION ALL
     SELECT 'Basic Nursing Concepts',     'GNM-SUB-001', 4, 3, 1, c.id, d.id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM courses c, departments d WHERE c.code = 'GNM-GEN' AND d.code = 'GN';
+    FROM courses c, specialities d WHERE c.code = 'GNM-GEN' AND d.code = 'GN';
 
     -- ── 9. Faculty ───────────────────────────────────────────────────────────
-    INSERT INTO faculty (employee_code, first_name, last_name, email, phone, department_id, designation, specialization, lab_expertise, joining_date, status, created_at, updated_at)
-    SELECT 'FAC001', 'Priya',     'Sharma',   'priya.sharma@cms.edu',    '9876500001', d.id, 'HOD',                 'General Nursing',          'Nursing Simulation',       '2015-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC002', 'Lakshmi',   'Devi',     'lakshmi.devi@cms.edu',    '9876500002', d.id, 'HOD',                 'Midwifery',                'Obstetric Lab',            '2014-07-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MO'  UNION ALL
-    SELECT 'FAC003', 'Anitha',    'Rao',      'anitha.rao@cms.edu',      '9876500003', d.id, 'PROFESSOR',           'Community Health',         'Community Lab',            '2016-08-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'CHN' UNION ALL
-    SELECT 'FAC004', 'Rajesh',    'Kumar',    'rajesh.kumar@cms.edu',    '9876500004', d.id, 'ASSOCIATE_PROFESSOR', 'Medical-Surgical Nursing', 'Anatomy Lab',              '2018-01-15'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN' UNION ALL
-    SELECT 'FAC005', 'Kavitha',   'Nair',     'kavitha.nair@cms.edu',    '9876500005', d.id, 'ASSISTANT_PROFESSOR', 'Fundamentals of Nursing',  NULL,                       '2020-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC006', 'Deepa',     'Thomas',   'deepa.thomas@cms.edu',    '9876500006', d.id, 'LECTURER',            'Pediatric Nursing',        NULL,                       '2021-03-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'PN'  UNION ALL
-    SELECT 'FAC007', 'Suresh',    'Babu',     'suresh.babu@cms.edu',     '9876500007', d.id, 'LAB_INSTRUCTOR',      'Nursing Simulation',       'Nursing Foundation Lab',   '2019-09-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'FAC008', 'Ramya',     'Krishnan', 'ramya.krishnan@cms.edu',  '9876500008', d.id, 'ASSISTANT_PROFESSOR', 'Clinical Nursing',         'Skills Lab',               '2022-01-10'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN';
+    INSERT INTO faculty (employee_code, first_name, last_name, email, phone, speciality_id, designation, specialization, lab_expertise, joining_date, status, created_at, updated_at)
+    SELECT 'FAC001', 'Priya',     'Sharma',   'priya.sharma@cms.edu',    '9876500001', d.id, 'HOD',                 'General Nursing',          'Nursing Simulation',       '2015-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC002', 'Lakshmi',   'Devi',     'lakshmi.devi@cms.edu',    '9876500002', d.id, 'HOD',                 'Midwifery',                'Obstetric Lab',            '2014-07-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'MO'  UNION ALL
+    SELECT 'FAC003', 'Anitha',    'Rao',      'anitha.rao@cms.edu',      '9876500003', d.id, 'PROFESSOR',           'Community Health',         'Community Lab',            '2016-08-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'CHN' UNION ALL
+    SELECT 'FAC004', 'Rajesh',    'Kumar',    'rajesh.kumar@cms.edu',    '9876500004', d.id, 'ASSOCIATE_PROFESSOR', 'Medical-Surgical Nursing', 'Anatomy Lab',              '2018-01-15'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'MSN' UNION ALL
+    SELECT 'FAC005', 'Kavitha',   'Nair',     'kavitha.nair@cms.edu',    '9876500005', d.id, 'ASSISTANT_PROFESSOR', 'Fundamentals of Nursing',  NULL,                       '2020-06-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC006', 'Deepa',     'Thomas',   'deepa.thomas@cms.edu',    '9876500006', d.id, 'LECTURER',            'Pediatric Nursing',        NULL,                       '2021-03-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'PN'  UNION ALL
+    SELECT 'FAC007', 'Suresh',    'Babu',     'suresh.babu@cms.edu',     '9876500007', d.id, 'LAB_INSTRUCTOR',      'Nursing Simulation',       'Nursing Foundation Lab',   '2019-09-01'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'FAC008', 'Ramya',     'Krishnan', 'ramya.krishnan@cms.edu',  '9876500008', d.id, 'ASSISTANT_PROFESSOR', 'Clinical Nursing',         'Skills Lab',               '2022-01-10'::date, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'MSN';
 
     -- ── 10. Labs ─────────────────────────────────────────────────────────────
-    INSERT INTO labs (name, lab_type, department_id, building, room_number, capacity, status, created_at, updated_at)
-    SELECT 'Nursing Foundation Lab', 'OTHER',    d.id, 'Block A', 'A-101', 30, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'Anatomy Lab',            'BIOLOGY',  d.id, 'Block B', 'B-201', 25, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'MSN' UNION ALL
-    SELECT 'Computer Lab',           'COMPUTER', d.id, 'Block C', 'C-301', 40, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'GN'  UNION ALL
-    SELECT 'Community Health Lab',   'OTHER',    d.id, 'Block D', 'D-101', 20, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM departments d WHERE d.code = 'CHN';
+    INSERT INTO labs (name, lab_type, speciality_id, building, room_number, capacity, status, created_at, updated_at)
+    SELECT 'Nursing Foundation Lab', 'OTHER',    d.id, 'Block A', 'A-101', 30, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'Anatomy Lab',            'BIOLOGY',  d.id, 'Block B', 'B-201', 25, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'MSN' UNION ALL
+    SELECT 'Computer Lab',           'COMPUTER', d.id, 'Block C', 'C-301', 40, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'GN'  UNION ALL
+    SELECT 'Community Health Lab',   'OTHER',    d.id, 'Block D', 'D-101', 20, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP FROM specialities d WHERE d.code = 'CHN';
 
     -- ── 11. Lab Slots ─────────────────────────────────────────────────────────
     INSERT INTO lab_slots (name, start_time, end_time, slot_order, is_active, created_at, updated_at) VALUES

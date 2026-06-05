@@ -5,7 +5,7 @@ CREATE TABLE faculty (
     last_name       VARCHAR(255)                NOT NULL,
     email           VARCHAR(255)                NOT NULL UNIQUE,
     phone           VARCHAR(255),
-    department_id   BIGINT                      NOT NULL REFERENCES departments(id),
+    speciality_id   BIGINT                      NOT NULL REFERENCES specialities(id),
     designation     VARCHAR(255)                NOT NULL,
     specialization  VARCHAR(255),
     lab_expertise   VARCHAR(1000),

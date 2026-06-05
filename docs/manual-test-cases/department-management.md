@@ -1,4 +1,4 @@
-# Manual Test Cases — Department Management (R1-M2.1)
+# Manual Test Cases — Speciality Management (R1-M2.1)
 
 ## Prerequisites
 
@@ -6,29 +6,29 @@
 - Backend running at `http://localhost:8080`
 - Keycloak running with `cms` realm configured
 - User logged in as admin
-- At least one department exists in the system
+- At least one speciality exists in the system
 
 ---
 
-### TC-DEPT-001: Navigate to Department List
+### TC-DEPT-001: Navigate to Speciality List
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click "Departments" in the sidebar navigation    |
-| **Expected**| Department list page loads with columns: Name, Code, Description, Actions |
+| **Action**  | Click "Specialities" in the sidebar navigation    |
+| **Expected**| Speciality list page loads with columns: Name, Code, Description, Actions |
 
 ---
 
-### TC-DEPT-002: Search Departments
+### TC-DEPT-002: Search Specialities
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Type a search term in the search field           |
-| **Expected**| Table filters to show only matching departments  |
+| **Expected**| Table filters to show only matching specialities  |
 
 ---
 
-### TC-DEPT-003: Sort Departments
+### TC-DEPT-003: Sort Specialities
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
@@ -37,16 +37,16 @@
 
 ---
 
-### TC-DEPT-004: Add Department — Navigate to Form
+### TC-DEPT-004: Add Speciality — Navigate to Form
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click "Add Department" button                    |
-| **Expected**| Department form loads with title "Add Department" |
+| **Action**  | Click "Add Speciality" button                    |
+| **Expected**| Speciality form loads with title "Add Speciality" |
 
 ---
 
-### TC-DEPT-005: Add Department — Validation
+### TC-DEPT-005: Add Speciality — Validation
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
@@ -55,57 +55,57 @@
 
 ---
 
-### TC-DEPT-006: Add Department — Successful Create
+### TC-DEPT-006: Add Speciality — Successful Create
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Fill in Name, Code, and optionally Description; click Create |
-| **Expected**| Snackbar shows "Created"; redirected to department list; new entry visible |
+| **Expected**| Snackbar shows "Created"; redirected to speciality list; new entry visible |
 
 ---
 
-### TC-DEPT-007: Edit Department
+### TC-DEPT-007: Edit Speciality
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click the edit icon on a department row          |
-| **Expected**| Form loads with title "Edit Department"; all fields pre-populated |
+| **Action**  | Click the edit icon on a speciality row          |
+| **Expected**| Form loads with title "Edit Speciality"; all fields pre-populated |
 
 ---
 
-### TC-DEPT-008: Update Department
+### TC-DEPT-008: Update Speciality
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Modify fields and click "Update"                 |
-| **Expected**| Snackbar shows "Updated"; redirected to department list; changes reflected |
+| **Expected**| Snackbar shows "Updated"; redirected to speciality list; changes reflected |
 
 ---
 
-### TC-DEPT-009: Delete Department — Confirmation Dialog
+### TC-DEPT-009: Delete Speciality — Confirmation Dialog
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Click the delete icon on a department row        |
-| **Expected**| Confirmation dialog: "Delete Department" with department name displayed |
+| **Action**  | Click the delete icon on a speciality row        |
+| **Expected**| Confirmation dialog: "Delete Speciality" with speciality name displayed |
 
 ---
 
-### TC-DEPT-010: Delete Department — Successful Delete
+### TC-DEPT-010: Delete Speciality — Successful Delete
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Confirm" in the delete confirmation dialog |
-| **Expected**| Snackbar shows "Deleted"; department removed from the list |
+| **Expected**| Snackbar shows "Deleted"; speciality removed from the list |
 
 ---
 
-### TC-DEPT-011: Cancel Delete Department
+### TC-DEPT-011: Cancel Delete Speciality
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Cancel" in the delete confirmation dialog |
-| **Expected**| Dialog closes; department remains in the list    |
+| **Expected**| Dialog closes; speciality remains in the list    |
 
 ---
 
@@ -113,20 +113,20 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | View department list when no departments exist   |
+| **Action**  | View speciality list when no specialities exist   |
 | **Expected**| Table shows "No data available" message          |
 
 ---
 
-## TC-DEPT-013: Duplicate department shows meaningful error
+## TC-DEPT-013: Duplicate speciality shows meaningful error
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
-- A department with code "CS" already exists
+- A speciality with code "CS" already exists
 
 **Steps:**
-1. Navigate to **Departments → Add Department**
-2. Enter the same code ("CS") as an existing department
+1. Navigate to **Specialities → Add Speciality**
+2. Enter the same code ("CS") as an existing speciality
 3. Click **Save**
 
 **Expected Result:**

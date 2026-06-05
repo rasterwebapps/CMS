@@ -14,7 +14,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewMode, CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/department.tours';
+import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/speciality.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 
 @Component({

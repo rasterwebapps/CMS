@@ -14,7 +14,7 @@ import { Faculty } from '../../faculty/faculty.model';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/department.tours';
+import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/speciality.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';

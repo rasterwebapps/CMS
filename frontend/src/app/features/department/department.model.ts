@@ -1,9 +1,9 @@
-export interface Department {
+export interface Speciality {
   id: number;
   name: string;
   code: string;
   description?: string;
-  /** FK to the faculty record designated as Head of Department. */
+  /** FK to the faculty record designated as Head of Speciality. */
   hodFacultyId?: number;
   /** Denormalized display name, kept in sync by the backend service. */
   hodName?: string;
@@ -11,10 +11,10 @@ export interface Department {
   updatedAt: string;
 }
 
-export interface DepartmentRequest {
+export interface SpecialityRequest {
   name: string;
   code: string;
   description?: string;
-  /** ID of the faculty member to assign as Head of Department (optional). */
+  /** ID of the faculty member to assign as Head of Speciality (optional). */
   hodFacultyId?: number;
 }

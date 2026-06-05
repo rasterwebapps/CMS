@@ -113,7 +113,7 @@ keyboard shortcuts.
 **Steps:**
 1. Observe the toolbar.
 2. Tap the **hamburger** icon on the left of the toolbar.
-3. Tap any menu link (e.g. **Departments**).
+3. Tap any menu link (e.g. **Specialities**).
 4. Reopen the drawer and tap the **`close`** icon in its header.
 
 **Expected Result:**
@@ -145,7 +145,7 @@ keyboard shortcuts.
 
 ## TC-NAV-008: Tables render as card lists on mobile
 
-**Preconditions:** Mobile viewport, navigate to a list page using `cms-data-table` (e.g. `/departments`).
+**Preconditions:** Mobile viewport, navigate to a list page using `cms-data-table` (e.g. `/specialities`).
 
 **Steps:**
 1. Observe how each row is rendered.

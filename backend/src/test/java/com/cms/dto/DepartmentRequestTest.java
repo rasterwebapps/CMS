@@ -12,7 +12,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 
-class DepartmentRequestTest {
+class SpecialityRequestTest {
 
     private Validator validator;
 
@@ -23,33 +23,33 @@ class DepartmentRequestTest {
     }
 
     @Test
-    void shouldCreateValidDepartmentRequest() {
-        DepartmentRequest request = new DepartmentRequest(
+    void shouldCreateValidSpecialityRequest() {
+        SpecialityRequest request = new SpecialityRequest(
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             null
         );
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).isEmpty();
         assertThat(request.name()).isEqualTo("Computer Science");
         assertThat(request.code()).isEqualTo("CS");
-        assertThat(request.description()).isEqualTo("Department of Computer Science");
+        assertThat(request.description()).isEqualTo("Speciality of Computer Science");
         assertThat(request.hodFacultyId()).isNull();
     }
 
     @Test
-    void shouldCreateValidDepartmentRequestWithHodFacultyId() {
-        DepartmentRequest request = new DepartmentRequest(
+    void shouldCreateValidSpecialityRequestWithHodFacultyId() {
+        SpecialityRequest request = new SpecialityRequest(
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             42L
         );
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).isEmpty();
         assertThat(request.hodFacultyId()).isEqualTo(42L);
@@ -57,9 +57,9 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenNameIsBlank() {
-        DepartmentRequest request = new DepartmentRequest("", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage()).isEqualTo("Name is required");
@@ -67,9 +67,9 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenNameIsNull() {
-        DepartmentRequest request = new DepartmentRequest(null, "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest(null, "CS", "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage()).isEqualTo("Name is required");
@@ -77,9 +77,9 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsBlank() {
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage()).isEqualTo("Code is required");
@@ -87,9 +87,9 @@ class DepartmentRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsNull() {
-        DepartmentRequest request = new DepartmentRequest("Computer Science", null, "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", null, "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage()).isEqualTo("Code is required");
@@ -98,9 +98,9 @@ class DepartmentRequestTest {
     @Test
     void shouldFailValidationWhenNameExceeds255Characters() {
         String longName = "a".repeat(256);
-        DepartmentRequest request = new DepartmentRequest(longName, "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest(longName, "CS", "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
@@ -110,9 +110,9 @@ class DepartmentRequestTest {
     @Test
     void shouldFailValidationWhenCodeExceeds50Characters() {
         String longCode = "a".repeat(51);
-        DepartmentRequest request = new DepartmentRequest("Computer Science", longCode, "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", longCode, "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
@@ -122,11 +122,11 @@ class DepartmentRequestTest {
     @Test
     void shouldFailValidationWhenDescriptionExceeds1000Characters() {
         String longDescription = "a".repeat(1001);
-        DepartmentRequest request = new DepartmentRequest(
+        SpecialityRequest request = new SpecialityRequest(
             "Computer Science", "CS", longDescription, null
         );
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).hasSize(1);
         assertThat(violations.iterator().next().getMessage())
@@ -135,18 +135,18 @@ class DepartmentRequestTest {
 
     @Test
     void shouldAllowNullDescription() {
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "CS", null, null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", null, null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).isEmpty();
     }
 
     @Test
     void shouldAllowNullHodFacultyId() {
-        DepartmentRequest request = new DepartmentRequest("Computer Science", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", "Description", null);
 
-        Set<ConstraintViolation<DepartmentRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
         assertThat(violations).isEmpty();
     }

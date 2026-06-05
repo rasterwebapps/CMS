@@ -13,31 +13,31 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cms.config.JpaConfig;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(JpaConfig.class)
-class DepartmentRepositoryTest {
+class SpecialityRepositoryTest {
 
     @Autowired
-    private DepartmentRepository departmentRepository;
+    private SpecialityRepository specialityRepository;
 
     @BeforeEach
     void setUp() {
-        departmentRepository.deleteAll();
+        specialityRepository.deleteAll();
     }
 
     @Test
-    void shouldSaveDepartment() {
-        Department department = new Department(
+    void shouldSaveSpeciality() {
+        Speciality speciality = new Speciality(
             "Computer Science",
             "CS",
-            "Department of Computer Science",
+            "Speciality of Computer Science",
             "Dr. John Doe"
         );
 
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getName()).isEqualTo("Computer Science");
@@ -47,32 +47,32 @@ class DepartmentRepositoryTest {
     }
 
     @Test
-    void shouldFindDepartmentById() {
-        Department department = new Department(
+    void shouldFindSpecialityById() {
+        Speciality speciality = new Speciality(
             "Mathematics",
             "MATH",
-            "Department of Mathematics",
+            "Speciality of Mathematics",
             "Dr. Jane Smith"
         );
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
 
-        Optional<Department> found = departmentRepository.findById(saved.getId());
+        Optional<Speciality> found = specialityRepository.findById(saved.getId());
 
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Mathematics");
     }
 
     @Test
-    void shouldFindDepartmentByCode() {
-        Department department = new Department(
+    void shouldFindSpecialityByCode() {
+        Speciality speciality = new Speciality(
             "Physics",
             "PHY",
-            "Department of Physics",
+            "Speciality of Physics",
             "Dr. Einstein"
         );
-        departmentRepository.save(department);
+        specialityRepository.save(speciality);
 
-        Optional<Department> found = departmentRepository.findByCode("PHY");
+        Optional<Speciality> found = specialityRepository.findByCode("PHY");
 
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Physics");
@@ -80,107 +80,107 @@ class DepartmentRepositoryTest {
 
     @Test
     void shouldReturnEmptyWhenFindByCodeNotExists() {
-        Optional<Department> found = departmentRepository.findByCode("NONEXISTENT");
+        Optional<Speciality> found = specialityRepository.findByCode("NONEXISTENT");
 
         assertThat(found).isEmpty();
     }
 
     @Test
-    void shouldCheckIfDepartmentExistsByCode() {
-        Department department = new Department(
+    void shouldCheckIfSpecialityExistsByCode() {
+        Speciality speciality = new Speciality(
             "Chemistry",
             "CHEM",
-            "Department of Chemistry",
+            "Speciality of Chemistry",
             "Dr. Curie"
         );
-        departmentRepository.save(department);
+        specialityRepository.save(speciality);
 
-        boolean exists = departmentRepository.existsByCode("CHEM");
-        boolean notExists = departmentRepository.existsByCode("NONEXISTENT");
+        boolean exists = specialityRepository.existsByCode("CHEM");
+        boolean notExists = specialityRepository.existsByCode("NONEXISTENT");
 
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
     }
 
     @Test
-    void shouldFindAllDepartments() {
-        Department dept1 = new Department("CS", "CS", "CS Dept", "Dr. A");
-        Department dept2 = new Department("Math", "MATH", "Math Dept", "Dr. B");
-        departmentRepository.save(dept1);
-        departmentRepository.save(dept2);
+    void shouldFindAllSpecialities() {
+        Speciality dept1 = new Speciality("CS", "CS", "CS Dept", "Dr. A");
+        Speciality dept2 = new Speciality("Math", "MATH", "Math Dept", "Dr. B");
+        specialityRepository.save(dept1);
+        specialityRepository.save(dept2);
 
-        List<Department> departments = departmentRepository.findAll();
+        List<Speciality> specialities = specialityRepository.findAll();
 
-        assertThat(departments).hasSize(2);
+        assertThat(specialities).hasSize(2);
     }
 
     @Test
-    void shouldUpdateDepartment() {
-        Department department = new Department(
+    void shouldUpdateSpeciality() {
+        Speciality speciality = new Speciality(
             "Biology",
             "BIO",
-            "Department of Biology",
+            "Speciality of Biology",
             "Dr. Darwin"
         );
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
 
         saved.setName("Life Sciences");
         saved.setHodName("Dr. Updated");
-        Department updated = departmentRepository.save(saved);
+        Speciality updated = specialityRepository.save(saved);
 
         assertThat(updated.getName()).isEqualTo("Life Sciences");
         assertThat(updated.getHodName()).isEqualTo("Dr. Updated");
     }
 
     @Test
-    void shouldDeleteDepartment() {
-        Department department = new Department(
+    void shouldDeleteSpeciality() {
+        Speciality speciality = new Speciality(
             "History",
             "HIST",
-            "Department of History",
+            "Speciality of History",
             "Dr. Historian"
         );
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
         Long id = saved.getId();
 
-        departmentRepository.deleteById(id);
+        specialityRepository.deleteById(id);
 
-        Optional<Department> found = departmentRepository.findById(id);
+        Optional<Speciality> found = specialityRepository.findById(id);
         assertThat(found).isEmpty();
     }
 
     @Test
-    void shouldReturnTrueWhenDepartmentExistsById() {
-        Department department = new Department(
+    void shouldReturnTrueWhenSpecialityExistsById() {
+        Speciality speciality = new Speciality(
             "Geography",
             "GEO",
-            "Department of Geography",
+            "Speciality of Geography",
             "Dr. Geo"
         );
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
 
-        boolean exists = departmentRepository.existsById(saved.getId());
+        boolean exists = specialityRepository.existsById(saved.getId());
 
         assertThat(exists).isTrue();
     }
 
     @Test
-    void shouldReturnFalseWhenDepartmentNotExistsById() {
-        boolean exists = departmentRepository.existsById(999L);
+    void shouldReturnFalseWhenSpecialityNotExistsById() {
+        boolean exists = specialityRepository.existsById(999L);
 
         assertThat(exists).isFalse();
     }
 
     @Test
     void shouldSetCreatedAtAndUpdatedAtOnSave() {
-        Department department = new Department(
+        Speciality speciality = new Speciality(
             "Art",
             "ART",
-            "Department of Art",
+            "Speciality of Art",
             "Dr. Artist"
         );
 
-        Department saved = departmentRepository.save(department);
+        Speciality saved = specialityRepository.save(speciality);
 
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getUpdatedAt()).isNotNull();
