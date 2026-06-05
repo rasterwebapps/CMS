@@ -116,25 +116,34 @@
       <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
-        <ng-container matColumnDef="receiptNumber">
+        <ng-container matColumnDef="receiptNumber" sticky>
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt No.</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-code">{{ row.receiptNumber }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="payer">
+        <ng-container matColumnDef="payer" sticky>
           <th mat-header-cell *matHeaderCellDef mat-sort-header="payerName">Name</th>
           <td mat-cell *matCellDef="let row">
-            <span class="cell-name">{{ row.payerName }}</span>
-            @if (row.payerIdentifier) {
-              <span class="cell-sub cell-code-sub">{{ row.payerIdentifier }}</span>
-            }
-            @if (row.admissionNumber) {
-              <span class="cell-sub cell-code-sub">Adm: {{ row.admissionNumber }}</span>
-            }
+            <span class="cell-name" [title]="row.programName || ''">{{ row.payerName }}</span>
             @if (row.programName) {
               <span class="cell-sub">{{ row.programName }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="payerId" sticky>
+          <th mat-header-cell *matHeaderCellDef>Roll / Adm</th>
+          <td mat-cell *matCellDef="let row" class="cell-id-col">
+            @if (row.payerIdentifier) {
+              <span class="cell-code-mono">{{ row.payerIdentifier }}</span>
+            }
+            @if (row.admissionNumber) {
+              <span class="cell-code-mono cell-adm">Adm: {{ row.admissionNumber }}</span>
+            }
+            @if (!row.payerIdentifier && !row.admissionNumber) {
+              <span class="cell-muted">—</span>
             }
           </td>
         </ng-container>
@@ -151,14 +160,16 @@
         <ng-container matColumnDef="installmentsCovered">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Towards</th>
           <td mat-cell *matCellDef="let row">
-            <span class="cell-towards" [title]="row.installmentsCovered ?? ''">
+            <span class="cell-towards"
+                  [matTooltip]="row.installmentsCovered ?? ''"
+                  matTooltipShowDelay="300">
               {{ row.installmentsCovered || '—' }}
             </span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="amountPaid">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Amount (₹)</th>
+        <ng-container matColumnDef="amountPaid" stickyEnd>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Amount</th>
           <td mat-cell *matCellDef="let row" class="cell-align-right">
             <span class="cell-currency">{{ row.amountPaid | inr:false:false }}</span>
           </td>
@@ -171,7 +182,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="paymentDate">
+        <ng-container matColumnDef="paymentDate" sticky>
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-date">{{ row.paymentDate | appDate }}</span>
@@ -185,7 +196,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" stickyEnd>
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let row">
             <div class="row-actions">

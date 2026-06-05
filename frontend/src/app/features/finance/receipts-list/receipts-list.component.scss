@@ -1,18 +1,89 @@
 // receipts-list — component-specific overrides only.
 // All layout uses global MLP classes from styles.scss.
 
+// Tighter cell density — overrides global modern-table for this page only
+td.mat-cell,
+td.mat-mdc-cell {
+  padding: 8px 16px;
+}
+
+// Sticky cells MUST be opaque; without a background the scrolling columns
+// bleed through underneath the frozen left/right columns.
+th.mat-mdc-table-sticky,
+td.mat-mdc-table-sticky {
+  background: var(--cms-bg-card);
+}
+
+tr.table-row:hover td.mat-mdc-table-sticky {
+  background: var(--cms-bg-hover);
+}
+
+// ── Column widths ─────────────────────────────────────────────────────────
+// Explicit widths prevent Material from over-allocating space.
+
+.mat-column-paymentDate       { width: 78px;  min-width: 78px;  }
+.mat-column-receiptNumber     { width: 148px; min-width: 148px; }
+.mat-column-payer             { width: 160px; min-width: 140px; }
+.mat-column-payerId           { width: 148px; min-width: 120px; }
+.mat-column-payerType         { width: 84px;  min-width: 84px;  }
+.mat-column-installmentsCovered { width: 160px; min-width: 120px; }
+.mat-column-paymentMode       { width: 112px; min-width: 100px; }
+.mat-column-transactionReference { width: 110px; min-width: 90px; }
+.mat-column-amountPaid        { width: 88px;  min-width: 88px;  }
+.mat-column-actions           { width: 52px;  min-width: 52px;  }
+
+// ── Sticky column separators ───────────────────────────────────────────────
+// Right edge of the last left-sticky column; left edge of first right-sticky.
+.mat-column-payerId {
+  &.mat-header-cell,
+  &.mat-mdc-header-cell,
+  &.mat-cell,
+  &.mat-mdc-cell {
+    border-right: 1px solid var(--cms-border-default);
+    box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mat-column-amountPaid {
+  &.mat-header-cell,
+  &.mat-mdc-header-cell,
+  &.mat-cell,
+  &.mat-mdc-cell {
+    border-left: 1px solid var(--cms-border-default);
+    box-shadow: -2px 0 6px -2px rgba(0, 0, 0, 0.08);
+  }
+}
+
 .cell-sub {
   display: block;
   font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
   line-height: 1.3;
 }
+
 
 .cell-code-sub {
   font-family: var(--cms-font-mono);
   font-size: var(--cms-text-xs);
   color: var(--cms-primary);
+}
+
+// Roll / Adm column
+.cell-id-col {
+  white-space: nowrap;
+}
+
+.cell-code-mono {
+  display: block;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+  color: var(--cms-primary);
+  line-height: 1.4;
+}
+
+.cell-adm {
+  color: var(--cms-text-muted);
 }
 
 .cell-code-sm {
@@ -25,10 +96,11 @@
   display: block;
   font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
-  max-width: 280px;
+  max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: default;
 }
 
 // Date range filter — grouped pill matching mlp-filter-select appearance

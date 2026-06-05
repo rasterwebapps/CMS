@@ -964,8 +964,14 @@ app-root {
   letter-spacing: -0.01em;
   text-decoration: none;
 
-  svg {
+  svg, mat-icon {
     flex-shrink: 0;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 
   &:hover {
@@ -1552,6 +1558,7 @@ tr.mat-mdc-no-data-row {
   padding: 3px 8px;
   border-radius: var(--cms-radius-sm);
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .cell-name {
@@ -1571,6 +1578,7 @@ tr.mat-mdc-no-data-row {
   color: var(--cms-text-secondary);
   font-weight: 500;
   font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .cell-currency {
@@ -5098,7 +5106,13 @@ html.dark-theme .breadcrumb-sep.material-symbols-rounded {
   white-space: nowrap;
   text-decoration: none;
 
-  svg { flex-shrink: 0; }
+  svg, mat-icon { flex-shrink: 0; }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 
   &:hover:not(:disabled) {
     background: var(--cms-bg-hover);

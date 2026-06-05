@@ -36,9 +36,12 @@ export class ReceiptsListComponent implements OnInit {
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
 
   protected readonly displayedColumns = [
-    'receiptNumber', 'payer', 'payerType', 'installmentsCovered',
-    'amountPaid', 'paymentMode', 'paymentDate',
-    'transactionReference', 'actions',
+    // ── Left sticky ──────────────────────────────────────────────────────────
+    'paymentDate', 'receiptNumber', 'payer', 'payerId',
+    // ── Scrollable ───────────────────────────────────────────────────────────
+    'payerType', 'installmentsCovered', 'paymentMode', 'transactionReference',
+    // ── Right sticky ─────────────────────────────────────────────────────────
+    'amountPaid', 'actions',
   ];
 
   protected readonly dataSource = new MatTableDataSource<UnifiedReceiptSummary>([]);

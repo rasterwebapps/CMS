@@ -288,8 +288,8 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     width: 100%;
     margin-top: 8px;
   }
@@ -301,14 +301,19 @@
     background: var(--cms-bg-muted);
     border-radius: var(--cms-radius-md);
     padding: 12px 16px;
+
+    &:last-child { grid-column: 1 / -1; }
   }
 
   &__label {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
     color: var(--cms-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__value { font-size: 1rem; font-weight: 700; color: var(--cms-text-primary); }

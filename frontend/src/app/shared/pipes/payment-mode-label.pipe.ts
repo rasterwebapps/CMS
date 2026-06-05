@@ -1,8 +1,9 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { getPaymentModeLabel } from '../utils/payment-mode.utils';
+import { getPaymentModeShortLabel } from '../utils/payment-mode.utils';
 
 /**
- * Transforms a raw PaymentMode enum value into a human-readable label.
+ * Transforms a raw PaymentMode enum value into a short human-readable label
+ * suitable for table badges and filter dropdowns.
  * Usage: {{ payment.paymentMode | paymentModeLabel }}
  */
 @Pipe({
@@ -11,7 +12,7 @@ import { getPaymentModeLabel } from '../utils/payment-mode.utils';
 })
 export class PaymentModeLabelPipe implements PipeTransform {
   transform(value: string | null | undefined): string {
-    return getPaymentModeLabel(value);
+    return getPaymentModeShortLabel(value);
   }
 }
 
