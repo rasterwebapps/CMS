@@ -14,9 +14,10 @@ import {
   FacultyDocumentTypeRequirement,
   FacultyDocumentTypeRequirementRequest,
   FacultyQualification,
-  DESIGNATION_OPTIONS,
   FACULTY_QUALIFICATION_OPTIONS,
 } from '../faculty.model';
+import { DesignationService } from '../../designation/designation.service';
+import { DesignationMaster } from '../../designation/designation.model';
 import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
 import { ProgramService } from '../../program/program.service';
@@ -47,6 +48,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 export class FacultyDocConfigComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
+  private readonly designationService = inject(DesignationService);
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -56,6 +58,7 @@ export class FacultyDocConfigComponent implements OnInit {
 
   protected readonly rules = signal<FacultyDocumentTypeRequirement[]>([]);
   protected readonly specialities = signal<Speciality[]>([]);
+  protected readonly designations = signal<DesignationMaster[]>([]);
   protected readonly allDocumentTypes = signal<DocumentTypeInfo[]>([]);
 
   protected readonly displayedColumns = [
@@ -77,18 +80,17 @@ export class FacultyDocConfigComponent implements OnInit {
     ),
   );
 
-  protected readonly DESIGNATION_OPTIONS = DESIGNATION_OPTIONS;
   protected readonly FACULTY_QUALIFICATION_OPTIONS = FACULTY_QUALIFICATION_OPTIONS;
 
   protected newDocumentType = '';
-  protected newDesignation = '';
+  protected newDesignationId: number | null = null;
   protected newSpecialityId: number | null = null;
   protected newQualification: FacultyQualification | '' = '';
 
   protected get canAddRule(): boolean {
     return (
       !!this.newDocumentType &&
-      (!!this.newDesignation || !!this.newSpecialityId || !!this.newQualification)
+      (!!this.newDesignationId || !!this.newSpecialityId || !!this.newQualification)
     );
   }
 
@@ -98,7 +100,7 @@ export class FacultyDocConfigComponent implements OnInit {
 
   private loadAll(): void {
     this.loading.set(true);
-    let pending = 3;
+    let pending = 4;
     const done = () => {
       if (--pending === 0) this.loading.set(false);
     };
@@ -116,18 +118,17 @@ export class FacultyDocConfigComponent implements OnInit {
     });
 
     this.specialityService.getAll().subscribe({
-      next: (specialities) => {
-        this.specialities.set(specialities);
-        done();
-      },
+      next: (specialities) => { this.specialities.set(specialities); done(); },
+      error: () => done(),
+    });
+
+    this.designationService.getAll().subscribe({
+      next: (designations) => { this.designations.set(designations); done(); },
       error: () => done(),
     });
 
     this.programService.getAllDocumentTypes().subscribe({
-      next: (types) => {
-        this.allDocumentTypes.set(types);
-        done();
-      },
+      next: (types) => { this.allDocumentTypes.set(types); done(); },
       error: () => done(),
     });
   }
@@ -137,7 +138,7 @@ export class FacultyDocConfigComponent implements OnInit {
 
     const request: FacultyDocumentTypeRequirementRequest = {
       documentType: this.newDocumentType,
-      designation: this.newDesignation || undefined,
+      designationId: this.newDesignationId ?? undefined,
       specialityId: this.newSpecialityId ?? undefined,
       qualification: (this.newQualification as FacultyQualification) || undefined,
     };
@@ -184,29 +185,22 @@ export class FacultyDocConfigComponent implements OnInit {
   }
 
   protected criterionLabel(rule: FacultyDocumentTypeRequirement): string {
-    if (rule.designation) return 'Designation';
+    if (rule.designationId) return 'Designation';
     if (rule.specialityId) return 'Speciality';
     if (rule.qualification) return 'Qualification';
     return '—';
   }
 
   protected criterionValue(rule: FacultyDocumentTypeRequirement): string {
-    if (rule.designation) return this.formatDesignation(rule.designation);
+    if (rule.designationId) return rule.designationName ?? '—';
     if (rule.specialityId) return rule.specialityName ?? '—';
     if (rule.qualification) return rule.qualificationLabel ?? rule.qualification;
     return '—';
   }
 
-  private formatDesignation(d: string): string {
-    return d
-      .toLowerCase()
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
   private resetForm(): void {
     this.newDocumentType = '';
-    this.newDesignation = '';
+    this.newDesignationId = null;
     this.newSpecialityId = null;
     this.newQualification = '';
   }

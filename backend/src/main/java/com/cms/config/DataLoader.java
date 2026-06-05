@@ -46,7 +46,7 @@ import com.cms.model.StudentFeeAllocation;
 import com.cms.model.Subject;
 import com.cms.model.Syllabus;
 import com.cms.model.enums.AdmissionStatus;
-import com.cms.model.enums.Designation;
+import com.cms.model.DesignationMaster;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.EquipmentCategory;
@@ -84,6 +84,7 @@ import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.ExperimentRepository;
+import com.cms.repository.DesignationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.FeeStructureRepository;
@@ -141,6 +142,7 @@ public class DataLoader implements CommandLineRunner {
     private final SemesterFeeRepository semesterFeeRepository;
     private final CommunityRepository communityRepository;
     private final BloodGroupRepository bloodGroupRepository;
+    private final DesignationRepository designationRepository;
 
     public DataLoader(SpecialityRepository specialityRepository,
                       ProgramRepository programRepository,
@@ -171,7 +173,8 @@ public class DataLoader implements CommandLineRunner {
                       StudentFeeAllocationRepository studentFeeAllocationRepository,
                       SemesterFeeRepository semesterFeeRepository,
                       CommunityRepository communityRepository,
-                      BloodGroupRepository bloodGroupRepository) {
+                      BloodGroupRepository bloodGroupRepository,
+                      DesignationRepository designationRepository) {
         this.specialityRepository = specialityRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
@@ -202,6 +205,7 @@ public class DataLoader implements CommandLineRunner {
         this.semesterFeeRepository = semesterFeeRepository;
         this.communityRepository = communityRepository;
         this.bloodGroupRepository = bloodGroupRepository;
+        this.designationRepository = designationRepository;
     }
 
     @Override
@@ -221,7 +225,7 @@ public class DataLoader implements CommandLineRunner {
         // ── 1. Referral Types ────────────────────────────────────────────────
         seedReferralTypes();
 
-        // ── 2. Departments ───────────────────────────────────────────────────
+        // ── 2. Specialities ───────────────────────────────────────────────────
         List<Speciality> depts = seedSpecialities();
         Speciality gnDept    = depts.get(0);
         Speciality moDept    = depts.get(1);
@@ -273,14 +277,21 @@ public class DataLoader implements CommandLineRunner {
         Subject basicNurs  = subjectRepository.save(new Subject("Basic Nursing Concepts",     "GNM-SUB-001", 4, 3, 1, gnmCourse, gnDept, 1));
 
         // ── 8. Faculty ───────────────────────────────────────────────────────
-        Faculty f1 = facultyRepository.save(new Faculty("FAC001", "Priya",     "Sharma",    "priya.sharma@cms.edu",     "9876500001", gnDept,  Designation.HOD,                  "General Nursing",      "Nursing Simulation",           LocalDate.of(2015, 6, 1),  FacultyStatus.ACTIVE));
-        Faculty f2 = facultyRepository.save(new Faculty("FAC002", "Lakshmi",   "Devi",      "lakshmi.devi@cms.edu",     "9876500002", moDept,  Designation.HOD,                  "Midwifery",            "Obstetric Lab",                LocalDate.of(2014, 7, 1),  FacultyStatus.ACTIVE));
-        Faculty f3 = facultyRepository.save(new Faculty("FAC003", "Anitha",    "Rao",       "anitha.rao@cms.edu",       "9876500003", chnDept, Designation.PROFESSOR,            "Community Health",     "Community Lab",                LocalDate.of(2016, 8, 1),  FacultyStatus.ACTIVE));
-        Faculty f4 = facultyRepository.save(new Faculty("FAC004", "Rajesh",    "Kumar",     "rajesh.kumar@cms.edu",     "9876500004", msnDept, Designation.ASSOCIATE_PROFESSOR,  "Medical-Surgical",     "Anatomy Lab",                  LocalDate.of(2018, 1, 15), FacultyStatus.ACTIVE));
-        Faculty f5 = facultyRepository.save(new Faculty("FAC005", "Kavitha",   "Nair",      "kavitha.nair@cms.edu",     "9876500005", gnDept,  Designation.ASSISTANT_PROFESSOR,  "Fundamentals of Nursing", null,                       LocalDate.of(2020, 6, 1),  FacultyStatus.ACTIVE));
-        Faculty f6 = facultyRepository.save(new Faculty("FAC006", "Deepa",     "Thomas",    "deepa.thomas@cms.edu",     "9876500006", pnDept,  Designation.LECTURER,             "Pediatric Nursing",    null,                           LocalDate.of(2021, 3, 1),  FacultyStatus.ACTIVE));
-        Faculty f7 = facultyRepository.save(new Faculty("FAC007", "Suresh",    "Babu",      "suresh.babu@cms.edu",      "9876500007", gnDept,  Designation.LAB_INSTRUCTOR,       "Nursing Simulation",   "Nursing Foundation Lab",       LocalDate.of(2019, 9, 1),  FacultyStatus.ACTIVE));
-        Faculty f8 = facultyRepository.save(new Faculty("FAC008", "Ramya",     "Krishnan",  "ramya.krishnan@cms.edu",   "9876500008", msnDept, Designation.ASSISTANT_PROFESSOR,  "Clinical Nursing",     "Skills Lab",                   LocalDate.of(2022, 1, 10), FacultyStatus.ACTIVE));
+        DesignationMaster dHod       = desig("Head of Speciality",    "HOD");
+        DesignationMaster dProf      = desig("Professor",             "PROFESSOR");
+        DesignationMaster dAssocProf = desig("Associate Professor",   "ASSOCIATE_PROFESSOR");
+        DesignationMaster dAsstProf  = desig("Assistant Professor",   "ASSISTANT_PROFESSOR");
+        DesignationMaster dLect      = desig("Lecturer",              "LECTURER");
+        DesignationMaster dLabInstr  = desig("Lab Instructor",        "LAB_INSTRUCTOR");
+
+        Faculty f1 = facultyRepository.save(new Faculty("FAC001", "Priya",     "Sharma",    "priya.sharma@cms.edu",     "9876500001", gnDept,  dHod,       "General Nursing",         "Nursing Simulation",        LocalDate.of(2015, 6, 1),  FacultyStatus.ACTIVE));
+        Faculty f2 = facultyRepository.save(new Faculty("FAC002", "Lakshmi",   "Devi",      "lakshmi.devi@cms.edu",     "9876500002", moDept,  dHod,       "Midwifery",               "Obstetric Lab",             LocalDate.of(2014, 7, 1),  FacultyStatus.ACTIVE));
+        Faculty f3 = facultyRepository.save(new Faculty("FAC003", "Anitha",    "Rao",       "anitha.rao@cms.edu",       "9876500003", chnDept, dProf,      "Community Health",        "Community Lab",             LocalDate.of(2016, 8, 1),  FacultyStatus.ACTIVE));
+        Faculty f4 = facultyRepository.save(new Faculty("FAC004", "Rajesh",    "Kumar",     "rajesh.kumar@cms.edu",     "9876500004", msnDept, dAssocProf, "Medical-Surgical",        "Anatomy Lab",               LocalDate.of(2018, 1, 15), FacultyStatus.ACTIVE));
+        Faculty f5 = facultyRepository.save(new Faculty("FAC005", "Kavitha",   "Nair",      "kavitha.nair@cms.edu",     "9876500005", gnDept,  dAsstProf,  "Fundamentals of Nursing", null,                        LocalDate.of(2020, 6, 1),  FacultyStatus.ACTIVE));
+        Faculty f6 = facultyRepository.save(new Faculty("FAC006", "Deepa",     "Thomas",    "deepa.thomas@cms.edu",     "9876500006", pnDept,  dLect,      "Pediatric Nursing",       null,                        LocalDate.of(2021, 3, 1),  FacultyStatus.ACTIVE));
+        Faculty f7 = facultyRepository.save(new Faculty("FAC007", "Suresh",    "Babu",      "suresh.babu@cms.edu",      "9876500007", gnDept,  dLabInstr,  "Nursing Simulation",      "Nursing Foundation Lab",    LocalDate.of(2019, 9, 1),  FacultyStatus.ACTIVE));
+        Faculty f8 = facultyRepository.save(new Faculty("FAC008", "Ramya",     "Krishnan",  "ramya.krishnan@cms.edu",   "9876500008", msnDept, dAsstProf,  "Clinical Nursing",        "Skills Lab",                LocalDate.of(2022, 1, 10), FacultyStatus.ACTIVE));
 
         // ── 9. Labs ──────────────────────────────────────────────────────────
         Lab nfLab2    = labRepository.save(new Lab("Nursing Foundation Lab", LabType.OTHER,    gnDept,  "Block A", "A-101", 30, LabStatus.ACTIVE));
@@ -516,6 +527,11 @@ public class DataLoader implements CommandLineRunner {
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private DesignationMaster desig(String name, String code) {
+        return designationRepository.findByCodeIgnoreCase(code)
+            .orElseGet(() -> designationRepository.save(new DesignationMaster(name, code, null)));
+    }
 
     private void seedCommunities() {
         if (communityRepository.count() > 0) return;

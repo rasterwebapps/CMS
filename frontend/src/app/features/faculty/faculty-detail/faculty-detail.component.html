@@ -20,7 +20,7 @@
         <h1 class="profile-hero__name">{{ faculty()!.fullName }}</h1>
         <div class="profile-hero__meta">
           <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
-          <span class="cms-badge cms-badge--blue">{{ getDesignationLabel(faculty()!.designation) }}</span>
+          <span class="cms-badge cms-badge--blue">{{ getDesignationLabel(faculty()!) }}</span>
           <span class="cms-badge cms-badge--gray">{{ faculty()!.specialityName }}</span>
         </div>
         <div class="profile-hero__stats">
@@ -37,7 +37,7 @@
             <span class="profile-stat__label">Joining Date</span>
           </div>
           <div class="profile-stat">
-            <span class="profile-stat__value">{{ getDesignationLabel(faculty()!.designation) }}</span>
+            <span class="profile-stat__value">{{ getDesignationLabel(faculty()!) }}</span>
             <span class="profile-stat__label">Designation</span>
           </div>
         </div>
@@ -82,7 +82,7 @@
               </div>
               <div class="detail-item">
                 <span class="detail-label">Designation</span>
-                <span class="detail-value">{{ getDesignationLabel(faculty()!.designation) }}</span>
+                <span class="detail-value">{{ getDesignationLabel(faculty()!) }}</span>
               </div>
               @if (faculty()!.highestQualification) {
                 <div class="detail-item">

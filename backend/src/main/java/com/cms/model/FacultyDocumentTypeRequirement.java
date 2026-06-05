@@ -5,7 +5,6 @@ import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.FacultyQualification;
 
@@ -35,9 +34,9 @@ public class FacultyDocumentTypeRequirement {
     @Column(name = "document_type", nullable = false, length = 80)
     private DocumentType documentType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 50)
-    private Designation designation;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "designation_id")
+    private DesignationMaster designation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "speciality_id")
@@ -59,8 +58,8 @@ public class FacultyDocumentTypeRequirement {
     public DocumentType getDocumentType() { return documentType; }
     public void setDocumentType(DocumentType documentType) { this.documentType = documentType; }
 
-    public Designation getDesignation() { return designation; }
-    public void setDesignation(Designation designation) { this.designation = designation; }
+    public DesignationMaster getDesignation() { return designation; }
+    public void setDesignation(DesignationMaster designation) { this.designation = designation; }
 
     public Speciality getSpeciality() { return speciality; }
     public void setSpeciality(Speciality speciality) { this.speciality = speciality; }

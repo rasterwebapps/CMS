@@ -15,12 +15,14 @@ import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Speciality;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.repository.DesignationRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
@@ -31,15 +33,18 @@ public class FacultyService {
 
     private final FacultyRepository facultyRepository;
     private final SpecialityRepository specialityRepository;
+    private final DesignationRepository designationRepository;
     private final FacultyDocumentRepository facultyDocumentRepository;
     private final FacultyDocumentTypeRequirementService requirementService;
 
     public FacultyService(FacultyRepository facultyRepository,
                           SpecialityRepository specialityRepository,
+                          DesignationRepository designationRepository,
                           FacultyDocumentRepository facultyDocumentRepository,
                           FacultyDocumentTypeRequirementService requirementService) {
         this.facultyRepository = facultyRepository;
         this.specialityRepository = specialityRepository;
+        this.designationRepository = designationRepository;
         this.facultyDocumentRepository = facultyDocumentRepository;
         this.requirementService = requirementService;
     }
@@ -48,6 +53,8 @@ public class FacultyService {
     public FacultyResponse create(FacultyRequest request) {
         Speciality speciality = specialityRepository.findById(request.specialityId())
             .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
+        DesignationMaster designation = designationRepository.findById(request.designationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Designation not found with id: " + request.designationId()));
         String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
         String email = requireTrimmed(request.email(), "Faculty email is required");
 
@@ -74,7 +81,7 @@ public class FacultyService {
             email,
             trim(request.phone()),
             speciality,
-            request.designation(),
+            designation,
             trim(request.specialization()),
             trim(request.labExpertise()),
             request.joiningDate(),
@@ -121,6 +128,8 @@ public class FacultyService {
 
         Speciality speciality = specialityRepository.findById(request.specialityId())
             .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + request.specialityId()));
+        DesignationMaster designation = designationRepository.findById(request.designationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Designation not found with id: " + request.designationId()));
         String employeeCode = requireTrimmed(request.employeeCode(), "Faculty employee code is required");
         String email = requireTrimmed(request.email(), "Faculty email is required");
 
@@ -144,7 +153,7 @@ public class FacultyService {
         faculty.setEmail(email);
         faculty.setPhone(trim(request.phone()));
         faculty.setSpeciality(speciality);
-        faculty.setDesignation(request.designation());
+        faculty.setDesignation(designation);
         faculty.setSpecialization(trim(request.specialization()));
         faculty.setLabExpertise(trim(request.labExpertise()));
         faculty.setJoiningDate(request.joiningDate());
@@ -252,7 +261,8 @@ public class FacultyService {
             faculty.getPhone(),
             faculty.getSpeciality().getId(),
             faculty.getSpeciality().getName(),
-            faculty.getDesignation(),
+            faculty.getDesignation() != null ? faculty.getDesignation().getId() : null,
+            faculty.getDesignation() != null ? faculty.getDesignation().getName() : null,
             faculty.getSpecialization(),
             faculty.getLabExpertise(),
             faculty.getJoiningDate(),

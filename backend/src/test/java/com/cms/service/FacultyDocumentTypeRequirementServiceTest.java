@@ -3,13 +3,9 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,41 +19,42 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.FacultyDocumentTypeRequirementRequest;
 import com.cms.dto.FacultyDocumentTypeRequirementResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocumentTypeRequirement;
-import com.cms.model.enums.Designation;
+import com.cms.model.Speciality;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.FacultyQualification;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.DesignationRepository;
 import com.cms.repository.FacultyDocumentTypeRequirementRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.SpecialityRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FacultyDocumentTypeRequirementServiceTest {
 
-    @Mock
-    private FacultyDocumentTypeRequirementRepository requirementRepository;
-
-    @Mock
-    private FacultyRepository facultyRepository;
-
-    @Mock
-    private DepartmentRepository departmentRepository;
+    @Mock private FacultyDocumentTypeRequirementRepository requirementRepository;
+    @Mock private FacultyRepository facultyRepository;
+    @Mock private SpecialityRepository specialityRepository;
+    @Mock private DesignationRepository designationRepository;
 
     private FacultyDocumentTypeRequirementService service;
+
+    private DesignationMaster professor;
 
     @BeforeEach
     void setUp() {
         service = new FacultyDocumentTypeRequirementService(
-            requirementRepository, facultyRepository, departmentRepository);
+            requirementRepository, facultyRepository, specialityRepository, designationRepository);
+        professor = new DesignationMaster("Professor", "PROFESSOR", null);
+        professor.setId(1L);
     }
 
     // ─── findAll ─────────────────────────────────────────────────────────────
 
     @Test
     void findAllReturnsMappedList() {
-        FacultyDocumentTypeRequirement rule = buildRule(1L, DocumentType.AADHAR_CARD, Designation.PROFESSOR, null, null);
+        FacultyDocumentTypeRequirement rule = buildRule(1L, DocumentType.AADHAR_CARD, professor, null, null);
         when(requirementRepository.findAll()).thenReturn(List.of(rule));
 
         List<FacultyDocumentTypeRequirementResponse> results = service.findAll();
@@ -65,7 +62,8 @@ class FacultyDocumentTypeRequirementServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.get(0).id()).isEqualTo(1L);
         assertThat(results.get(0).documentType()).isEqualTo(DocumentType.AADHAR_CARD);
-        assertThat(results.get(0).designation()).isEqualTo(Designation.PROFESSOR);
+        assertThat(results.get(0).designationId()).isEqualTo(1L);
+        assertThat(results.get(0).designationName()).isEqualTo("Professor");
     }
 
     @Test
@@ -82,9 +80,10 @@ class FacultyDocumentTypeRequirementServiceTest {
     @Test
     void createWithDesignationCriterionPersistsRule() {
         FacultyDocumentTypeRequirementRequest request = new FacultyDocumentTypeRequirementRequest(
-            DocumentType.AADHAR_CARD, Designation.PROFESSOR, null, null);
+            DocumentType.AADHAR_CARD, 1L, null, null);
 
-        FacultyDocumentTypeRequirement saved = buildRule(1L, DocumentType.AADHAR_CARD, Designation.PROFESSOR, null, null);
+        FacultyDocumentTypeRequirement saved = buildRule(1L, DocumentType.AADHAR_CARD, professor, null, null);
+        when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
         when(requirementRepository.save(any(FacultyDocumentTypeRequirement.class))).thenReturn(saved);
 
         FacultyDocumentTypeRequirementResponse result = service.create(request);
@@ -95,31 +94,30 @@ class FacultyDocumentTypeRequirementServiceTest {
     }
 
     @Test
-    void createWithDepartmentCriterionLooksUpDepartment() {
-        Department dept = new Department();
-        dept.setId(5L);
-        dept.setName("Computer Science");
+    void createWithSpecialityCriterionLooksUpSpeciality() {
+        Speciality speciality = new Speciality("Computer Science", "CS", null, null, null);
+        speciality.setId(5L);
 
         FacultyDocumentTypeRequirementRequest request = new FacultyDocumentTypeRequirementRequest(
             DocumentType.TENTH_MARKSHEET, null, 5L, null);
 
-        FacultyDocumentTypeRequirement saved = buildRule(2L, DocumentType.TENTH_MARKSHEET, null, dept, null);
-        when(departmentRepository.findById(5L)).thenReturn(Optional.of(dept));
+        FacultyDocumentTypeRequirement saved = buildRule(2L, DocumentType.TENTH_MARKSHEET, null, speciality, null);
+        when(specialityRepository.findById(5L)).thenReturn(Optional.of(speciality));
         when(requirementRepository.save(any(FacultyDocumentTypeRequirement.class))).thenReturn(saved);
 
         FacultyDocumentTypeRequirementResponse result = service.create(request);
 
-        assertThat(result.departmentId()).isEqualTo(5L);
-        assertThat(result.departmentName()).isEqualTo("Computer Science");
-        verify(departmentRepository).findById(5L);
+        assertThat(result.specialityId()).isEqualTo(5L);
+        assertThat(result.specialityName()).isEqualTo("Computer Science");
+        verify(specialityRepository).findById(5L);
     }
 
     @Test
-    void createWithDepartmentThrowsWhenDepartmentNotFound() {
+    void createWithSpecialityThrowsWhenSpecialityNotFound() {
         FacultyDocumentTypeRequirementRequest request = new FacultyDocumentTypeRequirementRequest(
             DocumentType.AADHAR_CARD, null, 99L, null);
 
-        when(departmentRepository.findById(99L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -173,15 +171,16 @@ class FacultyDocumentTypeRequirementServiceTest {
 
     @Test
     void getRequiredDocumentTypesForFacultyReturnsMatchingTypes() {
+        Speciality speciality = new Speciality("Nursing", "GN", null, null, null);
+        speciality.setId(1L);
+
         Faculty faculty = new Faculty();
-        Department dept = new Department();
-        dept.setId(1L);
-        faculty.setDesignation(Designation.PROFESSOR);
-        faculty.setDepartment(dept);
+        faculty.setDesignation(professor);
+        faculty.setSpeciality(speciality);
         faculty.setHighestQualification(FacultyQualification.PHD);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(faculty));
-        when(requirementRepository.findMatchingDocumentTypeNames("PROFESSOR", 1L, "PHD"))
+        when(requirementRepository.findMatchingDocumentTypeNames(1L, 1L, "PHD"))
             .thenReturn(List.of("AADHAR_CARD", "PAN_CARD"));
 
         Set<String> result = service.getRequiredDocumentTypesForFaculty(1L);
@@ -193,7 +192,7 @@ class FacultyDocumentTypeRequirementServiceTest {
     void getRequiredDocumentTypesHandlesFacultyWithNullAttributes() {
         Faculty faculty = new Faculty();
         faculty.setDesignation(null);
-        faculty.setDepartment(null);
+        faculty.setSpeciality(null);
         faculty.setHighestQualification(null);
 
         when(facultyRepository.findById(2L)).thenReturn(Optional.of(faculty));
@@ -217,16 +216,15 @@ class FacultyDocumentTypeRequirementServiceTest {
     // ─── helper ──────────────────────────────────────────────────────────────
 
     private FacultyDocumentTypeRequirement buildRule(Long id, DocumentType docType,
-                                                       Designation designation,
-                                                       Department department,
-                                                       FacultyQualification qualification) {
+                                                     DesignationMaster designation,
+                                                     Speciality speciality,
+                                                     FacultyQualification qualification) {
         FacultyDocumentTypeRequirement rule = new FacultyDocumentTypeRequirement();
         rule.setId(id);
         rule.setDocumentType(docType);
         rule.setDesignation(designation);
-        rule.setDepartment(department);
+        rule.setSpeciality(speciality);
         rule.setQualification(qualification);
         return rule;
     }
 }
-

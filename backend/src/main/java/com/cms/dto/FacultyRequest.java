@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.cms.model.enums.BankAccountType;
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
@@ -41,7 +40,7 @@ public record FacultyRequest(
     Long specialityId,
 
     @NotNull(message = "Designation is required")
-    Designation designation,
+    Long designationId,
 
     @Size(max = 255, message = "Specialization must not exceed 255 characters")
     String specialization,

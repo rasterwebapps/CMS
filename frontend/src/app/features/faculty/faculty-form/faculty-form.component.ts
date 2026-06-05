@@ -13,11 +13,9 @@ import {
   FacultyRequest,
   FacultyDocument,
   FacultyDocumentSlot,
-  Designation,
   FacultyStatus,
   FacultyQualification,
   FACULTY_DOCUMENT_SLOTS,
-  DESIGNATION_OPTIONS,
   FACULTY_STATUS_OPTIONS,
   FACULTY_TYPE_OPTIONS,
   FACULTY_QUALIFICATION_OPTIONS,
@@ -25,6 +23,8 @@ import {
   MARITAL_STATUS_OPTIONS,
   BANK_ACCOUNT_TYPE_OPTIONS,
 } from '../faculty.model';
+import { DesignationService } from '../../designation/designation.service';
+import { DesignationMaster } from '../../designation/designation.model';
 import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
 import { BloodGroupService } from '../../blood-group/blood-group.service';
@@ -59,6 +59,7 @@ export class FacultyFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly facultyService = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
+  private readonly designationService = inject(DesignationService);
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
@@ -69,9 +70,8 @@ export class FacultyFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Faculty');
   protected readonly specialities = signal<Speciality[]>([]);
+  protected readonly designations = signal<DesignationMaster[]>([]);
   protected readonly bloodGroups = signal<BloodGroup[]>([]);
-
-  protected readonly designationOptions = DESIGNATION_OPTIONS;
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
   protected readonly facultyTypeOptions = FACULTY_TYPE_OPTIONS;
   protected readonly qualificationOptions = FACULTY_QUALIFICATION_OPTIONS;
@@ -90,7 +90,7 @@ export class FacultyFormComponent implements OnInit {
   protected readonly previewCode  = signal('');
   protected readonly previewEmail = signal('');
   protected readonly previewPhone = signal('');
-  protected readonly previewDesignation = signal<string | null>(null);
+  protected readonly previewDesignationId = signal<number | null>(null);
   protected readonly previewSpecialityId  = signal<number | null>(null);
   protected readonly previewFacultyType = signal<string | null>(null);
   protected readonly previewBlood = signal('');
@@ -103,9 +103,9 @@ export class FacultyFormComponent implements OnInit {
     return this.specialities().find(d => d.id === id)?.name ?? '';
   });
   protected readonly previewDesignationLabel = computed(() => {
-    const v = this.previewDesignation();
-    if (!v) return '';
-    return DESIGNATION_OPTIONS.find(o => o.value === v)?.label ?? v;
+    const id = this.previewDesignationId();
+    if (!id) return '';
+    return this.designations().find(d => d.id === id)?.name ?? '';
   });
   protected readonly previewFacultyTypeLabel = computed(() => {
     const v = this.previewFacultyType();
@@ -130,7 +130,7 @@ export class FacultyFormComponent implements OnInit {
     email: ['', [Validators.required, Validators.email, Validators.maxLength(255)]],
     phone: ['', [Validators.maxLength(20)]],
     specialityId: [null as number | null, [Validators.required]],
-    designation: [null as Designation | null, [Validators.required]],
+    designationId: [null as number | null, [Validators.required]],
     facultyType: [null as string | null],
     highestQualification: [null as FacultyQualification | null],
     nrtsNumber: ['', [Validators.maxLength(50)]],
@@ -184,7 +184,7 @@ export class FacultyFormComponent implements OnInit {
         this.previewCode.set((v.employeeCode ?? '').trim());
         this.previewEmail.set((v.email ?? '').trim());
         this.previewPhone.set((v.phone ?? '').trim());
-        this.previewDesignation.set(v.designation ?? null);
+        this.previewDesignationId.set(v.designationId ?? null);
         this.previewSpecialityId.set(v.specialityId ?? null);
         this.previewFacultyType.set(v.facultyType ?? null);
         this.previewBlood.set(v.bloodGroup ?? '');
@@ -194,6 +194,7 @@ export class FacultyFormComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('faculty-form', FACULTY_FORM_TOUR);
     this.loadSpecialities();
+    this.loadDesignations();
     this.loadBloodGroups();
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -235,7 +236,7 @@ export class FacultyFormComponent implements OnInit {
       email: (v.email ?? '').trim(),
       phone: v.phone?.trim() || undefined,
       specialityId: v.specialityId,
-      designation: v.designation,
+      designationId: v.designationId,
       specialization: v.specialization?.trim() || undefined,
       labExpertise: v.labExpertise?.trim() || undefined,
       joiningDate: v.joiningDate,
@@ -421,7 +422,7 @@ export class FacultyFormComponent implements OnInit {
       email: 'Email',
       phone: 'Phone',
       specialityId: 'Speciality',
-      designation: 'Designation',
+      designationId: 'Designation',
       specialization: 'Specialization',
       labExpertise: 'Lab Expertise',
       joiningDate: 'Joining Date',
@@ -446,6 +447,13 @@ export class FacultyFormComponent implements OnInit {
     });
   }
 
+  private loadDesignations(): void {
+    this.designationService.getAll().subscribe({
+      next: (designations) => this.designations.set(designations),
+      error: () => this.toast.error('Failed to load designations'),
+    });
+  }
+
   private loadBloodGroups(): void {
     this.bloodGroupService.getActiveBloodGroups().subscribe({
       next: (data) => this.bloodGroups.set(data),
@@ -466,7 +474,7 @@ export class FacultyFormComponent implements OnInit {
           email: faculty.email,
           phone: faculty.phone || '',
           specialityId: faculty.specialityId,
-          designation: faculty.designation,
+          designationId: faculty.designationId,
           facultyType: faculty.facultyType ?? null,
           highestQualification: faculty.highestQualification ?? null,
           specialization: faculty.specialization || '',

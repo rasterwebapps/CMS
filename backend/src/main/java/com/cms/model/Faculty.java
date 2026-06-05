@@ -9,7 +9,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.BankAccountType;
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
@@ -67,9 +66,9 @@ public class Faculty {
     @JoinColumn(name = "speciality_id", nullable = false)
     private Speciality speciality;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Designation designation;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "designation_id", nullable = false)
+    private DesignationMaster designation;
 
     private String specialization;
 
@@ -172,7 +171,7 @@ public class Faculty {
     }
 
     public Faculty(String employeeCode, String firstName, String lastName, String email,
-                   String phone, Speciality speciality, Designation designation,
+                   String phone, Speciality speciality, DesignationMaster designation,
                    String specialization, String labExpertise, LocalDate joiningDate,
                    FacultyStatus status) {
         this.employeeCode = employeeCode;
@@ -219,8 +218,8 @@ public class Faculty {
     public Speciality getSpeciality() { return speciality; }
     public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
 
-    public Designation getDesignation() { return designation; }
-    public void setDesignation(Designation designation) { this.designation = designation; }
+    public DesignationMaster getDesignation() { return designation; }
+    public void setDesignation(DesignationMaster designation) { this.designation = designation; }
 
     public String getSpecialization() { return specialization; }
     public void setSpecialization(String specialization) { this.specialization = specialization; }

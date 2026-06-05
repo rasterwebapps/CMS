@@ -23,67 +23,61 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyDocument;
-import com.cms.model.enums.Designation;
+import com.cms.model.Speciality;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.DesignationRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.SpecialityRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FacultyServiceTest {
 
-    @Mock
-    private FacultyRepository facultyRepository;
-
-    @Mock
-    private DepartmentRepository departmentRepository;
-
-    @Mock
-    private FacultyDocumentRepository facultyDocumentRepository;
-
-    @Mock
-    private FacultyDocumentTypeRequirementService requirementService;
+    @Mock private FacultyRepository facultyRepository;
+    @Mock private SpecialityRepository specialityRepository;
+    @Mock private DesignationRepository designationRepository;
+    @Mock private FacultyDocumentRepository facultyDocumentRepository;
+    @Mock private FacultyDocumentTypeRequirementService requirementService;
 
     private FacultyService facultyService;
 
-    private Department testDepartment;
+    private Speciality testSpeciality;
+    private DesignationMaster professor;
+    private DesignationMaster assistantProfessor;
+    private DesignationMaster associateProfessor;
 
     @BeforeEach
     void setUp() {
         facultyService = new FacultyService(
             facultyRepository,
-            departmentRepository,
+            specialityRepository,
+            designationRepository,
             facultyDocumentRepository,
             requirementService
         );
-        testDepartment = createDepartment(1L, "Computer Science", "CS");
+        testSpeciality = createSpeciality(1L, "Computer Science", "CS");
+        professor          = createDesignation(1L, "Professor",           "PROFESSOR");
+        assistantProfessor = createDesignation(2L, "Assistant Professor", "ASSISTANT_PROFESSOR");
+        associateProfessor = createDesignation(3L, "Associate Professor", "ASSOCIATE_PROFESSOR");
     }
 
     @Test
     void shouldCreateFaculty() {
         FacultyRequest request = basicFacultyRequest(
-            "EMP001",
-            "John",
-            "Doe",
-            "john.doe@college.edu",
-            "1234567890",
-            1L,
-            Designation.PROFESSOR,
-            "Artificial Intelligence",
-            "Machine Learning Lab",
-            LocalDate.of(2020, 1, 15),
-            FacultyStatus.ACTIVE
-        );
+            "EMP001", "John", "Doe", "john.doe@college.edu", "1234567890",
+            1L, 1L, "Artificial Intelligence", "Machine Learning Lab",
+            LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE);
 
         Faculty savedFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john.doe@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
+        when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
         when(facultyRepository.save(any(Faculty.class))).thenReturn(savedFaculty);
 
         FacultyResponse response = facultyService.create(request);
@@ -94,9 +88,10 @@ class FacultyServiceTest {
         assertThat(response.lastName()).isEqualTo("Doe");
         assertThat(response.fullName()).isEqualTo("John Doe");
         assertThat(response.email()).isEqualTo("john.doe@college.edu");
-        assertThat(response.departmentId()).isEqualTo(1L);
-        assertThat(response.departmentName()).isEqualTo("Computer Science");
-        assertThat(response.designation()).isEqualTo(Designation.PROFESSOR);
+        assertThat(response.specialityId()).isEqualTo(1L);
+        assertThat(response.specialityName()).isEqualTo("Computer Science");
+        assertThat(response.designationId()).isEqualTo(1L);
+        assertThat(response.designationName()).isEqualTo("Professor");
         assertThat(response.status()).isEqualTo(FacultyStatus.ACTIVE);
 
         ArgumentCaptor<Faculty> captor = ArgumentCaptor.forClass(Faculty.class);
@@ -109,23 +104,15 @@ class FacultyServiceTest {
     @Test
     void shouldCreateFacultyWithDefaultActiveStatus() {
         FacultyRequest request = basicFacultyRequest(
-            "EMP002",
-            "Jane",
-            "Smith",
-            "jane.smith@college.edu",
-            "0987654321",
-            1L,
-            Designation.ASSISTANT_PROFESSOR,
-            "Data Science",
-            "Big Data Lab",
-            LocalDate.of(2021, 6, 1),
-            null  // status is null
-        );
+            "EMP002", "Jane", "Smith", "jane.smith@college.edu", "0987654321",
+            1L, 2L, "Data Science", "Big Data Lab",
+            LocalDate.of(2021, 6, 1), null);
 
         Faculty savedFaculty = createFaculty(2L, "EMP002", "Jane", "Smith", "jane.smith@college.edu",
-            testDepartment, Designation.ASSISTANT_PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, assistantProfessor, FacultyStatus.ACTIVE);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
+        when(designationRepository.findById(2L)).thenReturn(Optional.of(assistantProfessor));
         when(facultyRepository.save(any(Faculty.class))).thenReturn(savedFaculty);
 
         FacultyResponse response = facultyService.create(request);
@@ -138,26 +125,17 @@ class FacultyServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenCreatingFacultyWithNonExistentDepartment() {
+    void shouldThrowExceptionWhenCreatingFacultyWithNonExistentSpeciality() {
         FacultyRequest request = basicFacultyRequest(
-            "EMP001",
-            "John",
-            "Doe",
-            "john.doe@college.edu",
-            "1234567890",
-            999L,
-            Designation.PROFESSOR,
-            "AI",
-            "ML Lab",
-            LocalDate.of(2020, 1, 15),
-            FacultyStatus.ACTIVE
-        );
+            "EMP001", "John", "Doe", "john.doe@college.edu", "1234567890",
+            999L, 1L, "AI", "ML Lab",
+            LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE);
 
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> facultyService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
         verify(facultyRepository, never()).save(any(Faculty.class));
     }
@@ -165,9 +143,9 @@ class FacultyServiceTest {
     @Test
     void shouldFindAllFaculty() {
         Faculty faculty1 = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
         Faculty faculty2 = createFaculty(2L, "EMP002", "Jane", "Smith", "jane@college.edu",
-            testDepartment, Designation.ASSISTANT_PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, assistantProfessor, FacultyStatus.ACTIVE);
 
         FacultyDocument uploaded = new FacultyDocument(faculty1, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
         uploaded.setFileName("pan.pdf");
@@ -203,7 +181,7 @@ class FacultyServiceTest {
     @Test
     void shouldFindFacultyById() {
         Faculty faculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(faculty));
 
@@ -227,38 +205,38 @@ class FacultyServiceTest {
     }
 
     @Test
-    void shouldFindFacultyByDepartmentId() {
+    void shouldFindFacultyBySpecialityId() {
         Faculty faculty1 = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
         Faculty faculty2 = createFaculty(2L, "EMP002", "Jane", "Smith", "jane@college.edu",
-            testDepartment, Designation.ASSISTANT_PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, assistantProfessor, FacultyStatus.ACTIVE);
 
-        when(departmentRepository.existsById(1L)).thenReturn(true);
-        when(facultyRepository.findByDepartmentId(1L)).thenReturn(List.of(faculty1, faculty2));
+        when(specialityRepository.existsById(1L)).thenReturn(true);
+        when(facultyRepository.findBySpecialityId(1L)).thenReturn(List.of(faculty1, faculty2));
 
-        List<FacultyResponse> responses = facultyService.findByDepartmentId(1L);
+        List<FacultyResponse> responses = facultyService.findBySpecialityId(1L);
 
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).departmentId()).isEqualTo(1L);
-        assertThat(responses.get(1).departmentId()).isEqualTo(1L);
-        verify(facultyRepository).findByDepartmentId(1L);
+        assertThat(responses.get(0).specialityId()).isEqualTo(1L);
+        assertThat(responses.get(1).specialityId()).isEqualTo(1L);
+        verify(facultyRepository).findBySpecialityId(1L);
     }
 
     @Test
-    void shouldThrowExceptionWhenFindingByNonExistentDepartmentId() {
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+    void shouldThrowExceptionWhenFindingByNonExistentSpecialityId() {
+        when(specialityRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> facultyService.findByDepartmentId(999L))
+        assertThatThrownBy(() -> facultyService.findBySpecialityId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
-        verify(facultyRepository, never()).findByDepartmentId(any());
+        verify(facultyRepository, never()).findBySpecialityId(any());
     }
 
     @Test
     void shouldFindFacultyByStatus() {
         Faculty faculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ON_LEAVE);
+            testSpeciality, professor, FacultyStatus.ON_LEAVE);
 
         when(facultyRepository.findByStatus(FacultyStatus.ON_LEAVE)).thenReturn(List.of(faculty));
 
@@ -272,29 +250,21 @@ class FacultyServiceTest {
     @Test
     void shouldUpdateFaculty() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
-        Department newDepartment = createDepartment(2L, "Mathematics", "MATH");
+        Speciality newSpeciality = createSpeciality(2L, "Mathematics", "MATH");
 
         FacultyRequest updateRequest = basicFacultyRequest(
-            "EMP001-UPD",
-            "John Updated",
-            "Doe Updated",
-            "john.updated@college.edu",
-            "9999999999",
-            2L,
-            Designation.ASSOCIATE_PROFESSOR,
-            "Applied Mathematics",
-            "Math Lab",
-            LocalDate.of(2019, 1, 1),
-            FacultyStatus.ON_LEAVE
-        );
+            "EMP001-UPD", "John Updated", "Doe Updated", "john.updated@college.edu", "9999999999",
+            2L, 3L, "Applied Mathematics", "Math Lab",
+            LocalDate.of(2019, 1, 1), FacultyStatus.ON_LEAVE);
 
         Faculty updatedFaculty = createFaculty(1L, "EMP001-UPD", "John Updated", "Doe Updated",
-            "john.updated@college.edu", newDepartment, Designation.ASSOCIATE_PROFESSOR, FacultyStatus.ON_LEAVE);
+            "john.updated@college.edu", newSpeciality, associateProfessor, FacultyStatus.ON_LEAVE);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
-        when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
+        when(specialityRepository.findById(2L)).thenReturn(Optional.of(newSpeciality));
+        when(designationRepository.findById(3L)).thenReturn(Optional.of(associateProfessor));
         when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP001-UPD", 1L)).thenReturn(false);
         when(facultyRepository.existsByEmailIgnoreCaseAndIdNot("john.updated@college.edu", 1L)).thenReturn(false);
         when(facultyRepository.save(any(Faculty.class))).thenReturn(updatedFaculty);
@@ -304,28 +274,29 @@ class FacultyServiceTest {
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.employeeCode()).isEqualTo("EMP001-UPD");
         assertThat(response.fullName()).isEqualTo("John Updated Doe Updated");
-        assertThat(response.departmentId()).isEqualTo(2L);
-        assertThat(response.designation()).isEqualTo(Designation.ASSOCIATE_PROFESSOR);
+        assertThat(response.specialityId()).isEqualTo(2L);
+        assertThat(response.designationId()).isEqualTo(3L);
+        assertThat(response.designationName()).isEqualTo("Associate Professor");
         assertThat(response.status()).isEqualTo(FacultyStatus.ON_LEAVE);
 
         verify(facultyRepository).findById(1L);
-        verify(departmentRepository).findById(2L);
+        verify(specialityRepository).findById(2L);
+        verify(designationRepository).findById(3L);
         verify(facultyRepository).save(any(Faculty.class));
     }
 
     @Test
     void shouldThrowExceptionWhenUpdatingWithDuplicateEmployeeCode() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
         FacultyRequest request = basicFacultyRequest(
             "EMP002", "John", "Doe", "john@college.edu", "123",
-            1L, Designation.PROFESSOR, "AI", "ML Lab",
-            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
-        );
+            1L, 1L, "AI", "ML Lab", LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
+        when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
         when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP002", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> facultyService.update(1L, request))
@@ -338,16 +309,15 @@ class FacultyServiceTest {
     @Test
     void shouldThrowExceptionWhenUpdatingWithDuplicateEmail() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
         FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "other@college.edu", "123",
-            1L, Designation.PROFESSOR, "AI", "ML Lab",
-            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
-        );
+            1L, 1L, "AI", "ML Lab", LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDepartment));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
+        when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
         when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP001", 1L)).thenReturn(false);
         when(facultyRepository.existsByEmailIgnoreCaseAndIdNot("other@college.edu", 1L)).thenReturn(true);
 
@@ -362,9 +332,7 @@ class FacultyServiceTest {
     void shouldThrowExceptionWhenUpdatingNonExistentFaculty() {
         FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "john@college.edu", "123",
-            1L, Designation.PROFESSOR, "AI", "ML Lab",
-            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
-        );
+            1L, 1L, "AI", "ML Lab", LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE);
 
         when(facultyRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -377,22 +345,20 @@ class FacultyServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenUpdatingWithNonExistentDepartment() {
+    void shouldThrowExceptionWhenUpdatingWithNonExistentSpeciality() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
-            testDepartment, Designation.PROFESSOR, FacultyStatus.ACTIVE);
+            testSpeciality, professor, FacultyStatus.ACTIVE);
 
         FacultyRequest request = basicFacultyRequest(
             "EMP001", "John", "Doe", "john@college.edu", "123",
-            999L, Designation.PROFESSOR, "AI", "ML Lab",
-            LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE
-        );
+            999L, 1L, "AI", "ML Lab", LocalDate.of(2020, 1, 1), FacultyStatus.ACTIVE);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> facultyService.update(1L, request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
         verify(facultyRepository, never()).save(any(Faculty.class));
     }
@@ -419,10 +385,9 @@ class FacultyServiceTest {
         verify(facultyRepository, never()).deleteById(any());
     }
 
-    /** Build a FacultyRequest with the legacy 11-argument signature; extended profile fields are null. */
     private static FacultyRequest basicFacultyRequest(
             String employeeCode, String firstName, String lastName, String email, String phone,
-            Long departmentId, Designation designation, String specialization, String labExpertise,
+            Long specialityId, Long designationId, String specialization, String labExpertise,
             LocalDate joiningDate, FacultyStatus status) {
         final com.cms.model.enums.FacultyType facultyType = null;
         final com.cms.model.enums.FacultyQualification highestQualification = null;
@@ -432,7 +397,7 @@ class FacultyServiceTest {
         final com.cms.dto.AddressRequest address = null;
         final java.math.BigDecimal years = null;
         return new FacultyRequest(
-            employeeCode, firstName, lastName, email, phone, departmentId, designation,
+            employeeCode, firstName, lastName, email, phone, specialityId, designationId,
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
@@ -440,30 +405,31 @@ class FacultyServiceTest {
         );
     }
 
-    private Department createDepartment(Long id, String name, String code) {
-        Department department = new Department(name, code, "Description", "Dr. HOD");
-        department.setId(id);
+    private static Speciality createSpeciality(Long id, String name, String code) {
+        Speciality speciality = new Speciality(name, code, "Description", null, null);
+        speciality.setId(id);
         Instant now = Instant.now();
-        department.setCreatedAt(now);
-        department.setUpdatedAt(now);
-        return department;
+        speciality.setCreatedAt(now);
+        speciality.setUpdatedAt(now);
+        return speciality;
+    }
+
+    private static DesignationMaster createDesignation(Long id, String name, String code) {
+        DesignationMaster d = new DesignationMaster(name, code, null);
+        d.setId(id);
+        Instant now = Instant.now();
+        d.setCreatedAt(now);
+        d.setUpdatedAt(now);
+        return d;
     }
 
     private Faculty createFaculty(Long id, String employeeCode, String firstName, String lastName,
-                                   String email, Department department, Designation designation,
+                                   String email, Speciality speciality, DesignationMaster designation,
                                    FacultyStatus status) {
         Faculty faculty = new Faculty(
-            employeeCode,
-            firstName,
-            lastName,
-            email,
-            "1234567890",
-            department,
-            designation,
-            "Specialization",
-            "Lab Expertise",
-            LocalDate.of(2020, 1, 15),
-            status
+            employeeCode, firstName, lastName, email, "1234567890",
+            speciality, designation, "Specialization", "Lab Expertise",
+            LocalDate.of(2020, 1, 15), status
         );
         faculty.setId(id);
         Instant now = Instant.now();

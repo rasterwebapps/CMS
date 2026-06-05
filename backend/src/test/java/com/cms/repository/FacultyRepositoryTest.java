@@ -14,9 +14,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cms.config.JpaConfig;
-import com.cms.model.Department;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
-import com.cms.model.enums.Designation;
+import com.cms.model.Speciality;
 import com.cms.model.enums.FacultyStatus;
 
 @DataJpaTest
@@ -24,20 +24,25 @@ import com.cms.model.enums.FacultyStatus;
 @Import(JpaConfig.class)
 class FacultyRepositoryTest {
 
-    @Autowired
-    private FacultyRepository facultyRepository;
+    @Autowired private FacultyRepository facultyRepository;
+    @Autowired private SpecialityRepository specialityRepository;
+    @Autowired private DesignationRepository designationRepository;
 
-    @Autowired
-    private DepartmentRepository departmentRepository;
-
-    private Department testDepartment;
+    private Speciality testSpeciality;
+    private DesignationMaster professorDesignation;
+    private DesignationMaster associateProfessorDesignation;
 
     @BeforeEach
     void setUp() {
         facultyRepository.deleteAll();
-        departmentRepository.deleteAll();
-        testDepartment = departmentRepository.save(
-            new Department("Computer Science", "CS", "CS Dept", "Dr. HOD")
+        // Designations are seeded by V100 migration — look them up by code
+        professorDesignation = designationRepository.findByCodeIgnoreCase("PROFESSOR")
+            .orElseGet(() -> designationRepository.save(new DesignationMaster("Professor", "PROFESSOR", null)));
+        associateProfessorDesignation = designationRepository.findByCodeIgnoreCase("ASSOCIATE_PROFESSOR")
+            .orElseGet(() -> designationRepository.save(new DesignationMaster("Associate Professor", "ASSOCIATE_PROFESSOR", null)));
+
+        testSpeciality = specialityRepository.save(
+            new Speciality("Computer Science", "CS_TEST", "CS Dept", null, null)
         );
     }
 
@@ -121,13 +126,13 @@ class FacultyRepositoryTest {
     }
 
     @Test
-    void shouldFindFacultyByDepartmentId() {
+    void shouldFindFacultyBySpecialityId() {
         Faculty faculty1 = createFaculty("EMP001", "John", "Doe", "john@college.edu");
         Faculty faculty2 = createFaculty("EMP002", "Jane", "Smith", "jane@college.edu");
         facultyRepository.save(faculty1);
         facultyRepository.save(faculty2);
 
-        List<Faculty> facultyList = facultyRepository.findByDepartmentId(testDepartment.getId());
+        List<Faculty> facultyList = facultyRepository.findBySpecialityId(testSpeciality.getId());
 
         assertThat(facultyList).hasSize(2);
     }
@@ -136,10 +141,10 @@ class FacultyRepositoryTest {
     void shouldFindFacultyByStatus() {
         Faculty activeFaculty = createFaculty("EMP001", "John", "Doe", "john@college.edu");
         activeFaculty.setStatus(FacultyStatus.ACTIVE);
-        
+
         Faculty onLeaveFaculty = createFaculty("EMP002", "Jane", "Smith", "jane@college.edu");
         onLeaveFaculty.setStatus(FacultyStatus.ON_LEAVE);
-        
+
         facultyRepository.save(activeFaculty);
         facultyRepository.save(onLeaveFaculty);
 
@@ -150,25 +155,6 @@ class FacultyRepositoryTest {
         assertThat(activeFacultyList.get(0).getEmployeeCode()).isEqualTo("EMP001");
         assertThat(onLeaveFacultyList).hasSize(1);
         assertThat(onLeaveFacultyList.get(0).getEmployeeCode()).isEqualTo("EMP002");
-    }
-
-    @Test
-    void shouldFindFacultyByDepartmentIdAndStatus() {
-        Faculty activeFaculty = createFaculty("EMP001", "John", "Doe", "john@college.edu");
-        activeFaculty.setStatus(FacultyStatus.ACTIVE);
-        
-        Faculty onLeaveFaculty = createFaculty("EMP002", "Jane", "Smith", "jane@college.edu");
-        onLeaveFaculty.setStatus(FacultyStatus.ON_LEAVE);
-        
-        facultyRepository.save(activeFaculty);
-        facultyRepository.save(onLeaveFaculty);
-
-        List<Faculty> facultyList = facultyRepository.findByDepartmentIdAndStatus(
-            testDepartment.getId(), FacultyStatus.ACTIVE
-        );
-
-        assertThat(facultyList).hasSize(1);
-        assertThat(facultyList.get(0).getEmployeeCode()).isEqualTo("EMP001");
     }
 
     @Test
@@ -189,11 +175,11 @@ class FacultyRepositoryTest {
         Faculty saved = facultyRepository.save(faculty);
 
         saved.setFirstName("Johnny");
-        saved.setDesignation(Designation.ASSOCIATE_PROFESSOR);
+        saved.setDesignation(associateProfessorDesignation);
         Faculty updated = facultyRepository.save(saved);
 
         assertThat(updated.getFirstName()).isEqualTo("Johnny");
-        assertThat(updated.getDesignation()).isEqualTo(Designation.ASSOCIATE_PROFESSOR);
+        assertThat(updated.getDesignation().getCode()).isEqualTo("ASSOCIATE_PROFESSOR");
     }
 
     @Test
@@ -221,17 +207,10 @@ class FacultyRepositoryTest {
 
     private Faculty createFaculty(String employeeCode, String firstName, String lastName, String email) {
         return new Faculty(
-            employeeCode,
-            firstName,
-            lastName,
-            email,
-            "1234567890",
-            testDepartment,
-            Designation.PROFESSOR,
-            "Artificial Intelligence",
-            "Machine Learning Lab",
-            LocalDate.of(2020, 1, 15),
-            FacultyStatus.ACTIVE
+            employeeCode, firstName, lastName, email, "1234567890",
+            testSpeciality, professorDesignation,
+            "Artificial Intelligence", "Machine Learning Lab",
+            LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE
         );
     }
 }

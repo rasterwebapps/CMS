@@ -28,6 +28,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'designations',
+    canActivate: withPermission('DESIGNATION_VIEW', 'DESIGNATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/designation/designation-list/designation-list.component').then(
+        (m) => m.DesignationListComponent
+      ),
+  },
+  {
+    path: 'designations/new',
+    canActivate: withPermission('DESIGNATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/designation/designation-form/designation-form.component').then(
+        (m) => m.DesignationFormComponent
+      ),
+  },
+  {
+    path: 'designations/:id/edit',
+    canActivate: withPermission('DESIGNATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/designation/designation-form/designation-form.component').then(
+        (m) => m.DesignationFormComponent
+      ),
+  },
+  {
     path: 'specialities',
     canActivate: withPermission('DEPT_VIEW', 'DEPT_MANAGE'),
     loadComponent: () =>

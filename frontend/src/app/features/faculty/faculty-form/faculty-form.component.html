@@ -114,15 +114,15 @@
               </div>
               <div class="field-group">
                 <label for="fac-designation" class="field-label">Designation <span class="required-star">*</span></label>
-                <select id="fac-designation" class="field-select" formControlName="designation"
-                  [class.field-select--error]="form.get('designation')?.invalid && form.get('designation')?.touched">
+                <select id="fac-designation" class="field-select" formControlName="designationId"
+                  [class.field-select--error]="form.get('designationId')?.invalid && form.get('designationId')?.touched">
                   <option [ngValue]="null" disabled>Select designation</option>
-                  @for (option of designationOptions; track option.value) {
-                    <option [value]="option.value">{{ option.label }}</option>
+                  @for (d of designations(); track d.id) {
+                    <option [ngValue]="d.id">{{ d.name }}</option>
                   }
                 </select>
-                @if (form.get('designation')?.invalid && form.get('designation')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('designation') }}</p>
+                @if (form.get('designationId')?.invalid && form.get('designationId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('designationId') }}</p>
                 }
               </div>
             </div>
@@ -409,7 +409,8 @@
               </div>
             </div>
 
-            <cms-country-state-district-selector [parentForm]="form" [showPincode]="true" />
+            <cms-country-state-district-selector [parentForm]="form" [showPincode]="true"
+              defaultStateName="Tamil Nadu" defaultDistrictName="Salem" />
           </div>
         </section>
 

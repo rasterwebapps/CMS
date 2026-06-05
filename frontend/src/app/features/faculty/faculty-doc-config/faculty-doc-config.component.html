@@ -35,10 +35,10 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Designation (optional)</mat-label>
-        <mat-select [(ngModel)]="newDesignation" name="designation">
-          <mat-option value="">— Any —</mat-option>
-          @for (opt of DESIGNATION_OPTIONS; track opt.value) {
-            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        <mat-select [(ngModel)]="newDesignationId" name="designationId">
+          <mat-option [value]="null">— Any —</mat-option>
+          @for (d of designations(); track d.id) {
+            <mat-option [value]="d.id">{{ d.name }}</mat-option>
           }
         </mat-select>
       </mat-form-field>

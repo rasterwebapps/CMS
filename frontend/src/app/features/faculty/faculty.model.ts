@@ -1,15 +1,3 @@
-export type Designation =
-  | 'PROFESSOR'
-  | 'ASSOCIATE_PROFESSOR'
-  | 'ASSISTANT_PROFESSOR'
-  | 'LECTURER'
-  | 'SENIOR_LECTURER'
-  | 'LAB_INSTRUCTOR'
-  | 'TEACHING_ASSISTANT'
-  | 'GUEST_FACULTY'
-  | 'VISITING_FACULTY'
-  | 'NURSING_TUTOR'
-  | 'HOD';
 
 export type FacultyStatus =
   | 'ACTIVE'
@@ -81,7 +69,8 @@ export interface Faculty {
   emergencyContactPhone?: string;
   specialityId: number;
   specialityName: string;
-  designation: Designation;
+  designationId: number;
+  designationName: string;
   specialization?: string;
   labExpertise?: string;
   joiningDate: string;
@@ -122,7 +111,7 @@ export interface FacultyRequest {
   email: string;
   phone?: string;
   specialityId: number;
-  designation: Designation;
+  designationId: number;
   specialization?: string;
   labExpertise?: string;
   joiningDate: string;
@@ -170,19 +159,6 @@ export interface FacultyDocument {
   hasFile: boolean;
 }
 
-export const DESIGNATION_OPTIONS: { value: Designation; label: string }[] = [
-  { value: 'PROFESSOR', label: 'Professor' },
-  { value: 'ASSOCIATE_PROFESSOR', label: 'Associate Professor' },
-  { value: 'ASSISTANT_PROFESSOR', label: 'Assistant Professor' },
-  { value: 'LECTURER', label: 'Lecturer' },
-  { value: 'SENIOR_LECTURER', label: 'Senior Lecturer' },
-  { value: 'LAB_INSTRUCTOR', label: 'Lab Instructor' },
-  { value: 'TEACHING_ASSISTANT', label: 'Teaching Assistant' },
-  { value: 'GUEST_FACULTY', label: 'Guest Faculty' },
-  { value: 'VISITING_FACULTY', label: 'Visiting Faculty' },
-  { value: 'NURSING_TUTOR', label: 'Nursing Tutor' },
-  { value: 'HOD', label: 'Head of Speciality' },
-];
 
 export const FACULTY_STATUS_OPTIONS: { value: FacultyStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Active' },
@@ -235,7 +211,8 @@ export interface FacultyDocumentTypeRequirement {
   id: number;
   documentType: string;
   documentTypeLabel: string;
-  designation?: string;
+  designationId?: number;
+  designationName?: string;
   specialityId?: number;
   specialityName?: string;
   qualification?: FacultyQualification;
@@ -245,7 +222,7 @@ export interface FacultyDocumentTypeRequirement {
 
 export interface FacultyDocumentTypeRequirementRequest {
   documentType: string;
-  designation?: string;
+  designationId?: number;
   specialityId?: number;
   qualification?: FacultyQualification;
 }

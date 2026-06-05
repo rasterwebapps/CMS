@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.BankAccountType;
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyQualification;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.FacultyType;
@@ -22,7 +21,8 @@ public record FacultyResponse(
     String phone,
     Long specialityId,
     String specialityName,
-    Designation designation,
+    Long designationId,
+    String designationName,
     String specialization,
     String labExpertise,
     LocalDate joiningDate,

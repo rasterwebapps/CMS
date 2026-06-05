@@ -53,7 +53,8 @@ public class LocalDataSeeder {
             LabSlotRepository labSlotRepo,
             SyllabusRepository syllabusRepo,
             ExperimentRepository experimentRepo,
-            SystemConfigurationRepository sysConfigRepo) {
+            SystemConfigurationRepository sysConfigRepo,
+            DesignationRepository designationRepo) {
         
         return args -> {
             if (specialityRepo.count() > 0) {
@@ -132,16 +133,25 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 6. FACULTY
             // ═══════════════════════════════════════════════════════════════
-            Faculty f1 = facultyRepo.save(createFaculty("Dr. S.", "Tamilarasi", "tamilarasi@sks.edu", "9876543210", "FAC001", deptMSN, Designation.PROFESSOR, "Medical-Surgical Nursing"));
-            Faculty f2 = facultyRepo.save(createFaculty("Dr. K.", "Vasanthi", "vasanthi@sks.edu", "9876543211", "FAC002", deptCHN, Designation.PROFESSOR, "Public Health"));
-            Faculty f3 = facultyRepo.save(createFaculty("Dr. R.", "Meenakshi", "meenakshi@sks.edu", "9876543212", "FAC003", deptCHD, Designation.ASSOCIATE_PROFESSOR, "Child Health Nursing"));
-            Faculty f4 = facultyRepo.save(createFaculty("Dr. P.", "Selvarani", "selvarani@sks.edu", "9876543213", "FAC004", deptOBG, Designation.PROFESSOR, "OBG Nursing"));
-            Faculty f5 = facultyRepo.save(createFaculty("Dr. M.", "Kavitha", "kavitha@sks.edu", "9876543214", "FAC005", deptMHN, Designation.ASSOCIATE_PROFESSOR, "Psychiatric Nursing"));
-            Faculty f6 = facultyRepo.save(createFaculty("Mrs. L.", "Jayalakshmi", "jayalakshmi@sks.edu", "9876543215", "FAC006", deptNFD, Designation.ASSISTANT_PROFESSOR, "Nursing Foundation"));
-            Faculty f7 = facultyRepo.save(createFaculty("Dr. A.", "Padmavathi", "padmavathi@sks.edu", "9876543216", "FAC007", deptNEA, Designation.PROFESSOR, "Nursing Administration"));
-            Faculty f8 = facultyRepo.save(createFaculty("Mrs. B.", "Lakshmi", "lakshmi@sks.edu", "9876543217", "FAC008", deptMSN, Designation.LECTURER, "Medical-Surgical Nursing"));
-            Faculty f9 = facultyRepo.save(createFaculty("Mr. C.", "Rajan", "rajan@sks.edu", "9876543218", "FAC009", deptCHN, Designation.LECTURER, "Community Health"));
-            Faculty f10 = facultyRepo.save(createFaculty("Mrs. D.", "Priya", "priya@sks.edu", "9876543219", "FAC010", deptCHD, Designation.LECTURER, "Child Health Nursing"));
+            DesignationMaster dProf      = designationRepo.findByCodeIgnoreCase("PROFESSOR")
+                .orElseGet(() -> designationRepo.save(new DesignationMaster("Professor", "PROFESSOR", null)));
+            DesignationMaster dAssocProf = designationRepo.findByCodeIgnoreCase("ASSOCIATE_PROFESSOR")
+                .orElseGet(() -> designationRepo.save(new DesignationMaster("Associate Professor", "ASSOCIATE_PROFESSOR", null)));
+            DesignationMaster dAsstProf  = designationRepo.findByCodeIgnoreCase("ASSISTANT_PROFESSOR")
+                .orElseGet(() -> designationRepo.save(new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null)));
+            DesignationMaster dLect      = designationRepo.findByCodeIgnoreCase("LECTURER")
+                .orElseGet(() -> designationRepo.save(new DesignationMaster("Lecturer", "LECTURER", null)));
+
+            Faculty f1 = facultyRepo.save(createFaculty("Dr. S.", "Tamilarasi", "tamilarasi@sks.edu", "9876543210", "FAC001", deptMSN, dProf,      "Medical-Surgical Nursing"));
+            Faculty f2 = facultyRepo.save(createFaculty("Dr. K.", "Vasanthi",   "vasanthi@sks.edu",   "9876543211", "FAC002", deptCHN, dProf,      "Public Health"));
+            Faculty f3 = facultyRepo.save(createFaculty("Dr. R.", "Meenakshi",  "meenakshi@sks.edu",  "9876543212", "FAC003", deptCHD, dAssocProf, "Child Health Nursing"));
+            Faculty f4 = facultyRepo.save(createFaculty("Dr. P.", "Selvarani",  "selvarani@sks.edu",  "9876543213", "FAC004", deptOBG, dProf,      "OBG Nursing"));
+            Faculty f5 = facultyRepo.save(createFaculty("Dr. M.", "Kavitha",    "kavitha@sks.edu",    "9876543214", "FAC005", deptMHN, dAssocProf, "Psychiatric Nursing"));
+            Faculty f6 = facultyRepo.save(createFaculty("Mrs. L.", "Jayalakshmi","jayalakshmi@sks.edu","9876543215", "FAC006", deptNFD, dAsstProf,  "Nursing Foundation"));
+            Faculty f7 = facultyRepo.save(createFaculty("Dr. A.", "Padmavathi", "padmavathi@sks.edu", "9876543216", "FAC007", deptNEA, dProf,      "Nursing Administration"));
+            Faculty f8 = facultyRepo.save(createFaculty("Mrs. B.", "Lakshmi",   "lakshmi@sks.edu",    "9876543217", "FAC008", deptMSN, dLect,      "Medical-Surgical Nursing"));
+            Faculty f9 = facultyRepo.save(createFaculty("Mr. C.", "Rajan",      "rajan@sks.edu",      "9876543218", "FAC009", deptCHN, dLect,      "Community Health"));
+            Faculty f10 = facultyRepo.save(createFaculty("Mrs. D.", "Priya",    "priya@sks.edu",      "9876543219", "FAC010", deptCHD, dLect,      "Child Health Nursing"));
             log.info("✓ Created 10 faculty members");
 
             // ═══════════════════════════════════════════════════════════════
@@ -379,7 +389,7 @@ public class LocalDataSeeder {
         return s;
     }
 
-    private Faculty createFaculty(String firstName, String lastName, String email, String phone, String empCode, Speciality speciality, Designation designation, String specialization) {
+    private Faculty createFaculty(String firstName, String lastName, String email, String phone, String empCode, Speciality speciality, DesignationMaster designation, String specialization) {
         Faculty f = new Faculty();
         f.setFirstName(firstName);
         f.setLastName(lastName);

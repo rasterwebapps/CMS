@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FacultyService } from '../faculty.service';
-import { Faculty, FacultyQualification, DESIGNATION_OPTIONS, FACULTY_QUALIFICATION_OPTIONS } from '../faculty.model';
+import { Faculty, FacultyQualification, FACULTY_QUALIFICATION_OPTIONS } from '../faculty.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -77,9 +77,8 @@ export class FacultyDetailComponent implements OnInit {
     void this.router.navigate(['/lab-schedules']);
   }
 
-  protected getDesignationLabel(designation: string): string {
-    const option = DESIGNATION_OPTIONS.find((o) => o.value === designation);
-    return option ? option.label : designation;
+  protected getDesignationLabel(faculty: Faculty): string {
+    return faculty.designationName ?? '—';
   }
 
   protected qualificationLabel(q: FacultyQualification): string {
