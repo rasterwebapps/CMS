@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { forkJoin } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry, EnquiryConversionPrefillResponse, EnquiryConversionRequest, DocumentVerificationStatus } from '../enquiry.model';
@@ -42,6 +43,7 @@ interface SuccessState {
     ReactiveFormsModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatIconModule,
     InrPipe,
     CmsTourButtonComponent,
     CmsCountryStateDistrictSelectorComponent,

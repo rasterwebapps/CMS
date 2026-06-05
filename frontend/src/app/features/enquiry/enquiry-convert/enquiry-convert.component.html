@@ -41,11 +41,7 @@
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
             <rect x="6" y="14" width="12" height="8"/>
           </svg>
-          @if (!printReady()) {
-            Loading…
-          } @else {
-            Print Admission Form
-          }
+          @if (!printReady()) { Loading… } @else { Print Admission Form }
         </button>
         <button class="btn-download" type="button" (click)="downloadForm()" [disabled]="!printReady()">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -165,7 +161,6 @@
 
       <!-- ── Left: Enquiry Summary ──────────────────────────────────────── -->
       <div id="tour-conv-summary" class="conv-summary anim-rise anim-rise--d1">
-
         <div class="cand-hero">
           <div class="cand-avatar">{{ computeInitials(enquiry()?.name) }}</div>
           <div class="cand-info">
@@ -231,499 +226,482 @@
       <div id="tour-conv-form" class="conv-form anim-rise anim-rise--d2">
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-          <!-- § Student Details ──────────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                </svg>
+          <!-- ── Card 1: Student Details ─────────────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>person</mat-icon>
               </div>
-              <h3 class="section-title">Student Details</h3>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
-                <input id="conv-first-name" class="field-input" formControlName="firstName" placeholder="e.g. Priya"
-                       [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched" />
-                @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-                  <p class="field-error">First name is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
-                <input id="conv-last-name" class="field-input" formControlName="lastName" placeholder="e.g. Sharma"
-                       [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched" />
-                @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
-                  <p class="field-error">Last name is required</p>
-                }
+              <div>
+                <div class="entry-form-card__hdr-title">Student Details</div>
+                <div class="entry-form-card__hdr-sub">Name, contact and enrolment dates</div>
               </div>
             </div>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-first-name" class="field-label">First Name <span class="field-required">*</span></label>
+                  <input id="conv-first-name" class="field-input" formControlName="firstName" placeholder="e.g. Priya"
+                         [class.field-input--error]="form.get('firstName')?.invalid && form.get('firstName')?.touched" />
+                  @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                    <p class="field-error">First name is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-last-name" class="field-label">Last Name <span class="field-required">*</span></label>
+                  <input id="conv-last-name" class="field-input" formControlName="lastName" placeholder="e.g. Sharma"
+                         [class.field-input--error]="form.get('lastName')?.invalid && form.get('lastName')?.touched" />
+                  @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+                    <p class="field-error">Last name is required</p>
+                  }
+                </div>
+              </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
-                <input id="conv-email" class="field-input" type="email" formControlName="email" placeholder="student@example.com"
-                       [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
-                @if (form.get('email')?.hasError('required') && form.get('email')?.touched) {
-                  <p class="field-error">Email is required</p>
-                } @else if (form.get('email')?.hasError('email') && form.get('email')?.touched) {
-                  <p class="field-error">Enter a valid email address</p>
-                }
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-email" class="field-label">Email <span class="field-required">*</span></label>
+                  <input id="conv-email" class="field-input" type="email" formControlName="email" placeholder="student@example.com"
+                         [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+                  @if (form.get('email')?.hasError('required') && form.get('email')?.touched) {
+                    <p class="field-error">Email is required</p>
+                  } @else if (form.get('email')?.hasError('email') && form.get('email')?.touched) {
+                    <p class="field-error">Enter a valid email address</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-phone" class="field-label">Phone <span class="field-required">*</span></label>
+                  <input id="conv-phone" class="field-input" formControlName="phone" placeholder="e.g. 9876543210"
+                         [class.field-input--error]="form.get('phone')?.invalid && form.get('phone')?.touched" />
+                  @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
+                    <p class="field-error">Phone is required</p>
+                  }
+                </div>
               </div>
-              <div class="field-group">
-                <label for="conv-phone" class="field-label">Phone <span class="field-required">*</span></label>
-                <input id="conv-phone" class="field-input" formControlName="phone" placeholder="e.g. 9876543210"
-                       [class.field-input--error]="form.get('phone')?.invalid && form.get('phone')?.touched" />
-                @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
-                  <p class="field-error">Phone is required</p>
-                }
-              </div>
-            </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
-                <input id="conv-adm-date" class="field-input" type="date" formControlName="admissionDate"
-                       [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched" />
-                @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
-                  <p class="field-error">Admission date is required</p>
-                }
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-adm-date" class="field-label">Admission Date <span class="field-required">*</span></label>
+                  <input id="conv-adm-date" class="field-input" type="date" formControlName="admissionDate"
+                         [class.field-input--error]="form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched" />
+                  @if (form.get('admissionDate')?.invalid && form.get('admissionDate')?.touched) {
+                    <p class="field-error">Admission date is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+                  <input id="conv-app-date" class="field-input" type="date" formControlName="applicationDate"
+                         [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched" />
+                  @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
+                    <p class="field-error">Application date is required</p>
+                  }
+                </div>
               </div>
-              <div class="field-group">
-                <label for="conv-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
-                <input id="conv-app-date" class="field-input" type="date" formControlName="applicationDate"
-                       [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched" />
-                @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
-                  <p class="field-error">Application date is required</p>
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- § Academic Year ────────────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-              <h3 class="section-title">Academic Year</h3>
-            </div>
-
-            <div class="field-group">
-              <label for="conv-acad-year" class="field-label">Academic Year <span class="field-required">*</span></label>
-              <select
-                id="conv-acad-year"
-                class="field-input"
-                [value]="selectedAcademicYearId()"
-                (change)="onAcademicYearSelect($event)"
-                [class.field-input--error]="!selectedAcademicYearId() && form.touched"
-              >
-                <option [value]="null" disabled>— Select academic year —</option>
-                @for (y of academicYears(); track y.id) {
-                  <option [value]="y.id">
-                    {{ y.name }}
-                    @if (y.isCurrent) { (Current) }
-                  </option>
-                }
-              </select>
-              @if (academicYears().length === 0) {
-                <p class="field-hint">No academic years configured. Add one from the Academic Year master.</p>
-              }
             </div>
           </div>
 
-          <!-- § Personal Information ──────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
+          <!-- ── Card 2: Academic Year ────────────────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>school</mat-icon>
               </div>
-              <h3 class="section-title">Personal Information</h3>
+              <div>
+                <div class="entry-form-card__hdr-title">Academic Year</div>
+                <div class="entry-form-card__hdr-sub">Joining academic year for this admission</div>
+              </div>
             </div>
-
-            <div class="field-row">
+            <div class="entry-form-card__body">
               <div class="field-group">
-                <label for="conv-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
-                <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth"
-                       [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
-                @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
-                  <p class="field-error">Date of birth is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-gender" class="field-label">Gender <span class="field-required">*</span></label>
-                <select id="conv-gender" class="field-input" formControlName="gender"
-                        [class.field-input--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
-                  <option value="">— Select —</option>
-                  @for (g of genderOptions; track g) {
-                    <option [value]="g">{{ g }}</option>
+                <label for="conv-acad-year" class="field-label">Academic Year <span class="field-required">*</span></label>
+                <select
+                  id="conv-acad-year"
+                  class="field-input"
+                  [value]="selectedAcademicYearId()"
+                  (change)="onAcademicYearSelect($event)"
+                  [class.field-input--error]="!selectedAcademicYearId() && form.touched"
+                >
+                  <option [value]="null" disabled>— Select academic year —</option>
+                  @for (y of academicYears(); track y.id) {
+                    <option [value]="y.id">
+                      {{ y.name }}
+                      @if (y.isCurrent) { (Current) }
+                    </option>
                   }
                 </select>
-                @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
-                  <p class="field-error">Gender is required</p>
+                @if (academicYears().length === 0) {
+                  <p class="field-hint">No academic years configured. Add one from the Academic Year master.</p>
                 }
-              </div>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-aadhar" class="field-label">Aadhar Number <span class="field-required">*</span></label>
-                <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" placeholder="12-digit number"
-                       [class.field-input--error]="form.get('aadharNumber')?.invalid && form.get('aadharNumber')?.touched" />
-                @if (form.get('aadharNumber')?.invalid && form.get('aadharNumber')?.touched) {
-                  <p class="field-error">Aadhar number is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <span class="field-label" aria-hidden="true">&nbsp;</span>
-                <label class="consent-label-wrap">
-                  <input type="checkbox" class="consent-checkbox" formControlName="physicalDisability" />
-                  <span class="consent-label">Physical Disability</span>
-                </label>
               </div>
             </div>
           </div>
 
-          <!-- § Demographics ───────────────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                </svg>
+          <!-- ── Card 3: Personal Information ───────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>badge</mat-icon>
               </div>
-              <h3 class="section-title">Demographics</h3>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-nationality" class="field-label">Nationality <span class="field-required">*</span></label>
-                <input id="conv-nationality" class="field-input" formControlName="nationality" placeholder="e.g. Indian"
-                       [class.field-input--error]="form.get('nationality')?.invalid && form.get('nationality')?.touched" />
-                @if (form.get('nationality')?.invalid && form.get('nationality')?.touched) {
-                  <p class="field-error">Nationality is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-religion" class="field-label">Religion <span class="field-required">*</span></label>
-                <input id="conv-religion" class="field-input" formControlName="religion"
-                       [class.field-input--error]="form.get('religion')?.invalid && form.get('religion')?.touched" />
-                @if (form.get('religion')?.invalid && form.get('religion')?.touched) {
-                  <p class="field-error">Religion is required</p>
-                }
+              <div>
+                <div class="entry-form-card__hdr-title">Personal Information</div>
+                <div class="entry-form-card__hdr-sub">Date of birth, identity and medical details</div>
               </div>
             </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-community" class="field-label">Community <span class="field-required">*</span></label>
-                <select id="conv-community" class="field-input" formControlName="communityCategory"
-                        [class.field-input--error]="form.get('communityCategory')?.invalid && form.get('communityCategory')?.touched">
-                  <option value="">— Select —</option>
-                  @for (c of communities(); track c.id) {
-                    <option [value]="c.code">{{ c.name }}</option>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
+                  <input id="conv-dob" class="field-input" type="date" formControlName="dateOfBirth"
+                         [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
+                  @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
+                    <p class="field-error">Date of birth is required</p>
                   }
-                </select>
-                @if (form.get('communityCategory')?.invalid && form.get('communityCategory')?.touched) {
-                  <p class="field-error">Community is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-caste" class="field-label">Caste <span class="field-required">*</span></label>
-                <input id="conv-caste" class="field-input" formControlName="caste"
-                       [class.field-input--error]="form.get('caste')?.invalid && form.get('caste')?.touched" />
-                @if (form.get('caste')?.invalid && form.get('caste')?.touched) {
-                  <p class="field-error">Caste is required</p>
-                }
-              </div>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-blood" class="field-label">Blood Group <span class="field-required">*</span></label>
-                <select id="conv-blood" class="field-input" formControlName="bloodGroup"
-                        [class.field-input--error]="form.get('bloodGroup')?.invalid && form.get('bloodGroup')?.touched">
-                  <option value="">— Select —</option>
-                  @for (b of bloodGroups(); track b.id) {
-                    <option [value]="b.code">{{ b.name }}</option>
+                </div>
+                <div class="field-group">
+                  <label for="conv-gender" class="field-label">Gender <span class="field-required">*</span></label>
+                  <select id="conv-gender" class="field-input" formControlName="gender"
+                          [class.field-input--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
+                    <option value="">— Select —</option>
+                    @for (g of genderOptions; track g) {
+                      <option [value]="g">{{ g }}</option>
+                    }
+                  </select>
+                  @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
+                    <p class="field-error">Gender is required</p>
                   }
-                </select>
-                @if (form.get('bloodGroup')?.invalid && form.get('bloodGroup')?.touched) {
-                  <p class="field-error">Blood group is required</p>
-                }
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-aadhar" class="field-label">Aadhar Number <span class="field-required">*</span></label>
+                  <input id="conv-aadhar" class="field-input" formControlName="aadharNumber" placeholder="12-digit number"
+                         [class.field-input--error]="form.get('aadharNumber')?.invalid && form.get('aadharNumber')?.touched" />
+                  @if (form.get('aadharNumber')?.invalid && form.get('aadharNumber')?.touched) {
+                    <p class="field-error">Aadhar number is required</p>
+                  }
+                </div>
+                <div class="field-group conv-disability-field">
+                  <span class="field-label" aria-hidden="true">&nbsp;</span>
+                  <label class="consent-label-wrap">
+                    <input type="checkbox" class="consent-checkbox" formControlName="physicalDisability" />
+                    <span class="consent-label">Physical Disability</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- § Family Information ─────────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
+          <!-- ── Card 4: Demographics ────────────────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>diversity_3</mat-icon>
               </div>
-              <h3 class="section-title">Family Information</h3>
-            </div>
-
-            <!-- Father -->
-            <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
-              <div class="field-group">
-                <label for="conv-father" class="field-label">Father's Name <span class="field-required">*</span></label>
-                <input id="conv-father" class="field-input" formControlName="fatherName"
-                       [class.field-input--error]="form.get('fatherName')?.invalid && form.get('fatherName')?.touched" />
-                @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
-                  <p class="field-error">Father's name is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-father-phone" class="field-label">Father's Mobile <span class="field-required">*</span></label>
-                <input id="conv-father-phone" class="field-input" formControlName="fatherPhone" type="tel" inputmode="tel"
-                       [class.field-input--error]="form.get('fatherPhone')?.invalid && form.get('fatherPhone')?.touched" />
-                @if (form.get('fatherPhone')?.invalid && form.get('fatherPhone')?.touched) {
-                  <p class="field-error">Father's mobile is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-father-email" class="field-label">Father's Email <span class="field-required">*</span></label>
-                <input id="conv-father-email" class="field-input" formControlName="fatherEmail" type="email"
-                       [class.field-input--error]="form.get('fatherEmail')?.invalid && form.get('fatherEmail')?.touched" />
-                @if (form.get('fatherEmail')?.hasError('required') && form.get('fatherEmail')?.touched) {
-                  <p class="field-error">Father's email is required</p>
-                } @else if (form.get('fatherEmail')?.hasError('email') && form.get('fatherEmail')?.touched) {
-                  <p class="field-error">Enter a valid email address</p>
-                }
+              <div>
+                <div class="entry-form-card__hdr-title">Demographics</div>
+                <div class="entry-form-card__hdr-sub">Nationality, religion and community</div>
               </div>
             </div>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-nationality" class="field-label">Nationality <span class="field-required">*</span></label>
+                  <input id="conv-nationality" class="field-input" formControlName="nationality" placeholder="e.g. Indian"
+                         [class.field-input--error]="form.get('nationality')?.invalid && form.get('nationality')?.touched" />
+                  @if (form.get('nationality')?.invalid && form.get('nationality')?.touched) {
+                    <p class="field-error">Nationality is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-religion" class="field-label">Religion <span class="field-required">*</span></label>
+                  <input id="conv-religion" class="field-input" formControlName="religion"
+                         [class.field-input--error]="form.get('religion')?.invalid && form.get('religion')?.touched" />
+                  @if (form.get('religion')?.invalid && form.get('religion')?.touched) {
+                    <p class="field-error">Religion is required</p>
+                  }
+                </div>
+              </div>
 
-            <!-- Mother -->
-            <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr">
-              <div class="field-group">
-                <label for="conv-mother" class="field-label">Mother's Name <span class="field-required">*</span></label>
-                <input id="conv-mother" class="field-input" formControlName="motherName"
-                       [class.field-input--error]="form.get('motherName')?.invalid && form.get('motherName')?.touched" />
-                @if (form.get('motherName')?.invalid && form.get('motherName')?.touched) {
-                  <p class="field-error">Mother's name is required</p>
-                }
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-community" class="field-label">Community <span class="field-required">*</span></label>
+                  <select id="conv-community" class="field-input" formControlName="communityCategory"
+                          [class.field-input--error]="form.get('communityCategory')?.invalid && form.get('communityCategory')?.touched">
+                    <option value="">— Select —</option>
+                    @for (c of communities(); track c.id) {
+                      <option [value]="c.code">{{ c.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('communityCategory')?.invalid && form.get('communityCategory')?.touched) {
+                    <p class="field-error">Community is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-caste" class="field-label">Caste <span class="field-required">*</span></label>
+                  <input id="conv-caste" class="field-input" formControlName="caste"
+                         [class.field-input--error]="form.get('caste')?.invalid && form.get('caste')?.touched" />
+                  @if (form.get('caste')?.invalid && form.get('caste')?.touched) {
+                    <p class="field-error">Caste is required</p>
+                  }
+                </div>
               </div>
-              <div class="field-group">
-                <label for="conv-mother-phone" class="field-label">Mother's Mobile <span class="field-required">*</span></label>
-                <input id="conv-mother-phone" class="field-input" formControlName="motherPhone" type="tel" inputmode="tel"
-                       [class.field-input--error]="form.get('motherPhone')?.invalid && form.get('motherPhone')?.touched" />
-                @if (form.get('motherPhone')?.invalid && form.get('motherPhone')?.touched) {
-                  <p class="field-error">Mother's mobile is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-mother-email" class="field-label">Mother's Email <span class="field-required">*</span></label>
-                <input id="conv-mother-email" class="field-input" formControlName="motherEmail" type="email"
-                       [class.field-input--error]="form.get('motherEmail')?.invalid && form.get('motherEmail')?.touched" />
-                @if (form.get('motherEmail')?.hasError('required') && form.get('motherEmail')?.touched) {
-                  <p class="field-error">Mother's email is required</p>
-                } @else if (form.get('motherEmail')?.hasError('email') && form.get('motherEmail')?.touched) {
-                  <p class="field-error">Enter a valid email address</p>
-                }
+
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-blood" class="field-label">Blood Group <span class="field-required">*</span></label>
+                  <select id="conv-blood" class="field-input" formControlName="bloodGroup"
+                          [class.field-input--error]="form.get('bloodGroup')?.invalid && form.get('bloodGroup')?.touched">
+                    <option value="">— Select —</option>
+                    @for (b of bloodGroups(); track b.id) {
+                      <option [value]="b.code">{{ b.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('bloodGroup')?.invalid && form.get('bloodGroup')?.touched) {
+                    <p class="field-error">Blood group is required</p>
+                  }
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- § Address ──────────────────────────────────────────────────── -->
-          <div class="form-section" formGroupName="address">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
+          <!-- ── Card 5: Family Information ─────────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>family_restroom</mat-icon>
               </div>
-              <h3 class="section-title">Address</h3>
-            </div>
-
-            <div class="field-group">
-              <label for="conv-postal" class="field-label">Door No. / Flat / Building <span class="field-required">*</span></label>
-              <input id="conv-postal" class="field-input" formControlName="postalAddress"
-                     placeholder="e.g. 12B, 3rd floor, Green Towers"
-                     [class.field-input--error]="form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched" />
-              @if (form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched) {
-                <p class="field-error">Postal address is required</p>
-              }
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-street" class="field-label">Street <span class="field-required">*</span></label>
-                <input id="conv-street" class="field-input" formControlName="street"
-                       [class.field-input--error]="form.get('address.street')?.invalid && form.get('address.street')?.touched" />
-                @if (form.get('address.street')?.invalid && form.get('address.street')?.touched) {
-                  <p class="field-error">Street is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-city" class="field-label">City <span class="field-required">*</span></label>
-                <input id="conv-city" class="field-input" formControlName="city"
-                       [class.field-input--error]="form.get('address.city')?.invalid && form.get('address.city')?.touched" />
-                @if (form.get('address.city')?.invalid && form.get('address.city')?.touched) {
-                  <p class="field-error">City is required</p>
-                }
+              <div>
+                <div class="entry-form-card__hdr-title">Family Information</div>
+                <div class="entry-form-card__hdr-sub">Parents' names and contact details</div>
               </div>
             </div>
-
-            <div class="field-row">
-              <cms-country-state-district-selector
-                [parentForm]="addressForm"
-                [countryRequired]="true"
-                [stateRequired]="true"
-                [districtRequired]="true"
-                [showPincode]="true"
-                defaultStateName="Tamil Nadu"
-                defaultDistrictName="Salem"
-              />
-            </div>
-          </div>
-
-          <!-- § Declaration & Consent ──────────────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="9 11 12 14 22 4"/>
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                </svg>
+            <div class="entry-form-card__body">
+              <p class="conv-subsection-label">Father</p>
+              <div class="field-row conv-3col">
+                <div class="field-group">
+                  <label for="conv-father" class="field-label">Father's Name <span class="field-required">*</span></label>
+                  <input id="conv-father" class="field-input" formControlName="fatherName"
+                         [class.field-input--error]="form.get('fatherName')?.invalid && form.get('fatherName')?.touched" />
+                  @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
+                    <p class="field-error">Father's name is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-father-phone" class="field-label">Father's Mobile <span class="field-required">*</span></label>
+                  <input id="conv-father-phone" class="field-input" formControlName="fatherPhone" type="tel" inputmode="tel"
+                         [class.field-input--error]="form.get('fatherPhone')?.invalid && form.get('fatherPhone')?.touched" />
+                  @if (form.get('fatherPhone')?.invalid && form.get('fatherPhone')?.touched) {
+                    <p class="field-error">Father's mobile is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-father-email" class="field-label">Father's Email <span class="field-required">*</span></label>
+                  <input id="conv-father-email" class="field-input" formControlName="fatherEmail" type="email"
+                         [class.field-input--error]="form.get('fatherEmail')?.invalid && form.get('fatherEmail')?.touched" />
+                  @if (form.get('fatherEmail')?.hasError('required') && form.get('fatherEmail')?.touched) {
+                    <p class="field-error">Father's email is required</p>
+                  } @else if (form.get('fatherEmail')?.hasError('email') && form.get('fatherEmail')?.touched) {
+                    <p class="field-error">Enter a valid email address</p>
+                  }
+                </div>
               </div>
-              <h3 class="section-title">Declaration &amp; Consent</h3>
-            </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-decl-place" class="field-label">Declaration Place <span class="field-required">*</span></label>
-                <input id="conv-decl-place" class="field-input" formControlName="declarationPlace"
-                       [class.field-input--error]="form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched" />
-                @if (form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched) {
-                  <p class="field-error">Declaration place is required</p>
-                }
-              </div>
-              <div class="field-group">
-                <label for="conv-decl-date" class="field-label">Declaration Date <span class="field-required">*</span></label>
-                <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate"
-                       [class.field-input--error]="form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched" />
-                @if (form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched) {
-                  <p class="field-error">Declaration date is required</p>
-                }
-              </div>
-            </div>
-
-            <div class="consent-row">
-              <div class="consent-item">
-                <label class="consent-label-wrap">
-                  <input type="checkbox" class="consent-checkbox" formControlName="parentConsentGiven" />
-                  <span class="consent-label">Parent / Guardian consent given <span class="field-required">*</span></span>
-                </label>
-                @if (form.get('parentConsentGiven')?.invalid && form.get('parentConsentGiven')?.touched) {
-                  <p class="field-error consent-error">Parent / Guardian consent is required</p>
-                }
-              </div>
-              <div class="consent-item">
-                <label class="consent-label-wrap">
-                  <input type="checkbox" class="consent-checkbox" formControlName="applicantConsentGiven" />
-                  <span class="consent-label">Applicant consent given <span class="field-required">*</span></span>
-                </label>
-                @if (form.get('applicantConsentGiven')?.invalid && form.get('applicantConsentGiven')?.touched) {
-                  <p class="field-error consent-error">Applicant consent is required</p>
-                }
+              <p class="conv-subsection-label">Mother</p>
+              <div class="field-row conv-3col">
+                <div class="field-group">
+                  <label for="conv-mother" class="field-label">Mother's Name <span class="field-required">*</span></label>
+                  <input id="conv-mother" class="field-input" formControlName="motherName"
+                         [class.field-input--error]="form.get('motherName')?.invalid && form.get('motherName')?.touched" />
+                  @if (form.get('motherName')?.invalid && form.get('motherName')?.touched) {
+                    <p class="field-error">Mother's name is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-mother-phone" class="field-label">Mother's Mobile <span class="field-required">*</span></label>
+                  <input id="conv-mother-phone" class="field-input" formControlName="motherPhone" type="tel" inputmode="tel"
+                         [class.field-input--error]="form.get('motherPhone')?.invalid && form.get('motherPhone')?.touched" />
+                  @if (form.get('motherPhone')?.invalid && form.get('motherPhone')?.touched) {
+                    <p class="field-error">Mother's mobile is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-mother-email" class="field-label">Mother's Email <span class="field-required">*</span></label>
+                  <input id="conv-mother-email" class="field-input" formControlName="motherEmail" type="email"
+                         [class.field-input--error]="form.get('motherEmail')?.invalid && form.get('motherEmail')?.touched" />
+                  @if (form.get('motherEmail')?.hasError('required') && form.get('motherEmail')?.touched) {
+                    <p class="field-error">Mother's email is required</p>
+                  } @else if (form.get('motherEmail')?.hasError('email') && form.get('motherEmail')?.touched) {
+                    <p class="field-error">Enter a valid email address</p>
+                  }
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- § Consent Documents — OPTIONAL ─────────────────────────────── -->
-          <div class="form-section">
-            <div class="section-hdr">
-              <div class="section-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-                </svg>
+          <!-- ── Card 6: Address ────────────────────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>location_on</mat-icon>
               </div>
-              <h3 class="section-title">Consent Documents</h3>
+              <div>
+                <div class="entry-form-card__hdr-title">Address</div>
+                <div class="entry-form-card__hdr-sub">Current residential address</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body" formGroupName="address">
+              <div class="field-group">
+                <label for="conv-postal" class="field-label">Door No. / Flat / Building <span class="field-required">*</span></label>
+                <input id="conv-postal" class="field-input" formControlName="postalAddress"
+                       placeholder="e.g. 12B, 3rd floor, Green Towers"
+                       [class.field-input--error]="form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched" />
+                @if (form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched) {
+                  <p class="field-error">Postal address is required</p>
+                }
+              </div>
+
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-street" class="field-label">Street <span class="field-required">*</span></label>
+                  <input id="conv-street" class="field-input" formControlName="street"
+                         [class.field-input--error]="form.get('address.street')?.invalid && form.get('address.street')?.touched" />
+                  @if (form.get('address.street')?.invalid && form.get('address.street')?.touched) {
+                    <p class="field-error">Street is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-city" class="field-label">City <span class="field-required">*</span></label>
+                  <input id="conv-city" class="field-input" formControlName="city"
+                         [class.field-input--error]="form.get('address.city')?.invalid && form.get('address.city')?.touched" />
+                  @if (form.get('address.city')?.invalid && form.get('address.city')?.touched) {
+                    <p class="field-error">City is required</p>
+                  }
+                </div>
+              </div>
+
+              <div class="field-row">
+                <cms-country-state-district-selector
+                  [parentForm]="addressForm"
+                  [countryRequired]="true"
+                  [stateRequired]="true"
+                  [districtRequired]="true"
+                  [showPincode]="true"
+                  defaultStateName="Tamil Nadu"
+                  defaultDistrictName="Salem"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Card 7: Declaration & Consent ─────────────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>verified</mat-icon>
+              </div>
+              <div>
+                <div class="entry-form-card__hdr-title">Declaration &amp; Consent</div>
+                <div class="entry-form-card__hdr-sub">Confirmation of details and signatures</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-decl-place" class="field-label">Declaration Place <span class="field-required">*</span></label>
+                  <input id="conv-decl-place" class="field-input" formControlName="declarationPlace"
+                         [class.field-input--error]="form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched" />
+                  @if (form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched) {
+                    <p class="field-error">Declaration place is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="conv-decl-date" class="field-label">Declaration Date <span class="field-required">*</span></label>
+                  <input id="conv-decl-date" class="field-input" type="date" formControlName="declarationDate"
+                         [class.field-input--error]="form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched" />
+                  @if (form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched) {
+                    <p class="field-error">Declaration date is required</p>
+                  }
+                </div>
+              </div>
+
+              <div class="consent-row">
+                <div class="consent-item">
+                  <label class="consent-label-wrap">
+                    <input type="checkbox" class="consent-checkbox" formControlName="parentConsentGiven" />
+                    <span class="consent-label">Parent / Guardian consent given <span class="field-required">*</span></span>
+                  </label>
+                  @if (form.get('parentConsentGiven')?.invalid && form.get('parentConsentGiven')?.touched) {
+                    <p class="field-error consent-error">Parent / Guardian consent is required</p>
+                  }
+                </div>
+                <div class="consent-item">
+                  <label class="consent-label-wrap">
+                    <input type="checkbox" class="consent-checkbox" formControlName="applicantConsentGiven" />
+                    <span class="consent-label">Applicant consent given <span class="field-required">*</span></span>
+                  </label>
+                  @if (form.get('applicantConsentGiven')?.invalid && form.get('applicantConsentGiven')?.touched) {
+                    <p class="field-error consent-error">Applicant consent is required</p>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Card 8: Consent Documents (optional) ───────────────────── -->
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <mat-icon>upload_file</mat-icon>
+              </div>
+              <div class="entry-form-card__hdr-text">
+                <div class="entry-form-card__hdr-title">Consent Documents</div>
+                <div class="entry-form-card__hdr-sub">Attach scanned consent forms if available — can also be uploaded later</div>
+              </div>
               <span class="section-optional">Optional</span>
             </div>
-
-            <p class="section-desc">Attach scanned copies of signed consent forms if available. These can also be uploaded later from the document collection screen.</p>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-parent-consent-file" class="field-label">Parent / Guardian Consent Form</label>
-                <div class="file-upload-wrap">
-                  <label for="conv-parent-consent-file" class="file-upload-btn"
-                         [class.file-upload-btn--selected]="parentConsentFile()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    @if (parentConsentFile()) {
-                      <span class="file-name">{{ parentConsentFile()!.name }}</span>
-                      <span class="file-size">{{ (parentConsentFile()!.size / 1024).toFixed(0) }} KB</span>
-                    } @else {
-                      Choose file…
-                    }
-                  </label>
-                  <input
-                    id="conv-parent-consent-file"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    class="file-input-hidden"
-                    (change)="onParentConsentFile($event)"
-                  />
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="conv-parent-consent-file" class="field-label">Parent / Guardian Consent Form</label>
+                  <div class="file-upload-wrap">
+                    <label for="conv-parent-consent-file" class="file-upload-btn"
+                           [class.file-upload-btn--selected]="parentConsentFile()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      @if (parentConsentFile()) {
+                        <span class="file-name">{{ parentConsentFile()!.name }}</span>
+                        <span class="file-size">{{ (parentConsentFile()!.size / 1024).toFixed(0) }} KB</span>
+                      } @else { Choose file… }
+                    </label>
+                    <input id="conv-parent-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                           class="file-input-hidden" (change)="onParentConsentFile($event)" />
+                  </div>
+                  <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
                 </div>
-                <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
-              </div>
 
-              <div class="field-group">
-                <label for="conv-applicant-consent-file" class="field-label">Applicant Consent Form</label>
-                <div class="file-upload-wrap">
-                  <label for="conv-applicant-consent-file" class="file-upload-btn"
-                         [class.file-upload-btn--selected]="applicantConsentFile()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    @if (applicantConsentFile()) {
-                      <span class="file-name">{{ applicantConsentFile()!.name }}</span>
-                      <span class="file-size">{{ (applicantConsentFile()!.size / 1024).toFixed(0) }} KB</span>
-                    } @else {
-                      Choose file…
-                    }
-                  </label>
-                  <input
-                    id="conv-applicant-consent-file"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    class="file-input-hidden"
-                    (change)="onApplicantConsentFile($event)"
-                  />
+                <div class="field-group">
+                  <label for="conv-applicant-consent-file" class="field-label">Applicant Consent Form</label>
+                  <div class="file-upload-wrap">
+                    <label for="conv-applicant-consent-file" class="file-upload-btn"
+                           [class.file-upload-btn--selected]="applicantConsentFile()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      @if (applicantConsentFile()) {
+                        <span class="file-name">{{ applicantConsentFile()!.name }}</span>
+                        <span class="file-size">{{ (applicantConsentFile()!.size / 1024).toFixed(0) }} KB</span>
+                      } @else { Choose file… }
+                    </label>
+                    <input id="conv-applicant-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                           class="file-input-hidden" (change)="onApplicantConsentFile($event)" />
+                  </div>
+                  <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
                 </div>
-                <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
               </div>
             </div>
           </div>
