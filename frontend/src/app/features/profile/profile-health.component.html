@@ -80,7 +80,7 @@
       <div class="ph-identity__text">
         <h1 class="ph-name">{{ id.displayName }}</h1>
         @if (f) {
-          <p class="ph-role">{{ f.designation | titlecase }} · {{ f.specialityName }}</p>
+          <p class="ph-role">{{ f.designationName | titlecase }} · {{ f.specialityName }}</p>
         }
         @if (s) {
           <p class="ph-role">{{ s.programName }} · Year {{ s.yearOfStudy }}</p>

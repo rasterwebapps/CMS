@@ -122,7 +122,7 @@
                   } @else {
                     @for (faculty of faculties(); track faculty.id) {
                       <option [ngValue]="faculty.id">
-                        {{ faculty.fullName }}{{ faculty.designation ? ' (' + faculty.designation + ')' : '' }}
+                        {{ faculty.fullName }}{{ faculty.designationName ? ' (' + faculty.designationName + ')' : '' }}
                       </option>
                     }
                   }

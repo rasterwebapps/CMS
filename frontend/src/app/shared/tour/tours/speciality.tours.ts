@@ -4,9 +4,9 @@ export const DEPT_LIST_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '👋 Welcome to Departments',
+        title: '👋 Welcome to Specialities',
         description:
-          'This screen lets you view and manage all academic departments in the college. Let\'s walk through the key areas — it only takes a minute.',
+          'This screen lets you view and manage all academic specialities in the college. Let\'s walk through the key areas — it only takes a minute.',
         side: 'over',
         align: 'center',
       },
@@ -16,7 +16,7 @@ export const DEPT_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Page Summary',
         description:
-          'At a glance: total departments and how many have a Head of Department assigned. These stats update as you add or edit departments.',
+          'At a glance: total specialities and how many have a Head of Speciality assigned. These stats update as you add or edit specialities.',
         side: 'bottom',
         align: 'start',
       },
@@ -24,9 +24,9 @@ export const DEPT_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-dept-add-btn',
       popover: {
-        title: 'Add a Department',
+        title: 'Add a Speciality',
         description:
-          'Click here to open the department creation form. You\'ll be able to set the name, a short code, assign a Head, and add a description.',
+          'Click here to open the speciality creation form. You\'ll be able to set the name, a short code, assign a Head, and add a description.',
         side: 'bottom',
         align: 'end',
       },
@@ -36,7 +36,7 @@ export const DEPT_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Search & Filter',
         description:
-          'Type a department name, code, or HOD name here to instantly filter the list. The search works across both card and table views.',
+          'Type a speciality name, code, or HOD name here to instantly filter the list. The search works across both card and table views.',
         side: 'bottom',
         align: 'start',
       },
@@ -54,9 +54,9 @@ export const DEPT_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-dept-content',
       popover: {
-        title: 'Department Cards',
+        title: 'Speciality Cards',
         description:
-          'Each card shows the department code, name, and assigned HOD. Hover over a card to reveal <strong>Edit</strong> and <strong>Delete</strong> actions.',
+          'Each card shows the speciality code, name, and assigned HOD. Hover over a card to reveal <strong>Edit</strong> and <strong>Delete</strong> actions.',
         side: 'top',
         align: 'start',
       },
@@ -65,7 +65,7 @@ export const DEPT_LIST_TOUR: TourDefinition = {
       popover: {
         title: '✅ You\'re all set!',
         description:
-          'You now know how to navigate the Departments screen. You can start this tour again any time by clicking <em>Take a Tour</em>.',
+          'You now know how to navigate the Specialities screen. You can start this tour again any time by clicking <em>Take a Tour</em>.',
         side: 'over',
         align: 'center',
       },
@@ -77,9 +77,9 @@ export const DEPT_FORM_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '📋 Department Form',
+        title: '📋 Speciality Form',
         description:
-          'This form lets you create or edit an academic department. We\'ll walk through each field and the live preview on the right.',
+          'This form lets you create or edit an academic speciality. We\'ll walk through each field and the live preview on the right.',
         side: 'over',
         align: 'center',
       },
@@ -87,9 +87,9 @@ export const DEPT_FORM_TOUR: TourDefinition = {
     {
       element: '#dept-name',
       popover: {
-        title: 'Department Name',
+        title: 'Speciality Name',
         description:
-          'Enter the full official name of the department — e.g., <em>General Nursing</em> or <em>Medical Surgical Nursing</em>. This is required.',
+          'Enter the full official name of the speciality — e.g., <em>General Nursing</em> or <em>Medical Surgical Nursing</em>. This is required.',
         side: 'bottom',
         align: 'start',
       },
@@ -97,7 +97,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
     {
       element: '#tour-dept-code-group',
       popover: {
-        title: 'Department Code',
+        title: 'Speciality Code',
         description:
           'A short uppercase identifier (max 20 characters) used across the system — e.g., <strong>GN</strong>, <strong>MSN</strong>. The preview badge on the right updates as you type.',
         side: 'bottom',
@@ -109,7 +109,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Description',
         description:
-          'Optional but helpful. Briefly describe the department\'s focus area and the programmes it offers.',
+          'Optional but helpful. Briefly describe the speciality\'s focus area and the programmes it offers.',
         side: 'bottom',
         align: 'start',
       },
@@ -117,7 +117,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
     {
       element: '#dept-hod',
       popover: {
-        title: 'Head of Department',
+        title: 'Head of Speciality',
         description:
           'Enter the HOD\'s full name including title — e.g., <em>Dr. Priya Sharma</em>. Their initials will appear as an avatar throughout the app.',
         side: 'bottom',
@@ -129,7 +129,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Live Preview',
         description:
-          'This preview card updates in real time as you fill in the form — exactly how the department will look on the list screen.',
+          'This preview card updates in real time as you fill in the form — exactly how the speciality will look on the list screen.',
         side: 'left',
         align: 'start',
       },
@@ -139,7 +139,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
       popover: {
         title: 'Guidance Tips',
         description:
-          'These tips explain best practices for each field — keep them in mind when setting up a department.',
+          'These tips explain best practices for each field — keep them in mind when setting up a speciality.',
         side: 'left',
         align: 'start',
       },
@@ -147,9 +147,9 @@ export const DEPT_FORM_TOUR: TourDefinition = {
     {
       element: '#tour-dept-submit',
       popover: {
-        title: 'Save the Department',
+        title: 'Save the Speciality',
         description:
-          'When all required fields are filled, click here to create (or update) the department. The button is disabled while saving.',
+          'When all required fields are filled, click here to create (or update) the speciality. The button is disabled while saving.',
         side: 'top',
         align: 'end',
       },
@@ -158,7 +158,7 @@ export const DEPT_FORM_TOUR: TourDefinition = {
       popover: {
         title: '✅ Ready to go!',
         description:
-          'You know everything about the department form. Fill in the details and hit <strong>Create Department</strong> to get started.',
+          'You know everything about the speciality form. Fill in the details and hit <strong>Create Speciality</strong> to get started.',
         side: 'over',
         align: 'center',
       },

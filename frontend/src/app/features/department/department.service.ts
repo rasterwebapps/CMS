@@ -2,29 +2,29 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Department, DepartmentRequest } from './department.model';
+import { Speciality, SpecialityRequest } from './department.model';
 
 @Injectable({
   providedIn: 'root',
 })
-export class DepartmentService {
+export class SpecialityService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/departments`;
+  private readonly baseUrl = `${environment.apiUrl}/specialities`;
 
-  getAll(): Observable<Department[]> {
-    return this.http.get<Department[]>(this.baseUrl);
+  getAll(): Observable<Speciality[]> {
+    return this.http.get<Speciality[]>(this.baseUrl);
   }
 
-  getById(id: number): Observable<Department> {
-    return this.http.get<Department>(`${this.baseUrl}/${id}`);
+  getById(id: number): Observable<Speciality> {
+    return this.http.get<Speciality>(`${this.baseUrl}/${id}`);
   }
 
-  create(request: DepartmentRequest): Observable<Department> {
-    return this.http.post<Department>(this.baseUrl, request);
+  create(request: SpecialityRequest): Observable<Speciality> {
+    return this.http.post<Speciality>(this.baseUrl, request);
   }
 
-  update(id: number, request: DepartmentRequest): Observable<Department> {
-    return this.http.put<Department>(`${this.baseUrl}/${id}`, request);
+  update(id: number, request: SpecialityRequest): Observable<Speciality> {
+    return this.http.put<Speciality>(`${this.baseUrl}/${id}`, request);
   }
 
   delete(id: number): Observable<void> {

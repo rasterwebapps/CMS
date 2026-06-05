@@ -82,7 +82,7 @@
 
         @if (f) {
           <div class="hero__roles">
-            <span class="role-chip role-chip--primary">{{ f.designation | titlecase }}</span>
+            <span class="role-chip role-chip--primary">{{ f.designationName | titlecase }}</span>
             <span class="role-sep">·</span>
             <span class="role-text">{{ f.specialityName }}</span>
             @if (f.highestQualification) {
@@ -187,7 +187,7 @@
             <div class="tag-cloud">
               @if (f) {
                 <span class="tag">{{ f.specialityName }}</span>
-                @if (f.designation) { <span class="tag">{{ f.designation | titlecase }}</span> }
+                @if (f.designationName) { <span class="tag">{{ f.designationName | titlecase }}</span> }
                 @if (f.highestQualification) { <span class="tag">{{ qualificationLabel(f.highestQualification) }}</span> }
               }
               @if (s) {
