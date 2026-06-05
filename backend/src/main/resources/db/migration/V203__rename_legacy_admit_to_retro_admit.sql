@@ -1,4 +1,4 @@
-UPDATE permissions SET code = 'RETRO_ADMIT', name = 'Retro Admit' WHERE code = 'LEGACY_ADMIT';
+UPDATE permissions SET code = 'RETRO_ADMIT', display_name = 'Retro Admit' WHERE code = 'LEGACY_ADMIT';
 
 -- Sync DEV_ADMIN and SUPPORT_ADMIN to hold every permission (catches all gaps since V129)
 INSERT INTO role_permissions (role_id, permission_id)
